@@ -177,7 +177,9 @@ on every transport. See the [OAuth Guide](../protocol/OAuth%20Guide.md) and the
   that never import their code. See [Sandbox](Sandbox.md).
 - **Federated tools** are `FederatedTool` instances (`sajha/federation/tool.py`) that
   `FederationManager` registers as `<prefix>__<name>` and routes to an upstream MCP server
-  on its own background event loop. See [Federation](Federation.md).
+  on its own background event loop. See [Federation](Federation.md). `__` in a tool name is
+  reserved for such namespaced tools; the registry refuses any other tool that uses it
+  (`sajha/tools/naming.py`).
 
 ## 6. Composition
 
@@ -345,7 +347,11 @@ forwarded calls), Remote tools (`/admin/sajhanet/tools`) and the SAJHA Net admin
 admission panel (first-use keys, pins or the CA) and runtime seeds are managed. The map and the
 admission panel are drawn by `static/js/sajhanet.js` in plain SVG on the theme tokens. Beside
 the wordmark, the navbar badge `Net · <instance name>` names the instance a user is on and links to
-Instances ([SAJHA Net](SAJHA%20Net.md) §17).
+Instances ([SAJHA Net](SAJHA%20Net.md) §17). Administrators manage the MCP servers this instance
+embeds and proxies calls to on **Proxied MCP servers** (`/admin/federation`): one row per server, from
+`federation.upstreams`, `config/mcp_servers.json` or the page itself, with its vendor, internal or
+external, prefix, transport, status (including "needs sign-in (not supported yet)") and tools, then
+each server's discovered items and their approval ([Federation](Federation.md)).
 
 ## 11. Clients, the CLI and stdio
 

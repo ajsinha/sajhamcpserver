@@ -14,6 +14,59 @@ Newest first. The current version is `app.version` in `config/application.yml`.
   `ca.auto_init`; owner decision): audited, with a warning notice to back up the CA key. Peers can
   enroll without running `sajha net ca init` first.
 
+### Vendors, external servers, the mcpServers file and self-recognition (wave 5, phase 5.4)
+
+- Added: every SAJHA Net member names its **vendor**, the organisation that answers for its tools
+  (`sajhanet.vendor`, default `sajha`, per net too; required on each `sajhanet.sponsored` entry and as the
+  agent's `--vendor`). It is an optional `vendor` field of the member record and shows on the Instances,
+  Remote tools and Net overview pages, in the status and topology data.
+  [SAJHA Net](docs/architecture/SAJHA%20Net.md) §5.6, protocol §5.5.
+- Added: **external servers**: proxied MCP servers (federation upstreams) marked external are never
+  members of a net; the SAJHA instance that defines them offers their tools as its own, published as
+  `<prefix>__<tool>` (the prefix defaults to the vendor), with its full governance, so `search` of acme
+  and of globex no longer meet on one name and are not quarantined. One name, one contract applies to
+  the published name: two instances offering acme's identical tool are a fallback set; a different
+  contract is quarantined, naming the host. Configured as `sajhanet.external_servers` or as entries of
+  the mcpServers file. Catalog entries carry `vendor` and `external: true`; the console shows
+  "external (via <instance>)". Export rules and tool blocks match the published or the local name; the
+  host's audit records both (`local_tool`).
+- Added: `rename` (`sajhanet.rename`, per net, on sponsored entries and external servers, the agent's
+  `--rename`) offers a tool under a chosen short name, under the same rule. A tool whose qualified name
+  would exceed 128 characters is not offered: warning notice `sajhanet.name:<net>:<tool>`, audit
+  `tool_name_refused`, `refused_tools` in the views.
+- Added: the **mcpServers file** `config/mcp_servers.json` (`federation.mcp_servers_file`, git-ignored;
+  `config/mcp_servers.json.example` and the templates in `config/mcp_servers/`): paste the
+  `{"mcpServers": {...}}` JSON of Claude Desktop, Cursor or VS Code. Each entry is an upstream, external
+  unless `"external": false`; `vendor`, `prefix`, `tools`, `enabled`, `cwd`; `${NAME}` and
+  `${NAME:default}` from the environment; raw credential headers work with an info notice; the YAML wins
+  a duplicate id; reloaded on change. [Federation](docs/architecture/Federation.md#the-mcpservers-file).
+- Added: an upstream that answers HTTP 401 without a credential (per-user OAuth sign-in, as Notion's and
+  Supabase's hosted servers) shows as `needs_sign_in` ("needs sign-in (not supported yet)") with a
+  warning notice `federation.sign_in:<id>` instead of failing silently; per-user OAuth to upstreams is
+  roadmap L18.
+- Changed: the console page and menu item Federation are now **Proxied MCP servers** (`/admin/federation`
+  unchanged), with a table of every proxied server: name, vendor, internal or external, prefix,
+  transport, status and tools.
+- Added: a node **recognises itself**: a member record signed with its own key under another name, or
+  naming its own URL under another name and key, is never added as a member (warning notice
+  `sajhanet.self_seen:<net>`, audit `self_seen`); a seed or saved peer at its own address is skipped;
+  sponsored participants sharing the sponsor's URL are unaffected. Identity never comes from an observed
+  source address. Protocol §9.4 rule 7.
+- Changed: a sponsored entry with `external: true` and the agent's `--external` are refused with a
+  message pointing to external servers (both are members by definition); a net entry may not say
+  `external`.
+- Added: **proxies all the way down**: a call to a proxied MCP server carries its chain depth
+  (`params._meta["io.sajha/chain"].depth`) and a SAJHA upstream continues from it, so a chain of
+  proxies shares one budget (`tools.max_call_depth`) and a cycle (A proxies B proxies A) is refused at
+  the limit instead of recursing. [Federation](docs/architecture/Federation.md#proxies-all-the-way-down).
+- **Upgrading:** tool names containing `__` are now refused unless the tool is namespaced (a federated
+  or external server's `<prefix>__<tool>`, a data connector's `<prefix>__<operation>`, a SAJHA Net remote
+  tool): the registry refuses such a tool with an error notice `tools.reserved_name:<tool>`, and the
+  creators (Studio, Describe, API import, workflows, the LLM tool builder) check it up front. Rename any
+  such tool with a single `_`. Federation prefixes are unique across upstreams and external servers and
+  never a local tool's name; a clash is a configuration error and the second is not loaded. Sponsored
+  entries now need `vendor`.
+
 ### Console single sign-on, browser and transport hardening (wave 5, phase 5.3, roadmap X5 and X6)
 
 - Added: **console single sign-on** with OpenID Connect (authorization code + PKCE, `sajha/auth/sso.py`,

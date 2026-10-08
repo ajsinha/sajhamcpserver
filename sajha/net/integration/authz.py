@@ -159,12 +159,15 @@ def _roles_ok(roles: Optional[List[str]], wanted: Any) -> bool:
     return '*' in w or bool(set(w) & set(roles or []))
 
 
-def export_decision(rules: List[Dict[str, Any]], peer: str, tool: str, roles: Optional[List[str]]) -> plugins.Decision:
+def export_decision(rules: List[Dict[str, Any]], peer: str, tool: str, roles: Optional[List[str]],
+                    also: Optional[List[str]] = None) -> plugins.Decision:
     """Design §11.2: nothing is exported unless a rule allows it; a rule with an empty
-    ``to_instances`` never exports its tools, whatever other rules say."""
+    ``to_instances`` never exports its tools, whatever other rules say. A rule names the tool by its
+    published or its local name (``also``: the tool's other names, protocol §5.5)."""
     allow = None
+    every = [tool] + [n for n in also or [] if n and n != tool]
     for r in rules or []:
-        if not _any(tool, _list(r.get('tools'))):
+        if not any(_any(n, _list(r.get('tools'))) for n in every):
             continue
         to = r.get('to_instances')
         if to is not None and not _list(to):
@@ -684,7 +687,9 @@ class NetAuthz:
             if str(s.get('direction') or 'inbound') == 'outbound':
                 b = nblocks.match_outbound(bl, now, peer, str(s.get('qualified_name') or s.get('tool') or ''))
             else:
-                b = nblocks.match_tool(bl, now, peer, str(s.get('tool') or ''))
+                b = next((x for x in (nblocks.match_tool(bl, now, peer, n)
+                                      for n in [str(s.get('tool') or '')] + list(s.get('tool_names') or []))
+                          if x is not None), None)        # under its published or its local name (§5.5)
             return plugins.Decision(b is None, 'tool' if b else 'not_blocked')
         if rule == 'service_call':
             return plugins.Decision(st.settings.service_calls, 'service_call' if st.settings.service_calls
@@ -694,7 +699,8 @@ class NetAuthz:
                 return plugins.Decision(False, 'export')
             tool = str(s.get('tool') or '')
             u = s.get('user') if isinstance(s.get('user'), dict) else None
-            d = export_decision(st.settings.export, peer, tool, list(u.get('roles') or []) if u else None)
+            d = export_decision(st.settings.export, peer, tool, list(u.get('roles') or []) if u else None,
+                                also=[str(n) for n in s.get('tool_names') or []])
             if d.allow and u is not None and not key_allows(u, net, st.me, tool):
                 return plugins.Decision(False, 'access')
             return d

@@ -14,13 +14,16 @@ import sys
 import threading
 from urllib.parse import urlsplit
 
+from sajha.net.models import EXTERNAL_KEY
+
 
 def _pairs(items, what):
     out = {}
     for item in items or []:
-        k, sep, v = item.partition('=' if what == 'label' else ':')
+        eq = what in ('label', 'rename')
+        k, sep, v = item.partition('=' if eq else ':')
         if not sep or not k.strip():
-            raise SystemExit(f'--{what} takes {"key=value" if what == "label" else "Name: value"}, not {item!r}')
+            raise SystemExit(f'--{what} takes {"key=value" if eq else "Name: value"}, not {item!r}')
         out[k.strip()] = v.strip()
     return out
 
@@ -59,6 +62,12 @@ def parser() -> argparse.ArgumentParser:
     p.add_argument('--service-calls', action='store_true', help='also serve calls that carry no user')
     p.add_argument('--no-key-verification', action='store_true',
                    help='keep no key directory and accept no forwarded API keys (service calls only)')
+    p.add_argument('--vendor', required=True,
+                   help='the organisation that owns and answers for the server\'s tools, e.g. acme (protocol §5.5)')
+    p.add_argument(f'--{EXTERNAL_KEY}', dest='external', action='store_true',
+                   help='refused: an external server is not a member of a net (see the guide)')
+    p.add_argument('--rename', action='append', default=[],
+                   help='local=published: offer the tool local under a name of your choosing (repeatable)')
     p.add_argument('--region', default='')
     p.add_argument('--label', action='append', default=[], help='key=value label of this participant')
     p.add_argument('--allow-plain-http', action='store_true', help='lab use only: no HTTPS required')
@@ -75,6 +84,12 @@ def main(argv=None) -> int:
     a = parser().parse_args(argv)
     logging.basicConfig(level=getattr(logging, str(a.log_level).upper(), logging.INFO),
                         format='%(asctime)s %(levelname)s %(name)s: %(message)s')
+    if a.external:
+        print(f'sajhanet-agent: --{EXTERNAL_KEY}: an external server is not a member of a net, so the agent cannot '
+              f'front one. Define it on an internal SAJHA instance instead: a federation upstream pointing at the '
+              f'server (or at this agent\'s MCP server) listed in sajhanet.external_servers with its vendor; that '
+              f'instance offers its tools as <vendor>__<tool>.', file=sys.stderr)
+        return 2
     from sajhanet_agent.agent import Agent, AgentConfig
     from sajhanet_agent.server import make_server
     cfg = AgentConfig(net=a.net, instance=a.instance, url=a.url, seeds=list(a.seed), founder=a.founder,
@@ -84,7 +99,8 @@ def main(argv=None) -> int:
                       export_roles=_list(a.export_roles) or None, service_calls=a.service_calls,
                       verify_keys=not a.no_key_verification, mcp_command=a.mcp_command or '', mcp_url=a.mcp_url or '',
                       mcp_headers=_pairs(a.mcp_header, 'mcp-header'), call_timeout_seconds=a.call_timeout,
-                      catalog_refresh_seconds=a.catalog_refresh)
+                      catalog_refresh_seconds=a.catalog_refresh, vendor=a.vendor,
+                      rename=_pairs(a.rename, 'rename'))
     try:
         agent = Agent(cfg).start()
     except Exception as e:

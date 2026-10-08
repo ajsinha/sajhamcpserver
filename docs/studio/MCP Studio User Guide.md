@@ -41,7 +41,7 @@ The Composite builder (`/composite/builder`) appears in the Studio menus but is 
 
 Every creator follows the same shape:
 
-1. **Name the tool.** Tool names are lowercase letters, digits and underscores. The name becomes the tool's MCP name and the base of every generated file name, so it must not clash with an existing tool.
+1. **Name the tool.** Tool names are lowercase letters, digits and underscores, never two underscores in a row: `__` is reserved for namespaced tools (federated and external servers' `<prefix>__<tool>`, [Federation](../architecture/Federation.md#names)), and every creator refuses it. The name becomes the tool's MCP name and the base of every generated file name, so it must not clash with an existing tool.
 2. **Describe it.** Fill in the creator's form (or, for Python, write a decorated function). The description is what AI clients see when they list tools, so make it specific.
 3. **Preview.** Most creators have a Preview (Python: **Analyze Code**) step that shows the generated JSON config and, where there is one, the generated Python before anything is written.
 4. **Deploy.** Deploy writes the files listed in [Where generated tools are stored](#where-generated-tools-are-stored).

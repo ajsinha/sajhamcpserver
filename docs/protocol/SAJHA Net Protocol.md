@@ -226,6 +226,33 @@ elsewhere (design §11.3). The net is the one the message belongs to (its `Sajha
 record's `net`); a participant that shows net users of several nets together SHOULD show the net as
 well (`alice@risk-eu`, net `acme-net`).
 
+### 5.5 Vendors and published tool names
+
+- **Vendor.** A member record MAY carry `vendor`: the organisation that owns and answers for the
+  participant's tools. A vendor matches `^[a-z][a-z0-9_]{0,23}$`, never contains `__` and never ends
+  with `_` (`urn:sajha:net:v1#/$defs/member_record`). It is a claim, not a credential: no registry
+  exists, and the contract rule (§10.7) holds every participant to one contract per name. A record
+  without `vendor` is valid. `vendor` changes no signature, routing or authorization rule.
+- **Published name.** A participant offers each tool under its **published name**. It is `name` in
+  the catalog (§10.2), the tool part of the qualified name (§5.3), the name a home forwards (§15.1)
+  and the name one name, one contract compares (§10.7). How a participant chooses it is local
+  configuration (its own tool name, a rename, or a prefix); a published name matches
+  `^[A-Za-z0-9_][A-Za-z0-9_.-]{0,127}$`. A host MUST map a forwarded call's published name back to its
+  own tool and MUST NOT offer two tools under one published name.
+- **Namespaced tools of an external server.** A host MAY offer, as its own tools, the tools of an MCP
+  server that is not a participant (an **external server**), each under `<prefix>__<tool>`. An external
+  server has no member record and takes no part in any part of this protocol; only its host does. Such
+  a tool's `_meta["io.sajha/net"]` carries `vendor` (the external server's vendor) and `external: true`
+  (`urn:sajha:net:v1` tool metadata); both are informational, and a re-exporting participant (§16)
+  keeps them and the published name unchanged. A participant SHOULD show them ("external, via
+  <host>").
+- **The separator.** Because `__` separates the parts of a qualified name and a prefix from a tool, a
+  participant SHOULD NOT publish a tool whose name contains `__` unless the tool is namespaced as
+  above.
+- **Length.** A host MUST NOT offer a tool whose qualified name in a net would exceed the length
+  limit of §5.3 (the host knows its net and safe prefix); it SHOULD report the refusal to its operator.
+  A participant MUST NOT shorten a published name by itself.
+
 ## 6. Capability negotiation
 
 The extension id is **`io.sajha/net`**.
@@ -812,6 +839,8 @@ gossip and everything else in this section run separately in each net.
 - `kind` is `sajha`, `agent` or `sponsored`; a `sponsored` record carries `sponsor`, the instance name of the
   participant that represents it in this net (informational: it changes no check, and peers show it).
   The extension object of a sponsored participant (§6.1) carries the same `sponsor`.
+- `vendor`, OPTIONAL, is the participant's vendor (§5.5). A record without it is valid (older
+  participants).
 
 ### 9.2 Member entry and states
 
@@ -857,6 +886,14 @@ For an incoming entry U about instance X, against the held entry E:
 5. If `U.record.incarnation < E.record.incarnation`: ignore U.
 6. A participant that receives `suspect` or `dead` about **itself** at its current incarnation refutes
    (§9.3). It ignores claims about older incarnations of itself.
+7. **Itself under another name.** A participant MUST NOT hold as a remote member an entry whose
+   record is signed with its own key, or whose `url`, normalised (scheme and host in lower case, the
+   default port dropped, no trailing `/`), is one of its own addresses (the `url` of its own record,
+   or a configured advertise address), whatever its `name`; it SHOULD report it to its operator.
+   Excepted: a record of `kind` `sponsored` whose `sponsor` is the receiver, and, at a sponsored
+   participant, its sponsor and the sponsor's other sponsored participants (they share the URL by
+   design, §9.1). Identity is never inferred from the network address a message arrived from.
+   A participant also MUST NOT try to join (§9.7) through a seed or saved peer at its own address.
 
 Every participant applying these rules converges on the same view without coordination. Changes that
 result from a merge are queued for dissemination (§9.6).
@@ -1218,7 +1255,8 @@ What a home lists must match what is reachable now. In each net, separately:
 Within a net, a tool name stands for exactly one contract (§10.2), everywhere. There is no winner
 when hosts disagree: the name is quarantined until they agree.
 
-- **Conflict.** A **contract conflict** exists in a net for a tool part T when two or more
+- **Conflict.** A **contract conflict** exists in a net for a tool part T (of the published name,
+  §5.5, so namespaced tools of different prefixes never share one) when two or more
   participants offering T in that net (including the observer itself, through its own exports) offer
   different `contract_hash` values. A difference only in `description_hash` or title is not a
   conflict; participants SHOULD show it as a warning.

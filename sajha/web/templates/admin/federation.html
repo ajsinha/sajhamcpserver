@@ -1,5 +1,5 @@
 {% extends "common/base.html" %}
-{% block title %}Federation - Admin - SAJHA MCP Server{% endblock %}
+{% block title %}Proxied MCP servers - Admin - SAJHA MCP Server{% endblock %}
 {% block extra_css %}
 <style>
 .fed-stat{text-align:center;padding:.9rem;border-radius:var(--radius-lg);background:var(--t-card);border:1px solid var(--t-card-b)}
@@ -34,8 +34,8 @@ details.schema pre{background:var(--t-inp);color:var(--t-text);padding:.5rem;bor
 <div class="container-fluid">
   <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
     <div>
-      <h1 class="h3 mb-0"><i class="bi bi-diagram-2 me-2" aria-hidden="true"></i>Federation</h1>
-      <small class="text-muted">Other MCP servers whose tools SAJHA re-exposes, under SAJHA's access control, audit, cache, circuit breakers and rate limits</small>
+      <h1 class="h3 mb-0"><i class="bi bi-diagram-2 me-2" aria-hidden="true"></i>Proxied MCP servers</h1>
+      <small class="text-muted">Every MCP server this instance embeds (federation): from <code>federation.upstreams</code>, <code>config/mcp_servers.json</code> and this page, its tools under SAJHA's access control, audit, cache, circuit breakers and rate limits</small>
     </div>
     <div class="d-flex gap-1">
       <button class="btn btn-sm btn-success" type="button" data-onclick="showForm()"><i class="bi bi-plus-lg me-1" aria-hidden="true"></i>Add upstream</button>
@@ -144,6 +144,14 @@ details.schema pre{background:var(--t-inp);color:var(--t-text);padding:.5rem;bor
     </div>
   </div>
 
+  <div class="table-responsive mb-3">
+    <table class="fed-table" aria-label="Embedded MCP servers">
+      <thead><tr><th scope="col">Name</th><th scope="col">Vendor</th><th scope="col">Internal / External</th><th scope="col">Prefix</th>
+        <th scope="col">Transport</th><th scope="col">Status</th><th scope="col">Tools</th></tr></thead>
+      <tbody id="serverRows"><tr><td colspan="7" class="text-muted small">Loading…</td></tr></tbody>
+    </table>
+  </div>
+
   <div id="upstreams"><div class="text-muted small">Loading…</div></div>
 </div>
 {% endblock %}
@@ -174,18 +182,29 @@ function load(){
     document.getElementById('stConn').textContent=conn;
     document.getElementById('stExposed').textContent=(d.summary||{}).exposed_tools||0;
     document.getElementById('stPending').textContent=pend;
+    document.getElementById('serverRows').innerHTML = ups.length ? ups.map(row).join('') :
+      '<tr><td colspan="7" class="text-muted small">No MCP servers yet.</td></tr>';
     document.getElementById('upstreams').innerHTML = ups.length ? ups.map(render).join('') :
       '<div class="text-muted small">No upstreams yet. Add one, or list them under <code>federation.upstreams</code> in config/application.yml.</div>';
   }).catch(function(e){document.getElementById('upstreams').innerHTML='<div class="fed-err">'+esc(e.message)+'</div>'});
 }
+var SOURCES={config:'from federation.upstreams',file:'from config/mcp_servers.json',store:'added here'};
+function stateText(s){return s==='needs_sign_in'?'needs sign-in (not supported yet)':s}
+function row(u){
+  return '<tr><td><a href="#up-'+esc(u.id)+'"><code>'+esc(u.id)+'</code></a><div class="fed-meta">'+esc(SOURCES[u.source]||u.source)+'</div></td>'+
+    '<td>'+(u.vendor?esc(u.vendor):'—')+'</td><td>'+(u.external?'External':'Internal')+'</td>'+
+    '<td><code>'+esc(u.prefix)+'__</code></td><td>'+esc(u.transport)+'</td>'+
+    '<td><span class="st st-'+esc(u.state)+'">'+esc(stateText(u.state))+'</span></td>'+
+    '<td><a href="#up-'+esc(u.id)+'">'+(u.tools||0)+'</a></td></tr>';
+}
 function render(u){
   var si=u.server_info||{}, h='';
-  h+='<section class="fed-up" aria-label="Upstream '+esc(u.id)+'"><div class="fed-up-head"><div>';
-  h+='<h2>'+esc(u.title)+' <span class="st st-'+esc(u.state)+'">'+esc(u.state)+'</span></h2>';
+  h+='<section class="fed-up" id="up-'+esc(u.id)+'" aria-label="Upstream '+esc(u.id)+'"><div class="fed-up-head"><div>';
+  h+='<h2>'+esc(u.title)+' <span class="st st-'+esc(u.state)+'">'+esc(stateText(u.state))+'</span></h2>';
   h+='<div class="fed-meta"><code>'+esc(u.id)+'</code> · prefix <code>'+esc(u.prefix)+'__</code> · '+esc(u.transport)+' '+(u.url?'<code>'+esc(u.url)+'</code>':'<code>'+esc(u.command)+'</code>');
   if(u.protocol_version)h+=' · MCP '+esc(u.protocol_version);
   if(si.name)h+=' · '+esc(si.name)+(si.version?' '+esc(si.version):'');
-  h+=' · '+(u.source==='config'?'from configuration':'added here')+(u.listening?' · listening for changes':'')+'</div>';
+  h+=' · '+esc(SOURCES[u.source]||u.source)+(u.vendor?' · vendor '+esc(u.vendor):'')+' · '+(u.external?'external':'internal')+(u.listening?' · listening for changes':'')+'</div>';
   h+='<div class="fed-meta">Refreshed '+esc(when(u.last_refresh))+' · '+u.calls+' calls, '+u.failures+' failed'+(u.avg_ms!=null?' · avg '+u.avg_ms+' ms':'');
   if(u.breaker)h+=' · breaker '+esc(u.breaker.state);
   h+='</div>';
@@ -193,7 +212,7 @@ function render(u){
   h+='</div><div class="fed-actions d-flex gap-1">';
   h+=btn('refresh',u.id,'','','<i class="bi bi-arrow-repeat"></i> Refresh','btn-outline-primary');
   h+=btn('approve_all',u.id,'tool','','Approve all','btn-outline-success');
-  if(u.source!=='config'){
+  if(u.source==='store'){
     h+=btn('edit',u.id,'','','<i class="bi bi-pencil"></i> Edit','btn-outline-secondary');
     h+=btn('remove',u.id,'','','<i class="bi bi-trash"></i> Remove','btn-outline-danger');
   }

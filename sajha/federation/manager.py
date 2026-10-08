@@ -76,6 +76,22 @@ class _Upstream:
                                        name=f'federation:{config.id}')
 
 
+def _net_external(upstream_id: str) -> Optional[Dict[str, Any]]:
+    """``sajhanet.external_servers``' entry for this upstream, if SAJHA Net is loaded (else None)."""
+    try:
+        from sajha.net.integration.catalogs import get_catalogs
+        c = get_catalogs()
+        if c is None:
+            return None
+        x = next((x for x in c.settings.external_servers or [] if x.upstream == upstream_id), None)
+        return {'upstream': x.upstream, 'vendor': x.vendor, 'prefix': x.effective_prefix} if x else None
+    except Exception:
+        return None
+
+
+_SOURCES = {'config': 'federation.upstreams', 'file': 'the mcpServers file', 'store': 'added on the console'}
+
+
 class FederationManager:
     def __init__(self, registry=None, settings: Optional[FederationSettings] = None,
                  store: Optional[FederationStore] = None):
@@ -91,6 +107,12 @@ class FederationManager:
         self._thread: Optional[threading.Thread] = None
         self._started = False
         self.config_errors: Dict[str, str] = {}
+        from sajha.federation.mcp_servers import McpServersFile
+        self.mcp_file = McpServersFile(self.settings.mcp_servers_file) if self.settings.mcp_servers_file else None
+        self.file_external: List[Dict[str, Any]] = []      # {upstream, vendor} of the file's external servers
+        self.file_vendors: Dict[str, str] = {}              # the file's entries: id -> vendor
+        self._file_stop = threading.Event()
+        self._file_thread: Optional[threading.Thread] = None
         if registry is not None and hasattr(registry, 'add_reload_listener'):
             registry.add_reload_listener(self._reregister_after_reload)
 
@@ -105,6 +127,7 @@ class FederationManager:
         if not self.settings.enabled:
             logger.info('Federation: off (federation.enabled)')
             return
+        self._watch_file()
         self._ensure_loop()
         for up in list(self._upstreams.values()):
             if up.config.enabled:
@@ -127,6 +150,7 @@ class FederationManager:
         return False
 
     def stop(self) -> None:
+        self._file_stop.set()
         loop = self._loop
         if loop is None:
             return
@@ -173,6 +197,30 @@ class FederationManager:
         return self._submit(coro).result(timeout=timeout)
 
     # ══ upstream definitions ═══════════════════════════════════════
+    def _prefix_clash(self, cfg: UpstreamConfig) -> Optional[str]:
+        """Prefixes are unique on an instance and never a local tool's name (Federation.md, "Names")."""
+        p = cfg.effective_prefix
+        other = next((u.config for i, u in self._upstreams.items() if i != cfg.id and u.config.effective_prefix == p),
+                     None)
+        if other is not None:
+            return (f'prefix {p} is already used by upstream {other.id} ({_SOURCES.get(other.source, other.source)}); '
+                    f'{cfg.id} ({_SOURCES.get(cfg.source, cfg.source)}) is not loaded')
+        reg = self.registry
+        if reg is not None and getattr(reg, 'tools', None) is not None:
+            t = reg.tools.get(p)
+            if t is not None and not isinstance(t, FederatedTool):
+                return f'prefix {p} of upstream {cfg.id} is the name of a local tool; it is not loaded'
+        return None
+
+    def _add_loaded(self, cfg: UpstreamConfig) -> bool:
+        why = self._prefix_clash(cfg)
+        if why:
+            self.config_errors[cfg.id] = why
+            logger.error(f'federation: {why}')
+            return False
+        self._upstreams[cfg.id] = _Upstream(cfg)
+        return True
+
     def _load_upstreams(self) -> None:
         self.config_errors.clear()
         seen = set()
@@ -185,7 +233,11 @@ class FederationManager:
                 logger.error(f'federation: upstream {uid} in configuration is invalid: {e}')
                 continue
             seen.add(cfg.id)
-            self._upstreams[cfg.id] = _Upstream(cfg)
+            self._add_loaded(cfg)
+        for cfg in self._file_upstreams(seen, force=True):
+            seen.add(cfg.id)
+            if not self._add_loaded(cfg):
+                self.file_external = [x for x in self.file_external if x['upstream'] != cfg.id]
         for raw in self.store.upstreams():
             try:
                 cfg = UpstreamConfig.from_dict(raw, source='store')
@@ -197,7 +249,109 @@ class FederationManager:
             if cfg.id in seen:
                 self.config_errors[cfg.id] = 'defined in configuration; the stored definition is ignored'
                 continue
-            self._upstreams[cfg.id] = _Upstream(cfg)
+            self._add_loaded(cfg)
+
+    # ── the mcpServers file (sajha/federation/mcp_servers.py) ──────
+    def _file_upstreams(self, yaml_ids, force: bool = False) -> List[UpstreamConfig]:
+        """The file's upstreams that are valid and not defined in ``federation.upstreams`` (the YAML one
+        wins a duplicate id, with an error naming both sources); sets ``file_external``."""
+        if self.mcp_file is None:
+            self.file_external = []
+            return []
+        p = self.mcp_file.load(force=force)
+        path = self.mcp_file.path
+        out: List[UpstreamConfig] = []
+        for key in [k for k in self.config_errors if self.config_errors[k].startswith(f'{path}:')]:
+            self.config_errors.pop(key, None)
+        for key, why in p.errors.items():
+            self.config_errors[key] = f'{path}: {why}'
+        for raw in p.upstreams:
+            uid = raw.get('id')
+            if uid in yaml_ids:
+                self.config_errors[uid] = (f'{path}: {uid} is also defined in federation.upstreams '
+                                           f'(config/application.yml); the YAML definition is used')
+                continue
+            try:
+                out.append(UpstreamConfig.from_dict(raw, source='file'))
+            except ConfigError as e:
+                self.config_errors[str(uid)] = f'{path}: {e}'
+        ok = {c.id for c in out}
+        self.file_external = [x for x in p.external if x['upstream'] in ok]
+        self.file_vendors = {k: v for k, v in p.vendors.items() if k in ok}
+        self._file_notices(p)
+        return out
+
+    def _file_notices(self, p) -> None:
+        try:
+            from sajha import notices
+            path = self.mcp_file.path
+            errs = {k: v for k, v in self.config_errors.items() if v.startswith(f'{path}:')}
+            if errs:
+                notices.raise_notice('federation.mcp_servers', severity='warning', source='federation',
+                                     title=f'Some entries of {path} are not used',
+                                     detail='; '.join(f'{k}: {v[len(path) + 2:]}' for k, v in sorted(errs.items()))[:1000],
+                                     ttl_minutes=0)
+            else:
+                notices.clear_notice('federation.mcp_servers')
+            if p.raw_secrets:
+                notices.raise_notice('federation.mcp_servers.raw_secrets', severity='info', source='federation',
+                                     title=f'{path} holds raw credentials',
+                                     detail=f'These headers are raw values: {", ".join(p.raw_secrets)}. The file is '
+                                            f'git-ignored; ${{ENV_NAME}} keeps them out of it altogether.',
+                                     ttl_minutes=0)
+            else:
+                notices.clear_notice('federation.mcp_servers.raw_secrets')
+        except Exception as e:
+            logger.debug(f'federation: notices for {self.mcp_file.path}: {e}')
+
+    def reload_file(self, force: bool = False) -> bool:
+        """Apply a changed mcpServers file: new entries connect, removed ones go, changed ones are
+        replaced. True when something changed. Runs on a timer (federation.mcp_servers_reload_seconds)."""
+        if self.mcp_file is None or not (force or self.mcp_file.changed()):
+            return False
+        with self._lock:
+            yaml_ids = {i for i, u in self._upstreams.items() if u.config.source == 'config'}
+            new = {c.id: c for c in self._file_upstreams(yaml_ids, force=True)}
+            old = {i: u for i, u in self._upstreams.items() if u.config.source == 'file'}
+            gone = [old[i] for i in old if i not in new]
+            changed = [i for i in new if i in old and old[i].config.to_dict() != new[i].to_dict()]
+            added = [i for i in new if i not in old and i not in self._upstreams]
+            for i in [u.config.id for u in gone] + changed:
+                self._upstreams.pop(i, None)
+            fresh = []
+            for i in changed + added:
+                if not self._add_loaded(new[i]):
+                    self.file_external = [x for x in self.file_external if x['upstream'] != i]
+                    continue
+                fresh.append(self._upstreams[i])
+        for up in gone + [old[i] for i in changed]:
+            self._teardown(up, forget=False)
+        if self.settings.enabled:
+            for up in fresh:
+                if up.config.enabled:
+                    self._connect(up)
+        if gone or fresh:
+            logger.info(f'federation: {self.mcp_file.path} reloaded: {len(added)} added, {len(changed)} changed, '
+                        f'{len(gone)} removed')
+        return bool(gone or fresh)
+
+    def _watch_file(self) -> None:
+        if self.mcp_file is None or self._file_thread is not None:
+            return
+        every = self.settings.mcp_servers_reload_seconds
+
+        def loop():
+            while not self._file_stop.wait(every):
+                try:
+                    self.reload_file()
+                except Exception as e:
+                    logger.warning(f'federation: reloading {self.mcp_file.path}: {e}')
+        self._file_thread = threading.Thread(target=loop, name='federation-mcp-servers', daemon=True)
+        self._file_thread.start()
+
+    def external_servers(self) -> List[Dict[str, Any]]:
+        """The file's entries that are external servers in SAJHA Net (design §5.6): ``{upstream, vendor}``."""
+        return list(self.file_external)
 
     def upstream_ids(self) -> List[str]:
         return sorted(self._upstreams)
@@ -222,7 +376,7 @@ class FederationManager:
         cfg = self.validate_definition(data)
         with self._lock:
             existing = self._upstreams.get(cfg.id)
-            if existing is not None and existing.config.source == 'config':
+            if existing is not None and existing.config.source in ('config', 'file'):
                 raise ConfigError(f'upstream {cfg.id} is defined in configuration; edit it there')
             if existing is not None and not replace:
                 raise ConfigError(f'upstream {cfg.id} already exists')
@@ -243,7 +397,7 @@ class FederationManager:
             up = self._upstreams.get(upstream_id)
             if up is None:
                 return False
-            if up.config.source == 'config':
+            if up.config.source in ('config', 'file'):
                 raise ConfigError(f'upstream {upstream_id} is defined in configuration; remove it there')
             self._upstreams.pop(upstream_id, None)
         self._teardown(up, forget=True)
@@ -614,7 +768,14 @@ class FederationManager:
         up.calls += 1
         up.last_call = started
         from sajha.observability.tracing import inject as _inject_trace
-        trace_meta = _inject_trace({}) or None      # W3C context, sent as params._meta.traceparent
+        from sajha.core import inner_calls
+        try:                                        # the chain budget across proxies (Federation.md)
+            chain_depth = inner_calls.proxy_outgoing(tool.name)
+        except inner_calls.CallTooDeep as e:
+            up.calls -= 1
+            raise FederationError(str(e))
+        trace_meta = _inject_trace({}) or {}        # W3C context, sent as params._meta.traceparent
+        trace_meta[inner_calls.PROXY_META_KEY] = {'depth': chain_depth}
         try:
             # Per-user token passthrough (auth.type connected_account): the caller's own token,
             # on a connection of its own; ConnectedAccountRequired when the caller has none.
@@ -923,8 +1084,12 @@ class FederationManager:
             breaker = b.to_dict() if b else None
         except Exception:
             breaker = None
+        ext = next((x for x in self.file_external if x['upstream'] == cfg.id), None) or _net_external(cfg.id)
         return {
             'id': cfg.id, 'title': cfg.display_title, 'source': cfg.source, 'enabled': cfg.enabled,
+            'vendor': (ext or {}).get('vendor') or self.file_vendors.get(cfg.id) or '',
+            'external': ext is not None,                   # SAJHA Net design §5.6
+            'tools': sum(1 for n, (uid, _t) in self._exposed.items() if uid == cfg.id and n in self._tools),
             'transport': cfg.transport, 'url': cfg.url if cfg.transport != 'stdio' else '',
             'command': cfg.command if cfg.transport == 'stdio' else '',
             'prefix': cfg.effective_prefix, 'state': state,

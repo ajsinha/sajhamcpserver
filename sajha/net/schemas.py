@@ -69,6 +69,7 @@ DEFS: Dict[str, Any] = {
         'labels': {'type': 'object', 'maxProperties': 32, 'additionalProperties': {'type': 'string', 'maxLength': 128}},
         'kind': {'enum': ['sajha', 'agent', 'sponsored']},
         'sponsor': {'$ref': '#/$defs/instance_name'},
+        'vendor': {'type': 'string', 'pattern': '^(?!.*__)(?!.*_$)[a-z][a-z0-9_]{0,23}$'},
         'protocol_versions': {'type': 'array', 'minItems': 1, 'items': {'type': 'integer', 'minimum': 1}},
         'features': {'type': 'array', 'items': {'type': 'string'}, 'uniqueItems': True},
         'user_identity': {'type': 'array', 'items': {'type': 'string'}},
@@ -162,7 +163,8 @@ TOOL_NET_META = {'type': 'object', 'required': ['net', 'instance', 'contract_has
         'results': {'type': 'array', 'items': {'type': 'string'}}}},
     'llm_tool': {'type': 'boolean'}, 'latency_ms_p50': {'type': 'integer', 'minimum': 0},
     'health': {'enum': ['ok', 'degraded', 'down']}, 'per_user_results': {'type': 'boolean'},
-    'contract_hash': _ref('contract_hash'), 'description_hash': {'type': 'string'}, 'origin': _ref('instance_name')}}
+    'contract_hash': _ref('contract_hash'), 'description_hash': {'type': 'string'}, 'origin': _ref('instance_name'),
+    'vendor': {'type': 'string', 'pattern': '^(?!.*__)(?!.*_$)[a-z][a-z0-9_]{0,23}$'}, 'external': {'type': 'boolean'}}}
 
 
 def _obj(required: List[str], props: Dict[str, Any], **extra) -> Dict[str, Any]:

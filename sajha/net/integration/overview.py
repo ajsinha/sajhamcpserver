@@ -161,6 +161,9 @@ def overview_view(net: Optional[str] = None, records: Optional[List[Dict[str, An
     out: Dict[str, Any] = {
         'net': name, 'instance': cfg.instance_name or 'this server', 'url': cfg.base_url, 'region': cfg.region,
         'labels': dict(cfg.labels or {}), 'founder': cfg.founder, 'error': rt.error,
+        'vendor': cfg.vendor,
+        'refused_tools': dict(getattr(getattr(svc, 'catalogs', None), 'books', {}).get(name).refused)
+        if getattr(getattr(svc, 'catalogs', None), 'books', {}).get(name) is not None else {},
         'admission': cfg.admission, 'membership': cfg.membership, 'require_https': cfg.require_https,
         'seeds': list(cfg.seeds), 'runtime_seeds': _safe(lambda: svc.runtime_seeds(name), []),
         'certificate': status.get('certificate'), 'incarnation': status.get('incarnation'),
@@ -194,8 +197,10 @@ def overview_view(net: Optional[str] = None, records: Optional[List[Dict[str, An
     # the map's fallback while the topology endpoint answers nothing: the members, without links
     out['fallback_topology'] = {
         'name': name, 'edges': [],
-        'nodes': [{'name': out['instance'], 'kind': cfg.kind, 'region': cfg.region, 'state': 'alive', 'self': True}] +
+        'nodes': [{'name': out['instance'], 'kind': cfg.kind, 'region': cfg.region, 'state': 'alive', 'self': True,
+                   'vendor': cfg.vendor}] +
                  [{'name': m['name'], 'kind': m.get('kind') or 'sajha', 'region': m.get('region') or '',
+                   'vendor': m.get('vendor') or '',
                    'sponsor': m.get('sponsor') or '', 'state': m['state'], 'self': False} for m in members]}
     # plain MCP servers this server sponsors into the net (design §5.1)
     try:

@@ -139,9 +139,10 @@ def _rows(svc) -> List[Dict[str, Any]]:
 
 
 def _self_entry(net: str, name: str, region: str = '', labels=None, url: str = '', networked: bool = False,
-                auth=None, note: str = '') -> Dict[str, Any]:
+                auth=None, note: str = '', vendor: str = '') -> Dict[str, Any]:
     own = [t for t in _local_tools() if _may_use(auth, t.name)]
     return {'net': net, 'name': name, 'kind': 'sajha', 'region': region, 'labels': dict(labels or {}),
+            'vendor': vendor,
             'state': 'alive', 'last_seen': _rfc(time.time()), 'url': url, 'self': True,
             'networked': networked, 'tools_total': len(_local_tools()), 'tools_usable': len(own), 'note': note}
 
@@ -163,7 +164,7 @@ def instances_view(auth=None) -> Dict[str, Any]:
         entry: Dict[str, Any] = {'net': net, 'instance': cfg.instance_name or 'this server',
                                  'networked': node is not None, 'error': rt.error}
         insts = [_self_entry(net, cfg.instance_name or 'this server', cfg.region, cfg.labels, cfg.base_url,
-                             networked=node is not None, auth=auth,
+                             networked=node is not None, auth=auth, vendor=cfg.vendor,
                              note='' if node is not None else 'not networked yet')]
         members = []
         if node is not None:
@@ -179,7 +180,7 @@ def instances_view(auth=None) -> Dict[str, Any]:
                           'region': rec.get('region') or '', 'labels': dict(rec.get('labels') or {}),
                           'state': m['state'], 'last_seen': _rfc(m.get('last_seen')), 'url': rec.get('url') or '',
                           'self': False, 'networked': True, 'tools_total': len(mine), 'tools_usable': len(usable),
-                          'sponsor': rec.get('sponsor') or '',
+                          'sponsor': rec.get('sponsor') or '', 'vendor': rec.get('vendor') or '',
                           'note': (f'sponsored by {rec.get("sponsor")}' if rec.get('kind') == 'sponsored' and
                                    rec.get('sponsor') else '')})
         st = node.status() if node is not None else {}
@@ -254,6 +255,8 @@ def instance_view(net: str, instance: str, auth=None) -> Optional[Dict[str, Any]
                           'description': d.get('description') or '', 'inputs': _schema_fields(d.get('inputSchema')),
                           'outputs': _schema_fields(d.get('outputSchema')), 'state': r['state'],
                           'version': r.get('version') or '',
+                          'vendor': str(((r.get('entry') or {}).get('meta') or {}).get('vendor') or ''),
+                          'external': bool(((r.get('entry') or {}).get('meta') or {}).get('external')),
                           'latency_ms': int(lat) if lat is not None else None,
                           'try_it': r['qualified_name'] if registered and r['state'] == 'active' else ''})
         tools.sort(key=lambda t: t['name'])

@@ -1,0 +1,33 @@
+{
+  "_comment": "Everything at once, as a starting point for config/mcp_servers.json: copy it, delete what you do not need, set the environment variables. Keys starting with _ are comments and are ignored.",
+  "mcpServers": {
+    "context7": {
+      "url": "https://mcp.context7.com/mcp"
+    },
+    "github": {
+      "url": "https://api.githubcopilot.com/mcp/",
+      "headers": {"Authorization": "Bearer ${GITHUB_PAT}"},
+      "tools": ["get_*", "list_*", "search_*"]
+    },
+    "fetch": {
+      "command": "uvx",
+      "args": ["mcp-server-fetch"],
+      "vendor": "mcp_reference"
+    },
+    "filesystem": {
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-filesystem", "/srv/shared-docs"],
+      "vendor": "mcp_reference",
+      "prefix": "files",
+      "tools": ["read_*", "list_*", "search_files"]
+    },
+    "notion": {
+      "url": "https://mcp.notion.com/mcp",
+      "enabled": false
+    },
+    "pricing_service": {
+      "url": "http://pricing.internal.example:9000/mcp",
+      "external": false
+    }
+  }
+}

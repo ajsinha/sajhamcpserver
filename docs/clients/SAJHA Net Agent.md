@@ -37,7 +37,7 @@ python -m sajhanet_agent --help
 
 ```bash
 python -m sajhanet_agent \
-  --net acme-net --instance vendor-search \
+  --net acme-net --instance vendor-search --vendor acme \
   --url https://agent.example.internal:8790 \
   --seed https://risk-eu.example.internal:3002 \
   --mcp-command "python vendor_server.py"
@@ -46,6 +46,9 @@ python -m sajhanet_agent \
 | Option | Meaning |
 |---|---|
 | `--net`, `--instance` | The net to join and this participant's instance name in it (protocol §5.1, §5.2). |
+| `--vendor` | Required. The organisation that owns and answers for the server's tools (`acme`), in the member record ([SAJHA Net](../architecture/SAJHA%20Net.md) §5.6): a lowercase letter, then lowercase letters, digits and `_`, at most 24 characters. |
+| `--external` | Refused (exit code 2). An agent-fronted server is a member of the net, and an external server never is: to offer a server's tools under its vendor's prefix without making it a member, define it on an internal SAJHA instance as a proxied MCP server marked external (an entry of `config/mcp_servers.json`, or `sajhanet.external_servers`), pointing at the server or at the MCP server behind this agent ([SAJHA Net](../architecture/SAJHA%20Net.md) §5.6). |
+| `--rename local=published` | Offer one tool under a name of your choosing (repeatable); it falls under one name, one contract like any name. A tool whose qualified name would exceed 128 characters is not offered; the status lists it under `refused_tools`. |
 | `--url` | The base URL peers reach the agent on. Its host must be one the certificate names. |
 | `--listen` | `host:port` to listen on; default all interfaces and the port of `--url`. |
 | `--seed` | A member to join through (repeatable). With none and `--founder`, the agent starts the net. |
@@ -95,7 +98,7 @@ user's identity, export, then the call. The agent's part:
   forwarded key there (unknown, disabled, expired, revoked, or not from the sending home are refused with
   the protocol's reasons). The user is the key's owner at their home, with their roles there; the agent has
   no accounts of its own and maps nobody. It publishes no keys.
-- **Export policy.** `--export-tools` (globs of the server's tool names), `--export-peers` (globs of
+- **Export policy.** `--export-tools` (globs of the server's tool names, or of their published names), `--export-peers` (globs of
   instance names) and `--export-roles` (the user's roles at home; default any). The key's own tool access
   is a ceiling, as on every host. A tool the policy does not offer to a peer is neither in that peer's
   catalog nor callable by it.

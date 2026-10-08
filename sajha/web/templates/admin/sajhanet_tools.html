@@ -75,6 +75,7 @@
     <div class="table-responsive">
     <table class="rt-table">
       <thead><tr><th scope="col">Qualified name</th><th scope="col">State</th><th scope="col">Host</th>
+        <th scope="col" class="opt">Vendor</th>
         <th scope="col" class="opt">Alias</th><th scope="col" class="opt">Net</th><th scope="col" class="opt">Version</th>
         <th scope="col" class="opt">Contract hash</th><th scope="col" class="opt">Trust</th>
         <th scope="col" class="opt">Data classes</th>
@@ -82,10 +83,11 @@
       <tbody>
       {% for r in table.rows %}
         <tr class="rt-row" data-net="{{ r.net }}" data-host="{{ r.host_instance }}" data-state="{{ r.state }}" data-trust="{{ r.trust }}"
-            data-text="{{ r.qualified_name|lower }} {{ r.host_instance|lower }} {{ (r.alias or '')|lower }} {{ r.host_tool|lower }}">
+            data-text="{{ r.qualified_name|lower }} {{ r.host_instance|lower }} {{ (r.vendor or '')|lower }} {{ (r.alias or '')|lower }} {{ r.host_tool|lower }}">
           <td><code>{{ r.qualified_name }}</code>{% if r.problem %}<div class="rt-meta">{{ r.problem }}</div>{% endif %}</td>
           <td><span class="st st-{{ r.state }}">{{ r.state }}</span></td>
           <td><a href="/net/instances/{{ r.net|urlencode }}/{{ r.host_instance|urlencode }}"><code>{{ r.host_instance }}</code></a></td>
+          <td class="opt">{{ r.vendor or '—' }}{% if r.external %} <span class="rt-meta">external (via {{ r.host_instance }})</span>{% endif %}</td>
           <td class="opt">{{ r.alias or '—' }}</td>
           <td class="opt">{{ r.net }}</td>
           <td class="opt">{{ r.version or '—' }}</td>
@@ -99,7 +101,7 @@
               {% else %}<span class="rt-meta">—</span>{% endif %}</td>
         </tr>
       {% else %}
-        <tr><td colspan="12" class="rt-meta">No remote tools.</td></tr>
+        <tr><td colspan="13" class="rt-meta">No remote tools.</td></tr>
       {% endfor %}
       </tbody>
     </table>

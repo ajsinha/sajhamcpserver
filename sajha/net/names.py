@@ -23,8 +23,11 @@ CONFIGURED_NAME_RE = re.compile(r'^[a-z][a-z0-9-]{0,30}[a-z0-9]$')
 _IPV4_NAME_RE = re.compile(r'^([0-9]{1,3}(?:\.[0-9]{1,3}){3}):([0-9]{1,5})$')
 _IPV6_NAME_RE = re.compile(r'^\[([0-9a-f:.]+)\]:([0-9]{1,5})$')
 _TOOL_PART_RE = re.compile(r'[^A-Za-z0-9_-]')
+VENDOR_RE = re.compile(r'^(?!.*__)(?!.*_$)[a-z][a-z0-9_]{0,23}$')
+PUBLISHED_NAME_RE = re.compile(r'^[A-Za-z0-9_][A-Za-z0-9_.-]{0,127}$')
 
 MAX_QUALIFIED = 128
+VENDOR_SEPARATOR = '__'
 
 
 class NameError_(ValueError):
@@ -237,6 +240,44 @@ def split_qualified(name: str) -> Optional[Tuple[str, str, str]]:
     if not is_net_name(net) or not prefix or prefix.startswith('_') or prefix.endswith('_') or not part:
         return None
     return net, prefix, part
+
+
+# ── vendors and published tool names (§5.5) ─────────────────────────
+
+def is_vendor(name) -> bool:
+    """A vendor: lowercase letter first, then lowercase letters, digits and ``_``; at most 24
+    characters; never ``__`` and not ending with ``_`` (the syntax of a safe federation prefix)."""
+    return isinstance(name, str) and bool(VENDOR_RE.match(name))
+
+
+def vendor_or_error(name: Optional[str], what: str = 'vendor') -> str:
+    v = str(name or '').strip()
+    if not is_vendor(v):
+        raise NameError_(f'{what} {name!r} is not a vendor name: a lowercase letter, then lowercase letters, digits '
+                         f'and "_", at most 24 characters, never "__" and not ending with "_"')
+    return v
+
+
+def is_published_name(name) -> bool:
+    return isinstance(name, str) and bool(PUBLISHED_NAME_RE.match(name))
+
+
+def published_name(local: str, vendor: str = '', namespaced: bool = False,
+                   rename: Optional[dict] = None) -> str:
+    """The name a participant offers its tool ``local`` under (§5.5): its ``rename`` entry when it has
+    one, else ``<vendor>__<local>`` for a namespaced participant (unchanged when ``local`` already
+    starts with ``<vendor>__``), else ``local``."""
+    if rename and local in rename and rename[local]:
+        return str(rename[local])
+    if namespaced and vendor:
+        head = vendor + VENDOR_SEPARATOR
+        return local if local.startswith(head) else head + local
+    return local
+
+
+def max_tool_part(net: str, instance_name: str) -> int:
+    """The longest tool part a tool of ``instance_name`` in ``net`` may have (MAX_QUALIFIED)."""
+    return MAX_QUALIFIED - len(net) - len(safe_prefix(instance_name)) - 4
 
 
 def net_user(user_name: str, instance_name: str) -> str:

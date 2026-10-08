@@ -225,7 +225,10 @@ to servers that are not SAJHA.
 | 5.1 | A residency (data classes, policy conditions, field redaction, shortlists, memory handling) ‖ B locality-aware planners, remote LLM tools, combined hop and depth limits | wave 4 | done |
 | 5.2 | C re-export and the assertion and token-exchange resolvers ‖ D the full SAJHA Net console | 5.1 | done |
 | 5.3 | E sponsored servers, the agent and library, the extension's full conformance suite ‖ F console single sign-on (X5), browser and transport hardening (X6) | 5.2 | done |
-| 5.4 | Comparison page update, full documentation pass and deck, combined gate, release 8.1.0, drill | 5.3 | in progress |
+| 5.4a | Vendors and external servers (an external server is never a member: the SAJHA that defines it proxies its tools as `vendor__tool`); self-recognition by key and URL (owner design) | 5.3 | done |
+| 5.4b | Full documentation review and rewrite against the code, consolidating overlapping documents (owner request) | 5.4a | in progress |
+| 5.4c | New tutorials for every wave 4 and 5 capability, including the local test lab (Ollama, Qwen, three instances on one host) with its launcher script | 5.4a | in progress |
+| 5.4d | Comparison page update, deck, combined gate, release 8.1.0, drill | 5.4b, 5.4c | pending |
 
 **Exit:** gates of section 9; a mixed net (SAJHA instances, an agent-fronted server, a sponsored
 server) passes the conformance suite and the end-to-end residency tests.

@@ -441,8 +441,11 @@ def check(config: Dict[str, Any], registry=None, editing: bool = False) -> Dict[
     errors: List[str] = []
     warnings: List[str] = []
     name = str(config.get('name') or '')
+    from sajha.tools.naming import reserved_name_problem
     if not NAME_RE.match(name):
         errors.append('name must be 3-64 characters: a lowercase letter, then lowercase letters, digits or underscores')
+    elif reserved_name_problem(name):
+        errors.append(reserved_name_problem(name))
     elif not editing and _taken(name, reg):
         errors.append(f'a tool named {name} exists already')
     if not str(config.get('description') or '').strip():

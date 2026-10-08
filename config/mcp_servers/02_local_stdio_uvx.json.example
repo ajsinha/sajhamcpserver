@@ -1,0 +1,21 @@
+{
+  "_comment": "Python reference servers run over stdio with uvx (needs uv). Requires federation.allow_stdio: true. Pin the command to an absolute path in production.",
+  "mcpServers": {
+    "fetch": {
+      "command": "/usr/local/bin/uvx",
+      "args": ["mcp-server-fetch"],
+      "vendor": "mcp_reference"
+    },
+    "git": {
+      "command": "uvx",
+      "args": ["mcp-server-git", "--repository", "/srv/repos/risk-models"],
+      "cwd": "/srv/repos/risk-models",
+      "tools": ["git_status", "git_log", "git_diff*", "git_show"],
+      "_tools_comment": "Read-only git: commit, add, reset and branch tools are not exposed."
+    },
+    "time": {
+      "command": "uvx",
+      "args": ["mcp-server-time", "--local-timezone=America/Toronto"]
+    }
+  }
+}

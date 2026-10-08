@@ -86,6 +86,9 @@ class LiveLinkToolGenerator:
             errors.append("Tool name is required")
         elif not config.tool_name.replace('_', '').isalnum():
             errors.append("Tool name must contain only letters, numbers, and underscores")
+        elif '__' in config.tool_name:
+            from sajha.tools.naming import reserved_name_problem
+            errors.append(reserved_name_problem(config.tool_name))
         elif config.tool_name[0].isdigit():
             errors.append("Tool name cannot start with a number")
         

@@ -42,7 +42,7 @@
       <div class="nt-name">
         <h2><code>{{ t.name }}</code></h2>
         <div class="nt-meta">{% if t.qualified_name %}qualified <code>{{ t.qualified_name }}</code>{% endif %}
-          {% if t.alias %} · alias <code>{{ t.alias }}</code>{% endif %}{% if t.version %} · version {{ t.version }}{% endif %}</div>
+          {% if t.alias %} · alias <code>{{ t.alias }}</code>{% endif %}{% if t.version %} · version {{ t.version }}{% endif %}{% if t.external %} · vendor {{ t.vendor }}, external (via {{ i.name }}){% endif %}</div>
       </div>
       <div class="text-end">
         <span class="st st-{{ t.state }}">{{ 'healthy' if t.state == 'active' else t.state }}</span>

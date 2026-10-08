@@ -1,0 +1,11 @@
+{
+  "_comment": "Hosted servers that need no credential.",
+  "mcpServers": {
+    "context7": {
+      "url": "https://mcp.context7.com/mcp"
+    },
+    "deepwiki": {
+      "url": "https://mcp.deepwiki.com/mcp"
+    }
+  }
+}

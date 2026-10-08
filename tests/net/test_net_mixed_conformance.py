@@ -84,7 +84,8 @@ def mixed(tmp_path, isolate):  # noqa: F811
         'inputSchema': {'type': 'object', 'properties': {'q': {'type': 'string'}}},
         'annotations': {'readOnlyHint': True}})
     a = Instance(tmp_path, 'risk-eu', conn, [Who('var_calc', owner='risk-eu'), search], founder=True)
-    a.svc.sponsored_config = [{'net': NET, 'instance_name': 'vendor-search', 'upstream': 'vendor'}]
+    a.svc.sponsored_config = [{'net': NET, 'instance_name': 'vendor-search', 'upstream': 'vendor',
+                                'vendor': 'vendorco'}]
     a.svc.start(run_agents=False)
     a.svc.ca_init(NET)
     assert a.node.try_join()
@@ -95,7 +96,7 @@ def mixed(tmp_path, isolate):  # noqa: F811
     tok = a.svc.ca_token(NET, 'vendor-agent')
     agent = Agent(AgentConfig(net=NET, instance='vendor-agent', url='https://vendor-agent.test',
                               seeds=['https://risk-eu.test'], admission='builtin_ca', ca_url='https://risk-eu.test',
-                              token=tok['token'], data_dir=str(tmp_path / 'agent')),
+                              token=tok['token'], data_dir=str(tmp_path / 'agent'), vendor='translatorco'),
                   CallableMCPClient(mcp_server([{'name': 'translate', 'description': 'Translate text',
                                                  'inputSchema': {'type': 'object',
                                                                  'properties': {'q': {'type': 'string'}}},
@@ -211,7 +212,9 @@ def test_sponsoring_through_the_admin_api_and_enrollment(tmp_path, isolate):  # 
     sp = get_sponsorships(b.svc)
     with pytest.raises(ServiceError):
         sp.add({'net': NET, 'instance_name': 'Bad_Name', 'upstream': 'units'})
-    row = sp.add({'net': NET, 'instance_name': 'units-svc', 'upstream': 'units'}, by='admin')
+    with pytest.raises(ServiceError):                                  # a sponsored entry names its vendor
+        sp.add({'net': NET, 'instance_name': 'units-svc', 'upstream': 'units'})
+    row = sp.add({'net': NET, 'instance_name': 'units-svc', 'upstream': 'units', 'vendor': 'units'}, by='admin')
     assert not row['running'] and 'enroll it with a token' in row['error']
     sp.enroll(NET, 'units-svc', 'https://risk-eu.test', a.svc.ca_token(NET, 'units-svc')['token'], by='admin')
     row = next(r for r in sp.view() if r['instance_name'] == 'units-svc')

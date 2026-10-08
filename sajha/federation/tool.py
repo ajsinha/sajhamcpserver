@@ -33,6 +33,8 @@ class FederatedToolError(RuntimeError):
 class FederatedTool(BaseMCPTool):
     passthrough_result = True
 
+    namespaced_name = True          # <prefix>__<tool>: '__' is reserved for namespaced tools (sajha/tools/naming.py)
+
     def __init__(self, manager, upstream_id: str, upstream_name: str, definition: Dict[str, Any],
                  config_extra: Dict[str, Any] = None):
         cfg = {

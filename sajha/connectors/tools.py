@@ -18,6 +18,7 @@ from sajha.tools.base_mcp_tool import BaseMCPTool
 
 class ConnectorTool(BaseMCPTool):
     """A governed, read-only tool over one data connection."""
+    namespaced_name = True          # <connector prefix>__<operation> (sajha/tools/naming.py)
 
     def __init__(self, config: Optional[Dict] = None):
         super().__init__(config or {})

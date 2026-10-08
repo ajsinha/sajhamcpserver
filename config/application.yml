@@ -700,6 +700,10 @@ federation:
   max_description_chars: 1024      # cap on upstream descriptions (untrusted text)
   state_path: config/federation/federation.json   # upstreams added on /admin/federation + approvals
   upstreams: []                    # e.g. - {id: units, url: "http://127.0.0.1:8765/mcp"}
+  # proxied MCP servers in the mcpServers JSON (Claude Desktop / Cursor / VS Code shape); git-ignored, may hold
+  # credentials; templates: config/mcp_servers.json.example and config/mcp_servers/ (external unless "external": false)
+  mcp_servers_file: config/mcp_servers.json
+  mcp_servers_reload_seconds: 5    # checks the file's mtime and size; a change applies without a restart
 
 # ── API Import: OpenAPI / Swagger / GraphQL → tools (Studio → Import an API) ──
 # Every key: docs/getting-started/Configuration Reference.md#api-import; design:
@@ -988,7 +992,15 @@ sajhanet:
   # a net entry may also set export: and import: rules (see the Configuration Reference)
   # plain MCP servers (federation upstreams) this server sponsors into a net, each a participant of kind
   # sponsored under its own instance name; also added in the admin API (/api/sajhanet/sponsored)
-  sponsored: []                    # [{net: acme-net, instance_name: vendor-search, upstream: vendor, tools: ["*"]}]
+  # (vendor required; rename: {upstream tool: published name}; a sponsored server is a member, never external)
+  sponsored: []                    # [{net: acme-net, instance_name: vendor-search, upstream: vendor, vendor: acme,
+                                   #   tools: ["*"]}]
+  # vendors and external servers (SAJHA Net §5.6); a net entry may override vendor and rename
+  vendor: sajha                    # the organisation that answers for this server's tools (in the member record)
+  rename: {}                       # {local tool: published name}: a deliberate short name, same contract rule
+  # federation upstreams offered into the nets as external servers (never members), tools as <prefix>__<tool>;
+  # the mcpServers file's entries (federation.mcp_servers_file) are external servers without an entry here
+  external_servers: []             # [{upstream: acme, vendor: acme, prefix: acme, tools: ["*"], rename: {}, nets: []}]
   peer_cache:
     interval_minutes: 10           # the saved peer list is written on change and at least this often
     max_age_days: 7                # saved peers not seen for longer are skipped on restart

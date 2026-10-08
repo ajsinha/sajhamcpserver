@@ -144,7 +144,7 @@ def test_command_line_help_and_errors(tmp_path):
                          cwd=ROOT, timeout=60)
     assert out.returncode == 0 and '--mcp-command' in out.stdout and '--seed' in out.stdout
     out = subprocess.run([sys.executable, '-m', 'sajhanet_agent', '--net', 'lab-net', '--instance', 'x-y',
-                          '--url', 'https://h:1', '--mcp-command', 'true', '--admission', 'builtin_ca',
+                          '--url', 'https://h:1', '--mcp-command', 'true', '--admission', 'builtin_ca', '--vendor', 'acme',
                           '--data-dir', str(tmp_path / 'd')], capture_output=True, text=True, env=env, cwd=ROOT,
                          timeout=60)
     assert out.returncode == 2 and 'enrollment token' in out.stderr

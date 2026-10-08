@@ -72,6 +72,24 @@ def empty_404() -> PeerResponse:
     return PeerResponse(404, {}, b'')
 
 
+def normalise_url(url: str) -> str:
+    """``scheme://host[:port]/path`` with scheme and host lowercased, the default port dropped and no
+    trailing ``/`` ('' for an empty or unparsable URL)."""
+    try:
+        p = urlsplit(str(url or '').strip())
+        if not p.scheme or not p.hostname:
+            return ''
+        sch = p.scheme.lower()
+        host = p.hostname.lower()
+        if ':' in host:
+            host = f'[{host}]'
+        port = p.port
+        hp = host if port is None or (sch, port) in (('http', 80), ('https', 443)) else f'{host}:{port}'
+        return f'{sch}://{hp}{p.path.rstrip("/")}'
+    except ValueError:
+        return ''
+
+
 def dumps(obj: Any) -> bytes:
     return json.dumps(obj, separators=(',', ':'), ensure_ascii=False).encode('utf-8')
 
@@ -262,8 +280,49 @@ class NetNode:
                      f'configuration or certificate changes')
         self.event('name_conflict', own=True, **{k: v for k, v in r.items() if k != 'fingerprint'})
 
+    # ── recognising itself (§9.4) ───────────────────────────────────
+
+    def own_urls(self) -> set:
+        """This node's own addresses, normalised: its signed ``url`` (``base_url``) and its configured
+        ``advertise_address`` (as http and https). Never an observed source address."""
+        out = {normalise_url(self.cfg.base_url)}
+        adv = str(getattr(self.cfg, 'advertise_address', '') or '').strip()
+        if adv:
+            out |= {normalise_url(('' if '://' in adv else sch + '://') + adv) for sch in ('http', 'https')}
+        return {u for u in out if u}
+
+    def is_own_url(self, url: Any) -> bool:
+        return bool(url) and normalise_url(str(url)) in self.own_urls()
+
+    def _shares_url_by_design(self, rec: Dict[str, Any]) -> bool:
+        """A sponsored participant shares its sponsor's URL (design §5.1): this server's sponsored
+        participants, and, at a sponsored node, its sponsor and the sponsor's other sponsored ones."""
+        if rec.get('kind') == 'sponsored' and rec.get('sponsor') == self.name:
+            return True
+        sponsor = getattr(self.cfg, 'sponsor', '') if getattr(self.cfg, 'kind', '') == 'sponsored' else ''
+        return bool(sponsor) and (rec.get('name') == sponsor or rec.get('sponsor') == sponsor)
+
+    def _self_seen(self, rec: Dict[str, Any], why: str) -> None:
+        name, url = rec.get('name'), rec.get('url')
+        key = f'self_seen:{name}:{url}:{why}'
+        if self.kv.get(key):
+            return
+        self.kv.set(key, True, ttl=600)
+        detail = (f'a member record names {name!r} at {url} but is signed with this server\'s own key'
+                  if why == 'own_key' else
+                  f'a member record names {name!r} at {url}, which is this server\'s own address')
+        logger.warning(f'SAJHA Net {self.net}: {detail}; it is treated as this server, not added as a member')
+        self.event('self_seen', claimant=name, claimant_url=url, why=why, detail=detail,
+                   own_name=self.name, own_url=self.cfg.base_url)
+
     def join_sources(self) -> List[Tuple[str, str, str]]:
-        """``(kind, url, name)`` in the order §9.7 tries them: seeds, saved peers, discovery."""
+        """``(kind, url, name)`` in the order §9.7 tries them: seeds, saved peers, discovery; never an
+        address of this node itself."""
+        if getattr(self.cfg, 'kind', '') == 'sponsored':
+            return self._join_sources()              # it joins through its sponsor, at the URL they share
+        return [x for x in self._join_sources() if not self.is_own_url(x[1])]
+
+    def _join_sources(self) -> List[Tuple[str, str, str]]:
         out = [('seed', u.rstrip('/'), httpsig.ANY) for u in self.cfg.seeds if u]
         out += [('runtime_seed', u.rstrip('/'), httpsig.ANY) for u in (self.runtime_seeds() or [])
                 if u and u.rstrip('/') not in self.cfg.seeds]
@@ -434,10 +493,21 @@ class NetNode:
         name = rec.get('name')
         if name == self.name:
             return self._about_self(entry, via_net)
+        sig = entry.get('signature') or {}
+        if sig.get('keyid') and sig.get('keyid') == self.signer.keyid:      # this node's own key, another name
+            try:
+                if crypto.verify_record('member', rec, sig, self.signer.key.public_key()):
+                    self._self_seen(rec, 'own_key')
+            except Exception:
+                pass
+            return False
         try:
             cert = self._verify_entry(entry, via_net)
         except (NetError, crypto.CryptoError) as e:
             logger.debug(f'SAJHA Net {self.net}: dropped an entry about {name}: {getattr(e, "detail", e)}')
+            return False
+        if self.is_own_url(rec.get('url')) and not self._shares_url_by_design(rec):
+            self._self_seen(rec, 'own_url')                 # §9.4: this server's own address, another name
             return False
         holder = self.lineage_conflict(name, cert)
         if holder is not None:

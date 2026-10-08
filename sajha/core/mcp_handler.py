@@ -133,7 +133,9 @@ class MCPHandler:
                                traceparent=meta.get('traceparent') if isinstance(meta.get('traceparent'), str) else None,
                                tracestate=meta.get('tracestate') if isinstance(meta.get('tracestate'), str) else None
                                ) as span:
-                response = self._handle_request(request_data, session)
+                from sajha.core import inner_calls as _ic   # the depth a proxying SAJHA carried (Federation.md)
+                with _ic.proxied_entered(_ic.proxy_depth_of(meta)):
+                    response = self._handle_request(request_data, session)
                 if isinstance(request_data, dict) and 'id' not in request_data:
                     outcome = 'notification'
                 elif isinstance(response, dict) and 'error' in response:

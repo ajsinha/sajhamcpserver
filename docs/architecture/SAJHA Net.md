@@ -573,6 +573,128 @@ What is not listed here is still design.
   TLS (`mtls` stays off); for other MCP servers: an agent that is also a home (calls other members' tools),
   sponsored participants with the `assertion` or `token_exchange` identity, and console pages for
   sponsoring (the admin API and the data views carry it).
+- **Built in phase 5.4:** vendors and external servers (section 5.6): `vendor` in the member record and
+  every view; external servers (`sajhanet.external_servers`) offered by their defining instance as
+  `<vendor>__<tool>`; published names with the host mapping calls back to its local tool (the core does
+  it in `CatalogBook`, `sajha/net/catalog.py`, for every kind of participant); rules and blocks under
+  either name; `rename`; the length refusal; and how a node recognises itself (section 6.1).
+
+### 5.6 Vendors and external servers
+
+**The problem.** One name, one contract (section 8.7) is the right rule inside one organisation: a
+`var_calc` is a `var_calc` everywhere. Servers from unrelated organisations break it by accident. A
+search server from acme and one from globex both offer `search`, `fetch` or `read_file`, with
+different schemas, and the net would quarantine the name everywhere although nobody did anything wrong.
+
+**The design** (owner decisions, 2026-10-07):
+
+- **Every member names its vendor.** The vendor is the organisation that owns and answers for a
+  participant's tools (`sajha`, `acme`). Its syntax is that of a safe federation prefix, lowercase: a
+  lowercase letter, then lowercase letters, digits and `_`, at most 24 characters, never `__` and not
+  ending with `_`. A SAJHA instance takes `sajhanet.vendor` (default `sajha`; a net entry may override
+  it), a sponsored entry `vendor` (required), the agent `--vendor` (required). It is in the member
+  record and shown on the Instances, Remote tools and Net overview pages, in `GET /api/sajhanet/status`
+  and in the topology data. There is no vendor registry: the name is a claim, and the contract rule
+  below keeps it honest.
+- **An external server is not a member.** It is a proxied MCP server (one a SAJHA instance embeds
+  and proxies calls to, through federation) marked external: an entry of the
+  [mcpServers file](Federation.md#the-mcpservers-file) (external by default there), or an upstream
+  listed in `sajhanet.external_servers` with its vendor. It has no member record, no instance name and
+  no certificate; it never gossips, is never probed and never appears on the Instances page. The SAJHA
+  instance that defines it is its **proxy**: the tools of an external server appear as the hosting
+  instance's own tools, published as `<prefix>__<tool>` (the prefix defaults to the vendor), so the
+  qualified name is `<net>__<defining instance>__<prefix>__<tool>` (`acme-net__risk-eu__acme__search`)
+  and the plain name `acme__search`. No other tool name may contain `__`: it is reserved for namespaced
+  tools (federated and external servers' tools, and SAJHA Net's remote tools), and the tools registry
+  refuses any other tool that uses it ([Federation](Federation.md#names)). A prefix is unique on an
+  instance, across federation upstreams and external servers, and never a local tool's name. Its
+  endpoint and credentials never leave the defining instance; calls go to
+  the defining instance, which runs them with its full governance (export rules, access, policy,
+  approvals, residency, audit) and then calls the upstream through federation by the upstream's own
+  name. The catalog entry says `vendor` and `external: true` in `_meta["io.sajha/net"]`, so every member
+  shows "external (via risk-eu)" next to the tool.
+- **Internal servers are unchanged.** Every member (a SAJHA instance, an agent-fronted server, a
+  sponsored server) is internal: its tools keep their names and one name, one contract applies to them
+  as before. A SAJHA instance is always a member; to offer another SAJHA's tools under a vendor prefix,
+  define it as an external server (a federation upstream on its `/mcp`). A sponsored entry with
+  `external: true` and the agent's `--external` are refused with a message pointing here, because a
+  sponsored or agent-fronted server is a member by definition.
+- **Rules accept either name.** At the defining instance, export rules and tool blocks match the
+  published name (`acme__search`) or the local (registry) name of the federation tool (a block on
+  either blocks the tool); access (roles and a key's tool list) is checked under the local name and
+  also accepts the published name; policy and approvals see the local tool, which is what runs. Homes
+  name the tool by its published (qualified) name in import rules, preferences and blocks. The host's
+  `net.host_call` audit record has `tool` (the published name) and `local_tool`.
+- **One name, one contract applies to the published name.** Two SAJHA instances that both define
+  acme's server and offer the identical `acme__search` are one fallback set for the plain name
+  (resolution and waterfall as in sections 8.2 and 9.1). Different vendors never meet on a name. Two
+  instances claiming one vendor with different contracts are the loud quarantine of section 8.7, naming
+  the differing defining host.
+- **Deliberate short names.** `rename` (`{tool: published name}`) on an external server entry offers a
+  tool under a name the operator chooses instead of the prefix; `sajhanet.rename` (or a net entry's
+  `rename`) does the same for a member's own tools, a sponsored entry has `rename`, the agent
+  `--rename local=published`. Such a name falls under the same rule: two hosts both choosing `find`
+  with different contracts quarantine `find`.
+- **Length.** A qualified name is at most 128 characters (protocol §5.3). A host whose published name
+  would make it longer does not offer that tool: it logs a warning, raises a warning notice
+  (`sajhanet.name:<net>:<tool>`) and an audit record (`tool_name_refused`) naming the tool, its published
+  name and the room it has, and suggests `rename`; the Net overview and the agent's status list it under
+  `refused_tools`. There is no automatic shortening: a truncated or hashed name would be unreadable to
+  people and models and could collide, so the operator chooses the short name. The same check refuses a
+  published name that is not a valid tool name or that two tools would share.
+- **Re-export keeps the published name.** An intermediary re-exports `acme__search` as `acme__search`,
+  with its `vendor` and `external` metadata, never adding a prefix of its own, so the contract is
+  compared under one name everywhere.
+- **Proxies all the way down.** A proxied server may itself proxy others (another SAJHA with its own
+  proxied servers, or any MCP gateway), so the arrangement nests without limit, and every level applies
+  its own governance (export rules, access, policy, approvals, residency, audit). Names compose: an
+  external server's tool that is already prefixed comes through as `<outer prefix>__<inner prefix>__<tool>`
+  and in a net as `<net>__<instance>__<outer>__<inner>__<tool>`, which still splits at the first two
+  `__`. Each level is bounded by the 128-character name cap (the length rule above refuses a tool rather
+  than shortening it; models see short per-request aliases, section 8.6) and by the call-chain budget
+  that federation carries between SAJHA instances, so a cycle of proxies is refused at the limit
+  ([Federation](Federation.md#proxies-all-the-way-down)).
+- **Caution.** Choose a vendor that is not also the name of a net this server is in: a plain name such
+  as `acme__files__read` would otherwise read as a qualified name in net `acme`.
+
+Example: one SAJHA instance offers two vendors' `search` tools without either becoming a member. With
+the mcpServers file (`config/mcp_servers.json`; templates in
+[`config/mcp_servers/`](../../config/mcp_servers/README.md)) every entry is external unless it says
+`"external": false`:
+
+```json
+{"mcpServers": {
+  "acme":   {"url": "https://search.acme.example/mcp"},
+  "globex": {"url": "https://mcp.globex.example/mcp", "tools": ["search", "fetch_*"]}
+}}
+```
+
+The same in `application.yml`, with upstreams defined there:
+
+```yaml
+federation:
+  upstreams:
+    - {id: acme, url: "https://search.acme.example/mcp"}
+    - {id: glx, url: "https://mcp.globex.example/mcp"}
+sajhanet:
+  vendor: sajha
+  external_servers:
+    - {upstream: acme, vendor: acme}
+    - {upstream: glx, vendor: globex, tools: ["search", "fetch_*"], rename: {fetch_document: globex_fetch}}
+```
+
+`sajhanet.external_servers` entries take `upstream`, `vendor` (required), `prefix` (default the vendor),
+`tools` (globs of the upstream's tool names offered, default all), `rename` and `nets` (default every
+net). An upstream listed both there and in the mcpServers file uses the `sajhanet.external_servers`
+entry.
+
+Every member then lists `acme__search`, `globex__search` and `globex_fetch` (all hosted by this
+instance), and nothing is quarantined. Without the `external_servers` entries the federation tools stay
+local to this instance (federated tools are never exported into a net on their own), and sponsoring the
+two servers instead would make them members offering `search` each, which the net quarantines.
+
+The rules are normative in the [protocol spec](../protocol/SAJHA%20Net%20Protocol.md#55-vendors-and-published-tool-names);
+the tests are `tests/net/test_net_vendors.py`.
 
 ---
 
@@ -659,6 +781,23 @@ server is needed.
   (section 6.3). Every instance checks it on every request.
 - **Rotation.** Instance certificates are short-lived (default 30 days) and renewed before
   expiry; old and new are both accepted during an overlap window.
+- **How addresses are advertised.** A participant's address is the `url` in its own signed member
+  record (its `base_url`, or the address name built from its `advertise_address`), never an address a
+  peer observed a request coming from: behind NAT, a proxy, a container network or a server bound to
+  `0.0.0.0` the observed source says nothing reliable about identity, so it is used, at most, in debug
+  diagnostics. A sponsored participant shares its sponsor's URL by design (requests reach it by
+  `Sajha-Net-To`); an external server (section 5.6) has no record at all, so its real endpoint is never
+  gossiped and stays with the instance that defines it.
+- **How a server recognises itself** (`sajha/net/node.py`, protocol §9.4). Besides a record under its
+  own name (which it refutes or ignores as before), a node treats as **itself**, never as a remote
+  member: a record signed with its own key under another name (a renamed copy of itself), and a record
+  whose `url` is its own address (its `base_url` or `advertise_address`; scheme and host compared in
+  lower case, default ports dropped, no trailing `/`) under another name and key. Either raises a
+  warning notice (`sajhanet.self_seen:<net>`) naming the name and URL seen, and an audit record
+  (`self_seen`). The exception is a sponsored participant: a `sponsored` record whose `sponsor` is
+  this server (and, at a sponsored node, its sponsor and the sponsor's other sponsored participants)
+  shares the URL by design and is an ordinary member. A seed, runtime seed or saved peer at the node's
+  own address is skipped, so a server never tries to join through itself.
 
 ### 6.2 Coming in and going out
 
@@ -1098,6 +1237,9 @@ description and title belong to it too, but a difference there is only a warning
   contracts, and two versions of one name never coexist as different tools in a net.
 - **Fallback needs nothing more.** Because hosts offering a name in a net always offer the same
   contract, any of them can stand in for another (section 9.1).
+- **Unrelated servers.** Tools of different organisations that happen to share a name (`search`) are
+  kept apart by defining their servers as external servers (section 5.6): the rule then applies to
+  `acme__search` and `globex__search`, which never collide.
 
 ---
 

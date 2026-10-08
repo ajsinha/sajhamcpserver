@@ -158,7 +158,7 @@ CATALOG: List[dict] = [
                'testing, with runnable examples.', badge='Developers'),
             _g('Federation', 'Federation.md', 'bi-diagram-2',
                'Front other MCP servers: their tools under SAJHA\'s access control, audit, cache, '
-               'circuit breakers and approval; the Federation admin page.'),
+               'circuit breakers and approval; the Proxied MCP servers page and config/mcp_servers.json.'),
             _g('Connected Accounts', 'Connected Accounts.md', 'bi-link-45deg',
                'Users link GitHub, Slack, Google, Microsoft 365 and other accounts once; tools and '
                'federated servers act as them. Providers, PKCE flow, token vault, refresh, security.'),

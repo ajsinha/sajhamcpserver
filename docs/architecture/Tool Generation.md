@@ -97,7 +97,7 @@ block testing and deploying) and warnings (shown for review):
 | Field | Checks |
 |---|---|
 | `kind` | one of `python`, `rest`, `dbquery`, `composite`, `openapi`, `llm` |
-| `name` | 3-64 lowercase letters, digits, underscores; an invalid one is replaced by a slug; a taken one gets `_2`, `_3`, … |
+| `name` | 3-64 lowercase letters, digits, underscores, never `__` (reserved for namespaced tools, [Federation](Federation.md#names)); an invalid one is replaced by a slug; a taken one gets `_2`, `_3`, … |
 | `description`, `category`, notes | one line, no quotes or backslashes (they end up inside generated Python), capped |
 | python `code` | at most 20,000 characters; compiles; exactly one `@sajhamcptool` function; imports of `os`, `subprocess`, `socket` and similar, and calls to `eval`, `exec`, `open` and similar, are flagged |
 | python `sandbox` | `network` `none` or `allowlist` with `host[:port]` entries; hosts the description does not mention are flagged; `secrets`, `env` and `backend` are removed (a generated tool cannot ask for them); the block must pass `policy_from_config`, so `sandbox.max` caps it |

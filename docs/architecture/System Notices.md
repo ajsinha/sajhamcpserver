@@ -99,11 +99,15 @@ start-up), which also clears notices whose ttl has passed.
 | Intelligence layer | `llm.provider_down:<provider>` | `warning` | An active provider's health check says it is down; per worker | It is healthy again |
 | Federation | `federation.upstream_down:<upstream>` | `error`; audience `everyone` when the upstream has approved items | An enabled upstream is in error (or still connecting after an error); per worker | It connects, or is disabled |
 | Federation | `federation.approvals:<upstream>` | `warning` | Tools from the upstream are new or changed and wait for an administrator's approval | None is waiting |
+| Federation | `federation.sign_in:<upstream>` | `warning` | The upstream answered HTTP 401 with no credential configured: it needs per-user OAuth sign-in, not supported yet ([Federation](Federation.md#the-mcpservers-file)) | It connects |
+| Federation | `federation.mcp_servers` | `warning` | Entries of the mcpServers file are invalid, duplicate a `federation.upstreams` id or clash on a prefix | The file loads cleanly |
+| Federation | `federation.mcp_servers.raw_secrets` | `info` | The mcpServers file holds raw credential headers (names listed, never values) | They are `${NAME}` references or gone |
+| Tools registry (`sajha/tools/tools_registry.py`) | `tools.reserved_name:<tool>` | `error` | A tool that is not namespaced has `__` in its name and is refused ([Federation](Federation.md#names)) | Never by itself: rename the tool; an administrator clears it |
 | Alert rules (`sajha/observability/alerts.py`) | `alerts.rule:<rule>` | the channel's `severity` (default `warning`) | A rule with `channel: {type: notice}` holds at an evaluation; per worker | It stops holding |
 | LLM tools (`sajha/ai/llm_tools/runtime.py`) | `llm_tools.memory` | `warning` at the soft limit, `error` at the hard one | The memory guard passes its soft or hard resident-memory limit (`ai.llm_tools.runtime.memory_guard`); per worker; ttl 10 minutes | Resident memory falls below the soft limit |
 | LLM tools | `llm_tools.busy` | `warning` | A run is refused as `busy` (queue full, queue timeout, hard memory limit); per worker; ttl 10 minutes | The ttl passes with no further refusal |
 | LLM tools | `llm_tools.spool_full` | `warning` | A payload could not be spooled because `ai.llm_tools.memory.spool.max_mb` or `per_run_mb` is reached (it was truncated instead); per worker; ttl 30 minutes | The next payload is spooled |
-| SAJHA Net | contract conflicts, instance-name conflicts, members suspect or dead, seeds unreachable, certificates, revocation list, key-directory sync, CA reachability, blocks; details in [SAJHA Net](SAJHA%20Net.md) | | wave 4 | |
+| SAJHA Net | contract conflicts, instance-name conflicts, members suspect or dead, seeds unreachable, certificates, revocation list, key-directory sync, CA reachability, blocks, a record that is this server (`sajhanet.self_seen:<net>`), a tool not offered for its published name (`sajhanet.name:<net>:<tool>`), external servers not offered (`sajhanet.external_servers`); details in [SAJHA Net](SAJHA%20Net.md) | | wave 4 | |
 
 The alert channel's optional fields are in [Observability](Observability.md) section 5.
 

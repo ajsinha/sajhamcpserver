@@ -139,17 +139,19 @@
       <h2 id="sn-mem-h">Members</h2>
       <div class="table-responsive">
       <table class="sn-table">
-        <thead><tr><th scope="col">Instance</th><th scope="col">State</th><th scope="col" class="opt">Region</th><th scope="col" class="opt">Last seen</th></tr></thead>
+        <thead><tr><th scope="col">Instance</th><th scope="col">State</th><th scope="col" class="opt">Vendor</th><th scope="col" class="opt">Region</th><th scope="col" class="opt">Last seen</th></tr></thead>
         <tbody>
           <tr><td><a href="/net/instances/this"><code>{{ n.instance }}</code></a> <span class="sn-meta">this server</span></td>
             <td><span class="st st-{{ 'alive' if n.joined else 'suspect' }}">{{ 'joined' if n.joined else 'not joined' }}</span></td>
+            <td class="opt">{{ n.vendor or '—' }}</td>
             <td class="opt">{{ n.region or '—' }}</td><td class="opt">now</td></tr>
         {% for m in n.members %}
           <tr><td><a href="/net/instances/{{ n.net|urlencode }}/{{ m.name|urlencode }}"><code>{{ m.name }}</code></a>{% if m.kind and m.kind != 'sajha' %} <span class="sn-meta">{{ m.kind }}</span>{% endif %}</td>
             <td><span class="st st-{{ m.state }}">{{ m.state }}</span></td>
+            <td class="opt">{{ m.vendor or '—' }}</td>
             <td class="opt">{{ m.region or '—' }}</td><td class="opt">{{ m.last_seen or '—' }}</td></tr>
         {% else %}
-          <tr><td colspan="4" class="sn-meta">No other member known yet.</td></tr>
+          <tr><td colspan="5" class="sn-meta">No other member known yet.</td></tr>
         {% endfor %}
         </tbody>
       </table>

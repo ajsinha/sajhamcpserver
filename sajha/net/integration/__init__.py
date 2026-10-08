@@ -139,6 +139,13 @@ def on_event(kind: str, data: Dict[str, Any]) -> None:
                 f'{data.get("holder_state")}). This server does not join {net} until its configuration or '
                 f'certificate changes; its local tools keep working.', ttl=0)
         _audit('name_conflict', details=data)
+    elif kind == 'self_seen':                            # §9.4: a record that is this server under another name
+        _notice(f'sajhanet.self_seen:{net}', 'warning', f'A member record in {net} is this server',
+                f'{data.get("detail") or ""}. This server is {data.get("own_name")} at {data.get("own_url")}; the '
+                f'record ({data.get("claimant")} at {data.get("claimant_url")}) is not added as a member. A renamed '
+                f'or re-addressed copy of this server, or another server configured with its URL, is the usual '
+                f'cause.', ttl=600)
+        _audit('self_seen', details=data)
     elif kind == 'name_conflict_seen':
         _notice(f'sajhanet.name_conflict_seen:{net}:{data.get("claimant")}', 'warning',
                 f'Two participants claim {data.get("claimant")} in {net}',
@@ -588,6 +595,7 @@ class SajhaNetService:
                 'net': net, 'instance': rt.cfg.instance_name, 'url': rt.cfg.base_url, 'founder': rt.cfg.founder,
                 'seeds': list(rt.cfg.seeds), 'runtime_seeds': self.runtime_seeds(net) if self.shared.enabled else [],
                 'admission': rt.cfg.admission, 'membership': rt.cfg.membership, 'error': rt.error,
+                'vendor': rt.cfg.vendor,
                 'ca': {'enabled': rt.cfg.ca.enabled, 'initialised': rt.ca is not None}}
             if node is not None:
                 st = node.status()
@@ -599,6 +607,7 @@ class SajhaNetService:
                             members=[{'name': m['name'], 'state': m['state'], 'url': m['record'].get('url'),
                                       'region': m['record'].get('region', ''), 'kind': m['record'].get('kind'),
                                       'sponsor': m['record'].get('sponsor'),
+                                      'vendor': m['record'].get('vendor') or '',
                                       'incarnation': m['record'].get('incarnation'),
                                       'features': m['record'].get('features'),
                                       'last_seen': crypto.rfc3339(m['last_seen']) if m.get('last_seen') else None}

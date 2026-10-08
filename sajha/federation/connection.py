@@ -108,6 +108,8 @@ class UpstreamConnection:
         self.last_error: Optional[str] = None
         self.connected_at: Optional[float] = None
         self.listening = False
+        self.needs_sign_in = False          # HTTP 401 with no credential configured: per-user OAuth (not built)
+        self._last_status: Optional[int] = None
         self._client = None
         self._secret_values: List[str] = []
         self._ready = asyncio.Event()
@@ -149,6 +151,7 @@ class UpstreamConnection:
         backoff = 1.0
         while not self._stop.is_set():
             self.state = 'connecting'
+            self._last_status = None
             try:
                 # The connect deadline is a cancel scope around the whole session (the SDK's task
                 # groups must be entered and exited inside one scope); lifted once connected.
@@ -158,6 +161,13 @@ class UpstreamConnection:
                         scope.deadline = math.inf
                         self._client = client
                         self.state = 'connected'
+                        if self.needs_sign_in:
+                            self.needs_sign_in = False
+                            try:
+                                from sajha import notices
+                                notices.clear_notice(f'federation.sign_in:{self.config.id}')
+                            except Exception:
+                                pass
                         self.connected_at = time.time()
                         self.last_error = None
                         backoff = 1.0
@@ -186,18 +196,44 @@ class UpstreamConnection:
                 raise
             except Exception as e:
                 self.last_error = describe(e)
+                if (is_unauthorized(e) or self._last_status == 401) and not self._has_credential():
+                    if not self.needs_sign_in:
+                        self._sign_in_notice()
+                    self.needs_sign_in = True
+                    self.last_error = ('needs sign-in (not supported yet): the server answered HTTP 401 and asks '
+                                       'for per-user OAuth sign-in (MCP authorization), which federation does '
+                                       'not do for upstreams yet; give it a static credential (a header) or '
+                                       'remove it')
+                    backoff = BACKOFF_MAX_SECONDS
                 logger.warning(f'federation: upstream {self.config.id}: {self.last_error}')
             finally:
                 self._fail_waiters()
             if self._stop.is_set():
                 break
-            self.state = 'error'
+            self.state = 'needs_sign_in' if self.needs_sign_in else 'error'
             try:
                 await asyncio.wait_for(self._stop.wait(), timeout=backoff)
             except asyncio.TimeoutError:
                 pass
             backoff = min(backoff * 2, BACKOFF_MAX_SECONDS)
         self.state = 'disabled'
+
+    def _has_credential(self) -> bool:
+        a = (self.config.auth or {}).get('type', 'none') or 'none'
+        return a != 'none' or any(k.lower() in ('authorization', 'x-api-key', 'api-key')
+                                  for k in (self.config.headers or {}))
+
+    def _sign_in_notice(self) -> None:
+        try:
+            from sajha import notices
+            notices.raise_notice(f'federation.sign_in:{self.config.id}', severity='warning', source='federation',
+                                 title=f'Upstream {self.config.id} needs sign-in (not supported yet)',
+                                 detail=f'{self.config.url} answered HTTP 401: it uses per-user OAuth sign-in '
+                                        f'(MCP authorization with discovery), which federation does not do for '
+                                        f'upstreams yet (see the Roadmap). Give it a static credential header or '
+                                        f'remove it.', ttl_minutes=0)
+        except Exception as e:
+            logger.debug(f'federation: sign-in notice for {self.config.id}: {e}')
 
     def _connect_timeout(self) -> float:
         return min(float(self.config.timeout_seconds or self.settings.default_timeout_seconds), 30.0)
@@ -255,8 +291,11 @@ class UpstreamConnection:
             return sse_client(cfg.url, headers=headers, timeout=connect_timeout,
                               sse_read_timeout=max(timeout, 300.0), auth=auth)
         from mcp.client.streamable_http import streamable_http_client
+        async def seen(response):              # the SDK hides an HTTP 401 behind a generic MCP error
+            self._last_status = response.status_code
         http = httpx2.AsyncClient(headers=headers, auth=auth, follow_redirects=False, trust_env=False,
-                                  timeout=httpx2.Timeout(connect_timeout, read=max(timeout, 300.0)))
+                                  timeout=httpx2.Timeout(connect_timeout, read=max(timeout, 300.0)),
+                                  event_hooks={'response': [seen]})
         stack.push_async_callback(http.aclose)
         return streamable_http_client(cfg.url, http_client=http)
 

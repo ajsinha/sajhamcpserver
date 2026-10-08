@@ -70,17 +70,18 @@
     <table class="ni-table">
       <caption class="visually-hidden">Instances in {{ n.net }}</caption>
       <thead><tr><th scope="col">Instance</th><th scope="col">State</th><th scope="col">Your tools</th>
-        <th scope="col" class="opt">Kind</th><th scope="col" class="opt">Region and labels</th><th scope="col" class="opt">Last seen</th></tr></thead>
+        <th scope="col" class="opt">Kind</th><th scope="col" class="opt">Vendor</th><th scope="col" class="opt">Region and labels</th><th scope="col" class="opt">Last seen</th></tr></thead>
       <tbody>
       {% for i in n.instances %}
         <tr class="ni-row" data-net="{{ n.net }}" data-state="{{ i.state }}" data-kind="{{ i.kind }}" data-region="{{ i.region|lower }}"
             data-labels="{% for k, v in i.labels.items() %}{{ k|lower }}={{ v|lower }} {% endfor %}"
-            data-text="{{ i.name|lower }} {{ i.region|lower }} {% for k, v in i.labels.items() %}{{ k|lower }} {{ v|lower }} {% endfor %}">
+            data-text="{{ i.name|lower }} {{ (i.vendor or '')|lower }} {{ i.region|lower }} {% for k, v in i.labels.items() %}{{ k|lower }} {{ v|lower }} {% endfor %}">
           <td><a href="/net/instances/{{ n.net|urlencode }}/{{ i.name|urlencode }}"><code>{{ i.name }}</code></a>{% if i.self %}<span class="ni-you">this server</span>{% endif %}
             {% if i.note %}<div class="ni-meta">{{ i.note }}</div>{% endif %}</td>
           <td><span class="st st-{{ i.state }}">{{ i.state }}</span></td>
           <td>{{ i.tools_usable }}{% if i.tools_total != i.tools_usable %} <span class="ni-meta">of {{ i.tools_total }}</span>{% endif %}</td>
           <td class="opt">{{ i.kind }}</td>
+          <td class="opt">{{ i.vendor or '—' }}</td>
           <td class="opt">{{ i.region or '—' }}{% for k, v in i.labels.items() %} <span class="ni-label">{{ k }}: {{ v }}</span>{% endfor %}</td>
           <td class="opt">{{ i.last_seen or '—' }}</td>
         </tr>

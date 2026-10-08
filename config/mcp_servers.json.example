@@ -1,0 +1,22 @@
+{
+  "_comment": "Copy to config/mcp_servers.json (git-ignored) and set GITHUB_PAT. Each entry is an external MCP server this SAJHA embeds; more templates and every key are in config/mcp_servers/README.md.",
+  "mcpServers": {
+    "github": {
+      "url": "https://api.githubcopilot.com/mcp/",
+      "headers": {"Authorization": "Bearer ${GITHUB_PAT}"}
+    },
+    "supabase": {
+      "url": "https://mcp.supabase.com/mcp",
+      "enabled": false,
+      "_comment": "Needs per-user OAuth sign-in, which federation does not do yet."
+    },
+    "notion": {
+      "url": "https://mcp.notion.com/mcp",
+      "enabled": false,
+      "_comment": "Needs per-user OAuth sign-in, which federation does not do yet."
+    },
+    "context7": {
+      "url": "https://mcp.context7.com/mcp"
+    }
+  }
+}

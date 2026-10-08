@@ -416,8 +416,8 @@ async def sajhanet_sponsored(auth: AuthContext = Depends(require_admin)):
 
 @router.post('/api/sajhanet/sponsored')
 async def sajhanet_sponsor(request: Request, auth: AuthContext = Depends(require_admin)):
-    """Sponsor a federation upstream into a net: ``{"net", "instance_name", "upstream", "tools", "region",
-    "labels"}``."""
+    """Sponsor a federation upstream into a net: ``{"net", "instance_name", "upstream", "vendor", "external",
+    "rename", "tools", "region", "labels"}`` (``vendor`` required)."""
     sp = _sponsorships()
     if sp is None:
         return _off()

@@ -41,7 +41,7 @@ KINDS = ('python', 'rest', 'dbquery', 'composite', 'openapi', 'llm')
 #: The Studio creator permission a deploy of each kind needs (sajha/auth: studio:<creator>)
 KIND_CREATOR = {'python': 'python', 'rest': 'rest', 'dbquery': 'dbquery', 'composite': 'composite',
                 'openapi': 'api_import', 'llm': 'llm'}
-NAME_RE = re.compile(r'^[a-z][a-z0-9_]{2,63}$')
+NAME_RE = re.compile(r'^(?!.*__)[a-z][a-z0-9_]{2,63}$')      # no '__': reserved (sajha/tools/naming.py)
 PREFIX_RE = re.compile(r'^[a-z][a-z0-9_]{1,30}$')
 DRAFT_PREFIX = 'studio.describe.draft:'
 DEPLOY_ACTION = 'studio.deploy'          # the pseudo tool the policy engine sees for a deploy

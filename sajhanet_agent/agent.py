@@ -54,6 +54,8 @@ class AgentConfig:
     call_timeout_seconds: float = 60.0
     catalog_refresh_seconds: float = 60.0
     gossip_interval_ms: int = 1000
+    vendor: str = ''                           # the organisation answering for the server's tools (§5.5)
+    rename: Dict[str, str] = field(default_factory=dict)   # local tool -> published name
 
 
 class McpCatalog(CatalogSource):
@@ -116,7 +118,8 @@ class Agent:
             require_https=cfg.require_https, region=cfg.region, labels=cfg.labels,
             gossip=gossip or GossipSettings(gossip_interval_ms=cfg.gossip_interval_ms), verify_keys=cfg.verify_keys,
             rules=rules, clock=clock, server_info={'name': 'sajhanet-agent', 'version': '1'},
-            refresh_interval=max(5.0, cfg.catalog_refresh_seconds), **extra)
+            refresh_interval=max(5.0, cfg.catalog_refresh_seconds), vendor=cfg.vendor,
+            rename=cfg.rename, **extra)
 
         def changed():
             self.catalog.invalidate()
@@ -127,8 +130,8 @@ class Agent:
     # the host side of a forwarded call: the export policy has allowed it (§15.4 steps 1 to 9)
     def _execute(self, ctx: CallContext, arguments: Dict[str, Any]) -> Dict[str, Any]:
         self.calls += 1
-        try:
-            result = self.client.call_tool(ctx.tool, arguments, timeout=self.cfg.call_timeout_seconds)
+        try:                                   # the server's own name for the tool (§5.5: ctx.tool is published)
+            result = self.client.call_tool(ctx.local_tool or ctx.tool, arguments, timeout=self.cfg.call_timeout_seconds)
         except MCPUnavailable as e:
             if not e.sent:
                 raise HostRefusal('unavailable', str(e), executed=False)

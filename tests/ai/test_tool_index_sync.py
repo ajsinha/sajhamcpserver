@@ -88,7 +88,9 @@ def test_composite_and_federation_paths_reach_the_index():
     resolver.refresh_lexical()
     with reg.bulk():                                  # what CompositeToolEngine.load_from_db does
         reg.register_tool(FakeTool("acme_composite_report", "Composite report of acme sales and margins"))
-        reg.register_tool(FakeTool("upstream__weather_now", "Federated: current weather for a city"))
+        fed = FakeTool("upstream__weather_now", "Federated: current weather for a city")
+        fed.namespaced_name = True                    # a federated tool's <prefix>__<tool> (sajha/tools/naming.py)
+        reg.register_tool(fed)
     names = [m.tool_name for m in resolver.resolve("acme sales margins composite report", top_k=3)]
     assert names[0] == "acme_composite_report"
     assert resolver.resolve("current weather city", top_k=1)[0].tool_name == "upstream__weather_now"

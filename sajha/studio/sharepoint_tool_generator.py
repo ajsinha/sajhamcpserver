@@ -251,6 +251,9 @@ class SharePointToolGenerator:
             errors.append("Tool name is required")
         elif not config.name.replace('_', '').isalnum():
             errors.append("Tool name must be alphanumeric with underscores only")
+        elif '__' in config.name:
+            from sajha.tools.naming import reserved_name_problem
+            errors.append(reserved_name_problem(config.name))
         
         if not config.description:
             errors.append("Description is required")

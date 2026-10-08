@@ -362,6 +362,18 @@ class ToolsRegistry:
         Args:
             tool: Tool instance to register
         """
+        from sajha.tools.naming import is_namespaced_tool, reserved_name_problem
+        why = None if is_namespaced_tool(tool) else reserved_name_problem(tool.name)
+        if why:                         # '__' is reserved for namespaced tools (docs/architecture/Federation.md)
+            self.tool_errors[tool.name] = why
+            self.logger.error(f'Tool not registered: {why}')
+            try:
+                from sajha import notices
+                notices.raise_notice(f'tools.reserved_name:{tool.name}', severity='error', source='tools',
+                                     title=f'Tool {tool.name} is not registered', detail=why, ttl_minutes=0)
+            except Exception:
+                pass
+            raise ValueError(why)
         with self._tools_lock:
             previous = self.tools.get(tool.name)
             self.tools[tool.name] = tool

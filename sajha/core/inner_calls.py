@@ -22,6 +22,13 @@ instance passed is one budget, ``sajhanet.max_call_chain`` (default 8; :func:`ma
 :func:`entered` refuses a nested tool that would exceed it while running a forwarded call, and the
 home and host refuse a forwarded call over it (``-32016 chain_limit``; docs/architecture/SAJHA Net.md §14).
 
+Through proxied MCP servers (federation) the chain continues too: a call to an upstream carries the
+depth it had (``params._meta["io.sajha/chain"].depth``: the depth carried in, plus this instance's
+nesting, plus one for the hop), and a SAJHA upstream runs the call inside :func:`proxied_entered`, so
+the hops and nesting along a chain of proxies are one budget, ``tools.max_call_depth``. A proxy cycle
+(A proxies B proxies A) is therefore refused at the limit with :class:`CallTooDeep` instead of
+recursing (docs/architecture/Federation.md, "Proxies all the way down").
+
 Context variables do not follow work into a ``ThreadPoolExecutor`` by themselves; submit
 with :func:`in_context` so the caller and the chain go along.
 
@@ -41,6 +48,9 @@ MAX_CHAIN_CAP = 32
 CHAIN: contextvars.ContextVar = contextvars.ContextVar('sajha_tool_chain', default=())
 # a forwarded SAJHA Net call this context runs for: (hop, visited, depth carried from earlier instances)
 NET_IN: contextvars.ContextVar = contextvars.ContextVar('sajha_net_chain', default=None)
+# the depth a call arrived with from a proxying SAJHA (params._meta["io.sajha/chain"].depth), 0 locally
+PROXY_IN: contextvars.ContextVar = contextvars.ContextVar('sajha_proxy_depth', default=0)
+PROXY_META_KEY = 'io.sajha/chain'
 
 
 class InnerCallRefused(PermissionError):
@@ -80,6 +90,39 @@ def depth() -> int:
     return len(CHAIN.get())
 
 
+def proxy_depth() -> int:
+    return int(PROXY_IN.get() or 0)
+
+
+def proxy_depth_of(meta) -> int:
+    """The depth a request carries in ``_meta["io.sajha/chain"]`` (0 when absent or malformed)."""
+    c = meta.get(PROXY_META_KEY) if isinstance(meta, dict) else None
+    d = c.get('depth') if isinstance(c, dict) else None
+    return d if isinstance(d, int) and not isinstance(d, bool) and 0 <= d <= 1000 else 0
+
+
+@contextmanager
+def proxied_entered(carried: int) -> Iterator[None]:
+    """Run a request that arrived from a proxying SAJHA with its carried depth."""
+    t = PROXY_IN.set(max(0, int(carried or 0)))
+    try:
+        yield
+    finally:
+        PROXY_IN.reset(t)
+
+
+def proxy_outgoing(name: str) -> int:
+    """The depth to send with a call to a proxied MCP server; raises :class:`CallTooDeep` when the hop
+    would exceed ``tools.max_call_depth`` (a chain of proxies, or a cycle of them)."""
+    out = proxy_depth() + depth() + 1
+    lim = max_depth()
+    if out > lim:
+        raise CallTooDeep(f'calling {name} through a proxied MCP server would make the call chain {out} deep '
+                          f'({proxy_depth()} carried from proxying servers, {depth()} nested here, 1 hop; limit '
+                          f'{lim}: tools.max_call_depth). Proxied servers that proxy each other form a cycle.')
+    return out
+
+
 def net_base() -> int:
     """What earlier instances used of the combined budget: hops plus the depth they carried (0 locally)."""
     n = NET_IN.get()
@@ -115,8 +158,10 @@ def entered(name: str, limit: Optional[int] = None) -> Iterator[Tuple[str, ...]]
     if name in cur:
         raise CallCycle(f'{name} is already running in this call chain ({" > ".join(cur + (name,))})')
     lim = limit if limit is not None else max_depth()
-    if len(cur) >= lim:
-        raise CallTooDeep(f'calling {name} would nest tools {len(cur) + 1} deep (limit {lim}: tools.max_call_depth)')
+    if len(cur) + proxy_depth() >= lim:
+        raise CallTooDeep(f'calling {name} would nest tools {len(cur) + proxy_depth() + 1} deep'
+                          f'{" (counting " + str(proxy_depth()) + " carried from proxying servers)" if proxy_depth() else ""}'
+                          f' (limit {lim}: tools.max_call_depth)')
     n = NET_IN.get()
     if n:
         total, cap = net_base() + len(cur) + 1, max_chain()

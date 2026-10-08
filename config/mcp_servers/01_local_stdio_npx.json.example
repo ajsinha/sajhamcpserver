@@ -1,0 +1,27 @@
+{
+  "_comment": "Open-source reference servers run on this machine over stdio with npx (needs Node.js). Requires federation.allow_stdio: true. Each server's tools are published as <vendor>__<tool>.",
+  "mcpServers": {
+    "filesystem": {
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-filesystem", "/srv/shared-docs"],
+      "vendor": "mcp_reference",
+      "prefix": "files",
+      "tools": ["read_*", "list_*", "search_files", "get_file_info"],
+      "_tools_comment": "Only read-only tools are exposed: write_file, edit_file, move_file and create_directory are left out by the globs."
+    },
+    "memory": {
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-memory"],
+      "env": {"MEMORY_FILE_PATH": "/var/lib/sajha/mcp-memory.json"}
+    },
+    "sequential_thinking": {
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-sequential-thinking"]
+    },
+    "playwright": {
+      "command": "npx",
+      "args": ["-y", "@playwright/mcp@latest", "--headless"],
+      "vendor": "microsoft"
+    }
+  }
+}

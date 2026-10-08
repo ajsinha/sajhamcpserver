@@ -1,0 +1,15 @@
+{
+  "_comment": "external: false makes an entry an ordinary internal federation upstream: tools keep their federation names (<prefix>__<tool>) and one-name-one-contract applies across the net as for SAJHA's own tools. Use it for MCP servers your own teams run and want governed like local tools. Another SAJHA can be federated this way too, signing in with an API key.",
+  "mcpServers": {
+    "pricing_service": {
+      "url": "http://pricing.internal.example:9000/mcp",
+      "external": false
+    },
+    "sajha_eu": {
+      "url": "http://sajha-eu.internal.example:3002/mcp",
+      "headers": {"X-API-Key": "${SAJHA_EU_API_KEY}"},
+      "external": false,
+      "prefix": "eu"
+    }
+  }
+}

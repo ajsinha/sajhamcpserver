@@ -654,7 +654,7 @@ def test_app_admin_api_and_page(app_client):
     u = d['upstreams'][0]
     assert d['summary']['enabled'] and u['id'] == 'units' and u['state'] == 'connected'
     page = c.get('/admin/federation', cookies=admin)
-    assert page.status_code == 200 and 'Federation' in page.text and 'class="page-help"' in page.text
+    assert page.status_code == 200 and 'Proxied MCP servers' in page.text and 'class="page-help"' in page.text
     r = c.post('/api/federation/upstreams/units/items', json={'kind': 'tool', 'name': 'countdown',
                                                               'action': 'disable'}, cookies=admin)
     assert r.json()['changed'] == 1

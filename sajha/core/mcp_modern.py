@@ -484,10 +484,17 @@ class ModernStream:
     def __init__(self, producer: Callable[[Callable[[Dict[str, Any]], None]], Awaitable[Optional[Dict[str, Any]]]]):
         self._producer = producer
         self.on_close: List[Callable[[], None]] = []
+        from sajha.core.inner_calls import PROXY_IN
+        self._proxy_depth = PROXY_IN.get()          # the producer runs later: keep the carried proxy depth
+
+    async def _produce(self, emit):
+        from sajha.core.inner_calls import PROXY_IN
+        PROXY_IN.set(self._proxy_depth)
+        return await self._producer(emit)
 
     async def events(self):
         queue: asyncio.Queue = asyncio.Queue()
-        job = asyncio.ensure_future(self._producer(queue.put_nowait))
+        job = asyncio.ensure_future(self._produce(queue.put_nowait))
         getter: Optional[asyncio.Future] = None
         completed = False
         try:
@@ -655,7 +662,9 @@ class ModernMCPServer:
                                                if isinstance(body, dict) else None},
                                traceparent=tp if isinstance(tp, str) else None,
                                tracestate=ts if isinstance(ts, str) else None) as span:
-                result = await self._handle(body, headers, raw_headers, session, receive)
+                from sajha.core import inner_calls as _ic   # the depth a proxying SAJHA carried (Federation.md)
+                with _ic.proxied_entered(_ic.proxy_depth_of(meta)):
+                    result = await self._handle(body, headers, raw_headers, session, receive)
                 if isinstance(result, ModernStream):
                     outcome = "stream"
                 else:

@@ -105,6 +105,7 @@ WRITTEN_BY_READER = {
     'config/policies/50-tutorial.yaml',                      # Tutorial 20 writes this policy
     'config/tools/my_priority.json',                         # Tutorial 26 builds these
     'config/evals/my_priority.yaml',
+    'config/mcp_servers.json',                               # git-ignored; the admin copies a template to it
 }
 #: Default directories the server reads but does not ship (created on first use), and
 #: so anything a guide puts in them.
@@ -237,5 +238,5 @@ def test_the_router_is_actually_being_read():
 
 
 def test_the_exclusions_are_narrow():
-    assert len(WRITTEN_BY_READER) <= 10 and len(RUNTIME_DIRS) <= 3 and len(KNOWN_UNSERVED) <= 1
+    assert len(WRITTEN_BY_READER) <= 11 and len(RUNTIME_DIRS) <= 3 and len(KNOWN_UNSERVED) <= 1
     assert len(STALE) >= 3

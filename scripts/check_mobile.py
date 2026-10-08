@@ -84,7 +84,7 @@ ROUTES: List[Tuple[str, bool]] = [
     ('/admin/apikeys/file', True),
     ('/admin/users/file', True),
     ('/admin/apikeys/create', True),
-    ('/admin/federation', True),
+    ('/admin/federation', True),                # Proxied MCP servers
     ('/admin/sajhanet', True),
     ('/admin/sajhanet/tools', True),
     ('/net/instances', True),

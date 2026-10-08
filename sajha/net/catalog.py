@@ -294,6 +294,8 @@ class CatalogBook:
         self.run_ttl = max(RUN_TTL_FLOOR, float(run_ttl))
         self.counters: Dict[str, int] = {}
         self._own_cache: Optional[Tuple[float, List[Dict[str, Any]]]] = None
+        self._local_of: Dict[str, str] = {}             # published name -> local name of each own tool (§5.5)
+        self.refused: Dict[str, Dict[str, str]] = {}    # own tools not offered: local name -> published, reason
         self.started = False
 
     # ── wiring ─────────────────────────────────────────────────────
@@ -354,6 +356,7 @@ class CatalogBook:
     # ── host side (§10.2) ──────────────────────────────────────────
 
     def _source_tools(self) -> List[Dict[str, Any]]:
+        """The own tools as offered: each under its published name (protocol §5.5)."""
         now = self.clock()
         if self._own_cache and now - self._own_cache[0] < 1.0:
             return self._own_cache[1]
@@ -363,8 +366,65 @@ class CatalogBook:
                 tools = list(self.source.tools(self.net) or [])
             except Exception as e:
                 logger.warning(f'SAJHA Net {self.net}: catalog source failed: {e}')
+        tools = self._publish(tools)
         self._own_cache = (now, tools)
         return tools
+
+    def rename(self) -> Dict[str, str]:
+        """This participant's ``rename`` map (local tool -> published name; its net configuration)."""
+        return {str(k): str(v) for k, v in (getattr(self.node.cfg, 'rename', None) or {}).items()}
+
+    def _publish(self, tools: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+        """Offer the source's tools under their published names (§5.5): the participant's ``rename``
+        entry, else the source's ``_net.publish_as`` (an external server's ``<vendor>__<tool>``), else
+        the tool's own name. A name that is invalid, taken by another own tool, or too long for a
+        qualified name (MAX_QUALIFIED) is refused, with an event."""
+        rename = self.rename()
+        try:
+            room = names.max_tool_part(self.net, self.node.name)
+        except Exception:
+            room = names.MAX_QUALIFIED
+        out, local_of, refused = [], {}, {}
+        for raw in sorted((t for t in tools if isinstance(t, dict)), key=lambda t: str(t.get('name') or '')):
+            local = raw.get('name')
+            if not isinstance(local, str) or not local:
+                continue
+            pub = rename.get(local) or str((raw.get('_net') or {}).get('publish_as') or '') or local
+            why = None
+            if not names.is_published_name(pub):
+                why = (f'{pub!r} is not a valid published tool name (letters, digits, "_", "-" and ".", '
+                       f'at most 128 characters)')
+            elif len(names.tool_part(pub)) > room:
+                why = (f'its published name {pub} is {len(names.tool_part(pub))} characters; in {self.net} a tool '
+                       f'of {self.node.name} may have at most {room} (qualified names are at most '
+                       f'{names.MAX_QUALIFIED}); give it a shorter name with rename')
+            elif names.tool_part(pub) in local_of:
+                why = f'its published name {pub} is already taken by {local_of[names.tool_part(pub)]}'
+            if why:
+                refused[local] = {'published': pub, 'reason': why}
+                continue
+            local_of[names.tool_part(pub)] = local
+            if pub != local:
+                raw = dict(raw, name=pub)
+            out.append(raw)
+        self._local_of = {t['name']: local_of[names.tool_part(t['name'])] for t in out}
+        if refused != self.refused:
+            for local in sorted(set(refused) - set(self.refused)):
+                logger.warning(f'SAJHA Net {self.net}: tool {local} is not offered: {refused[local]["reason"]}')
+                self.node.event('tool_name_refused', tool=local, published=refused[local]['published'],
+                                detail=refused[local]['reason'])
+            self.refused = refused
+        return out
+
+    def local_name(self, published: str) -> Optional[str]:
+        """The local name of the own tool offered as ``published`` (None: not an own tool)."""
+        self._source_tools()
+        return self._local_of.get(published)
+
+    def published_name(self, local: str) -> Optional[str]:
+        """The name the own tool ``local`` is offered under (None: not offered)."""
+        self._source_tools()
+        return next((p for p, l in self._local_of.items() if l == local), None)
 
     def invalidate(self) -> None:
         """The local catalog may have changed (a tool, schema, description or export rule)."""
@@ -381,7 +441,7 @@ class CatalogBook:
         if self.node.cfg.labels:
             meta['labels'] = dict(self.node.cfg.labels)
         for k in ('version', 'deprecated', 'data_classes', 'llm_tool', 'latency_ms_p50', 'health', 'per_user_results',
-                  'origin'):
+                  'origin', 'vendor', 'external'):
             if extra.get(k) is not None:
                 meta[k] = extra[k]
         if 'version' in meta:
@@ -391,9 +451,16 @@ class CatalogBook:
         t['_meta'] = dict(t.get('_meta') or {}, **{EXTENSION_ID: meta})
         return t
 
+    def tool_names(self, name: str) -> List[str]:
+        """Every name an own tool goes by in rules (§5.5): its published name, then its local name."""
+        self._source_tools()
+        local = self._local_of.get(name)
+        return [name] if not local or local == name else [name, local]
+
     def _export_allowed(self, peer: Optional[str], name: str) -> bool:
         try:
-            return bool(self.rules.decide('export', {'net': self.net, 'peer': peer, 'tool': name, 'user': None}).allow)
+            return bool(self.rules.decide('export', {'net': self.net, 'peer': peer, 'tool': name, 'user': None,
+                                                     'tool_names': self.tool_names(name)}).allow)
         except Exception as e:
             logger.warning(f'SAJHA Net {self.net}: export rule for {name}: {e}')
             return False

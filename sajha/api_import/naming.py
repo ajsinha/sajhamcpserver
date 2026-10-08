@@ -13,7 +13,7 @@ from __future__ import annotations
 import hashlib
 import re
 
-TOOL_NAME_RE = re.compile(r'^[a-z][a-z0-9_]{2,63}$')
+TOOL_NAME_RE = re.compile(r'^(?!.*__)[a-z][a-z0-9_]{2,63}$')   # no '__': reserved (sajha/tools/naming.py)
 PREFIX_RE = re.compile(r'^[a-z][a-z0-9_]{1,30}$')
 ARG_RE = re.compile(r'^[A-Za-z0-9_.-]{1,64}$')
 MAX_NAME = 64

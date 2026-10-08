@@ -238,8 +238,8 @@ class ExportPolicy(RuleEvaluator):
         if rule == 'export':
             tool = str(s.get('tool') or '')
             peer = s.get('peer')
-            if not _match(tool, self.tools):
-                return Decision(False, 'export')
+            if not any(_match(n, self.tools) for n in [tool] + [str(x) for x in s.get('tool_names') or []]):
+                return Decision(False, 'export')            # its published or its local name (§5.5)
             if peer is not None and not _match(str(peer), self.peers):
                 return Decision(False, 'export')
             user = s.get('user')
@@ -346,7 +346,8 @@ class NetParticipant:
               connector: Optional[PeerConnector] = None, require_https: bool = True, region: str = '',
               labels: Optional[Dict[str, str]] = None, gossip: Optional[GossipSettings] = None,
               verify_keys: bool = True, rules: Optional[RuleEvaluator] = None, mcp_path: str = '/mcp',
-              clock: Callable[[], float] = time.time, alg: str = crypto.ED25519, **kw) -> 'NetParticipant':
+              clock: Callable[[], float] = time.time, alg: str = crypto.ED25519, vendor: str = '',
+              rename: Optional[Dict[str, str]] = None, **kw) -> 'NetParticipant':
         """Configure, obtain an identity (the saved one, else a self-signed one for ``open`` or
         ``manual``, else enrollment with ``ca_url`` and ``token`` for ``builtin_ca``) and assemble."""
         if not names.is_net_name(net):
@@ -355,10 +356,16 @@ class NetParticipant:
             raise ValueError(f'{instance!r} is not an instance name (protocol §5.2)')
         if admission not in ('open', 'builtin_ca', 'manual'):
             raise ValueError('admission is open, builtin_ca or manual')
+        if vendor and not names.is_vendor(vendor):
+            raise ValueError(f'{vendor!r} is not a vendor name (protocol §5.5)')
+        for local, pub in (rename or {}).items():
+            if not names.is_published_name(str(pub)):
+                raise ValueError(f'rename {local}={pub}: {pub!r} is not a valid published tool name')
         connector = connector or create('connector', 'sajha_native')
         cfg = NetConfig(name=net, instance_name=instance, base_url=base_url.rstrip('/'), seeds=list(seeds),
                         founder=founder, kind=kind, admission=admission, require_https=require_https,
                         region=region, labels=dict(labels or {}), mcp_path=mcp_path,
+                        vendor=vendor, rename=dict(rename or {}),
                         gossip=gossip or GossipSettings(),
                         peer_cache=PeerCacheSettings(path=os.path.join(data_dir, 'peers.json') if data_dir else ''))
         host = urlsplit(cfg.base_url).hostname or ''
@@ -514,8 +521,11 @@ class NetParticipant:
     def status(self) -> Dict[str, Any]:
         n = self.node
         return {'net': n.net, 'instance': n.name, 'kind': self.cfg.kind, 'url': self.cfg.base_url,
+                'vendor': self.cfg.vendor,
+                'refused_tools': dict(self.book.refused),
                 'joined': n.joined(), 'refused': n.refused(), 'features': n.features,
                 'certificate': crypto.thumbprint(crypto.cert_der(n.signer.chain[0])),
                 'tools': [t['name'] for t in self.book.exports(None)],
                 'members': [{'name': m['name'], 'state': m['state'], 'kind': m['record'].get('kind'),
+                             'vendor': m['record'].get('vendor') or '',
                              'url': m['record'].get('url')} for m in n.members()]}

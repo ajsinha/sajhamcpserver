@@ -404,10 +404,12 @@ class Router:
 
     def local_quarantine(self, name: str) -> Optional[Dict[str, Any]]:
         """The conflict report when local tool ``name`` is exported into a net where its name is quarantined."""
-        part = names.tool_part(name)
         for b in self.books:
-            q = b.quarantined().get(part)
-            if q and any(t['name'] == name for t in b.exports(None)):
+            pub = b.published_name(name) if hasattr(b, 'published_name') else name   # §5.5
+            if not pub:
+                continue
+            q = b.quarantined().get(names.tool_part(pub))
+            if q and any(t['name'] == pub for t in b.exports(None)):
                 return q
         return None
 
@@ -853,6 +855,7 @@ class CallContext:
     depth: int = 0                 # tools nested in one another on the instances before this one (§16)
     relay: Dict[str, str] = field(default_factory=dict)        # the caller's assertion, for a re-exported call
     reexport: Optional[Dict[str, Any]] = None                   # the re-exported tool (with ``_source``), if any
+    local_tool: str = ''           # the host's local name of the tool (§5.5; ``tool`` is the published name)
 
 
 class HostServer:
@@ -1021,8 +1024,10 @@ class HostServer:
             ok, _ = self._allowed('block_user', {'net': net, 'peer': v.sender, 'user': user})
             if not ok:
                 return no('user')
-        # 8: block on the tool
-        ok, _ = self._allowed('block_tool', {'net': net, 'peer': v.sender, 'tool': tool})
+        # 8: block on the tool (under its published or its local name, §5.5)
+        tool_names = self.book.tool_names(tool) if rx is None and hasattr(self.book, 'tool_names') else [tool]
+        local_tool = tool_names[-1]
+        ok, _ = self._allowed('block_tool', {'net': net, 'peer': v.sender, 'tool': tool, 'tool_names': tool_names})
         if not ok:
             return no('tool')
         # 9: export rules for this peer and user, and the one name, one contract quarantine
@@ -1033,7 +1038,8 @@ class HostServer:
             ok, _ = self._allowed('reexport', {'net': net, 'peer': v.sender, 'tool': tool, 'user': user,
                                                'origin': rx_origin or None, 'source': rx.get('_source')})
         else:
-            ok, _ = self._allowed('export', {'net': net, 'peer': v.sender, 'tool': tool, 'user': user})
+            ok, _ = self._allowed('export', {'net': net, 'peer': v.sender, 'tool': tool, 'user': user,
+                                             'tool_names': tool_names})
         if not ok:
             return no('export')
         q = self.book.is_quarantined(tool)
@@ -1045,7 +1051,7 @@ class HostServer:
                           attempt=int(nmeta.get('attempt') or 1) if str(nmeta.get('attempt') or 1).isdigit() else 1,
                           key_id=str((user or {}).get('key_id') or ''), depth=depth,
                           relay={'Sajha-Net-User-Assertion': h['sajha-net-user-assertion']}
-                          if h.get('sajha-net-user-assertion') else {}, reexport=rx)
+                          if h.get('sajha-net-user-assertion') else {}, reexport=rx, local_tool=local_tool)
         # 10, 11: the host's own access, policy and approvals; execution
         try:
             result = self.execute(ctx, arguments)
@@ -1077,6 +1083,8 @@ class HostServer:
                          identity=(ctx.user or {}).get('identity') if ctx.user else None,
                          mapping=(ctx.user or {}).get('mapping') if ctx.user else None,
                          hop=ctx.hop, visited=list(ctx.visited))
+                if ctx.local_tool and ctx.local_tool != tool:
+                    d['local_tool'] = ctx.local_tool              # §5.5: the published name is ``tool``
                 if ctx.reexport is not None:
                     d['reexport'] = {'origin': ((ctx.reexport.get('_net') or {}).get('origin')),
                                      'source': (ctx.reexport.get('_source') or {}).get('qualified_name')}

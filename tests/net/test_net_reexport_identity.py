@@ -422,7 +422,7 @@ def test_topology_lists_instances_offers_reexports_and_call_paths(tmp_path, isol
     net = t['nets'][0]
     assert {(n['name'], n['self']) for n in net['nodes']} == {('risk-eu', True), ('cust-na', False),
                                                              ('treasury-na', False)}
-    assert all(set(n) == {'name', 'kind', 'region', 'state', 'self'} for n in net['nodes'])
+    assert all(set(n) == {'name', 'kind', 'region', 'state', 'self', 'vendor'} for n in net['nodes'])
     edges = {(e['from'], e['to'], e['kind']): e for e in net['edges']}
     assert edges[('cust-na', 'risk-eu', 'reexports')]['origins'] == ['treasury-na']
     assert edges[('cust-na', 'risk-eu', 'offers')]['tools'] == 1                   # lookup

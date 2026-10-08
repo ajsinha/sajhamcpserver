@@ -90,12 +90,19 @@ class NetConfig:
     sponsor: str = ''                        # kind sponsored: the instance that represents it (protocol §9.1)
     user_identity: List[str] = field(default_factory=lambda: ['none'])
     max_injections_per_minute: int = 6
+    vendor: str = ''                         # the organisation that answers for its tools (protocol §5.5)
+    rename: Dict[str, str] = field(default_factory=dict)    # local tool -> published name (§5.5)
 
     def features(self) -> List[str]:
         out = ['gossip'] if self.membership == 'gossip' else []
         if self.ca.enabled and self.admission == 'builtin_ca':
             out.append('ca')
         return out
+
+
+#: the configuration key that marks an external server (design §5.6): a federation upstream offered by
+#: this server under its vendor's prefix; never a member of a net
+EXTERNAL_KEY = 'external'
 
 
 # ── member records (§9.1) ───────────────────────────────────────────
@@ -114,6 +121,8 @@ def member_record(cfg: NetConfig, name: str, incarnation: int, seq: int, revocat
     }
     if cfg.sponsor:
         rec['sponsor'] = cfg.sponsor
+    if cfg.vendor:
+        rec['vendor'] = cfg.vendor
     if cfg.region:
         rec['region'] = cfg.region[:64]
     if cfg.labels:

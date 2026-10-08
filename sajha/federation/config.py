@@ -53,6 +53,8 @@ class FederationSettings:
     max_description_chars: int = 1024
     state_path: str = 'config/federation/federation.json'
     upstreams: List[Dict[str, Any]] = field(default_factory=list)
+    mcp_servers_file: str = ''           # the mcpServers JSON file ('' : none); see sajha/federation/mcp_servers.py
+    mcp_servers_reload_seconds: float = 5.0
 
     @classmethod
     def load(cls) -> 'FederationSettings':
@@ -80,6 +82,8 @@ class FederationSettings:
             state_path=(_get('federation.state_path', 'config/federation/federation.json')
                         or 'config/federation/federation.json'),
             upstreams=_configured_upstreams(),
+            mcp_servers_file=str(_get('federation.mcp_servers_file', 'config/mcp_servers.json') or ''),
+            mcp_servers_reload_seconds=max(1.0, _float('federation.mcp_servers_reload_seconds', 5.0)),
         )
 
 

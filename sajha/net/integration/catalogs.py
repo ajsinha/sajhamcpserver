@@ -86,6 +86,8 @@ class CatalogSettings:
     host_calls_per_minute: int = 600
     anonymous_may_call_remote: bool = False
     per_net: Dict[str, Dict[str, Any]] = field(default_factory=dict)
+    external_servers: List[Any] = field(default_factory=list)      # ExternalServer (design §5.6)
+    external_errors: List[str] = field(default_factory=list)
 
     def for_net(self, net: str, key: str) -> Any:
         v = (self.per_net.get(net) or {}).get(key)
@@ -125,6 +127,8 @@ def load_settings() -> CatalogSettings:
                           calls_per_minute=int(_num(_g('peer.calls_per_minute', 600), 600)))
     s.host_calls_per_minute = int(_num(_g('peer.inbound_calls_per_minute', 600), 600))
     s.anonymous_may_call_remote = parse_bool(_g('anonymous_may_call_remote', 'false'), False)
+    from sajha.net.integration.config import external_servers
+    s.external_servers, s.external_errors = external_servers(raw)
     for entry in configured_nets():
         over = {}
         for k in ('default_trust', 'reexport', 'max_hops', 'refresh_interval_seconds', 'reexport_rules'):
@@ -153,19 +157,74 @@ def _own_tools(reg) -> List[BaseMCPTool]:
     return [t for t in items if t.enabled and not isinstance(t, (NetProxyTool, FederatedTool))]
 
 
+def _external_tools(reg, servers: List[Any], net: str) -> List[Tuple[Any, Any]]:
+    """``(federated tool, external server)`` for every tool of an external server offered into ``net``
+    (design §5.6): an enabled federation tool of a listed upstream that the server's ``tools`` globs name."""
+    import fnmatch
+    if not servers:
+        return []
+    try:
+        from sajha.federation.tool import FederatedTool
+    except Exception:
+        return []
+    by_up = {x.upstream: x for x in servers if not x.nets or net in x.nets}
+    with reg._tools_lock:
+        items = list(reg.tools.values())
+    out = []
+    for t in items:
+        x = by_up.get(getattr(t, 'upstream_id', None)) if isinstance(t, FederatedTool) and t.enabled else None
+        part = str(getattr(t, 'upstream_name', '') or '') if x is not None else ''
+        if part and any(fnmatch.fnmatchcase(part, p) for p in x.tools):
+            out.append((t, x))
+    return out
+
+
 @plugins.register('catalog_source')
 class NativeCatalog(CatalogSource):
-    """This server's own registry tools as MCP Tool objects, with their versions."""
+    """This server's own registry tools as MCP Tool objects, with their versions, and the tools of the
+    external servers it defines, published as ``<vendor>__<tool>`` (design §5.6)."""
     name = 'native'
 
-    def __init__(self, registry=None, allow_llm_tools: Any = True):
+    def __init__(self, registry=None, allow_llm_tools: Any = True, external: Any = None):
         self._registry = registry
         self._allow_llm = allow_llm_tools          # bool, or a callable (sajhanet.allow_remote_llm_tools)
+        self._external = external                  # ExternalServer list, or a callable returning one
+
+    def external_servers(self) -> List[Any]:
+        x = self._external() if callable(self._external) else self._external
+        return list(x or [])
 
     def tools(self, net, peer=None):
         reg = self._registry or _registry()
         if reg is None:
             return []
+        out = self._own(reg)
+        for tool, x in _external_tools(reg, self.external_servers(), net):
+            try:
+                d = copy.deepcopy(tool.to_mcp_format())
+            except Exception as e:
+                logger.debug(f'SAJHA Net catalog: external {getattr(tool, "name", "?")}: {e}')
+                continue
+            meta = dict(d.get('_meta') or {})
+            meta.pop('sajha/federation', None)
+            if meta:
+                d['_meta'] = meta
+            else:
+                d.pop('_meta', None)
+            extra: Dict[str, Any] = {'version': str(getattr(tool, 'version', '') or ''), 'vendor': x.vendor,
+                                     'external': True, 'publish_as': x.published(str(tool.upstream_name))}
+            try:
+                from sajha.net.integration.residency import catalog_summary
+                dc = catalog_summary(tool)
+                if dc:
+                    extra['data_classes'] = dc
+            except Exception as e:
+                logger.debug(f'SAJHA Net external residency summary of {tool.name}: {e}')
+            d['_net'] = {k: v for k, v in extra.items() if v not in ('', None)}
+            out.append(d)
+        return out
+
+    def _own(self, reg) -> List[Dict[str, Any]]:
         out = []
         for tool in _own_tools(reg):
             try:
@@ -202,6 +261,7 @@ def _caller_user(net_hint: str = '') -> Dict[str, Any]:
 class NetProxyTool(BaseMCPTool):
     """A remote tool in this server's registry (see the module docstring)."""
     passthrough_result = True
+    namespaced_name = True          # <net>__<instance>__<tool> and published aliases (sajha/tools/naming.py)
 
     def __init__(self, catalogs: 'NetCatalogs', name: str, definition: Dict[str, Any], meta: Dict[str, Any],
                  fingerprint: str, alias: bool = False):
@@ -314,7 +374,8 @@ class NetCatalogs:
         from sajha.federation.security import schema_problem, screen_text
         s = self.settings
         book = CatalogBook(node, NativeCatalog(self._registry,
-                                               allow_llm_tools=lambda: self.settings.allow_remote_llm_tools),
+                                               allow_llm_tools=lambda: self.settings.allow_remote_llm_tools,
+                                               external=self.external_servers),
                            rules=rules,
                            trust_of=lambda peer, net=net: self.trust_of(net, peer),
                            approvals=lambda peer, net=net: self.approvals(net, peer),
@@ -337,6 +398,61 @@ class NetCatalogs:
         self.hosts[net] = host
         self._build_router()
         return book
+
+    def external_servers(self) -> List[Any]:
+        """The external servers this instance defines (design §5.6): ``sajhanet.external_servers``, then the
+        external entries of federation's mcpServers file (an upstream listed in both: the first wins)."""
+        cands = list(self.settings.external_servers or [])
+        fed_prefixes: Dict[str, str] = {}
+        try:
+            from sajha.federation.manager import get_federation
+            fed = get_federation()
+            extra = fed.external_servers() if fed is not None and hasattr(fed, 'external_servers') else []
+            for uid in (fed.upstream_ids() if fed is not None else []):
+                fed_prefixes[fed.get_config(uid).effective_prefix] = uid
+        except Exception as e:
+            logger.debug(f'SAJHA Net: external servers of federation: {e}')
+            extra = []
+        if extra:
+            from sajha.net.integration.config import ExternalServer
+            have = {x.upstream for x in cands}
+            for d in extra:
+                if d.get('upstream') in have:
+                    continue
+                try:
+                    cands.append(ExternalServer.from_dict(d))
+                except ValueError as e:
+                    logger.warning(f'SAJHA Net: external server {d.get("upstream")}: {e}')
+        # prefixes are unique on an instance: across upstreams and external servers, never a local tool's name
+        local = set(self._local_names())
+        out, used, problems = [], {}, []
+        for x in cands:
+            p = x.effective_prefix
+            other = fed_prefixes.get(p)
+            if p in used:
+                problems.append(f'prefix {p} of external server {x.upstream} is already used by external server '
+                                f'{used[p]}; {x.upstream} is not offered')
+            elif other is not None and other != x.upstream:
+                problems.append(f'prefix {p} of external server {x.upstream} is the prefix of federation upstream '
+                                f'{other}; {x.upstream} is not offered')
+            elif p in local:
+                problems.append(f'prefix {p} of external server {x.upstream} is the name of a local tool; '
+                                f'{x.upstream} is not offered')
+            else:
+                used[p] = x.upstream
+                out.append(x)
+        if problems != getattr(self, '_external_problems', None):
+            self._external_problems = problems
+            from sajha.net.integration import _clear, _notice
+            errs = list(self.settings.external_errors or []) + problems
+            if errs:
+                for e in problems:
+                    logger.error(f'SAJHA Net: {e}')
+                _notice('sajhanet.external_servers', 'warning', 'Some external servers are not offered',
+                        '; '.join(errs)[:1000], ttl=0)
+            else:
+                _clear('sajhanet.external_servers')
+        return out
 
     def detach(self, net: str) -> None:
         self.books.pop(net, None)
@@ -583,10 +699,11 @@ class NetCatalogs:
         """Steps 10 and 11 of §15.4: this server's own access, policy and approvals; then the tool."""
         reg = self.registry
         rx = ctx.reexport
-        tool = reg.get_tool(ctx.tool) if reg is not None and rx is None else None
+        local = ctx.local_tool or ctx.tool                 # §5.5: the call names the published name
+        tool = reg.get_tool(local) if reg is not None and rx is None else None
         if rx is None and (tool is None or isinstance(tool, NetProxyTool)):
             raise HostRefusal('export')
-        return self.execute_tool(ctx, arguments, tool)
+        return self.execute_tool(ctx, arguments, tool, local_name=local if rx is None else '')
 
     def execute_tool(self, ctx: CallContext, arguments: Dict[str, Any], tool, local_name: str = '') -> Dict[str, Any]:
         """Steps 10 and 11 for ``tool`` (a registry tool; None for a re-exported call): access under
@@ -624,7 +741,7 @@ class NetCatalogs:
                     except Exception:
                         pass
             source = ((rx or {}).get('_source') or {}).get('qualified_name')
-            if not access(local_name or ctx.tool) and not (source and access(source)):
+            if not access(local_name or ctx.tool) and not access(ctx.tool) and not (source and access(source)):
                 raise HostRefusal('access')
         if rx is not None:
             token = set_caller(Caller(uid, '', roles, 'sajhanet', access, 'admin' in roles))
@@ -787,7 +904,8 @@ class NetCatalogs:
         if d.get('title'):
             tool['title'] = d['title']
         meta = e.get('meta') or {}
-        extra = {k: meta[k] for k in ('version', 'data_classes', 'llm_tool') if meta.get(k) is not None}
+        extra = {k: meta[k] for k in ('version', 'data_classes', 'llm_tool', 'vendor', 'external')
+                 if meta.get(k) is not None}
         if origin:
             extra['origin'] = origin
         tool['_net'] = extra
@@ -858,11 +976,12 @@ class NetCatalogs:
             node = b.node
             me = node.name
             cfg = node.cfg
-            nodes = [{'name': me, 'kind': cfg.kind, 'region': cfg.region or '', 'state': 'alive', 'self': True}]
+            nodes = [{'name': me, 'kind': cfg.kind, 'region': cfg.region or '', 'state': 'alive', 'self': True,
+                      'vendor': cfg.vendor}]
             for m in node.members():
                 rec = m.get('record') or {}
                 nodes.append({'name': m['name'], 'kind': rec.get('kind') or '', 'region': rec.get('region') or '',
-                              'state': m.get('state') or '', 'self': False})
+                              'state': m.get('state') or '', 'self': False, 'vendor': rec.get('vendor') or ''})
                 if rec.get('sponsor'):                   # a sponsored member names its sponsor (design §5.1)
                     nodes[-1]['sponsor'] = rec['sponsor']
             edges: List[Dict[str, Any]] = []
@@ -939,6 +1058,11 @@ class NetCatalogs:
             _notice(f'sajhanet.catalog:{net}:{data.get("peer")}', 'warning',
                     f'Catalog of {data.get("peer")} flagged in {net}', data.get('detail') or data.get('flag') or '',
                     ttl=60)
+        elif kind == 'tool_name_refused':                # §5.5: an own tool whose published name cannot be used
+            _notice(f'sajhanet.name:{net}:{data.get("tool")}', 'warning',
+                    f'Tool {data.get("tool")} is not offered in {net}', data.get('detail') or '', ttl=0)
+            _audit('tool_name_refused', details={'net': net, 'tool': data.get('tool'),
+                                                 'published': data.get('published'), 'detail': data.get('detail')})
         elif kind in ('tool_changed', 'tool_offered', 'tool_withdrawn'):
             _audit(f'remote_{kind}', details={'net': net, **{k: v for k, v in data.items() if k not in ('net',)}})
 
@@ -994,6 +1118,11 @@ class NetCatalogs:
             if net and r['net'] != net:
                 continue
             row = {k: v for k, v in r.items() if k not in ('entry', 'member')}
+            meta = (r.get('entry') or {}).get('meta') or {}
+            rec = (r.get('member') or {}).get('record') or {}
+            # design §5.6: an external server's tool names its vendor; else the host's vendor
+            row['external'] = bool(meta.get('external'))
+            row['vendor'] = (meta.get('vendor') if row['external'] else rec.get('vendor')) or ''
             try:
                 from sajha.net.integration.residency import _entry_classes
                 row['data_classes'] = _entry_classes(r.get('entry'), r['host_tool'], r['qualified_name']).summary()

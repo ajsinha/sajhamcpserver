@@ -65,6 +65,9 @@ class RESTToolGenerator:
             errors.append("Tool name is required")
         elif not re.match(r'^[a-z][a-z0-9_]*$', definition.name):
             errors.append("Tool name must start with lowercase letter, contain only lowercase letters, numbers, and underscores")
+        elif '__' in definition.name:
+            from sajha.tools.naming import reserved_name_problem
+            errors.append(reserved_name_problem(definition.name))
         elif len(definition.name) < 3:
             errors.append("Tool name must be at least 3 characters")
         

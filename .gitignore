@@ -79,3 +79,6 @@ config/users.json
 # ── Persistent API keys: hashed records written by the server (config/apikeys.json.example is the format) ──
 config/apikeys.json
 config/apikeys_db.json
+
+# the mcpServers file may hold credentials (templates: config/mcp_servers.json.example, config/mcp_servers/)
+config/mcp_servers.json

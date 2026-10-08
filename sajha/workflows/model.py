@@ -25,7 +25,7 @@ ON_ERROR = ('fail', 'continue')
 DELIVERY_TYPES = ('webhook', 'file', 'kafka')
 EVENT_KINDS = ('tools', 'prompts', 'resources', 'resource_updated')
 
-NAME_RE = re.compile(r'^[A-Za-z][A-Za-z0-9_\-]{0,99}$')
+NAME_RE = re.compile(r'^(?!.*__)[A-Za-z][A-Za-z0-9_\-]{0,99}$')   # no '__': reserved (sajha/tools/naming.py)
 RESERVED_NAMES = ('runs', 'validate')
 MASK = '********'          # how a webhook secret is shown; saving it back keeps the stored secret
 ID_RE = re.compile(r'^[A-Za-z][A-Za-z0-9_]{0,99}$')

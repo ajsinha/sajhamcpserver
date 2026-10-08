@@ -10,13 +10,17 @@ instance name of its own.
   manual mode, issued by this server's CA when it is the CA participant, else by enrollment
   (``POST /api/sajhanet/sponsored/{net}/{instance}/enroll``).
 * Its catalog is the upstream's tools (the federation tools of that upstream in the registry, by
-  the upstream's own names, filtered by ``tools`` globs), with the sponsor's data classes.
+  the upstream's own names, filtered by ``tools`` globs), with the sponsor's data classes; a
+  ``rename`` entry offers one under a name of the operator's choosing (protocol §5.5). A sponsored
+  server is a member, so it is never external (``external: true`` is refused; an external server is
+  ``sajhanet.external_servers``, design §5.6).
 * A forwarded call to it is verified and authorized by the sponsor exactly as a call to the sponsor
   (identity, blocks, export rules under the tool's local name, access, policy and approvals,
   residency, audit) and runs through federation's connection to the server.
 
 Configuration: ``sajhanet.sponsored`` (a list), plus the entries added through the admin API (kept
 in ``<sajhanet.data_dir>/sponsored.json``). Each entry: ``net``, ``instance_name``, ``upstream``,
+``vendor`` (required), ``rename`` (``{upstream tool: published name}``),
 ``tools`` (globs of the upstream's tool names, default all), ``region`` and ``labels`` (default the
 sponsor's).
 
@@ -38,7 +42,7 @@ from sajha.net import crypto, httpsig, names, plugins
 from sajha.net.catalog import CatalogBook
 from sajha.net.library import IdentityFiles, enroll as core_enroll, self_signed
 from sajha.net.membership import PeerCache
-from sajha.net.models import CASettings, IdentitySettings, PeerCacheSettings, PrefixKV
+from sajha.net.models import EXTERNAL_KEY, CASettings, IdentitySettings, PeerCacheSettings, PrefixKV
 from sajha.net.node import NetNode
 from sajha.net.plugins import CatalogSource
 from sajha.net.routing import CallContext, HostRefusal, HostServer
@@ -55,6 +59,8 @@ class SponsoredSpec:
     region: str = ''
     labels: Dict[str, str] = field(default_factory=dict)
     source: str = 'config'                 # config | admin
+    vendor: str = ''                       # required: who answers for the server's tools (protocol §5.5)
+    rename: Dict[str, str] = field(default_factory=dict)     # upstream tool name -> published name
 
     @classmethod
     def from_dict(cls, d: Dict[str, Any], source: str = 'config') -> 'SponsoredSpec':
@@ -71,13 +77,28 @@ class SponsoredSpec:
         if isinstance(tools, str):
             tools = [t.strip() for t in tools.split(',') if t.strip()]
         labels = d.get('labels') if isinstance(d.get('labels'), dict) else {}
+        from sajha.core.config import parse_bool
+        from sajha.net.integration.config import _rename, naming_problem
+        vendor = str(d.get('vendor') or '').strip()
+        if not vendor:
+            raise ValueError(f'{name}: vendor is required (the organisation that answers for the server\'s tools, '
+                             f'e.g. acme; protocol §5.5)')
+        if parse_bool(d.get(EXTERNAL_KEY), False):
+            raise ValueError(f'{name}: a sponsored server is a member of the net and cannot be external; to offer '
+                             f'{upstream}\'s tools under its vendor\'s prefix without making it a member, list it in '
+                             f'sajhanet.external_servers ({{upstream: {upstream}, vendor: {vendor}}})')
+        rename = _rename(d.get('rename'))
+        bad = naming_problem(vendor, rename)
+        if bad:
+            raise ValueError(f'{name}: {bad}')
         return cls(net=net, instance_name=name, upstream=upstream, tools=[str(t) for t in tools],
                    region=str(d.get('region') or ''), labels={str(k): str(v) for k, v in labels.items()},
-                   source=source)
+                   source=source, vendor=vendor, rename=rename)
 
     def to_dict(self) -> Dict[str, Any]:
         return {'net': self.net, 'instance_name': self.instance_name, 'upstream': self.upstream,
-                'tools': list(self.tools), 'region': self.region, 'labels': dict(self.labels), 'source': self.source}
+                'tools': list(self.tools), 'region': self.region, 'labels': dict(self.labels), 'source': self.source,
+                'vendor': self.vendor, 'rename': dict(self.rename)}
 
 
 @dataclass
@@ -150,7 +171,8 @@ class SponsoredCatalog(CatalogSource):
 
 class _Rules(plugins.RuleEvaluator):
     """The sponsor's rule evaluator, with a sponsored tool named by its local (registry) name in
-    export decisions, so the sponsor's export rules govern it as one of its own tools."""
+    export decisions, so the sponsor's export rules govern it as one of its own tools; its published
+    and upstream names are in ``tool_names`` (protocol §5.5), so a rule may name it by any of them."""
     name = 'sponsored'
 
     def __init__(self, inner: plugins.RuleEvaluator, catalog: SponsoredCatalog):
@@ -164,8 +186,10 @@ class _Rules(plugins.RuleEvaluator):
     def decide(self, rule, subject):
         s = dict(subject or {})
         if rule in ('export', 'block_tool') and s.get('tool'):
-            t = self.catalog.tool(str(s['tool']))
+            known = [str(n) for n in s.get('tool_names') or []] or [str(s['tool'])]
+            t = self.catalog.tool(known[-1])
             if t is not None:
+                s['tool_names'] = list(dict.fromkeys(known + [str(s['tool']), t.name]))
                 s['tool'] = t.name
         if rule in ('import', 'pull', 'reexport'):
             return plugins.Decision(False, rule)          # a sponsored participant imports nothing
@@ -303,6 +327,7 @@ class Sponsorships:
         listed = [i for i in (main.cfg.user_identity or []) if i in ('api_key', 'none')]
         files = self._files(sp.net, sp.instance_name)
         cfg = replace(rt.cfg, instance_name=sp.instance_name, kind='sponsored', sponsor=main.name,
+                      vendor=sp.vendor, rename=dict(sp.rename),
                       seeds=[rt.cfg.base_url], founder=False, static_peers=[], identity=IdentitySettings(),
                       ca=CASettings(), peer_cache=PeerCacheSettings(path=files.peers_path),
                       region=sp.region or rt.cfg.region, labels=dict(sp.labels or rt.cfg.labels),
@@ -330,7 +355,7 @@ class Sponsorships:
         book.start()
 
         def execute(ctx: CallContext, arguments: Dict[str, Any], source=source):
-            tool = source.tool(ctx.tool)
+            tool = source.tool(ctx.local_tool or ctx.tool)       # §5.5: the upstream's own name
             if tool is None:
                 raise HostRefusal('export')
             return catalogs.execute_tool(ctx, arguments, tool, local_name=tool.name)

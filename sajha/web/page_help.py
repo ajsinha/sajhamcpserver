@@ -186,8 +186,11 @@ PAGE_HELP: dict = {
                   'Latency'],
         'guide': 'TUTORIAL_06_configure_tool_caching.md'},
     'admin_federation_page': {
-        'what': 'Upstream MCP servers whose tools SAJHA re-exposes: their state, and approval of what they offer.',
-        'terms': ['Federation', 'Upstream', 'Namespaced tool', 'Circuit breaker', 'Tool access'],
+        'what': 'Proxied MCP servers: every MCP server this instance embeds and proxies calls to (federation), from '
+                'federation.upstreams, config/mcp_servers.json and this page, with its vendor, whether it is internal '
+                'or external, its prefix, state and tools, and approval of what it offers.',
+        'terms': ['Federation', 'Proxied MCP server', 'Proxied MCP servers (page)', 'Upstream', 'External server',
+                  'mcpServers file', 'Namespaced tool', 'Vendor', 'Circuit breaker', 'Tool access'],
         'guide': 'Federation.md'},
     'admin_sajhanet_page': {
         'what': 'The SAJHA Nets this server belongs to: its name and certificate in each, whether it has joined, the '

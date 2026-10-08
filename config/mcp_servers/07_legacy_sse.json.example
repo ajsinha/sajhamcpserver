@@ -1,0 +1,11 @@
+{
+  "_comment": "A server that still speaks the legacy HTTP+SSE transport (MCP 2024-11-05). Say so with type: sse; otherwise Streamable HTTP is assumed for a url.",
+  "mcpServers": {
+    "legacy_reports": {
+      "type": "sse",
+      "url": "http://reports.internal.example:8080/sse",
+      "headers": {"Authorization": "Bearer ${REPORTS_MCP_TOKEN}"},
+      "vendor": "reports_team"
+    }
+  }
+}

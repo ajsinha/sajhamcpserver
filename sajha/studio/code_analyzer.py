@@ -432,6 +432,10 @@ class CodeAnalyzer:
         if not re.match(r'^[a-z][a-z0-9_]*$', tool_name):
             return False, "Tool name must start with lowercase letter and contain only lowercase letters, numbers, and underscores"
         
+        from sajha.tools.naming import reserved_name_problem
+        if reserved_name_problem(tool_name):
+            return False, reserved_name_problem(tool_name)
+
         # Check length
         if len(tool_name) < 3:
             return False, "Tool name must be at least 3 characters"

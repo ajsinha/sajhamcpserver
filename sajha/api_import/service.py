@@ -490,7 +490,7 @@ def build_plan(req: ImportRequest, registry=None) -> Plan:
             or naming.tool_name(prefix, op['base_name'])
         if not naming.TOOL_NAME_RE.match(wanted):
             raise APIImportError(f"tool name {wanted!r} for {op['key']} must be 3-64 characters: a lowercase "
-                               f"letter, then lowercase letters, digits or underscores")
+                               f"letter, then lowercase letters, digits or underscores, never '__'")
         name = naming.dedupe(wanted, taken)
         taken.add(name)
         op['name'] = name

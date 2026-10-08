@@ -18,7 +18,7 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
 from sajha.net import names
-from sajha.net.models import CASettings, GossipSettings, IdentitySettings, NetConfig, PeerCacheSettings
+from sajha.net.models import EXTERNAL_KEY, CASettings, GossipSettings, IdentitySettings, NetConfig, PeerCacheSettings
 
 GOSSIP_KEYS = ('gossip_interval_ms', 'ping_timeout_ms', 'indirect_probes', 'suspect_timeout_seconds',
                'full_sync_interval_seconds', 'dead_retention_minutes', 'dead_probe_interval_seconds')
@@ -85,6 +85,8 @@ class Shared:
     max_injections_per_minute: int = 6
     agent_lease_seconds: float = 15
     plugin_modules: List[str] = field(default_factory=list)     # sajhanet.plugins.modules (third-party plug-ins)
+    vendor: str = 'sajha'                    # sajhanet.vendor (protocol §5.5)
+    rename: Dict[str, str] = field(default_factory=dict)        # sajhanet.rename: local tool -> published name
 
 
 def shared() -> Shared:
@@ -111,6 +113,8 @@ def shared() -> Shared:
     if isinstance(mods, str):
         mods = [m.strip() for m in mods.strip('[]').split(',')]
     s.plugin_modules = [str(m).strip().strip('\'"') for m in mods or [] if str(m).strip().strip('\'"')]
+    s.vendor = str(_g('vendor', 'sajha')).strip()
+    s.rename = _rename(_g('rename', None) or raw.get('rename'))
     g = GossipSettings()
     for k in GOSSIP_KEYS:
         setattr(g, k, type(getattr(g, k))(_num(_g('gossip.' + k, getattr(g, k)), getattr(g, k))))
@@ -120,6 +124,103 @@ def shared() -> Shared:
                                      interval_minutes=_num(_g('peer_cache.interval_minutes', 10), 10),
                                      max_age_days=_num(_g('peer_cache.max_age_days', 7), 7))
     return s
+
+
+def _rename(v: Any) -> Dict[str, str]:
+    """A ``rename`` map (``{local tool: published name}``), from YAML or a JSON string."""
+    if isinstance(v, str) and v.strip():
+        import json
+        try:
+            v = json.loads(v)
+        except ValueError:
+            v = None
+    return {str(k): str(x) for k, x in v.items() if str(k).strip() and str(x).strip()} if isinstance(v, dict) else {}
+
+
+def naming_problem(vendor: str, rename: Dict[str, str]) -> Optional[str]:
+    """Why a vendor and rename map are unusable (None: usable)."""
+    if vendor and not names.is_vendor(vendor):
+        return (f'vendor {vendor!r} is not a vendor name: a lowercase letter, then lowercase letters, digits and '
+                f'"_", at most 24 characters, never "__" and not ending with "_"')
+    for local, pub in rename.items():
+        if not names.is_published_name(pub):
+            return f'rename {local}: {pub!r} is not a valid published tool name'
+    return None
+
+
+@dataclass
+class ExternalServer:
+    """A federation upstream this server offers into its nets as an external server (design §5.6): its
+    tools under ``<vendor>__<tool>``, never a member of a net."""
+    upstream: str
+    vendor: str
+    tools: List[str] = field(default_factory=lambda: ['*'])
+    rename: Dict[str, str] = field(default_factory=dict)    # upstream tool name -> published name
+    nets: List[str] = field(default_factory=list)           # nets it is offered into (empty: every net)
+    prefix: str = ''                                         # published as <prefix>__<tool> (default: the vendor)
+
+    @classmethod
+    def from_dict(cls, d: Dict[str, Any]) -> 'ExternalServer':
+        up = str(d.get('upstream') or '').strip()
+        if not up:
+            raise ValueError('upstream: the federation upstream id of the external server')
+        vendor = str(d.get('vendor') or '').strip()
+        if not vendor:
+            raise ValueError(f'{up}: vendor is required (the organisation that answers for its tools, e.g. acme)')
+        rename = _rename(d.get('rename'))
+        bad = naming_problem(vendor, rename)
+        if bad:
+            raise ValueError(f'{up}: {bad}')
+        tools = d.get('tools') or ['*']
+        if isinstance(tools, str):
+            tools = [t.strip() for t in tools.split(',') if t.strip()]
+        nets = d.get('nets') or []
+        if isinstance(nets, str):
+            nets = [n.strip() for n in nets.split(',') if n.strip()]
+        prefix = str(d.get('prefix') or '').strip()
+        if prefix and (not names.is_published_name(prefix) or '__' in prefix or prefix.endswith('_')):
+            raise ValueError(f'{up}: prefix {prefix!r} must be letters, digits, "_" and "-", without "__" and not '
+                             f'ending with "_"')
+        return cls(upstream=up, vendor=vendor, tools=[str(t) for t in tools], rename=rename,
+                   nets=[str(n) for n in nets], prefix=prefix)
+
+    @property
+    def effective_prefix(self) -> str:
+        return self.prefix or self.vendor
+
+    def published(self, tool: str) -> str:
+        return self.rename.get(tool) or names.published_name(tool, self.effective_prefix, True)
+
+    def to_dict(self) -> Dict[str, Any]:
+        return {'upstream': self.upstream, 'vendor': self.vendor, 'prefix': self.effective_prefix,
+                'tools': list(self.tools), 'rename': dict(self.rename), 'nets': list(self.nets)}
+
+
+def external_servers(raw: Optional[Dict[str, Any]] = None) -> Tuple[List[ExternalServer], List[str]]:
+    """``sajhanet.external_servers`` (YAML list, or JSON in ``SAJHA_SAJHANET_EXTERNAL_SERVERS``) and the
+    configuration errors found in it."""
+    v = _g('external_servers', None)
+    if v is None or v == []:
+        v = (raw if raw is not None else _raw()).get('external_servers')
+    if isinstance(v, str):
+        import json
+        try:
+            v = json.loads(v)
+        except ValueError:
+            return [], ['sajhanet.external_servers is not a list']
+    out: List[ExternalServer] = []
+    errors: List[str] = []
+    for d in v or []:
+        try:
+            x = ExternalServer.from_dict(d if isinstance(d, dict) else {})
+        except ValueError as e:
+            errors.append(f'sajhanet.external_servers: {e}')
+            continue
+        if any(o.upstream == x.upstream for o in out):
+            errors.append(f'sajhanet.external_servers: {x.upstream} is listed twice')
+            continue
+        out.append(x)
+    return out, errors
 
 
 def _file_ref(ref: str, default_path: str) -> str:
@@ -194,10 +295,20 @@ def net_configs(s: Optional[Shared] = None, bind_host: str = '0.0.0.0', port: in
             require_https=_bool(entry.get('require_https'), s.require_https),
             min_protocol_version=int(_num(entry.get('min_protocol_version'), s.min_protocol_version)),
             admission=s.admission, membership=s.membership, gossip=gossip,
-            max_injections_per_minute=s.max_injections_per_minute)
+            max_injections_per_minute=s.max_injections_per_minute,
+            vendor=str(entry.get('vendor') or s.vendor).strip(),
+            rename=_rename(entry.get('rename')) if entry.get('rename') is not None else dict(s.rename))
+        bad = naming_problem(cfg.vendor, cfg.rename)
+        if not bad and entry.get(EXTERNAL_KEY) is not None:
+            bad = (f'{EXTERNAL_KEY} is not a key of a net entry: this server is always a member of its nets; to '
+                   f'offer another server\'s tools under its vendor\'s prefix, list it in sajhanet.external_servers')
+        if bad:
+            errors[nm] = bad
         name, why = names.resolve_instance_name(cfg.instance_name, cfg.advertise_address, bind_host, port)
         if name is None:
             errors[nm] = why
+        elif bad:
+            pass
         else:
             cfg.instance_name = name
             if not cfg.base_url:

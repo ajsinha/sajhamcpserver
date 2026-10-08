@@ -17,6 +17,13 @@ the hands-on walkthrough is
 Federation is **off by default** (`federation.enabled: false`) and no upstream is
 configured by default, so a fresh SAJHA serves exactly what it served before.
 
+An upstream is a **proxied MCP server**: a server this instance embeds and proxies calls to. Each is
+**internal** (its tools keep their names and are governed like local tools; SAJHA Net's one name, one
+contract applies to them) or **external** (`external: true`: never a member of a net, its tools
+published as `<prefix>__<tool>`; [SAJHA Net](SAJHA%20Net.md) §5.6). The console page is **Proxied MCP
+servers** (`/admin/federation`, under the admin menu); the mechanism and its `federation.*` keys keep
+the name federation.
+
 ---
 
 ## 1. Shape
@@ -148,6 +155,47 @@ is always called with its own name. When two upstream names map to the same expo
 (`a.b` and `a_b`), **neither** is exposed and both are reported as a conflict on the admin
 page; a federated name equal to a native tool's name is not exposed either. Native tools
 always win.
+
+### Names
+
+`__` in a tool name is **reserved for namespaced tools**: a federated upstream's tools and an
+external server's tools (`<prefix>__<tool>`), a data connector's tools (`<connector prefix>__<operation>`)
+and SAJHA Net's remote tools (`<net>__<instance>__<tool>`). No other tool may contain it: native and
+configured tools, composites, generated (Describe) tools, workflows published as tools, LLM tools,
+API-import tools and sandboxed tools. The tools registry enforces it in one place
+(`sajha/tools/naming.py`, `ToolsRegistry.register_tool`): such a tool is refused with an error naming it
+and the rule, an error notice `tools.reserved_name:<tool>`, and an entry in the registry's tool errors;
+the server keeps starting. The creators (Studio, Describe, API import, workflows, the LLM tool builder)
+check the same rule up front, so the message appears in the form.
+
+A prefix is **unique on an instance**, across federation upstreams (wherever defined: `federation.upstreams`,
+the mcpServers file, the console) and external servers, and is never a local tool's name. A clash is a
+configuration error naming both sources (in the federation status and the `federation.mcp_servers` or
+`sajhanet.external_servers` notice); the second definition is not loaded.
+
+### Proxies all the way down
+
+A proxied MCP server can itself proxy others: another SAJHA with its own proxied servers, or any MCP
+gateway. The arrangement nests and expands without limit:
+
+- **Names compose.** An upstream's tool that is itself prefixed comes through as
+  `<outer prefix>__<inner prefix>__<tool>` (`corp__weather__get_forecast`), and in SAJHA Net as
+  `<net>__<instance>__<outer>__<inner>__<tool>`; a qualified name still splits at its first two `__`.
+- **Limits.** MCP caps a tool name at 128 characters: a federated name is cut there, and a SAJHA Net
+  host refuses a tool whose qualified name would be longer rather than shortening it ([SAJHA
+  Net](SAJHA%20Net.md) §5.6, give it a `rename`). Model providers with shorter caps get per-request
+  aliases (SAJHA Net §8.6).
+- **Cycles and depth.** A call to an upstream carries the chain depth it has reached in
+  `params._meta["io.sajha/chain"].depth` (the depth carried in, the nesting of composites and LLM tools
+  here, plus one for the hop). A SAJHA upstream runs the call with that depth (`MCPHandler` and the
+  2026-07-28 handler, `sajha/core/inner_calls.py::proxied_entered`), so hops and nesting along a chain
+  of proxies are one budget, `tools.max_call_depth` (default 8). When A proxies B and B proxies A (or a
+  chain is simply too long), the call is refused at the limit with a clear error ("... would make the
+  call chain N deep ...; proxied servers that proxy each other form a cycle") instead of recursing.
+  Other MCP servers ignore the `_meta` entry; a cycle through one of them is bounded only by timeouts.
+  Within SAJHA Net, forwarded calls have their own hop and chain budget (SAJHA Net §14).
+- **Governance at every level.** Each proxy applies its own access control, policy, approvals, residency
+  and audit to the calls it passes on; none trusts another's decision.
 
 Prompts follow the same rule (`<prefix>__<prompt>`). Resource URIs are rewritten to
 `sajha-federation://<upstream id>/<the original URI, percent-encoded>` so they cannot
@@ -356,6 +404,55 @@ federation:
 ```
 
 The upstream list can also come from `SAJHA_FEDERATION_UPSTREAMS`, a JSON list.
+
+### The mcpServers file
+
+Upstreams can also be listed in the de-facto standard `mcpServers` JSON that Claude Desktop, Cursor and
+VS Code use, so an administrator can paste a block they already have. The file is
+`config/mcp_servers.json` (`federation.mcp_servers_file`), **git-ignored** because it may hold
+credentials; `config/mcp_servers.json.example` and the templates in
+[`config/mcp_servers/`](../../config/mcp_servers/README.md) (with the README's key table) are tracked.
+The loader is `sajha/federation/mcp_servers.py`; `tests/test_federation_mcp_servers.py` parses every
+template with it, so they cannot drift apart.
+
+```json
+{"mcpServers": {
+  "github":   {"url": "https://api.githubcopilot.com/mcp/", "headers": {"Authorization": "Bearer ${GITHUB_PAT}"}},
+  "context7": {"url": "https://mcp.context7.com/mcp"},
+  "fetch":    {"command": "uvx", "args": ["mcp-server-fetch"], "vendor": "mcp_reference"},
+  "pricing":  {"url": "http://pricing.internal.example:9000/mcp", "external": false}
+}}
+```
+
+- **Each entry is an upstream** whose id is the entry's key. Standard keys: `url`, `headers`,
+  `command`, `args`, `env`, and `type` (`http`, `sse` or `stdio`; without it a `command` means stdio and
+  a `url` Streamable HTTP).
+- **SAJHA keys**, all optional: `vendor` (default the entry's key), `prefix` (default the vendor; the
+  tools are `<prefix>__<tool>`), `external` (default **true** in this file), `tools` (globs of the tools
+  to take; nothing else is federated), `enabled` (`false`: listed, never connected), `cwd` (stdio),
+  `title`, `timeout_seconds`. A key starting with `_` is a comment, at any depth; any other key is an
+  error for that entry.
+- **External by default.** An entry is an external server ([SAJHA Net](SAJHA%20Net.md) §5.6): this
+  instance offers its tools into its nets as its own, published `<prefix>__<tool>`, and the server is
+  never a member of a net. `"external": false` makes it an ordinary internal federation upstream.
+- **Secrets.** `${NAME}` and `${NAME:default}` in `url`, header values, `command`, `args`, `env` and
+  `cwd` are read from the environment. A raw credential still works (the owner's intranet stance): each
+  raw `Authorization`-like header is logged once by name (never its value) and listed in an info notice
+  (`federation.mcp_servers.raw_secrets`).
+- **Merging.** The file's upstreams join those of `federation.upstreams` and the console. An id defined
+  in both `federation.upstreams` and the file uses the YAML definition, with a configuration error
+  naming both sources; a console-added upstream with an id the file defines is ignored. Invalid entries
+  are reported per entry (notice `federation.mcp_servers`) and the rest load.
+- **Reload.** The file is checked every `federation.mcp_servers_reload_seconds` (default 5) by its
+  modification time and size, never per call: new entries connect, removed ones are withdrawn, changed
+  ones are replaced. A file entry is not editable on the console.
+- **Servers that need each user to sign in.** Hosted servers such as Notion's or Supabase's MCP
+  endpoints use per-user OAuth (MCP authorization with discovery and dynamic client registration),
+  which federation does not do for upstreams yet. Such an upstream, reached without a credential,
+  answers HTTP 401; its state is then `needs_sign_in` ("needs sign-in (not supported yet)") with a
+  warning notice `federation.sign_in:<id>`, and it is retried slowly. Keep it `"enabled": false` until
+  this is built ([Roadmap](Roadmap.md)). A static bearer or API-key header (a GitHub token) and servers
+  without auth work.
 
 ## 11. Using it
 
