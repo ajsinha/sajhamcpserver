@@ -1,6 +1,7 @@
 # Implementation Plan
 
-> **Status: plan, not started.** This is the build order for the two designed features,
+> **Status: waves 1 to 4 done; wave 5 in progress; wave 6 pending** (the Status column of
+> section 2 is the per-wave record). This is the build order for the two features,
 > [LLM Tools](LLM%20Tools.md) (with the [Planner Reference](Planner%20Reference.md)) and
 > [SAJHA Net](SAJHA%20Net.md) (with the [SAJHA Net Protocol](../protocol/SAJHA%20Net%20Protocol.md)),
 > together with the open [Roadmap](Roadmap.md) items, grouped into five waves. The designs say
@@ -303,7 +304,7 @@ the System Notices design, and every open Roadmap item appears exactly once in t
 |---|---|
 | LLM Tools steps 1–13 | 1: wave 1; 2, 3, 6, 7, 8, 9: wave 2; 4, 5, 10, 11, 12, 13: wave 3 |
 | SAJHA Net phases 1–9 | 1, 2, 3: wave 4 (with wave 1's identity groundwork; named nets, seeds and restarts, offline removal, resolution and preferences, one name one contract and waterfall fallback are in phases 1 and 2); 4, 5, 6, 7, 8, 9: wave 5 (Instances page and badge from phase 7 come early, in wave 4) |
-| SAJHA Net new-code items 1–13 ([SAJHA Net §21.1](SAJHA%20Net.md#211-new-code-this-design-needs)) | 1, 3, 4, 7, 10, 11: wave 1; 2, 5, 6, 9, 12, 13: wave 4; 8: wave 5 |
+| SAJHA Net new-code items 1–13 ([SAJHA Net design note, "new code this design needs"](../archive/SAJHA%20Net%20Design%20Note.md)) | 1, 3, 4, 7, 10, 11: wave 1; 2, 5, 6, 9, 12, 13: wave 4; 8: wave 5 |
 | Roadmap Now (N2–N5) | wave 1 |
 | Roadmap Next (X2–X17) | X4, X17: wave 1; X7 (closed), X8, X9: wave 2; X2, X15: wave 3; X5, X6: wave 5; X3, X10–X14, X16: section 8 |
 | Roadmap Later (L1–L16) | L16 (SAJHA Net): waves 4–5; all others: section 8 |

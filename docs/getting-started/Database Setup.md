@@ -16,9 +16,11 @@ db/scripts/sqlite/schema.sql        db/scripts/sqlite/seed.sql
 db/scripts/postgresql/schema.sql    db/scripts/postgresql/seed.sql
 ```
 
-`seed.sql` adds the default roles (`admin`, `user`, `viewer`, `developer`), their
-permissions and the administrator `admin` / `admin123`, flagged so that the first sign-in
-must change the password.
+`seed.sql` adds the default roles (`admin`, `user`, `viewer`, `developer`, `llm_author`),
+their permissions and the administrator `admin` / `admin123`, flagged so that the first
+sign-in must change the password. Users and keys an administrator keeps in the credential
+files (`config/users.json`, `config/apikeys.json`) are not in these files; they win over the
+database ([Security Model](../security/Security%20Model.md#credential-storage-and-files)).
 
 | | SQLite | PostgreSQL |
 |---|---|---|

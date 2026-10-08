@@ -1,12 +1,16 @@
 # SAJHA Net Protocol
 
-> **Status: specification; SAJHA implements §5, §7 to §9, §13 and §14 (membership, names, signatures,
-> the CA) and the rest is not built yet.** This document specifies the wire
-> protocol of [SAJHA Net](../architecture/SAJHA%20Net.md): the `io.sajha/net` MCP extension that
-> participants in a net speak to each other. It is written so that someone outside SAJHA can build a
-> participant (a SAJHA Net agent, a library, another server) from it alone. The design note owns the
-> rationale, the console, storage and configuration; this document owns the bytes on the wire. Where
-> the two disagree, report it: the design is not automatically right, and neither is this.
+This document specifies the wire protocol of [SAJHA Net](../architecture/SAJHA%20Net.md): the
+`io.sajha/net` MCP extension that participants in a net speak to each other. It is written so that
+someone outside SAJHA can build a participant (a SAJHA Net agent, a library, another server) from it
+alone. The SAJHA Net guide owns the rationale, the console, storage and configuration; this document
+owns the bytes on the wire. Where the two disagree, report it: neither is automatically right.
+
+**SAJHA's implementation** (target S), the agent (A) and the library (L) implement every section
+except: the `visibility` feature (§10.5), relaying progress, cancellation, input requests and tasks on
+forwarded calls (§15.6), and forwarding on the 2025-11-25 era (§6.4: SAJHA always forwards on
+2026-07-28). The conformance ids these leave uncovered, and what SAJHA advertises, are in
+[SAJHA Net](../architecture/SAJHA%20Net.md#55-what-is-built) §5.5 and §5.9.
 
 This document defines **SAJHA Net protocol version 1**.
 
@@ -84,8 +88,8 @@ capitals, as shown here.
   lowercase inside signature bases, as RFC 9421 requires.
 - Terms (net, net name, instance, home and host instance, proxy tool, qualified tool name,
   resolution order, waterfall fallback, tool contract, export and import rules, data class, hop, gossip,
-  incarnation, net key directory, block, seed) have the meanings in the design's
-  [vocabulary](../architecture/SAJHA%20Net.md#3-vocabulary). This document says **participant** for
+  incarnation, net key directory, block, seed) have the meanings in the
+  [Glossary](../../GLOSSARY.md#12-sajha-net). This document says **participant** for
   any member of a net and **instance** where the design does; on the wire they are the same thing.
 
 ## 3. Roles and conformance targets
@@ -282,8 +286,8 @@ A receiver of either result MUST look in both places.
         "instance": "cust-na",
         "kind": "sajha",
         "endpoint": "/sajhanet/v1/",
-        "features": ["gossip", "catalog", "visibility", "key_directory", "key_verification",
-                     "blocks", "residency", "llm_tools", "progress", "cancellation", "mrtr", "tasks"],
+        "features": ["gossip", "catalog", "key_directory", "key_verification", "blocks",
+                     "residency", "token_exchange"],
         "user_identity": ["api_key"],
         "signature_algorithms": ["ed25519", "ecdsa-p256-sha256"]
       }
@@ -327,6 +331,12 @@ nets MAY offer different features in each). Peers use a feature only when **both
 | `reexport` | May offer into this net, and accepts calls to, tools it imported from other participants (§16). |
 | `token_exchange` | Serves `POST /sajhanet/v1/token` and accepts `Sajha-Net-User-Token` (§15.9). |
 | `ca` | Is the CA participant and serves §14. |
+
+SAJHA (target S) lists, per net: `gossip` (with the `gossip` membership), `ca` (on the CA instance of a
+`builtin_ca` net), `catalog`, `blocks`, `key_directory` and `key_verification` (with key directories),
+`residency`, `token_exchange` (when its `user_identity` lists it) and `reexport` (when re-export is on for
+the net). It does not list `visibility`, `progress`, `cancellation`, `mrtr`, `tasks` or `llm_tools`; its
+LLM tools carry `llm_tool: true` in their catalog metadata (§10.2) all the same.
 
 `user_identity` lists the identity resolvers the participant accepts as a host and can produce as a
 home: `api_key` (§15.3), `assertion` (§15.5), `token_exchange` (§15.9; RFC 8693 shaped, between two
@@ -408,7 +418,7 @@ request for a net the receiver does not belong to gets an unsigned `404` (§7.7)
 |---|---|---|
 | 200 | | Success. |
 | 400 | `invalid_request`, `unsupported_version`, `unknown_member` | Body fails its schema; version not spoken; a ping-req target that is not a known member. |
-| 401 | `signature_missing`, `signature_invalid`, `signature_incomplete`, `signature_expired`, `replay`, `digest_mismatch`, `certificate_invalid`, `from_mismatch` | The request could not be authenticated (§8.7). |
+| 401 | `signature_missing`, `signature_invalid`, `signature_incomplete`, `signature_expired`, `replay`, `digest_mismatch`, `certificate_invalid`, `from_mismatch`; on the token endpoint `assertion_invalid`, `token_invalid` | The request could not be authenticated (§8.7), or the assertion presented for an exchange is not valid (§15.9). |
 | 403 | `certificate_revoked`, `instance_revoked`, `net_mismatch`, `blocked`, `enrollment_refused`, `not_home` | Authenticated but not allowed. |
 | 404 | | Net disabled; `Sajha-Net-Name` missing, invalid or not a net the receiver belongs to (unsigned, no body, §7.7); unknown path; or feature not offered. |
 | 405 | | Wrong method. |
@@ -541,7 +551,7 @@ every response between participants carries and which the signature always cover
   missing, is not a valid net name (§5.1), or names a net the receiver does not belong to, the
   receiver MUST answer `404` with no body and no signature, exactly as if SAJHA Net were disabled, so
   that the answer does not reveal which nets it belongs to. Otherwise it handles the request entirely
-  in that net: that net's CA certificate (or pins, §8.11), revocation list, own instance name and
+  in that net: that net's CA certificate (or pins, §8.11, or first-use keys, §8.12), revocation list, own instance name and
   certificate, membership list, key directory, blocks, catalogs, export and import rules, sessions
   and nonce store.
 - **One certificate per net.** A participant holds a separate certificate for each net, issued by
@@ -570,7 +580,8 @@ every response between participants carries and which the signature always cover
 ### 8.1 Certificate profile
 
 Every participant holds, for each net it belongs to, an X.509 v3 certificate issued by that net's CA
-(or, in manual mode, §8.11, self-signed and pinned):
+(or, in manual mode, §8.11, self-signed and pinned; in open mode, §8.12, self-signed and remembered on
+first use):
 
 - **Subject** `O=<net name>, CN=<instance name in that net>` (UTF8String), exactly as written in §5.
 - **subjectAltName** names the host of the participant's `url`: a `dNSName` for a host name, an
@@ -791,6 +802,27 @@ with the profile of §8.1, and each administrator pins the thumbprints of the pe
 net (a participant MAY run one net in manual mode and another with a CA). Step 6
 of §8.7 becomes "the leaf's thumbprint is pinned", step 7 is skipped (removing a pin is the
 revocation), and §13 and §14 do not apply. Everything else is unchanged.
+
+### 8.12 Open mode
+
+A net may also run with **open admission**: no CA and no pins. Each participant uses a **self-signed**
+certificate with the profile of §8.1 (`O=<net name>`, `CN=<instance name>`), and a receiver trusts a
+name on first use:
+
+- Step 6 of §8.7 becomes: the chain is exactly one self-signed certificate, valid now, whose `O` is the
+  selected net and whose `CN` is not empty (else `certificate_invalid`); if the receiver holds no key for
+  that `CN` in the net, it **remembers** the certificate's thumbprint for the name; if it holds a
+  different one, it refuses with `409 name_conflict`.
+- Step 7 is skipped and §13 and §14 do not apply: there is no revocation. An operator removes a
+  remembered key by hand (SAJHA: **Forget** on the admission panel), after which the next claimant of the
+  name is accepted and remembered.
+- Everything else is unchanged.
+
+Open mode admits any party that can reach a member and knows the net's name, under any name not yet
+remembered; it is meant for nets whose every reachable machine is under one operator's control. A
+participant SHOULD tell its operators which mode a net runs in. SAJHA ships with it (the admission
+plug-in `open`; design §6.4), and its agent's `--admission open` is the default. A SAJHA instance
+remembers the key as soon as the certificate check passes (step 6), before the remaining steps of §8.7.
 
 ## 9. Membership
 
@@ -1303,8 +1335,8 @@ when hosts disagree: the name is quarantined until they agree.
   gets an error with reason `contract_conflict` (`-32018` at the home) whose `data` names the tool,
   every host offering it and their hashes (§17.1).
 - **Alerting.** Entering a quarantine MUST be logged at error level and surfaced to operators with
-  the tool, every offering host and its `contract_hash` (SAJHA: an error notice, an entry in the
-  conflicts queue, the `sajha_net_contract_conflicts` metric and an alert). Entering and leaving a
+  the tool, every offering host and its `contract_hash` (SAJHA: an error notice, the conflicts list
+  of its Remote tools page and the `sajha_net_contract_conflicts` metric). Entering and leaving a
   quarantine are both audited.
 - **Re-activation.** T becomes active again, automatically, when the participant no longer observes a
   conflict on T and no current conflicts document lists it: every host still offering T in the net
@@ -1553,7 +1585,7 @@ participant in several nets holds one list per net and applies each only to its 
 These endpoints are served only by a participant with feature `ca` in the net concerned; one
 participant MAY be the CA participant of several nets, with a separate CA key for each. How a new
 participant obtains the enrollment token, the CA certificate and the CA participant's URL is out of
-band (an operator copies them; design §6.4).
+band (an operator copies them; design §6.5).
 
 ### 14.1 Enrollment
 
@@ -1663,7 +1695,9 @@ is never served as an anonymous or ordinarily authenticated request.
 ### 15.3 Identity: `api_key`
 
 - **Home.** It attaches the key the caller presented, or, for a caller signed in another way, the
-  user's default API key decrypted from its vault (design §10.2). It MUST send the key only over
+  user's default API key decrypted from its vault (design §10.2). A home MAY instead attach another
+  key whose record it publishes itself (SAJHA: a key configured for the target member,
+  `sajhanet.peer_keys`, and, while it is enabled, the test admin key; design §10.2). It MUST send the key only over
   HTTPS and only on hop 1, and MUST NOT log, store, trace or audit it (the key id and prefix may be
   recorded).
 - **Host** (feature `key_verification`). It computes the key's `key_hash`, finds the record in its
@@ -2440,6 +2474,8 @@ The design leaves these open or states them loosely; this specification decides 
 36. **No seeds is a net of one** (owner decision): a participant with no seeds for a net is its founder
     and only member, starts membership alone, reports no error and sends nothing until a peer is known;
     the earlier rule that a non-founder must list a seed is withdrawn (§9.7, GOS-12).
+37. **Open mode** (owner decision, for now): a net without a CA or pins, whose participants trust a name
+    on first use and hold it to that key afterwards (§8.12).
 
 ## 23. References
 

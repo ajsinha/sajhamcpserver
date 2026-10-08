@@ -83,7 +83,7 @@ builds the request in generated source.)
 
 | Part | Rule |
 |---|---|
-| Name | `<prefix>_<operationId>` in snake case; without an `operationId`, the method and path (`GET /pets/{petId}` → `get_pets_by_petid`). Lowercase letters, digits and underscores, 3–64 characters (the Studio rule, a subset of the MCP name rule). A name longer than 64 is cut and given an 8-character hash suffix. Duplicates within one import get `_2`, `_3`. |
+| Name | `<prefix>_<operationId>` in snake case; without an `operationId`, the method and path (`GET /pets/{petId}` → `get_pets_by_petid`). Lowercase letters, digits and underscores, 3–64 characters, never `__` (the Studio rule, a subset of the MCP name rule; `__` is reserved for namespaced tools). A name longer than 64 is cut and given an 8-character hash suffix. Duplicates within one import get `_2`, `_3`. |
 | Prefix | Per API; it is also the API's id (`api_id`). Default: the spec title, sanitised. |
 | Title, description | `summary`, and `summary` + `description` + `METHOD /path`, screened. |
 | Parameters | Every path, query, header and cookie parameter becomes a top-level property of `inputSchema`, its schema converted, `required` kept (path parameters are always required), `enum`, `format`, `default` and `description` carried over. Path-level parameters merge with operation-level ones (the operation wins). A property name that is not `[A-Za-z0-9_.-]{1,64}` (some model APIs reject others) is sanitised, and the same name in two locations is disambiguated (`id`, `id_header`); the config keeps the mapping back to the wire name. |

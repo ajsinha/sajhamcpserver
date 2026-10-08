@@ -4,6 +4,8 @@ This page describes how SAJHA MCP Server authenticates callers, authorizes them,
 
 For the OAuth 2.1 details of the MCP endpoint, see the [OAuth Guide](../protocol/OAuth%20Guide.md) and the [MCP 2026-07-28 Compliance](../protocol/MCP%202026-07-28%20Compliance.md) page. This page only summarizes them.
 
+SAJHA is proprietary software of Ashutosh Sinha, all rights reserved; it is not open source, and no right to use, copy or redistribute it is granted except by separate written agreement (see the `LICENSE` file at the root of the repository).
+
 This page supersedes the older point-in-time assessment in `docs/archive/` (not maintained; see the [archive index](../archive/README.md)).
 
 ---
@@ -14,11 +16,11 @@ This page supersedes the older point-in-time assessment in `docs/archive/` (not 
 
 Users, roles, permissions, API keys and the audit log are stored in the SAJHA database. The schema is `db/scripts/<sqlite|postgresql>/schema.sql` ([Database Setup](../getting-started/Database%20Setup.md)), and the models are in `sajha/db/models/__init__.py`. The live authentication code is `sajha/auth/__init__.py` (`AuthManager`, `AuthContext`, `get_current_user`, `require_auth`, `require_admin`).
 
-> Authentication is `AuthManager` in `sajha/auth/__init__.py` (sign-in, account lockout, JWTs, API keys); per-tool access is `sajha/auth/access.py`.
+Authentication (sign-in, account lockout, JWTs, API keys) is `AuthManager`; per-tool access is `sajha/auth/access.py`. How passwords and keys are stored, and the administrators' credential files that sit beside the database, are in [Credential storage and files](#credential-storage-and-files).
 
 ### Web login and passwords
 
-- **Hashing.** Passwords are hashed with bcrypt at cost 12 (`sajha/auth/password.py`, `hash_password` / `verify_password`). Only `users.password_hash` is stored.
+- **Storage.** A password is kept in `users.password_hash` as given under `auth.credential_storage: plain` (the shipped default, an owner decision), or as a bcrypt hash at cost 12 under `hashed` (`sajha/auth/password.py`, `hash_password`). `verify_password` accepts either form whatever the setting, so switching keeps every password working ([Credential storage and files](#credential-storage-and-files)).
 - **Login endpoints.** `POST /login` handles the HTML form and `POST /api/auth/login` returns a JSON token (`sajha/routes/auth_routes.py`). Both call `AuthManager.sign_in`, which rejects unknown or disabled users, verifies the bcrypt hash and applies the lockout below. The OAuth consent sign-in uses the same path.
 - **Account lockout.** `auth.login.max_failed_attempts` (default 5) consecutive failed sign-ins lock the account for `auth.login.lockout_minutes` (default 15), using `users.failed_attempts` and `users.locked_until`. A locked account is refused even with the right password (HTTP 423 from both login endpoints); a successful sign-in resets the counter. Failures are audited as `user.login_failed`.
 - **Failed sign-ins per IP.** A client IP with `auth.login.ip_max_failures` (default 20) failed sign-ins within `auth.login.ip_window_seconds` (default 300) gets 429 on both login endpoints and the OAuth consent sign-in (`login_blocked` / `record_login_failure` in `sajha/security.py`). Successful sign-ins are not counted, so many users behind one NAT are not throttled by each other.
@@ -58,45 +60,75 @@ Callers send the token as `Authorization: Bearer <jwt>`.
 API keys are managed by administrators at `/admin/apikeys` and by every signed-in user, for their own keys, at `/account/apikeys` (user menu, "My API keys"); the routes are in `sajha/routes/apikeys_routes.py` and the rules in `sajha/auth/apikeys.py`.
 
 - **Format.** `sja_` followed by `secrets.token_hex(24)`. The raw key is shown once: when it is created and after each rotation.
-- **Storage.** Only the SHA-256 hash (`ApiKeyDAO.hash_key` in `sajha/db/dao/__init__.py`) and the first 8 characters, used as a display prefix, are stored. The one exception is each user's default key (below), whose value is also kept encrypted.
-- **Validation.** `ApiKeyDAO.validate_key` rejects unknown, revoked, disabled and expired keys; usage is recorded. The key row is read on every request, so disabling or revoking a key takes effect on the next request.
+- **Storage.** The SHA-256 hash (`ApiKeyDAO.hash_key` in `sajha/db/dao/__init__.py`), by which a key is looked up, and the first 8 characters, used as a display prefix, are always stored. Under `auth.credential_storage: plain` (the shipped default) the raw value is also kept (`api_keys.key_value`), so an administrator can see it again; under `hashed` it is not. Each user's default key (below) is also kept encrypted.
+- **Validation, in order** (`AuthManager.authenticate_apikey`). 1. The keys file `config/apikeys.json` is checked first and **wins** for every key it holds (a disabled, revoked or expired record there is refused). 2. Otherwise the database: `ApiKeyDAO.validate_key` rejects unknown, revoked, disabled and expired keys and records usage; the row is read on every request, so disabling or revoking a key takes effect on the next request. 3. Only when the database does not know the key or does not answer, the dump `config/apikeys_db.json`. Details: [Credential storage and files](#credential-storage-and-files).
 - **How to send a key.** `X-API-Key: sja_...`, or a bare `Authorization: sja_...` header. On the WebSocket transport only, use `?api_key=`.
 - **Owner and resulting identity.** A key belongs to a user (`api_keys.owner_id`, set when it is created). An owned key signs in **as its owner**, with the owner's roles: it can reach what the owner can (an administrator's key is an administrator), and it stops working when the owner is disabled or deleted. Keys without an owner (keys created before owners existed, or by an administrator choosing "no owner") keep the older service identity `apikey:<name>` with the role `api_consumer`, and are never an admin, until an administrator assigns an owner on the API keys page (`POST /api/admin/apikeys/{key_id}/owner`); the page counts and filters them.
 - **Tool access.** The key's `tool_access_mode` is `all`, `allowlist` (the fnmatch patterns in `tool_access_list`), `denylist` (everything except them) or `regex` (tool names that fully match one of the listed regular expressions); an unknown mode grants nothing. For an owned key it is a **ceiling** on the owner's tool access: a tool must be allowed by both. For a key without an owner it is the whole of the key's access. It applies everywhere tools run (REST, MCP, A2A). See [Tool access](#tool-access).
 - **Who manages keys.** Users create keys for themselves (`POST /api/account/apikeys`), rotate and revoke them; administrators do the same for any key, create keys for any user or without an owner, disable and re-enable keys, assign owners, mark keys persistent and delete keys. Key management needs a signed-in user (console session or SAJHA JWT), never an API key, so a stolen key cannot mint more; browser requests carry the page's CSRF token. A user may hold `auth.api_keys.max_per_user` keys (default 25) besides the default key.
 - **Revocation.** Revoking sets `revoked_at` and `revoked_by` and disables the key for good: it cannot be enabled again, and the row stays as a record. Deleting (administrators only) removes the row; prefer revoking.
 - **Default key.** Every user has exactly one default key, created with the account (and, at start-up, for every account that has none). It cannot be revoked or deleted, only rotated (by its owner or an administrator) or disabled (by an administrator). Its raw value is kept encrypted in `api_keys.secret_ciphertext` with the connected-accounts vault's AES-256-GCM data key (`accounts.vault.key`, `SAJHA_ACCOUNTS_VAULT_KEY`, a `key_provider`, or the key generated into the server secrets file; [Connected Accounts](../architecture/Connected%20Accounts.md)), bound to the owner and the key id, so the server can later act for the user with it. A default key created at start-up has never been shown: its owner rotates it to get a value.
-- **Persistent keys.** An administrator can mark a key persistent (when creating it, or later). Its record (id, prefix, name, SHA-256 hash, owner's user ID, name and roles, enabled, expiry, tool access, created, revoked) is then also kept in the file at `config.apikeys.path` (default `config/apikeys.json`; `sajha/auth/persistent_keys.py`), so the key keeps working when the database does not know it or does not answer. The database is checked first and decides for every key it knows (disabled or revoked there wins); a file key whose owner is not an enabled user in a database that answers is refused. SAJHA rewrites the file atomically (temporary file, then rename) on every change and re-reads it when it changes on disk, so an operator can revoke a key by editing it during an outage. The file is written with mode 0600 and is git-ignored; `config/apikeys.json.example` documents the format. It holds no keys, but it names users and their access, so treat it as sensitive. The older plaintext format (a top-level `apikeys` list) is never read and is replaced on the first write.
+- **Persistent keys.** An administrator can mark a key persistent (when creating it, or later). Its record (id, prefix, name, owner's user ID, name and roles, enabled, expiry, tool access, created, revoked, and the raw key under plain storage or its SHA-256 under hashed) is then also written to the keys file, `config/apikeys.json` ([below](#credential-storage-and-files)), and rewritten on every change, so the key keeps working when the database does not know it or does not answer.
 - **Audit.** Every change is audited (`apikey.*` events below), with the key's id and prefix, never the key.
 
 ### Credential storage and files
 
 > **Warning: owner decision for intranet use.** `auth.credential_storage` defaults to `plain`:
 > passwords and API keys are stored as given (no hashing), so anyone who obtains a copy of the
-> database, a backup or the credential files can sign in as any user. A warning System Notice shows
-> while it is on. To harden: set `auth.credential_storage: hashed` and run
-> `python -m sajha.auth rehash` (passwords become bcrypt, raw API key values are removed; values
-> stored either way keep working across the switch).
+> database, a backup or the credential files can sign in as any user. A warning System Notice
+> (`auth.plain_credentials`) shows while it is on. To harden: set `auth.credential_storage: hashed`
+> (env `SAJHA_AUTH_CREDENTIAL_STORAGE`) and run `python -m sajha.auth rehash`, which turns every plain
+> password in the database into bcrypt and removes every raw API key value (values stored either way
+> keep working across the switch). `rehash` does not change the credential files below: edit them by
+> hand or on their pages.
 
-Three files sit beside the database, all git-ignored and readable only by the server's user:
+Three files sit beside the database, all git-ignored, written atomically with owner-only permissions
+(`sajha/auth/users_file.py`, `sajha/auth/persistent_keys.py`, `sajha/auth/credential_jobs.py`):
 
 | File | Written by | Holds | Precedence |
 |---|---|---|---|
-| `config/users.json` | administrators (Admin > Users > Users file, or by hand) | users: ID, name, email, password, roles, enabled, `test_admin` | Wins: applied to the users table at start-up and whenever the file changes; edits to those users elsewhere are overwritten. Never written from the database. |
-| `config/apikeys.json` | administrators (Admin > API keys > Keys file, or by hand) | API keys as raw `key` values (older records may hold a `sha256`), owner, roles, enabled, expiry, tool access, `test_admin` | Wins: checked before the database for every key. |
-| `config/apikeys_db.json` | SAJHA, every `auth.api_keys.db_dump_interval_minutes` (default 10) | every database key (raw under plain storage, else its hash) | Last: used only when the database does not know a key or cannot be reached. |
+| `config/users.json` (`auth.users_file.path`) | administrators: Admin > Users > Users file (`/admin/users/file`), or by hand | users: ID, name, email, password, roles, enabled, `test_admin` | **Wins**: applied to the users table at start-up and whenever the file changes (those users are marked as managed by the file; edits elsewhere are overwritten). Never written from the database. Removing a user from the file stops managing it; it does not delete it |
+| `config/apikeys.json` (`config.apikeys.path`) | administrators: Admin > API keys > Keys file (`/admin/apikeys/file`), or by hand; and SAJHA, for keys marked persistent | API key records: raw `key` (older records may hold a `sha256` instead), owner, roles, enabled, expiry, tool access, `test_admin` | **Wins**: checked before the database for every key it holds |
+| `config/apikeys_db.json` (`auth.api_keys.db_dump_path`) | SAJHA, every `auth.api_keys.db_dump_interval_minutes` (default 10), from one worker per interval | every database key (raw under plain storage, else its hash) | **Last**: used only when the database does not know a key or cannot be reached; a key whose owner is not an enabled user in a database that answers is refused |
 
-**Test admin (development and testing only).** Records marked `"test_admin": true` in
-`config/apikeys.json` and `config/users.json` sign in as an administrator while
-`sajhanet.test_admin_key.enabled` is on (default on for now; a critical notice shows on every page).
-The shipped development key is `sja_test_admin_dev_key_0001` and the account `testadmin` /
-`testadmin-dev-1` (see the `.example` files). While it is on, SAJHA Net calls from this server carry
-the test admin key; a host accepts it only if its own `config/apikeys.json` has the same record and
-its own switch is on. Every use is audited. Disable it before production.
+- **API key order.** `AuthManager.authenticate_apikey` looks a key up in `config/apikeys.json` first,
+  then in the database (which decides for every key it knows: disabled, revoked or expired there is
+  refused), then in the dump.
+- **Edits by hand.** SAJHA holds the files in memory, applies its own page edits at once, and checks
+  for hand edits at most every `auth.credential_files.reload_check_seconds` (default 300), so an
+  operator can revoke a key during a database outage by editing the file.
+- **The pages.** Administrators only, signed in with a console session (CSRF token) or a SAJHA JWT,
+  never an API key. Keys are masked in lists; a new key is shown once; revealing one is audited
+  (`apikeys_file.reveal`); passwords are never returned. A users-file problem raises an error notice
+  (`auth.users_file`); a failed dump raises a warning (`auth.apikeys_dump`).
+- **Formats.** `config/users.json.example` and `config/apikeys.json.example` document the formats
+  (`sajha-users/1`, `sajha-persistent-apikeys/1`). An older plaintext keys file (a top-level `apikeys`
+  list) is never read and is replaced on the first write.
 
-**Keys toward particular members.** `sajhanet.peer_keys` (local to each server, never shared) maps
-`<net>/<instance>` or `<instance>` to a key that member issued; calls to that member carry it in
-place of the caller's key or the test admin key.
+### Test admin key
+
+**Development and testing only; ships on** (`sajhanet.test_admin_key.enabled: true`, owner decision for
+now). While it is on, records marked `"test_admin": true` in `config/apikeys.json` and
+`config/users.json` sign in as an administrator (the `.example` files ship the key
+`sja_test_admin_dev_key_0001` and the account `testadmin` / `testadmin-dev-1`; they take effect once
+copied into the live files, as the SAJHA Net demo does). While a usable test admin record exists, a
+**critical** notice (`auth.test_admin_key`) shows on every page and each use is logged as a warning.
+
+It also changes SAJHA Net: while it is on, **every** forwarded call from this server carries the test
+admin key instead of the caller's own, and a host that holds the same record with its own switch on runs
+the call as an administrator, whoever the caller was (the home's audit keeps the original caller; the
+host's records the identity `test_admin_key`; [SAJHA Net](../architecture/SAJHA%20Net.md#102-user-identity-identity-resolvers)
+§10.2). Turn it off (`SAJHA_SAJHANET_TEST_ADMIN_KEY_ENABLED=false`) before production; the records then
+stop working and the users-file account is applied as disabled.
+
+### Keys toward particular members
+
+`sajhanet.peer_keys` (local to each server, never shared) maps `<net>/<instance>` or `<instance>` to an
+API key (or a `${ENV}` reference) that calls to that SAJHA Net member carry instead of the caller's key
+or the test admin key. The key is one that member issued: the member checks it as one of its own API
+keys (keys file, database, dump) and runs the call as that key's owner there, with the key's tool access
+as a ceiling; a key it does not know is refused. Treat each entry as a credential of the other server.
+The shipped configuration has a sample entry; remove it outside testing.
 
 ### Console single sign-on
 
@@ -191,7 +223,7 @@ The seed script creates the user `admin` with the role `admin`. Its bcrypt hash 
 
 `POST /api/admin/users/create` requires a `password` that passes the password policy, and flags the new account to change it at first sign-in (unless the body says `"must_change_password": false`).
 
-Users live only in the database. The old demo users file (config/users.json, with a plaintext `admin123`) is removed: nothing reads or watches that path, and it is git-ignored so a local copy is not committed again. `config/apikeys.json` is no longer a demo file: it is the git-ignored [persistent key file](#api-keys), holding SHA-256 hashes only; the four plaintext demo keys it used to ship were never imported and are gone.
+Users live in the database, and an administrator may also define them in the users file, which wins ([Credential storage and files](#credential-storage-and-files)).
 
 Users, roles and API key records are also kept in signed, chained [snapshots](../architecture/Policy%20and%20Audit.md#75-snapshots-of-users-api-keys-and-tools) (no password hashes; key hashes only for persistent keys), from which an administrator can re-create missing users after losing the database (`python -m sajha.snapshots restore`, with confirmation). Restored users get an unusable password and must change it. The snapshot files name users and their access: they are written owner-only (directory 0700, files 0600) and git-ignored.
 
@@ -432,6 +464,68 @@ flow uses a single-use `state` bound to the user and the browser, PKCE where the
 supports it and an exact redirect URI; Connect and Disconnect are CSRF-protected POSTs.
 Threat table and audit events: [Connected Accounts §10](../architecture/Connected%20Accounts.md#10-security).
 
+### SAJHA Net
+
+SAJHA Net ([SAJHA Net](../architecture/SAJHA%20Net.md), wire rules in the
+[SAJHA Net Protocol](../protocol/SAJHA%20Net%20Protocol.md#19-security-considerations)) is off by default
+(`sajhanet.enabled`); off, every `/sajhanet/` path answers a bare 404.
+
+- **Transport.** The `/sajhanet/v1/` endpoints share the normal port but take no session, cookie or API
+  key, set no cookies and carry no CORS headers. Every request and response between participants is
+  signed (RFC 9421, Ed25519 or ECDSA P-256, with an RFC 9530 body digest), at most
+  `sajhanet.signature_max_age_seconds` old (never more than 300 s), addressed to this server, with a nonce
+  not seen before (kept in the state store for the window, so a replay to another worker fails too). A
+  request for a net this server is not in, without a net header, or from a browser navigation gets the
+  same bare 404 as a server with SAJHA Net off. HTTPS is required for enrollment, peer URLs and forwarded keys unless
+  `sajhanet.require_https` is off (a lab; a warning notice stays up). Mutual TLS is not used.
+- **Admission and its trust.** How a net admits a participant is `sajhanet.plugins.admission`
+  ([SAJHA Net](../architecture/SAJHA%20Net.md#64-admission-modes) §6.4). The shipped configuration uses
+  **`open`** (owner decision, for now): self-signed certificates accepted the first time a name is seen
+  and then held to that key, with no CA and no revocation. **Open mode trusts whoever first claims a
+  name**: any server that can reach a member and knows the net's name can join under an unused name and
+  receive forwarded calls, and a name taken by the wrong server stays taken until an administrator
+  forgets its key. `builtin_ca` admits only servers enrolled with a single-use, short-lived,
+  name-bound enrollment token (stored hashed, HTTPS only, rate-limited, one refusal reason for every
+  failure) and revokes by a CA-signed list; the CA key never leaves the CA instance. `manual` admits only
+  pinned thumbprints. Switch to `builtin_ca` before a net spans machines you do not control.
+- **Names.** A name belongs to its first key (open) or certificate lineage (CA, manual); a different key
+  claiming it is refused with `409 name_conflict` and the refused server stops joining until its
+  configuration or certificate changes. Member records are signed by their subjects, whose certificate
+  must name the record's URL host, so no relay can redirect a member; ping-req targets are names, never
+  URLs. Peer URLs pass the SSRF rules (`sajhanet.allowed_networks`; loopback and link-local never).
+  Adding a peer by address is admin-only, rate-limited, audited, and stores nothing on failure.
+- **Keys and files.** Each net's keys and certificates are files with owner-only permissions under
+  `sajhanet.data_dir` (git-ignored).
+- **Users across instances.** With the `api_key` identity a forwarded call carries an API key in
+  `Sajha-Net-Api-Key`, only to the host and only over HTTPS: a per-member key, else the test admin key
+  while it is on, else the key the caller presented, else the caller's default key decrypted from the
+  vault. The raw key lives only in memory for the request (`sajha/auth/presented_key.py`): never logged,
+  stored, traced or audited (the key id and prefix are). The host hashes it, finds it in its net key
+  directory (`sajhanet_api_keys`: each home's signed records, hashes only), and refuses it unless it is
+  enabled, unexpired, not revoked, from a home still in the net, and sent by that home
+  (`key_not_from_home`), so a key enters the net only through the server that issued it and one disabled
+  there stops working everywhere at once. A net request that also carries `Authorization` or `X-API-Key`
+  is refused. Every member a call reaches sees the key in transit, so `api_key` is for nets whose members
+  are trusted. **Without a key in transit**, `user_identity: assertion` sends a home-signed assertion
+  (the user, a key id, the audience, the trace id; at most 60 s; each accepted once), and
+  `token_exchange` trades one at the host for an opaque host-scoped token kept only hashed.
+- **The host decides.** It never trusts the home's view of the user: it maps the user itself (an
+  explicit link, then the same login name, else refused, or a guest with mapped roles under
+  `users.unknown: map_roles`), applies its own roles, blocks, export rules, the key's tool access as a
+  ceiling, its own access rules and policy engine (source `sajhanet`), and records the call in its own
+  audit chain under the shared trace id. Remote administrators act as administrators only with
+  `users.remote_admin: admin` (the default, for a trusted net). Blocks, links, role maps, trust levels
+  and name matching change only through an administrator signed in to the server; the admin API refuses
+  a caller that arrived through the net.
+- **Re-export and bridges** are off by default. A re-exported call always carries an assertion
+  addressed to the tool's origin, never a raw key; hop limits, the visited list and the call-chain budget
+  hold end to end. A bridge calls into another net only as one of its own local users, so nothing signed
+  in one net is trusted in the other.
+- **Residency.** Residency rules decide, by data class and destination, whether arguments may leave and
+  results may come back, at the home, at the host and on arrival
+  ([Policy and Audit](../architecture/Policy%20and%20Audit.md#35-residency-rules-sajha-net) 3.5).
+- **Threats and mitigations**, one table: [SAJHA Net §18](../architecture/SAJHA%20Net.md#18-threats-and-mitigations).
+
 ### Other features that need care
 
 - **Async execution.** `POST /api/tools/{tool}/execute-async` (`sajha/routes/ops_routes.py`, `sajha/core/async_executor.py`) needs the admin role or a permission row (`async`, `*`, `execute`), plus execute access to the tool. Destinations are checked when the task is submitted (400 when refused) and again at delivery:
@@ -441,7 +535,7 @@ Threat table and audit events: [Connected Accounts §10](../architecture/Connect
   - Non-admins list, read, cancel and retry only their own tasks.
 - **A2A.** `POST /a2a` (`sajha/routes/a2a_routes.py`) authenticates like the REST API; without credentials it applies the anonymous policy, or answers 401 when `mcp.anonymous.enabled` is false. It runs the first tool whose name appears in the message text, with empty arguments, only if the caller may execute it; otherwise the task fails with "Access denied". `tasks/get` and `tasks/cancel` see only the caller's own tasks (admins see all).
 - **Federation.** Upstream MCP servers' tools are registry tools under the same tool access. Upstream URLs pass an SSRF guard, upstream descriptions are screened for prompt injection, new and changed tools wait for an admin's approval by default, stdio upstreams are off unless `federation.allow_stdio` is on, and every federation route is admin-only and audited. Details: [Federation](../architecture/Federation.md#9-security).
-- **SAJHA Net.** Off by default (`sajhanet.enabled`); off, every `/sajhanet/` path answers a bare 404. On, the `/sajhanet/v1/` endpoints share the normal port but take no session, cookie or API key: every request and response between participants is signed (RFC 9421, Ed25519 or ECDSA P-256, with an RFC 9530 body digest) by a key whose certificate must chain to the net's CA, name the net in its `O` and the sender in its `CN`, and not be on the CA-signed revocation list; the request must be at most `sajhanet.signature_max_age_seconds` old (never more than 300 s), addressed to this server, and carry a nonce not seen before (kept in the state store for the window, so a replay to another worker fails too). A request for a net this server is not in, without a net header, or from a browser navigation gets the same bare 404 as a server with SAJHA Net off, and the responses carry no CORS headers. A name belongs to its certificate lineage: a different key claiming a held name is refused with `409 name_conflict` and the refused server stops joining until its configuration or certificate changes. Member records are signed by their subjects, whose certificate must name the record's URL host, so no relay can redirect a member; ping-req targets are member names, never URLs. Keys are files with owner-only permissions (`sajhanet.data_dir`, git-ignored); the CA key never leaves the CA instance; enrollment tokens are single use, short-lived, bound to one name, stored as hashes, accepted only over HTTPS and rate-limited per address, and every refusal looks the same. Adding a peer by address is admin-only, passes the SSRF rules (`sajhanet.allowed_networks`; loopback and link-local never), is rate-limited and audited, and stores nothing on failure. Mutual TLS is not used. **Users across instances** (identity `api_key`, `sajhanet.user_identity`): a forwarded call carries the caller's own API key in `Sajha-Net-Api-Key` (the key presented on this request, or a console user's default key decrypted from the vault), only to the host of the call and only over HTTPS (`require_https`). The raw key lives only in memory for the request (`sajha/auth/presented_key.py`): it is never logged, stored, traced or audited, which records the key id and prefix instead. The host hashes it and looks it up in its net key directory (`sajhanet_api_keys`: each home's signed key records, synced by version and digest; hashes only), and refuses it unless it is enabled, unexpired, not revoked, from a home still in the net, and sent by that home (`key_not_from_home`), so a key enters the net only through the instance that issued it and a key disabled or deleted there stops working everywhere at once. A record arriving from anyone but its home, or not signed by the home's current certificate, is ignored; records signed by a revoked certificate are discarded. A net request that also carries `Authorization` or `X-API-Key` is refused. The host never trusts the home's view of the user: it maps the user itself (an explicit link, then the same login name, else refused, or with `users.unknown: map_roles` a guest identity with mapped roles), applies its own roles, export rules, the key's tool access as a ceiling, its own access rules and policy engine (source `sajhanet`), and records the call in its own audit chain under the shared trace id. Remote administrators act as administrators only with `users.remote_admin: admin` (the default, for a trusted net); blocks, links, role maps and name matching are changed only by an administrator signed in to the instance (the admin API refuses a caller that arrived through the net). Blocks (an instance entirely, inbound, outbound, a tool, a remote user) take effect on the next request, are audited, may expire, and are published signed so other consoles can show them; only the instance that set a block enforces it. A compromised member sees the keys forwarded to it, so the `api_key` identity is for nets whose members are trusted (design §10.2). **Without a key in transit** (`user_identity: assertion` or `token_exchange`, per net): with `assertion` the home sends a user assertion signed with its net certificate that names the user, the id of one of their keys in the net key directory, the audience host and the trace id, valid at most 60 seconds; the host verifies the signature against the issuer's certificate, the audience, the time, the trace id and the key record, and accepts each assertion once (`jti` kept in the state store), so a captured assertion cannot be replayed or used at another host. With `token_exchange` the home trades such an assertion at the host for an opaque host-scoped token bound to that home, which the host keeps only hashed and checks against the key record, blocks and mapping on every call; a token is never logged, stored on disk or forwarded. Neither carries per-member keys or the test admin key, which remain features of `api_key`. **Re-export** (off by default; on per net with `reexport` and only for tools a `reexport_rules` entry names): a re-exported call always carries an assertion addressed to the tool's origin, never a raw key; the intermediary verifies it and applies its own blocks, mapping, rules and access before relaying it unchanged; hop limits, the visited list (loops) and the combined call chain budget hold end to end, and a tool never comes back to its origin. A bridge between two nets calls into the other net only as one of its own local users, so nothing signed in one net is trusted in the other. Design and threats: [SAJHA Net](../architecture/SAJHA%20Net.md#18-threats-and-mitigations); the wire rules: [SAJHA Net Protocol](../protocol/SAJHA%20Net%20Protocol.md#19-security-considerations).
+
 - **Intelligence layer.** Ask SAJHA (`POST /api/ai/ask`) runs tools only from a shortlist the caller may run, through the same tool-access check as `POST /api/tools/execute`; destructive tools need confirmation; tool output is passed to the model as data. Role policy and daily token budgets limit model use (`ai.policy.*`, `ai.budgets.*`). Provider keys are referenced (`env:`, `file:`, `db:`), never stored in `config/application.yml`, and redacted from the effective configuration. The `sajha_ask` MCP tool (off by default) runs its inner calls as the MCP caller, limited to the caller's tool access and, when set, to `ai.ask.mcp_allowed_tools`; composite steps likewise run as the caller, so a tool never gives a caller more than the caller has ([Inner calls](#inner-calls)). Details: [Intelligence Layer](../architecture/Intelligence%20Layer.md).
 - **OpenAI-compatible endpoint.** `/v1/chat/completions`, `/v1/models` and `/v1/embeddings` (`sajha/routes/openai_routes.py`) are off unless `ai.openai_api.enabled` is true; turned off they answer 404. Every request needs a credential (no anonymous access), and the request's own `sajha` field can carry a conversation id or tool arguments but never an identity: the RequestContext is built from the AuthContext alone. Model use goes through the gateway as the caller, so role policy (`ai.policy`), budgets and the usage ledger apply; an unknown model and one the caller's role may not use both answer 404, so the endpoint does not reveal what exists. An LLM tool is a model (`sajha:<tool>`) only for callers who may execute that tool, and it runs through `execute_with_tracking` as the caller (tool access, policy, its own limits, audit). The policy engine sees each request as the pseudo-tool `openai_api.chat_completions` or `openai_api.embeddings` with source `openai_api`, so rules can deny or rate-limit the surface. Bodies over `ai.openai_api.max_body_bytes` are refused; each request writes an `openai_api.request` audit record. Details: [LLM Tools](../architecture/LLM%20Tools.md#134-sajha-as-an-openai-compatible-endpoint).
 - **Planner files.** A planner (`config/planners/*.yaml`, [Planner Reference](../architecture/Planner%20Reference.md)) only proposes: every tool call it asks for goes through the same service path as a model's (the caller's shortlist, refusal of tools not offered, confirmation, policy, limits, audit), and every model call through the gateway bound to the caller. Files load with `yaml.safe_load`; `when` expressions are parsed into a tree over a fixed set of pure functions (no attribute access beyond data, no imports, no code); a planner cannot raise a limit above its ceiling, and every loop must cross a bounded edge. Planner files, `kind: python` planners and custom stage types are deployment configuration or code, so only administrators add them; a caller may choose a planner only among an LLM tool's `planner_choices`, enforced as an enum by argument validation. An `ask_user` pause is saved in the state store bound to the user and the planner version, behind the signed MRTR `requestState`. The dry run (`POST /api/ai/planners/dry-run`) is admin-only and runs only read-only tools unless the admin names others.
@@ -470,6 +564,9 @@ Configuration is resolved from a `SAJHA_<KEY>` environment variable first, then 
 | **HTTPS** | Terminate TLS at a reverse proxy (or set `server.tls.*`). The cookie `Secure` flag and HSTS depend on the request scheme. Uvicorn trusts `X-Forwarded-Proto` only from `server.trusted_proxies` (or `FORWARDED_ALLOW_IPS`; default `127.0.0.1`), so set that if the proxy is on another host, or set `auth.cookie.secure: true`. |
 | **Origins** | Set `SAJHA_CORS_ORIGINS` and `mcp.allowed_origins` to the real browser origins. |
 | **Hosts** | Set `security.allowed_hosts` to the names the server is reached by. |
+| **Credentials** | `auth.credential_storage` is `plain` by default (owner decision, intranet): set `hashed` and run `python -m sajha.auth rehash` where copies of the database or the credential files could leak ([Credential storage and files](#credential-storage-and-files)). Keep `config/users.json`, `config/apikeys.json` and `config/apikeys_db.json` owner-only and out of backups you do not control. |
+| **Test admin key** | Ships on: set `sajhanet.test_admin_key.enabled: false` before production, and remove the sample `sajhanet.peer_keys` entry ([Test admin key](#test-admin-key)). |
+| **SAJHA Net admission** | The shipped `open` admission trusts whoever first claims a name: use `builtin_ca` before a net spans machines you do not control ([SAJHA Net](#sajha-net)). |
 | **Single sign-on** | When `auth.sso` is on, keep its client secret in `SAJHA_AUTH_SSO_CLIENT_SECRET`, register one redirect URI per instance, and decide `link_existing` and `auto_provision` for your provider ([Console single sign-on](#console-single-sign-on)). |
 | **Bind address** | `server.host` defaults to `0.0.0.0`. Bind to loopback behind a proxy. |
 | **Risky features** | Keep `shell.enabled`, `mcp.conformance_fixtures`, `mcp.auth.builtin.dynamic_client_registration` and `federation.allow_stdio` off unless needed. Review `config/plugins`. |
@@ -500,13 +597,15 @@ These events are written today:
 | `config_change` with resource `federation.<change>` (add, edit, remove, approve, ...) | `sajha/routes/federation_routes.py` |
 | `ai_ask` (question, tools, models, tokens, outcome, confidence; off with `ai.ask.audit: false`) | `sajha/ai/intelligence.py` |
 | `snapshot.written`, `snapshot.rotated`, `snapshot.failed`, `snapshot.restored` | `sajha/snapshots/` |
+| `apikeys_file.create`, `apikeys_file.update`, `apikeys_file.delete`, `apikeys_file.reveal`, `users_file.update`, `users_file.delete` | `sajha/routes/credential_files_routes.py` |
+| `config_change` with resource `sajhanet.<event>` (peers, pins, first-use keys, the CA, trust, blocks, user links, sponsored servers, ...); the cross-instance call records `net.*` go to the audit chain | `sajha/net/integration/` ([SAJHA Net](../architecture/SAJHA%20Net.md#16-observability-and-audit) §16) |
 
 These go elsewhere:
 
 - **Tool runs** through `POST /api/tools/execute` go to the tool-usage table (`ToolUsageDAO.log_execution`), with the user, auth type, duration, client IP and an argument hash.
 - **Account locks and OAuth code issuance** go only to the application log.
 
-The convenience methods in `sajha/core/audit.py` for `login_failed`, `logout`, `account_locked` and `permission_change` exist but are not called; `config_change` is used only by federation. The table records the IP address only when a caller supplies it, and the current callers don't.
+The convenience methods in `sajha/core/audit.py` for `login_failed`, `logout`, `account_locked` and `permission_change` exist but are not called; `config_change` is used by federation and SAJHA Net. The table records the IP address only when a caller supplies it, and the current callers don't.
 
 ---
 
@@ -520,6 +619,15 @@ These describe the code as it stands. They are listed so you can compensate for 
 - **Data file resources have no per-user permissions.** `sajha://data/{file}` is readable by every signed-in caller, whatever their tool access (an API key limited to `calc_*` can still read the CSVs); only anonymous callers are filtered (`mcp.anonymous.resources`). Resources of federated upstream servers are not filtered by this policy.
 - **OAuth scopes** (`mcp:read` / `mcp:tools`) gate methods, not individual tools; tool access then applies on top.
 - **Studio template creators run with the server's credentials.** Per-creator permissions (`studio:<creator>`) and ownership narrow who builds what, but the template creators (REST, DB query, Power BI, LiveLink, SharePoint, OLAP) still run in-process with the server's configured credentials; generated Python code and scripts are sandboxed.
+
+**Credentials**
+
+- **Plain storage by default.** Under `auth.credential_storage: plain` (owner decision for intranet use) a copy of the database, a backup, the dump or the credential files is enough to sign in as any user; the warning notice stays up while it is on ([Credential storage and files](#credential-storage-and-files)).
+- **The test admin key ships on**, and while it is on SAJHA Net calls run as an administrator at hosts that hold the same record ([Test admin key](#test-admin-key)).
+
+**SAJHA Net**
+
+- **Open admission trusts the first claimant of a name** and has no revocation; per-peer rate limits and breakers count per process ([SAJHA Net](../architecture/SAJHA%20Net.md#55-what-is-built) §5.5).
 
 **Brute force and sessions**
 

@@ -415,8 +415,9 @@ and point at least one sink at a store the SAJHA operators cannot edit.
 Every `snapshots.interval_minutes` (default 10) SAJHA writes a **snapshot**: one JSON file
 recording who and what existed at that moment, so an auditor can answer "who could call what
 at 14:20" and an administrator can re-create users after losing the database. Snapshots work
-with or without SAJHA Net ([SAJHA Net §20.4](SAJHA%20Net.md#204-periodic-snapshots) adds the
-net view once a net exists). Code: `sajha/snapshots/`.
+with or without SAJHA Net; they do not record the net view (proxies, membership, the key directory
+per home), which is not built ([SAJHA Net §5.5](SAJHA%20Net.md#55-what-is-built)). Code:
+`sajha/snapshots/`.
 
 **Contents.** Users (id, user name, roles, enabled; never a password hash); roles with their
 permissions; every API key record (id, prefix, name, owner and the owner's roles, enabled,

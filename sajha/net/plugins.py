@@ -10,7 +10,7 @@ with ``kind`` and ``name`` attributes). Every implementation must pass its contr
 kind                   interface               shipped here
 =====================  ======================  ===========================================
 membership             MembershipProvider      gossip, static
-admission              AdmissionProvider       builtin_ca, manual
+admission              AdmissionProvider       open, builtin_ca, manual
 connector              PeerConnector           sajha_native (HTTP), in_process (tests, agents)
 identity               IdentityResolver        none (api_key, assertion, token_exchange in SAJHA)
 catalog_source         CatalogSource           static

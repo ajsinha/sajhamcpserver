@@ -1,19 +1,20 @@
 # LLM Tools
 
-> **Status: partly built (Implementation Plan wave 2).** This note owns LLM tools: tools whose
-> work is done by a language model, defined and governed like every other SAJHA tool, the
-> configuration-driven planners they run, and the memory tiers that keep them within bounds.
-> **Built** (build steps 1–3 and 6–9): the `LLMTool` type (`sajha/ai/llm_tools/`) with all seven
+> **Status: built (Implementation Plan waves 2 and 3), with the gaps each section names.** This
+> note owns LLM tools: tools whose work is done by a language model, defined and governed like
+> every other SAJHA tool, the configuration-driven planners they run, and the memory tiers that
+> keep them within bounds. **Built:** the `LLMTool` type (`sajha/ai/llm_tools/`) with all seven
 > modes, load-time validation, derived annotations and lint rules; running as the caller with
 > depth and shared budgets; conversation memory; resource safety (working set, spool, admission,
-> memory guard, caches); caching of deterministic modes; `sajha_ask` on the type; four shipped
-> example tools with eval sets; in wave 3, sampling for `complete`, `extract`, `classify` and
-> `judge` (section 12, step 11), SAJHA as an OpenAI-compatible endpoint (section 13.4, step 12)
-> and configurable planners (section 9, steps 4 and 5: `sajha/ai/planners_engine/`, the shipped
-> files in `config/planners/`), and step 10: the Studio LLM tool creator, the planner editor with
-> dry run, Describe-a-tool LLM proposals and the Conversations page. **Design, not built:**
-> sampling for the other modes. Sections say *Built* or *Not built yet* where it matters. A
-> walk-through is [Tutorial 26](../tutorials/TUTORIAL_26_build_an_llm_tool.md).
+> memory guard, caches); caching of deterministic modes; `sajha_ask` on the type; shipped example
+> tools (disabled) with eval sets; sampling for `complete`, `extract`, `classify` and `judge`
+> (section 12); SAJHA as an OpenAI-compatible endpoint (section 13.4); configurable planners
+> (section 9: `sajha/ai/planners_engine/`, the shipped files in `config/planners/`, the
+> [Planner Reference](Planner%20Reference.md)); the Studio LLM tool creator, the planner editor
+> with dry run, Describe-a-tool LLM proposals and the Conversations page; and, in wave 5, remote
+> LLM tools across a SAJHA Net. **Not built yet:** sampling for the other modes, and the other
+> items sections mark *Not built yet*. A walk-through is
+> [Tutorial 26](../tutorials/TUTORIAL_26_build_an_llm_tool.md).
 
 > **Across SAJHA servers.** [SAJHA Net](SAJHA%20Net.md) builds on this design: LLM tools are
 > shared between instances like any tool and run, plan and spend model budget on the instance
@@ -27,7 +28,7 @@ document search, keep a conversation, or only fill in a prompt. A caller (an MCP
 script over REST, a workflow, an A2A agent, the CLI) asks one question and gets back one
 governed, structured answer.
 
-`sajha_ask` already does a narrow version of this. This design generalises it into a tool
+`sajha_ask` was the first, narrow version of this. This design generalises it into a tool
 *type*, so an administrator can configure many LLM tools (an assistant, a summariser, a
 classifier, an extractor, a grounded policy Q&A, a report writer) without writing code, and
 every one of them goes through the same access rules, policy, audit, budgets, tests and
@@ -1070,30 +1071,19 @@ adapters and the credentials for Vertex AI and Entra ID are described as built i
 [Intelligence Layer](Intelligence%20Layer.md#2-core-abstractions), and writing a provider or
 model against them in [Extending the Intelligence Layer](Extending%20the%20Intelligence%20Layer.md#3-writing-a-model).
 
-### 13.1 Today
+### 13.1 Before
 
-*This was the state before the canonical format was built; those types remain, converted
-losslessly, for the callers that have not moved (13.5).* The intelligence layer ([Intelligence Layer](Intelligence%20Layer.md)) has its own neutral types
-in `sajha/ai/llm/types.py`: a `ChatRequest` with `messages` made of typed parts, a separate
-`system` field, `tools` as `ToolSpec` objects with `input_schema`, `response_schema` for
-structured output, a `ChatResponse` with a `finish_reason` normalised to `stop`, `tool_calls`,
-`length`, `content_filter` or `error`, and a `Usage` of `input_tokens`, `output_tokens`,
-`cached_tokens` and `cost_usd`; streaming yields `TextDelta`, `ToolCallDelta`, `UsageEvent` and
-a final `Done`. Each model declares what it can do in `ModelCapabilities`
-(`sajha/ai/llm/model.py`), and `ChatModel.validate` refuses tools, structured output or images a
-model does not declare. Each provider in `sajha/ai/llm/providers/` translates those types to its
-vendor's API (the mock lives in `sajha/ai/llm/mock.py`); `openai_compat.py` covers OpenAI, Azure
-OpenAI and the many servers that already speak the OpenAI format, and Mistral reuses it. Some
-behaviour is fixed per provider in configuration rather than per request (`strict_schema`,
-`parallel_tool_calls`, `stream_usage`, `embedding_dimensions`, `extra_body`). The
-types are sound, but they are SAJHA's own: a planner or provider written for SAJHA does not look
-like anything a developer already knows, and nothing outside SAJHA can call its gateway.
+Before wave 2 the intelligence layer had its own neutral types (`ChatRequest` of typed parts,
+`ChatResponse`, `ToolSpec`, the stream events `TextDelta`, `ToolCallDelta`, `UsageEvent`, `Done`).
+They were sound but SAJHA's own: a planner or provider written for SAJHA looked like nothing a
+developer already knew, and nothing outside SAJHA could call its gateway. They remain only inside
+`sajha/ai/llm/` (section 13.7); the "Replaces" column below names them.
 
 ### 13.2 The canonical format
 
-SAJHA's request and response types become typed models of the Chat Completions format:
+SAJHA's request and response types are typed models of the Chat Completions format:
 
-| Concept | OpenAI-style field | Replaces today's |
+| Concept | OpenAI-style field | Replaces (before wave 2) |
 |---|---|---|
 | Conversation | `messages: [{role: system \| user \| assistant \| tool, content, name?}]` | `messages` of parts plus a separate `system` |
 | Multimodal content | `content` as a string or a list of `{type: "text"}` / `{type: "image_url"}` parts | `TextPart`, `ImagePart` |
@@ -1677,10 +1667,11 @@ Each step ends green: full suite, both conformance suites, mobile check for any 
 | 12 | SAJHA as an OpenAI-compatible endpoint (opt-in): chat completions, models and embeddings with API-key auth, LLM tools listed as models, access rules applied | client tests with an OpenAI SDK |
 | 13 | Docs: this note becomes as-built, and `Intelligence Layer.md` and `Extending the Intelligence Layer.md` describe the new interfaces; glossary terms; tutorials (an LLM tool, a custom planner); Configuration and API Reference; Security Model; help card; CHANGELOG | doc-rot tests |
 
-*Status:* steps 1, 2, 3, 6, 7, 8 and 9 are built (step 3's `answer` mode on today's planners);
-step 13 is done for them (Tutorial 26 is the LLM-tool tutorial). Wave 3 built step 11 (sampling,
-for the non-planner modes), step 12 (the OpenAI-compatible endpoint) and steps 4 and 5 (the planner
-engine and the shipped planner files; Tutorial 27 is the planner tutorial); 10 comes later.
+*Status:* every step is built. Wave 2 built steps 1, 2, 3, 6, 7, 8 and 9; wave 3 built steps 4
+and 5 (the planner engine and the shipped planner files), 10 (the Studio LLM tool creator, the
+planner editor, Describe-a-tool proposals and the Conversations page), 11 (sampling, for the
+non-planner modes) and 12 (the OpenAI-compatible endpoint). Step 13 is done: Tutorial 26 is the
+LLM-tool tutorial and Tutorial 27 the planner tutorial.
 
 ---
 
@@ -1696,8 +1687,9 @@ All decided by the owner:
    (section 12); `answer` after measuring the round-trip cost.
 4. **Modes.** The seven in section 6; presets such as `translate` (of `complete`) or `compare`
    (of `judge`) only when asked for.
-5. **Who may create LLM tools.** Users with the `studio` permission; limits and budgets bound
-   what a tool can spend.
+5. **Who may create LLM tools.** Users with the Studio permission `studio:llm` (or `studio:*`;
+   the seeded `llm_author` role has `studio:llm` only); limits and budgets bound what a tool can
+   spend.
 6. **Who may author planners.** Administrators only: a planner decides how much a tool spends
    and how it loops, so it is closer to policy than to a tool definition.
 7. **Default strategy.** `react` for `answer` tools, with Reflect or verify-then-answer chosen

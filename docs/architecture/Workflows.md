@@ -309,7 +309,8 @@ run's input has `event: {kind, uri}`.
 
 `publish: {enabled: true}` (administrators) registers a `WorkflowTool` named
 `publish.tool_name` (default the workflow's name; it is not published if another tool
-already has the name). Its input schema is the workflow's `input_schema`. A call starts a
+already has the name). Workflow and tool names never contain `__`, which is reserved for
+namespaced tools (`sajha/tools/naming.py`; [Federation](Federation.md#names)). Its input schema is the workflow's `input_schema`. A call starts a
 run (trigger `tool`), waits up to `publish.timeout_seconds` and returns `{run_id, status,
 output}`; a failed run is a tool error; a run still going returns its id to follow. It is
 an ordinary registry tool: listed by `tools/list` in both protocol eras, subject to tool

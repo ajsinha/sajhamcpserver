@@ -313,6 +313,11 @@ metrics themselves are in [Observability](../architecture/Observability.md).
   `runtimeClassName`, Kata Containers) through the pod spec instead.
 - **Default admin.** The seeded `admin` / `admin123` account exists in every new database.
   Change it before you expose the ingress.
+- **Shipped intranet settings.** The test admin switch is on and credentials are stored as
+  given unless you change them: set `sajhanet.test_admin_key.enabled: false` and, to hash
+  passwords and keys, `auth.credential_storage: hashed` in `config.overrides` (or the
+  `SAJHA_SAJHANET_TEST_ADMIN_KEY_ENABLED` and `SAJHA_AUTH_CREDENTIAL_STORAGE` environment
+  variables); [Security Model](../security/Security%20Model.md#credential-storage-and-files).
 
 ---
 

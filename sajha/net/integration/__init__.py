@@ -344,7 +344,7 @@ class SajhaNetService:
                                f'back up {cfg.ca.key_ref} (it never leaves this server)')
                 try:
                     from sajha.notices import raise_notice
-                    raise_notice(f'sajhanet.ca_created.{net}', 'warning', 'sajhanet',
+                    raise_notice(f'sajhanet.ca_created:{net}', 'warning', 'sajhanet',
                                  f'SAJHA Net {net}: CA created; back up its key',
                                  f'This server is the founder of {net} and created its CA automatically. Back up '
                                  f'{cfg.ca.key_ref}: it is the only copy, and every member certificate depends on it.',

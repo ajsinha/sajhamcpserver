@@ -482,6 +482,7 @@ class NetNode:
             raise NetError('signature_invalid', 'keyid is not the certificate thumbprint')
         if not crypto.verify_record('member', rec, sig, chain[0].public_key()):
             raise NetError('signature_invalid', 'the member record signature does not verify')
+        getattr(self.trust, "confirm", lambda c: None)(chain)
         self.kv.set('cert:' + sig['keyid'], [crypto.b64(crypto.cert_der(c)) for c in chain],
                     ttl=self.cfg.gossip.dead_retention_minutes * 60 + 3600)
         return chain[0]

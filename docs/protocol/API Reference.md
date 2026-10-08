@@ -30,7 +30,7 @@ FastAPI also serves its generated docs: `GET /api/docs` (Swagger UI, with its OA
 3. `Authorization: sja_...`: the same API key sent bare in the `Authorization` header.
 4. Cookie `sajha_token`: the JWT the web UI stores at login (`POST /login`).
 
-An API key with an owner authenticates as that user, with the user's roles, and its `tool_access_mode` and tool list narrow what it may see and run; a key without an owner authenticates as `apikey:<key name>` with the single role `api_consumer`, and its mode and list alone decide, on REST, MCP and A2A alike ([API keys](../security/Security%20Model.md#api-keys)). SAJHA JWTs carry the user's roles and can be revoked ([Revocable sign-in](../security/Security%20Model.md#revocable-sign-in)). JWT lifetime is `auth.jwt.expiry_minutes` (env `JWT_EXPIRY`, default 60); the web cookie has a one-hour `max_age`.
+An API key with an owner authenticates as that user, with the user's roles, and its `tool_access_mode` and tool list narrow what it may see and run; a key without an owner authenticates as `apikey:<key name>` with the single role `api_consumer`, and its mode and list alone decide, on REST, MCP and A2A alike ([API keys](../security/Security%20Model.md#api-keys)). SAJHA JWTs carry the user's roles and can be revoked ([Revocable sign-in](../security/Security%20Model.md#revocable-sign-in)). JWT lifetime is `auth.jwt.expiry_minutes` (env `JWT_EXPIRY`, default 60); the web cookie's `max_age` follows it (at least a minute), and its `Secure` flag is `auth.cookie.secure`.
 
 The OpenAI-compatible routes (`/v1/*`, section 4.23) authenticate on their own: an API key as `Authorization: Bearer sja_...` (the form OpenAI SDKs send), and the cookie only when `ai.openai_api.cookie_auth` is on.
 
@@ -652,13 +652,13 @@ Headers and settings: [Python Playground](../getting-started/Python%20Playground
 
 ### 4.16 Federation (`federation_routes.py`)
 
-Upstream MCP servers behind SAJHA. Every route is admin only and every change is written to
+Proxied MCP servers (upstreams) behind SAJHA, managed on the Proxied MCP servers page. Every route is admin only and every change is written to
 the audit log. Errors are `{"error": "message"}` (400 invalid or unsafe definition, 404 no
 such upstream or item, 502 the upstream failed). Behaviour: [Federation](../architecture/Federation.md).
 
 | Method | Path | Auth | Purpose |
 |---|---|---|---|
-| GET | `/admin/federation` | admin | The Federation page. |
+| GET | `/admin/federation` | admin | The Proxied MCP servers page (federation): every proxied server, its vendor, internal or external, prefix, transport, status and tools, then discovered items and approvals. |
 | GET | `/api/federation/upstreams` | admin | `{summary, upstreams: [...]}`: every upstream (proxied MCP server) with its `source` (`config`, `file` for the mcpServers file, `store`), `vendor`, `external`, prefix, transport, state (`connected`, `connecting`, `error`, `disabled`, `needs_sign_in`), `tools` (the number registered), protocol version, server info, last error, counts, breaker and discovered items. |
 | GET | `/api/federation/upstreams/{upstream_id}` | admin | One upstream's status. |
 | POST | `/api/federation/upstreams` | admin | Add an upstream (body: the upstream fields; secrets as references). 201. |

@@ -154,11 +154,11 @@ PAGE_HELP: dict = {
         'guide': 'Security Model.md'},
     'apikeys_file_page': {
         'what': 'The administrators\' API keys file (config/apikeys.json): keys here are checked first and win over the database; test admin keys sign in as an administrator while enabled.',
-        'terms': ['API key', 'Persistent API key'],
+        'terms': ['API keys file', 'API key', 'Persistent API key', 'Keys database dump', 'Test admin', 'Credential storage'],
         'guide': 'Security Model.md'},
     'users_file_page': {
         'what': 'The administrators\' users file (config/users.json): users here are written to the database at start-up and on every change, and win over it.',
-        'terms': ['API key'],
+        'terms': ['Users file', 'Test admin', 'Credential storage', 'Role'],
         'guide': 'Security Model.md'},
     'apikeys_list': {
         'what': 'Every API key, its owner and state: assign owners to older keys, rotate, disable, revoke.',

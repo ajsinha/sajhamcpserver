@@ -1,6 +1,11 @@
 # SAJHA MCP Server — Deployment Guide
 
-Four deployment targets, one application.
+Deployment targets for one application. Whatever the target, before anyone else can
+reach the server: change the seeded `admin` / `admin123` password, turn off the test admin
+switch (`SAJHA_SAJHANET_TEST_ADMIN_KEY_ENABLED=false`, on as shipped) and decide on
+credential storage (`SAJHA_AUTH_CREDENTIAL_STORAGE=hashed` hardens it; `plain` is the
+shipped intranet setting). The [Security Model](../docs/security/Security%20Model.md)
+has the full checklist.
 
 ## Choose Your Deployment
 

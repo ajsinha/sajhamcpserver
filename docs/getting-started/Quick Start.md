@@ -13,8 +13,9 @@ pip install -r requirements.txt
 python run_sajha_web.py
 ```
 
-CI runs on Python 3.12. The server listens on `http://localhost:3002`
-(`server.host` / `server.port`).
+Use the Python version the Dockerfile and CI use (`PYTHON_VERSION` in the `Dockerfile`,
+`python-version` in `.github/workflows/tests.yml`). The server listens on
+`http://localhost:3002` (`server.host` / `server.port`).
 
 `run_sajha_web.py` options: `--config <file.yml>`, `--host`, `--port`, `--reload`
 (development auto-reload), `--workers` (keep 1 unless `state.backend` is `redis` or
@@ -37,6 +38,20 @@ example across several hosts, set the same long random values everywhere:
 export JWT_SECRET=...        # auth.jwt.secret
 export SESSION_SECRET=...    # auth.session.secret_key
 ```
+
+Two shipped settings suit a development machine or a trusted intranet and should be
+reviewed before anyone else can reach the server:
+
+- **The test admin switch** (`sajhanet.test_admin_key.enabled`, on as shipped): records
+  marked `"test_admin": true` in the administrators' files `config/users.json` and
+  `config/apikeys.json` (templates: `config/users.json.example`,
+  `config/apikeys.json.example`) sign in as an administrator. A critical notice shows on
+  every page while it is on; set it to `false` for production.
+- **Credential storage** (`auth.credential_storage`, `plain` as shipped): new passwords and
+  API keys are stored as given. Set `hashed` and run `python -m sajha.auth rehash` to
+  harden.
+
+Both are explained in the [Security Model](../security/Security%20Model.md#credential-storage-and-files).
 
 Anonymous MCP callers see no tools by default; use an API key or sign-in token, or list
 tools in `mcp.anonymous.tools` ([Configuration Reference](Configuration%20Reference.md)).
@@ -81,7 +96,15 @@ with SajhaMCPSyncClient("http://localhost:3002", api_key="sja_your_key") as mcp:
 How the two protocol eras work is in the [MCP Protocol Guide](../protocol/MCP%20Protocol%20Guide.md);
 the client is documented in the [Client SDK Guide](../clients/Client%20SDK%20Guide.md).
 
-## 4. Add API keys for data providers
+## 4. Ask a question
+
+Open **AI → Ask SAJHA** (`/ask`) and ask, for example, "What is the percentage change from
+80 to 100?". With no LLM provider configured the offline mock model answers, so the page
+works with no keys; configure a real provider on **AI → LLM** (`/ai/settings`). The
+[Intelligence Layer](../architecture/Intelligence%20Layer.md) explains providers, aliases,
+planners and memory.
+
+## 5. Add API keys for data providers
 
 Many tools call external data services. Keys are read from configuration, usually via
 environment variables, for example `FRED_API_KEY`, `FMP_API_KEY`, `ALPHA_VANTAGE_API_KEY`,
@@ -90,7 +113,7 @@ environment variables, for example `FRED_API_KEY`, `FMP_API_KEY`, `ALPHA_VANTAGE
 is missing cannot reach that service; tools that need no key are unaffected. Each provider's
 guide under `docs/tools/` says what it needs.
 
-## 5. Where next
+## 6. Where next
 
 - [How SAJHA Fits Together](How%20SAJHA%20Fits%20Together.md): the map, and which
   document owns each topic.
@@ -100,6 +123,9 @@ guide under `docs/tools/` says what it needs.
   tools.
 - [OAuth Guide](../protocol/OAuth%20Guide.md): require OAuth 2.1 on `/mcp`.
 - [Storage Guide](Storage%20Guide.md): run from S3, Azure Blob or GCS.
+- [SAJHA Net](../architecture/SAJHA%20Net.md) and
+  [Tutorial 28](../tutorials/TUTORIAL_28_build_a_sajha_net.md): share tools between several
+  SAJHA servers (off unless `sajhanet.enabled`).
 - Deployment recipes (AWS, Hetzner, bare metal, Kubernetes): [`deployment/`](../../deployment/README.md),
   and [Kubernetes Deployment](Kubernetes%20Deployment.md).
 

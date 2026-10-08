@@ -107,7 +107,31 @@ start-up), which also clears notices whose ttl has passed.
 | LLM tools (`sajha/ai/llm_tools/runtime.py`) | `llm_tools.memory` | `warning` at the soft limit, `error` at the hard one | The memory guard passes its soft or hard resident-memory limit (`ai.llm_tools.runtime.memory_guard`); per worker; ttl 10 minutes | Resident memory falls below the soft limit |
 | LLM tools | `llm_tools.busy` | `warning` | A run is refused as `busy` (queue full, queue timeout, hard memory limit); per worker; ttl 10 minutes | The ttl passes with no further refusal |
 | LLM tools | `llm_tools.spool_full` | `warning` | A payload could not be spooled because `ai.llm_tools.memory.spool.max_mb` or `per_run_mb` is reached (it was truncated instead); per worker; ttl 30 minutes | The next payload is spooled |
-| SAJHA Net | contract conflicts, instance-name conflicts, members suspect or dead, seeds unreachable, certificates, revocation list, key-directory sync, CA reachability, blocks, a record that is this server (`sajhanet.self_seen:<net>`), a tool not offered for its published name (`sajhanet.name:<net>:<tool>`), external servers not offered (`sajhanet.external_servers`); details in [SAJHA Net](SAJHA%20Net.md) | | wave 4 | |
+| Credentials (`sajha/auth/credential_jobs.py`) | `auth.plain_credentials` | `warning` | `auth.credential_storage` is `plain` (the shipped default; [Security Model](../security/Security%20Model.md#credential-storage-and-files)); no ttl | The setting is `hashed` (checked at start-up and when the users file changes) |
+| Credentials | `auth.test_admin_key` | `critical` | A usable `test_admin` record exists in `config/apikeys.json` while `sajhanet.test_admin_key.enabled` is on; it also signs SAJHA Net calls ([Security Model](../security/Security%20Model.md#test-admin-key)); no ttl | The switch is off or no usable record remains |
+| Credentials | `auth.users_file` | `error` | Users in `config/users.json` could not be applied (an unknown role, a missing password); no ttl | The file applies cleanly |
+| Credentials | `auth.apikeys_dump` | `warning` | Writing `config/apikeys_db.json` failed; no ttl | The next dump succeeds |
+| SAJHA Net (`sajha/net/integration/`) | `sajhanet.not_joined:<net>` | `error`; `info` for a net of one | The net is not joined: no seed or saved peer answers, a configuration error, no acceptable address; for a net of one, it has no certificate yet ([SAJHA Net](SAJHA%20Net.md#66-restarts)); no ttl | The server joins the net |
+| SAJHA Net | `sajhanet.name_conflict:<net>` | `error` | Every member refuses this server under a held name; no ttl | It joins (its configuration or certificate changed) |
+| SAJHA Net | `sajhanet.name_conflict_seen:<net>:<claimant>` | `warning` | Another participant claimed a held name and was refused; ttl 60 minutes | The ttl passes |
+| SAJHA Net | `sajhanet.self_seen:<net>` | `warning` | A member record that is this server under another name or key; ttl 600 minutes | The ttl passes |
+| SAJHA Net | `sajhanet.member:<net>:<member>` | `warning` | A member is `suspect`, `left` or `dead` (no ttl for `dead`) | It is `alive` again, or leaves retention |
+| SAJHA Net | `sajhanet.certificate:<net>` | `warning`, `error` once expired | This server's certificate is in the last third of its validity, or expired; no ttl | It is renewed |
+| SAJHA Net | `sajhanet.renewal:<net>` | `warning` | Renewal at the CA keeps failing | It is renewed |
+| SAJHA Net | `sajhanet.revocations:<net>` | `warning` | A member holds a newer revocation list that could not be fetched | A newer list arrives |
+| SAJHA Net | `sajhanet.ca_created:<net>` | `warning`; audience `admin`; ttl a week | A net of one created its CA at first start: back up the key | The ttl passes |
+| SAJHA Net | `sajhanet.default_name` | `info` | A net is still named `default` (raised at start-up); no ttl | An administrator clears it after naming the net |
+| SAJHA Net | `sajhanet.plain_http:<net>` | `warning` | `require_https` is off for the net (raised at start-up); no ttl | An administrator clears it after turning HTTPS back on |
+| SAJHA Net | `sajhanet.peer_added:<net>:<url>` | `info`, `warning` on failure | An administrator pointed this server at a peer by address; ttl a day | The ttl passes |
+| SAJHA Net | `sajhanet.conflict:<net>:<tool>` | `error` | A tool name is quarantined for a contract conflict, naming the differing host ([SAJHA Net](SAJHA%20Net.md#87-one-name-one-contract)); no ttl | The hosts agree again |
+| SAJHA Net | `sajhanet.reactivated:<net>:<tool>` | `info` | A quarantined name is active again; ttl 60 minutes | The ttl passes |
+| SAJHA Net | `sajhanet.catalog:<net>:<peer>` | `warning` | A peer's catalog was flagged (a cap exceeded, a contract hash that does not match); ttl 60 minutes | The ttl passes |
+| SAJHA Net | `sajhanet.name:<net>:<tool>` | `warning` | A tool of this server is not offered: its qualified name would exceed 128 characters, or its published name is invalid or shared ([SAJHA Net](SAJHA%20Net.md#56-vendors-and-external-servers)); no ttl | An administrator clears it after giving the tool a `rename` |
+| SAJHA Net | `sajhanet.external_servers` | `warning` | Some external servers are not offered (an invalid entry, a prefix clash); no ttl | Every external server is offered |
+| SAJHA Net | `sajhanet.sponsored:<net>:<instance>` | `warning` | A sponsored server could not be started; no ttl | An administrator clears it after fixing the entry |
+| SAJHA Net | `sajhanet.keysync:<net>:<member>` | `warning` | Pulling a member's key records keeps failing | A sync succeeds |
+| SAJHA Net | `sajhanet.blocked_by:<net>:<member>` | `info` | A member publishes blocks naming this server; no ttl | It publishes none |
+| SAJHA Net | `sajhanet.plugin:<source>:<name>` | `error` | A third-party plug-in cannot be imported, registers nothing or fails its contract check; no ttl | It loads at a later start |
 
 The alert channel's optional fields are in [Observability](Observability.md) section 5.
 

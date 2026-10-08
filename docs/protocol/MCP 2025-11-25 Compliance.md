@@ -139,6 +139,7 @@ python -m pytest -q tests/test_mcp_2025_11_25.py
 | `MCP-Protocol-Version` header with an unsupported value → **400** | ✅ |
 | Origin validation → **403** for a disallowed `Origin` (POST, GET and DELETE `/mcp`, plus `/mcp/message`) | ✅ |
 | Tools that talk to the client while running stream an SSE response: a priming event, then notifications and server→client requests, then the result. Clients answer by POSTing JSON-RPC responses. | ✅ (used by the conformance fixtures) |
+| `notifications/cancelled` (with the session header) cancels the named in-flight `tools/call`, relayed between workers through a shared state store; a federated call then cancels its upstream request (`sajha/core/mcp_cancellation.py`; `tests/test_sajhanet_groundwork.py`, `tests/test_federation.py`) | ✅ |
 | `Access-Control-Expose-Headers: Mcp-Session-Id` (CORS) | ✅ |
 
 **GET `/mcp`.** SAJHA has no unsolicited server→client messages to push. A GET that

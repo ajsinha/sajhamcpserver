@@ -284,7 +284,13 @@ class ApiKeyIdentity(plugins.IdentityResolver):
         if kw.get('secure') is False and a.require_https(net):
             raise NetError('https_required', 'a forwarded key is accepted only over HTTPS')
         kh = keydir.key_hash(str(raw))
+        # a key this host issued itself (owner decision, per-member keys: sajhanet.peer_keys on the home
+        # holds a key the HOST issued; the host checks it as its own API key and the caller acts as
+        # that key's local owner here)
+        own = a.local_key_user(net, str(raw), sender)
         del raw
+        if own is not None:
+            return own
         # the test admin key: accepted only when this host's own keys file has it and the switch is on
         from sajha.auth.persistent_keys import test_admin_key, record_hash
         t = test_admin_key()
@@ -545,6 +551,50 @@ class NetAuthz:
                 pass
 
     # ── host: verify and map (protocol §15.3, §15.4 steps 5 to 7) ──
+
+    def local_key_user(self, net: str, raw: str, sender: str) -> Optional[Dict[str, Any]]:
+        """A key this host issued (its keys file, database or dump): the caller acts as the key's local
+        owner, with the key's tool access as a ceiling. None when the key is not one of this host's own
+        (it may still be a key the home published in the key directory). Test admin records are left to
+        the test admin path."""
+        try:
+            from sajha.auth import AuthManager
+            from sajha.auth.persistent_keys import test_admin_key, record_hash
+            t = test_admin_key()
+            if t is not None and record_hash(t) == keydir.key_hash(raw):
+                return None
+            db = self.db()
+            try:
+                ctx = AuthManager.authenticate_apikey(db, raw)
+            finally:
+                try:
+                    db.close()
+                except Exception:
+                    pass
+        except Exception as e:                       # no local database here: not a local key
+            logger.debug(f'SAJHA Net {net}: local key check skipped: {e}')
+            return None
+        if ctx is None or not ctx.authenticated or not ctx.user_id:
+            return None
+        st = self._state(net)
+        login = str(ctx.user_id)
+        v = {'name': names.net_user(login, sender), 'net': net, 'home': sender, 'user_name': login,
+             'home_user_id': '', 'display_name': str(ctx.user_name or login), 'remote_roles': list(ctx.roles or []),
+             'key_id': str(ctx.api_key_id or ''), 'key_prefix': '',
+             'tool_access_mode': ctx.api_key_mode or 'all', 'identity': 'peer_key'}
+        try:
+            import json as _json
+            v['tool_access_list'] = list(_json.loads(ctx.api_key_tools)) if ctx.api_key_tools else []
+        except (TypeError, ValueError):
+            v['tool_access_list'] = []
+        if nblocks.match_user(st.blocks(), st.now(), v['name']) is not None:
+            self._seen(st, v, 'blocked', '')
+            raise NetError('user', 'calls on behalf of this user are blocked here')
+        out = dict(v)
+        out.update(user_id=login, user_name_local=str(ctx.user_name or login), roles=sorted(ctx.roles or []),
+                   guest=False, mapping='peer_key')
+        self._seen(st, v, 'peer_key', login)
+        return out
 
     def resolve_key(self, net: str, kh: str, sender: str) -> Dict[str, Any]:
         st = self._state(net)

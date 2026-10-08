@@ -419,7 +419,7 @@ budgets, fallback and the `model` event apply) and never touches a tool.
 | `router` | chooses per question: configured `rules`, then `recipes` when one matches, then `plan_execute` for questions with several parts (compare, and then, versus, two questions), else `react` | as the chosen planner |
 
 These four ship as planner files in `config/planners/` (with the same settings and behaviour as
-their Python classes, which `ai.planners.python_builtins: true` brings back), next to eight more
+their Python classes, which `ai.planners.python_builtins: true` brings back), next to the other shipped
 strategies (`rewoo`, `reflect`, `verify_then_answer`, `self_consistency`, `branch_and_judge`,
 `map_reduce`, `human_in_the_loop`, `auto`); the [Planner Reference](Planner%20Reference.md) owns
 the file format and every shipped file. `ai.ask.planner` sets the default; an admin may pass
@@ -730,4 +730,3 @@ tool registered by any path is shortlisted without a reload.
 - Freshness and agreement in the confidence score; trimming history on `ContextTooLong`.
 - Document connectors (SharePoint, Drive, Confluence, or a connected account) as RAG sources;
   today a source is a folder in the storage backend, or an upload. No OCR for scanned PDFs.
-- A page for browsing past conversations (the API exists; LLM Tools build step 10).

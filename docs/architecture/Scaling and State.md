@@ -100,7 +100,11 @@ Every piece of per-process state found in the code, with its classification:
 | MCP 2026-07-28 tasks | `sajha/core/mcp_tasks.py` | Durable, or Shared | Records are in the task record store (§4.4). The running coroutine stays on its worker. |
 | Legacy `TaskManager`, `ElicitationManager`, `SamplingManager` | `sajha/core/mcp_2025_11_25.py` | Local (inert) | Nothing in the server creates entries in them, so they are always empty. |
 | `subscriptions/listen` streams and change-bus subscriptions | `sajha/core/change_bus.py`, `sajha/core/mcp_modern.py` | Local, relayed | A stream belongs to one connection. Events are relayed on the `changes` channel (§4.5). |
-| Rate limits (`auth`, `api`, `user`, `key`) | `sajha/security.py` (`RateLimiter`) | Shared | Sliding windows `ratelimit:<name>:<key>`. |
+| Rate limits (`auth`, `api`) | `sajha/security.py` (`RateLimiter`) | Shared | Sliding windows `ratelimit:<name>:<key>`. |
+| Policy rate limits and quotas | `sajha/policy/engine.py` | Shared | Sliding windows `policy:rate:<rule>:<scope>` and period counters `policy:quota:<rule>:<scope>:<period>` ([Policy and Audit](Policy%20and%20Audit.md)). |
+| Signed-out tokens | `sajha/auth/revocation.py` | Shared | `auth:revoked:<jti>` until the token would have expired. With `memory`, only the worker that handled the sign-out refuses the token. |
+| Single sign-on state | `sajha/auth/sso.py` | Shared | `sso:state:<state>` (state, nonce and PKCE verifier, ten minutes, taken once) and `sso:idt:<jti>` (the ID token kept for the provider sign-out). |
+| The API keys dump (`config/apikeys_db.json`) | `sajha/auth/credential_jobs.py` | Shared claim | One worker writes each interval: a one-slot claim `auth:apikeys_dump:<slot>` (§4.7). |
 | Sign-in IP throttle | `sajha/security.py` (`FailureThrottle`) | Shared | Window `loginfail:<key>`. |
 | Account lockout | `sajha/auth/__init__.py` (`AuthManager.sign_in`) | Already shared (database) | The `failed_attempts` and `locked_until` columns on the user row. |
 | Web sign-in sessions | `sajha/auth/__init__.py`, `sajha/auth/jwt_handler.py` | Stateless (JWT) | The `sajha_token` cookie holds a signed JWT and the user is reloaded from the database on each request. Every worker needs the same JWT secret (§5). |
@@ -117,6 +121,12 @@ Every piece of per-process state found in the code, with its classification:
 | WebSocket sessions | `sajha/routes/ws_routes.py` | Local | A WebSocket is one connection to one worker. The admin listing shows that worker's connections only. |
 | Tool, prompt, user and API-key configuration | `sajha/tools/tools_registry.py`, `sajha/core/prompts_registry.py`, the `users` / `api_keys` tables | Already shared (files and database) | Each worker loads and hot-reloads the files. The local tool-config poller runs every 5 s, so a tool enabled on one worker reaches the others' registries within about that time. |
 | Federation upstream connections and breakers | `sajha/federation/` | Local | Each worker opens its own connections to upstreams. The upstream list and approvals are in the federation store (storage backend), and an upstream's `max_calls_per_minute` window is in the state store. |
+| SAJHA Net membership, catalogs, the host and tool table, contract quarantines, seen request nonces, assertion `jti`s, host-scoped tokens (hashed) | `sajha/net/node.py`, `sajha/net/integration/` | Shared | Keys under `sajhanet:<net>:` (`PrefixKV`). Each worker keeps its registry's proxies equal to the shared table. A nonce or `jti` seen on one worker is a replay on every other. |
+| SAJHA Net gossip agent | `sajha/net/integration/__init__.py` | Shared (lease) | One worker per net holds the renewing lease `sajhanet:agent:<net>` (§4.7, TTL `sajhanet.agent_lease_seconds`) and runs that net's gossip; another takes over within one TTL. |
+| SAJHA Net key directory | `sajha/net/integration/keystore.py` | Already shared (database) | The `sajhanet_api_keys` table. |
+| SAJHA Net trust levels, blocks, user links and role maps, pins, runtime seeds, first-use keys, the CA's state, sponsored servers | `sajha/net/integration/` | Already shared (storage backend) | JSON documents under `sajhanet.data_dir` in the storage backend. |
+| SAJHA Net saved peer list, keys and certificates | `sajha/net/membership.py`, `sajha/net/integration/__init__.py` | Local (disk) | Under `sajhanet.data_dir` on local disk, so a restart finds peers even when the storage backend is down; several hosts of one instance need the same key and certificate (the Helm chart's Secrets). |
+| SAJHA Net per-peer circuit breakers and rate limits, the home's cache of host-scoped tokens, observed call paths | `sajha/net/routing.py`, `sajha/net/integration/identity.py` | Local | Per process, like tool breakers: with N workers each counts alone, so a per-peer limit allows up to N times its value. A token cache miss costs one exchange. |
 | Log de-duplication sets, provider instances, glossary cache | `sajha/core/mcp_modern.py`, `sajha/core/mcp_apps.py`, `sajha/ai/llm/legacy.py`, `sajha/web/glossary.py` | Local | Process-local helpers that hold no client-visible state. |
 
 ## 4. Component designs
@@ -271,6 +281,9 @@ The AWS CDK stack runs several Fargate tasks with `SAJHA_STATE_BACKEND=database`
   opened. Only the messages that must reach it are relayed. If that worker dies, the stream
   ends and the client reconnects, as it would after a restart.
 - **SQLite on several hosts** is not supported. Use PostgreSQL or Redis.
+- **SAJHA Net on `memory`.** Each worker would run its own gossip agent and keep its own
+  membership, nonces and host and tool table, so an instance with several workers in a net needs
+  `redis` or `database`. Its per-peer breakers and rate limits stay per process (§3).
 
 ## 8. Tests
 

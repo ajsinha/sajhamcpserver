@@ -7,8 +7,9 @@ environment variables it names. `config/mcp_servers.json` itself is git-ignored 
 credentials; these `.example` files are tracked and hold none.
 
 The file's keys, the loader and how embedded servers behave are documented in
-[Federation](../../docs/architecture/Federation.md); how their tools reach other SAJHA servers is in
-[SAJHA Net](../../docs/architecture/SAJHA%20Net.md) ("Vendors and external servers").
+[Federation](../../docs/architecture/Federation.md#the-mcpservers-file); how their tools reach other
+SAJHA servers is in [SAJHA Net](../../docs/architecture/SAJHA%20Net.md#56-vendors-and-external-servers)
+§5.6 (an external server is offered into this server's nets under its prefix, and is never a member).
 
 | Template | Shows |
 |---|---|
@@ -36,9 +37,13 @@ SAJHA keys, all optional:
 | `external` | `true` | `true`: an external server, embedded and proxied by this SAJHA, never a member of the net. `false`: an ordinary internal federation upstream |
 | `tools` | all | Glob patterns of the tools to expose; anything else is not offered |
 | `enabled` | `true` | `false` keeps the entry in the file without connecting to it |
+| `disabled` | `false` | `true` is the same as `"enabled": false` (as some clients write it) |
 | `cwd` | | stdio only: the working directory |
+| `title` | the entry's name | A display name |
+| `timeout_seconds` | `federation.default_timeout_seconds` | One call's deadline |
 
-Keys whose names start with `_` are comments and are ignored.
+`description` is accepted and ignored. Keys whose names start with `_` are comments and are ignored, at any depth; any other key is an error
+for that entry (the rest of the file still loads).
 
 ## Before you use one
 

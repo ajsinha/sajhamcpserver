@@ -14,6 +14,8 @@ remote until the peers answer. Also: a net of one (no seeds) that grows without 
 Instances views and navbar badge.
 """
 
+import json
+
 import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy import create_engine
@@ -298,7 +300,7 @@ def test_a_net_of_one_creates_its_ca_at_first_start(tmp_path, isolate, monkeypat
     assert (tmp_path / 'auto-eu' / 'ca.key').exists() and a.svc.status()['nets'][0]['error'] in ('', None)
     assert a.node is not None and a.node.try_join() and a.node.status()['single_member']
     ids = {n['id']: n for n in notices.list_notices(state='all')}
-    assert ids[f'sajhanet.ca_created.{NET}']['severity'] == 'warning'
+    assert ids[f'sajhanet.ca_created:{NET}']['severity'] == 'warning'
     key_before = (tmp_path / 'auto-eu' / 'ca.key').read_bytes()
     b = Instance(tmp_path, 'auto-na', conn, [Who('lookup', owner='auto-na')], seeds=['https://auto-eu.test'])
     b.svc.start(run_agents=False)
@@ -351,4 +353,38 @@ def test_open_admission_needs_no_ca_and_holds_names_to_their_first_key(tmp_path,
     assert a.svc.first_use_keys(NET) == known
     assert a.svc.forget_peer_key(NET, 'open-ap', by='test') and 'open-ap' not in a.svc.first_use_keys(NET)
     for i in (a, b, c, imp):
+        i.svc.stop()
+
+
+def test_a_per_member_key_issued_by_the_host_is_used_toward_it(tmp_path, isolate, monkeypatch):
+    """Owner decision (sajhanet.peer_keys): the home holds a key the HOST issued; calls to that host
+    carry it, and the host checks it as its own API key, so the caller acts as the key's owner there."""
+    conn = ClientConnector()
+    a = Instance(tmp_path, 'risk-eu', conn, [Who('var_calc', owner='risk-eu')], founder=True)
+    a.svc.start(run_agents=False)
+    a.svc.ca_init(NET)
+    assert a.node.try_join()
+    b = Instance(tmp_path, 'cust-na', conn, [Who('lookup', owner='cust-na')])
+    b.svc.start(run_agents=False)
+    b.svc.enroll(NET, 'https://risk-eu.test', a.svc.ca_token(NET, 'cust-na')['token'], by='test')
+    assert b.node.try_join()
+    a.user('alice')
+    b.user('alice', roles=('analyst',))
+    b.user('svc_risk', roles=('svcrole',))
+    kid, raw = a.key('alice')
+    _, issued_by_b = b.key('svc_risk')                 # a key cust-na issued, given to risk-eu's admin
+    settle([a, b], 6)
+    set_service(a.svc)
+    r = as_user('alice', raw, kid, lambda: a.reg.get_tool('lookup').execute_with_tracking({'x': 1}))
+    assert r['content'][0]['text'] == 'cust-na:lookup:1:as alice', r          # no per-member key: her own
+    monkeypatch.setenv('SAJHA_SAJHANET_PEER_KEYS', json.dumps({f'{NET}/cust-na': issued_by_b}))
+    r = as_user('alice', raw, kid, lambda: a.reg.get_tool('lookup').execute_with_tracking({'x': 2}))
+    assert r['content'][0]['text'] == 'cust-na:lookup:2:as svc_risk', r      # the host's own key's owner
+    seen = {s['user']: s for s in b.svc.authz.users_view(NET)['seen']}
+    assert seen['svc_risk@risk-eu']['mapping'] == 'peer_key'
+    # a key cust-na does not know is refused, not silently replaced
+    monkeypatch.setenv('SAJHA_SAJHANET_PEER_KEYS', json.dumps({f'{NET}/cust-na': 'sja_not_a_key_of_cust_na'}))
+    r = as_user('alice', raw, kid, lambda: a.reg.get_tool('acme-net__cust-na__lookup').execute_with_tracking({'x': 3}))
+    assert r.get('isError'), r
+    for i in (a, b):
         i.svc.stop()

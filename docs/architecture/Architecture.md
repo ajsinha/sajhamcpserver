@@ -13,20 +13,24 @@ and every configuration key to the [Configuration Reference](../getting-started/
 SAJHA is one FastAPI (ASGI) application served by Uvicorn, started by
 `run_sajha_web.py` (`--config`, `--host`, `--port`, `--reload`, `--workers`,
 `--log-level`, and `--stdio`, which serves MCP on stdin/stdout instead of HTTP; see
-section 11). Everything a client can reach over HTTP comes through one of four doors:
+section 11). Everything a client can reach over HTTP comes through one of five doors:
 
 ```
  MCP clients ──► /mcp, /api/mcp (Streamable HTTP, both eras)
                  /mcp/sse + /mcp/message (legacy HTTP+SSE) · /mcp/ws (WebSocket)
  OAuth clients ─► /.well-known/oauth-* · /oauth/*      (only when mcp.auth.mode ≠ off)
  Programs ─────► /api/...  REST (JWT or API key) · /api/ai/ask · /a2a, /.well-known/agent.json
+                 /v1/chat/completions, /v1/embeddings, /v1/models (only with ai.openai_api.enabled)
                  /metrics, /health, /ready
- People ───────► HTML pages (Jinja2, cookie session): landing, dashboard, tools, prompts,
-                 Studio, composite builder, Ask SAJHA, Python Playground, admin
-                 (incl. federation, AI settings), monitoring, help, /glossary, /comparison
+ SAJHA Net ────► /sajhanet/v1/* (signed, peer to peer; only with sajhanet.enabled)
+ People ───────► HTML pages (Jinja2, cookie session or single sign-on at /auth/sso/*):
+                 landing, dashboard, tools, prompts, Studio, Ask SAJHA, Python Playground,
+                 SAJHA Net, admin, monitoring, help, /glossary, /comparison (section 10)
                                    │
-   middleware, outermost first: observability → request-size limit → security headers → CORS
-                   (sajha/observability/middleware.py, sajha/security.py; added in sajha/app.py)
+   middleware, outermost first: observability → cross-site request check → no CORS on
+   /sajhanet/ → allowed hosts → request-size limit → security headers → CORS
+   (sajha/observability/middleware.py, sajha/security.py, sajha/net/integration/asgi.py;
+   added in sajha/app.py)
                                    │
                     route modules: sajha/routes/*_routes.py
                                    │
@@ -87,11 +91,17 @@ order:
    triggers, run recovery), observability (metrics, OpenTelemetry, the usage ledger,
    alert rules), plugins, the LLM gateway, the tool-search index, the
    intelligence service (with the optional `sajha_ask` MCP tool), the document index
-   behind `sajha_search_docs`, and the tool-quality health probes.
+   behind `sajha_search_docs`, the tool-quality health probes, the system-notice watcher,
+   the credential-file jobs (`config/users.json` applied, `config/apikeys_db.json`
+   written; `sajha/auth/credential_jobs.py`), snapshots, the conversation purge and,
+   last, SAJHA Net membership of each configured net (`sajha/net/integration/`).
 7. **Template globals** (version, theme, navigation, help) are registered.
 
-On shutdown, in order: observability flushes the usage ledger and stops its threads,
-federation closes upstream connections, the change bus is closed (ending listen streams
+On shutdown, in order: the conversation purge stops, SAJHA Net leaves its nets, the
+credential-file jobs, snapshots and workflows stop, this process's audit chain is closed
+with a signed anchor and the SIEM sinks drained, the probes and the notice watcher stop,
+observability flushes the usage ledger and stops its threads, federation and the data
+connectors close their connections, the change bus is closed (ending listen streams
 cleanly), the state store stops its heartbeat and pub/sub threads, and the reload
 manager and registry pollers stop.
 
@@ -180,6 +190,9 @@ on every transport. See the [OAuth Guide](../protocol/OAuth%20Guide.md) and the
   on its own background event loop. See [Federation](Federation.md). `__` in a tool name is
   reserved for such namespaced tools; the registry refuses any other tool that uses it
   (`sajha/tools/naming.py`).
+- **Remote tools.** With SAJHA Net on, the tools other members of a net offer are proxy tools
+  in the same registry, under qualified names (`<net>__<instance>__<tool>`) and bare aliases,
+  forwarded as signed calls to their host ([SAJHA Net](SAJHA%20Net.md)).
 
 ## 6. Composition
 
@@ -229,7 +242,10 @@ parameters between steps; `EntropyGuard` tracks cumulative confidence
   with pluggable planners (planner files in `config/planners/` run by `sajha/ai/planners_engine/`,
   and the Python `Planner` protocol in `sajha/ai/planners.py`), per-user conversation memory
   (`sajha/ai/memory.py`) and the document index behind `sajha_search_docs`
-  (`sajha/ai/rag/`).
+  (`sajha/ai/rag/`). LLM tools (`sajha/ai/llm_tools/`) are tools whose work a model does,
+  configured like any tool and run as the caller ([LLM Tools](LLM%20Tools.md)); with
+  `ai.openai_api.enabled`, `sajha/ai/openai_api.py` and `sajha/routes/openai_routes.py`
+  serve the gateway's aliases as an OpenAI-compatible endpoint (`/v1/chat/completions`).
   `sajha/ai/tool_resolver.py` answers natural-language tool searches: a lexical BM25 index
   by default (`sajha/ai/lexical.py`), optionally an embedding index
   (`sajha/ai/embedders.py`), re-synced in the background whenever tools reload. Design:
@@ -246,7 +262,8 @@ parameters between steps; `EntropyGuard` tracks cumulative confidence
 |---|---|---|
 | Database (SQLite default, PostgreSQL) | Users, roles, permissions, API keys, audit log and its hash chain and anchors, prompts metadata, composite tools, tool usage, LLM providers, models and usage, the observability usage ledger (`obs_usage_events`), connected-account tokens, workflows and their runs, quality runs, conversations; every table is in the schema files | `sajha/db/`, `db/scripts/<type>/`, `sajha/observability/usage.py` |
 | Storage backend (local, S3, Azure Blob, GCS) | Tool and prompt configs, Studio output, the federation store (upstreams and approvals), guides served at `/help/guides` | `sajha/core/storage.py`; [Storage Guide](../getting-started/Storage%20Guide.md) |
-| Local disk (`data/`) | Tool output cache, async results, shell scratch, DuckDB/SQL data files, the OAuth signing key | config keys under `cache`, `async`, `shell`, `data`, `mcp.auth.builtin` |
+| Local disk (`data/`) | Tool output cache, async results, shell scratch, DuckDB/SQL data files, the OAuth signing key, snapshots, SAJHA Net keys, certificates and saved peers | config keys under `cache`, `async`, `shell`, `data`, `mcp.auth.builtin`, `snapshots`, `sajhanet` |
+| Administrators' credential files (`config/`, git-ignored) | `config/users.json` and `config/apikeys.json`, which win over the database; `config/apikeys_db.json`, the database's keys written periodically as a fallback | `sajha/auth/users_file.py`, `sajha/auth/credential_jobs.py`; [Security Model](../security/Security%20Model.md) |
 | State store (`state.backend`: memory, Redis or the database) | MCP sessions, MCP task records, OAuth pending consents, codes, refresh tokens and DCR clients, rate-limit windows, LLM budgets, change-bus relay | `sajha/core/state/`; [Scaling and State](Scaling%20and%20State.md) |
 | Process memory | Listen streams and other open connections, upstream connections, caches, circuit breakers, metrics | see the inventory in [Scaling and State](Scaling%20and%20State.md#3-inventory-of-process-state) |
 
@@ -256,9 +273,11 @@ keep it on a real filesystem or a managed database.
 ## 9. Security layers
 
 Credential checks (`sajha/auth/`: `AuthManager`, `AuthContext`, the JWT handler and
-password policy), per-caller tool access (`sajha/auth/access.py`, shared by REST, MCP, A2A and async), generated server secrets (`sajha/core/server_secrets.py`), OAuth on MCP endpoints, the
-Origin allow-list on `/mcp`, security headers and CSP (`sajha/security.py`), request
-size limits, rate limiting, the sandbox for user code (`sajha/sandbox/`), the policy
+password policy, the credential files, console single sign-on with OpenID Connect in
+`sajha/auth/sso.py`), per-caller tool access (`sajha/auth/access.py`, shared by REST, MCP, A2A and async), generated server secrets (`sajha/core/server_secrets.py`), OAuth on MCP endpoints, the
+Origin allow-list on `/mcp`, security headers and CSP with a per-response script nonce,
+the cross-site request check, the allowed-hosts check (`sajha/security.py`), request
+size limits, native TLS (`server.tls.*`), rate limiting, the sandbox for user code (`sajha/sandbox/`), the policy
 engine on every tool call (`sajha/policy/`) and the audit log (`sajha/core/audit.py`)
 with its tamper-evident hash chain (`sajha/audit/`;
 [Policy and Audit](Policy%20and%20Audit.md)). The model, the defaults and the deployment checklist are in
@@ -334,6 +353,24 @@ python scripts/check_console.py --base http://127.0.0.1:3087 --axe /path/to/axe.
 `tests/test_console_checks.py` checks that its pages render and runs it only when
 `SAJHA_CHECK_BASE` names a running server.
 
+**The pages, by menu.** The top menu is defined once, as data, in
+`sajha/web/templates/common/_nav.html`; each entry links one page. This is that menu:
+
+| Menu | Pages (path) |
+|---|---|
+| **Tools** | Dashboard (`/dashboard`), All tools (`/tools`), Python Playground (`/playground`, when enabled), Workflows (`/workflows`), Reports (`/reports`); Tool metrics (`/monitoring/tools`), Usage & cost (`/monitoring/usage`), User activity (`/monitoring/users`, administrators) |
+| **AI** | Ask SAJHA (`/ask`), Conversations (`/conversations`), LLM (`/ai/settings`), Prompts (`/prompts`) |
+| **SAJHA Net** | Instances (`/net/instances`), Your net access (`/net/access`); for administrators Net overview (`/admin/sajhanet/overview`), Remote tools (`/admin/sajhanet/tools`), SAJHA Net admin (`/admin/sajhanet`) |
+| **MCP Studio** | Studio home with the Python code creator (`/studio/`), Describe a tool (`/studio/describe`), REST (`/studio/rest`), Import an API (`/studio/api-import`), DB query (`/studio/dbquery`), Script (`/studio/script`); Power BI (`/studio/powerbi`), Power BI DAX (`/studio/powerbidax`), LiveLink (`/studio/livelink`), SharePoint (`/studio/sharepoint`), OLAP (`/studio/olap`); LLM tool (`/studio/llm`), Planner editor (`/studio/planners`, administrators); Composite builder (`/composite/builder`), Workflows |
+| **Admin** (administrators) | Tools (`/admin/tools`), Users (`/admin/users`, with the users file at `/admin/users/file`), Prompts (`/admin/prompts`), API keys (`/admin/apikeys`, with the keys file at `/admin/apikeys/file`), Proxied MCP servers (`/admin/federation`), SAJHA Net (`/admin/sajhanet`), Connected accounts (`/admin/connections`), Data connectors (`/admin/connectors`); Policies (`/admin/policies`), Approvals (`/admin/approvals`), Audit (`/admin/audit`); System monitor (`/admin/system-monitor`), Async tasks (`/admin/async-tasks`), Tool health (`/admin/tool-health`), Tool versions (`/admin/tool-versions`), Evals (`/admin/evals`), AI providers & models (`/ai/settings`) |
+| **Help** (no sign-in needed) | Help (`/help`), Guides (`/help/guides`), Glossary (`/glossary`), Tool catalog (`/help/tools`), About SAJHA (`/about`), How it compares (`/comparison`) |
+| the user menu | Change password (`/account/password`), Connected accounts (`/account/connections`), My API keys (`/account/apikeys`), Log out |
+
+The sign-in page (`/login`) also offers "Sign in with ..." when console single sign-on is on
+(`auth.sso.enabled`; [Security Model](../security/Security%20Model.md#console-single-sign-on)).
+The system-notice banner and the navbar badge appear on every page
+([System Notices](System%20Notices.md)).
+
 **Who sees which page.** The MCP Studio menu and its sub-navigation list only the creators the
 caller's Studio permissions open (`studio_creators` in `render()`'s context; the
 [MCP Studio User Guide](../studio/MCP%20Studio%20User%20Guide.md#permissions)); the planner editor
@@ -367,15 +404,26 @@ The stdio transport is in the server package: `sajha/cli/stdio.py` (started by
 caller per process fixed at start-up (`--user`, `--api-key`, or the anonymous policy).
 Guide: [Command Line](../clients/Command%20Line.md).
 
+**SAJHA Net.** The protocol core is `sajha/net/` (names, signatures, gossip membership, the
+CA, catalogs, routing, residency, plug-ins), which imports nothing else from SAJHA so it can
+be used on its own; `sajha/net/integration/` wires it into the server (the `/sajhanet/v1/`
+routes in `sajha/routes/sajhanet_routes.py`, proxy tools in the registry, identity, the
+console views). `sajhanet_agent/` puts any MCP server into a net as a participant without
+loading the server. Design and what is built: [SAJHA Net](SAJHA%20Net.md); the wire format:
+[SAJHA Net Protocol](../protocol/SAJHA%20Net%20Protocol.md); the agent:
+[SAJHA Net Agent](../clients/SAJHA%20Net%20Agent.md).
+
 ## 12. Tests and CI
 
 `tests/` (pytest with FastAPI's `TestClient`): unit and integration suites, one suite
 per protocol area (`test_mcp_2025_11_25.py`, `test_mcp_2026_07_28.py`,
 `test_mcp_auth.py`, `test_mcp_apps.py`) and per subsystem (for example
 `test_state_store.py`, `test_sandbox.py`, `test_federation.py`, `tests/ai/`; each
-subsystem's guide describes its tests). `clientsdk/tests/` tests the client package.
-`.github/workflows/mcp-conformance.yml` runs the official MCP conformance suite against
-a live server for both protocol versions.
+subsystem's guide describes its tests). `clientsdk/tests/` tests the client package and `sajhanet_agent/tests/` the SAJHA Net
+agent; `tests/net/` holds the SAJHA Net suites, including in-process nets of several
+instances. `.github/workflows/tests.yml` runs `tests` and `clientsdk/tests` on every push
+and pull request to `develop` and `main`; `.github/workflows/mcp-conformance.yml` runs the
+official MCP conformance suite against a live server for both protocol versions.
 
 ---
 

@@ -6,7 +6,7 @@ it holds the participant's certificate, gossips, publishes the server's tools as
 metadata, verifies forwarded API keys against the net key directory, applies a small export policy, and
 passes the calls it allows to the server. Other members see it as an instance of kind `agent`.
 
-It is one of the three ways to take part in a net ([SAJHA Net](../architecture/SAJHA%20Net.md) §5.1):
+It is one of the three ways to take part in a net ([SAJHA Net](../architecture/SAJHA%20Net.md#51-three-ways-to-take-part) §5.1):
 
 | You have | Use |
 |---|---|
@@ -14,7 +14,9 @@ It is one of the three ways to take part in a net ([SAJHA Net](../architecture/S
 | any MCP server you run, in any language | this agent in front of it, or the reference library inside a Python server (section 7) |
 | an MCP server you cannot run beside anything (a vendor's or SaaS endpoint) | a SAJHA server sponsors it (section 8) |
 
-The wire protocol is [SAJHA Net Protocol](../protocol/SAJHA%20Net%20Protocol.md); a third-party
+The agent is part of SAJHA, which is proprietary software of Ashutosh Sinha, all rights reserved: running
+it beside a server, or redistributing it, needs a separate written agreement (see the `LICENSE` file at the
+root of the repository). The wire protocol is [SAJHA Net Protocol](../protocol/SAJHA%20Net%20Protocol.md); a third-party
 implementation that speaks it claims conformance as target A or L (section 9).
 
 ---
@@ -51,21 +53,25 @@ python -m sajhanet_agent \
 | `--rename local=published` | Offer one tool under a name of your choosing (repeatable); it falls under one name, one contract like any name. A tool whose qualified name would exceed 128 characters is not offered; the status lists it under `refused_tools`. |
 | `--url` | The base URL peers reach the agent on. Its host must be one the certificate names. |
 | `--listen` | `host:port` to listen on; default all interfaces and the port of `--url`. |
-| `--seed` | A member to join through (repeatable). With none and `--founder`, the agent starts the net. |
+| `--seed` | A member to join through (repeatable). |
+| `--founder` | Start the net alone when no seed answers. |
 | `--mcp-command` / `--mcp-url` | The server: a command run over stdio, or a Streamable HTTP endpoint (`--mcp-header "Name: value"` adds a header, for example the server's own credential). |
-| `--admission` | `open` (default), `builtin_ca` or `manual`; section 3. |
+| `--admission` | `open` (default), `builtin_ca` or `manual`; section 3. With `builtin_ca`, `--ca-url` (the CA participant's base URL) and `--token` (the enrollment token, spent on first start); with `manual`, `--pin` (a peer certificate thumbprint to trust, repeatable). |
 | `--data-dir` | Where the key, certificate, CA certificate, first-use keys and saved peer list live (default `data/sajhanet-agent`). The key never leaves it. |
 | `--export-tools`, `--export-peers`, `--export-roles` | The export policy (section 4). |
 | `--service-calls` | Also serve calls that carry no user. |
 | `--no-key-verification` | Keep no key directory and accept no forwarded keys (service calls only). |
 | `--region`, `--label k=v` | Placement shown to other members and used by their residency rules. |
-| `--tls-cert`, `--tls-key` | Serve HTTPS. Behind a TLS proxy use `--behind-tls-proxy` instead. |
+| `--tls-cert`, `--tls-key` | Serve HTTPS. |
+| `--behind-tls-proxy` | A TLS proxy terminates HTTPS in front of the agent (requests count as HTTPS). |
 | `--allow-plain-http` | Lab use only: no HTTPS required for enrollment, peers or forwarded keys. |
-| `--call-timeout`, `--catalog-refresh` | Seconds for one call to the server, and between `tools/list` on it. |
+| `--call-timeout`, `--catalog-refresh` | Seconds for one call to the server, and between `tools/list` on it (default 60 each). |
+| `--log-level` | Default `INFO`. |
 
 The agent answers `/sajhanet/v1/...` (membership, catalog, key directory), the signed MCP endpoint at
 `/mcp` (forwarded `tools/call` and `tools/list`, `server/discover`, `initialize`, `ping`), and a
-health check for orchestrators (a `GET` of `healthz` under its base URL: name, net, joined). An unsigned `server/discover` or `initialize` gets only the reduced extension object
+health check for orchestrators (a `GET` of `healthz` at the root of the agent's address, answering
+`{ok, net, instance, joined}`; the agent's own path, not a SAJHA route). An unsigned `server/discover` or `initialize` gets only the reduced extension object
 (protocol §6.1); every other unsigned MCP request is refused: the agent is a door into the net, not a
 second public endpoint for the server. On SIGTERM it leaves the net (a signed leave) and stops.
 
@@ -82,9 +88,10 @@ A server whose tool list changes may send `notifications/tools/list_changed`; th
 | `builtin_ca` | Enrollment with the net's CA participant: `--ca-url` and a one-time `--token` that its administrator creates (`sajha net ca enroll --net <net> --instance <name>`). Renewed at the CA when a third of its validity remains. | The chain to the net's CA and its revocation list. |
 | `manual` | A self-signed certificate; peers pin its thumbprint (`sajha net pin`). `--pin` pins theirs here. | Pinned thumbprints. |
 
-The token is spent on the first start; later starts use the saved certificate. Open mode trusts whoever
-first claims a name ([SAJHA Net](../architecture/SAJHA%20Net.md) §5.5); use `builtin_ca` before a net
-spans machines you do not control.
+The token is spent on the first start; later starts use the saved certificate. All members of a net use
+the same admission mode. Open mode trusts whoever first claims a name and has no revocation
+([SAJHA Net](../architecture/SAJHA%20Net.md#64-admission-modes) §6.4); use `builtin_ca` before a net spans
+machines you do not control.
 
 ---
 
@@ -118,11 +125,12 @@ refusal. Results go back signed, with `_meta["io.sajha/net"].instance` set.
 
 ---
 
-## 6. Not yet
+## 6. Limits
 
 Progress, cancellation, input requests and tasks are not relayed on forwarded calls (the same limit as
-SAJHA, [SAJHA Net](../architecture/SAJHA%20Net.md) §5.5); blocks, re-export, residency rules and the
-`assertion` and `token_exchange` resolvers are SAJHA's and not offered by the agent.
+SAJHA); blocks, re-export, residency rules and the `assertion` and `token_exchange` resolvers are SAJHA's
+and not offered by the agent; the agent is never a home. These are listed with SAJHA's own in
+[SAJHA Net](../architecture/SAJHA%20Net.md#55-what-is-built) §5.5.
 
 ---
 
@@ -160,7 +168,7 @@ it as a federation upstream and represents it in the net under an instance name 
 residency and audit on every call. Configure `sajhanet.sponsored`
 ([Configuration Reference](../getting-started/Configuration%20Reference.md#sajha-net)) or use the admin
 API (`/api/sajhanet/sponsored`, [API Reference](../protocol/API%20Reference.md#424-sajha-net-sajhanet_routespy)).
-What is built is in [SAJHA Net](../architecture/SAJHA%20Net.md) §5.5.
+How sponsoring works: [SAJHA Net](../architecture/SAJHA%20Net.md#57-sponsored-servers) §5.7.
 
 ---
 

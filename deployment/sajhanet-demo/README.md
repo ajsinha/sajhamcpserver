@@ -1,14 +1,16 @@
 # SAJHA Net demo: three instances in one net
 
 Three SAJHA containers, `risk-eu`, `cust-na` and `treasury-na`, in the net `demo-net`. `risk-eu` is
-the founder and CA instance (no seeds); the other two list it as their seed. A smoke script
-initialises the CA, enrolls the other two with enrollment tokens, waits until the three see each other,
-and calls one of `cust-na`'s tools on `risk-eu`.
+the founder and CA instance (no seeds); the other two list it as their seed. The demo runs the
+`builtin_ca` admission mode (`SAJHA_SAJHANET_PLUGINS_ADMISSION`; the shipped default is `open`), so a
+smoke script initialises the CA, enrolls the other two with enrollment tokens, waits until the three see
+each other, and calls one of `cust-na`'s tools on `risk-eu`.
 
 **This is a lab.** Traffic between the containers is plain HTTP (`SAJHA_SAJHANET_REQUIRE_HTTPS=false`),
 and the smoke script signs in with the test admin key from `config/apikeys.json.example`, which the
-compose file mounts as each container's `config/apikeys.json`. Never run a net like this anywhere else.
-The design is [SAJHA Net](../../docs/architecture/SAJHA%20Net.md); the walkthrough is
+compose file mounts as each container's `config/apikeys.json`; with the test admin key on, every call
+between the three carries it and runs as an administrator at the host. Never run a net like this
+anywhere else. The guide is [SAJHA Net](../../docs/architecture/SAJHA%20Net.md); the walkthrough is
 [Tutorial 28](../../docs/tutorials/TUTORIAL_28_build_a_sajha_net.md).
 
 ## Run it

@@ -87,3 +87,40 @@ def test_modules_from_configuration(monkeypatch):
     from sajha.net.integration import config
     monkeypatch.setenv('SAJHA_SAJHANET_PLUGINS_MODULES', 'a.b, c.d')
     assert config.shared().plugin_modules == ['a.b', 'c.d']
+
+
+def test_open_mode_remembers_a_name_only_after_the_message_fully_verifies():
+    """Open admission: a message that fails its signature check never claims a name; the first
+    message that verifies does, and a different key for that name is then refused."""
+    import time
+    from sajha.net import crypto, httpsig
+    from sajha.net.errors import NetError
+    from sajha.net.trust import OpenAdmission
+    net = 'acme-net'
+    trust = OpenAdmission().trust(net, None, None, None, None)
+    key = crypto.generate_key()
+    cert = crypto.self_signed_certificate(key, net, 'risk-eu', 'risk-eu.test')
+    signer = httpsig.Signer(key, [cert])
+    now = time.time()
+    body = b'{"jsonrpc":"2.0","id":1,"method":"tools/list"}'
+    h = httpsig.sign_request(signer, 'POST', '/sajhanet/v1/membership/sync', '', {'content-type': 'application/json'},
+                             body, net, 'risk-eu', 'cust-na', now=now)
+    try:
+        httpsig.verify_request(trust, 'cust-na', 'POST', '/sajhanet/v1/membership/sync', '', h, body + b' ', now=now)
+    except NetError:
+        pass
+    else:
+        raise AssertionError('a tampered body must not verify')
+    assert trust._known() == {}                          # the failed message claimed nothing
+    httpsig.verify_request(trust, 'cust-na', 'POST', '/sajhanet/v1/membership/sync', '', h, body, now=now)
+    assert set(trust._known()) == {'risk-eu'}
+    other = crypto.generate_key()
+    impostor = httpsig.Signer(other, [crypto.self_signed_certificate(other, net, 'risk-eu', 'risk-eu.test')])
+    h2 = httpsig.sign_request(impostor, 'POST', '/sajhanet/v1/membership/sync', '', {'content-type': 'application/json'},
+                              body, net, 'risk-eu', 'cust-na', now=now)
+    try:
+        httpsig.verify_request(trust, 'cust-na', 'POST', '/sajhanet/v1/membership/sync', '', h2, body, now=now)
+    except NetError as e:
+        assert e.reason == 'name_conflict'
+    else:
+        raise AssertionError('another key for a held name must be refused')

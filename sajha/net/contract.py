@@ -40,6 +40,7 @@ def _admission(make):
         th = crypto.thumbprint(crypto.cert_der(cert))
         t = p.trust(net, NetConfig(name=net), None, lambda: None, lambda: [th])
         t.check_chain([cert], cert.not_valid_before_utc.timestamp() + 120)
+        getattr(t, 'confirm', lambda c: None)([cert])      # a message signed with it fully verified
         other = crypto.self_signed_certificate(crypto.generate_key(), net, 'risk-eu', 'risk-eu.test')
         try:
             t.check_chain([other], other.not_valid_before_utc.timestamp() + 120)

@@ -217,6 +217,12 @@ class Trust:
         """``certificate_revoked``, ``instance_revoked`` or None."""
         return None
 
+    def confirm(self, chain: List[x509.Certificate]) -> None:
+        """Called once a message signed under ``chain`` has fully verified (signature, sender,
+        recipient, nonce). Trusts that learn from what they see (open mode's first use) learn here,
+        never from a message that later fails."""
+        return None
+
 
 @dataclass
 class Verified:
@@ -381,6 +387,7 @@ def verify_request(trust: Trust, own_name: str, method: str, path: str, query: s
     if seen_nonce is not None:                                                   # 11
         if seen_nonce(params['keyid'], params['nonce'], min(float(max_age), MAX_AGE_CAP) + FUTURE_ALLOWANCE):
             raise NetError('replay', 'this nonce was already used')
+    getattr(trust, "confirm", lambda c: None)(chain)
     return Verified(net=trust.net, sender=cn, recipient=own_name, keyid=params['keyid'], alg=params['alg'],
                     nonce=params['nonce'], created=params['created'], signature=sig, chain=chain, version=version,
                     covered=[sfv.ser_item(n, p) for n, p in covered])
@@ -412,6 +419,7 @@ def verify_response(trust: Trust, own_name: str, expected_sender: str, status: i
         raise NetError('from_mismatch', 'the response is not from the participant asked')
     if h.get('sajha-net-to', '').strip() != own_name:
         raise NetError('recipient_mismatch', 'the response is addressed to another participant')
+    getattr(trust, "confirm", lambda c: None)(chain)
     return Verified(net=trust.net, sender=cn, recipient=own_name, keyid=params['keyid'], alg=params['alg'],
                     nonce=None, created=params['created'], signature=sig, chain=chain, version=version,
                     covered=[sfv.ser_item(n, p) for n, p in covered])

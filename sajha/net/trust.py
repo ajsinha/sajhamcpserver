@@ -69,14 +69,21 @@ class FirstUseTrust(Trust):
             raise crypto.CryptoError('certificate_invalid', f'the certificate is for {o}, not {self.net}')
         tp = crypto.thumbprint(crypto.cert_der(chain[0]))
         seen = (self._known() or {}).get(cn)
-        if seen is None:
-            self._remember(cn, tp)
-        elif seen != tp:
+        if seen is not None and seen != tp:
             raise crypto.CryptoError('name_conflict', f'{cn} is already a member of {self.net} with another key '
                                      f'({seen[:16]}…); an administrator can forget the old key if it was replaced')
 
     def revocation(self, serial, instance):
         return None
+
+    def confirm(self, chain):
+        """Remember a name's key only after a message signed with it has fully verified, so a
+        message that fails its signature, recipient or nonce check never claims a name."""
+        if len(chain) != 1:
+            return
+        _o, cn = crypto.subject_of(chain[0])
+        if cn and (self._known() or {}).get(cn) is None:
+            self._remember(cn, crypto.thumbprint(crypto.cert_der(chain[0])))
 
 
 def revocation_reason(rl: Optional[Dict[str, Any]], serial: str, instance: str) -> Optional[str]:

@@ -1,6 +1,6 @@
 # Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.com
 """
-Changes to existing code that SAJHA Net builds on (docs/architecture/SAJHA Net.md section 21.1,
+Changes to existing code that SAJHA Net builds on (docs/archive/SAJHA Net Design Note.md, "new code this design needs",
 items 2, 5, 6, 9 and 12): the provider-safe tool part, the peer URL guard with its network
 allowlist, the io.sajha/net extension on both MCP eras, cancellation of 2025-11-25 requests,
 and the Helm values. Federation's share of these is in tests/test_federation.py.

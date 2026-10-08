@@ -16,8 +16,9 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
   encrypted with the connected-accounts vault's AES-256-GCM data key
   (``sajha/accounts/vault.py``; bound to the owner and the key id), so the server can use
   it on the owner's behalf later; it is shown to the user once, after each rotation.
-* **Persistent keys.** A key an administrator marks persistent is also kept, hashed, in the
-  file at ``config.apikeys.path`` (``sajha/auth/persistent_keys.py``).
+* **Persistent keys.** A key an administrator marks persistent is also written to the keys file at
+  ``config.apikeys.path`` (raw under plain credential storage, else its hash;
+  ``sajha/auth/persistent_keys.py``), which is checked before the database.
 
 Every change is written to the audit log. Owner guide: docs/security/Security Model.md.
 """

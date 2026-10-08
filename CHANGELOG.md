@@ -4,17 +4,37 @@ Newest first. The current version is `app.version` in `config/application.yml`.
 
 ## Unreleased
 
+- Fixed: per-member keys (`sajhanet.peer_keys`) now work as designed — the key is one the target
+  member issued; the host checks it as its own API key and runs the call as that key's owner
+  (audited as `peer_key`). Before, the host refused such a key with `key_not_from_home`.
+- Fixed (security): open admission remembered a name's key before the message's signature, recipient
+  and nonce were checked, so a forged message could claim an unused name. It now remembers a key only
+  after a message signed with it fully verifies (`Trust.confirm`).
+- Changed: the notice id `sajhanet.ca_created.<net>` is now `sajhanet.ca_created:<net>`, like every
+  other id.
+
 - **Upgrading:** the start script is renamed `run_server.py` → `run_sajha_web.py` (same options). Update service files, scripts and container commands that start SAJHA; the shipped Dockerfiles, Helm chart, systemd unit and docs are updated.
 
 - Added: open mode, `sajhanet.plugins.admission: open` (owner decision, the shipped setting for now):
   SAJHA Net without a CA. Self-signed certificates are accepted the first time a name is seen and each
   name is then held to its key (an impostor is refused with `name_conflict`); remembered keys are kept
-  on disk and can be listed and forgotten (`/api/sajhanet/nets/{net}/first-use`). Set `builtin_ca` to
+  in the storage backend (`<data_dir>/<net>/first_use.json`) and can be listed and forgotten
+  (`/api/sajhanet/nets/{net}/first-use`). Specified as protocol §8.12. Set `builtin_ca` to
   use the CA. Fixed: a trust refusal for a held name now reports `name_conflict`, not
   `certificate_invalid`.
 - Added: a net of one creates its CA at first start (`sajhanet.ca_auto_init`, default on; per net
   `ca.auto_init`; owner decision): audited, with a warning notice to back up the CA key. Peers can
   enroll without running `sajha net ca init` first.
+- Docs: [SAJHA Net](docs/architecture/SAJHA%20Net.md) is rewritten as an as-built guide (admission
+  modes and their trust, names, routing, identity with per-member and test admin keys, residency, the
+  call-chain budget, re-export, the console, operations); §5.5 now lists only what is not built. The
+  design note as it grew phase by phase, with its build plan, decisions and alternatives, is archived
+  (`docs/archive/SAJHA Net Design Note.md`). The protocol specifies open mode (§8.12) and says what SAJHA
+  advertises and does not implement; [Federation](docs/architecture/Federation.md) is the guide to proxied
+  MCP servers (internal and external); the [Security Model](docs/security/Security%20Model.md) covers
+  credential storage, the credential files, the test admin key, per-member keys and SAJHA Net admission
+  as one whole; every SAJHA Net and credential notice id is in
+  [System Notices](docs/architecture/System%20Notices.md).
 
 ### Vendors, external servers, the mcpServers file and self-recognition (wave 5, phase 5.4)
 

@@ -1,28 +1,36 @@
-# SAJHA MCP Server — Federation
+# SAJHA MCP Server — Federation: proxied MCP servers
 
-Federation lets SAJHA front other MCP servers ("upstreams") and re-expose their tools, and
-optionally their prompts and resources, as its own. A federated tool is a first-class
-registry tool: it is listed by `tools/list` on both protocol eras, shown on the Tools page,
-offered to Ask SAJHA, usable in composites and over A2A, and every call to it passes
-through the same access control, audit, metrics, cache, circuit breaker and rate limits
-as a tool that SAJHA implements itself.
+A SAJHA server can embed other MCP servers and offer their tools, and optionally their prompts and
+resources, as its own. Each embedded server is a **proxied MCP server** (in the code and the
+`federation.*` keys, an **upstream**): SAJHA connects to it, lists what it offers, and proxies calls to
+it. A proxied server's tool is a first-class registry tool: it is listed by `tools/list` on both
+protocol eras, shown on the Tools page, offered to Ask SAJHA, usable in composites and over A2A, and
+every call to it passes through the same access control, policy, audit, metrics, cache, circuit breaker
+and rate limits as a tool SAJHA implements itself.
 
-This document owns the topic: the design, what was built, how to operate it, and its
-limits. Every configuration key and its default is in the
-[Configuration Reference](../getting-started/Configuration%20Reference.md#federation);
-the hands-on walkthrough is
-[Tutorial 11](../tutorials/TUTORIAL_11_federate_an_mcp_server.md); the terms are in the
+This document owns proxied MCP servers: how to define them (configuration, the mcpServers file, the
+console), names, credentials, approval, calls, failure handling, security and limits. Every
+`federation.*` key and its default is in the
+[Configuration Reference](../getting-started/Configuration%20Reference.md#federation); the hands-on
+walkthrough is [Tutorial 11](../tutorials/TUTORIAL_11_federate_an_mcp_server.md); the terms are in the
 [Glossary](../../GLOSSARY.md).
 
-Federation is **off by default** (`federation.enabled: false`) and no upstream is
-configured by default, so a fresh SAJHA serves exactly what it served before.
+Federation is **off by default** (`federation.enabled: false`) and no upstream is configured by default,
+so a fresh SAJHA serves exactly what it served before.
 
-An upstream is a **proxied MCP server**: a server this instance embeds and proxies calls to. Each is
-**internal** (its tools keep their names and are governed like local tools; SAJHA Net's one name, one
-contract applies to them) or **external** (`external: true`: never a member of a net, its tools
-published as `<prefix>__<tool>`; [SAJHA Net](SAJHA%20Net.md) §5.6). The console page is **Proxied MCP
-servers** (`/admin/federation`, under the admin menu); the mechanism and its `federation.*` keys keep
-the name federation.
+**Internal or external.** Every proxied server is one or the other:
+
+| | Internal (`external: false`) | External (`external: true`) |
+|---|---|---|
+| Tools named | `<prefix>__<tool>` on this server | `<prefix>__<tool>` on this server |
+| In SAJHA Net | Stays local: never offered to other members | Offered into this server's nets as this server's own tools, under the vendor's prefix ([SAJHA Net](SAJHA%20Net.md#56-vendors-and-external-servers) §5.6) |
+| Member of a net | Never | Never: no member record, certificate or gossip; this server is its proxy |
+| Defined as | An upstream in `federation.upstreams` or on the console (the default there), or an mcpServers file entry with `"external": false` | An mcpServers file entry (the default there), or an upstream listed in `sajhanet.external_servers` with its vendor |
+
+The console page is **Proxied MCP servers** (`/admin/federation`, under the admin menu); the mechanism
+and its keys keep the name federation. To make a plain MCP server a **member** of a net instead (its own
+instance name, governed by this server), sponsor it ([SAJHA Net](SAJHA%20Net.md#57-sponsored-servers)
+§5.7).
 
 ---
 
@@ -59,18 +67,22 @@ the name federation.
 ## 2. The upstream model
 
 An upstream is one MCP server, identified by an `id` (lower case letters, digits, `-`
-and `_`, starting with a letter, at most 32 characters, no `__`). Upstreams come from two
-places, merged at start-up:
+and `_`, starting with a letter, at most 32 characters, no `__`). Upstreams come from three
+places, merged:
 
 * **Configuration**: `federation.upstreams[]` in `config/application.yml` (or the
-  `SAJHA_FEDERATION_UPSTREAMS` environment variable, a JSON list). These are read-only in
-  the admin page; change them in the file.
-* **The admin page**: upstreams added, edited or removed on `/admin/federation` are
+  `SAJHA_FEDERATION_UPSTREAMS` environment variable, a JSON list). These are read-only on
+  the console; change them in the file.
+* **The mcpServers file**: `config/mcp_servers.json`, in the `mcpServers` JSON of Claude
+  Desktop, Cursor and VS Code, re-read when it changes ([The mcpServers file](#the-mcpservers-file)).
+  Its entries are external unless they say otherwise, and are not editable on the console.
+* **The console**: upstreams added, edited or removed on `/admin/federation` are
   persisted by `FederationStore` as one JSON document at `federation.state_path`
   (default `config/federation/federation.json`), read and written through the storage
   backend, so it lives on local disk, S3, Azure Blob or GCS like the tool configurations.
   The same document holds the approval state of every discovered tool, prompt and
-  resource. An id defined in configuration cannot be redefined from the page.
+  resource. An id defined in configuration or the mcpServers file cannot be redefined from
+  the page.
 
 | Field | Default | Meaning |
 |---|---|---|
@@ -244,8 +256,8 @@ schemas and annotations; the call still goes to the upstream's tool of that name
 admin page says so, until an administrator approves the change, or the upstream goes back
 to the approved definition. A held version needs the approved definition, which SAJHA
 stores with every approval; a tool approved before SAJHA stored it is withdrawn instead.
-The [SAJHA Net](SAJHA%20Net.md#73-approval-of-imported-tools) design gives its `review` trust
-level the same behaviour.
+SAJHA Net's `review` trust level behaves the same for tools imported from other members
+([SAJHA Net](SAJHA%20Net.md#73-approval-of-imported-tools) §7.3).
 
 An upstream with `auto_approve: true`, or `federation.require_approval: false`, approves
 new and changed items automatically, **except** items whose text tripped the injection
@@ -259,7 +271,7 @@ properties/a/type: 'strng' is not valid ...`) on the admin page and in
 `GET /api/federation/upstreams/{id}` (`items[].reason`); approving it is refused. When the
 upstream fixes the schema, the tool is treated as newly discovered. A held version
 (`on_change: hold`) keeps serving while a changed definition is invalid. The same check
-(`security.py::schema_problem`) is meant for SAJHA Net's imported catalogs.
+(`security.py::schema_problem`) is applied to SAJHA Net's imported catalogs.
 
 ## 7. Calls
 
@@ -346,7 +358,8 @@ never breaks `tools/list`:
 * a slow call is bounded by `timeout_seconds`, and the caller's thread is released then.
 
 The admin page and `GET /api/federation/upstreams` report, per upstream: state
-(`disabled`, `connecting`, `connected`, `error`), the negotiated protocol version, the
+(`disabled`, `connecting`, `connected`, `error`, or `needs_sign_in` for a server that wants
+per-user OAuth, [below](#the-mcpservers-file)), the negotiated protocol version, the
 server's name and version, the last error (redacted), the last refresh time, counts of
 tools by status, calls and failures, and the circuit breaker. The breaker is also listed
 by `GET /api/circuits` with SAJHA's other providers.
@@ -430,8 +443,9 @@ template with it, so they cannot drift apart.
 - **SAJHA keys**, all optional: `vendor` (default the entry's key), `prefix` (default the vendor; the
   tools are `<prefix>__<tool>`), `external` (default **true** in this file), `tools` (globs of the tools
   to take; nothing else is federated), `enabled` (`false`: listed, never connected), `cwd` (stdio),
-  `title`, `timeout_seconds`. A key starting with `_` is a comment, at any depth; any other key is an
-  error for that entry.
+  `title`, `timeout_seconds`; `"disabled": true` means `"enabled": false`, and `description` is accepted
+  and ignored. A key starting with `_` is a comment, at any depth; any other key is an error for that
+  entry.
 - **External by default.** An entry is an external server ([SAJHA Net](SAJHA%20Net.md) §5.6): this
   instance offers its tools into its nets as its own, published `<prefix>__<tool>`, and the server is
   never a member of a net. `"external": false` makes it an ordinary internal federation upstream.
@@ -450,17 +464,19 @@ template with it, so they cannot drift apart.
   endpoints use per-user OAuth (MCP authorization with discovery and dynamic client registration),
   which federation does not do for upstreams yet. Such an upstream, reached without a credential,
   answers HTTP 401; its state is then `needs_sign_in` ("needs sign-in (not supported yet)") with a
-  warning notice `federation.sign_in:<id>`, and it is retried slowly. Keep it `"enabled": false` until
-  this is built ([Roadmap](Roadmap.md)). A static bearer or API-key header (a GitHub token) and servers
-  without auth work.
+  warning notice `federation.sign_in:<id>`, and it is retried once a minute. Keep it `"enabled": false`
+  until this is built ([Roadmap](Roadmap.md) L18; the template `06_remote_oauth_sign_in.json.example`
+  keeps such servers disabled). A static bearer or API-key header (a GitHub token) and servers without
+  auth work.
 
 ## 11. Using it
 
 1. Turn it on: `federation.enabled: true` (and `allow_localhost: true` for an upstream
    on the same machine), then restart.
-2. Add an upstream: in configuration, or on **Admin → Federation** (`/admin/federation`):
-   **Add upstream**, fill in the id and URL, choose the credentials, **Test connection**,
-   **Save**.
+2. Add an upstream: in configuration, in the mcpServers file (copy a template from
+   [`config/mcp_servers/`](../../config/mcp_servers/README.md)), or on **Proxied MCP servers**
+   (`/admin/federation`): **Add upstream**, fill in the id and URL, choose the credentials,
+   **Test connection**, **Save**.
 3. Review what it offers: each discovered tool is listed with its description, schema and
    status. Approve the ones you want (or **Approve all**).
 4. Approved tools appear in `tools/list`, on the Tools page and in Ask SAJHA's tool search
@@ -490,6 +506,10 @@ is in the [API Reference](../protocol/API%20Reference.md#416-federation-federati
 * The SSRF guard checks addresses before each connection; a DNS answer that changes
   between that check and the connection itself is not caught. Pin hosts with
   `federation.allowed_hosts` for upstreams outside your control.
+* Servers that need each user to sign in with OAuth are not reachable yet (`needs_sign_in`;
+  [The mcpServers file](#the-mcpservers-file)).
+* A cycle of proxies through an MCP server that is not SAJHA is bounded only by timeouts: other
+  servers ignore the call-chain depth SAJHA sends ([Proxies all the way down](#proxies-all-the-way-down)).
 
 ## 13. Tests
 

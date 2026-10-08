@@ -421,7 +421,7 @@ fields below. Built-in providers not listed still exist, disabled.
 | `streaming` | `true` | `false` makes `stream()` fall back to one response. |
 | `health_timeout_s` | `2` (Ollama `1`) | Timeout of a health probe. |
 | `catalog` | `true` | Include the curated model list (`sajha/ai/llm/catalog.py`). |
-| `models` | `[]` | Add or override models: `{id, kind, display_name, enabled, tools, structured_output, vision, streaming, temperature, forced_tool_choice, context_window, max_output_tokens, input_cost_per_mtok, output_cost_per_mtok, dimensions, tags, deployment}`, and the canonical-format features `json_mode`, `strict_tools`, `named_tool_choice`, `parallel_tool_control`, `seed`, `stop_sequences`, `reasoning_effort`, `native_n`, `variable_dimensions` (unset: the provider's default; meanings in [Extending the Intelligence Layer §3.2](../architecture/Extending%20the%20Intelligence%20Layer.md#32-capabilities-and-how-the-gateway-uses-them)). |
+| `models` | `[]` | Add or override models: `{id, kind, display_name, enabled, tools, structured_output, vision, streaming, temperature, forced_tool_choice, context_window, max_output_tokens, input_cost_per_mtok, output_cost_per_mtok, dimensions, tags, deployment}`, and the canonical-format features `json_mode`, `strict_tools`, `named_tool_choice`, `parallel_tool_control`, `seed`, `stop_sequences`, `reasoning_effort`, `native_n`, `variable_dimensions` (unset: the provider's default; meanings in [Extending the Intelligence Layer §3.2](../architecture/Extending%20the%20Intelligence%20Layer.md#32-capabilities-and-how-the-governed-model-uses-them)). |
 
 | Provider | Extra fields | Vendor variables honoured |
 |---|---|---|
@@ -678,20 +678,18 @@ file are re-read when it changes. Design, the upstream fields and operation:
 
 Reader: live `_get` for the scalar keys, so `SAJHA_SAJHANET_*` environment variables
 override the YAML; `sajhanet.nets` is read from the YAML as nested data, or from
-`SAJHA_SAJHANET_NETS` (a JSON list), which replaces it. SAJHA Net is being built; the keys
-below are the ones the code reads today (membership, names, the CA, signed requests, identity, the
-key directory, users across instances, rules and blocks). The
-whole design, with every planned key, is
-[SAJHA Net](../architecture/SAJHA%20Net.md#19-configuration). On Kubernetes the chart's
+`SAJHA_SAJHANET_NETS` (a JSON list), which replaces it. The keys below are every key the code
+reads; how they fit together is [SAJHA Net](../architecture/SAJHA%20Net.md#19-configuration). On
+Kubernetes the chart's
 `sajhanet` values write these keys
 ([Kubernetes Deployment](Kubernetes%20Deployment.md#sajha-net)).
 
 | Key | Default | Purpose |
 |-----|---------|---------|
 | `sajhanet.enabled` | `false` | Master switch, read at start-up. On: the configured nets are joined, `/sajhanet/` serves the protocol (off: a bare 404), and the `io.sajha/net` extension is advertised on both MCP eras (`capabilities.extensions` in `server/discover`, `capabilities.experimental` in `initialize`; [MCP Protocol Guide](../protocol/MCP%20Protocol%20Guide.md)). |
-| `sajhanet.ca_auto_init` | `true` | `SAJHA_SAJHANET_CA_AUTO_INIT` | Default for every net's `ca.auto_init` (owner decision): a net of one creates its CA at first start, so peers can enroll without `sajha net ca init`. |
-| `sajhanet.test_admin_key.enabled` | `true` (for now) | `SAJHA_SAJHANET_TEST_ADMIN_KEY_ENABLED` | Honour `"test_admin": true` records in `config/apikeys.json` and `config/users.json` (administrator), and carry the test admin key on SAJHA Net calls. Development and testing only; critical notice while active. |
-| `sajhanet.peer_keys` | sample entry | `SAJHA_SAJHANET_PEER_KEYS` (JSON) | Keys this server uses toward particular members: `"<net>/<instance>"` or `"<instance>"` → key (or `${ENV}`); local only, never shared. |
+| `sajhanet.ca_auto_init` | `true` | Default for every net's `ca.auto_init` (owner decision): a `builtin_ca` net of one creates its CA at first start, so peers can enroll without `sajha net ca init`. |
+| `sajhanet.test_admin_key.enabled` | `true` (for now) | Honour `"test_admin": true` records in `config/apikeys.json` and `config/users.json` (they sign in as an administrator), and carry the test admin key on every SAJHA Net call from this server instead of the caller's key ([Security Model](../security/Security%20Model.md#test-admin-key)). Development and testing only; a critical notice shows while it is active. |
+| `sajhanet.peer_keys` | sample entry | YAML map, or JSON in `SAJHA_SAJHANET_PEER_KEYS`: keys this server sends toward particular members, `"<net>/<instance>"` or `"<instance>"` → a key (or `${ENV}`); local only, never shared. Each key is one the target member issued (in its own `config/apikeys.json` or database); the member checks it as its own API key and runs the call as that key's owner, with the key's tool access as a ceiling (`NetAuthz.local_key_user`). A key the member does not know is refused. |
 | `sajhanet.nets` | `[]` | The nets this server is in, in order of preference; an entry without `name` is the net `default` (an info notice suggests naming it). The fields of an entry are in the table below. |
 | `sajhanet.allowed_networks` | `[]` | CIDRs (`10.20.0.0/16`, `fd00:1::/32`) a SAJHA Net peer's URL may resolve into. Public addresses are always allowed; private, carrier-grade NAT and unique-local addresses only inside a listed network; loopback, link-local, unspecified and multicast never, whatever the list says. Separate from `federation.allow_private_networks`. A CIDR that does not parse is skipped with a warning. |
 | `sajhanet.base_url` | `""` | The base URL peers reach this server on (its member record's `url`; the host must be in its certificate). Required with a configured `instance_name`; with an address name it defaults to `https://<ip>:<port>`. A net entry may set its own. |
@@ -702,12 +700,13 @@ whole design, with every planned key, is
 | `sajhanet.signature_max_age_seconds` | `30` | A signed request or response older than this is refused, and the replay window of seen nonces (state store); at most 300. |
 | `sajhanet.require_https` | `true` | `false` only for a lab: enrollment and peer URLs may then be plain HTTP, and a warning notice stays up while it is off. |
 | `sajhanet.min_protocol_version` | `1` | The lowest SAJHA Net protocol version accepted from a peer. |
-| `sajhanet.data_dir` | `data/sajhanet` | Default home of each net's files: `<net>/instance.key`, `instance.crt`, `ca.pem`, `revoked.json`, `ca.key` (CA instance), `peers.json`; and, in the storage backend under the same path, the CA's `ca-state.json` (tokens as hashes, issued certificates, the signed revocation list), `runtime_seeds.json` and `pins.json`. Git-ignored. |
+| `sajhanet.data_dir` | `data/sajhanet` | Default home of each net's files: `<net>/instance.key`, `instance.crt`, `ca.pem`, `revoked.json`, `ca.key` (CA instance), `peers.json`; and, in the storage backend under the same path, the CA's `ca-state.json` (tokens as hashes, issued certificates, the signed revocation list), `runtime_seeds.json`, `pins.json`, `first_use.json`, `trust.json`, `blocks.json` and `users.json`. Git-ignored. |
 | `sajhanet.max_injections_per_minute` | `6` | Peers an administrator may add by address per net and minute (429 beyond). |
 | `sajhanet.agent_lease_seconds` | `15` | TTL of the state-store lease `sajhanet:agent:<net>`: one worker per instance runs each net's gossip agent and renews it; when it dies another takes over within one TTL. Several workers need `state.backend: redis` or `database`. |
 | `sajhanet.plugins.membership` | `gossip` | `gossip` (SWIM) or `static` (the net entry's `static_peers`, synced every full-sync interval), or `package.module:Class`; third parties register in the entry-point group `sajha.net.plugins`. |
-| `sajhanet.plugins.admission` | `builtin_ca` (shipped config: `open`) | `open` (no CA, owner decision for now: each server makes a self-signed certificate; a peer is accepted the first time its name is seen and then held to that key, so another server claiming the name is refused with `name_conflict`; the remembered keys are on disk, listed and forgotten with `/api/sajhanet/nets/{net}/first-use`), `builtin_ca` (the net's CA, run by SAJHA; switch to it when needed) or `manual` (self-signed certificates whose thumbprints each administrator pins: the net entry's `identity.pins` plus pins added with `sajha net pin`). |
+| `sajhanet.plugins.admission` | `builtin_ca` (shipped config: `open`) | Server-wide: every net of the server uses it, and every member of a net must use the same mode. `open` (no CA, owner decision for now: each server makes a self-signed certificate; a peer is accepted the first time its name is seen and then held to that key, so another server claiming the name is refused with `name_conflict`; the remembered keys are kept in the storage backend (`<data_dir>/<net>/first_use.json`), listed and forgotten with `/api/sajhanet/nets/{net}/first-use`; there is no revocation), `builtin_ca` (the net's CA, run by SAJHA; switch to it when needed) or `manual` (self-signed certificates whose thumbprints each administrator pins: the net entry's `identity.pins` plus pins added with `sajha net pin`). |
 | `sajhanet.plugins.connector` | `sajha_native` | How requests reach peers: signed HTTP on their normal port. |
+| `sajhanet.mtls` | `off` | Mutual TLS is not built: any other value only logs a warning, and requests are checked by their signatures. |
 | `sajhanet.peer_cache.interval_minutes` | `10` | The saved peer list is written on every membership change and at least this often. |
 | `sajhanet.peer_cache.max_age_days` | `7` | On restart, saved peers not seen for longer than this are skipped. |
 | `sajhanet.gossip.gossip_interval_ms` | `1000` | One protocol period: one member pinged. |

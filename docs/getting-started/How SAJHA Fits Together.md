@@ -14,13 +14,15 @@ SAJHA (साझा, "shared") is a [Model Context Protocol](https://modelcontex
 server: one governed catalog of tools that every MCP client and agent shares, composed
 on demand. The catalog holds the built-in data and utility tools (market data, central
 banks, public statistics, filings, search, analytics, calculators), the tools built in
-MCP Studio or composed from others, and the tools of other MCP servers federated behind
-SAJHA, plus reusable prompts. Any MCP client (an AI assistant, an agent framework, a
-script, a desktop app over stdio) can discover and call them, and SAJHA's own
-intelligence layer can answer a question with them. Around that core sit what running
-it for real needs: a web console, users, roles, API keys and OAuth, a sandbox for user
-code, caching and circuit breakers, observability, shared state for several workers,
-and pluggable storage.
+MCP Studio or composed from others, LLM tools whose work a model does, and the tools of
+other MCP servers SAJHA proxies, plus reusable prompts. Any MCP client (an AI assistant,
+an agent framework, a script, a desktop app over stdio) can discover and call them, and
+SAJHA's own intelligence layer can answer a question with them. Several SAJHA servers
+can form a **SAJHA Net** and share tools while each keeps its own data, rules, models
+and memory; a server with no peers is a net of one. Around that core sit what running it
+for real needs: a web console, users, roles, API keys, OAuth and single sign-on, a
+sandbox for user code, caching and circuit breakers, observability, shared state for
+several workers, and pluggable storage.
 
 **Authority:** [README](../../README.md) (first contact); [Architecture](../architecture/Architecture.md).
 
@@ -32,15 +34,19 @@ and pluggable storage.
   MCP clients              programs / agents            people (browser)
        │                          │                            │
   /mcp (both eras)          /api/* REST, /a2a,           console, /ask, /playground,
-  /mcp/sse, /mcp/ws         /api/ai/ask                  /help, /glossary, /comparison
-  stdio (desktop clients)   (JWT or API key)             (session cookie; help is public)
+  /mcp/sse, /mcp/ws         /api/ai/ask, /v1/* (OpenAI-  /help, /glossary, /comparison
+  stdio (desktop clients)   compatible, opt-in)          (session cookie or SSO;
+                            (JWT or API key)              help is public)
        │                          │                            │
        └──── Origin check · authorization (API key · JWT · OAuth 2.1) ────┘
+                                  │            other SAJHA servers ──► /sajhanet/v1/*
+                                  │                                    (signed requests)
                                   │
      MCPHandler (+ 2026-07-28 envelope) · REST routes · page routes · intelligence layer
                                   │                                   (LLM gateway)
    ToolsRegistry ◄─ tool configs              PromptsRegistry ◄─ prompt configs
-   composite tools · Studio tools · plugins · federated tools · versions
+   composite tools · Studio tools · LLM tools · plugins · proxied (federated) tools ·
+   SAJHA Net remote tools · versions
                                   │
    cache → circuit breaker → tool → provider API | sandbox | upstream MCP server
                                   │
@@ -69,6 +75,7 @@ workers ([Scaling and State](../architecture/Scaling%20and%20State.md)).
 | MCP over stdio | `run_sajha_web.py --stdio` / `sajha serve --stdio` for desktop clients; one caller per process | [Command Line](../clients/Command%20Line.md) |
 | Every HTTP endpoint | Every route the server registers, grouped by route module (`tests/test_documentation_rot.py` fails when one is missing) | [API Reference](../protocol/API%20Reference.md) |
 | A2A | The agent card and the A2A task lifecycle on `POST /a2a` | [API Reference](../protocol/API%20Reference.md); the A2A client in the [Client SDK Guide](../clients/Client%20SDK%20Guide.md) |
+| SAJHA Net on the wire | The `io.sajha/net` extension: `/sajhanet/v1/` endpoints, signed requests, gossip, the key directory, call forwarding, errors, the conformance ids | [SAJHA Net Protocol](../protocol/SAJHA%20Net%20Protocol.md) |
 
 ---
 
@@ -91,9 +98,12 @@ workers ([Scaling and State](../architecture/Scaling%20and%20State.md)).
 | Background execution | Async tool runs delivered to a webhook, Kafka or a file (not the MCP tasks extension) | [Tutorial 7](../tutorials/TUTORIAL_07_submit_async_tool_execution.md); keys in the [Configuration Reference](Configuration%20Reference.md) |
 | Tool quality and versions | Test cases with HTTP cassettes (`python -m sajha.quality test`, JUnit), the schema linter, health probes, evals for Ask SAJHA, tool versions with canary routing, pins, automatic rollback and sunset dates; the Tool Health, Evals and Tool Versions pages; `quality.*` | [Tool Quality](../architecture/Tool%20Quality.md) |
 | Python in the browser | The Python Playground: a Pyodide notebook; `import sajha` calls tools with the user's session; vendored or CDN assets; its own CSP and COOP/COEP | [Python Playground](Python%20Playground.md) |
-| Asking SAJHA questions with an LLM | LLM providers and models, gateway aliases, policy and budgets, the mock provider, `/api/ai/ask`, the Ask SAJHA page, semantic tool search, planners, conversation memory, document search (RAG, `sajha_search_docs`) | [Intelligence Layer](../architecture/Intelligence%20Layer.md) |
+| Asking SAJHA questions with an LLM | LLM providers and models behind one package (`sajha.ai.llm`, OpenAI-style interface), aliases, policy and budgets, the mock provider, `/api/ai/ask`, the Ask SAJHA page, semantic tool search, planners, conversation memory and the Conversations page, document search (RAG, `sajha_search_docs`), the OpenAI-compatible endpoint | [Intelligence Layer](../architecture/Intelligence%20Layer.md) |
+| Tools a model runs | LLM tools: the `llm` block, modes, memory, resource safety, MCP sampling, the Studio LLM tool creator; `ai.llm_tools.*` | [LLM Tools](../architecture/LLM%20Tools.md) |
+| Planner files | `config/planners/`: keys, stages, transitions, the `when` language, validation messages, the shipped strategies; the planner editor | [Planner Reference](../architecture/Planner%20Reference.md) |
 | Extending the intelligence layer | Writing a provider, a model or a planner; the provider contract suite | [Extending the Intelligence Layer](../architecture/Extending%20the%20Intelligence%20Layer.md) |
-| Fronting other MCP servers | Federation: upstreams, namespaced tools, approval, the Federation admin page, `federation.*` | [Federation](../architecture/Federation.md) |
+| Proxying other MCP servers | Federation: upstreams from `federation.upstreams` or the mcpServers file (`config/mcp_servers.json`), namespaced tools, internal and external servers, approval, chains of proxies, the Proxied MCP servers page, `federation.*` | [Federation](../architecture/Federation.md) |
+| Sharing tools between SAJHA servers | SAJHA Net: named nets, membership, the CA and admission, remote tools and fallback, the caller's identity on every call, residency, re-export, sponsored and external servers, the SAJHA Net pages, `sajhanet.*` | [SAJHA Net](../architecture/SAJHA%20Net.md) |
 | Acting as the user at other services | Connected accounts: providers, the OAuth flow with PKCE, the token vault, tool binding (`auth.connected_account`), "connect your account" on MCP, REST and Ask, federation token passthrough, `accounts.*` | [Connected Accounts](../architecture/Connected%20Accounts.md) |
 
 ---
@@ -106,9 +116,9 @@ workers ([Scaling and State](../architecture/Scaling%20and%20State.md)).
 | Configuration | `config/application.yml`, `${ENV:default}`, `SAJHA_*` overrides, every key | [Configuration Reference](Configuration%20Reference.md) |
 | Storage | Where configs, prompts, Studio output and docs live; local, S3, Azure, GCS; hot reload | [Storage Guide](Storage%20Guide.md) |
 | Database | SQLite or PostgreSQL (`db.*`) for users, keys, audit, composites and usage; one schema file per database, the manual PostgreSQL step, upgrades | [Database Setup](Database%20Setup.md) |
-| Security | Credentials, users, roles, API keys, tool access, OAuth, Origin checks, headers, rate limits, the fixes and the known limitations, deployment checklist | [Security Model](../security/Security%20Model.md) |
+| Security | Credentials, the administrators' credential files and plain or hashed storage, console single sign-on, users, roles, API keys, tool access, OAuth, Origin, cross-site and host checks, headers and CSP, TLS, rate limits, the fixes and the known limitations, deployment checklist | [Security Model](../security/Security%20Model.md) |
 | Running user code | The sandbox for Studio Python and script tools and the shell: threat model, backends, guarantees, tool `sandbox` policy | [Sandbox](../architecture/Sandbox.md) |
-| Deployment | AWS CDK, Hetzner, bare metal | [`deployment/README.md`](../../deployment/README.md) |
+| Deployment | AWS CDK, Hetzner, bare metal, a three-instance SAJHA Net demo | [`deployment/README.md`](../../deployment/README.md) |
 | Kubernetes | The container image, the Helm chart (`charts/sajha`), Kustomize manifests, secrets every pod shares, several replicas, streaming ingress | [Kubernetes Deployment](Kubernetes%20Deployment.md) |
 | Several workers and hosts | The state store (`state.backend`: memory, Redis, database), what is shared between workers and what stays per process, durable tasks, secrets every host must share | [Scaling and State](../architecture/Scaling%20and%20State.md) |
 | Watching it run | Prometheus `/metrics`, OpenTelemetry traces and metrics, the usage ledger and the Usage & cost page, alert rules, `observability.*` | [Observability](../architecture/Observability.md) |

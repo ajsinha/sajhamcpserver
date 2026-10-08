@@ -13,6 +13,7 @@ current release.
 | `Exception_Handling_Audit.md` | An audit of `except` blocks | — |
 | `Cybersecurity_Assessment.md` | A security self-assessment | [Security Model](../security/Security%20Model.md) |
 | `STORAGE_ROADMAP.md` | Design notes and the to-do list for the storage abstraction | [Storage Guide](../getting-started/Storage%20Guide.md) |
+| `SAJHA Net Design Note.md` | The SAJHA Net design note as it grew phase by phase: goals, the per-phase build log, the build plan, the owner's decisions and the alternatives considered | [SAJHA Net](../architecture/SAJHA%20Net.md), [SAJHA Net Protocol](../protocol/SAJHA%20Net%20Protocol.md); unbuilt items in the [Roadmap](../architecture/Roadmap.md) |
 
 Rules: a document moves here when it stops being maintained; it is not edited
 afterwards except for a one-line "archived" note at the top; live documents do not

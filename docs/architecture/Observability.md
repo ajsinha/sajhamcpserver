@@ -109,6 +109,9 @@ units). The live list is the endpoint itself; each family carries `# HELP` and `
 federation manager, the process) when `/metrics` is scraped, so they are never stale and
 cost nothing between scrapes.
 
+SAJHA Net adds its own `sajha_net_*` family (remote calls, fallbacks, catalog exchanges, gossip,
+residency decisions and more); [SAJHA Net §16](SAJHA%20Net.md#16-observability-and-audit) owns that list.
+
 ### 2.3 Label cardinality
 
 A Prometheus series per distinct label set is cheap until a label takes unbounded values.
