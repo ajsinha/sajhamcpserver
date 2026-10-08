@@ -226,6 +226,16 @@ MESSAGES: Dict[str, Dict[str, Any]] = {
     'enroll_response': _obj(['certificate', 'ca_certificate', 'not_after'], {
         'certificate': _ref('cert_chain'), 'ca_certificate': _ref('b64'), 'not_after': _ref('timestamp')}),
     'renew_request': _obj(['csr'], {'csr': _ref('b64')}),
+    # §15.9 (token_exchange, SAJHA): an RFC 8693 style exchange of a user assertion for a host-scoped token
+    'token_request': _obj(['grant_type', 'subject_token', 'subject_token_type', 'audience'], {
+        'grant_type': {'const': 'urn:ietf:params:oauth:grant-type:token-exchange'},
+        'subject_token': {'type': 'string', 'minLength': 16, 'maxLength': 8192},
+        'subject_token_type': {'const': 'urn:sajha:net:user-assertion'},
+        'audience': _ref('instance_name')}),
+    'token_response': _obj(['access_token', 'issued_token_type', 'token_type', 'expires_in'], {
+        'access_token': {'type': 'string', 'minLength': 32, 'maxLength': 256},
+        'issued_token_type': {'const': 'urn:ietf:params:oauth:token-type:access_token'},
+        'token_type': {'const': 'N_A'}, 'expires_in': {'type': 'integer', 'minimum': 1, 'maximum': 3600}}),
 }
 
 #: record and shared definitions validated by name too

@@ -367,6 +367,13 @@ async def sajhanet_catalogs(auth: AuthContext = Depends(require_admin)):
     return _off() if c is None else await _call(c.status)
 
 
+@router.get('/api/sajhanet/topology')
+async def sajhanet_topology(net: str = '', auth: AuthContext = Depends(require_admin)):
+    """Per net: instances and the offers, re-exports and observed call paths between them (design §17)."""
+    c = _catalogs()
+    return _off() if c is None else await _call(c.topology, net or None)
+
+
 @router.post('/api/sajhanet/nets/{net}/peers/{peer}/trust')
 async def sajhanet_set_trust(net: str, peer: str, request: Request, auth: AuthContext = Depends(require_admin)):
     """Set a peer's trust level: ``{"trust": "auto"|"review"|"pinned", "pinned": [tool, ...]}`` (design §7.3)."""
@@ -453,3 +460,47 @@ async def admin_sajhanet_tools_page(request: Request, auth: AuthContext = Depend
         r['last_seen'] = _rfc(r.get('last_seen'))
     return render(request, 'admin/sajhanet_tools.html', {
         'user': _user(auth), 'is_admin': True, 'enabled': c is not None, 'table': table, 'conflicts': conflicts})
+
+
+# ── the net overview (admin) and each user's access across the net, design §17.1 (phase 5.2) ─────
+
+@router.get('/admin/sajhanet/overview')
+async def admin_sajhanet_overview_page(request: Request, net: str = '', auth: AuthContext = Depends(require_admin)):
+    """One net at a glance: members and states, topology, admission, notices, gossip, conflicts, blocks,
+    recent forwarded calls, call-chain refusals and residency decisions (read-only)."""
+    from sajha.net.integration.overview import overview_view
+    view = await run_in_threadpool(overview_view, net or None)
+    return render(request, 'admin/sajhanet_overview.html', {'user': _user(auth), 'is_admin': True, 'view': view})
+
+
+@router.get('/api/sajhanet/overview')
+async def sajhanet_overview(net: str = '', auth: AuthContext = Depends(require_admin)):
+    from sajha.net.integration.overview import overview_view
+    return await _call(overview_view, net or None)
+
+
+@router.get('/api/sajhanet/nets/{net}/pins')
+async def sajhanet_pins(net: str, auth: AuthContext = Depends(require_admin)):
+    """Manual mode: the pinned peer thumbprints, from configuration and added at runtime."""
+    svc = _svc()
+    if svc is None or not svc.shared.enabled:
+        return _off()
+    rt = svc.runtimes.get(net)
+    if rt is None:
+        return JSONResponse({'error': f'this server is not configured for net {net!r}'}, status_code=404)
+    return {'net': net, 'admission': rt.cfg.admission, 'configured': list(rt.cfg.identity.pins or []),
+            'runtime': svc.runtime_pins(net)}
+
+
+@router.get('/net/access')
+async def net_access_page(request: Request, auth: AuthContext = Depends(require_auth)):
+    """Every remote tool the signed-in user may use across the net, by plain name and host."""
+    from sajha.net.integration.overview import access_view
+    view = await run_in_threadpool(access_view, auth)
+    return render(request, 'net/access.html', {'user': _user(auth), 'is_admin': auth.is_admin, 'view': view})
+
+
+@router.get('/api/sajhanet/access')
+async def sajhanet_access(auth: AuthContext = Depends(require_auth)):
+    from sajha.net.integration.overview import access_view
+    return await _call(access_view, auth)

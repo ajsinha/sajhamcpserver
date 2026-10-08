@@ -139,6 +139,13 @@ class DatabaseKeyDirectory(plugins.KeyDirectoryStore):
         found = self.find(net, key_hash)
         return found[0] if found else None
 
+    def by_id(self, net, home, key_id):
+        with self.ensure().connect() as c:
+            r = c.execute(select(sajhanet_api_keys).where(and_(
+                sajhanet_api_keys.c.net == net, sajhanet_api_keys.c.key_id == str(key_id),
+                sajhanet_api_keys.c.home_instance == home))).first()
+        return self._row(r._mapping) if r is not None else None
+
     def since(self, net, home, version, limit=1000):
         with self.ensure().connect() as c:
             rows = c.execute(select(sajhanet_api_keys).where(and_(

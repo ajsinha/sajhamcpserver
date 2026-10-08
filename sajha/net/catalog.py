@@ -271,7 +271,8 @@ class CatalogBook:
                  screen_text: Callable[[Any, int], Tuple[str, bool]] = basic_screen_text,
                  schema_problem: Callable[..., Optional[str]] = basic_schema_problem,
                  limits: Optional[Limits] = None, refresh_interval: float = 300.0,
-                 default_trust: str = 'auto', reexport: bool = False, run_ttl: float = RUN_TTL_FLOOR):
+                 default_trust: str = 'auto', reexport: bool = False, run_ttl: float = RUN_TTL_FLOOR,
+                 reexports: Optional[Callable[[Optional[str]], List[Dict[str, Any]]]] = None):
         self.node = node
         self.net = node.net
         self.kv = node.kv
@@ -286,6 +287,10 @@ class CatalogBook:
         self.limits = limits or Limits()
         self.refresh_interval = max(5.0, float(refresh_interval))
         self.reexport = reexport
+        # re-export (§16): tools imported from other participants that this one offers ``peer`` (None: any
+        # peer), as tool objects with ``_net`` (``origin`` within one net, none for a bridge) and ``_source``
+        # (where the call goes; never served). Only used while ``reexport`` is on for this net.
+        self.reexports = reexports
         self.run_ttl = max(RUN_TTL_FLOOR, float(run_ttl))
         self.counters: Dict[str, int] = {}
         self._own_cache: Optional[Tuple[float, List[Dict[str, Any]]]] = None
@@ -367,7 +372,7 @@ class CatalogBook:
         self._recompute_digest()
 
     def _exported(self, raw: Dict[str, Any]) -> Dict[str, Any]:
-        t = strip_ui({k: v for k, v in raw.items() if k != '_net'})
+        t = strip_ui({k: v for k, v in raw.items() if k not in ('_net', '_source')})
         t.setdefault('inputSchema', {'type': 'object', 'properties': {}})
         extra = dict(raw.get('_net') or {})
         meta = {'net': self.net, 'instance': self.node.name}
@@ -394,15 +399,49 @@ class CatalogBook:
             return False
 
     def exports(self, peer: Optional[str] = None) -> List[Dict[str, Any]]:
-        """The tools this participant offers ``peer`` (None: any peer), sorted by name."""
+        """The tools this participant offers ``peer`` (None: any peer), sorted by name: its own, then,
+        with re-export on, the tools it re-exports (an own tool always wins its name)."""
         out = []
+        seen = set()
         for raw in self._source_tools():
             name = raw.get('name')
             if not isinstance(name, str) or not name:
                 continue
+            seen.add(name)
             if self._export_allowed(peer, name):
                 out.append(self._exported(raw))
+        for raw in self._reexported(peer):
+            if raw['name'] not in seen:
+                seen.add(raw['name'])
+                out.append(self._exported(raw))
         return sorted(out, key=lambda t: t['name'])
+
+    def _reexported(self, peer: Optional[str]) -> List[Dict[str, Any]]:
+        if not self.reexport or self.reexports is None:
+            return []
+        try:
+            raws = list(self.reexports(peer) or [])
+        except Exception as e:
+            logger.warning(f'SAJHA Net {self.net}: re-export source failed: {e}')
+            return []
+        out = []
+        for raw in raws:
+            origin = (raw.get('_net') or {}).get('origin')
+            if not isinstance(raw.get('name'), str) or not raw['name']:
+                continue
+            if peer is not None and origin == peer:
+                continue                                  # never offer a tool back to the participant hosting it
+            if origin == self.node.name:
+                continue                                  # our own tool, come back through someone else
+            out.append(raw)
+        return out
+
+    def reexport_of(self, name: str, peer: Optional[str]) -> Optional[Dict[str, Any]]:
+        """The re-exported tool ``name`` as offered to ``peer`` (with ``_net`` and ``_source``), or None
+        when ``name`` is an own tool or not re-exported to ``peer``."""
+        if any(raw.get('name') == name for raw in self._source_tools()):
+            return None
+        return next((raw for raw in self._reexported(peer) if raw['name'] == name), None)
 
     def own_digest(self) -> str:
         return str(self.kv.get('own_digest') or 'none')
@@ -614,8 +653,8 @@ class CatalogBook:
                 meta.get('instance') != peer:
             flags.append('invalid_meta')
             return None
-        if meta.get('origin') and not self.reexport:
-            pass                                                      # a re-exported tool: kept, origin noted
+        if meta.get('origin') == self.node.name:
+            return None                                               # our own tool, re-exported back to us (§16)
         ch = contract_hash(raw)
         if ch != meta.get('contract_hash'):
             flags.append('contract_hash_mismatch')

@@ -29,8 +29,10 @@
 {% set MENU = MENU + [
   ('SAJHA Net', 'share', [
     ('Net', [
-      (url_for('net_instances_page'), 'hdd-network', 'Instances', 'Every instance in your nets and the tools each offers you')]
-      + ([(url_for('admin_sajhanet_tools_page'), 'diagram-2', 'Remote tools', 'The host and tool table, held tools and conflicts'),
+      (url_for('net_instances_page'), 'hdd-network', 'Instances', 'Every instance in your nets and the tools each offers you'),
+      (url_for('net_access_page'), 'person-check', 'Your net access', 'Every remote tool, where it runs and whether you may use it')]
+      + ([(url_for('admin_sajhanet_overview_page'), 'diagram-3', 'Net overview', 'Members, topology, admission, notices and recent calls'),
+          (url_for('admin_sajhanet_tools_page'), 'diagram-2', 'Remote tools', 'The host and tool table, held tools and conflicts'),
           (url_for('admin_sajhanet_page'), 'gear', 'SAJHA Net admin', 'Membership, adding a peer, CA, blocks, users and keys')]
          if is_admin else []))])] %}
 {% endif %}

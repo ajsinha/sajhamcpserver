@@ -223,6 +223,22 @@ PAGE_HELP: dict = {
         'terms': ['Host and tool table', 'Resolution order', 'Trust level', 'Contract hash',
                   'Contract conflict', 'Quarantine', 'Bare alias'],
         'guide': 'SAJHA Net.md'},
+    'admin_sajhanet_overview_page': {
+        'what': 'One net at a glance: the members and their states on a topology map (with a table), how this server is '
+                'admitted (first-use keys with Forget in open mode, pins in manual mode, the CA in builtin_ca mode), gossip '
+                'health, open notices, quarantined and held tools, blocks, and from the audit chain the recent forwarded '
+                'calls with trace ids, call-chain refusals and residency decisions.',
+        'terms': ['Net overview', 'Topology map', 'Member state', 'Gossip', 'Admission mode', 'First-use key',
+                  'Open mode', 'Manual mode', 'SAJHA Net CA', 'Enrollment token', 'Revocation list', 'Quarantine',
+                  'Trust level', 'Net block', 'Forwarded call', 'Call chain budget', 'Residency', 'System notice'],
+        'guide': 'SAJHA Net.md'},
+    'net_access_page': {
+        'what': 'Every tool other instances offer through this server, by name: each host offering it in resolution '
+                'order, its state, and whether this server lets you call it there, with Try it. The host checks your '
+                'access again on every call.',
+        'terms': ['Net access page', 'Proxy tool', 'Bare alias', 'Resolution order', 'Host instance', 'Quarantine',
+                  'Member state'],
+        'guide': 'SAJHA Net.md'},
     'admin_connections_page': {
         'what': 'Which services each user has linked, with what access and when last used; unlink an account, '
                 're-encrypt the vault after a key change. Never a token.',

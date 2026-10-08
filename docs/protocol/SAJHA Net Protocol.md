@@ -298,11 +298,14 @@ nets MAY offer different features in each). Peers use a feature only when **both
 | `mrtr` | Relays multi-round input requests (`input_required` results) of forwarded calls. |
 | `tasks` | Accepts task-augmented forwarded calls (the MCP tasks extension) for the resolved user. |
 | `reexport` | May offer into this net, and accepts calls to, tools it imported from other participants (§16). |
+| `token_exchange` | Serves `POST /sajhanet/v1/token` and accepts `Sajha-Net-User-Token` (§15.9). |
 | `ca` | Is the CA participant and serves §14. |
 
 `user_identity` lists the identity resolvers the participant accepts as a host and can produce as a
-home: `api_key` (§15.3), `assertion` (§15.5), `token_exchange` (reserved; RFC 8693, not specified in
-version 1), `none` (service identity only). Version 1 participants MUST support `api_key` unless they
+home: `api_key` (§15.3), `assertion` (§15.5), `token_exchange` (§15.9; RFC 8693 shaped, between two
+participants), `none` (service identity only). A participant listing `token_exchange` also lists the
+feature `token_exchange` and serves `POST /sajhanet/v1/token`. A home sends the first resolver of its own
+list that the host's member record also lists. Version 1 participants MUST support `api_key` unless they
 list only `none`.
 
 ### 6.3 Client declaration
@@ -351,6 +354,7 @@ second port, no UDP. The same endpoints serve every net the participant belongs 
 | `GET /sajhanet/v1/revocations` | Fetch the CA-signed revocation list | yes | §13 |
 | `POST /sajhanet/v1/ca/enroll` | Certificate request with an enrollment token | **no** (token) | §14.1 |
 | `POST /sajhanet/v1/ca/renew` | Certificate renewal | yes | §14.2 |
+| `POST /sajhanet/v1/token` | Exchange a user assertion for a host-scoped token (feature `token_exchange`) | yes | §15.9 |
 | `POST <mcp_path>` | Forwarded MCP requests (`tools/call`, `tools/list`, ...) | yes | §15 |
 
 Every response from every row is signed (§8.8), including error responses, with one exception: a
@@ -614,6 +618,7 @@ The covered components are, in this order:
 | `"sajha-net-hop"`, `"sajha-net-visited"` | forwarded tool calls (§15.2) |
 | `"sajha-net-api-key"` | when present (§15.3) |
 | `"sajha-net-user-assertion"` | when present (§15.5) |
+| `"sajha-net-user-token"` | when present (§15.9) |
 | `"traceparent"` | when present (always on forwarded tool calls) |
 
 `@authority` and `@scheme` are deliberately **not** covered, because TLS often ends at a proxy that
@@ -650,6 +655,7 @@ Other signatures under other labels MAY be present and are ignored.
 | `Sajha-Net-Visited` | RFC 8941 List of Strings, each `<net>/<instance name>` (`"acme-net/risk-eu", "acme-net/treasury-na"`); `/` occurs in neither part |
 | `Sajha-Net-Api-Key` | the raw API key, ASCII |
 | `Sajha-Net-User-Assertion` | base64url of the JCS bytes of a signed user assertion (§15.5) |
+| `Sajha-Net-User-Token` | a host-scoped token issued by the host (§15.9), ASCII |
 | `Sajha-Net-Certificate` | §8.3 |
 
 Component values in the signature base are the field values with leading and trailing whitespace
@@ -1600,6 +1606,7 @@ mirroring them are covered by the signature (§8.5).
 | `traceparent` (and `tracestate` if any) | W3C Trace Context; the same trace id on every hop; also mirrored in `params._meta.traceparent` | yes |
 | `Sajha-Net-Api-Key` | the user's raw API key (§15.3) | with `api_key` identity on hop 1 |
 | `Sajha-Net-User-Assertion` | a home-signed user assertion (§15.5) | with `assertion` identity, or on hop > 1 |
+| `Sajha-Net-User-Token` | a host-scoped token (§15.9) | with `token_exchange` identity, on hop 1 only |
 | `Sajha-Net-Certificate`, `Signature-Input`, `Signature`, `Content-Digest` | §8 | yes |
 
 A net-signed request MUST NOT also carry `Authorization` or the host's ordinary API-key header
@@ -1631,7 +1638,7 @@ A host MUST apply these steps in order and stop at the first refusal (codes in �
 2. Protocol version → `-32017`.
 3. Blocks on the sending participant, entire or inbound → `-32015`.
 4. Hop and loop checks (§16) → `-32016`.
-5. Identity (§15.3 or §15.5); `none` only if the host allows service calls from this peer → `-32013`.
+5. Identity (§15.3, §15.5 or §15.9); `none` only if the host allows service calls from this peer → `-32013`.
 6. Block on the remote user → `-32015`.
 7. User mapping (link, name, role map; remote administrators per the host's setting) → `-32013 no_account`.
 8. Block on the tool → `-32015`.
@@ -1685,6 +1692,13 @@ assertion never crosses into another net (§16). The host checks that `net` is t
 window, that `trace_id` matches `traceparent`, and that the key record `key_id` of `home_instance =
 iss` is usable (§15.3 checks other than possession). The user is `user`, which MUST equal
 `<owner.user_name>@<iss>` of that record. Intermediaries forward the assertion unchanged.
+
+The issuer is the sender on hop 1; on a later hop `<net>/<iss>` MUST be in `Sajha-Net-Visited` (it
+passed the chain), else `assertion_invalid`. A request carries at most one of `Sajha-Net-Api-Key`,
+`Sajha-Net-User-Assertion` and `Sajha-Net-User-Token` (`ambiguous_credentials`). A host MUST accept an
+assertion on a call to a re-exported tool and on hop > 1 even when it does not list `assertion`, since
+§16 requires one there; otherwise it accepts only the resolvers it lists. A home names a key of the user
+that it publishes in the net key directory (`key_id`), never a key of another participant.
 
 ### 15.6 Progress, cancellation, input and tasks
 
@@ -1758,6 +1772,29 @@ part of a stream).
 
 A host never needs to know whether a call is a fallback; it handles every attempt as a new call.
 
+### 15.9 Identity: `token_exchange`
+
+A home that uses `token_exchange` with a host first obtains a token for the user, then sends it with
+each call in `Sajha-Net-User-Token` instead of a key or an assertion.
+
+- **Exchange.** The home sends a signed `POST /sajhanet/v1/token` to the host (feature `token_exchange`;
+  §8.5; body at most 16 KiB) with
+  `{"grant_type": "urn:ietf:params:oauth:grant-type:token-exchange", "subject_token": <a user assertion,
+  §15.5, as in Sajha-Net-User-Assertion, with aud = the host>, "subject_token_type":
+  "urn:sajha:net:user-assertion", "audience": <the host>}`. The host verifies the assertion as §15.5
+  says for hop 1 (its `trace_id` is not checked), applies the block on the user and the user mapping
+  (steps 6 and 7 of §15.4), and answers `{"access_token", "issued_token_type":
+  "urn:ietf:params:oauth:token-type:access_token", "token_type": "N_A", "expires_in": <seconds, at most
+  3600>}`, or a problem (§7.5) with the identity reason of §17.1.
+- **Token.** Opaque, at least 128 bits of entropy, bound to the net and to the home that asked. The host
+  MUST keep only a hash of it, and the home MUST NOT log, store outside memory, trace or audit it. It is
+  never forwarded: a re-exported call uses an assertion (§16).
+- **Use.** The host refuses with `-32013 token_invalid` a token it does not hold, an expired one, or one
+  issued to another participant than `Sajha-Net-From`; it re-checks the key record (the §15.3 checks other
+  than possession), the block on the user and the mapping on every call. A home that gets
+  `token_invalid` from the host discards its token and MAY exchange again and retry the call once.
+- **Caching.** A home caches a token per host and key until shortly before `expires_in` runs out.
+
 ## 16. Hops and loops
 
 - Feature `reexport` is listed, and applies, per net. A participant without it in a net exports
@@ -1778,6 +1815,12 @@ A host never needs to know whether a call is a fallback; it handles every attemp
   `Sajha-Net-Visited` continue across the bridge (the request into M carries hop + 1 and the whole
   list with `M/<its name in M>` appended), so hop limits and loop detection hold end to end. A
   host in M sees and authorizes the bridge's user, never the caller from N.
+- **Catalogs.** A participant MUST NOT import a tool whose `origin` is itself, MUST NOT offer a
+  re-exported tool to its host or to its origin, and MUST NOT re-export a tool under the name of one of
+  its own tools; it re-exports the host's contract unchanged, so the contract hash is the same (§10.7).
+  A home ranks a host offering a tool directly before a participant re-exporting it. An intermediary
+  verifies the caller's assertion like a host, with the tool's `origin` as the expected `aud`, and applies
+  its own blocks, mapping and rules (SAJHA: re-export rules in place of export rules) before relaying.
 - Every receiver refuses with `-32016`: `hop_limit` when `Sajha-Net-Hop` exceeds its maximum (SAJHA:
   `sajhanet.max_hops`; never more than 8); `loop` when any of its own `<net>/<name>` identities, in
   any net it belongs to, is in `Sajha-Net-Visited`; `hop_inconsistent` when the list's length is not
@@ -1804,7 +1847,7 @@ already and never emits `-32002` on the modern path):
 |---|---|---|---|---|
 | `-32011` | Authorization refused | `export`, `access`, `policy`, `approval_required`, `remote_admin`, `contract_conflict` (the tool is quarantined at the host, §10.7) | host | 200 |
 | `-32012` | Residency refused | `residency_arguments` (home), `residency_result` (host) | either | 200 |
-| `-32013` | Identity refused | `key_unknown`, `key_disabled`, `key_expired`, `key_revoked`, `key_not_from_home`, `no_account`, `assertion_invalid`, `https_required`, `anonymous`, `ambiguous_credentials` | host (home for `https_required`, `anonymous`) | 200 |
+| `-32013` | Identity refused | `key_unknown`, `key_disabled`, `key_expired`, `key_revoked`, `key_not_from_home`, `no_account`, `assertion_invalid`, `token_invalid`, `https_required`, `anonymous`, `ambiguous_credentials` | host (home for `https_required`, `anonymous`) | 200 |
 | `-32014` | Peer refused | the 401 and 403 reasons of §7.4 that apply to authentication and revocation | host | 401 or 403 as in §7.4 |
 | `-32015` | Blocked | `instance`, `inbound`, `outbound`, `tool`, `user` | either | 200 |
 | `-32016` | Hop refused | `hop_limit`, `loop`, `hop_inconsistent`, `chain_limit` | host (home too, §16) | 200 |
@@ -2057,6 +2100,8 @@ vectors for SIG-01, SIG-12 and REC-01.
 | CALL-11 | S A (`progress`, `cancellation`) | Progress reaches the caller; the caller's cancellation reaches the host. |
 | CALL-12 | S A | On 2025-11-25, a session created by one participant cannot be used by another's signed requests. |
 | CALL-13 | S A (`reexport`) | A re-exported call carries an assertion with `aud` = origin and `net` = the request's net, no raw key, hop 2 and the visited list; an expired or replayed assertion, or one whose `net` is another net → `-32013 assertion_invalid`. |
+| CALL-14 | S A | With `assertion` identity a call runs as the user the assertion names (key id only, no key); a bad signature, another audience, another trace, an issuer other than the sender on hop 1, or a host that does not list `assertion` on a direct call → `-32013 assertion_invalid`; a user with no account → `no_account`. |
+| CALL-15 | S A (`token_exchange`) | The token endpoint exchanges a valid assertion for a token that the next calls carry instead of a key; a token unknown to the host, expired or presented by another participant → `-32013 token_invalid`, after which the home exchanges again; an exchange for a user with no account → `no_account`. |
 | FB-01 | S A | Every refusal of a forwarded `tools/call` before execution (each step 1 to 10 of §15.4, and `-32019` `draining`, `overloaded`, `rate_limited`) carries `executed: false`; `residency_result` carries `executed: true`; a host never sends `-32019` after the tool has started. |
 | FB-02 | S | A call by plain name whose first host refuses the connection, has its breaker open, is `suspect`, or answers `-32019` with `executed: false` is sent to the next host offering the same tool part, in resolution order, across nets (where the `contract_hash` must also match); `version` plays no part (§10.2); a host whose copy has another contract in another net, or a tool refused for `contract_conflict`, is never tried. |
 | FB-03 | S | After a timeout following the send, an unsigned proxy `502`/`503`/`504`, or a response that fails verification, the home falls back only for tools that are read-only, or idempotent with `destructiveHint: false`; a destructive tool is not tried again. |

@@ -72,9 +72,15 @@ class NetAuthSettings:
     role_maps: Dict[str, Dict[str, List[str]]] = field(default_factory=dict)
     service_calls: bool = False
     anonymous_may_call_remote: bool = False
-    user_identity: str = 'api_key'
+    user_identity: str = 'api_key'           # one resolver, or several (comma list): the first is sent
     key_sync: bool = True
     key_full_sync_interval: float = 300.0
+    assertion_ttl_seconds: float = 30.0       # lifetime of a user assertion (at most 60, protocol §15.5)
+    token_ttl_seconds: float = 300.0          # lifetime of a token issued by token_exchange (at most 3600)
+
+    def identities(self) -> List[str]:
+        """The resolvers of this net: the first is what this server sends as a home, all are accepted."""
+        return _list(self.user_identity) or ['api_key']
 
 
 def _list(v: Any) -> List[str]:
@@ -132,7 +138,9 @@ def settings_for(net: str, entry: Optional[Dict[str, Any]] = None) -> NetAuthSet
         service_calls=_bool(entry.get('service_calls', _g('service_calls', 'false')), False),
         anonymous_may_call_remote=_bool(entry.get('anonymous_may_call_remote',
                                                   _g('anonymous_may_call_remote', 'false')), False),
-        user_identity=str(_g('user_identity', 'api_key')),
+        user_identity=','.join(_list(entry.get('user_identity') or _g('user_identity', 'api_key'))) or 'api_key',
+        assertion_ttl_seconds=max(1.0, min(60.0, _num(_g('assertion.ttl_seconds', 30), 30))),
+        token_ttl_seconds=max(1.0, min(3600.0, _num(_g('token_exchange.ttl_seconds', 300), 300))),
         key_sync=_bool(_g('key_directory.sync', kd.get('sync', 'true')), True),
         key_full_sync_interval=max(5.0, _num(_g('key_directory.full_sync_interval_seconds',
                                                  kd.get('full_sync_interval_seconds', 300)), 300)))
@@ -314,7 +322,7 @@ class NetRules(plugins.RuleEvaluator):
         s = subject or {}
         net = str(s.get('net') or '')
         if a is None or net not in a.nets:
-            return plugins.Decision(False, rule) if rule in ('export', 'import', 'service_call') \
+            return plugins.Decision(False, rule) if rule in ('export', 'import', 'service_call', 'reexport') \
                 else plugins.Decision(True, rule)
         return a.decide(net, rule, s)
 
@@ -386,7 +394,8 @@ class NetAuthz:
         self._persistent = persistent
         self._settings = dict(settings or {})
         self.nets: Dict[str, NetState] = {}
-        self.identity = ApiKeyIdentity(self)
+        from sajha.net.integration.identity import NetIdentity
+        self.identity = NetIdentity(self)            # api_key, assertion, token_exchange per net (design §10.2)
         self.rules = NetRules(self)
         self._store = None
 
@@ -417,7 +426,14 @@ class NetAuthz:
         """Install the key directory, block publication and observers on a node before it starts."""
         st = NetState(self, cfg, node, self._settings.get(cfg.name) or settings_for(cfg.name), self.key_store())
         self.nets[cfg.name] = st
-        cfg.user_identity = [st.settings.user_identity] if st.settings.user_identity else ['none']
+        from sajha.net.integration.identity import KNOWN
+        ids = [i for i in st.settings.identities() if i in KNOWN]
+        cfg.user_identity = ids or ['none']
+        if 'token_exchange' in ids:                                   # the host's token endpoint (protocol §15.9)
+            if 'token_exchange' not in node.extra_features:
+                node.extra_features.append('token_exchange')
+            node.handlers['/sajhanet/v1/token'] = (
+                lambda data, v, st=st: self.identity.resolvers['token_exchange'].serve_token(st, data, v))
         skip = (lambda peer, st=st: nblocks.blocked_entirely(st.blocks(), st.now(), peer))
 
         def own(st=st):
@@ -544,6 +560,10 @@ class NetAuthz:
             'tool_access_mode': rec.get('tool_access_mode') or 'all',
             'tool_access_list': list(rec.get('tool_access_list') or []), 'identity': 'api_key',
         }
+        return self.finish(st, verified)
+
+    def finish(self, st: NetState, verified: Dict[str, Any]) -> Dict[str, Any]:
+        """Steps 6 and 7 of protocol §15.4 for a verified net user, whatever resolver verified it."""
         if nblocks.match_user(st.blocks(), st.now(), verified['name']) is not None:       # step 6
             self._seen(st, verified, 'blocked', '')
             raise NetError('user', 'calls on behalf of this user are blocked here')
@@ -623,6 +643,7 @@ class NetAuthz:
     def _seen(self, st: NetState, v: Dict[str, Any], mapping: str, local: str) -> None:
         try:
             st.node.kv.set(f'seen:{v["name"]}', {'user': v['name'], 'home': v['home'], 'mapping': mapping,
+                                                 'identity': v.get('identity') or 'api_key',
                                                  'local': local, 'key_prefix': v.get('key_prefix', ''),
                                                  'at': crypto.rfc3339(st.now())}, ttl=SEEN_TTL)
         except Exception as e:
@@ -685,6 +706,11 @@ class NetAuthz:
             u = s.get('user') if isinstance(s.get('user'), dict) else None
             roles = list(u.get('roles') or []) if u else None
             return import_decision(st.settings.import_, host, str(s.get('tool') or ''), roles)
+        if rule == 'reexport':                                   # design §14: re-export rules of this net
+            cat = getattr(self.svc, 'catalogs', None)
+            if cat is None:
+                return plugins.Decision(False, 'export')
+            return cat.reexport_decision(net, s)
         if rule in ('residency_offer', 'residency_arguments', 'residency_result'):
             from sajha.net.integration.residency import decide as residency_decide
             return residency_decide(st.node, rule, s, registry=getattr(self.svc, 'tools_registry', None))               # design §12 (data classes, residency rules)
@@ -941,3 +967,7 @@ def get_authz(svc) -> NetAuthz:
                      persistent=getattr(svc, 'persistent_keys', None))
         svc.authz = a
     return a
+
+
+# the assertion and token_exchange resolvers register next to api_key
+from sajha.net.integration import identity as _identity  # noqa: E402,F401

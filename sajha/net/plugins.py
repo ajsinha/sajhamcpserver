@@ -11,7 +11,7 @@ kind                   interface               shipped here
 membership             MembershipProvider      gossip, static
 admission              AdmissionProvider       builtin_ca, manual
 connector              PeerConnector           sajha_native (HTTP), in_process (tests, agents)
-identity               IdentityResolver        none
+identity               IdentityResolver        none (api_key, assertion, token_exchange in SAJHA)
 catalog_source         CatalogSource           static
 key_directory_store    KeyDirectoryStore       memory
 rules                  RuleEvaluator           allow_all, deny_all
@@ -19,7 +19,8 @@ snapshot_sink          SnapshotSink            local_files
 routing                RoutingStrategy         local_first, lowest_latency, pinned
 =====================  ======================  ===========================================
 
-The SAJHA implementations that need the rest of SAJHA (the ``api_key`` resolver, the ``native``
+The SAJHA implementations that need the rest of SAJHA (the ``api_key``, ``assertion`` and
+``token_exchange`` resolvers, the ``native``
 catalog source, the ``database`` key directory store, the policy-engine rules) register from
 :mod:`sajha.net.integration` as they are built.
 
@@ -143,6 +144,10 @@ class KeyDirectoryStore(Plugin):
         """Every record of ``net`` with this hash (several homes could publish one hash)."""
         r = self.by_hash(net, key_hash)
         return [r] if r else []
+
+    def by_id(self, net: str, home: str, key_id: str) -> Optional[Dict[str, Any]]:
+        """The record ``key_id`` of ``home`` (a user assertion names a key by id, protocol §15.5)."""
+        return next((r for r in self.since(net, home, 0, limit=10 ** 6) if r.get('key_id') == key_id), None)
 
     def discard_signed(self, net: str, keyid: str) -> List[str]:
         """Drop the records whose signature ``keyid`` is this certificate thumbprint (§11.2, a

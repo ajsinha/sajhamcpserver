@@ -1,0 +1,106 @@
+{% extends "common/base.html" %}
+{% block title %}Your net access - SAJHA Net - SAJHA MCP Server{% endblock %}
+{% block extra_css %}
+<style>
+.na-net{border:1px solid var(--t-card-b);border-radius:var(--radius-lg);background:var(--t-card);margin-bottom:1rem}
+.na-head{display:flex;flex-wrap:wrap;gap:.5rem;align-items:center;justify-content:space-between;padding:.7rem 1rem;border-bottom:1px solid var(--t-card-b);background:var(--t-card-hdr)}
+.na-head h2{font-size:1.05rem;margin:0;font-weight:700;color:var(--t-heading);word-break:break-word}
+.na-meta{font-size:.86rem;color:var(--t-muted);word-break:break-word}
+.na-table{font-size:.86rem;width:100%}
+.na-table th{background:var(--t-card-hdr);color:var(--t-text2);font-weight:600;font-size:.86rem;text-transform:uppercase;letter-spacing:.05em;padding:.45rem .75rem}
+.na-table td{padding:.45rem .75rem;border-bottom:1px solid var(--t-card-b);color:var(--t-text);word-break:break-word;vertical-align:top}
+.na-hosts{list-style:none;margin:0;padding:0}
+.na-hosts li{margin:0 0 .3rem}
+.st{display:inline-block;padding:.05rem .45rem;border-radius:999px;font-size:.86rem;font-weight:600;color:var(--sajha-on-crimson)}
+.st-yes{background:var(--sajha-ok)}.st-no{background:var(--sajha-slate)}.st-unavailable,.st-held{background:var(--sajha-warn)}
+.st-quarantined,.st-blocked,.st-invalid{background:var(--sajha-bad)}.st-hidden{background:var(--sajha-slate)}
+.na-bar{display:flex;flex-wrap:wrap;gap:.5rem;align-items:flex-end;margin-bottom:1rem}
+.na-bar>div{flex:1 1 9rem;max-width:100%}
+</style>
+{% endblock %}
+{% block content %}
+<div class="container-fluid">
+  <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+    <div>
+      <h1 class="h3 mb-0"><i class="bi bi-person-check me-2" aria-hidden="true"></i>Your net access</h1>
+      <small class="text-muted">Every tool other instances offer through this server, where each runs, and which of them you may use from here</small>
+    </div>
+    <div class="d-flex gap-2">
+      <a class="btn btn-sm btn-outline-secondary" href="/net/instances">Instances</a>
+      <a class="btn btn-sm btn-outline-primary" href="/net/access" aria-label="Reload"><i class="bi bi-arrow-clockwise" aria-hidden="true"></i></a>
+    </div>
+  </div>
+
+  <p class="na-meta">On this server you may use {{ view.local_usable }} of its {{ view.local_total }} own tools
+    (<a href="/net/instances/this">this server's tools</a>). Below, the remote ones. This server decides what it lists for you;
+    the host checks your access again on every call, so a tool listed as usable can still be refused there.</p>
+
+  {% if not view.enabled %}
+  <div class="alert alert-info small" role="status">
+    <i class="bi bi-info-circle me-1" aria-hidden="true"></i>
+    SAJHA Net is off, so this server is a net of one: there are no remote tools to use.
+  </div>
+  {% else %}
+  <form class="na-bar" role="search" onsubmit="return false" aria-label="Filter remote tools">
+    <div><label class="form-label small" for="na-q">Search</label>
+      <input class="form-control form-control-sm" id="na-q" placeholder="tool or instance" autocomplete="off"></div>
+    <div><label class="form-label small" for="na-show">Show</label>
+      <select class="form-select form-select-sm" id="na-show"><option value="">Every tool</option>
+        <option value="yes">Only those you may use</option><option value="no">Only those you may not use</option></select></div>
+  </form>
+  <p class="na-meta" id="na-count" role="status" aria-live="polite"></p>
+  {% endif %}
+
+  {% for n in view.nets %}
+  <section class="na-net" aria-labelledby="na-net-{{ loop.index }}">
+    <div class="na-head">
+      <h2 id="na-net-{{ loop.index }}">{{ n.net }} <span class="na-meta">as <code>{{ n.instance }}</code></span></h2>
+      <span class="na-meta">{{ n.usable }} of {{ n.listed }} remote tools usable by you</span>
+    </div>
+    <div class="table-responsive" tabindex="0" role="region" aria-label="Remote tools in {{ n.net }}">
+    <table class="na-table">
+      <caption class="visually-hidden">Remote tools in {{ n.net }} and whether you may use them</caption>
+      <thead><tr><th scope="col">Tool</th><th scope="col">You</th><th scope="col">Hosts, in resolution order</th></tr></thead>
+      <tbody>
+      {% for t in n.tools %}
+        <tr class="na-row" data-use="{{ 'yes' if t.usable_hosts else 'no' }}"
+            data-text="{{ t.name|lower }} {% for h in t.hosts %}{{ h.instance|lower }} {% endfor %}">
+          <td><code>{{ t.name }}</code>{% if t.alias %}<div class="na-meta">plain name <code>{{ t.alias }}</code></div>{% endif %}
+            {% if t.local %}<div class="na-meta">this server has its own {{ t.name }}; the plain name calls it</div>{% endif %}</td>
+          <td>{% if t.usable_hosts %}<span class="st st-yes">may use</span> <span class="na-meta">{{ t.usable_hosts }} of {{ t.hosts|length }} hosts</span>
+              {% else %}<span class="st st-no">may not use</span>{% endif %}</td>
+          <td><ul class="na-hosts">{% for h in t.hosts %}
+            <li>{% if h.order is not none %}{{ h.order + 1 }}. {% endif %}<a href="/net/instances/{{ n.net|urlencode }}/{{ h.instance|urlencode }}"><code>{{ h.instance }}</code></a>
+              {% if h.state != 'active' %}<span class="st st-{{ h.state }}">{{ h.state }}</span>{% endif %}
+              {% if h.member_state and h.member_state != 'alive' %}<span class="na-meta">instance {{ h.member_state }}</span>{% endif %}
+              {% if h.usable %}<span class="na-meta">you may use</span>{% else %}<span class="na-meta">not for you</span>{% endif %}
+              {% if h.try_it %}<a class="btn btn-sm btn-outline-primary py-0 ms-1" href="/tools/{{ h.try_it|urlencode }}/execute">Try it<span class="visually-hidden"> {{ h.qualified_name }}</span></a>{% endif %}</li>
+          {% endfor %}</ul></td>
+        </tr>
+      {% else %}
+        <tr><td colspan="3" class="na-meta">No other instance offers tools in {{ n.net }} now.</td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+    </div>
+  </section>
+  {% endfor %}
+</div>
+<script>
+(function(){
+  const q = document.getElementById('na-q'), show = document.getElementById('na-show'), out = document.getElementById('na-count');
+  if (!q) return;
+  function apply(){
+    const s = q.value.trim().toLowerCase(), u = show.value;
+    let shown = 0, total = 0;
+    document.querySelectorAll('.na-row').forEach(r => {
+      total++;
+      const ok = (!s || r.dataset.text.includes(s)) && (!u || r.dataset.use === u);
+      r.hidden = !ok; if (ok) shown++;
+    });
+    out.textContent = shown === total ? (total + ' remote tools') : (shown + ' of ' + total + ' remote tools shown');
+  }
+  q.addEventListener('input', apply); show.addEventListener('input', apply); apply();
+})();
+</script>
+{% endblock %}

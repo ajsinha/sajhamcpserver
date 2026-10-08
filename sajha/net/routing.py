@@ -23,8 +23,14 @@ shipped ``allow_all`` allows everything): ``import`` (net, host, tool, user), ``
 direction), ``service_call`` (net, peer), ``block_user`` (net, peer, user), ``block_tool`` (net, peer,
 tool), ``export`` (net, peer, tool, user), ``residency_offer`` (net, host, tool, user, definition: may the
 tool be offered at all), ``residency_arguments`` and ``residency_result`` (net, host, tool, user, and the
-arguments or result; a decision's ``value`` replaces them, redacted). A decision's ``reason`` becomes the
-refusal reason when it is a protocol reason.
+arguments or result; a decision's ``value`` replaces them, redacted), ``reexport`` (net, peer, tool, user,
+origin, source: may this caller use a tool this participant re-exports, §16). A decision's ``reason``
+becomes the refusal reason when it is a protocol reason.
+
+Re-export (§16): a call to a candidate whose catalog entry names an ``origin`` tells the identity resolver
+(``user['_origin']``), which then sends a user assertion with ``aud`` = origin; an intermediary relays the
+caller's assertion unchanged (``relay`` on :meth:`Router.call`) and never a raw key. Hop count and visited
+list continue, and the home refuses a chain that would revisit the origin (``loop``).
 
 Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.com
 """
@@ -61,7 +67,7 @@ CODES: Dict[str, int] = {}
 for _c, _rs in ((RPC_AUTHORIZATION, ('export', 'access', 'policy', 'approval_required', 'remote_admin')),
                 (RPC_RESIDENCY, ('residency_arguments', 'residency_result')),
                 (RPC_IDENTITY, ('key_unknown', 'key_disabled', 'key_expired', 'key_revoked', 'key_not_from_home',
-                                'no_account', 'assertion_invalid', 'https_required', 'anonymous',
+                                'no_account', 'assertion_invalid', 'token_invalid', 'https_required', 'anonymous',
                                 'ambiguous_credentials')),
                 (RPC_BLOCKED, ('instance', 'inbound', 'outbound', 'tool', 'user')),
                 (RPC_HOP, ('hop_limit', 'loop', 'hop_inconsistent', 'chain_limit')),
@@ -85,6 +91,8 @@ SAFE_WORDS = {
     'draining': 'the server is shutting down', 'overloaded': 'the server is overloaded',
     'response_invalid': 'the server\'s answer could not be verified', 'anonymous': 'the call needs a signed-in user',
     'https_required': 'your key may travel only over HTTPS',
+    'assertion_invalid': 'the identity assertion for you was not accepted there',
+    'token_invalid': 'the token for you was not accepted there',
     'residency_arguments': 'the arguments carry data that may not go to that server (data residency); '
                            'use a tool on a server where the data may go',
     'residency_result': 'the result carries data that may not come to this server (data residency)',
@@ -94,12 +102,14 @@ SAFE_WORDS = {
 class HostRefusal(Exception):
     """A refusal by the host's own checks (access, policy, approvals, residency) from the execute callback."""
 
-    def __init__(self, reason: str, message: str = '', executed: bool = False, code: Optional[int] = None):
+    def __init__(self, reason: str, message: str = '', executed: bool = False, code: Optional[int] = None,
+                 **extra: Any):
         super().__init__(message or reason)
         self.reason = reason
         self.message = message or SAFE_WORDS.get(reason, reason)
         self.executed = executed
         self.code = code or CODES.get(reason, RPC_AUTHORIZATION)
+        self.extra = extra                 # more members of data["io.sajha/net"] (a relayed refusal: ``refused_by``)
 
 
 def refusal(code: int, reason: str, side: str, net: str, instance: str, tool: str = '', trace_id: str = '',
@@ -200,6 +210,49 @@ class PeerSettings:
     calls_per_minute: int = 600
 
 
+class CallPaths:
+    """Observed call paths of one participant, per process (the topology view's ``calls`` edges):
+    ``(net, from, to) -> {calls, tools}``. Kept per process on purpose, like metrics."""
+
+    MAX_EDGES = 2000
+
+    def __init__(self):
+        self._edges: Dict[Tuple[str, str, str], Dict[str, Any]] = {}
+        self._lock = threading.Lock()
+
+    def add(self, net: str, frm: str, to: str, tool: str) -> None:
+        if not frm or not to or frm == to:
+            return
+        with self._lock:
+            e = self._edges.get((net, frm, to))
+            if e is None:
+                if len(self._edges) >= self.MAX_EDGES:
+                    return
+                e = self._edges[(net, frm, to)] = {'calls': 0, 'tools': set()}
+            e['calls'] += 1
+            if len(e['tools']) < 200:
+                e['tools'].add(tool)
+
+    def add_chain(self, net: str, visited: List[str], me: str, tool: str) -> None:
+        """Every step of a chain that reached ``me`` in ``net`` (steps through other nets are left out)."""
+        steps = [str(v) for v in visited or []] + [f'{net}/{me}']
+        for a, b in zip(steps, steps[1:]):
+            na, _, ia = a.partition('/')
+            nb, _, ib = b.partition('/')
+            if na == net and nb == net:
+                self.add(net, ia, ib, tool)
+
+    def edges(self, net: Optional[str] = None) -> List[Dict[str, Any]]:
+        with self._lock:
+            return [{'net': n, 'from': f, 'to': t, 'calls': e['calls'], 'tools': sorted(e['tools'])}
+                    for (n, f, t), e in sorted(self._edges.items()) if net is None or n == net]
+
+
+def origin_of(row: Optional[Dict[str, Any]]) -> str:
+    """The participant that really hosts a re-exported tool (its catalog entry's ``origin``), else ''."""
+    return str((((row or {}).get('entry') or {}).get('meta') or {}).get('origin') or '')
+
+
 # ── resolution ──────────────────────────────────────────────────────
 
 @dataclass
@@ -286,6 +339,7 @@ class Router:
         self._windows: Dict[Tuple[str, str], PeerWindow] = {}
         self._latency: Dict[Tuple[str, str], List[float]] = {}
         self.counters: Dict[Tuple[str, ...], int] = {}
+        self.paths = CallPaths()
         self._lock = threading.Lock()
         self._ids = 0
 
@@ -467,9 +521,14 @@ class Router:
             for c in strategy(net, by_net.get(net, [])):
                 if not host or c.host == host:
                     add(c, f'preference {i}' + ('' if host else f' ({net}, by routing)'))
+        n_pref = len(ordered)
         for net_i, b in enumerate(self.books, start=1):
             for j, c in enumerate(strategy(b.net, by_net.get(b.net, [])), start=1):
                 add(c, f'net order: {b.net}, {_ordinal(j)} by routing')
+        # a tool re-exported by an intermediary comes after every host offering it directly (§16)
+        rest = ordered[n_pref:]
+        ordered = ordered[:n_pref] + [x for x in rest if not origin_of(x[0].row)] + \
+            [(c, f'{r}; re-exported by {c.host} from {origin_of(c.row)}') for c, r in rest if origin_of(c.row)]
         reference = None
         quarantined = None
         place = 0
@@ -533,10 +592,13 @@ class Router:
 
     def call(self, name: str, arguments: Dict[str, Any], *, user: Optional[Dict[str, Any]] = None,
              traceparent: Optional[str] = None, timeout: Optional[float] = None,
-             hop_in: Optional[Tuple[int, List[str]]] = None, depth: int = 0) -> Dict[str, Any]:
+             hop_in: Optional[Tuple[int, List[str]]] = None, depth: int = 0,
+             relay: Optional[Dict[str, str]] = None) -> Dict[str, Any]:
         """Call ``name`` (qualified or plain) at its host(s); always returns a CallToolResult. ``hop_in``
         is the chain a call made while serving a forwarded call arrived on (hop count, visited list);
-        ``depth`` the tools nested in one another so far on every instance passed (§16)."""
+        ``depth`` the tools nested in one another so far on every instance passed (§16). ``relay``: the
+        identity headers to send instead of the resolver's (an intermediary relaying a re-exported call
+        forwards the caller's user assertion unchanged, §16)."""
         res = self.resolve(name, user)
         tp = traceparent if trace_of(traceparent) else new_traceparent()
         trace_id = trace_of(tp)
@@ -556,7 +618,7 @@ class Router:
         for i, c in enumerate(tries, start=1):
             if i > 1 and self.clock() >= deadline:
                 break
-            outcome = self._attempt(c, arguments, user, tp, trace_id, i, deadline, hop_in, depth)
+            outcome = self._attempt(c, arguments, user, tp, trace_id, i, deadline, hop_in, depth, relay)
             outcome['attempt'] = i
             attempts.append({k: outcome[k] for k in ('attempt', 'net', 'host', 'qualified_name', 'outcome', 'executed')
                              if k in outcome})
@@ -564,9 +626,13 @@ class Router:
                                              'host': c.host, 'qualified_name': c.qualified_name,
                                              'reason': c.reason, 'outcome': outcome['outcome'],
                                              'executed': outcome.get('executed'),
+                                             'identity': outcome.get('identity'),
+                                             'origin': origin_of(c.row) or None,
+                                             'relayed': bool(relay) or None,
                                              'remote_usage': _remote_usage(outcome.get('result'))})
             if outcome['outcome'] == 'answered':
                 self.count('calls', 'answered')
+                self.paths.add(c.net, c.book.node.name, c.host, c.host_tool)
                 if i > 1:
                     self.count('fallbacks', 'answered')
                 result = outcome['result']
@@ -606,7 +672,20 @@ class Router:
                 logger.debug(f'SAJHA Net audit {what}: {e}')
 
     def _attempt(self, c: Candidate, arguments, user, tp: str, trace_id: str, attempt: int, deadline: float,
-                 hop_in, depth: int = 0) -> Dict[str, Any]:
+                 hop_in, depth: int = 0, relay: Optional[Dict[str, str]] = None) -> Dict[str, Any]:
+        out = self._attempt_once(c, arguments, user, tp, trace_id, attempt, deadline, hop_in, depth, relay)
+        forget = getattr(self.identity, 'forget', None)
+        if out.get('outcome') == 'token_invalid' and relay is None and callable(forget) and \
+                (out.get('refusal') or {}).get('side') == 'host' and self.clock() < deadline:
+            try:
+                forget(c.net, c.host, user)                 # a host-scoped token the host no longer knows
+            except Exception as e:
+                logger.debug(f'SAJHA Net: forgetting the token for {c.host}: {e}')
+            out = self._attempt_once(c, arguments, user, tp, trace_id, attempt, deadline, hop_in, depth, relay)
+        return out
+
+    def _attempt_once(self, c: Candidate, arguments, user, tp: str, trace_id: str, attempt: int, deadline: float,
+                      hop_in, depth: int = 0, relay: Optional[Dict[str, str]] = None) -> Dict[str, Any]:
         book = c.book
         node = book.node
         out: Dict[str, Any] = {'net': c.net, 'host': c.host, 'qualified_name': c.qualified_name}
@@ -637,20 +716,32 @@ class Router:
             hop, visited = int(hop_in[0]) + 1, list(hop_in[1])
         visited.append(f'{c.net}/{node.name}')
         depth = max(0, int(depth or 0))
-        if f'{c.net}/{c.host}' in visited:               # the host already served this chain: A -> B -> A
-            return home('loop', hops=hop)
+        origin = origin_of(c.row)
+        if f'{c.net}/{c.host}' in visited or (origin and f'{c.net}/{origin}' in visited):
+            return home('loop', hops=hop)                # the host (or the origin) already served this chain
         if hop > self.max_hops and hop_in:
             return home('hop_limit', hops=hop, limit=self.max_hops)
         if hop + depth > self.max_chain:
             return home('chain_limit', hops=hop, depth=depth, limit=self.max_chain)
         url = m['record']['url'].rstrip('/')
         try:
-            if isinstance(user, dict):
-                user['_target'] = (c.net, c.host)        # lets the resolver pick a key configured for this member
-            ident = self.identity.outbound_headers(user) or {}
+            if relay is not None:
+                ident = dict(relay)                      # the caller's assertion, unchanged (§16)
+                out['identity'] = 'relayed'
+            else:
+                if isinstance(user, dict):
+                    user['_target'] = (c.net, c.host)    # lets the resolver pick a key configured for this member
+                    user['_origin'] = origin or None     # a re-exported tool: an assertion for its origin
+                    user['_trace_id'] = trace_id
+                    user.pop('_identity', None)
+                ident = self.identity.outbound_headers(user) or {}
+                if isinstance(user, dict) and user.get('_identity'):
+                    out['identity'] = user['_identity']
         except NetError as e:
             return home(e.reason)
         ident = httpsig.lower_headers(ident)
+        if (origin or relay is not None) and 'sajha-net-api-key' in ident:
+            return home('assertion_invalid')             # a re-exported call never carries a raw key (§16)
         if 'sajha-net-api-key' in ident and not url.startswith('https://') and node.cfg.require_https:
             return home('https_required')
         my_tp = new_traceparent(trace_id)
@@ -726,7 +817,7 @@ class Router:
         else:
             br.success()
         clean = {k: data[k] for k in ('reason', 'side', 'net', 'instance', 'tool', 'trace_id', 'executed', 'retryable',
-                                      'conflict') if k in data}
+                                      'conflict', 'refused_by') if k in data}
         out.update(outcome=reason, executed=executed, refusal=clean)
         return out
 
@@ -760,6 +851,8 @@ class CallContext:
     attempt: int = 1
     key_id: str = ''
     depth: int = 0                 # tools nested in one another on the instances before this one (§16)
+    relay: Dict[str, str] = field(default_factory=dict)        # the caller's assertion, for a re-exported call
+    reexport: Optional[Dict[str, Any]] = None                   # the re-exported tool (with ``_source``), if any
 
 
 class HostServer:
@@ -781,6 +874,7 @@ class HostServer:
         self.other = other
         self.calls_per_minute = calls_per_minute
         self.audit = audit
+        self.paths = CallPaths()
         self.draining = False
         self._windows: Dict[str, PeerWindow] = {}
         self._lock = threading.Lock()
@@ -900,16 +994,22 @@ class HostServer:
             return no('hop_inconsistent')
         if hop + depth > self.max_chain:
             return no('chain_limit')
-        # 5: identity (§15.3, §15.5)
+        # a re-exported tool (§16): the caller's assertion names its origin as the audience
+        rx = self.book.reexport_of(tool, v.sender) if getattr(self.book, 'reexport', False) else None
+        rx_origin = str(((rx or {}).get('_net') or {}).get('origin') or '')
+        # 5: identity (§15.3, §15.5, §15.9)
         if 'authorization' in h or 'x-api-key' in h:
             return no('ambiguous_credentials')
         try:
             import inspect
             params = inspect.signature(self.identity.resolve).parameters
-            if 'secure' in params or any(p.kind == p.VAR_KEYWORD for p in params.values()):
-                user = self.identity.resolve(h, v.sender, secure=secure)
+            offer = {'secure': secure, 'audience': rx_origin or me, 'hop': hop, 'visited': list(visited),
+                     'trace_id': trace_id}
+            if any(p.kind == p.VAR_KEYWORD for p in params.values()):
+                kw = offer
             else:
-                user = self.identity.resolve(h, v.sender)
+                kw = {k: val for k, val in offer.items() if k in params}
+            user = self.identity.resolve(h, v.sender, **kw)
         except NetError as e:
             return no(e.reason if e.reason in CODES else 'no_account')
         if user is None:
@@ -929,7 +1029,11 @@ class HostServer:
         exported = {t['name'] for t in self.book.exports(v.sender)}
         if tool not in exported:
             return no('export')
-        ok, _ = self._allowed('export', {'net': net, 'peer': v.sender, 'tool': tool, 'user': user})
+        if rx is not None:                               # re-export rules, not export rules (§16)
+            ok, _ = self._allowed('reexport', {'net': net, 'peer': v.sender, 'tool': tool, 'user': user,
+                                               'origin': rx_origin or None, 'source': rx.get('_source')})
+        else:
+            ok, _ = self._allowed('export', {'net': net, 'peer': v.sender, 'tool': tool, 'user': user})
         if not ok:
             return no('export')
         q = self.book.is_quarantined(tool)
@@ -939,12 +1043,14 @@ class HostServer:
                           visited=visited, home=str(nmeta.get('home') or ''),
                           qualified_name=str(nmeta.get('qualified_name') or ''),
                           attempt=int(nmeta.get('attempt') or 1) if str(nmeta.get('attempt') or 1).isdigit() else 1,
-                          key_id=str((user or {}).get('key_id') or ''), depth=depth)
+                          key_id=str((user or {}).get('key_id') or ''), depth=depth,
+                          relay={'Sajha-Net-User-Assertion': h['sajha-net-user-assertion']}
+                          if h.get('sajha-net-user-assertion') else {}, reexport=rx)
         # 10, 11: the host's own access, policy and approvals; execution
         try:
             result = self.execute(ctx, arguments)
         except HostRefusal as e:
-            return no(e.reason, executed=e.executed)
+            return no(e.reason, executed=e.executed, **(getattr(e, 'extra', None) or {}))
         # 12: residency of the result
         d = _decide(self.rules, 'residency_result', {'net': net, 'host': me, 'peer': v.sender, 'tool': tool,
                                                       'user': user, 'result': result, 'trace_id': trace_id})
@@ -956,6 +1062,7 @@ class HostServer:
         result['_meta'] = dict(result.get('_meta') or {}, **{EXTENSION_ID: rm})
         self._log('net.host_call', v.sender, tool, trace_id, 'error' if result.get('isError') else 'ok', True,
                   ctx=ctx)
+        self.paths.add_chain(net, visited, me, tool)
         return self._respond(200, {'jsonrpc': '2.0', 'id': rid, 'result': result}, h, v.sender)
 
     def _log(self, what: str, peer: str, tool: str, trace_id: str, outcome: str, executed: bool, ctx=None) -> None:
@@ -966,7 +1073,13 @@ class HostServer:
                  'executed': executed}
             if ctx is not None:
                 d.update(home=ctx.home, qualified_name=ctx.qualified_name, attempt=ctx.attempt, key_id=ctx.key_id,
-                         user=(ctx.user or {}).get('name') if ctx.user else None)
+                         user=(ctx.user or {}).get('name') if ctx.user else None,
+                         identity=(ctx.user or {}).get('identity') if ctx.user else None,
+                         mapping=(ctx.user or {}).get('mapping') if ctx.user else None,
+                         hop=ctx.hop, visited=list(ctx.visited))
+                if ctx.reexport is not None:
+                    d['reexport'] = {'origin': ((ctx.reexport.get('_net') or {}).get('origin')),
+                                     'source': (ctx.reexport.get('_source') or {}).get('qualified_name')}
             self.audit(what, d)
         except Exception as e:
             logger.debug(f'SAJHA Net audit {what}: {e}')

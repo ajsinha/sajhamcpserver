@@ -2,8 +2,10 @@
 SAJHA Net catalogs and routing inside SAJHA (design §7, §8, §9, §15, §17.2, §17.4; protocol §10, §15).
 
 * :class:`NativeCatalog` (catalog source ``native``): this server's own registry tools, never proxies
-  or federated tools (an instance exports only its own tools unless re-export is built, design §14),
-  with each tool's configured ``version``.
+  or federated tools, with each tool's configured ``version``. Re-export (design §14, protocol §16) is
+  separate: with ``reexport`` on for a net and a re-export rule matching, :meth:`NetCatalogs.reexports`
+  offers into that net tools this server imported (from the same net, with ``origin``; from another
+  net, as a bridge, as its own), and a call to one is relayed onward (:meth:`NetCatalogs._relay`).
 * :class:`NetProxyTool`: a remote tool in the registry, under its qualified name
   (``<net>__<instance>__<tool>``) and, while a bare alias is offered, under its plain name too. Calls
   go through ``execute_with_tracking`` like every tool (access, policy, argument validation,
@@ -17,8 +19,9 @@ SAJHA Net catalogs and routing inside SAJHA (design §7, §8, §9, §15, §17.2,
 
 Configuration (design §19): ``sajhanet.preferences``, ``max_fallbacks``, ``bare_aliases``,
 ``default_trust``, ``refresh_interval_seconds``, ``default_timeout_seconds``, ``max_hops``,
-``max_call_chain``, ``allow_remote_llm_tools``, ``reexport``, ``limits.*``, ``peer.*`` and ``plugins.routing``; ``default_trust``, ``reexport``,
-``max_hops`` and ``refresh_interval_seconds`` may also be set in a net entry. Trust levels and
+``max_call_chain``, ``allow_remote_llm_tools``, ``reexport``, ``reexport_rules``, ``limits.*``, ``peer.*`` and
+``plugins.routing``; ``default_trust``, ``reexport``, ``reexport_rules``, ``max_hops`` and
+``refresh_interval_seconds`` may also be set in a net entry. Trust levels and
 approvals set at runtime live in the storage backend (``<data_dir>/<net>/trust.json``).
 
 Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.com
@@ -36,7 +39,7 @@ from typing import Any, Dict, List, Optional, Tuple
 from sajha.net import EXTENSION_ID, names, plugins
 from sajha.net.catalog import TRUST_LEVELS, CatalogBook, Limits
 from sajha.net.plugins import CatalogSource
-from sajha.net.routing import CallContext, HostRefusal, HostServer, PeerSettings, Router
+from sajha.net.routing import CODES, CallContext, Candidate, HostRefusal, HostServer, PeerSettings, Router, origin_of
 from sajha.tools.base_mcp_tool import BaseMCPTool
 
 logger = logging.getLogger(__name__)
@@ -76,6 +79,7 @@ class CatalogSettings:
     max_call_chain: int = 8            # hops plus nesting depth across the net, one budget (design §14)
     allow_remote_llm_tools: bool = True
     reexport: bool = False
+    reexport_rules: List[Dict[str, Any]] = field(default_factory=list)   # which imported tools go onward (§14)
     routing: str = 'local_first'
     limits: Limits = field(default_factory=Limits)
     peer: PeerSettings = field(default_factory=PeerSettings)
@@ -110,6 +114,7 @@ def load_settings() -> CatalogSettings:
     s.max_call_chain = max(1, min(32, int(_num(_g('max_call_chain', 8), 8))))
     s.allow_remote_llm_tools = parse_bool(_g('allow_remote_llm_tools', 'true'), True)
     s.reexport = parse_bool(_g('reexport', 'false'), False)
+    s.reexport_rules = [r for r in (raw.get('reexport_rules') or []) if isinstance(r, dict)]
     s.routing = str(_g('plugins.routing', 'local_first'))
     s.limits = Limits(max_tools_per_peer=int(_num(_g('limits.max_tools_per_peer', 2000), 2000)),
                       max_catalog_bytes=int(_num(_g('limits.max_catalog_bytes', 5242880), 5242880)),
@@ -122,9 +127,13 @@ def load_settings() -> CatalogSettings:
     s.anonymous_may_call_remote = parse_bool(_g('anonymous_may_call_remote', 'false'), False)
     for entry in configured_nets():
         over = {}
-        for k in ('default_trust', 'reexport', 'max_hops', 'refresh_interval_seconds'):
+        for k in ('default_trust', 'reexport', 'max_hops', 'refresh_interval_seconds', 'reexport_rules'):
             if entry.get(k) is not None:
                 over[k] = entry[k]
+        if 'reexport' in over:
+            over['reexport'] = parse_bool(over['reexport'], False)
+        if 'reexport_rules' in over:
+            over['reexport_rules'] = [r for r in (over['reexport_rules'] or []) if isinstance(r, dict)]
         if over:
             s.per_net[str(entry.get('name') or 'default')] = over
     return s
@@ -313,7 +322,10 @@ class NetCatalogs:
                            refresh_interval=float(s.for_net(net, 'refresh_interval_seconds')),
                            default_trust=str(s.for_net(net, 'default_trust')),
                            reexport=bool(s.for_net(net, 'reexport')),
-                           run_ttl=max(60.0, self.svc.shared.agent_lease_seconds * 4)).attach()
+                           run_ttl=max(60.0, self.svc.shared.agent_lease_seconds * 4),
+                           reexports=lambda peer, net=net: self.reexports(net, peer)).attach()
+        if book.reexport and 'reexport' not in node.extra_features:
+            node.extra_features.append('reexport')          # protocol §6.2: offers imported tools onward here
         node.observers.append(lambda kind, data, net=net: self._on_event(net, kind, data))
         book.start()
         self.books[net] = book
@@ -471,6 +483,12 @@ class NetCatalogs:
                 self._proxies[name] = tool
                 reg.register_tool(tool)
                 changed = True
+        for b in list(self.books.values()):
+            if b.reexport:                     # what this server re-exports follows what it imports
+                try:
+                    b._recompute_digest()
+                except Exception as e:
+                    logger.debug(f'SAJHA Net {b.net}: re-export digest: {e}')
         return changed
 
     def _meta(self, r: Dict[str, Any], alias: Optional[str]) -> Dict[str, Any]:
@@ -564,8 +582,9 @@ class NetCatalogs:
     def _execute(self, ctx: CallContext, arguments: Dict[str, Any]) -> Dict[str, Any]:
         """Steps 10 and 11 of §15.4: this server's own access, policy and approvals; then the tool."""
         reg = self.registry
-        tool = reg.get_tool(ctx.tool) if reg is not None else None
-        if tool is None or isinstance(tool, NetProxyTool):
+        rx = ctx.reexport
+        tool = reg.get_tool(ctx.tool) if reg is not None and rx is None else None
+        if rx is None and (tool is None or isinstance(tool, NetProxyTool)):
             raise HostRefusal('export')
         from sajha.observability.caller import Caller, reset, set_caller
         user = ctx.user or {}
@@ -597,8 +616,15 @@ class NetCatalogs:
                         db.close()
                     except Exception:
                         pass
-            if not access(ctx.tool):
+            source = ((rx or {}).get('_source') or {}).get('qualified_name')
+            if not access(ctx.tool) and not (source and access(source)):
                 raise HostRefusal('access')
+        if rx is not None:
+            token = set_caller(Caller(uid, '', roles, 'sajhanet', access, 'admin' in roles))
+            try:
+                return self._relay(ctx, rx, arguments)
+            finally:
+                reset(token)
         token = set_caller(Caller(uid, '', roles, 'sajhanet', access, 'admin' in roles))
         from sajha.core import inner_calls
         try:
@@ -657,6 +683,205 @@ class NetCatalogs:
                     'supportedVersions': ['2026-07-28', '2025-11-25'],
                     'capabilities': {'extensions': {EXTENSION_ID: ext}, 'tools': {}}}}
         return {'jsonrpc': '2.0', 'id': rid, 'error': {'code': -32601, 'message': f'{method} is not served to net peers'}}
+
+    # ── re-export (design §14, protocol §16) ───────────────────────
+
+    def _rule(self, net: str, row: Dict[str, Any], peer: Optional[str],
+              roles: Optional[List[str]] = None) -> Optional[Dict[str, Any]]:
+        """The first re-export rule of ``net`` that lets ``row`` (a host and tool table row) go to ``peer``
+        (None: any peer) for a user with ``roles`` (None: catalog time). A rule with an empty
+        ``to_instances`` re-exports its tools to nobody, whatever other rules say."""
+        from sajha.net.integration.authz import _any, _list, _roles_ok
+        hit = None
+        for r in self.settings.for_net(net, 'reexport_rules') or []:
+            if not _any(row['host_tool'], _list(r.get('tools'))) and not _any(row['part'], _list(r.get('tools'))):
+                continue
+            if not _any(row['net'], _list(r.get('from_nets')) or ['*']):
+                continue
+            if not _any(row['host_instance'], _list(r.get('from_instances')) or ['*']):
+                continue
+            to = r.get('to_instances')
+            if to is not None and not _list(to):
+                return None
+            if peer is not None and not _any(peer, _list(to) or ['*']):
+                continue
+            if not _roles_ok(roles, r.get('for_roles')):
+                continue
+            hit = hit or r
+        return hit
+
+    def reexports(self, net: str, peer: Optional[str] = None) -> List[Dict[str, Any]]:
+        """The tools this server re-exports into ``net`` to ``peer`` (None: any peer), as tool objects with
+        ``_net`` (``origin`` for a tool of the same net) and ``_source`` (where a call goes). One tool per
+        name: the first host in resolution order (direct offers before re-exported ones); never a name of a
+        local tool, never a tool back to its host or origin, never a tool whose origin is this server."""
+        router = self.router
+        if router is None or not self.settings.for_net(net, 'reexport') or \
+                not self.settings.for_net(net, 'reexport_rules'):
+            return []
+        b = self.books.get(net)
+        if b is None:
+            return []
+        me = b.node.name
+        local = set(self._local_names())
+        order = {n: i for i, n in enumerate(bk.net for bk in router.books)}
+        by_part: Dict[str, List[Dict[str, Any]]] = {}
+        for r in router.rows():
+            if r['state'] == 'active' and r['part'] not in local:
+                by_part.setdefault(r['part'], []).append(r)
+        out = []
+        for part in sorted(by_part):
+            rows = sorted(by_part[part], key=lambda r: (order.get(r['net'], 99), bool(origin_of(r)), r['host_instance']))
+            for r in rows:
+                within = r['net'] == net
+                origin = (origin_of(r) or r['host_instance']) if within else ''
+                if within and (origin == me or (peer is not None and peer in (origin, r['host_instance']))):
+                    continue
+                try:
+                    c = Candidate(net=r['net'], host=r['host_instance'], host_tool=r['host_tool'],
+                                  qualified_name=r['qualified_name'], part=part, contract_hash=r['contract_hash'],
+                                  state=r['state'], book=self.books.get(r['net']), row=r)
+                    if router._ineligible(c, None):
+                        continue                              # import rules, residency, quarantine
+                except Exception:
+                    continue
+                if self._rule(net, r, peer) is None:
+                    continue
+                out.append(self._reexported_tool(r, origin))
+                break
+        return out
+
+    @staticmethod
+    def _reexported_tool(r: Dict[str, Any], origin: str) -> Dict[str, Any]:
+        """The catalog entry of a re-exported tool: the host's contract unchanged (so its contract hash is the
+        same, §10.7), the description as screened here."""
+        e = r['entry']
+        d = e.get('definition') or {}
+        contract = e.get('contract') or {}
+        tool: Dict[str, Any] = {'name': r['host_tool'], 'description': d.get('description') or '',
+                                'inputSchema': copy.deepcopy(contract.get('inputSchema') or
+                                                             {'type': 'object', 'properties': {}}),
+                                'annotations': copy.deepcopy(contract.get('annotations') or {})}
+        if contract.get('outputSchema'):
+            tool['outputSchema'] = copy.deepcopy(contract['outputSchema'])
+        if d.get('title'):
+            tool['title'] = d['title']
+        meta = e.get('meta') or {}
+        extra = {k: meta[k] for k in ('version', 'data_classes', 'llm_tool') if meta.get(k) is not None}
+        if origin:
+            extra['origin'] = origin
+        tool['_net'] = extra
+        tool['_source'] = {'net': r['net'], 'host': r['host_instance'], 'qualified_name': r['qualified_name'],
+                           'origin': origin or None, 'contract_hash': r['contract_hash']}
+        return tool
+
+    def reexport_decision(self, net: str, s: Dict[str, Any]) -> plugins.Decision:
+        """The ``reexport`` rule at call time (protocol §15.4 step 9 for a re-exported tool): a re-export rule
+        for this peer and this user's local roles, and the key's tool access as a ceiling."""
+        src = s.get('source') or {}
+        router = self.router
+        row = next((r for r in (router.rows() if router else []) if r['qualified_name'] == src.get('qualified_name')),
+                   None)
+        if row is None:
+            return plugins.Decision(False, 'export')
+        u = s.get('user') if isinstance(s.get('user'), dict) else None
+        if self._rule(net, row, str(s.get('peer') or ''), list(u.get('roles') or []) if u else None) is None:
+            return plugins.Decision(False, 'export')
+        from sajha.net.integration.authz import key_allows
+        b = self.books.get(net)
+        if u is not None and b is not None and not key_allows(u, net, b.node.name, str(s.get('tool') or '')):
+            return plugins.Decision(False, 'access')
+        return plugins.Decision(True, 'reexport')
+
+    def _relay(self, ctx: CallContext, rx: Dict[str, Any], arguments: Dict[str, Any]) -> Dict[str, Any]:
+        """Run a re-exported tool: within one net, forward the call to its origin with the caller's assertion
+        unchanged; across nets (a bridge), call into the other net as the local user the caller was mapped
+        to, with an assertion this server signs there (protocol §16). Hops, visited list and depth continue;
+        residency and the combined chain budget apply on every step."""
+        src = rx.get('_source') or {}
+        q = str(src.get('qualified_name') or '')
+        within = src.get('net') == ctx.net
+        user = dict(ctx.user or {})
+        relay = None
+        if within:
+            if not ctx.relay:
+                raise HostRefusal('assertion_invalid')
+            relay = dict(ctx.relay)
+        else:
+            if ctx.user is None or user.get('guest'):
+                raise HostRefusal('no_account', 'a bridge calls into another net only as one of its own users')
+            user.update(_bridge=True, net=str(src.get('net') or ''), authenticated=True)
+        out = self.router.call(q, dict(arguments or {}), user=user, traceparent=ctx.traceparent,
+                               hop_in=(ctx.hop, list(ctx.visited)), depth=ctx.depth, relay=relay)
+        meta = ((out or {}).get('_meta') or {}).get(EXTENSION_ID) or {}
+        rf = meta.get('refusal')
+        if (out or {}).get('isError') and isinstance(rf, dict) and rf.get('executed') is False \
+                and rf.get('reason') in CODES:
+            raise HostRefusal(str(rf['reason']), executed=False,
+                              refused_by=str(rf.get('refused_by') or rf.get('instance') or '') or None)
+        out = self._arrived(q, out, user)
+        m = dict(((out or {}).get('_meta') or {}).get(EXTENSION_ID) or {})
+        m['via'] = {'net': src.get('net'), 'instance': src.get('host'), 'origin': src.get('origin')}
+        return dict(out, _meta=dict((out or {}).get('_meta') or {}, **{EXTENSION_ID: m}))
+
+    # ── topology (design §17; the console renders it) ──────────────
+
+    def topology(self, net: Optional[str] = None) -> Dict[str, Any]:
+        """Per net: the instances (this server and every member it holds) and the edges this server
+        knows: ``offers`` (own tools offered to a peer, or a peer's own tools offered here), ``reexports``
+        (tools offered onward, with their origins) and ``calls`` (call paths observed here since this
+        process started: calls this server sent, and the steps of every chain that reached it)."""
+        out = []
+        for n, b in self.books.items():
+            if net and n != net:
+                continue
+            node = b.node
+            me = node.name
+            cfg = node.cfg
+            nodes = [{'name': me, 'kind': cfg.kind, 'region': cfg.region or '', 'state': 'alive', 'self': True}]
+            for m in node.members():
+                rec = m.get('record') or {}
+                nodes.append({'name': m['name'], 'kind': rec.get('kind') or '', 'region': rec.get('region') or '',
+                              'state': m.get('state') or '', 'self': False})
+            edges: List[Dict[str, Any]] = []
+            for peer, held in sorted(b.live_peers().items()):
+                direct = [e for e in held.get('tools') or [] if not (e.get('meta') or {}).get('origin')]
+                via = [e for e in held.get('tools') or [] if (e.get('meta') or {}).get('origin')]
+                if direct:
+                    edges.append({'from': peer, 'to': me, 'kind': 'offers', 'tools': len(direct), 'calls': 0})
+                if via:
+                    edges.append({'from': peer, 'to': me, 'kind': 'reexports', 'tools': len(via), 'calls': 0,
+                                  'origins': sorted({str(e['meta']['origin']) for e in via})})
+            for m in node.members():
+                if m.get('state') not in ('alive', 'suspect'):
+                    continue
+                try:
+                    tools = b.exports(m['name'])
+                except Exception:
+                    continue
+                own = [t for t in tools if b.reexport_of(t['name'], m['name']) is None]
+                rx = [b.reexport_of(t['name'], m['name']) for t in tools]
+                rx = [t for t in rx if t is not None]
+                if own:
+                    edges.append({'from': me, 'to': m['name'], 'kind': 'offers', 'tools': len(own), 'calls': 0})
+                if rx:
+                    edges.append({'from': me, 'to': m['name'], 'kind': 'reexports', 'tools': len(rx), 'calls': 0,
+                                  'origins': sorted({str(((t.get('_net') or {}).get('origin')) or
+                                                         f'{(t.get("_source") or {}).get("net")}/'
+                                                         f'{(t.get("_source") or {}).get("host")}') for t in rx})})
+            calls: Dict[Tuple[str, str], Dict[str, Any]] = {}
+            sources = [self.router.paths] if self.router is not None else []
+            if n in self.hosts:
+                sources.append(self.hosts[n].paths)
+            for p in sources:
+                for e in p.edges(n):
+                    c = calls.setdefault((e['from'], e['to']), {'calls': 0, 'tools': set()})
+                    c['calls'] += e['calls']
+                    c['tools'].update(e['tools'])
+            for (f, t), c in sorted(calls.items()):
+                edges.append({'from': f, 'to': t, 'kind': 'calls', 'tools': len(c['tools']), 'calls': c['calls']})
+            out.append({'name': n, 'nodes': nodes, 'edges': edges})
+        return {'nets': out}
 
     # ── operators: notices, audit, metrics ─────────────────────────
 

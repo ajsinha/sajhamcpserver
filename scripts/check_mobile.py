@@ -85,6 +85,8 @@ ROUTES: List[Tuple[str, bool]] = [
     ('/admin/sajhanet/tools', True),
     ('/net/instances', True),
     ('/net/instances/this', True),
+    ('/admin/sajhanet/overview', True),
+    ('/net/access', True),
     ('/admin/connectors', True),
     ('/admin/policies', True),
     ('/admin/approvals', True),

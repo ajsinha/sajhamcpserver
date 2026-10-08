@@ -294,7 +294,9 @@ Python entry-point group (`sajha.net.plugins`), as planners already can.
 Wave 4, phase 4.1 built membership; phase 4.2 built catalogs and routing (sections 7 to 9, 14 and 15)
 alongside identity and authorization; phase 4.3 built the first console pages, the net of one and the
 three-instance test net. Wave 5, phase 5.1 adds locality-aware planners, remote LLM tools and the
-combined hop and depth limit (sections 13 and 14). What is not listed here is still design.
+combined hop and depth limit (sections 13 and 14); phase 5.2 adds re-export and bridges, the
+`assertion` and `token_exchange` identity resolvers and the topology data (sections 10.2, 14 and 17).
+What is not listed here is still design.
 
 - **The protocol core** is `sajha/net/` and imports nothing from the rest of SAJHA
   (`tests/net/test_net_plugins.py` checks it): names (`names.py`), RFC 8785 canonical JSON
@@ -308,7 +310,7 @@ combined hop and depth limit (sections 13 and 14). What is not listed here is st
   `package.module:Class` selection and the entry-point group `sajha.net.plugins`; each has a
   contract check in `sajha/net/contract.py` that every implementation passes. Shipped: membership
   `gossip` and `static`; admission `builtin_ca` and `manual`; connectors `sajha_native` and
-  `in_process`; identity `none` and `api_key`; catalog source `static` (and `native`, SAJHA's registry);
+  `in_process`; identity `none`, `api_key`, `assertion` and `token_exchange`; catalog source `static` (and `native`, SAJHA's registry);
   key directory store `memory` and `database`; rules `allow_all`, `deny_all` and `policy_engine`;
   snapshot sink `local_files`; routing `local_first`, `lowest_latency` and `pinned`.
 - **SAJHA's integration** is `sajha/net/integration/` (configuration, state store, notices,
@@ -352,8 +354,8 @@ combined hop and depth limit (sections 13 and 14). What is not listed here is st
   `sajha_net_catalog_pulls_total`, `sajha_net_remote_calls_total` and `sajha_net_fallbacks_total`; net
   badges and local, remote, net and instance filters on the Tools page; the net and host of a remote
   tool in the Ask page's "Servers and tools" log. Forwarded calls use the 2026-07-28 era only;
-  progress, cancellation, input requests and tasks are not relayed yet, and re-export (bridges) is
-  not built (`reexport` is read but an instance exports only its own tools).
+  progress, cancellation, input requests and tasks are not relayed yet. Re-export and bridges are in the
+  bullet on sections 10.2, 14 and 17 below.
 - **Built of sections 10, 11, 16 and 17.4** (`sajha/net/keydir.py` and `sajha/net/blocks.py` in the
   core; in SAJHA `sajha/net/integration/authz.py` and `keystore.py`, and `sajha/auth/presented_key.py`):
   the `api_key` identity resolver (the home forwards the key the caller presented, or a console user's
@@ -371,10 +373,10 @@ combined hop and depth limit (sections 13 and 14). What is not listed here is st
   blocks document driven by `digests.blocks`; an instance blocked entirely has its key updates ignored;
   `linked_audit` for the records both sides write under one trace id and key id; the notice sources
   "key-directory sync failing for a peer" and "a block added against this server"; the identity and
-  access section of the `/admin/sajhanet` page and its admin API. The extension advertises
-  `user_identity: ["api_key"]` and the features `key_directory`, `key_verification` and `blocks`. Not
-  built: the `assertion` identity (re-export), the "Users across the net" and "Access and blocks" pages
-  of section 17.1 beyond the admin page's section.
+  access section of the `/admin/sajhanet` page and its admin API. The extension advertises each net's
+  `user_identity` (by default `["api_key"]`) and the features `key_directory`, `key_verification` and
+  `blocks`. Not built: the "Users across the net" and "Access and blocks" pages of section 17.1 beyond
+  the admin page's section.
 - **Built of section 17 and the net of one** (`sajha/net/integration/console.py`, the routes in
   `sajha/routes/sajhanet_routes.py`, templates `net/instances.html`, `net/instance.html` and
   `admin/sajhanet_tools.html`): the **Instances** page for every signed-in user (`/net/instances`), with
@@ -463,19 +465,64 @@ combined hop and depth limit (sections 13 and 14). What is not listed here is st
   and in a column of the Remote tools page. Not built: memory handling for LLM tools that record their own
   turns (they pass an answer without its steps; `ConversationMemory.record` accepts `steps=` for them), and an approval flow for residency (`require_approval` on
   a residency rule refuses).
+- **Built of sections 10.2, 14 and 17: re-export, bridges, the `assertion` and `token_exchange`
+  resolvers, topology data** (wave 5, phase 5.2; `sajha/net/integration/identity.py`, the re-export part of
+  `sajha/net/integration/catalogs.py`, `CatalogBook.reexports` in `sajha/net/catalog.py` and the relay and
+  path counting in `sajha/net/routing.py`; tests in `tests/net/test_net_reexport_identity.py`).
+  **Identity resolvers per net:** `user_identity` (a net entry's, else `sajhanet.user_identity`) names one
+  resolver or several; as a home this server sends the first that the host's member record also lists,
+  as a host it accepts every one listed (and advertises them). `assertion`: the home signs a user
+  assertion with its net certificate (`user` from its own key record, `key_id` of the key the caller
+  presented, else the user's default key, else their newest usable key; never a per-member key or the test
+  admin key, which stay features of `api_key`, whose order is unchanged), at most 60 seconds
+  (`sajhanet.assertion.ttl_seconds`, default 30), with the call's trace id; the host checks schema, net,
+  issuer (the sender on hop 1, else an instance on the chain), signature against the issuer's certificate,
+  audience, time, one use of `jti` (in the state store) and trace id, then the key record and, as for keys,
+  the block on the user and the mapping of section 11.3. `token_exchange` (between participants, not
+  through a shared identity provider as first sketched): the home exchanges an assertion at the host's
+  `POST /sajhanet/v1/token` (feature `token_exchange`) for an opaque token bound to the net and the home,
+  kept hashed in the host's state store for `sajhanet.token_exchange.ttl_seconds` (default 300), cached at
+  the home per host and key (per process) until ten seconds before it expires, and sent in
+  `Sajha-Net-User-Token`; the host re-checks the key record, the block and the mapping on every call, and a
+  `token_invalid` refusal makes the home exchange again and retry once. Remote users the host saw record
+  the resolver (`identity` in the users view), the host's `net.host_call` audit records the identity,
+  mapping, hops and visited list, the home's `net.call_attempt` the identity sent, and the host's
+  `net.token_issued` each token issued (never the token). **Re-export** (section 14): off by default; with
+  `reexport` on for the net offered into (advertised as the feature `reexport`) an imported tool goes
+  onward only when a re-export rule names it (`reexport_rules`: `tools`, `from_nets`, `from_instances`,
+  `to_instances`, `for_roles`). Within one net it carries `origin` and the host's contract unchanged (same
+  contract hash, so one name, one contract holds); a tool is never offered back to its host or origin,
+  never under a local tool's name, and an instance never imports a tool whose origin is itself. A home ranks
+  direct offers before re-exported ones (the reason says "re-exported by ... from ..."), sends an assertion
+  with `aud` = origin (never a key), and refuses to send a chain back to the host or origin it passed
+  (`loop`). The intermediary verifies that assertion with the origin as audience, maps and authorizes the
+  caller (blocks, mapping, re-export rules in place of export rules with the key's tool access as a
+  ceiling, its own access to the tool or its proxy), then relays the assertion unchanged with hop + 1 and
+  the visited list, through its own router: residency on arguments, results and arrival, the hop limit and
+  the combined chain budget apply on each step, and a downstream refusal that did not execute is returned
+  as the intermediary's refusal with `refused_by`. **Bridges:** with re-export on for a net N, a tool
+  imported in another net M is offered in N as this server's own (no origin); a call from N runs as the
+  local account the caller maps to, which calls into M with an assertion this server signs there (a guest
+  mapping cannot cross a bridge), hops and visited list continuing. Every instance on a chain must accept
+  the extra hop (`max_hops` 2 for one intermediary; default 1). **Topology data:**
+  `GET /api/sajhanet/topology` ([API Reference](../protocol/API%20Reference.md#424-sajha-net-sajhanet_routespy)):
+  per net the instances and the `offers`, `reexports` and `calls` edges this server knows; observed call
+  paths are counted per process since start, like metrics. The console draws it (section 17).
 - **Conformance** (protocol §20, the ids whose targets include S). Covered by tests under `tests/net/`
   (and `tests/test_sajhanet_groundwork.py` for CAP-01 to CAP-03): NAME-01 to NAME-11; NET-01 to NET-04
   and NET-06; CAP-01 to CAP-05; SIG-01 to SIG-15; REC-01, REC-02; GOS-01 to GOS-14; CAT-01 to CAT-04 and
   CAT-06 to CAT-08; CON-01 to CON-06; KEY-01 to KEY-05; BLK-01; REV-01; CA-01 to CA-03; CALL-01 to
   CALL-05, CALL-07 (`tests/net/test_net_residency.py`, which also covers FB-01's `residency_result`) and
-  CALL-08 to CALL-10; FB-01 to FB-06; ERR-01; LIM-01. Remaining: NET-05 and CALL-13
-  (re-export is not built); CAT-05 (the `visibility` feature is not built); CALL-11 and FB-07 (progress, cancellation, input requests and tasks are not
+  CALL-08 to CALL-10; NET-05, CALL-13, CALL-14 and CALL-15 (`tests/net/test_net_reexport_identity.py`);
+  FB-01 to FB-06; ERR-01; LIM-01. Remaining: CAT-05 (the `visibility` feature is not built); CALL-11 and FB-07 (progress, cancellation, input requests and tasks are not
   relayed on forwarded calls); CALL-12 (forwarded calls use the 2026-07-28 era only, so there is no
   2025-11-25 session to share); CALL-06 is covered step by step across the files (each refusal, its code
   and `executed`) but not yet by one test that walks every step of §15.4 in order.
-- **Not yet:** the other console pages of section 17.1 (net overview, instance detail, conflicts and
-  reviews as their own page, users, access and blocks, key directory, snapshots, live activity,
-  certificates, net settings; the admin page is a minimal one), mutual TLS (`mtls` stays off), the
+- **Built of section 17 in phase 5.2:** the Net overview with the topology map, the Your net access
+  page, and the admission panel and runtime seeds on the admin page (section 17.5).
+- **Not yet:** the other console pages of section 17.1 (instance detail, conflicts and reviews as their
+  own page, users, access and blocks as a matrix, key directory, snapshots, live activity, certificates
+  and net settings as pages of their own; certificates and settings are panels of the admin page), mutual TLS (`mtls` stays off), the
   SAJHA Net agent and the reference library.
 
 ---
@@ -1104,10 +1151,11 @@ How the user is identified across instances is a **pluggable resolver** with two
 - on the host instance, `inbound(request) → a verified net user` (user id, home instance,
   roles, tool allowlist) or a refusal.
 
-The resolver is chosen by `sajhanet.user_identity`. **The first implementation is `api_key`**, as
-the owner decided; `assertion` (an instance-signed JWT) and `token_exchange` (RFC 8693 through a
-shared identity provider) are later implementations of the same interface, so switching needs no
-change anywhere else.
+The resolver is chosen per net by `user_identity` (section 5.5 has the as-built rules). **The first
+implementation is `api_key`**, as the owner decided; `assertion` (a user assertion the home signs with
+its net certificate, protocol §15.5) and `token_exchange` (the home trades an assertion at the host for a
+host-scoped token, protocol §15.9; the design first sketched RFC 8693 through a shared identity provider)
+are built as further implementations of the same interface, so switching needs no change anywhere else.
 
 **`api_key`: the user's API key is their net identity.**
 
@@ -1427,6 +1475,10 @@ section 5.5 ("Built of section 12: residency"); the rule conditions are in
   over the budget before sending it and the host refuses one on receipt (`-32016 chain_limit`), and the
   home also refuses to send a chain back to an instance it already passed (`loop`). The per-instance
   limits (`tools.max_call_depth`, `ai.llm_tools.max_depth`) still apply on each instance.
+- **What goes onward** is chosen by re-export rules (`reexport_rules`), not by `reexport` alone: with it
+  on and no rule, nothing is re-exported. A tool is never offered back to its host or origin, and an
+  instance never imports a tool whose origin is itself, so a catalog cannot loop either. As built in
+  section 5.5.
 
 ---
 
@@ -1566,6 +1618,43 @@ SAJHA Net's notice sources, all per net:
 | Forwarded keys allowed over plain HTTP (`require_https: false`) | warning | the setting is on again |
 | A net still named `default` | info | the net is given a name |
 
+### 17.5 As built
+
+The console has these SAJHA Net pages now (the rest of section 17.1 is not built; section 5.5):
+
+| Page | Route | Who | Built |
+|---|---|---|---|
+| **Instances** | `/net/instances`, `/net/instances/{net}/{instance}` | every signed-in user | As in section 17.1 (section 5.5). |
+| **Your net access** | `/net/access` | every signed-in user | Each remote tool by name, every host offering it in resolution order with its state and the host's member state, and whether this server lets the user call it there (Try it); the user's count of this server's own tools. This server's decision only: the host decides again on every call (section 11.1). |
+| **Net overview** | `/admin/sajhanet/overview?net=` | administrators | A net selector; totals (membership and gossip health, instances by state, admission mode, remote tools by state, notices, quarantined and held tools, active blocks); the **topology map**; members with region and last seen, gossip details (joined via, last errors, interval, the gossip agent, incarnation, revocation-list version), seeds and runtime seeds; this net's open notices, quarantined names, description warnings and held tools (Approve); this server's blocks and those others publish; the admission panel; from the newest `net.*` records of the audit chain, the recent forwarded calls (side, tool, outcome, attempt, other instance, user, trace id), call-chain refusals (`hop_limit`, `loop`, `chain_limit`) and residency decisions by flow and outcome with the recent redactions and refusals; the router's call and fallback counters since start. |
+| **Remote tools** | `/admin/sajhanet/tools` | administrators | The host and tool table, held tools, conflicts (section 5.5). |
+| **SAJHA Net admin** | `/admin/sajhanet` | administrators | Membership, add a peer by address, runtime seeds with Remove, the admission panel, blocks, remote users and the key directory. |
+
+- **Topology map:** plain SVG drawn by `sajha/web/static/js/sajhanet.js` from
+  `GET /api/sajhanet/topology?net=` (`{nets: [{name, nodes: [{name, kind, region, state, self}], edges:
+  [{from, to, kind, tools, calls}]}]}`): this server in the centre, the others on a ring, each node
+  coloured by its state and labelled with it in words when it is not `alive`, and a link to the
+  instance's tools; edges for `offers` (solid), `reexports` (dashed) and `calls` (thicker with more
+  calls), each with a tooltip. A table under the map ("The map as a table") lists the same nodes and
+  edges. It redraws at the container's width (phone widths included) and refreshes every 30 seconds
+  while the tab is visible; **Pause live view** stops that. When the endpoint answers nothing, the map
+  shows the members without links and says so.
+- **Admission panel** (Net overview and SAJHA Net admin), by the net's admission mode: `open`: the
+  remembered first-use keys (`GET .../first-use`) with **Forget** (`DELETE .../first-use/{instance}`);
+  `manual`: the pins from configuration and from runtime (`GET .../pins`), add and remove; `builtin_ca`
+  on the CA instance: issued certificates with **Revoke** (a reason is required), waiting enrollment
+  tokens, **Create token** (shown once) and **Initialise** when the CA has no key yet; elsewhere it says
+  this server is not the CA instance. Admission, routing, residency and locality are shown, never
+  decided, here.
+- **Confirmations:** every change (forget, pin, unpin, revoke, create a token, initialise the CA, remove
+  a runtime seed, approve a held tool, add or remove a block) asks first in words that name its effect.
+  The blast-radius counts, reasons on every action and undo from a history tab of section 17.3 are not
+  built.
+- **Data:** `sajha/net/integration/overview.py` (`overview_view`, `access_view`), read from the state
+  store, this worker's registry and the audit chain; never from calling peers. JSON at
+  `GET /api/sajhanet/overview` and `GET /api/sajhanet/access`
+  ([API Reference](../protocol/API%20Reference.md)).
+
 ---
 
 ## 18. Threats and mitigations
@@ -1625,7 +1714,7 @@ sajhanet:
       export: []                    # section 11.2
       import: []                    # section 11.2
       # any shared default below may also be set here, for this net only (for example
-      # region, labels, users, default_trust, reexport, max_hops, gossip, limits)
+      # region, labels, users, user_identity, default_trust, reexport, reexport_rules, max_hops, gossip, limits)
     - name: partner-net
       instance_name: risk-eu-partner
       seeds: [https://sajha-partner-hub.example.net]
@@ -1645,7 +1734,9 @@ sajhanet:
   mtls: off                         # extra check when SAJHA itself terminates TLS: off | optional | required
   users: { match_by_name: true, unknown: refuse, remote_admin: admin }   # section 11.3
   default_keys: { enabled: true, vault: accounts }   # section 10.2
-  user_identity: api_key            # api_key (first) | assertion | token_exchange (section 10.2)
+  user_identity: api_key            # api_key (first) | assertion | token_exchange, or a list (section 10.2)
+  reexport: false                   # offer imported tools onward (section 14); with reexport_rules naming them
+  reexport_rules: []                # [{tools, from_nets, from_instances, to_instances, for_roles}]
   plugins:                          # section 5.3: a shipped name or package.module:Class
     membership: gossip              # gossip | static (static_peers in a net entry)
     admission: builtin_ca           # builtin_ca | manual (section 6.5)

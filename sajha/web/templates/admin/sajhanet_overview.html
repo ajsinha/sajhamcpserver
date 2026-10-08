@@ -1,0 +1,291 @@
+{% extends "common/base.html" %}
+{% set n = view.net %}
+{% block title %}Net overview - SAJHA Net - Admin - SAJHA MCP Server{% endblock %}
+{% block extra_css %}
+<style>
+.sn-box{border:1px solid var(--t-card-b);border-radius:var(--radius-lg);background:var(--t-card);margin-bottom:1rem;min-width:0}
+.sn-box>h2{font-size:1.02rem;margin:0;font-weight:700;color:var(--t-heading);padding:.65rem 1rem;border-bottom:1px solid var(--t-card-b);background:var(--t-card-hdr)}
+.sn-box>.sn-body{padding:.75rem 1rem}
+.sn-meta{font-size:.86rem;color:var(--t-muted);word-break:break-word}
+.sn-table{font-size:.86rem;width:100%}
+.sn-table th{background:var(--t-card-hdr);color:var(--t-text2);font-weight:600;font-size:.86rem;text-transform:uppercase;letter-spacing:.05em;padding:.45rem .6rem;white-space:nowrap}
+.sn-table td{padding:.4rem .6rem;border-bottom:1px solid var(--t-card-b);color:var(--t-text);word-break:break-word;vertical-align:top}
+.sn-hash{font-family:var(--bs-font-monospace);font-size:.86rem;word-break:break-all}
+.st{display:inline-block;padding:.1rem .5rem;border-radius:999px;font-size:.86rem;font-weight:600;color:var(--sajha-on-crimson);white-space:nowrap}
+.st-alive,.st-ok,.st-healthy,.st-allowed,.st-answered,.st-joined{background:var(--sajha-ok)}
+.st-suspect,.st-warn,.st-warning,.st-degraded,.st-redacted,.st-held{background:var(--sajha-warn)}
+.st-dead,.st-bad,.st-error,.st-critical,.st-refused,.st-blocked,.st-quarantined{background:var(--sajha-bad)}
+.st-left,.st-solo,.st-info,.st-unknown{background:var(--sajha-slate)}
+.sn-tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(9.5rem,1fr));gap:.6rem;margin-bottom:1rem}
+.sn-tile{border:1px solid var(--t-card-b);border-radius:var(--radius-lg);background:var(--t-card);padding:.6rem .8rem;min-width:0}
+.sn-tile .k{font-size:.86rem;color:var(--t-muted);text-transform:uppercase;letter-spacing:.04em}
+.sn-tile .v{font-size:1.15rem;font-weight:700;color:var(--t-heading);word-break:break-word}
+.sn-grid{display:grid;grid-template-columns:minmax(0,3fr) minmax(0,2fr);gap:1rem}
+@media (max-width:992px){.sn-grid{grid-template-columns:minmax(0,1fr)}}
+.sn-map{position:relative;min-width:0}
+.sn-map svg{display:block;width:100%;max-width:100%}
+.tp-node{stroke:var(--t-card);stroke-width:2}
+.tp-node.st-alive{fill:var(--sajha-ok)}.tp-node.st-suspect{fill:var(--sajha-warn)}.tp-node.st-dead,.tp-node.st-blocked{fill:var(--sajha-bad)}
+.tp-node.st-left,.tp-node.st-unknown{fill:var(--sajha-slate)}
+.tp-node.tp-self{stroke:var(--sajha-crimson);stroke-width:3}
+.tp-label{font-size:12px;fill:var(--t-text);font-weight:600}
+.tp-sub{font-size:12px;fill:var(--t-muted)}
+.tp-link,.tp-link:hover{text-decoration:none}.tp-link:focus{outline:none}.tp-link:focus .tp-node{stroke:var(--t-heading);stroke-width:4}
+.tp-edge{fill:none;stroke:var(--sajha-slate);opacity:.85}
+.tp-reexports{stroke:var(--sajha-crimson);stroke-dasharray:6 4}
+.tp-calls{stroke:var(--t-text2)}
+.tp-arrow{fill:var(--sajha-slate)}
+.sn-legend{display:flex;flex-wrap:wrap;gap:.25rem .9rem;font-size:.86rem;color:var(--t-muted);margin:.25rem 0 .5rem}
+.sn-legend svg{vertical-align:middle}
+.sn-list{list-style:none;padding:0;margin:0}
+.sn-list li{padding:.35rem 0;border-bottom:1px solid var(--t-card-b);font-size:.88rem;word-break:break-word}
+.sn-list li:last-child{border-bottom:0}
+.sn-netsel{display:flex;flex-wrap:wrap;gap:.5rem;align-items:flex-end}
+@media (max-width:576px){.sn-table th.opt,.sn-table td.opt{display:none}}
+</style>
+{% endblock %}
+{% block content %}
+<div class="container-fluid">
+  <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+    <div>
+      <h1 class="h3 mb-0"><i class="bi bi-diagram-3 me-2" aria-hidden="true"></i>Net overview</h1>
+      <small class="text-muted">One net at a glance: who is in it and in what state, how this server is admitted, what needs a person, and the recent traffic</small>
+    </div>
+    <div class="d-flex flex-wrap gap-2">
+      <a class="btn btn-sm btn-outline-secondary" href="/admin/sajhanet">SAJHA Net admin</a>
+      <a class="btn btn-sm btn-outline-secondary" href="/admin/sajhanet/tools">Remote tools</a>
+      <a class="btn btn-sm btn-outline-primary" href="/admin/sajhanet/overview{% if n %}?net={{ n.net|urlencode }}{% endif %}" aria-label="Reload"><i class="bi bi-arrow-clockwise" aria-hidden="true"></i></a>
+    </div>
+  </div>
+
+  {% if not view.enabled %}
+  <div class="alert alert-info small" role="status">
+    <i class="bi bi-info-circle me-1" aria-hidden="true"></i>
+    SAJHA Net is off, so this server is a net of one{% if view.self %} (<code>{{ view.self.instance }}</code> in <code>{{ view.self.net }}</code>){% endif %}:
+    it has no members, traffic or blocks to show. Set <code>sajhanet.enabled: true</code> and list the nets under
+    <code>sajhanet.nets</code> in <code>config/application.yml</code>, then restart.
+  </div>
+  {% elif not n %}
+  <p class="text-muted">No nets are configured (<code>sajhanet.nets</code>).</p>
+  {% else %}
+
+  {% if view.nets|length > 1 %}
+  <form class="sn-netsel mb-3" method="get" action="/admin/sajhanet/overview">
+    <div><label class="form-label small" for="sn-net">Net</label>
+      <select class="form-select form-select-sm" id="sn-net" name="net">
+        {% for x in view.nets %}<option value="{{ x }}"{% if x == n.net %} selected{% endif %}>{{ x }}</option>{% endfor %}</select></div>
+    <div><button class="btn btn-sm btn-primary" type="submit">Show</button></div>
+  </form>
+  {% endif %}
+
+  <h2 class="h5 mb-2">{{ n.net }} <span class="sn-meta">as <code>{{ n.instance }}</code>{% if n.region %} · {{ n.region }}{% endif %}{% if n.founder %} · founder{% endif %}</span></h2>
+  {% if n.error %}<p class="text-danger small mb-2">{{ n.error }}</p>{% endif %}
+
+  {% set g = n.gossip %}
+  {% set active_blocks = n.blocks.mine|selectattr('active')|list %}
+  <div class="sn-tiles" role="list" aria-label="Net totals">
+    <div class="sn-tile" role="listitem"><div class="k">Membership</div>
+      <div class="v"><span class="st st-{{ g.level }}">{{ g.state }}</span></div><div class="sn-meta">{{ g.words }}</div></div>
+    <div class="sn-tile" role="listitem"><div class="k">Instances</div>
+      <div class="v">{{ n.members|length + 1 }}</div>
+      <div class="sn-meta">{{ n.counts.alive }} alive{% if n.counts.suspect %} · {{ n.counts.suspect }} suspect{% endif %}{% if n.counts.dead %} · {{ n.counts.dead }} dead{% endif %}{% if n.counts.left %} · {{ n.counts.left }} left{% endif %} · plus this server</div></div>
+    <div class="sn-tile" role="listitem"><div class="k">Admission</div>
+      <div class="v"><code>{{ n.admission }}</code></div>
+      <div class="sn-meta">{% if n.admission == 'open' %}{{ n.admission_detail.first_use|length }} first-use keys remembered
+        {% elif n.admission == 'manual' %}{{ n.admission_detail.pins|length }} pins
+        {% elif n.admission == 'builtin_ca' %}{% set ca = n.admission_detail.ca %}{% if ca.initialised %}this server is the CA{% if ca.issued is defined %} · {{ ca.issued }} issued · {{ ca.revoked }} revoked{% endif %}{% elif ca.enabled %}CA not initialised{% else %}certificate from the CA instance{% endif %}{% endif %}</div></div>
+    <div class="sn-tile" role="listitem"><div class="k">Remote tools</div>
+      <div class="v">{{ n.remote_tools.active or 0 }} active</div>
+      <div class="sn-meta">{% for s, c in n.remote_tools.items() if s != 'active' %}{{ c }} {{ s }}{% if not loop.last %} · {% endif %}{% else %}nothing held or quarantined{% endfor %}</div></div>
+    <div class="sn-tile" role="listitem"><div class="k">Needs a person</div>
+      <div class="v">{{ n.notices|length }} notice{{ '' if n.notices|length == 1 else 's' }}</div>
+      <div class="sn-meta">{{ n.quarantined|length }} quarantined · {{ n.held|length }} held · {{ active_blocks|length }} active blocks</div></div>
+  </div>
+
+  <div class="sn-grid">
+    <section class="sn-box" aria-labelledby="sn-topo-h">
+      <h2 id="sn-topo-h">Topology</h2>
+      <div class="sn-body">
+        <div class="sn-map" id="sn-topo" data-sn-topology data-net="{{ n.net }}" data-base="/net/instances/">
+          <div class="sn-legend">
+            <span><svg width="14" height="14" aria-hidden="true" focusable="false"><circle cx="7" cy="7" r="6" class="tp-node st-alive"/></svg> alive</span>
+            <span><svg width="14" height="14" aria-hidden="true" focusable="false"><circle cx="7" cy="7" r="6" class="tp-node st-suspect"/></svg> suspect</span>
+            <span><svg width="14" height="14" aria-hidden="true" focusable="false"><circle cx="7" cy="7" r="6" class="tp-node st-dead"/></svg> dead or blocked</span>
+            <span><svg width="14" height="14" aria-hidden="true" focusable="false"><circle cx="7" cy="7" r="6" class="tp-node st-left"/></svg> left</span>
+            <span><svg width="28" height="10" aria-hidden="true" focusable="false"><line x1="1" y1="5" x2="27" y2="5" class="tp-edge tp-offers" stroke-width="1.5"/></svg> offers tools</span>
+            <span><svg width="28" height="10" aria-hidden="true" focusable="false"><line x1="1" y1="5" x2="27" y2="5" class="tp-edge tp-reexports" stroke-width="1.5"/></svg> re-exports</span>
+            <span><svg width="28" height="10" aria-hidden="true" focusable="false"><line x1="1" y1="5" x2="27" y2="5" class="tp-edge tp-calls" stroke-width="4"/></svg> calls (thicker: more)</span>
+          </div>
+          <svg data-role="map" role="group" aria-labelledby="sn-topo-t" width="100%" height="300"></svg>
+          <div class="d-flex flex-wrap gap-2 align-items-center mt-2">
+            <button class="btn btn-sm btn-outline-secondary" type="button" data-role="pause" aria-pressed="false">Pause live view</button>
+            <span class="sn-meta" data-role="status" role="status" aria-live="polite">Loading the topology…</span>
+          </div>
+          <details class="mt-2"><summary class="small">The map as a table</summary>
+            <div class="table-responsive">
+            <table class="sn-table">
+              <caption class="visually-hidden">Instances and links in {{ n.net }}</caption>
+              <thead><tr><th scope="col">Instance or link</th><th scope="col">Kind</th><th scope="col">State or traffic</th><th scope="col">Detail</th></tr></thead>
+              <tbody><tr><td colspan="4" class="sn-meta">Loading…</td></tr></tbody>
+            </table>
+            </div>
+          </details>
+          <script type="application/json">{{ n.fallback_topology|tojson }}</script>
+        </div>
+      </div>
+    </section>
+
+    <section class="sn-box" aria-labelledby="sn-mem-h">
+      <h2 id="sn-mem-h">Members</h2>
+      <div class="table-responsive">
+      <table class="sn-table">
+        <thead><tr><th scope="col">Instance</th><th scope="col">State</th><th scope="col" class="opt">Region</th><th scope="col" class="opt">Last seen</th></tr></thead>
+        <tbody>
+          <tr><td><a href="/net/instances/this"><code>{{ n.instance }}</code></a> <span class="sn-meta">this server</span></td>
+            <td><span class="st st-{{ 'alive' if n.joined else 'suspect' }}">{{ 'joined' if n.joined else 'not joined' }}</span></td>
+            <td class="opt">{{ n.region or '—' }}</td><td class="opt">now</td></tr>
+        {% for m in n.members %}
+          <tr><td><a href="/net/instances/{{ n.net|urlencode }}/{{ m.name|urlencode }}"><code>{{ m.name }}</code></a>{% if m.kind and m.kind != 'sajha' %} <span class="sn-meta">{{ m.kind }}</span>{% endif %}</td>
+            <td><span class="st st-{{ m.state }}">{{ m.state }}</span></td>
+            <td class="opt">{{ m.region or '—' }}</td><td class="opt">{{ m.last_seen or '—' }}</td></tr>
+        {% else %}
+          <tr><td colspan="4" class="sn-meta">No other member known yet.</td></tr>
+        {% endfor %}
+        </tbody>
+      </table>
+      </div>
+      <div class="sn-body">
+        <p class="sn-meta mb-1">Gossip: {{ g.words }}{% if g.gossiping is defined %} · {{ 'gossiping' if g.gossiping else 'not gossiping' }}{% endif %}
+          · interval {{ g.interval_ms }} ms · suspect after {{ g.suspect_timeout_seconds }} s
+          {% if n.agent %} · gossip agent {{ n.agent }}{% endif %}
+          {% if g.joined_via %} · joined via <code>{{ g.joined_via }}</code>{% endif %}{% if g.joined_at %} at {{ g.joined_at }}{% endif %}
+          {% if n.certificate %} · certificate {{ n.certificate.serial }} until {{ n.certificate.not_after }}{% endif %}
+          {% if n.incarnation %} · incarnation {{ n.incarnation }}{% endif %}{% if n.revocations is not none %} · revocation list version {{ n.revocations }}{% endif %}</p>
+        {% for e in g.last_errors %}<p class="text-danger small mb-1">{{ e }}</p>{% endfor %}
+        <p class="sn-meta mb-1">Seeds: {% for s in n.seeds %}<code>{{ s }}</code>{% if not loop.last %}, {% endif %}{% else %}none (a founder){% endfor %}</p>
+        {% if n.runtime_seeds %}
+        <p class="sn-meta mb-1">Runtime seeds:</p>
+        <ul class="sn-list">{% for s in n.runtime_seeds %}<li><code>{{ s.url }}</code> <span class="sn-meta">added by {{ s.added_by or '—' }}{% if s.added_at %} at {{ s.added_at }}{% endif %}</span>
+          <button class="btn btn-sm btn-link p-0 ms-1" type="button" data-unseed="{{ s.url }}" data-net="{{ n.net }}" data-out="sn-act">remove</button></li>{% endfor %}</ul>
+        {% endif %}
+      </div>
+    </section>
+  </div>
+
+  <div class="sn-grid">
+    <section class="sn-box" aria-labelledby="sn-not-h">
+      <h2 id="sn-not-h">Notices, conflicts and held tools</h2>
+      <div class="sn-body">
+        {% for x in n.notices %}
+          <div class="mb-2"><span class="st st-{{ x.severity }}">{{ x.severity }}</span> {{ x.title }}{% if x.state == 'acknowledged' %} <span class="sn-meta">(acknowledged)</span>{% endif %}
+            {% if x.detail %}<div class="sn-meta">{{ x.detail }}</div>{% endif %}</div>
+        {% else %}<p class="sn-meta mb-2">No open notice for {{ n.net }}.</p>{% endfor %}
+        {% for q in n.quarantined %}
+          <div class="mb-2"><span class="st st-quarantined">quarantined</span> <code>{{ q.tool }}</code>
+            <span class="sn-meta">since {{ q.since or '—' }}{% if q.differing %} · differing host: {{ q.differing|join(', ') }}{% endif %}</span></div>
+        {% endfor %}
+        {% for w in n.warnings %}<div class="mb-2 sn-meta">Description differs for <code>{{ w.tool }}</code> between {{ w.hosts|join(', ') }} (a warning, not a conflict).</div>{% endfor %}
+        {% for h in n.held %}
+          <div class="mb-2"><span class="st st-held">held</span> <code>{{ h.qualified_name }}</code>{% if h.version %} <span class="sn-meta">version {{ h.version }}</span>{% endif %}
+            <button class="btn btn-sm btn-success ms-1" type="button" data-approve="1" data-net="{{ n.net }}" data-peer="{{ h.peer }}" data-tool="{{ h.tool }}" data-out="sn-act">Approve</button></div>
+        {% endfor %}
+        {% if not n.quarantined and not n.held %}<p class="sn-meta mb-0">No tool is quarantined or held for review. <a href="/admin/sajhanet/tools">Remote tools</a></p>{% endif %}
+      </div>
+    </section>
+
+    <section class="sn-box" aria-labelledby="sn-blk-h">
+      <h2 id="sn-blk-h">Blocks</h2>
+      <div class="sn-body">
+        {% if not n.blocks.available %}<p class="sn-meta mb-0">Blocks are not available for this net.</p>{% else %}
+        <ul class="sn-list">
+        {% for b in n.blocks.mine %}
+          <li><span class="st st-{{ 'blocked' if b.active else 'left' }}">{{ b.level }}{% if not b.active %}, expired{% endif %}</span>
+            <code>{{ b.target_instance or '*' }}</code>{% if b.tool %} · {{ b.direction }} {{ b.tool }}{% endif %}{% if b.user %} · {{ b.user }}{% endif %}
+            <span class="sn-meta">{{ b.reason }}{% if b.expires_at %} · until {{ b.expires_at }}{% endif %} · {{ b.set_by }}</span></li>
+        {% endfor %}
+        {% for peer, bl in n.blocks.published.items() %}{% for b in bl %}
+          <li><span class="st st-warn">{{ b.level }}</span> by <code>{{ peer }}</code> against <code>{{ b.target_instance }}</code>{% if b.tool %} · {{ b.tool }}{% endif %}{% if b.user %} · {{ b.user }}{% endif %}
+            {% if b.reason %}<span class="sn-meta">{{ b.reason }}</span>{% endif %}</li>
+        {% endfor %}{% endfor %}
+        {% if not n.blocks.mine and not n.blocks.published %}<li class="sn-meta">No blocks, here or published by others.</li>{% endif %}
+        </ul>
+        <p class="sn-meta mb-0 mt-1">Add or remove blocks on <a href="/admin/sajhanet">SAJHA Net admin</a>.</p>
+        {% endif %}
+      </div>
+    </section>
+  </div>
+
+  <section class="sn-box" aria-labelledby="sn-adm-h">
+    <h2 id="sn-adm-h">Admission</h2>
+    <div class="sn-body">
+      {% set adm_net = n.net %}{% set adm_mode = n.admission %}{% set adm_id = 'ov' %}
+      {% set adm_ca_init = n.admission == 'builtin_ca' and n.admission_detail.ca.enabled and not n.admission_detail.ca.initialised %}
+      {% include "admin/_sajhanet_admission.html" %}
+    </div>
+  </section>
+
+  {% set act = n.activity %}
+  <section class="sn-box" aria-labelledby="sn-calls-h">
+    <h2 id="sn-calls-h">Recent forwarded calls</h2>
+    <div class="sn-body pb-0">
+      <p class="sn-meta mb-2">From the audit chain ({{ act.scanned }} newest SAJHA Net records): calls this server sent as the home and served as the host; each record, with the other side's under the same trace id, is on <a href="/admin/audit?event=net.*">Audit</a>.
+        {% if act.outcomes %}Outcomes: {% for k, v in act.outcomes|dictsort %}{{ k }} {{ v }}{% if not loop.last %} · {% endif %}{% endfor %}.{% endif %}
+        {% if n.router_counters %}Since start: {% for k, v in n.router_counters.items() %}{{ k }} {{ v }}{% if not loop.last %} · {% endif %}{% endfor %}.{% endif %}</p>
+    </div>
+    <div class="table-responsive">
+    <table class="sn-table">
+      <thead><tr><th scope="col">When</th><th scope="col">Tool</th><th scope="col">Outcome</th><th scope="col" class="opt">Side</th><th scope="col" class="opt">Other instance</th><th scope="col" class="opt">User</th><th scope="col">Trace id</th></tr></thead>
+      <tbody>
+      {% for c in act.calls %}
+        <tr><td>{{ c.at }}</td><td><code>{{ c.tool }}</code>{% if c.attempt and c.attempt > 1 %} <span class="sn-meta">attempt {{ c.attempt }}</span>{% endif %}</td>
+          <td><span class="st st-{{ 'answered' if c.outcome in ('answered', 'ok') else ('warn' if c.outcome == 'error' else 'refused') }}">{{ c.outcome or '—' }}</span>{% if c.executed is false %} <span class="sn-meta">not executed</span>{% endif %}</td>
+          <td class="opt">{{ 'sent (home)' if c.side == 'home' else 'served (host)' }}</td><td class="opt">{{ c.other or '—' }}</td><td class="opt">{{ c.user or '—' }}</td>
+          <td><code class="sn-hash">{{ c.trace_id or '—' }}</code></td></tr>
+      {% else %}
+        <tr><td colspan="7" class="sn-meta">No forwarded call recorded yet.</td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+    </div>
+  </section>
+
+  <div class="sn-grid">
+    <section class="sn-box" aria-labelledby="sn-chain-h">
+      <h2 id="sn-chain-h">Call-chain refusals</h2>
+      <div class="sn-body">
+        <p class="sn-meta mb-2">Calls refused for passing too many servers (<code>hop_limit</code>), looping (<code>loop</code>) or running out of the call chain budget (<code>chain_limit</code>).</p>
+        <ul class="sn-list">
+        {% for c in act.chain_refusals %}
+          <li><span class="st st-refused">{{ c.outcome }}</span> <code>{{ c.tool }}</code> <span class="sn-meta">{{ c.at }} · {{ 'home' if c.side == 'home' else 'host' }}{% if c.other %} · {{ c.other }}{% endif %} · trace <span class="sn-hash">{{ c.trace_id or '—' }}</span></span></li>
+        {% else %}<li class="sn-meta">None recorded.</li>{% endfor %}
+        </ul>
+      </div>
+    </section>
+
+    <section class="sn-box" aria-labelledby="sn-res-h">
+      <h2 id="sn-res-h">Residency decisions</h2>
+      <div class="sn-body">
+        {% set rs = act.residency %}
+        {% if rs.by_flow %}
+        <div class="table-responsive">
+        <table class="sn-table">
+          <thead><tr><th scope="col">Flow</th><th scope="col">Allowed</th><th scope="col">Redacted</th><th scope="col">Refused</th></tr></thead>
+          <tbody>{% for flow, o in rs.by_flow|dictsort %}<tr><td>{{ flow }}</td><td>{{ o.allowed or 0 }}</td><td>{{ o.redacted or 0 }}</td><td>{{ o.refused or 0 }}</td></tr>{% endfor %}</tbody>
+        </table>
+        </div>
+        <ul class="sn-list mt-2">
+        {% for r in rs.recent %}
+          <li><span class="st st-{{ r.outcome }}">{{ r.outcome }}</span> {{ r.flow }} of <code>{{ r.tool }}</code> <span class="sn-meta">{{ r.side }} · {{ r.instance }} · {{ r.data_classes|join(', ') }}{% if r.rule %} · rule {{ r.rule }}{% endif %} · trace <span class="sn-hash">{{ r.trace_id or '—' }}</span></span></li>
+        {% endfor %}
+        </ul>
+        {% else %}<p class="sn-meta mb-0">No decision on classified data recorded yet.</p>{% endif %}
+      </div>
+    </section>
+  </div>
+  <p class="small" id="sn-act" role="status" aria-live="polite"></p>
+  {% endif %}
+</div>
+{% endblock %}
+{% block extra_js %}
+<script src="{{ url_for('static', filename='js/sajhanet.js') }}?v={{ app_version }}"></script>
+{% endblock %}

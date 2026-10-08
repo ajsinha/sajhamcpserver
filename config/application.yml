@@ -900,6 +900,10 @@ sajhanet:
   max_call_chain: 8                # one budget for a whole call chain: hops plus tools nested in one another on every
                                    # instance passed (planners' tools, LLM tools, composites); at most 32 (§14)
   allow_remote_llm_tools: true     # export LLM tools like plain tools; they run on this server's models and budgets
+  reexport: false                  # offer tools imported from other members onward (§14); a net entry may override,
+                                   # and it is the net offered into that decides (a bridge between nets)
+  reexport_rules: []               # with reexport on, only what a rule names goes onward: [{tools: [..],
+                                   # from_nets: [..], from_instances: [..], to_instances: [..], for_roles: [..]}]
   limits:
     max_tools_per_peer: 2000
     max_catalog_bytes: 5242880
@@ -910,7 +914,15 @@ sajhanet:
     calls_per_minute: 600          # this home's calls to one peer
     inbound_calls_per_minute: 600  # forwarded calls accepted from one peer
   # identity and authorization (docs/architecture/SAJHA Net.md §10-§11)
-  user_identity: api_key           # api_key (the user's own key travels, verified by the host) | none
+  user_identity: api_key           # api_key (the user's own key travels, verified by the host) | assertion (a
+                                   # user assertion signed by the home; only a key id crosses) | token_exchange
+                                   # (an assertion exchanged at the host for a host-scoped token) | none; a list
+                                   # (comma separated): the first the host also lists is sent, all are accepted.
+                                   # A net entry may set its own.
+  assertion:
+    ttl_seconds: 30                # lifetime of a user assertion (at most 60)
+  token_exchange:
+    ttl_seconds: 300               # lifetime of a token this server issues as a host (at most 3600)
   key_directory:
     sync: true                     # pull other members' key records (sajhanet_api_keys)
     full_sync_interval_seconds: 300   # compare key digests and repair differences

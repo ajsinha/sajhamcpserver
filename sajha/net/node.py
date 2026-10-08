@@ -61,6 +61,7 @@ ROUTES: Dict[str, Tuple[str, Optional[str], Optional[str], int, bool]] = {
     P + '/keys/digest': ('POST', 'key_directory', 'keys_digest_request', 64 * KIB, True),
     P + '/blocks': ('POST', 'blocks', 'empty_request', 64 * KIB, True),
     P + '/conflicts': ('POST', 'catalog', 'empty_request', 64 * KIB, True),
+    P + '/token': ('POST', 'token_exchange', 'token_request', 16 * KIB, True),
 }
 MAX_HEADERS = 16 * KIB
 MAX_UPDATES = 32

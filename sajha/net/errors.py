@@ -16,7 +16,7 @@ REASON_STATUS: Dict[str, int] = {
     'invalid_request': 400, 'unsupported_version': 400, 'unknown_member': 400,
     'signature_missing': 401, 'signature_invalid': 401, 'signature_incomplete': 401,
     'signature_expired': 401, 'replay': 401, 'digest_mismatch': 401, 'certificate_invalid': 401,
-    'from_mismatch': 401,
+    'from_mismatch': 401, 'assertion_invalid': 401, 'token_invalid': 401,
     'certificate_revoked': 403, 'instance_revoked': 403, 'net_mismatch': 403, 'blocked': 403,
     'enrollment_refused': 403, 'not_home': 403,
     'name_conflict': 409,
@@ -36,7 +36,7 @@ TITLES: Dict[str, str] = {
     'net_mismatch': 'Wrong net', 'blocked': 'Blocked', 'enrollment_refused': 'Enrollment refused',
     'not_home': 'Not the home instance', 'name_conflict': 'Name conflict', 'too_large': 'Too large',
     'recipient_mismatch': 'Wrong recipient', 'rate_limited': 'Rate limited', 'unavailable': 'Unavailable',
-    'draining': 'Draining',
+    'draining': 'Draining', 'assertion_invalid': 'User assertion invalid', 'token_invalid': 'Token invalid',
 }
 
 #: §17.1: JSON-RPC codes of net refusals on the MCP endpoint

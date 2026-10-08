@@ -14,6 +14,48 @@ Newest first. The current version is `app.version` in `config/application.yml`.
   `ca.auto_init`; owner decision): audited, with a warning notice to back up the CA key. Peers can
   enroll without running `sajha net ca init` first.
 
+### SAJHA Net: re-export, identity resolvers and topology data (wave 5, phase 5.2)
+
+- Added: **re-export** ([SAJHA Net](docs/architecture/SAJHA%20Net.md) §14, §5.5): with `sajhanet.reexport`
+  on for the net offered into (per net too) and a `sajhanet.reexport_rules` entry naming the tool, an
+  instance offers onward tools it imported. Within one net the tool carries `origin` and the host's
+  contract; the caller's home sends a user assertion addressed to the origin, the intermediary verifies,
+  maps and authorizes the caller and relays the assertion unchanged with hop 2 and the visited list (never
+  a raw key); residency, `max_hops` and `sajhanet.max_call_chain` hold end to end, a tool never comes back
+  to its origin and a chain never revisits an instance (`loop`). The feature `reexport` is advertised.
+- Added: **bridges** between nets: a tool of net M re-exported into N is offered there as the bridge's
+  own, and the bridge calls into M as the local user the caller maps to, with an assertion it signs in M.
+- Added: the **`assertion`** and **`token_exchange`** identity resolvers (plug-ins beside `api_key`),
+  selectable per net with `user_identity` (one or a list; the first the host lists is sent):
+  `sajhanet.assertion.ttl_seconds`, `sajhanet.token_exchange.ttl_seconds`, the host's
+  `POST /sajhanet/v1/token` (feature `token_exchange`, protocol §15.9), the header
+  `Sajha-Net-User-Token` (covered by the request signature) and the refusal `-32013 token_invalid`.
+  Per-member keys and the test admin key stay features of `api_key`, in the same order.
+- Added: **`GET /api/sajhanet/topology`**: per net the instances and the `offers`, `reexports` and
+  observed `calls` edges, for the console's topology map.
+- Added: the identity, mapping, hops and visited list in the host's `net.host_call` audit record, the
+  identity sent in the home's `net.call_attempt`, `net.token_issued`, and the resolver of each remote
+  user in the users view. Conformance NET-05 and CALL-13 are covered, with the new CALL-14 (`assertion`)
+  and CALL-15 (`token_exchange`).
+
+### SAJHA Net: the console (wave 5, phase 5.2)
+
+- Added: the **Net overview** (`/admin/sajhanet/overview`, JSON at `/api/sajhanet/overview`): per net,
+  totals, a **topology map** (plain SVG from `/api/sajhanet/topology`, with a table equivalent, a pause
+  for the live view and the members alone when the endpoint answers nothing), members and gossip
+  health, open notices, quarantined and held tools with Approve, blocks, the admission panel, and from
+  the audit chain the recent forwarded calls with trace ids, call-chain refusals and residency
+  decisions ([SAJHA Net](docs/architecture/SAJHA%20Net.md) §17.5).
+- Added: **Your net access** (`/net/access`, JSON at `/api/sajhanet/access`) for every signed-in user:
+  each remote tool by name, its hosts in resolution order, and which of them the user may call.
+- Added: the **admission panel** on the Net overview and SAJHA Net admin pages: in open mode the
+  remembered first-use keys with Forget; in manual mode the pins (new `GET /api/sajhanet/nets/{net}/pins`),
+  add and remove; on the CA instance issued certificates with Revoke, waiting tokens, Create token and
+  Initialise. Runtime seeds can be removed from the admin page. Every change asks first.
+- Added: the SAJHA Net menu entries for both pages, page help, help cards, glossary terms (Net overview,
+  Topology map, Net access page, Admission mode, First-use key, Forwarded call) and the pages in
+  `scripts/check_mobile.py`.
+
 ### SAJHA Net: residency (wave 5, phase 5.1)
 
 - Added: **data classes**: `x-sajha-data-class` marks on schema fields (nested and array items too), a

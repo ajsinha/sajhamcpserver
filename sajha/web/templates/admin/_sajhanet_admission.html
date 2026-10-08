@@ -1,0 +1,59 @@
+{# The admission panel of one net (design §6.4, §6.5; static/js/sajhanet.js fills it): open mode's remembered
+   first-use keys with Forget, manual mode's pins, the SAJHA Net CA's certificates, tokens and revocations.
+   Expects adm_net (the net's name), adm_mode (its admission) and adm_id (a unique id prefix). #}
+<div class="sn-adm" data-sn-admission data-net="{{ adm_net }}" data-mode="{{ adm_mode }}">
+  <p class="sn-meta mb-2">Admission <code>{{ adm_mode }}</code>:
+  {% if adm_mode == 'open' %}self-signed certificates are accepted the first time a name is seen; then each name is held to that key.
+  {% elif adm_mode == 'manual' %}self-signed certificates whose thumbprints an administrator pins here.
+  {% elif adm_mode == 'builtin_ca' %}certificates issued by the net's SAJHA Net CA for enrollment tokens.
+  {% else %}a plug-in decides who may join.{% endif %}</p>
+  {% if adm_mode == 'open' %}
+  <div class="table-responsive">
+  <table class="sn-table" aria-label="First-use keys in {{ adm_net }}">
+    <thead><tr><th scope="col">Instance</th><th scope="col">Key thumbprint</th><th scope="col"><span class="visually-hidden">Actions</span></th></tr></thead>
+    <tbody data-role="first-use"><tr><td colspan="3" class="sn-meta">Loading the remembered keys…</td></tr></tbody>
+  </table>
+  </div>
+  {% elif adm_mode == 'manual' %}
+  <div class="table-responsive">
+  <table class="sn-table" aria-label="Pins in {{ adm_net }}">
+    <thead><tr><th scope="col">Pinned thumbprint</th><th scope="col">From</th><th scope="col"><span class="visually-hidden">Actions</span></th></tr></thead>
+    <tbody data-role="pins"><tr><td colspan="3" class="sn-meta">Loading the pins…</td></tr></tbody>
+  </table>
+  </div>
+  <form class="row g-2 mt-2 align-items-end" data-role="pin-form">
+    <div class="col-md-8"><label class="form-label small" for="{{ adm_id }}-pin">Pin a peer's certificate thumbprint</label>
+      <input class="form-control form-control-sm" id="{{ adm_id }}-pin" name="thumbprint" placeholder="SHA-256 thumbprint" autocomplete="off" required></div>
+    <div class="col-auto"><button class="btn btn-sm btn-success" type="submit">Pin</button></div>
+  </form>
+  {% elif adm_mode == 'builtin_ca' %}
+  <div data-role="ca">
+    <p class="sn-meta mb-2" data-role="ca-note">Loading the CA…</p>
+    {% if adm_ca_init %}<button class="btn btn-sm btn-outline-primary mb-2" type="button" data-role="ca-init">Initialise the CA</button>{% endif %}
+    <div data-role="ca-forms" hidden>
+      <div class="table-responsive">
+      <table class="sn-table" aria-label="Certificates issued in {{ adm_net }}">
+        <thead><tr><th scope="col">Instance</th><th scope="col">Serial</th><th scope="col">Valid until</th><th scope="col">State</th><th scope="col"><span class="visually-hidden">Actions</span></th></tr></thead>
+        <tbody data-role="issued"></tbody>
+      </table>
+      </div>
+      <div class="table-responsive mt-2">
+      <table class="sn-table" aria-label="Enrollment tokens waiting in {{ adm_net }}">
+        <thead><tr><th scope="col">Token for</th><th scope="col">Host</th><th scope="col">Created by</th><th scope="col">Expires</th></tr></thead>
+        <tbody data-role="pending"></tbody>
+      </table>
+      </div>
+      <form class="row g-2 mt-2 align-items-end" data-role="token-form">
+        <div class="col-6 col-md-4"><label class="form-label small" for="{{ adm_id }}-ti">Enroll an instance</label>
+          <input class="form-control form-control-sm" id="{{ adm_id }}-ti" name="instance" placeholder="risk-eu" autocomplete="off" required></div>
+        <div class="col-6 col-md-4"><label class="form-label small" for="{{ adm_id }}-th">Host (optional)</label>
+          <input class="form-control form-control-sm" id="{{ adm_id }}-th" name="host" placeholder="sajha-risk.example.internal" autocomplete="off"></div>
+        <div class="col-auto"><button class="btn btn-sm btn-success" type="submit">Create token</button></div>
+      </form>
+      <div class="alert alert-info small mt-2" data-role="token-out" hidden role="status">
+        Enrollment token: <code class="sn-hash"></code><div data-role="token-meta"></div></div>
+    </div>
+  </div>
+  {% endif %}
+  <p class="small mb-0 mt-1" role="status" aria-live="polite" data-role="out"></p>
+</div>

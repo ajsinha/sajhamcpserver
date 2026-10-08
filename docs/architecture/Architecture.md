@@ -327,8 +327,13 @@ caller's Studio permissions open (`studio_creators` in `render()`'s context; the
 [MCP Studio User Guide](../studio/MCP%20Studio%20User%20Guide.md#permissions)); the planner editor
 (`/studio/planners`) is for administrators. The Conversations page (`/conversations`, under
 **AI → Ask**) shows each user only their own conversation memory; administrators also see counts
-per scope. The **SAJHA Net** menu shows every signed-in user the Instances page (`/net/instances`);
-administrators also get Remote tools (`/admin/sajhanet/tools`) and the SAJHA Net admin page. Beside
+per scope. The **SAJHA Net** menu shows every signed-in user the Instances page (`/net/instances`) and
+the Net access page (`/net/access`: every remote tool, its hosts in resolution order and which of them
+the user may call); administrators also get the Net overview (`/admin/sajhanet/overview`: one net's
+topology map with a table equivalent, members, admission, notices, conflicts, blocks and recent
+forwarded calls), Remote tools (`/admin/sajhanet/tools`) and the SAJHA Net admin page, where the
+admission panel (first-use keys, pins or the CA) and runtime seeds are managed. The map and the
+admission panel are drawn by `static/js/sajhanet.js` in plain SVG on the theme tokens. Beside
 the wordmark, the navbar badge `Net · <instance name>` names the instance a user is on and links to
 Instances ([SAJHA Net](SAJHA%20Net.md) §17).
 

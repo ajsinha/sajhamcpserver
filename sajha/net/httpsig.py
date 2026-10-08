@@ -32,7 +32,8 @@ _NONCE_RE = re.compile(r'^[A-Za-z0-9_-]{22,64}$')
 
 ALWAYS = ('sajha-net-version', 'sajha-net-name', 'sajha-net-from', 'sajha-net-to')
 MCP_HEADERS = ('mcp-protocol-version', 'mcp-method', 'mcp-name', 'mcp-session-id')
-TAIL_HEADERS = ('sajha-net-hop', 'sajha-net-visited', 'sajha-net-api-key', 'sajha-net-user-assertion', 'traceparent')
+TAIL_HEADERS = ('sajha-net-hop', 'sajha-net-visited', 'sajha-net-api-key', 'sajha-net-user-assertion',
+                'sajha-net-user-token', 'traceparent')
 REQ_SIG = ('signature', {'req': True, 'key': SIGNATURE_LABEL})
 #: ``Sajha-Net-To: *`` on a join sync to an address whose instance name the sender does not know yet
 #: (a seed URL or an operator-given address, protocol §9.7); accepted on no other request.

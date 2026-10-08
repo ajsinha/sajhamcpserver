@@ -195,6 +195,10 @@ CATALOG: List[dict] = [
                'automatic proxy tools, API-key identity with a synced key directory, two-sided authorization, blocks.'),
             _p('SAJHA Net instances', 'net_instances_page', 'bi-hdd-network',
                'Every instance in your nets, this server first, and the tools each offers you, with Try it.'),
+            _p('Your net access', 'net_access_page', 'bi-person-check',
+               'Every remote tool by name, the hosts offering it in resolution order, and which you may use.'),
+            _p('Net overview', 'admin_sajhanet_overview_page', 'bi-diagram-3',
+               'Administrators: one net at a glance, with its topology map, members, admission, notices, conflicts, blocks and recent calls.'),
             _g('System notices', 'System Notices.md', 'bi-exclamation-triangle',
                'One place where SAJHA shows what needs attention: notices from the schema check, circuit '
                'breakers, workflows, LLM providers, federation and alert rules; the console banner, the '
