@@ -63,6 +63,12 @@ def opening(F: dict[str, Any]) -> list[dict[str, Any]]:
             "kind": "tldr",
             "kicker": "TL;DR",
             "title": "Executive summary: five questions, five answers",
+            "talk": "Five questions anyone new will ask, answered in one line each. MCP is an open standard "
+                "for connecting AI applications to tools and data. SAJHA is a proprietary, self-hosted "
+                "MCP server with a large built-in catalog and governance on every call. It matters "
+                "because it replaces one-off integration code with one governed catalog. The figures on "
+                "this slide are read from the code and the compliance report when the deck is built, and "
+                "the rest of the deck backs each answer.",
             "rows": [
                 ("What is MCP?", "An open standard, now under the Linux Foundation's Agentic AI Foundation, that lets "
                  "AI applications connect to any tool or data source through one protocol instead of one integration "

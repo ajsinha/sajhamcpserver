@@ -675,6 +675,22 @@ def pages() -> int:
     return len([k for k in PAGE_HELP if k != "error"])
 
 
+def console_menus() -> list[tuple[str, list[str]]]:
+    """The console's top menus and each menu's column titles, in order, from the menu data in
+    sajha/web/templates/common/_nav.html (a top entry is (label, icon, [columns]); a column is
+    (title, [items]) or (title, a list variable))."""
+    src = (ROOT / "sajha" / "web" / "templates" / "common" / "_nav.html").read_text(encoding="utf-8")
+    token = re.compile(r"\('([^'/][^']*)', '([a-z0-9-]+)', \[|\('([^'/][^']*)', (?:\[|[a-z_]+_items\))")
+    menus: list[tuple[str, list[str]]] = []
+    for m in token.finditer(src):
+        if m.group(1):
+            menus.append((m.group(1), []))
+        elif menus and m.group(3) not in menus[-1][1]:
+            menus[-1][1].append(m.group(3))
+    _need(len(menus) >= 4 and all(cols for _m, cols in menus), f"console menus not found in _nav.html: {menus}")
+    return menus
+
+
 def route_modules() -> int:
     return len(list((ROOT / "sajha" / "routes").glob("*_routes.py")))
 
@@ -732,6 +748,7 @@ def facts() -> dict[str, Any]:
             "prompts": prompts(),
             "pages": pages(),
             "routes": route_modules(),
+            "menus": console_menus(),
             "calc_tools": describe_tools(("calc_",)),
             "search_tools": describe_tools(("tavily_", "wiki_", "crawl_", "extract_", "ir_", "check_", "get_page")),
             "analytics_tools": describe_tools(("duckdb_", "olap_", "sqlselect_")),

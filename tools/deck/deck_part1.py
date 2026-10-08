@@ -15,6 +15,7 @@ from __future__ import annotations
 from typing import Any
 
 from evidence import require_tools
+from diagrams import row, seq
 from prose import listing
 
 READ = "read 2026-10-06"
@@ -89,6 +90,273 @@ def _what_is_mcp(eras: dict[str, list[str]]) -> dict[str, Any]:
     }
 
 
+def _primitives(F: dict[str, Any]) -> dict[str, Any]:
+    """Who decides, what each primitive is, and where SAJHA serves it: three rows, four columns."""
+    cat = F["catalog"]
+    cols = [
+        ("the model", "Tools", "act: functions the model can invoke", "accent",
+         f"{cat['tools']} tools in {cat['groups']} groups, each with a JSON Schema"),
+        ("the application", "Resources", "inform: data readable by URI", "dark",
+         "sajha://tools/catalog, sajha://prompts/catalog, sajha://data/{filename}, tool schemas"),
+        ("the user", "Prompts", "guide: templates with arguments", "navy",
+         f"{F['prompts']} shipped templates in config/prompts, more from the console"),
+        ("either side", "Utilities", "completion, logging, progress, cancellation", "box",
+         "completion/complete, logging/setLevel, progress and cancellation"),
+    ]
+    xs = row(len(cols), 0.15, 1.0, 0.195)
+    nodes, edges = [], []
+    for i, (who, prim, what, style, sajha) in enumerate(cols):
+        nodes += [
+            {"id": f"w{i}", "text": who, "x": xs[i] + 0.03, "y": 0.0, "w": 0.135, "h": 0.17, "style": "soft",
+             "shape": "oval", "size": 13},
+            {"id": f"p{i}", "text": prim, "sub": what, "x": xs[i], "y": 0.3, "w": 0.195, "h": 0.24, "style": style,
+             "size": 18},
+            {"id": f"s{i}", "text": sajha, "x": xs[i], "y": 0.68, "w": 0.195, "h": 0.3, "style": "white", "size": 13,
+             "bold": False},
+        ]
+        edges += [{"a": f"w{i}", "b": f"p{i}", "color": "CRIMSON"}, {"a": f"p{i}", "b": f"s{i}", "dash": True}]
+    heads = [("WHO DECIDES", 0.03), ("PRIMITIVE", 0.37), ("IN SAJHA", 0.78)]
+    return {
+        "kind": "canvas",
+        "kicker": "Core primitives",
+        "title": "Three primitives: tools act, resources inform, prompts guide",
+        "nodes": nodes,
+        "edges": edges,
+        "texts": [{"x": 0.0, "y": y, "w": 0.13, "h": 0.1, "text": t, "bold": True, "color": "CRIMSON_D", "size": 11}
+                  for t, y in heads],
+        "note": "Tools are the action layer, resources the data layer, prompts the guidance layer; all three "
+        "are described with JSON Schema, so a model can discover them.",
+        "source": f"Primitives and who controls them: {SPEC}. SAJHA: sajha/core/mcp_handler.py (resources/list, "
+        "resources/templates/list, completion/complete, logging/setLevel); tool counts from the registry and "
+        "prompt templates counted in config/prompts at build time.",
+        "talk": "MCP servers offer three things. Tools are functions the model decides to call: search, query a "
+        "database, call an API. Resources are data the application decides to read, addressed by URI, such as "
+        "SAJHA's tool and prompt catalogs or a data file. Prompts are templates the user picks, with arguments. "
+        "Around them sit utilities either side can use: completion, logging, progress and cancellation. In SAJHA "
+        f"every tool carries a JSON Schema, and the {F['prompts']} shipped prompt templates can be extended from "
+        "the console.",
+    }
+
+
+def _benefits() -> dict[str, Any]:
+    """What MCP gives, and what SAJHA adds, row by row."""
+    rows = [
+        ("Interoperability", "Any MCP client talks to any MCP server", "Both protocol eras on one endpoint"),
+        ("Dynamic discovery", "Agents learn tools at run time, not at compile time",
+         "A caller sees only the tools it may run"),
+        ("Transport choice", "Local (stdio) or remote (Streamable HTTP)", "Also legacy SSE and WebSocket"),
+        ("Decoupled evolution", "Servers add tools without changing clients",
+         "Tools added while it runs; clients told on push channels"),
+        ("Ecosystem scale", "Over 10,000 public servers to connect to", "Federation fronts other servers under its rules"),
+        ("One control point", "Authentication and authorization at the server",
+         "Access policy, rules, approvals and a tamper-evident audit"),
+    ]
+    rh = 0.86 / len(rows)
+    nodes = [
+        {"id": "hm", "text": "MCP gives", "x": 0.23, "y": 0.0, "w": 0.34, "h": 0.1, "style": "dark", "size": 14},
+        {"id": "hs", "text": "SAJHA adds", "x": 0.64, "y": 0.0, "w": 0.36, "h": 0.1, "style": "accent", "size": 14},
+    ]
+    edges = []
+    for i, (name, mcp, sajha) in enumerate(rows):
+        y = 0.14 + i * rh
+        nodes += [
+            {"id": f"n{i}", "text": name, "x": 0.0, "y": y, "w": 0.2, "h": rh - 0.03, "style": "soft", "size": 13},
+            {"id": f"m{i}", "text": mcp, "x": 0.23, "y": y, "w": 0.34, "h": rh - 0.03, "style": "white", "size": 13,
+             "bold": False},
+            {"id": f"s{i}", "text": sajha, "x": 0.64, "y": y, "w": 0.36, "h": rh - 0.03, "style": "line", "size": 13,
+             "bold": False},
+        ]
+        edges.append({"a": f"m{i}", "b": f"s{i}", "color": "CRIMSON", "label": "+", "lsize": 12, "litalic": False,
+                      "lbold": True, "lcolor": "CRIMSON"})
+    return {
+        "kind": "canvas",
+        "kicker": "Benefits",
+        "title": "What MCP gives an application, and what SAJHA adds on top",
+        "nodes": nodes,
+        "edges": edges,
+        "source": f"MCP benefits: {SPEC}; server count: {AAIF}. SAJHA column: sajha/web/competitive.py (SAJHA "
+        "cells), docs/architecture/Federation.md, docs/architecture/Policy and Audit.md.",
+        "talk": "Each row is something the protocol gives every application, and what SAJHA builds on it. Any client "
+        "talks to any server, and SAJHA serves both protocol eras on one endpoint. Agents discover tools at run time, "
+        "and in SAJHA a caller only discovers the tools it is allowed to run. The standard transports are stdio and "
+        "Streamable HTTP; SAJHA adds legacy SSE and WebSocket. Servers grow without changing clients, and SAJHA adds "
+        "tools while it runs and tells connected clients. And the server is the one place to control access, which "
+        "SAJHA fills with an access policy, rules, approvals and a tamper-evident audit.",
+    }
+
+
+def _transports() -> dict[str, Any]:
+    """Four ways in, one catalog behind them; the two standard transports in crimson."""
+    lanes = [
+        ("desktop client", "stdio", "sajha serve --stdio: a child process on stdin and stdout", "accent"),
+        ("MCP client, either era", "Streamable HTTP", "POST /mcp: JSON, or a streamed (SSE) response", "accent"),
+        ("older client", "HTTP + SSE", "/mcp/sse: replaced in the spec by Streamable HTTP", "ghost"),
+        ("browser, long-lived link", "WebSocket", "/mcp/ws: full duplex; not in the spec", "ghost"),
+    ]
+    nodes, edges = [], []
+    for i, (who, name, how, style) in enumerate(lanes):
+        y = 0.02 + i * 0.235
+        nodes += [
+            {"id": f"c{i}", "text": who, "x": 0.0, "y": y, "w": 0.2, "h": 0.18, "style": "white", "shape": "oval",
+             "size": 13},
+            {"id": f"t{i}", "text": name, "sub": how, "x": 0.29, "y": y - 0.01, "w": 0.34, "h": 0.2, "style": style,
+             "size": 15},
+        ]
+        edges += [{"a": f"c{i}", "b": f"t{i}"}, {"a": f"t{i}", "b": "cat", "ports": ("r", "l"), "at": (0.5, 0.2 + 0.2 * i),
+                   "color": "CRIMSON"}]
+    nodes.append({"id": "cat", "text": "One catalog", "sub": "the same access policy, rules and audit on every "
+                  "transport", "x": 0.75, "y": 0.27, "w": 0.25, "h": 0.4, "style": "dark", "size": 18})
+    return {
+        "kind": "canvas",
+        "kicker": "Transports",
+        "title": "Four transports in SAJHA; two of them are the MCP standard",
+        "nodes": nodes,
+        "edges": edges,
+        "legend": {"x": 0.0, "y": 0.97, "w": 0.6, "items": [("accent", "in the MCP specification"),
+                                                           ("ghost", "legacy, or an extension")], "size": 11},
+        "source": f"Standard transports: {SPEC} (Transports: stdio and Streamable HTTP; HTTP+SSE was the "
+        "2024-11-05 transport). SAJHA: sajha/routes/mcp_routes.py, sajha/routes/ws_routes.py, sajha/cli/stdio.py; "
+        "the SAJHA cells of sajha/web/competitive.py.",
+        "talk": "The MCP specification defines two transports: stdio, where the client starts the server as a child "
+        "process and talks over standard input and output, and Streamable HTTP, where each request is an HTTP POST "
+        "answered with JSON or a streamed response. SAJHA serves both: sajha serve --stdio for desktop clients, and "
+        "POST /mcp for both protocol eras. It keeps the older HTTP plus SSE transport for clients that still use it, "
+        "and adds WebSocket for browsers and long-lived links. Whatever the way in, a call reaches the same catalog "
+        "through the same access policy, rules and audit.",
+    }
+
+
+def _eras(eras: dict[str, list[str]]) -> dict[str, Any]:
+    """One endpoint, two eras, decided per request; both behind one shared state store."""
+    return {
+        "kind": "canvas",
+        "kicker": "Two eras",
+        "title": "Two eras on one endpoint, recognised request by request",
+        "nodes": [
+            {"id": "req", "text": "A request", "sub": "POST /mcp", "x": 0.0, "y": 0.38, "w": 0.13, "h": 0.2,
+             "style": "white", "shape": "oval", "size": 15},
+            {"id": "py", "text": "Python client", "sub": "probes server/discover and adopts the newest", "x": 0.0,
+             "y": 0.72, "w": 0.17, "h": 0.24, "style": "ghost", "size": 12},
+            {"id": "dec", "text": "Which era?", "sub": "decided per request", "x": 0.18, "y": 0.3, "w": 0.17,
+             "h": 0.36, "style": "gold", "shape": "diamond", "size": 13},
+            {"id": "st", "text": "Stateless", "sub": f"{listing(eras['modern'])}: no session; clients on current SDKs",
+             "x": 0.47, "y": 0.03, "w": 0.28, "h": 0.26, "style": "accent", "size": 17},
+            {"id": "se", "text": "Session-based", "sub": f"{listing(eras['handshake'])}: most clients in the field",
+             "x": 0.47, "y": 0.67, "w": 0.28, "h": 0.26, "style": "dark", "size": 17},
+            {"id": "db", "text": "Shared state store", "sub": "sessions, tasks, rate limits, OAuth codes", "x": 0.82,
+             "y": 0.27, "w": 0.18, "h": 0.42, "style": "white", "shape": "can", "size": 14},
+        ],
+        "edges": [
+            {"a": "req", "b": "dec"},
+            {"a": "py", "b": "req", "dash": True},
+            {"a": "dec", "b": "st", "via": [(0.265, 0.16)], "color": "CRIMSON"},
+            {"a": "dec", "b": "se", "via": [(0.265, 0.80)], "color": "CRIMSON_D"},
+            {"a": "st", "b": "db", "mode": "c"}, {"a": "se", "b": "db", "mode": "c"},
+        ],
+        "texts": [
+            {"x": 0.285, "y": 0.18, "w": 0.18, "h": 0.15, "size": 10.5, "italic": True,
+             "text": "names its version in _meta, or a\nnon-handshake MCP-Protocol-Version"},
+            {"x": 0.285, "y": 0.63, "w": 0.18, "h": 0.15, "size": 10.5, "italic": True,
+             "text": "initialize opens a session;\nlater requests carry Mcp-Session-Id"},
+        ],
+        "note": "One deployment serves a mixed fleet. Shared state goes through a store, so either era works across "
+        "several workers.",
+        "source": "sajha/core/mcp_modern.py (MODERN_PROTOCOL_VERSIONS, HANDSHAKE_PROTOCOL_VERSIONS, read at "
+        "build time), sajha/core/mcp_2025_11_25.py; GLOSSARY.md 'Era detection', 'Client SDK'.",
+        "talk": "MCP has two eras in use. Clients on current SDKs speak the stateless revision: each request names "
+        "its protocol version and stands alone. Most clients in the field still speak a session-based revision: an "
+        "initialize handshake opens a session whose id later requests carry. SAJHA decides which era a request "
+        "belongs to on every POST to /mcp, so one deployment serves a mixed fleet. Session state, task records, rate "
+        "limits and OAuth codes go through a shared store, so either era keeps working across several workers. "
+        "SAJHA's own Python client probes server/discover and adopts the newest era the server offers.",
+    }
+
+
+def _conformance(ci: dict[str, Any], cf: dict[str, Any], matrix: str) -> dict[str, Any]:
+    """The CI run drawn on the left, the results table on the right, the totals above."""
+    suites = ci["matrix"]
+    xs = row(len(suites), 0.0, 0.4, 0.19)
+    nodes = [
+        {"id": "k1", "text": str(cf["passed"]), "sub": "checks passed", "x": 0.0, "y": 0.0, "w": 0.2, "h": 0.22,
+         "style": "accent", "size": 28},
+        {"id": "k2", "text": str(cf["failed"]), "sub": "checks failed", "x": 0.22, "y": 0.0, "w": 0.18, "h": 0.22,
+         "style": "ok", "size": 28},
+        {"id": "push", "text": f"push to {listing(ci['branches'])}", "x": 0.05, "y": 0.32, "w": 0.3, "h": 0.12,
+         "style": "white", "shape": "oval", "size": 13},
+        {"id": "live", "text": "CI starts a live SAJHA", "x": 0.05, "y": 0.52, "w": 0.3, "h": 0.12, "style": "dark",
+         "size": 13},
+        *[{"id": f"m{i}", "text": f"suite {suite}", "sub": f"the {spec} era", "x": xs[i], "y": 0.72, "w": 0.19,
+           "h": 0.16, "style": "soft", "size": 12} for i, (spec, suite) in enumerate(suites)],
+    ]
+    edges = [{"a": "push", "b": "live"}] + [{"a": "live", "b": f"m{i}", "mode": "c"} for i in range(len(suites))]
+    return {
+        "kind": "canvas",
+        "kicker": "Evidence",
+        "title": f"The official conformance suite: {cf['passed']} checks passed, {cf['failed']} failed",
+        "nodes": nodes,
+        "edges": edges,
+        "tables": [{"x": 0.45, "y": 0.0, "w": 0.55, "h": 0.88, "size": 14, "col_w": [3.2, 1.0, 0.9, 0.7],
+                    "rows": [["Suite", "Scenarios", "Passed", "Failed"]]
+                    + [[r["suite"], r["scenarios"], str(r["passed"]), str(r["failed"])] for r in cf["rows"]]}],
+        "texts": [{"x": 0.0, "y": 0.92, "w": 1.0, "h": 0.08, "size": 11, "italic": True,
+                   "text": "The compliance report records the CI runs and two more suites against the same server: "
+                   "tasks, and the built-in authorization server."}],
+        "source": "Results: the table in section 5 of docs/protocol/MCP 2026-07-28 Compliance.md, parsed "
+        f"at build time ({cf['legacy']['scenarios']} scenarios on the 2025-11-25 path agree with "
+        "docs/protocol/MCP 2025-11-25 Compliance.md). Matrix and branches: .github/workflows/mcp-conformance.yml.",
+        "talk": f"Conformance is evidence, not a claim. On every push to {listing(ci['branches'])}, CI starts a live "
+        f"SAJHA and runs the official MCP conformance suite once per era: {matrix}. The compliance report records "
+        "those runs, and two more suites against the same server, one for the tasks extension and one for the "
+        f"built-in authorization server. Across them, {cf['passed']} checks passed and {cf['failed']} failed. The "
+        "numbers on this slide are read from the report's results table when the deck is built.",
+    }
+
+
+def _beyond() -> dict[str, Any]:
+    """One tools/call as a sequence: what can happen between the request and the result."""
+    steps = [
+        {"a": "c", "b": "s", "label": "tools/call, with Mcp-Method and Mcp-Name headers"},
+        {"a": "s", "b": "c", "label": "progress and logs, on the streamed response"},
+        {"a": "s", "b": "c", "label": "input_required: the tool needs an answer", "color": "CRIMSON"},
+        {"a": "c", "b": "s", "label": "the same request again, with the answers", "color": "CRIMSON"},
+        {"a": "s", "b": "c", "label": "a task id, when the tool is task-capable", "color": "NAVY"},
+        {"a": "c", "b": "s", "label": "tasks/get until done; or tasks/cancel", "color": "NAVY"},
+        {"a": "c", "b": "s", "label": "closes the stream: the tool sees is_cancelled", "dash": True},
+        {"a": "s", "b": "c", "label": "the result, with a ui:// view beside it", "width": 2.2},
+    ]
+    groups, nodes, edges = seq([("c", "MCP client"), ("s", "SAJHA and the tool")], steps, 0.0, 0.66, 0.1,
+                               top=0.08, lsize=11)
+    tags = [("HEADERS", "a gateway routes without reading the body", 0, 1, "box"),
+            ("STREAMING", "progress and logs while a tool runs", 1, 1, "box"),
+            ("MRTR", "Multi Round-Trip Requests: input mid-call, no session", 2, 2, "accent"),
+            ("TASKS", "long calls become tasks", 4, 2, "navy"),
+            ("CANCELLATION", "a long tool can stop early", 6, 1, "box"),
+            ("MCP APPS", "e.g. calc_loan_amortization's chart", 7, 1, "dark")]
+    rh = 0.92 / len(steps)
+    for t, sub, k, span, style in tags:
+        nodes.append({"id": f"tag{k}", "text": t, "sub": sub, "x": 0.7, "y": 0.08 + rh * k + 0.008, "w": 0.3,
+                      "h": rh * span - 0.016, "style": style, "size": 14})
+    return {
+        "kind": "canvas",
+        "kicker": "Beyond list and call",
+        "title": "Streaming, cancellation, input mid-call, long tasks and views",
+        "groups": groups,
+        "nodes": nodes,
+        "edges": edges,
+        "source": "GLOSSARY.md §3 (MRTR, Tasks extension, MCP Apps, Mcp-Param-{Name}); sajha/core/mcp_mrtr.py, "
+        "mcp_tasks.py (tasks/get, tasks/cancel), mcp_apps.py, mcp_tool_context.py (report_progress, report_log, "
+        "is_cancelled); docs/protocol/MCP 2026-07-28 Compliance.md §4.",
+        "talk": "A tool call is more than a request and a reply. In the 2026-07-28 era, Mcp-Method, Mcp-Name and "
+        "Mcp-Param headers let a gateway route a call without reading its body. While a tool runs it can report "
+        "progress and log lines, which a client that asked receives on the streamed response. A stateless server "
+        "that needs input mid-call answers input_required, and the client retries the same request with the "
+        "answers: Multi Round-Trip Requests, with the state signed and carried by the client. A task-capable tool "
+        "returns a task id instead, and the client polls tasks/get, answers input, or cancels. If the client closes "
+        "the stream, the running tool sees is_cancelled and can stop early. And a tool can ship an HTML view, "
+        "rendered beside its result, such as the loan amortization calculator's schedule chart.",
+    }
+
+
 def _patterns(single: list[str], chain: list[str], par: list[str], multi: list[str]) -> dict[str, Any]:
     """Four ways an agent calls tools, each drawn as the calls it makes."""
     def tool(i: str, name: str, x: float, y: float, w: float = 0.15) -> dict[str, Any]:
@@ -155,6 +423,12 @@ def _section1(F: dict[str, Any]) -> list[dict[str, Any]]:
             "kind": "principles",
             "kicker": "Why it matters",
             "title": "Ten principles: why every AI application should use MCP",
+            "talk": "These are the reasons to adopt MCP at all, whatever server you choose. The first four "
+                "are economic and strategic: fewer integrations, reuse, a clean contract between tool "
+                "builders and AI builders, and a standard with neutral governance. The rest are about how"
+                " agents work: run-time discovery, one control point for access, faster time to value, "
+                "freedom to change models, a structured record of every call, and letting experts publish"
+                " tools without waiting for engineers.",
             "items": [
                 ("Eliminate integration sprawl",
                  "N tools × M applications need N × M connectors; with MCP, N + M."),
@@ -185,6 +459,10 @@ def _section1(F: dict[str, Any]) -> list[dict[str, Any]]:
             "kind": "quotes",
             "kicker": "Industry voices",
             "title": "Industry voices on MCP, each traced to its source",
+            "talk": "Four voices, each checked against its source and dated in the notes: OpenAI's and Google"
+                " DeepMind's chief executives, a BCG article, and Anthropic's announcement of the Agentic"
+                " AI Foundation. One quotation the earlier deck carried could not be traced to a primary "
+                "source, so it is not here.",
             "quotes": [
                 ("People love MCP and we are excited to add support across our products.",
                  "Sam Altman, CEO, OpenAI", "On X, 26 March 2025, as reported by TechCrunch"),
@@ -202,33 +480,15 @@ def _section1(F: dict[str, Any]) -> list[dict[str, Any]]:
             "unverifiable: a quotation attributed to a security executive's interview, found only in secondary "
             "write-ups.",
         },
-        {
-            "kind": "table",
-            "kicker": "Core primitives",
-            "title": "Three primitives: tools act, resources inform, prompts guide",
-            "col_w": [1.2, 3.0, 1.5, 3.0],
-            "rows": [
-                ["Primitive", "What it is", "Who decides", "In SAJHA"],
-                ["Tools", "Functions the model can invoke: search, query a database, call an API",
-                 "The model", f"{cat['tools']} tools in {cat['groups']} groups, each with a JSON Schema"],
-                ["Resources", "Data the server makes readable by URI: files, records, schemas",
-                 "The application", "sajha://tools/catalog, sajha://prompts/catalog, sajha://data/{filename}, "
-                 "tool schemas"],
-                ["Prompts", "Reusable prompt templates with arguments", "The user",
-                 f"{F['prompts']} shipped templates in config/prompts, more from the console"],
-                ["Utilities", "Completion, logging, progress, cancellation", "Either side",
-                 "completion/complete, logging/setLevel, progress and cancellation"],
-            ],
-            "note": "Tools are the action layer, resources the data layer, prompts the guidance layer; all three "
-            "are described with JSON Schema, so a model can discover them.",
-            "source": f"Primitives and who controls them: {SPEC}. SAJHA: sajha/core/mcp_handler.py (resources/list, "
-            "resources/templates/list, completion/complete, logging/setLevel); tool counts from the registry and "
-            "prompt templates counted in config/prompts at build time.",
-        },
+        _primitives(F),
         {
             "kind": "diagram",
             "kicker": "Architecture",
             "title": "A host runs one client per server; each server wraps capabilities",
+            "talk": "MCP has three roles. The host is the application the user works in, a chat app, an IDE "
+                "or an agent; it runs the model. For every server it uses, the host runs one client, "
+                "which holds one connection. Each server exposes tools, resources and prompts over JSON-"
+                "RPC. SAJHA is one such server, and a host can use it beside others.",
             "groups": [{"id": "host", "label": "HOST: the AI application (chat app, IDE, agent)", "x": 0.0, "y": 0.0,
                         "w": 1.0, "h": 0.36}],
             "nodes": [
@@ -299,28 +559,7 @@ def _section1(F: dict[str, Any]) -> list[dict[str, Any]]:
             "runs it. Result: the server returns a structured result and the host feeds it back into the model's "
             "context. Iteration: the model chains further calls, across tools and servers, until it can answer.",
         },
-        {
-            "kind": "table",
-            "kicker": "Benefits",
-            "title": "What MCP gives an application, and what SAJHA adds on top",
-            "col_w": [1.9, 3.1, 3.0],
-            "rows": [
-                ["Benefit", "What it means", "In SAJHA"],
-                ["Interoperability", "Any MCP client talks to any MCP server", "Both protocol eras on one endpoint"],
-                ["Dynamic discovery", "Agents learn tools at run time, not at compile time",
-                 "A caller sees only the tools it may run"],
-                ["Transport choice", "Local (stdio) or remote (Streamable HTTP)",
-                 "Also legacy SSE and WebSocket"],
-                ["Decoupled evolution", "Servers add tools without changing clients",
-                 "Tools added while it runs; clients told on push channels"],
-                ["Ecosystem scale", "Over 10,000 public servers to connect to",
-                 "Federation fronts other servers under its rules"],
-                ["One control point", "Authentication and authorization at the server",
-                 "Access policy, rules, approvals and a tamper-evident audit"],
-            ],
-            "source": f"MCP benefits: {SPEC}; server count: {AAIF}. SAJHA column: sajha/web/competitive.py (SAJHA "
-            "cells), docs/architecture/Federation.md, docs/architecture/Policy and Audit.md.",
-        },
+        _benefits(),
     ]
 
 
@@ -344,6 +583,11 @@ def _section2(F: dict[str, Any]) -> list[dict[str, Any]]:
             "kind": "diagram",
             "kicker": "Indicative architecture",
             "title": "An MCP-enabled application keeps its AI layer apart from its integrations",
+            "talk": "This is an illustrative application. On the left is the AI layer: a chat interface, an "
+                "orchestrator, the model, a workflow engine and memory. All tool traffic goes through MCP"
+                " clients, one per server. On the right, SAJHA serves its tool families behind access, "
+                "policy and audit, and a second server serves search. Integrations can change without "
+                "touching the AI layer.",
             "groups": [
                 {"id": "app", "label": "AI APPLICATION", "x": 0.0, "y": 0.0, "w": 0.44, "h": 1.0},
                 {"id": "sa", "label": "MCP SERVER A: SAJHA", "x": 0.54, "y": 0.0, "w": 0.46, "h": 0.47},
@@ -430,95 +674,20 @@ def _section2(F: dict[str, Any]) -> list[dict[str, Any]]:
             "client sends it as JSON-RPC and receives a structured result; results return to the model's context and "
             "it chains further calls until it can answer.",
         },
-        {
-            "kind": "table",
-            "kicker": "Transports",
-            "title": "Four transports in SAJHA; two of them are the MCP standard",
-            "col_w": [1.6, 2.8, 1.8, 2.4],
-            "rows": [
-                ["Transport", "How it works", "In the MCP spec", "In SAJHA"],
-                ["Streamable HTTP", "HTTP POST, answered with JSON or a streamed (SSE) response",
-                 "Yes: the remote transport", "POST /mcp, both eras"],
-                ["stdio", "The server runs as a child process; messages on stdin and stdout",
-                 "Yes: the local transport", "sajha serve --stdio, for desktop clients"],
-                ["HTTP + SSE", "A long-lived event stream plus a POST endpoint",
-                 "Replaced by Streamable HTTP", "/mcp/sse, for older clients"],
-                ["WebSocket", "A full-duplex persistent connection", "No: an extension",
-                 "/mcp/ws, for browsers and long-lived links"],
-            ],
-            "note": "Every transport reaches the same catalog through the same access policy, rules and audit.",
-            "source": f"Standard transports: {SPEC} (Transports: stdio and Streamable HTTP; HTTP+SSE was the "
-            "2024-11-05 transport). SAJHA: sajha/routes/mcp_routes.py, sajha/routes/ws_routes.py, sajha/cli/stdio.py; "
-            "the SAJHA cells of sajha/web/competitive.py.",
-        },
-        {
-            "kind": "table",
-            "kicker": "Two eras",
-            "title": "Two eras on one endpoint, recognised request by request",
-            "col_w": [1.3, 1.7, 3.2, 1.8],
-            "rows": [
-                ["Era", "Versions", "How SAJHA recognises it", "Who sends it"],
-                ["Stateless", listing(eras["modern"]),
-                 "The request names its protocol version in _meta (or a non-handshake MCP-Protocol-Version "
-                 "header); there is no session.", "Clients on current SDKs"],
-                ["Session-based", listing(eras["handshake"]),
-                 "An initialize handshake opens a session (Mcp-Session-Id) that later requests carry.",
-                 "Most clients in the field"],
-                ["Either", "—", "Decided per request on POST /mcp, so one deployment serves a mixed fleet; the "
-                 "Python client probes server/discover and adopts the newest.", "Mixed estates"],
-            ],
-            "note": "Session state, task records, rate limits and OAuth codes go through a shared store, so "
-            "either era works across several workers.",
-            "source": "sajha/core/mcp_modern.py (MODERN_PROTOCOL_VERSIONS, HANDSHAKE_PROTOCOL_VERSIONS, read at "
-            "build time), sajha/core/mcp_2025_11_25.py; GLOSSARY.md 'Era detection', 'Client SDK'.",
-        },
-        {
-            "kind": "stats",
-            "kicker": "Evidence",
-            "title": f"The official conformance suite: {cf['passed']} checks passed, {cf['failed']} failed",
-            "intro": "CI starts a live SAJHA and runs the official MCP conformance suite once per era, "
-            f"{matrix}, on every push to {listing(ci['branches'])}. The compliance report records those runs and "
-            "two more suites against the same server, for tasks and for the built-in authorization server.",
-            "stats": [
-                (str(cf["passed"]), "checks passed, over the suites below"),
-                (str(cf["failed"]), "checks failed"),
-                (str(len(ci["matrix"])), "eras in the CI matrix, each with a pinned suite"),
-            ],
-            "rows": [["Suite", "Scenarios", "Checks passed", "Failed"]]
-            + [[r["suite"], r["scenarios"], str(r["passed"]), str(r["failed"])] for r in cf["rows"]],
-            "col_w": [4.2, 1.0, 1.1, 0.8],
-            "source": "Results: the table in section 5 of docs/protocol/MCP 2026-07-28 Compliance.md, parsed "
-            f"at build time ({cf['legacy']['scenarios']} scenarios on the 2025-11-25 path agree with "
-            "docs/protocol/MCP 2025-11-25 Compliance.md). Matrix and branches: .github/workflows/mcp-conformance.yml.",
-        },
+        _transports(),
+        _eras(eras),
+        _conformance(ci, cf, matrix),
         _patterns(single, chain, par, multi),
-        {
-            "kind": "cards",
-            "kicker": "Beyond list and call",
-            "title": "Streaming, cancellation, input mid-call, long tasks and views",
-            "cols": 3,
-            "cards": [
-                ("STREAMING", "Progress and logs while a tool runs",
-                 "A tool reports progress and log lines; a client that asked receives them on the streamed response."),
-                ("CANCELLATION", "A client can stop a call",
-                 "A cancelled request is visible to the running tool (is_cancelled), which can stop early."),
-                ("MRTR", "Multi Round-Trip Requests",
-                 "A stateless server asks for input mid-call by answering input_required; the client retries "
-                 "with the answers."),
-                ("TASKS", "Long calls become tasks",
-                 "A task-capable tool returns a task id; the client polls tasks/get, answers input or cancels."),
-                ("MCP APPS", "A tool can ship its own view",
-                 "An HTML view (ui://) rendered beside the result, such as calc_loan_amortization's schedule chart."),
-                ("HEADERS", "Routing without reading the body",
-                 "Mcp-Method, Mcp-Name and Mcp-Param-* headers let a gateway route 2026-07-28 traffic."),
-            ],
-            "source": "GLOSSARY.md §3 (MRTR, Tasks extension, MCP Apps, Mcp-Param-{Name}); sajha/core/mcp_mrtr.py, "
-            "mcp_tasks.py, mcp_apps.py, mcp_tool_context.py; docs/protocol/MCP 2026-07-28 Compliance.md §4.",
-        },
+        _beyond(),
         {
             "kind": "diagram",
             "kicker": "MCP in LLM pipelines",
             "title": "The model decides when to call a tool; MCP carries the call and the result",
+            "talk": "In an LLM pipeline the tool schemas go into the model's context when the prompt is "
+                "built. The model, not hard-coded logic, decides whether and which tool to call. The MCP "
+                "client carries the call to the server, the server calls the API, database or file, and a"
+                " structured result returns to the model, which writes the final answer. Ask SAJHA is "
+                "SAJHA's own instance of this pipeline, shown in Section 7.",
             "nodes": [
                 {"id": "q", "text": "User query", "x": 0.0, "y": 0.0, "w": 0.15, "h": 0.24, "style": "white"},
                 {"id": "llm", "text": "LLM agent", "x": 0.215, "y": 0.0, "w": 0.15, "h": 0.24, "style": "accent"},

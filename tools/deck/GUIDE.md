@@ -32,7 +32,7 @@ tool, API import and data connectors (two lanes), federation (a pipeline from up
 catalog), the server's layers, the web console, the parallel SDLC, role-based access,
 security layers, authentication (four callers, one access policy), OAuth 2.1 (client,
 authorization server, resource server), credentials, sign-in and the browser, five
-step-by-step flows in monospace, a policy rule and the example policy evaluated, the audit
+step-by-step flows drawn as sequence diagrams, a policy rule and the example policy evaluated, the audit
 chain tampered with (the captured run beside the chain drawn), the security fixes, deploy
 anywhere, cloud and on-premises reference architectures, and production readiness in counted
 facts. (4) Agents, composition and workflows: agent architecture, an illustrative analysis,
@@ -60,7 +60,9 @@ stronger, where to start; then thanks, with the notice again.
 **Diagrams, not paragraphs.** A slide that explains a flow, a structure or a comparison draws
 it with native, editable shapes in the theme's colours (the `canvas` layout: boxes, connectors
 with arrowheads and labels, groups, legends), and keeps only a few words on the slide; what
-was said in prose is in the slide's speaker notes, after the source ("Speaker notes: ...").
+was said in prose is in the slide's speaker notes, after the source ("Speaker notes: ..."). Every content slide
+carries speaker notes (`talk`): a few sentences a presenter can say. Genuinely tabular data (tool lists, the
+schema, the comparison) stays in tables; bars and counts on a canvas are drawn proportional to derived values.
 
 **Proprietary.** SAJHA is proprietary, owned by Ashutosh Sinha; it is not open source. Every
 slide's footer reads "© 2025-2030 Ashutosh Sinha. All rights reserved. Proprietary."
@@ -76,7 +78,7 @@ something ("Four transports in SAJHA; two of them are the MCP standard"). Worked
 that were not run are marked *Illustrative*; the real runs are captured at build time.
 
 **Where it came from.** The arc and the slide vocabulary (TL;DR rows, numbered section
-dividers, the ten principles, quotations, step-by-step monospace flows, reference
+dividers, the ten principles, quotations, step-by-step flows, reference
 architectures) follow an earlier deck by the same author, rebuilt in SAJHA Crimson with
 every number derived and every outside claim cited. What could not be verified was left
 out; `tests/test_deck_geometry.py` keeps the earlier deck's organisation out of every
@@ -117,6 +119,7 @@ examples use the shipped configs read-only, a temporary SQLite file and a throwa
 | Seeded roles and permissions | `db/scripts/sqlite/seed.sql` |
 | CLI commands | `clientsdk/sajhaclient/cli/main.py` |
 | Console pages | `sajha.web.page_help.PAGE_HELP` |
+| Console menus and their columns | the menu data in `sajha/web/templates/common/_nav.html` (`console_menus`) |
 | Search, analytics and calculator tools | names and descriptions from the registry (`describe_tools`) |
 | Tool names in examples | `require_tools`: a name not in the registry fails the build |
 | Workflow step kinds, trigger types, joins, run states and the example DAG | `sajha/workflows/model.py` STEP_KINDS, TRIGGER_TYPES, JOINS; `store.py` RUN_ACTIVE, RUN_DONE; the definition in §2 of `docs/architecture/Workflows.md`, parsed by `model.normalize` and ordered by `model.topo_order` |
@@ -136,8 +139,8 @@ the test count change between builds; that is the point.
 |---|---|
 | `metrics.py` | The text estimator: greedy word-wrap simulation and paragraph heights. Shared by the builder and the audit, so the builder never believes a box fits that the audit then reports |
 | `theme.py` | The SAJHA Crimson design system, its colours read from the first `:root` block of `sajha/web/static/css/tokens.css`, and SAJHA's mark, drawn from the `icon-sajha` symbol in `sajha/web/static/icons/sajha-icons.svg`: chrome (the footer carries the proprietary notice and the slide number; `NOTICE` is the full notice), section dividers, tables, cards, boxed diagram text, arrows, stat bars, monospaced panels (never wrapped), speaker notes, and `fitted()`, which shrinks a text block until it fits or raises `DoesNotFit` |
-| `layouts.py` | Slide kinds drawn from plain dictionaries: `title`, `divider`, `tldr`, `principles`, `quotes`, `steps`, `bullets`, `table`, `cards`, `stats`, `split` (either column may be `lines`, a captured run), `flow`, `context`, `diagram` (groups, boxes, arrows), `canvas` (free diagrams of native shapes: groups, nodes in several shapes and styles, connectors that leave a shape's edge, optionally through waypoints, with labels and arrowheads, free labels, monospaced panels, lists and a legend; drawn last, edges never run under a filled shape), `mono` (a step-by-step exchange) and `thanks`. A slide's `talk` becomes its speaker notes after the source |
-| `diagrams.py` | Geometry for canvas slides: a layered left-to-right layout of a DAG, points on a ring, evenly spaced rows |
+| `layouts.py` | Slide kinds drawn from plain dictionaries: `title`, `divider`, `tldr`, `principles`, `quotes`, `steps`, `bullets`, `table`, `cards`, `stats`, `split` (either column may be `lines`, a captured run), `flow`, `context`, `diagram` (groups, boxes, arrows), `canvas` (free diagrams of native shapes: groups, nodes in several shapes and styles, connectors that leave a shape's edge, optionally through waypoints, with labels and arrowheads, free labels, monospaced panels, tables, lists and a legend; drawn last, edges never run under a filled shape), `mono` (a step-by-step exchange) and `thanks`. A slide's `talk` becomes its speaker notes after the source |
+| `diagrams.py` | Geometry for canvas slides: a layered left-to-right layout of a DAG, points on a ring, evenly spaced rows, and a sequence diagram (one tinted lane per actor, one row per message or action) |
 | `evidence.py` | Every number and every worked example, derived at build time |
 | `prose.py` | Small text helpers (lists in prose, wrapped panel lines) |
 | `sajha_deck.py`, `deck_part1.py` … `deck_part4.py`, `deck_net.py` | The deck, as data: the title slide and TL;DR in `sajha_deck.py`, then the eight sections: 1–2 in `deck_part1.py`, 3 in `deck_part2.py`, 4 and 6 in `deck_part3.py`, 5 (SAJHA Net) in `deck_net.py`, 7–8 in `deck_part4.py`. `sajha_deck.SECTIONS` lists the sections in order; the dividers are numbered from it, so moving a section is one line |

@@ -8,7 +8,7 @@ modules that share one set of layouts, and what keeps every layout short enough 
 Kinds: ``title``, ``divider``, ``tldr`` (question and answer rows), ``principles``
 (numbered items in columns), ``quotes``, ``steps`` (numbered rows), ``bullets``, ``table``,
 ``cards``, ``stats``, ``split`` (either column may be ``lines``: a captured run in a
-monospaced panel), ``flow``, ``context``, ``diagram`` (groups, boxes and arrows), ``mono``
+monospaced panel), ``flow``, ``context``, ``diagram`` (groups, boxes and arrows), ``canvas`` (free diagrams of native shapes, with tables and panels), ``mono``
 (a step-by-step exchange in monospace) and ``thanks``.
 
 Every slide but the title and the dividers carries a ``source``: it becomes the slide's
@@ -759,6 +759,9 @@ def canvas(s: dict[str, Any]) -> None:
                    first=True, space_after=0)
     for p in s.get("panels", []):
         T.panel(sl, x0 + p["x"] * w0, y + p["y"] * h0, p["w"] * w0, p["h"] * h0, p["lines"], p.get("size", 12))
+    for tb in s.get("tables", []):
+        T.fitted_table(sl, tb["rows"], x0 + tb["x"] * w0, y + tb["y"] * h0, tb["w"] * w0, tb["h"] * h0,
+                       tb.get("col_w"), start=tb.get("size", 14), bold_col0=tb.get("bold_col0", True))
     for n in s.get("nodes", []):
         bx, by, bw, bh = box[n["id"]]
         fill, color, line, dash = CANVAS_STYLES[n.get("style", "box")]

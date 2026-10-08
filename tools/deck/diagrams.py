@@ -11,6 +11,8 @@ from __future__ import annotations
 import math
 from typing import Any
 
+from pptx.enum.text import PP_ALIGN
+
 
 def levels(steps: list[dict[str, Any]]) -> dict[str, int]:
     """Each step's longest distance from a step with no dependencies."""
@@ -55,3 +57,36 @@ def row(n: int, x0: float, x1: float, w: float) -> list[float]:
         return [x0 + (x1 - x0 - w) / 2]
     step = (x1 - x0 - w) / (n - 1)
     return [x0 + k * step for k in range(n)]
+
+
+def seq(actors: list[tuple[str, str]], steps: list[Any], x0: float = 0.0, x1: float = 1.0, lane_w: float = 0.2,
+        top: float = 0.1, bottom: float = 1.0, size: float = 11.5, lsize: float = 10.0
+        ) -> tuple[list[dict[str, Any]], list[dict[str, Any]], list[dict[str, Any]]]:
+    """A sequence diagram as canvas groups, nodes and edges: one tinted lane per actor, left to
+    right, and one row per step, top to bottom. A step is an arrow between two lanes
+    (``{"a": lane, "b": lane, "label": ...}``, any edge option allowed) or a box inside a lane
+    (``{"on": lane, "text": ..., "style": ...}``); a list of steps shares one row."""
+    xs = row(len(actors), x0, x1, lane_w)
+    lanes = {a: x for (a, _l), x in zip(actors, xs)}
+    groups = [{"id": a, "label": label.upper(), "x": lanes[a], "y": 0.0, "w": lane_w, "h": 1.0, "fill": "PARCH",
+               "line": None, "size": 10.5, "align": PP_ALIGN.CENTER} for a, label in actors]
+    rh = (bottom - top) / len(steps)
+    nodes: list[dict[str, Any]] = []
+    edges: list[dict[str, Any]] = []
+    for k, st in enumerate(steps):
+        yc = top + rh * (k + 0.5)
+        for s in st if isinstance(st, list) else [st]:
+            if "on" in s:
+                n = {"id": s.get("id", f"q{k}_{s['on']}"), "x": lanes[s["on"]] + 0.008, "y": yc - rh * 0.42,
+                     "w": lane_w - 0.016, "h": rh * 0.84, "style": "white", "size": size, "bold": False}
+                n.update({kk: v for kk, v in s.items() if kk not in ("on", "id")})
+                if "w" in s:  # wider than its lane, centred on it (the row has no arrow to collide with)
+                    n["x"] = min(max(x0, lanes[s["on"]] + lane_w / 2 - s["w"] / 2), x1 - s["w"])
+                nodes.append(n)
+            else:
+                right = lanes[s["b"]] > lanes[s["a"]]
+                e = {"ports": ("r", "l") if right else ("l", "r"), "at": (yc, yc), "lsize": lsize, "litalic": False,
+                     "lcolor": "INK", "gap": 0.04}
+                e.update(s)
+                edges.append(e)
+    return groups, nodes, edges

@@ -11,6 +11,7 @@ from __future__ import annotations
 from typing import Any
 
 from evidence import ROOT, SourceChanged
+from diagrams import row, seq
 from prose import js, listing, plain, wrap
 
 # Tool groups, by what they are for. A group the live registry has and this map does not
@@ -20,7 +21,7 @@ CATEGORIES = [
     ("Central banks", ("fred", "fed", "ecb", "boc", "boj", "pboc", "rbi", "bdf"),
      "Policy rates, yields, money supply"),
     ("International bodies", ("imf", "wb", "un"), "Outlooks, development and trade data"),
-    ("Filings and investor relations", ("edgar", "sec", "ir"), "Filings, facts, insider trades, reports"),
+    ("Filings and reports", ("edgar", "sec", "ir"), "Filings, facts, insider trades, reports"),
     ("Analytics and SQL", ("duckdb", "olap", "sqlselect", "customer", "calc"),
      "SQL over files, pivots, financial calculators"),
     ("Search and the web", ("tavily", "wiki", "crawl", "extract", "check", "get"),
@@ -78,6 +79,183 @@ def _categories(F: dict[str, Any]) -> list[list[str]]:
     return rows
 
 
+# Studio creators by family; a creator the Studio has and this map does not fails the build.
+FAMILIES = [
+    ("Code", ("python", "script")),
+    ("Services", ("rest", "api_import")),
+    ("Data and BI", ("dbquery", "olap", "powerbi", "powerbidax")),
+    ("Documents", ("sharepoint", "livelink")),
+    ("A sentence", ("describe",)),
+]
+
+
+def _overview_canvas(F: dict[str, Any], catalog_src: str, n_versions: int) -> dict[str, Any]:
+    """Many ways in, one catalog, one address, one set of rules, every caller."""
+    cat, eras = F["catalog"], F["eras"]
+    srcs = ["Built-in tools", f"{len(F['studio_pages'])} MCP Studio creators", "API import, data connectors",
+            "Proxied MCP servers", "SAJHA Net members"]
+    callers = ["MCP clients, both eras", "Console and Ask SAJHA", "Agents, workflows, A2A"]
+    nodes = [{"id": f"s{i}", "text": t, "x": 0.0, "y": 0.02 + i * 0.2, "w": 0.19, "h": 0.15, "style": "white",
+              "size": 13} for i, t in enumerate(srcs)]
+    nodes += [{"id": f"c{i}", "text": t, "x": 0.84, "y": 0.12 + i * 0.27, "w": 0.16, "h": 0.2, "style": "white",
+               "shape": "oval", "size": 12} for i, t in enumerate(callers)]
+    nodes += [
+        {"id": "cat", "text": "One catalog", "sub": f"{cat['tools']} tools in {cat['groups']} groups when this deck "
+         "was built", "x": 0.26, "y": 0.27, "w": 0.18, "h": 0.4, "style": "accent", "size": 18},
+        {"id": "rules", "text": "One set of rules", "sub": "identity, access, policy, approvals, audit", "x": 0.49,
+         "y": 0.27, "w": 0.15, "h": 0.4, "style": "dark", "shape": "hex", "size": 15},
+        {"id": "mcp", "text": "One address", "sub": f"/mcp: {n_versions} protocol versions, four transports",
+         "x": 0.68, "y": 0.27, "w": 0.12, "h": 0.4, "style": "navy", "size": 15},
+    ]
+    edges = [{"a": f"s{i}", "b": "cat", "ports": ("r", "l"), "at": (0.5, 0.1 + 0.2 * i)} for i in range(len(srcs))]
+    edges += [{"a": "cat", "b": "rules", "color": "CRIMSON", "width": 2.2},
+              {"a": "rules", "b": "mcp", "color": "CRIMSON", "width": 2.2}]
+    edges += [{"a": "mcp", "b": f"c{i}", "ports": ("r", "l"), "at": (0.2 + 0.3 * i, 0.5), "both": True}
+              for i in range(len(callers))]
+    return {
+        "kind": "canvas",
+        "kicker": "Overview",
+        "title": "One catalog of tools, one address, one set of rules",
+        "nodes": nodes,
+        "edges": edges,
+        "texts": [{"x": 0.22, "y": 0.8, "w": 0.6, "h": 0.18, "size": 12, "color": "SLATE", "text":
+                   "A production Python MCP server on FastAPI, with its own intelligence layer and browser tool "
+                   f"builders; {F['tests']} automated tests in the suite."}],
+        "source": catalog_src + f" Protocol versions: sajha.core.mcp_modern ({listing(eras['modern'])}; "
+        f"{listing(eras['handshake'])}). Tests: pytest --collect-only over tests and clientsdk/tests at build time.",
+        "talk": "SAJHA is one shared catalog. Tools arrive from many places: the built-in set, the browser creators, "
+        "imported APIs and data connectors, other MCP servers it proxies, and other SAJHA servers in a net. Whatever "
+        "their origin, they sit in one catalog behind one set of rules, identity, access, policy, approvals and "
+        "audit, and are served at one address, /mcp, to every kind of caller. Shared means a tool is built, governed "
+        "and recorded once; governed means every call passes the same checks; self-hosted means it runs where your "
+        "data is, from one process on a laptop to several pods on Kubernetes.",
+    }
+
+
+def _tools_bars(F: dict[str, Any], catalog_src: str) -> dict[str, Any]:
+    """Tools per category as native bars, longest first as the registry has them."""
+    rows = _categories(F)[1:]
+    top = max(int(r[2]) for r in rows)
+    rh = 1.0 / len(rows)
+    nodes, texts = [], []
+    for i, (name, groups, n, what) in enumerate(rows):
+        y = i * rh
+        texts.append({"x": 0.0, "y": y + rh * 0.08, "w": 0.235, "h": rh * 0.84, "text": name, "bold": True,
+                      "color": "INK", "size": 14, "floor": 11})
+        nodes.append({"id": f"b{i}", "text": n, "x": 0.24, "y": y + rh * 0.14, "w": max(0.04, 0.32 * int(n) / top),
+                      "h": rh * 0.72, "style": "accent", "size": 12})
+        texts.append({"x": 0.59, "y": y + rh * 0.08, "w": 0.41, "h": rh * 0.84, "text": f"{what}  ·  {groups}",
+                      "size": 11.5, "floor": 11, "color": "SLATE"})
+    cat = F["catalog"]
+    return {
+        "kind": "canvas",
+        "kicker": "Tools in the box",
+        "title": f"{cat['tools']} built-in tools, from market data to calculators",
+        "nodes": nodes,
+        "texts": texts,
+        "note": "The live list is tools/list or the Tools page; a caller sees only the tools it may run.",
+        "source": catalog_src + " Grouping into categories: tools/deck/deck_part2.py CATEGORIES; a group it "
+        "does not name fails the build. Bar lengths are proportional to the tool counts.",
+        "talk": "Each bar is a category of built-in tools, with its length the number of tools, counted from the "
+        "registry when this deck was built. Market and equity data and central banks are the largest families; "
+        "filings, international bodies, analytics, search, documents and connected accounts follow. All of them are "
+        "ordinary MCP tools with JSON Schemas, and a caller only ever sees the ones its role or key allows.",
+    }
+
+
+def _studio(F: dict[str, Any], creators: list[str]) -> dict[str, Any]:
+    """Every creator, by family, converging on one preview, one deploy and one catalog."""
+    known = {c for _f, cs in FAMILIES for c in cs}
+    if set(creators) - known:
+        raise SourceChanged(f"Studio creators with no family on the deck: {sorted(set(creators) - known)}")
+    groups, nodes, edges = [], [], []
+    live = [(f, [c for c in cs if c in creators]) for f, cs in FAMILIES]
+    live = [(f, cs) for f, cs in live if cs]
+    rh = 1.0 / len(live)
+    for i, (fam, cs) in enumerate(live):
+        y = i * rh
+        groups.append({"id": f"g{i}", "x": 0.0, "y": y + 0.01, "w": 0.124 + len(cs) * 0.109, "h": rh - 0.03,
+                       "line": "RULE"})
+        nodes.append({"id": f"f{i}", "text": fam, "x": 0.008, "y": y + 0.025, "w": 0.1, "h": rh - 0.06,
+                      "style": "soft", "size": 12})
+        for k, c in enumerate(cs):
+            nodes.append({"id": f"n{i}_{k}", "text": CREATORS[c][0], "x": 0.118 + k * 0.109, "y": y + 0.025,
+                          "w": 0.103, "h": rh - 0.06, "style": "white", "size": 11})
+        edges.append({"a": f"g{i}", "b": "pre", "ports": ("r", "l"), "at": (0.5, (i + 0.5) / len(live)),
+                      "width": 1.2})
+    nodes += [
+        {"id": "pre", "text": "Preview", "sub": "the JSON Schema generated; drafts tested and reviewed", "x": 0.64,
+         "y": 0.3, "w": 0.15, "h": 0.36, "style": "dark", "size": 15},
+        {"id": "dep", "text": "Deploy", "sub": "into the running server; no restart", "x": 0.85, "y": 0.06, "w": 0.15,
+         "h": 0.3, "style": "accent", "shape": "hex", "size": 15},
+        {"id": "cl", "text": "tools/list", "sub": "under each caller's access", "x": 0.85, "y": 0.62, "w": 0.15,
+         "h": 0.3, "style": "white", "shape": "oval", "size": 14},
+    ]
+    edges += [{"a": "pre", "b": "dep", "mode": "c", "color": "CRIMSON"}, {"a": "dep", "b": "cl", "color": "CRIMSON"}]
+    return {
+        "kind": "canvas",
+        "kicker": "MCP Studio",
+        "title": f"MCP Studio: {len(creators)} ways to create a tool in the browser",
+        "groups": groups,
+        "nodes": nodes,
+        "edges": edges,
+        "note": "Each creator deploys into the running server, with no restart; generated code and scripts run "
+        "in the sandbox.",
+        "source": "The Studio pages served by sajha/routes/studio_routes.py (@pages.get), plus Describe a tool "
+        "(describe_routes.py) and Import an API (api_import_routes.py), read at build time; the decorator is "
+        "sajha/studio/decorator.py (sajhamcptool). docs/studio/MCP Studio User Guide.md. Families: "
+        "tools/deck/deck_part2.py FAMILIES (a creator it does not name fails the build).",
+        "talk": " ".join(f"{name}: {what}" for name, what in (CREATORS[c] for c in creators)) + " Whichever creator "
+        "is used, the result is previewed with its generated schema, deployed into the running server, and listed "
+        "to every caller allowed to see it.",
+    }
+
+
+def _console(F: dict[str, Any]) -> dict[str, Any]:
+    """The console as a browser window: the menus as the template defines them, and what every page has."""
+    menus = F["menus"]
+    xs = row(len(menus), 0.13, 0.99, 0.135)
+    nodes = [{"id": "brand", "text": "SAJHA", "x": 0.012, "y": 0.1, "w": 0.1, "h": 0.12, "style": "accent",
+              "size": 14}]
+    edges = []
+    for i, (m, cols) in enumerate(menus):
+        nodes += [
+            {"id": f"m{i}", "text": m, "x": xs[i], "y": 0.1, "w": 0.135, "h": 0.12, "style": "dark", "size": 13},
+            {"id": f"c{i}", "text": "\n".join(cols), "x": xs[i], "y": 0.32, "w": 0.135, "h": 0.3, "style": "white",
+             "size": 12, "bold": False},
+        ]
+        edges.append({"a": f"m{i}", "b": f"c{i}", "dash": True})
+    nodes += [
+        {"id": "pg", "text": f"{F['pages']} pages", "sub": "each with an About this page panel", "x": 0.03, "y": 0.72,
+         "w": 0.22, "h": 0.2, "style": "accent", "size": 16},
+        {"id": "hp", "text": "Help in the app", "sub": "every guide in docs/, the glossary, page help", "x": 0.28,
+         "y": 0.72, "w": 0.22, "h": 0.2, "style": "soft", "size": 14},
+        {"id": "rl", "text": "Menus follow the role", "sub": "Admin for administrators; Studio for those with "
+         "Studio rights", "x": 0.53, "y": 0.72, "w": 0.22, "h": 0.2, "style": "soft", "size": 14},
+        {"id": "th", "text": "Any screen", "sub": "works on a phone; light, dark, blue and green themes", "x": 0.78,
+         "y": 0.72, "w": 0.2, "h": 0.2, "style": "soft", "size": 14},
+    ]
+    return {
+        "kind": "canvas",
+        "kicker": "Web console",
+        "title": f"A web console of {F['pages']} pages, each with its own help",
+        "groups": [{"id": "win", "label": "", "x": 0.0, "y": 0.0, "w": 1.0, "h": 0.66, "line": "RULE", "fill": "PARCH"}],
+        "nodes": nodes,
+        "edges": edges,
+        "source": "Page count: sajha.web.page_help.PAGE_HELP (pages with an 'About this page' panel, the error page "
+        "excluded), read at build time. Menus and their columns: the menu data in "
+        "sajha/web/templates/common/_nav.html, parsed at build time (evidence.console_menus); the Admin menu needs "
+        "the admin role and MCP Studio Studio rights. Themes: sajha/web/static/css/tokens.css. "
+        "docs/architecture/Architecture.md §10.",
+        "talk": "The console's top menu is drawn here as the template defines it, with each menu's columns beneath. "
+        "Tools is where people browse, run and monitor tools; AI holds Ask SAJHA, conversations, models and prompts; "
+        "SAJHA Net shows the instances and remote tools a user may reach; MCP Studio holds every creator, the "
+        "composite builder and workflows; Admin manages users, keys, proxied servers, connectors, policies, "
+        "approvals, the audit and operations; Help renders every guide and the glossary inside the app. Every page "
+        "has an About this page panel whose terms come from the glossary.",
+    }
+
+
 def _overview(F: dict[str, Any]) -> list[dict[str, Any]]:
     cat, eras = F["catalog"], F["eras"]
     n_versions = len(eras["modern"]) + len(eras["handshake"])
@@ -100,32 +278,16 @@ def _overview(F: dict[str, Any]) -> list[dict[str, Any]]:
             "points": ["Overview", "Tools in the box", "MCP Studio", "Federation", "Architecture", "Web console",
                        "Access and authentication", "Credentials", "Policy and audit", "Deploy anywhere"],
         },
-        {
-            "kind": "stats",
-            "kicker": "Overview",
-            "title": "One catalog of tools, one address, one set of rules",
-            "intro": "A production Python MCP server on FastAPI, serving both protocol eras on /mcp, with its own "
-            "intelligence layer, browser tool builders and governance.",
-            "stats": [
-                (str(cat["tools"]), "tools in the catalog when this deck was built"),
-                (str(cat["groups"]), f"tool groups, the largest {cat['top'][0][0]} ({cat['top'][0][1]} tools)"),
-                (str(n_versions), "protocol versions served on one endpoint"),
-                (str(F["tests"]), "automated tests in the suite"),
-            ],
-            "items": [
-                ("Shared", "One catalog for every team and agent framework: a tool is built, governed and recorded once."),
-                ("Governed", "Every call, from any client or SAJHA's own assistant, passes the same access check, "
-                 "rules and tamper-evident record."),
-                ("Self-hosted", "One Python process on a laptop or several pods on Kubernetes; data leaves only when "
-                 "a tool sends it."),
-            ],
-            "source": catalog_src + f" Protocol versions: sajha.core.mcp_modern ({listing(eras['modern'])}; "
-            f"{listing(eras['handshake'])}). Tests: pytest --collect-only over tests and clientsdk/tests at build time.",
-        },
+        _overview_canvas(F, catalog_src, n_versions),
         {
             "kind": "bullets",
             "kicker": "Why SAJHA",
             "title": "What makes SAJHA different from a plain tool server",
+            "talk": "A plain MCP server is a pipe from a client to some functions. SAJHA adds governance on "
+                "every call, a large catalog from day one, ways to build tools from zero code to full "
+                "code, its own intelligence layer, both protocol eras and four transports with "
+                "conformance evidence, a net of servers across boundaries, and it runs wherever your data"
+                " is.",
             "items": [
                 ("A governed server, not a pipe", "Access policy, declarative rules, human approval and a "
                  "hash-chained audit apply to every call on every path."),
@@ -146,32 +308,18 @@ def _overview(F: dict[str, Any]) -> list[dict[str, Any]]:
             "describe_routes.py and api_import_routes.py, read at build time. Providers: "
             "sajha.ai.llm.registry.registered_providers().",
         },
-        {
-            "kind": "table",
-            "kicker": "Tools in the box",
-            "title": f"{cat['tools']} built-in tools, from market data to calculators",
-            "col_w": [2.1, 2.9, 0.7, 2.6],
-            "rows": _categories(F),
-            "note": "The live list is tools/list or the Tools page; a caller sees only the tools it may run.",
-            "source": catalog_src + " Grouping into categories: tools/deck/deck_part2.py CATEGORIES; a group it "
-            "does not name fails the build.",
-        },
-        {
-            "kind": "principles",
-            "kicker": "MCP Studio",
-            "title": f"MCP Studio: {len(creators)} ways to create a tool in the browser",
-            "items": [CREATORS[c] for c in creators],
-            "note": "Each creator deploys into the running server, with no restart; generated code and scripts run "
-            "in the sandbox.",
-            "source": "The Studio pages served by sajha/routes/studio_routes.py (@pages.get), plus Describe a tool "
-            "(describe_routes.py) and Import an API (api_import_routes.py), read at build time; the decorator is "
-            "sajha/studio/decorator.py (sajhamcptool). docs/studio/MCP Studio User Guide.md. The earlier deck's "
-            "creator list is replaced by this derived one.",
-        },
+        _tools_bars(F, catalog_src),
+        _studio(F, creators),
         {
             "kind": "flow",
             "kicker": "Describe a tool",
             "title": "A sentence becomes a proposal, and nothing deploys without a person",
+            "talk": "Describe a tool turns a sentence into a proposal. The toolsmith model drafts the kind, "
+                "name, schemas, implementation and test cases. SAJHA treats the draft as untrusted: SQL "
+                "must be read-only, hosts are checked, credentials are refused and risky imports are "
+                "flagged. The tests run in the sandbox, bound to the draft's hash, and an administrator "
+                "approves that exact hash; policy can require a second approver. Out of the box the "
+                "toolsmith is an offline mock that knows a few shapes; real designs need a real model.",
             "box_h": 3.0,
             "steps": [
                 ("Describe", "“Fetch today's FX rate for a currency pair from our rates API.”"),
@@ -299,35 +447,27 @@ def _architecture(F: dict[str, Any]) -> list[dict[str, Any]]:
             "kind": "diagram",
             "kicker": "Server architecture",
             "title": "Six layers, and every call crosses the governance layer",
+            "talk": "Read top to bottom as a request travels. Clients of every kind come in over the "
+                "transports. Every call then crosses the governance layer: authentication, the tool "
+                "access policy, the policy engine and the audit. Below it sit the intelligence layer and "
+                "the tools layer, with composites, workflows, federation, connectors and the sandbox, and"
+                " at the bottom the platform: FastAPI, the database, the state store, storage, metrics "
+                "and traces.",
             "nodes": nodes,
             "source": f"sajha/app.py (FastAPI application), sajha/routes/ ({F['routes']} route modules), sajha/auth/, "
             "sajha/policy/, sajha/audit/, sajha/ai/, sajha/tools/, sajha/workflows/, sajha/federation/, "
             "sajha/connectors/, sajha/sandbox/; state, storage and schema lists read at build time. "
             "docs/architecture/Architecture.md.",
         },
-        {
-            "kind": "bullets",
-            "kicker": "Web console",
-            "title": f"A web console of {F['pages']} pages, each with its own help",
-            "items": [
-                ("Tools", "Browse and search the catalog, view a schema, run a tool, see reports and monitoring."),
-                ("AI", "Ask SAJHA with its live constellation of tools, a Python playground, models and providers, "
-                 "prompts."),
-                ("MCP Studio", "Every creator, Describe a tool, Import an API, and the composite builder."),
-                ("Admin", "Users, roles and API keys; federation, connectors and connected accounts; policies, "
-                 "approvals and the audit; workflows; tool health, versions and evals."),
-                ("Help", "Every guide in docs/ rendered in the app, the glossary, and an “About this page” panel on "
-                 "each page."),
-            ],
-            "note": "It works on a phone, and offers light, dark, blue and green themes.",
-            "source": "Page count: sajha.web.page_help.PAGE_HELP (pages with an 'About this page' panel, the error page "
-            "excluded), read at build time. Menus: sajha/web/templates/common/_nav.html. Themes: "
-            "sajha/web/static/css/tokens.css. docs/architecture/Architecture.md §10.",
-        },
+        _console(F),
         {
             "kind": "diagram",
             "kicker": "Parallel SDLC",
             "title": "Tool developers and AI developers ship independently",
+            "talk": "Two teams, two release cycles. Tool developers build, test and deploy tools, and hot "
+                "reload puts them live. AI developers design agents, evaluate them on golden questions "
+                "and iterate. The tool's schema is the contract between them, held by SAJHA, so neither "
+                "team waits for the other.",
             "groups": [
                 {"id": "td", "label": "TOOL DEVELOPERS", "x": 0.0, "y": 0.0, "w": 0.3, "h": 0.8},
                 {"id": "ad", "label": "AI DEVELOPERS", "x": 0.7, "y": 0.0, "w": 0.3, "h": 0.8},
@@ -373,42 +513,8 @@ def _access(F: dict[str, Any]) -> list[dict[str, Any]]:
         ["Anonymous", "mcp.anonymous.tools (empty by default)", "Nothing, unless an operator allows it"],
     ]
     return [
-        {
-            "kind": "table",
-            "kicker": "Role-based access control",
-            "title": "Tool-level permissions, checked on every call, on every path",
-            "col_w": [1.6, 3.0, 3.0],
-            "rows": role_rows,
-            "note": "read lets a caller see a tool, execute lets it run one; patterns are fnmatch globs such as "
-            "fred_*. One policy (sajha/auth/access.py) serves REST, MCP in both eras, SSE, WebSocket, stdio and A2A.",
-            "source": "Seeded roles and permissions: db/scripts/sqlite/seed.sql, parsed at build time. API key modes and "
-            "anonymous policy: sajha/auth/access.py; docs/security/Security Model.md §1 'Tool access'.",
-        },
-        {
-            "kind": "table",
-            "kicker": "Enterprise security",
-            "title": "Security in layers, each with the threat it answers",
-            "col_w": [1.5, 3.9, 2.3],
-            "rows": [
-                ["Layer", "Mechanism", "Protects against"],
-                ["Authentication", "Session cookie, single sign-on, revocable SAJHA JWT, API keys, OAuth 2.1 on /mcp",
-                 "Unknown callers"],
-                ["Authorization", "Role permissions and API-key modes, per tool, on every path", "Privilege escalation"],
-                ["Policy", "Deny, require approval, constrain arguments, rate limits and quotas, redaction",
-                 "Unsafe or excessive calls"],
-                ["Input", "JSON Schema on every call; SQL guards; an SSRF guard on outbound requests",
-                 "Injection, internal-network access"],
-                ["Transport", "Origin allow-list on /mcp; HTTPS at the proxy or ingress; HSTS, CSP and other headers",
-                 "DNS rebinding, interception"],
-                ["Sign-in", "Per-IP throttling and account lockout", "Password guessing"],
-                ["Code", "Studio code and scripts in a per-call sandbox", "Untrusted code"],
-                ["Record", "Hash-chained, signed audit; SIEM export", "Undetected tampering"],
-            ],
-            "note": "Rate limits on tool calls come from policy rules; /mcp itself has no built-in request rate limit.",
-            "source": "docs/security/Security Model.md §1–§3 (credentials, tool access, transport protections, rate "
-            "limiting: 'per-user and per-key limits exist but are not called'), §5, §7; "
-            "docs/architecture/Policy and Audit.md.",
-        },
+        _rbac(role_rows),
+        _layers(),
         {
             "kind": "canvas",
             "kicker": "Authentication",
@@ -495,6 +601,89 @@ def _access(F: dict[str, Any]) -> list[dict[str, Any]]:
     ]
 
 
+def _rbac(role_rows: list[list[str]]) -> dict[str, Any]:
+    """Every kind of caller, its rights, one policy, the tools."""
+    callers = role_rows[1:]
+    rh = 1.0 / len(callers)
+    nodes = []
+    for i, (who, rights, what) in enumerate(callers):
+        nodes.append({"id": f"r{i}", "text": f"{who}: {what}", "sub": rights, "x": 0.0, "y": i * rh + 0.012,
+                      "w": 0.46, "h": rh - 0.024, "style": "white" if who.startswith("Role") else "box", "size": 12})
+    nodes += [
+        {"id": "ap", "text": "One access policy", "sub": "sajha/auth/access.py: read lets a caller see a tool, "
+         "execute lets it run one; fnmatch patterns such as fred_*", "x": 0.55, "y": 0.25, "w": 0.22, "h": 0.5,
+         "style": "accent", "size": 15},
+        {"id": "t", "text": "tools", "sub": "tools/list shows only what may be seen", "x": 0.85, "y": 0.35, "w": 0.15,
+         "h": 0.3, "style": "white", "shape": "oval", "size": 15},
+    ]
+    edges = [{"a": f"r{i}", "b": "ap", "ports": ("r", "l"), "at": (0.5, (i + 0.5) / len(callers)), "width": 1.2}
+             for i in range(len(callers))]
+    edges.append({"a": "ap", "b": "t", "color": "CRIMSON", "width": 2.2})
+    return {
+        "kind": "canvas",
+        "kicker": "Role-based access control",
+        "title": "Tool-level permissions, checked on every call, on every path",
+        "nodes": nodes,
+        "edges": edges,
+        "texts": [{"x": 0.55, "y": 0.8, "w": 0.45, "h": 0.2, "size": 12, "text": "The same policy on REST, MCP in "
+                   "both eras, SSE, WebSocket, stdio and A2A."}],
+        "source": "Seeded roles and permissions: db/scripts/sqlite/seed.sql, parsed at build time. API key modes and "
+        "anonymous policy: sajha/auth/access.py; docs/security/Security Model.md §1 'Tool access'.",
+        "talk": "On the left is every kind of caller SAJHA knows: the roles the database is seeded with, with their "
+        "rights, then API keys and anonymous callers. A role's permissions name a resource type, a pattern and "
+        "actions: read lets a caller see a tool, execute lets it run one. An API key carries its own tool access "
+        "mode, all, an allowlist, a denylist or a regular expression, and is never an administrator. Anonymous "
+        "callers get nothing unless an operator lists tools for them. One module applies this policy on every path "
+        "into the server.",
+    }
+
+
+def _layers() -> dict[str, Any]:
+    """Eight layers a call meets, each with the threat it answers."""
+    layers = [
+        ("Transport", "Origin allow-list on /mcp; HTTPS at the proxy; HSTS, CSP", "DNS rebinding, interception"),
+        ("Sign-in", "Per-IP throttling and account lockout", "Password guessing"),
+        ("Authentication", "Cookie, single sign-on, revocable JWT, API keys, OAuth 2.1", "Unknown callers"),
+        ("Authorization", "Role permissions and key modes, per tool, every path", "Privilege escalation"),
+        ("Input", "JSON Schema on every call; SQL guards; SSRF guard", "Injection, internal-network access"),
+        ("Policy", "Deny, approval, argument limits, rate limits, quotas, redaction", "Unsafe or excessive calls"),
+        ("Code", "Studio code and scripts in a per-call sandbox", "Untrusted code"),
+        ("Record", "Hash-chained, signed audit; SIEM export", "Undetected tampering"),
+    ]
+    xs = row(4, 0.0, 1.0, 0.22)
+    nodes, edges = [], []
+    for i, (name, how, threat) in enumerate(layers):
+        first = i < 4
+        x = xs[i] if first else xs[7 - i]  # the second row runs back, right to left
+        ly, ty = (0.12, 0.0) if first else (0.58, 0.88)
+        nodes += [
+            {"id": f"l{i}", "text": name, "sub": how, "x": x, "y": ly, "w": 0.22, "h": 0.28,
+             "style": "dark" if i % 2 else "accent", "size": 16},
+            {"id": f"t{i}", "text": "answers: " + threat, "x": x + 0.02, "y": ty, "w": 0.18, "h": 0.1, "style": "warn",
+             "size": 12, "bold": False},
+        ]
+        if i:
+            edges.append({"a": f"l{i - 1}", "b": f"l{i}", "color": "CRIMSON", "width": 2.0})
+    return {
+        "kind": "canvas",
+        "kicker": "Enterprise security",
+        "title": "Security in layers, each with the threat it answers",
+        "nodes": nodes,
+        "edges": edges,
+        "note": "Rate limits on tool calls come from policy rules; /mcp itself has no built-in request rate limit.",
+        "source": "docs/security/Security Model.md §1–§3 (credentials, tool access, transport protections, rate "
+        "limiting: 'per-user and per-key limits exist but are not called'), §5, §7; "
+        "docs/architecture/Policy and Audit.md.",
+        "talk": "Read left to right as a call travels. The transport layer refuses browsers from unknown origins and "
+        "relies on TLS at the proxy. Sign-in throttles guesses and locks accounts. Authentication establishes who is "
+        "calling, by cookie, single sign-on, a revocable SAJHA token, an API key or OAuth. Authorization decides per "
+        "tool. Input is checked against the tool's schema, SQL is guarded and outbound requests pass an SSRF guard. "
+        "Policy rules can deny, require approval, limit arguments and rates, and redact. User code runs in a "
+        "sandbox. And everything is recorded in a hash-chained, signed audit. Note the honest limit: request rate "
+        "limits come from policy rules, not from /mcp itself.",
+    }
+
+
 def _credentials(F: dict[str, Any]) -> dict[str, Any]:
     """Where credentials live and which copy wins, how they are stored, sign-in, and the browser's guards."""
     nt = F["net"]
@@ -556,134 +745,171 @@ def _credentials(F: dict[str, Any]) -> dict[str, Any]:
     }
 
 
+def _seq_slide(title: str, actors: list[tuple[str, str]], steps: list[Any], source: str, talk: str,
+               lane_w: float = 0.17, size: float = 12.5, lsize: float = 11.5) -> dict[str, Any]:
+    groups, nodes, edges = seq(actors, steps, 0.0, 1.0, lane_w, top=0.08, size=size, lsize=lsize)
+    return {"kind": "canvas", "kicker": "Step by step", "title": title, "groups": groups, "nodes": nodes,
+            "edges": edges, "source": source, "talk": talk}
+
+
 def _flows(F: dict[str, Any]) -> list[dict[str, Any]]:
-    return [
-        {
-            "kind": "mono",
-            "kicker": "Step by step",
-            "title": "Authentication: the session cookie (web console)",
-            "band": "Browser  →  SAJHA server",
-            "lines": [
-                "1. Browser → GET /login",
-                "   └─ Server returns the sign-in form",
-                "2. Browser → POST /login { user_id, password }",
-                "   ├─ Per-IP throttle: too many failures → 429",
-                "   ├─ Password check (stored plain by default,",
-                "   │    or a bcrypt hash under hashed storage)",
-                "   ├─ Repeated failures lock the account → 423",
-                "   └─ If valid:",
-                "      ├─ Issue a SAJHA JWT (auth.jwt.*, default HS256, 60 min)",
-                "      ├─ Set-Cookie: sajha_token (HttpOnly, SameSite=Lax,",
-                "      │    Secure on https, Max-Age 3600)",
-                "      └─ 302 → /dashboard (local paths only, no open redirect)",
-                "3. Every later request",
-                "   ├─ Cookie read last, after Bearer and API key",
-                "   ├─ Signature, algorithm and expiry checked",
-                "   └─ User reloaded from the database: a disabled user",
-                "      is out at once",
-            ],
-            "source": "sajha/routes/auth_routes.py (login_form, _set_session_cookie); sajha/auth/password.py "
-            "(verify_password accepts plain or bcrypt; auth.credential_storage); "
-            "sajha/security.py (login throttle); docs/security/Security Model.md §1 'Web login', 'Session cookie'.",
-        },
-        {
-            "kind": "mono",
-            "kicker": "Step by step",
-            "title": "Authentication: the SAJHA JWT (API clients)",
-            "band": "API client  →  SAJHA server",
-            "lines": [
-                "1. Client → POST /api/auth/login",
-                '   └─ Body: { "user_id": "alice", "password": "…" }',
-                "2. Server checks the credentials",
-                "   ├─ Throttle and lockout, as for the web form",
-                "   ├─ Invalid → 401; locked → 423",
-                '   └─ Valid → { "token": "eyJ…", "user": { roles … } }',
-                "3. Client sends the token on every request",
-                "   └─ Authorization: Bearer eyJ…",
-                "4. Server validates it",
-                "   ├─ Signature, allowed algorithm, exp",
-                "   ├─ Claims: sub, roles, iss sajha-mcp-server",
-                "   └─ Then the caller's tool access applies",
-                "      (REST, /mcp, and /mcp/ws?token=…)",
-            ],
-            "source": "sajha/routes/auth_routes.py api_login; sajha/auth/jwt_handler.py; sajha/auth/__init__.py "
-            "authenticate_request; docs/security/Security Model.md §1 'SAJHA JWT'.",
-        },
-        {
-            "kind": "mono",
-            "kicker": "Step by step",
-            "title": "Authentication: the API key (automation)",
-            "band": "Script or agent  →  SAJHA server",
-            "lines": [
-                "1. An administrator creates a key (console, POST /admin/apikeys/create)",
-                "   ├─ Key: sja_ + 48 hex characters",
-                "   ├─ Stored: SHA-256 (for lookup), 8-character prefix,",
-                "   │    and the raw key under plain storage (default)",
-                "   └─ Tool access mode: all | allowlist | denylist | regex",
-                "2. Client → any request with",
-                "   └─ X-API-Key: sja_…   (or Authorization: sja_…)",
-                "3. Server authenticates",
-                "   ├─ Unknown, disabled or expired → refused",
-                "   └─ Identity apikey:<name>, role api_consumer, never admin",
-                "4. Server authorizes the tool",
-                '   ├─ allowlist ["fred_*", "calc_*"]: fred_gdp → allowed',
-                "   ├─ yf_fast_info → 403 (not listed)",
-                "   └─ Usage recorded; the call audited",
-            ],
-            "source": "sajha/routes/apikeys_routes.py; sajha/db/dao/__init__.py ApiKeyDAO.hash_key (SHA-256) and "
-            "validate_key; sajha/auth/access.py apikey_policy; docs/security/Security Model.md §1 'API keys'. "
-            "The allowlist example is illustrative; fred_gdp and yf_fast_info are registry tools.",
-        },
-        {
-            "kind": "mono",
-            "kicker": "Step by step",
-            "title": "Authorization: OAuth 2.1 with PKCE on /mcp",
-            "band": "MCP client  →  SAJHA /mcp  +  authorization server",
-            "lines": [
-                "1. Client → POST /mcp without a token",
-                "   └─ 401, WWW-Authenticate: Bearer resource_metadata=…",
-                "2. Client → GET /.well-known/oauth-protected-resource/mcp",
-                "   └─ Names the authorization server (SAJHA's or yours)",
-                "3. Client → GET /oauth/authorize",
-                "   ├─ code_challenge (PKCE S256), resource=<…/mcp>",
-                "   └─ User signs in and consents → authorization code",
-                "4. Client → POST /oauth/token { code, code_verifier }",
-                "   └─ JWT access token, audience = SAJHA's /mcp;",
-                "      a rotating refresh token",
-                "5. Client → POST /mcp, Authorization: Bearer …",
-                "   ├─ Signature, issuer, audience, expiry, scope",
-                "   └─ Then the user's tool access, as for any caller",
-            ],
-            "source": "docs/protocol/OAuth Guide.md §1; sajha/routes/oauth_routes.py (PRM_PATH, /oauth/authorize, "
-            "/oauth/token, /oauth/register, /oauth/jwks); sajha/auth/oauth/resource_server.py (WWW-Authenticate "
-            "challenge).",
-        },
-        {
-            "kind": "mono",
-            "kicker": "Step by step",
-            "title": "Authorization: the access and policy check on tools/call",
-            "band": "Any client (HTTP, SSE, WebSocket, stdio, A2A)  →  SAJHA",
-            "lines": [
-                '1. Request: tools/call { name: "duckdb_sql", arguments }',
-                "2. Who is calling",
-                "   └─ Bearer JWT | X-API-Key | cookie | OAuth token | anonymous",
-                "3. May they run it (sajha/auth/access.py)",
-                "   ├─ Roles' execute patterns, or the key's mode",
-                "   └─ No → access denied, recorded",
-                "4. Arguments against the tool's JSON Schema → -32602 if not",
-                "5. Policy engine (config/policies)",
-                "   ├─ deny wins; require_approval waits for a person",
-                "   ├─ Argument constraints, rate limits, quotas",
-                "   └─ Not allow → an audit record",
-                "6. Run: cache, circuit breaker, metrics",
-                "7. Result: redaction and screening if a rule says so;",
-                "   one hash-chained audit record",
-            ],
-            "source": "sajha/core/mcp_handler.py (has_tool_access before tools/call; -32602 on schema failure); "
-            "sajha/tools/base_mcp_tool.py execute_with_tracking (policy enforce, validate_arguments, cache, circuit "
-            "breaker); docs/architecture/Policy and Audit.md.",
-        },
+    bad = {"color": "BAD"}
+    cookie = _seq_slide(
+        "Authentication: the session cookie (web console)",
+        [("b", "Browser"), ("s", "SAJHA server"), ("d", "Users table")],
+        [
+            {"a": "b", "b": "s", "label": "1  GET /login"},
+            {"a": "s", "b": "b", "label": "the sign-in form"},
+            {"a": "b", "b": "s", "label": "2  POST /login {user_id, password}"},
+            {"on": "s", "text": "per-IP throttle: too many failures → 429", "w": 0.42},
+            {"a": "s", "b": "d", "label": "check the password"},
+            {"on": "s", "text": "repeated failures lock the account → 423", "style": "warn", "w": 0.42},
+            {"a": "s", "b": "b", "label": "Set-Cookie sajha_token; 302", "color": "CRIMSON"},
+            {"a": "b", "b": "s", "label": "3  every later request, with the cookie"},
+            {"on": "s", "text": "checked: signature, algorithm, expiry", "w": 0.42},
+            {"a": "s", "b": "d", "label": "reload the user every time"},
+        ],
+        "sajha/routes/auth_routes.py (login_form, _set_session_cookie); sajha/auth/password.py "
+        "(verify_password accepts plain or bcrypt; auth.credential_storage); "
+        "sajha/security.py (login throttle); docs/security/Security Model.md §1 'Web login', 'Session cookie'.",
+        "The browser asks for the sign-in form and posts a user id and password. Before checking, SAJHA throttles "
+        "by address: too many failures answer 429. The password is compared with the stored value, plain by "
+        "default or a bcrypt hash under hashed storage, and repeated failures lock the account, answering 423. On "
+        "success SAJHA issues a SAJHA JWT, 60 minutes and HS256 by default, sets it as the sajha_token cookie, "
+        "HttpOnly, SameSite=Lax and Secure on https, and redirects to the dashboard, only ever to a local path. On "
+        "every later request the cookie is read last, after a Bearer token and an API key; its signature, algorithm "
+        "and expiry are checked, and the user is reloaded from the database, so a disabled user is out at once.",
+    )
+    jwt = _seq_slide(
+        "Authentication: the SAJHA JWT (API clients)",
+        [("c", "API client"), ("a", "SAJHA: authenticate"), ("p", "Access policy and tools")],
+        [
+            {"a": "c", "b": "a", "label": "1  POST /api/auth/login"},
+            {"on": "a", "text": "throttle and lockout, as for the web form", "w": 0.42},
+            {"a": "a", "b": "c", "label": "invalid → 401; locked → 423", **bad, "dash": True},
+            {"a": "a", "b": "c", "label": "2  {token: eyJ…, user: {roles …}}", "color": "CRIMSON"},
+            {"a": "c", "b": "a", "label": "3  Authorization: Bearer eyJ…"},
+            {"on": "a", "text": "signature, allowed algorithm, exp", "w": 0.42},
+            {"on": "a", "text": "claims: sub, roles, iss sajha-mcp-server", "w": 0.42},
+            {"a": "a", "b": "p", "label": "4  the caller's tool access"},
+            {"on": "p", "text": "REST, /mcp, and /mcp/ws?token=…", "style": "soft", "w": 0.34},
+        ],
+        "sajha/routes/auth_routes.py api_login; sajha/auth/jwt_handler.py; sajha/auth/__init__.py "
+        "authenticate_request; docs/security/Security Model.md §1 'SAJHA JWT'.",
+        "A script posts a user id and password to /api/auth/login. The same throttle and lockout as the web form "
+        "apply: invalid credentials answer 401, a locked account 423. A valid login returns a token and the user "
+        "with their roles. The client then sends the token as a Bearer header on every request; SAJHA checks its "
+        "signature, that its algorithm is the allowed one, its expiry, and its claims: subject, roles and the "
+        "issuer sajha-mcp-server. Then the caller's tool access applies, the same on REST, /mcp, and the WebSocket "
+        "endpoint, which takes the token as a query parameter.",
+    )
+    key = _seq_slide(
+        "Authentication: the API key (automation)",
+        [("g", "Script or agent"), ("s", "SAJHA server"), ("ad", "Administrator")],
+        [
+            {"a": "ad", "b": "s", "label": "1  create a key, in the console"},
+            {"on": "s", "text": "sja_ + 48 hex; its SHA-256 and prefix stored (raw too under plain storage)", "w": 0.42},
+            {"on": "s", "text": "tool access mode: all, allowlist, denylist or regex", "w": 0.42},
+            {"a": "g", "b": "s", "label": "2  X-API-Key: sja_…"},
+            {"on": "s", "text": "keys file, then database, then dump; unknown, disabled or expired → refused", "style": "warn", "w": 0.42},
+            {"on": "s", "text": "signs in as its owner (owner's roles; key's tool list as a ceiling)", "w": 0.42},
+            {"a": "g", "b": "s", "label": "3  tools/call fred_gdp"},
+            {"a": "s", "b": "g", "label": "allowlist fred_*, calc_*: the result", "color": "CRIMSON"},
+            {"a": "g", "b": "s", "label": "tools/call yf_fast_info"},
+            {"a": "s", "b": "g", "label": "403: not listed", **bad},
+        ],
+        "sajha/routes/apikeys_routes.py; sajha/auth/__init__.py AuthManager.authenticate_apikey; "
+        "sajha/db/dao/__init__.py ApiKeyDAO.hash_key (SHA-256); sajha/auth/access.py apikey_policy; docs/security/Security Model.md §1 'API keys'. "
+        "The allowlist example is illustrative; fred_gdp and yf_fast_info are registry tools.",
+        "An administrator creates a key in the console. The key is sja_ followed by 48 hexadecimal characters; SAJHA "
+        "stores its SHA-256 for lookup and an 8-character prefix for display, and under plain storage, the default, "
+        "the raw key too. The key carries a tool access mode: all tools, an allowlist, a denylist or a regular "
+        "expression. A script sends it as X-API-Key, or as an Authorization header starting sja_. An unknown, "
+        "disabled or expired key is refused. SAJHA looks the key up in the administrators' keys file first, then the "
+        "database, then the database dump. A key with an owner signs in as that user, with the user's roles and the "
+        "key's tool list as a ceiling; an older key without an owner becomes the identity apikey: and its name, with "
+        "the role api_consumer. With an allowlist of fred_* and calc_*, fred_gdp runs and "
+        "yf_fast_info is refused with 403. Usage is recorded and every call audited.",
+    )
+    oauth = _seq_slide(
+        "Authorization: OAuth 2.1 with PKCE on /mcp",
+        [("as", "Authorization server"), ("c", "MCP client"), ("r", "SAJHA /mcp")],
+        [
+            {"a": "c", "b": "r", "label": "1  POST /mcp, no token"},
+            {"a": "r", "b": "c", "label": "401, WWW-Authenticate: resource_metadata", **bad, "dash": True},
+            {"a": "c", "b": "r", "label": "2  GET protected-resource metadata"},
+            {"a": "r", "b": "c", "label": "names the authorization server"},
+            {"a": "c", "b": "as", "label": "3  /oauth/authorize, PKCE S256, resource"},
+            {"on": "as", "text": "the user signs in and consents", "style": "soft", "w": 0.3},
+            {"a": "as", "b": "c", "label": "an authorization code"},
+            {"a": "c", "b": "as", "label": "4  /oauth/token {code, code_verifier}"},
+            {"a": "as", "b": "c", "label": "access token for /mcp; refresh token", "color": "CRIMSON"},
+            {"a": "c", "b": "r", "label": "5  POST /mcp, Bearer token", "color": "CRIMSON"},
+            {"on": "r", "text": "signature, issuer, audience, expiry, scope; then tool access", "w": 0.42},
+        ],
+        "docs/protocol/OAuth Guide.md §1; sajha/routes/oauth_routes.py (PRM_PATH, /oauth/authorize, "
+        "/oauth/token, /oauth/register, /oauth/jwks); sajha/auth/oauth/resource_server.py (WWW-Authenticate "
+        "challenge).",
+        "A client that calls /mcp without a token gets 401 with a WWW-Authenticate header pointing at the "
+        "protected-resource metadata, at /.well-known/oauth-protected-resource/mcp, which names the authorization "
+        "server: SAJHA's own or yours. The client starts the authorization-code flow with a PKCE S256 challenge and "
+        "the resource indicator for SAJHA's /mcp; the user signs in and consents, and the client receives a code. It "
+        "exchanges the code and its verifier for a JWT access token whose audience is SAJHA's /mcp, and a rotating "
+        "refresh token. Then it calls /mcp with the Bearer token; SAJHA checks signature, issuer, audience, expiry "
+        "and scope, and the user's tool access applies as for any caller.",
+        lane_w=0.15,
+    )
+    stages = [
+        ("req", "tools/call", "duckdb_sql, arguments", "white", "round"),
+        ("who", "Who is calling?", "JWT, API key, cookie, OAuth token or anonymous", "box", "round"),
+        ("may", "Access?", "roles' patterns or the key's mode", "gold", "diamond"),
+        ("val", "Valid?", "arguments against the JSON Schema", "gold", "diamond"),
+        ("pol", "Policy?", "config/policies", "gold", "diamond"),
+        ("run", "Run", "cache, circuit breaker, metrics", "accent", "round"),
+        ("res", "Result", "redaction and screening if a rule says so", "dark", "round"),
     ]
+    xs = row(len(stages), 0.0, 1.0, 0.125)
+    nodes = []
+    for k, (i, t, sub, style, shape) in enumerate(stages):
+        dia = shape == "diamond"
+        nodes.append({"id": i, "text": t, "sub": "" if dia else sub, "x": xs[k], "y": 0.12 if dia else 0.17,
+                      "w": 0.125, "h": 0.36 if dia else 0.26, "style": style, "shape": shape,
+                      "size": 12 if dia else 13})
+        if dia:
+            nodes.append({"id": f"{i}_s", "text": sub, "x": xs[k], "y": 0.0, "w": 0.125, "h": 0.1, "style": "white",
+                          "size": 10, "bold": False, "shape": "rect"})
+    exits = [("may", "access denied, recorded"), ("val", "error -32602"),
+             ("pol", "deny with a reason, or wait for approval; audited")]
+    for i, t in exits:
+        k = [s[0] for s in stages].index(i)
+        nodes.append({"id": f"{i}_x", "text": t, "x": xs[k], "y": 0.62, "w": 0.125, "h": 0.17, "style": "bad",
+                      "size": 11, "bold": False})
+    nodes.append({"id": "aud", "text": "one hash-chained audit record, whatever happened", "x": 0.43, "y": 0.86,
+                  "w": 0.57, "h": 0.12, "style": "line", "size": 13})
+    edges = [{"a": stages[k][0], "b": stages[k + 1][0], "color": "CRIMSON"} for k in range(len(stages) - 1)]
+    edges += [{"a": i, "b": f"{i}_x", "label": "no", "lsize": 10, "lcolor": "BAD", "litalic": False, "lbold": True}
+              for i, _t in exits]
+    edges.append({"a": "res", "b": "aud"})
+    check = {
+        "kind": "canvas",
+        "kicker": "Step by step",
+        "title": "Authorization: the access and policy check on tools/call",
+        "nodes": nodes,
+        "edges": edges,
+        "texts": [{"x": 0.0, "y": 0.86, "w": 0.42, "h": 0.12, "size": 11, "italic": True, "text": "Any client: "
+                   "HTTP, SSE, WebSocket, stdio, A2A. deny wins over allow."}],
+        "source": "sajha/core/mcp_handler.py (has_tool_access before tools/call; -32602 on schema failure); "
+        "sajha/tools/base_mcp_tool.py execute_with_tracking (policy enforce, validate_arguments, cache, circuit "
+        "breaker); docs/architecture/Policy and Audit.md.",
+        "talk": "Every tools/call takes this path, whichever transport it came on. First SAJHA establishes who is "
+        "calling: a Bearer JWT, an API key, the cookie, an OAuth token, or nobody. Then the access policy decides "
+        "whether that caller may run this tool; if not, access is denied and recorded. The arguments are validated "
+        "against the tool's JSON Schema, and a failure answers -32602. The policy engine then applies the rules: "
+        "deny wins, require_approval waits for a person, and argument constraints, rate limits and quotas apply; "
+        "any decision other than allow is audited. Only then does the tool run, through its cache and circuit "
+        "breaker, and the result can be redacted or screened if a rule says so.",
+    }
+    return [cookie, jwt, key, oauth, check]
 
 
 def _policy(F: dict[str, Any]) -> list[dict[str, Any]]:
@@ -695,49 +921,8 @@ def _policy(F: dict[str, Any]) -> list[dict[str, Any]]:
         "included (include_disabled=True, as the Policies page's test bench offers); nothing was run."
     )
     return [
-        {
-            "kind": "split",
-            "kicker": "Policy",
-            "title": "A rule is a few lines of YAML, and it decides before the tool runs",
-            "left_w": 0.46,
-            "left": {"head": "config/policies/example-guardrails.yaml", "lines": _rule("sql-read-only")
-                     + ["", "# deny wins over allow; a violated constraint", "# denies with the rule's name"]},
-            "right": {
-                "head": "The rule language",
-                "items": [
-                    ("Match", "Tool names and groups, annotations such as destructiveHint, the caller, the path, a "
-                     "time window, argument values."),
-                    ("Decide", "allow, deny with a reason, or require_approval; deny overrides; default_effect: deny "
-                     "makes it an allowlist."),
-                    ("Oblige", "Argument constraints, rate limits and quotas shared by every worker, redaction, "
-                     "screening of results."),
-                    ("Operate", "Files reload on change; every decision that is not allow is audited; the Policies "
-                     "page has a test bench."),
-                ],
-            },
-            "source": "The rule is read verbatim from config/policies/example-guardrails.yaml at build time (disabled in "
-            "the shipped configuration). docs/architecture/Policy and Audit.md §3; sajha/policy/model.py, engine.py.",
-        },
-        {
-            "kind": "table",
-            "kicker": "Policy, evaluated",
-            "title": "The shipped example policy, evaluated on four calls",
-            "col_w": [1.0, 2.9, 1.3, 3.0],
-            "rows": [["Caller", "Tool and arguments", "Decision", "Rule and reason"]]
-            + [
-                [
-                    p["caller"],
-                    f"{p['tool']} {js(p['args'])}",
-                    p["effect"] + (f" + {', '.join(p['obligations'])}" if p["obligations"] else ""),
-                    (p["rule"].split("/")[-1] + ": " if p["rule"] else "no deciding rule: ")
-                    + (p["reason"] or "allowed; obligations still apply"),
-                ]
-                for p in pol
-            ],
-            "note": "The same engine sits in BaseMCPTool.execute_with_tracking, so these decisions are the same over "
-            "MCP, REST, the command line or Ask SAJHA.",
-            "source": policy_src,
-        },
+        _rule_slide(),
+        _evaluated(pol, policy_src),
         {
             "kind": "canvas",
             "kicker": "Audit, tampered with",
@@ -786,6 +971,10 @@ def _policy(F: dict[str, Any]) -> list[dict[str, Any]]:
             "kind": "stats",
             "kicker": "Evidence",
             "title": "Security fixes are listed, with where each one lives in the code",
+            "talk": "The Security Model keeps a table of every issue found and fixed since the last major "
+                "release, each with the file that fixes it, and a list of known limitations, so a "
+                "deployment can compensate. The counts here are parsed from that document at build time, "
+                "and the rows shown are simply the shortest entries.",
             "intro": "The Security Model keeps a table of issues found and fixed since the last major release, each "
             "with the file that fixes it, and a list of known limitations.",
             "stats": [
@@ -801,6 +990,89 @@ def _policy(F: dict[str, Any]) -> list[dict[str, Any]]:
     ]
 
 
+def _rule_slide() -> dict[str, Any]:
+    """The shipped rule beside the decision it makes."""
+    return {
+        "kind": "canvas",
+        "kicker": "Policy",
+        "title": "A rule is a few lines of YAML, and it decides before the tool runs",
+        "panels": [{"x": 0.0, "y": 0.0, "w": 0.42, "h": 1.0, "size": 13, "lines": ["# config/policies/"
+                    "example-guardrails.yaml"] + _rule("sql-read-only")
+                    + ["", "# deny wins over allow; a violated", "# constraint denies with the rule's name"]}],
+        "nodes": [
+            {"id": "call", "text": "A call", "sub": "tool, group, annotations, caller, path, time, arguments",
+             "x": 0.47, "y": 0.0, "w": 0.24, "h": 0.2, "style": "white", "size": 14},
+            {"id": "m", "text": "Match", "sub": "every rule whose conditions fit", "x": 0.76, "y": 0.0, "w": 0.24,
+             "h": 0.2, "style": "soft", "shape": "hex", "size": 14},
+            {"id": "d", "text": "Decide", "sub": "deny overrides", "x": 0.77, "y": 0.28, "w": 0.22, "h": 0.3,
+             "style": "gold", "shape": "diamond", "size": 14},
+            {"id": "al", "text": "allow", "sub": "obligations: argument limits, rate limits and quotas, redaction, "
+             "screening", "x": 0.47, "y": 0.3, "w": 0.24, "h": 0.26, "style": "ok", "size": 14},
+            {"id": "dn", "text": "deny", "sub": "with a reason; audited", "x": 0.47, "y": 0.68, "w": 0.24, "h": 0.18,
+             "style": "bad", "size": 14},
+            {"id": "ap", "text": "require_approval", "sub": "waits for a person; audited", "x": 0.76, "y": 0.68,
+             "w": 0.24, "h": 0.18, "style": "warn", "size": 14},
+        ],
+        "edges": [
+            {"a": "call", "b": "m"}, {"a": "m", "b": "d"},
+            {"a": "d", "b": "al", "color": "OK"}, {"a": "d", "b": "dn", "mode": "c", "color": "BAD"},
+            {"a": "d", "b": "ap", "color": "WARN"},
+        ],
+        "texts": [{"x": 0.47, "y": 0.9, "w": 0.53, "h": 0.1, "size": 11, "italic": True, "text": "default_effect: "
+                   "deny makes it an allowlist. Files reload on change; the Policies page has a test bench."}],
+        "source": "The rule is read verbatim from config/policies/example-guardrails.yaml at build time (disabled in "
+        "the shipped configuration). docs/architecture/Policy and Audit.md §3; sajha/policy/model.py, engine.py.",
+        "talk": "On the left is a real rule from the shipped example policy, read from the file when this deck was "
+        "built. A rule matches on tool names and groups, annotations such as destructiveHint, the caller, the path, "
+        "a time window and argument values. The engine collects the matching rules and decides: deny overrides "
+        "allow, require_approval sends the call to a person, and setting default_effect to deny turns the policy "
+        "into an allowlist. An allowed call can still carry obligations: argument constraints, rate limits and "
+        "quotas shared by every worker, redaction and screening of results. Files reload when they change, every "
+        "decision other than allow is audited, and the Policies page has a test bench.",
+    }
+
+
+def _evaluated(pol: list[dict[str, Any]], policy_src: str) -> dict[str, Any]:
+    """Each evaluated call as a row: caller, call, decision, why."""
+    look = {"allow": "ok", "deny": "bad", "require_approval": "warn"}
+    rh = 0.9 / len(pol)
+    nodes, edges, texts = [], [], []
+    for i, p in enumerate(pol):
+        y = 0.1 + i * rh
+        h = rh - 0.04
+        nodes += [
+            {"id": f"c{i}", "text": p["caller"], "x": 0.0, "y": y, "w": 0.115, "h": h, "style": "white", "shape": "oval",
+             "size": 12},
+            {"id": f"t{i}", "text": p["tool"], "sub": js(p["args"]), "x": 0.15, "y": y, "w": 0.33, "h": h,
+             "style": "box", "size": 13, "font": "Consolas"},
+            {"id": f"d{i}", "text": p["effect"], "sub": ("+ " + ", ".join(p["obligations"])) if p["obligations"]
+             else "", "x": 0.53, "y": y, "w": 0.14, "h": h, "style": look.get(p["effect"], "white"), "size": 14},
+        ]
+        edges += [{"a": f"c{i}", "b": f"t{i}"}, {"a": f"t{i}", "b": f"d{i}", "color": "CRIMSON"}]
+        texts.append({"x": 0.69, "y": y, "w": 0.31, "h": h, "size": 12, "text":
+                      (p["rule"].split("/")[-1] + ": " if p["rule"] else "no deciding rule: ")
+                      + (p["reason"] or "allowed; obligations still apply")})
+    for t, x in (("CALLER", 0.0), ("TOOL AND ARGUMENTS", 0.15), ("DECISION", 0.53), ("RULE AND REASON", 0.69)):
+        texts.append({"x": x, "y": 0.0, "w": 0.3, "h": 0.07, "text": t, "bold": True, "color": "CRIMSON_D",
+                      "size": 11})
+    return {
+        "kind": "canvas",
+        "kicker": "Policy, evaluated",
+        "title": "The shipped example policy, evaluated on four calls",
+        "nodes": nodes,
+        "edges": edges,
+        "texts": texts,
+        "note": "The same engine sits in BaseMCPTool.execute_with_tracking, so these decisions are the same over "
+        "MCP, REST, the command line or Ask SAJHA.",
+        "source": policy_src,
+        "talk": "These four decisions were computed by the policy engine over the shipped example files while this "
+        "deck was built; nothing was run. A plain read-only query is allowed, with a redaction obligation still "
+        "attached. A query that smuggles a DROP TABLE is denied by the read-only SQL rule, which names itself in the "
+        "reason. An anonymous caller is refused a tool that changes data. And a signed-in user calling the same "
+        "destructive tool is sent for approval: a person must agree before it runs.",
+    }
+
+
 def _deploy(F: dict[str, Any]) -> list[dict[str, Any]]:
     cf = F["conformance"]
     storage = [s.replace("AzureBlob", "Azure Blob").replace("Local", "local disk") for s in F["storage"]]
@@ -809,6 +1081,10 @@ def _deploy(F: dict[str, Any]) -> list[dict[str, Any]]:
             "kind": "cards",
             "kicker": "Deploy anywhere",
             "title": "On premises, in a private cloud or a public one: the same server",
+            "talk": "The same server runs on a VM with systemd and nginx, in Docker, on Kubernetes with the "
+                "Helm chart, or on managed cloud services. Air-gapped works too, with the offline mock "
+                "model, local tools and local data. Data leaves only when a tool calls an outside "
+                "service, nothing phones home, and the same configuration file is used everywhere.",
             "cols": 3,
             "cards": [
                 ("ON PREMISES", "Your data centre", "A VM with systemd and nginx, or Docker; air-gapped works with "
@@ -833,6 +1109,11 @@ def _deploy(F: dict[str, Any]) -> list[dict[str, Any]]:
             "kind": "diagram",
             "kicker": "Reference architecture: public cloud",
             "title": "On AWS: Fargate tasks behind a load balancer, state in RDS",
+            "talk": "This is what the AWS recipe creates, and nothing more. An application load balancer "
+                "terminates TLS in front of one to six Fargate tasks running the non-root SAJHA image. "
+                "Secrets come from Secrets Manager, tool and prompt configs from S3, logs and metrics go "
+                "to CloudWatch, and shared state lives in RDS PostgreSQL, whose schema an operator runs "
+                "once. Bedrock is an optional model provider.",
             "groups": [
                 {"id": "aws", "label": "AWS ACCOUNT · VPC", "x": 0.15, "y": 0.0, "w": 0.85, "h": 1.0},
                 {"id": "ecs", "label": "ECS FARGATE · 1 TO 6 TASKS", "x": 0.41, "y": 0.1, "w": 0.32, "h": 0.5},
@@ -865,6 +1146,11 @@ def _deploy(F: dict[str, Any]) -> list[dict[str, Any]]:
             "kind": "diagram",
             "kicker": "Reference architecture: on premises",
             "title": "In your data centre: nginx in front, PostgreSQL behind, nothing external required",
+            "talk": "On premises, nginx terminates TLS and proxies to SAJHA on localhost, with streaming "
+                "unbuffered. Files sit on local disk, Redis holds shared state when there are several "
+                "workers, PostgreSQL holds the database from the schema and seed files an operator runs, "
+                "Prometheus and Grafana watch it, and the audit streams to your SIEM. Nothing external is"
+                " required.",
             "groups": [
                 {"id": "dc", "label": "YOUR DATA CENTRE", "x": 0.15, "y": 0.0, "w": 0.85, "h": 1.0},
                 {"id": "host", "label": "VM (systemd) OR DOCKER", "x": 0.41, "y": 0.1, "w": 0.32, "h": 0.5},
@@ -896,6 +1182,11 @@ def _deploy(F: dict[str, Any]) -> list[dict[str, Any]]:
             "kind": "stats",
             "kicker": "Production readiness",
             "title": "Production readiness, in facts the build can check",
+            "talk": "No load-test figures are claimed, because none has been measured and recorded. Instead "
+                "these are facts the build counts: the automated tests, the conformance checks, the "
+                "schema tables and the Helm templates. The chart includes autoscaling, a disruption "
+                "budget, a network policy and a ServiceMonitor; several replicas need the redis or "
+                "database state backend.",
             "intro": "No load-test figures are claimed here: none has been measured and recorded. These are counted "
             "from the repository when the deck is built.",
             "stats": [

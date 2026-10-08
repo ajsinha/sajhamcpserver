@@ -16,7 +16,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from diagrams import layered, row
+from diagrams import layered, row, seq
 from evidence import SourceChanged, require_tools, short_description
 from prose import listing
 
@@ -364,6 +364,11 @@ def _section4(F: dict[str, Any]) -> list[dict[str, Any]]:
             "kind": "diagram",
             "kicker": "Agent architecture",
             "title": "The agent reasons; SAJHA executes, authorizes and records",
+            "talk": "The split of responsibilities. The agent runtime holds the model and an orchestrator "
+                "that does multi-step reasoning and retries; it lists SAJHA's tools at start and puts "
+                "their schemas in the prompt. SAJHA executes every call, authenticates the caller, "
+                "applies policy and keeps the record, reaching databases, public APIs and the web on the "
+                "agent's behalf.",
             "groups": [
                 {"id": "rt", "label": "AI AGENT RUNTIME", "x": 0.0, "y": 0.0, "w": 0.36, "h": 0.62},
                 {"id": "sv", "label": "SAJHA MCP SERVER", "x": 0.52, "y": 0.0, "w": 0.48, "h": 0.62},
@@ -396,31 +401,54 @@ def _section4(F: dict[str, Any]) -> list[dict[str, Any]]:
             "Governance path: sajha/tools/base_mcp_tool.py execute_with_tracking. After the earlier deck's agent slide.",
         },
         {
-            "kind": "table",
+            "kind": "canvas",
             "kicker": "Illustrative workflow",
             "title": "A worked analysis: interest-rate exposure, one tool at a time",
             "intro": "Illustrative. “How exposed is our Treasury portfolio to a move in rates?” An agent might chain "
             "these real tools; the holdings table is your own data in DuckDB.",
-            "col_w": [0.5, 2.6, 2.0, 2.6],
-            "rows": [
-                ["#", "Agent action", "SAJHA tool", "Output"],
-                ["1", "Fetch the policy rate", risk[0], "Rate and its history"],
-                ["2", "Fetch the 2-year and 10-year yields", f"{risk[1]}, {risk[2]}", "The curve's short and long end"],
-                ["3", "Read portfolio holdings", risk[3], "Positions, coupons, maturities"],
-                ["4", "Bucket exposure by maturity", risk[4], "Exposure per bucket"],
-                ["5", "Reprice a bond after +100 bp", risk[6], "Price change per position"],
-                ["6", "Search for central-bank guidance", risk[5], "Recent statements, with links"],
-                ["7", "Synthesise", "the model", "Exposure summary, citing each call"],
+            "nodes": [
+                {"id": "s6", "text": f"6  {risk[5]}", "sub": "central-bank guidance, with links", "x": 0.0, "y": 0.0,
+                 "w": 0.27, "h": 0.19, "style": "white", "size": 13},
+                {"id": "s1", "text": f"1  {risk[0]}", "sub": "the policy rate and its history", "x": 0.0, "y": 0.26,
+                 "w": 0.27, "h": 0.19, "style": "white", "size": 13},
+                {"id": "s2", "text": f"2  {risk[1]}, {risk[2]}", "sub": "the curve's short and long end", "x": 0.0,
+                 "y": 0.52, "w": 0.27, "h": 0.19, "style": "white", "size": 13},
+                {"id": "s3", "text": f"3  {risk[3]}", "sub": "holdings: positions, coupons, maturities", "x": 0.0,
+                 "y": 0.78, "w": 0.27, "h": 0.19, "style": "soft", "size": 13},
+                {"id": "s5", "text": f"5  {risk[6]}", "sub": "each bond repriced after +100 bp", "x": 0.37,
+                 "y": 0.55, "w": 0.25, "h": 0.19, "style": "white", "size": 13},
+                {"id": "s4", "text": f"4  {risk[4]}", "sub": "exposure per maturity bucket", "x": 0.37, "y": 0.8,
+                 "w": 0.25, "h": 0.19, "style": "white", "size": 13},
+                {"id": "s7", "text": "7  the model synthesises", "sub": "an exposure summary citing each call",
+                 "x": 0.72, "y": 0.28, "w": 0.28, "h": 0.3, "style": "accent", "size": 16},
+            ],
+            "edges": [
+                {"a": "s6", "b": "s7", "mode": "c"}, {"a": "s1", "b": "s7", "mode": "c"},
+                {"a": "s2", "b": "s5", "mode": "c"}, {"a": "s3", "b": "s5", "mode": "c"}, {"a": "s3", "b": "s4"},
+                {"a": "s5", "b": "s7", "mode": "c", "color": "CRIMSON"}, {"a": "s4", "b": "s7", "mode": "c",
+                                                                          "color": "CRIMSON"},
             ],
             "note": "Each output becomes context for the next step; the model chooses the path from what it sees. "
             "Section 7 shows a real run, captured when this deck was built.",
             "source": "Illustrative: no run is claimed. Every tool name is checked against the live registry at build "
             "time (evidence.require_tools). After the earlier deck's risk-analysis table, with names that exist.",
+            "talk": f"This is illustrative: no run is claimed, but every tool name is real and checked against the "
+            f"registry when the deck is built. Asked how exposed a Treasury portfolio is to a move in rates, an agent "
+            f"might fetch the policy rate with {risk[0]}, the two- and ten-year yields, and the holdings from your own "
+            f"table with {risk[3]}. With the holdings it can bucket exposure by maturity using {risk[4]}, and reprice "
+            f"each bond after a 100 basis point move with {risk[6]}. A news search for central-bank guidance adds "
+            "context. The model then writes a summary that cites each call; numbered steps show one plausible order, "
+            "and the arrows show which results feed which.",
         },
         {
             "kind": "diagram",
             "kicker": "Multi-agent coordination",
             "title": "Several agents share one server, each with its own identity and rights",
+            "talk": "Several agents can share one SAJHA. Each gets its own credentials, an API key with an "
+                "allowlist or a role, so least privilege is enforced per agent and the audit names which "
+                "agent called what. Agents hand work to each other over A2A, while MCP carries tool "
+                "access, and more workers with a shared state store serve more agents. The key patterns "
+                "shown are illustrative.",
             "nodes": [
                 {"id": "ra", "text": "Research agent", "sub": "API key: tavily_*, edgar_*, fed_*", "x": 0.0,
                  "y": 0.0, "w": 0.3, "h": 0.22},
@@ -514,57 +542,100 @@ def _section4(F: dict[str, Any]) -> list[dict[str, Any]]:
             "in the console apply to the next request, because the user is reloaded on every request. Clients on SSE "
             "or WebSocket, and 2026-07-28 clients through subscriptions/listen, receive list-changed notifications.",
         },
-        {
-            "kind": "mono",
-            "kicker": "Step by step",
-            "title": "Tool creation: MCP Studio, zero code",
-            "band": "Developer or admin  →  MCP Studio",
-            "lines": [
-                "1. Open /studio and choose a creator",
-                "   └─ Python | REST | DB query | Script | OLAP | Power BI |",
-                "      SharePoint | LiveLink | Describe | Import an API",
-                "2. Fill the form: name, parameters, source",
-                '   ├─ name: "fx_rate"',
-                '   ├─ parameters: { "pair": "string" }',
-                "   └─ source: URL template, SQL, code or script",
-                "3. Preview: the JSON Schema is generated",
-                "   └─ inputSchema with types and required fields",
-                "4. Deploy",
-                "   ├─ Config written under config/tools",
-                "   ├─ Registered in the running server",
-                "   └─ Code and scripts will run in the sandbox",
-                "5. Any MCP client sees it in tools/list,",
-                "   under its caller's access policy",
-            ],
-            "source": "sajha/routes/studio_routes.py (pages, /preview and /deploy actions per creator); "
-            "docs/studio/MCP Studio User Guide.md. The tool name and parameters are illustrative.",
-        },
-        {
-            "kind": "mono",
-            "kicker": "Step by step",
-            "title": "Tool creation: a Python tool, full code",
-            "band": "Developer  →  SAJHA tools registry",
-            "lines": [
-                "1. Write the class",
-                "   ├─ class FxRateTool(BaseMCPTool):",
-                "   ├─     def execute(self, arguments): ...",
-                "   └─ input schema with types, ranges, required",
-                "2. Describe it: a JSON config in config/tools",
-                "   └─ name, description, implementation class, cache_ttl",
-                "3. Or package several as a plugin",
-                "   ├─ config/plugins/my-tools/plugin.json",
-                "   └─ tools/ with configs or classes; a checksum",
-                "4. Test",
-                "   ├─ Tool tests with recorded HTTP cassettes",
-                "   └─ The schema linter",
-                "5. Deploy: the registry loads the config;",
-                "   the tool appears in tools/list",
-            ],
-            "source": "sajha/tools/base_mcp_tool.py; sajha/tools/tools_registry.py; sajha/core/plugins.py (manifest "
-            "format in its docstring); docs/architecture/Tool Quality.md (tests, cassettes, lint). The class name is "
-            "illustrative.",
-        },
+        _studio_steps(),
+        _python_steps(),
     ]
+
+
+def _studio_steps() -> dict[str, Any]:
+    groups, nodes, edges = seq(
+        [("d", "Developer or admin"), ("st", "MCP Studio"), ("r", "Running server"), ("c", "Any MCP client")],
+        [
+            {"a": "d", "b": "st", "label": "1  choose a creator"},
+            {"on": "st", "text": "Python, REST, DB query, script, OLAP, Power BI, SharePoint, LiveLink, Describe, "
+             "Import an API", "w": 0.44, "size": 12},
+            {"a": "d", "b": "st", "label": "2  name, parameters, source"},
+            {"a": "st", "b": "d", "label": "3  the generated schema"},
+            {"a": "d", "b": "st", "label": "4  deploy"},
+            {"a": "st", "b": "r", "label": "writes config/tools"},
+            {"on": "r", "text": "registered at once; code and scripts will run sandboxed", "w": 0.44},
+            {"a": "c", "b": "r", "label": "5  tools/list"},
+            {"a": "r", "b": "c", "label": "fx_rate, if allowed", "color": "CRIMSON"},
+        ],
+        0.0, 1.0, 0.1, top=0.08, size=12.5, lsize=11.5)
+    return {
+        "kind": "canvas", "kicker": "Step by step", "title": "Tool creation: MCP Studio, zero code",
+        "groups": groups, "nodes": nodes, "edges": edges,
+        "source": "sajha/routes/studio_routes.py (pages, /preview and /deploy actions per creator); "
+        "docs/studio/MCP Studio User Guide.md. The tool name and parameters are illustrative.",
+        "talk": "A developer or administrator opens MCP Studio and chooses a creator. They fill the form: a name, "
+        "parameters, and the source, which is a URL template, SQL, code or a script depending on the creator. The "
+        "preview shows the JSON Schema SAJHA generates, with types and required fields. Deploy writes a config "
+        "under config/tools and registers the tool in the running server; code and scripts will run in the sandbox. "
+        "From then on any MCP client sees the tool in tools/list, subject to its caller's access. The name fx_rate "
+        "is illustrative.",
+    }
+
+
+def _python_steps() -> dict[str, Any]:
+    stages = [("1  Write the class", "class FxRateTool(BaseMCPTool): execute(); an input schema", "white"),
+              ("2  Describe it", "a JSON config in config/tools: name, description, class, cache_ttl", "white"),
+              ("3  Test", "tool tests with recorded HTTP cassettes; the schema linter", "soft"),
+              ("4  Deploy", "the registry loads the config; the tool appears in tools/list", "accent")]
+    xs = row(len(stages), 0.0, 1.0, 0.22)
+    nodes = [{"id": f"s{i}", "text": t, "sub": sub, "x": xs[i], "y": 0.05, "w": 0.22, "h": 0.36, "style": st,
+              "size": 16} for i, (t, sub, st) in enumerate(stages)]
+    nodes += [{"id": "pl", "text": "or package several as a plugin", "sub": "config/plugins/<name>/plugin.json with "
+               "tools/ and a checksum", "x": xs[1], "y": 0.62, "w": 0.22, "h": 0.3, "style": "ghost", "size": 14}]
+    edges = [{"a": f"s{i}", "b": f"s{i + 1}", "color": "CRIMSON"} for i in range(len(stages) - 1)]
+    edges += [{"a": "s0", "b": "pl", "mode": "c", "dash": True, "label": "or", "lsize": 11},
+              {"a": "pl", "b": "s2", "mode": "c", "dash": True}]
+    return {
+        "kind": "canvas", "kicker": "Step by step", "title": "Tool creation: a Python tool, full code",
+        "nodes": nodes, "edges": edges,
+        "source": "sajha/tools/base_mcp_tool.py; sajha/tools/tools_registry.py; sajha/core/plugins.py (manifest "
+        "format in its docstring); docs/architecture/Tool Quality.md (tests, cassettes, lint). The class name is "
+        "illustrative.",
+        "talk": "Full code starts with a class: subclass BaseMCPTool, implement execute, and declare an input schema "
+        "with types, ranges and required fields. A JSON config in config/tools names the tool, describes it, points "
+        "at the implementation class and can set a cache lifetime; several tools can instead be packaged as a "
+        "plugin, with a plugin.json manifest, a tools folder and a checksum. Tool tests replay recorded HTTP "
+        "cassettes and the schema linter checks the schema. When the registry loads the config, the tool appears in "
+        "tools/list like any other. The class name is illustrative.",
+    }
+
+
+def _blend(combo: list[str]) -> dict[str, Any]:
+    return {
+        "kind": "canvas",
+        "kicker": "Search plus analytics",
+        "title": "One session blends outside intelligence with inside data",
+        "intro": "Illustrative. “What is the market saying about credit spreads, and how are we positioned?”",
+        "groups": [{"id": "go", "label": "OUTSIDE: WHAT THE MARKET SAYS", "x": 0.0, "y": 0.0, "w": 0.34, "h": 0.4},
+                   {"id": "gi", "label": "INSIDE: WHAT OUR DATA SAYS", "x": 0.0, "y": 0.46, "w": 0.66, "h": 0.54}],
+        "nodes": [
+            {"id": "n", "text": combo[0], "sub": "news on the credit-spread outlook, with links", "x": 0.02, "y": 0.12,
+             "w": 0.3, "h": 0.22, "style": "white", "size": 14},
+            {"id": "q", "text": combo[1], "sub": "SELECT sector, rating, spread, duration FROM portfolio", "x": 0.02,
+             "y": 0.6, "w": 0.19, "h": 0.32, "style": "soft", "size": 13},
+            {"id": "p", "text": combo[2], "sub": "exposure by sector and rating", "x": 0.245, "y": 0.6, "w": 0.19,
+             "h": 0.32, "style": "white", "size": 13},
+            {"id": "c", "text": combo[3], "sub": "our spreads against the market's", "x": 0.465, "y": 0.6, "w": 0.18,
+             "h": 0.32, "style": "white", "size": 13},
+            {"id": "m", "text": "the model", "sub": "a synthesis citing each call, with SAJHA's confidence", "x": 0.76,
+             "y": 0.25, "w": 0.24, "h": 0.36, "style": "accent", "size": 17},
+        ],
+        "edges": [{"a": "q", "b": "p"}, {"a": "p", "b": "c"}, {"a": "n", "b": "m", "mode": "c", "color": "CRIMSON"},
+                  {"a": "c", "b": "m", "mode": "c", "color": "CRIMSON"}],
+        "note": "Same server, same identity, same rules and the same audit for every step.",
+        "source": "Illustrative: no run is claimed. Tool names checked against the live registry at build time. "
+        "After the earlier deck's combined-workflow slide.",
+        "talk": f"Illustrative again, with real tool names. One question needs both the outside world and our own "
+        f"data. {combo[0]} brings the market's view of credit spreads, with links. Inside, {combo[1]} reads our "
+        f"positions, {combo[2]} shows where we are concentrated by sector and rating, and {combo[3]} measures how "
+        "our spreads have moved with the market's. The model writes a synthesis that cites each call. Every step "
+        "runs as the same identity, under the same rules, into the same audit.",
+    }
 
 
 def _pairs(tools: list[tuple[str, str]]) -> list[list[str]]:
@@ -594,6 +665,10 @@ def _section5(F: dict[str, Any]) -> list[dict[str, Any]]:
             "kind": "table",
             "kicker": "Search and the web",
             "title": f"{len(search)} search, extraction and crawling tools",
+            "talk": "These are the search and web tools in the registry, with the first sentence of each "
+                "description. Results come back as structured text for a model rather than raw HTML. "
+                "Tavily tools need a Tavily key. For filings, "
+                "the investor-relations tools find reports and presentations.",
             "col_w": [1.55, 2.4, 1.55, 2.4],
             "rows": _pairs(search),
             "note": "Results come back as structured text for a model, not raw HTML; Tavily calls need a Tavily key. "
@@ -605,6 +680,10 @@ def _section5(F: dict[str, Any]) -> list[dict[str, Any]]:
             "kind": "table",
             "kicker": "DuckDB and OLAP",
             "title": "SQL over your files, pivots and statistics, read-only by construction",
+            "talk": "DuckDB tools run SQL over your own files, the OLAP tools pivot and summarise, and the "
+                "SQL select tools read configured databases. duckdb_sql accepts exactly one read-only "
+                "statement and cannot read arbitrary files or URLs, and the OLAP tools bind values rather"
+                " than pasting them into SQL; both were hardened in the fixes the Security Model lists.",
             "col_w": [1.55, 2.4, 1.55, 2.4],
             "rows": _pairs(analytics),
             "note": "duckdb_sql accepts one read-only statement and cannot read arbitrary files or URLs; the OLAP "
@@ -616,6 +695,9 @@ def _section5(F: dict[str, Any]) -> list[dict[str, Any]]:
             "kind": "table",
             "kicker": "Financial calculators",
             "title": f"{len(calc)} calculators: pure arithmetic, no network, confidence 1.0",
+            "talk": "The financial calculators are pure arithmetic: no network, no model, so their confidence"
+                " is one. They cover returns, loans, bonds, risk statistics and more, and they are what "
+                "Ask SAJHA calls when a question needs a number computed rather than looked up.",
             "col_w": [1.55, 2.4, 1.55, 2.4],
             "rows": _pairs(calc),
             "source": "Names and descriptions from the live registry at build time (calc_). Confidence: "
@@ -626,6 +708,12 @@ def _section5(F: dict[str, Any]) -> list[dict[str, Any]]:
             "kind": "diagram",
             "kicker": "The connector guard",
             "title": "A query to your database passes three read-only checks",
+            "talk": "A data connector puts your database behind three independent read-only checks. SAJHA's "
+                "statement guard allows one SELECT over an allowlist of tables and no procedures. The "
+                "connection itself is opened read-only. And the database applies the login's own grants. "
+                "Every query has row, byte and time limits, columns can be masked, and some kinds can run"
+                " as each user. The honest limit: the guard analyses query text, so database-native "
+                "grants, views and masking should back anything sensitive.",
             "items_h": 1.9,
             "nodes": [
                 {"id": "q", "text": "Tool call", "sub": "query or curated view", "x": 0.0, "y": 0.08, "w": 0.15,
@@ -650,25 +738,7 @@ def _section5(F: dict[str, Any]) -> list[dict[str, Any]]:
                         "source": "docs/architecture/Data Connectors.md (the guard, limits, masking, §14 'Limits of this design'); "
             "sajha/connectors/model.py PER_USER_KINDS, read at build time.",
         },
-        {
-            "kind": "steps",
-            "kicker": "Search plus analytics",
-            "title": "One session blends outside intelligence with inside data",
-            "intro": "Illustrative. “What is the market saying about credit spreads, and how are we positioned?”",
-            "head_w": 2.6,
-            "head_font": "Consolas",
-            "head_size": 13,
-            "steps": [
-                (combo[0], "News on the credit-spread outlook: the market's view, with links."),
-                (combo[1], "SELECT sector, rating, spread, duration FROM portfolio: our positions."),
-                (combo[2], "Exposure by sector and rating: where we are concentrated."),
-                (combo[3], "How our spreads have moved with the market's: correlation of two series."),
-                ("the model", "A synthesis that cites each call, with SAJHA's confidence attached."),
-            ],
-            "note": "Same server, same identity, same rules and the same audit for every step.",
-            "source": "Illustrative: no run is claimed. Tool names checked against the live registry at build time. "
-            "After the earlier deck's combined-workflow slide.",
-        },
+        _blend(combo),
     ]
 
 
