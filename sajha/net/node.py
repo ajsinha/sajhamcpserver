@@ -1024,11 +1024,22 @@ class _NoChange(Exception):
 
 
 class Participant:
-    """Every net of one server on its one port: selects the node by ``Sajha-Net-Name`` (§7.7)."""
+    """Every net of one server on its one port: selects the node by ``Sajha-Net-Name`` (§7.7), and,
+    for a participant this server sponsors in that net (kind ``sponsored``, design §5.1), by
+    ``Sajha-Net-To``: a sponsored participant shares its sponsor's URL and has a node of its own."""
 
     def __init__(self, nodes: Optional[Dict[str, NetNode]] = None, enabled: bool = True):
         self.nodes: Dict[str, NetNode] = dict(nodes or {})
+        self.sponsored: Dict[str, Dict[str, NetNode]] = {}          # net -> instance name -> node
         self.enabled = enabled
+
+    def _select(self, h: Dict[str, str]) -> Optional[NetNode]:
+        net = h.get('sajha-net-name', '').strip()
+        if not names.is_net_name(net):
+            return None
+        to = h.get('sajha-net-to', '').strip()
+        node = (self.sponsored.get(net) or {}).get(to) if to else None
+        return node or self.nodes.get(net)
 
     def handle(self, method: str, path: str, query: str, headers: Dict[str, str], body: bytes,
                secure: bool = True, source: str = '') -> PeerResponse:
@@ -1037,8 +1048,7 @@ class Participant:
             return empty_404()
         if h.get('sec-fetch-mode', '').strip().lower() == 'navigate':
             return empty_404()
-        net = h.get('sajha-net-name', '').strip()
-        node = self.nodes.get(net) if names.is_net_name(net) else None
+        node = self._select(h)
         if node is None or not node.started:
             return empty_404()
         return node.handle(method, path, query, h, body, secure=secure, source=source)
@@ -1051,8 +1061,7 @@ class Participant:
         h = httpsig.lower_headers(headers)
         if not self.enabled:
             return None
-        net = h.get('sajha-net-name', '').strip()
-        node = self.nodes.get(net) if names.is_net_name(net) else None
+        node = self._select(h)
         if node is None or not node.started or node.mcp_server is None:
             return None
         return node.mcp_server(method, path, query, h, body, secure=secure, source=source)
@@ -1063,6 +1072,8 @@ class Participant:
         out: Dict[str, Any] = {'protocol_versions': list(SUPPORTED_VERSIONS), 'endpoint': ENDPOINT}
         node = self.nodes.get(net or '')
         if node is not None:
+            if node.cfg.sponsor:
+                out['sponsor'] = node.cfg.sponsor
             out.update(net=node.net, instance=node.name, kind=node.cfg.kind, features=node.features,
                        user_identity=list(node.cfg.user_identity),
                        signature_algorithms=[crypto.ED25519, crypto.P256])

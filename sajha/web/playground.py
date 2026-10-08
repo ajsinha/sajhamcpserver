@@ -138,13 +138,8 @@ def isolation_headers() -> dict:
 
 def page_csp(s: PlaygroundSettings) -> str:
     """The page's policy: the site's self-only policy; workers only from this origin."""
-    return ("default-src 'self'; "
-            "script-src 'self' 'unsafe-inline'; "
-            "style-src 'self' 'unsafe-inline'; "
-            "font-src 'self'; "
-            "img-src 'self' data: blob:; "
-            "connect-src 'self' ws: wss:; "
-            "worker-src 'self'")
+    from sajha.security import console_csp
+    return console_csp(img_src="'self' data: blob:", extra="worker-src 'self'")
 
 
 def worker_csp(s: PlaygroundSettings) -> str:

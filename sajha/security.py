@@ -179,58 +179,301 @@ def check_api_rate_limit(request: Request) -> bool:
 
 
 # ═══════════════════════════════════════════════════════════════════
-# SECURITY HEADERS MIDDLEWARE
+# SECURITY HEADERS AND CONTENT SECURITY POLICY (per-request nonces)
 # ═══════════════════════════════════════════════════════════════════
+#
+# Every response gets a fresh CSP nonce.  Templates mark their inline <script> elements with
+# ``nonce="{{ csp_nonce() }}"`` (a Jinja global, sajha/app.py); scripts without it, and every
+# inline event handler attribute (onclick=...), are refused by the browser.  The console's
+# handlers are data-on* attributes run by /static/js/csp-actions.js instead.
+
+import contextvars
+
+_CSP_NONCE: contextvars.ContextVar[str] = contextvars.ContextVar('sajha_csp_nonce', default='')
+
+
+def csp_nonce() -> str:
+    """The current response's CSP nonce (one is created when none is set, e.g. outside a request)."""
+    n = _CSP_NONCE.get()
+    if not n:
+        n = secrets.token_urlsafe(18)
+        _CSP_NONCE.set(n)
+    return n
+
+
+def console_csp(nonce: Optional[str] = None, *, frame_ancestors: str = "'self'",
+                img_src: str = "'self' data:", extra: str = '') -> str:
+    """
+    The console's Content-Security-Policy.  Scripts: this origin plus inline scripts carrying the
+    response's nonce; no inline event handlers.  Styles keep 'unsafe-inline' (style attributes are
+    used throughout the templates and by the vendored libraries; CSS cannot run script).
+    """
+    nonce = nonce or csp_nonce()
+    policy = (
+        "default-src 'self'; "
+        f"script-src 'self' 'nonce-{nonce}'; "
+        "script-src-attr 'none'; "
+        "style-src 'self' 'unsafe-inline'; "
+        "font-src 'self'; "
+        f"img-src {img_src}; "
+        "connect-src 'self' ws: wss:; "
+        "object-src 'none'; "
+        "base-uri 'self'; "
+        f"frame-ancestors {frame_ancestors}"
+    )
+    return policy + (f'; {extra}' if extra else '')
+
+
+def _hsts_value() -> Optional[str]:
+    from sajha.core.config import _bool, _int
+    age = _int('security.hsts.max_age', 31536000)
+    if age <= 0:
+        return None
+    return f'max-age={age}' + ('; includeSubDomains' if _bool('security.hsts.include_subdomains', True) else '')
+
 
 class SecurityHeadersMiddleware(BaseHTTPMiddleware):
-    """Add security headers to all responses."""
+    """Add security headers (and a per-request CSP nonce) to all responses."""
 
     async def dispatch(self, request: Request, call_next):
+        nonce = secrets.token_urlsafe(18)
+        _CSP_NONCE.set(nonce)
+        request.state.csp_nonce = nonce
         response = await call_next(request)
         response.headers['X-Content-Type-Options'] = 'nosniff'
         # Routes may set a stricter policy (e.g. the OAuth consent page: DENY,
         # frame-ancestors 'none'); keep theirs.
         response.headers.setdefault('X-Frame-Options', 'SAMEORIGIN')
-        response.headers['X-XSS-Protection'] = '1; mode=block'
+        # The legacy XSS auditor is off in every current browser and could be abused where it
+        # remains; the CSP is the protection.  OWASP: send 0.
+        response.headers['X-XSS-Protection'] = '0'
         response.headers.setdefault('Referrer-Policy', 'strict-origin-when-cross-origin')
-        response.headers['Permissions-Policy'] = 'camera=(), microphone=(), geolocation=()'
-        # CSP: all JS/CSS/fonts are vendored under /static/vendor, so the policy
-        # stays self-only — no third-party origins to drift out of sync with.
-        # 'unsafe-inline' remains for inline <script>/<style> in templates; the
-        # upgrade path is per-request nonces. ws:/wss: is for the Socket.IO transport.
-        response.headers.setdefault('Content-Security-Policy', (
-            "default-src 'self'; "
-            "script-src 'self' 'unsafe-inline'; "
-            "style-src 'self' 'unsafe-inline'; "
-            "font-src 'self'; "
-            "img-src 'self' data:; "
-            "connect-src 'self' ws: wss:"
-        ))
-        # HSTS only if request came over HTTPS
+        response.headers.setdefault('Permissions-Policy',
+                                    'camera=(), microphone=(), geolocation=(), payment=(), usb=()')
+        # All JS/CSS/fonts are vendored under /static/vendor: self-only, plus this response's nonce.
+        response.headers.setdefault('Content-Security-Policy', console_csp(nonce))
+        # HSTS only if the request came over HTTPS (behind a proxy: server.trusted_proxies)
         if request.url.scheme == 'https':
-            response.headers['Strict-Transport-Security'] = 'max-age=31536000; includeSubDomains'
+            hsts = _hsts_value()
+            if hsts:
+                response.headers['Strict-Transport-Security'] = hsts
         return response
 
 
 # ═══════════════════════════════════════════════════════════════════
-# REQUEST SIZE LIMITING MIDDLEWARE
+# CROSS-SITE REQUEST CHECK (CSRF for cookie sessions)
 # ═══════════════════════════════════════════════════════════════════
 
-class RequestSizeLimitMiddleware(BaseHTTPMiddleware):
-    """Reject requests larger than max_body_size bytes."""
+_UNSAFE_METHODS = frozenset({'POST', 'PUT', 'PATCH', 'DELETE'})
+#: Paths that check Origin themselves (the MCP DNS-rebinding allow-list, mcp.allowed_origins).
+CSRF_EXEMPT_PREFIXES = ('/mcp', '/api/mcp')
 
-    def __init__(self, app, max_body_size: int = 10 * 1024 * 1024):  # 10 MB default
-        super().__init__(app)
-        self.max_body_size = max_body_size
 
-    async def dispatch(self, request: Request, call_next):
-        content_length = request.headers.get('content-length')
-        if content_length and int(content_length) > self.max_body_size:
-            return JSONResponse(
-                {'error': f'Request body too large. Maximum: {self.max_body_size} bytes'},
-                status_code=413
-            )
-        return await call_next(request)
+def _origin_of(url: str) -> str:
+    from urllib.parse import urlsplit
+    try:
+        u = urlsplit(url)
+    except ValueError:
+        return ''
+    if not u.scheme or not u.netloc:
+        return ''
+    return f'{u.scheme.lower()}://{u.netloc.lower()}'
+
+
+def trusted_origins() -> set:
+    """Origins besides this server's own that may send cookie-authenticated state changes:
+    ``security.csrf.trusted_origins`` and the CORS origins (``SAJHA_CORS_ORIGINS``)."""
+    from sajha.core.config import _list
+    out = {o.rstrip('/').lower() for o in _list('security.csrf.trusted_origins', []) if o}
+    cors = os.environ.get('SAJHA_CORS_ORIGINS', '')
+    out.update(o.strip().rstrip('/').lower() for o in cors.split(',') if o.strip())
+    return out
+
+
+def cross_site_refusal(method: str, path: str, headers: dict) -> Optional[str]:
+    """
+    Why a request must be refused as cross-site, or None.  It applies to state-changing methods
+    that carry the console session cookie: the browser's ``Origin`` (or, without one,
+    ``Referer``) must be this server (the ``Host`` it was sent to) or a trusted origin.  A request
+    without either header is not from a browser page and passes (browsers always send ``Origin``
+    on a cross-site POST); one with ``Origin: null`` is refused.  Pages' own CSRF tokens still
+    apply on top.
+    """
+    if method not in _UNSAFE_METHODS or path.startswith(CSRF_EXEMPT_PREFIXES):
+        return None
+    cookie = headers.get('cookie', '')
+    if 'sajha_token=' not in cookie:
+        return None
+    origin = headers.get('origin')
+    if origin is None:
+        ref = headers.get('referer')
+        if not ref:
+            return None
+        origin = _origin_of(ref) or 'null'
+    origin = origin.strip().rstrip('/').lower()
+    if origin == 'null' or not origin:
+        return 'Origin null'
+    host = (headers.get('host') or '').strip().lower()
+    if host and origin.split('://', 1)[-1] == host:
+        return None
+    if origin in trusted_origins():
+        return None
+    from sajha.core.config import _get
+    public = _origin_of((_get('mcp.auth.public_url', '') or '').strip())
+    if public and origin == public:
+        return None
+    return f'Origin {origin} is not this server'
+
+
+class CrossSiteRequestMiddleware:
+    """Refuse cookie-authenticated state changes sent from another site (403); pure ASGI."""
+
+    def __init__(self, app):
+        self.app = app
+
+    async def __call__(self, scope, receive, send):
+        if scope['type'] != 'http':
+            return await self.app(scope, receive, send)
+        headers = {k.decode('latin-1').lower(): v.decode('latin-1') for k, v in scope.get('headers') or []}
+        why = cross_site_refusal(scope.get('method', 'GET'), scope.get('path', ''), headers)
+        if why:
+            logger.warning(f"Cross-site request refused: {scope.get('method')} {scope.get('path')} ({why})")
+            resp = JSONResponse({'error': 'cross-site request refused', 'detail': why}, status_code=403)
+            return await resp(scope, receive, send)
+        return await self.app(scope, receive, send)
+
+
+# ═══════════════════════════════════════════════════════════════════
+# ALLOWED HOSTS (Host header allow-list; off unless configured)
+# ═══════════════════════════════════════════════════════════════════
+
+_LOOPBACK_HOSTS = ('localhost', '127.0.0.1', '[::1]', '::1')
+
+
+def allowed_hosts() -> list:
+    from sajha.core.config import _list
+    return [h.strip().lower() for h in _list('security.allowed_hosts', []) if h.strip()]
+
+
+def host_allowed(host_header: str, allowed: list) -> bool:
+    """``security.allowed_hosts`` entries: exact names or ``*.example.com``; ``*`` allows any.
+    Loopback names always pass, so local tools and health checks keep working."""
+    if not allowed or '*' in allowed:
+        return True
+    host = (host_header or '').strip().lower()
+    if host.startswith('['):
+        name = host.split(']', 1)[0] + ']'
+    else:
+        name = host.rsplit(':', 1)[0] if host.count(':') == 1 else host
+    if name in _LOOPBACK_HOSTS:
+        return True
+    for a in allowed:
+        if a.startswith('*.') and (name.endswith(a[1:]) and name != a[2:]):
+            return True
+        if name == a:
+            return True
+    return False
+
+
+class AllowedHostsMiddleware:
+    """400 for a Host header not in ``security.allowed_hosts`` (DNS rebinding, host-header
+    poisoning).  Pure ASGI; read once at start-up."""
+
+    def __init__(self, app, hosts: Optional[list] = None):
+        self.app = app
+        self.hosts = allowed_hosts() if hosts is None else hosts
+
+    async def __call__(self, scope, receive, send):
+        if scope['type'] not in ('http', 'websocket') or not self.hosts:
+            return await self.app(scope, receive, send)
+        host = ''
+        for k, v in scope.get('headers') or []:
+            if k == b'host':
+                host = v.decode('latin-1')
+                break
+        if host_allowed(host, self.hosts):
+            return await self.app(scope, receive, send)
+        if scope['type'] == 'websocket':
+            return await send({'type': 'websocket.close', 'code': 1008})
+        resp = JSONResponse({'error': 'Invalid host header'}, status_code=400)
+        return await resp(scope, receive, send)
+
+
+# ═══════════════════════════════════════════════════════════════════
+# REQUEST SIZE LIMITING MIDDLEWARE (Content-Length and streamed bodies)
+# ═══════════════════════════════════════════════════════════════════
+
+def max_request_bytes() -> int:
+    from sajha.core.config import _int
+    return max(1024, _int('server.max_request_bytes', 10 * 1024 * 1024))
+
+
+from starlette.exceptions import HTTPException as _StarletteHTTPException
+
+
+class _BodyTooLarge(_StarletteHTTPException):
+    """Raised while reading a body past the limit; an HTTPException, so the app answers 413."""
+
+    def __init__(self, limit: int):
+        super().__init__(status_code=413, detail=f'Request body too large. Maximum: {limit} bytes')
+
+
+class RequestSizeLimitMiddleware:
+    """
+    Reject request bodies larger than ``max_body_size`` bytes with 413: at once when the
+    ``Content-Length`` says so, and while reading when a body sent without one (chunked) passes
+    the limit.  Pure ASGI, so streaming responses pass through untouched.
+    """
+
+    def __init__(self, app, max_body_size: Optional[int] = None):
+        self.app = app
+        self.max_body_size = max_body_size or max_request_bytes()
+
+    def _too_large(self):
+        return JSONResponse({'error': f'Request body too large. Maximum: {self.max_body_size} bytes'},
+                            status_code=413)
+
+    async def __call__(self, scope, receive, send):
+        if scope['type'] != 'http':
+            return await self.app(scope, receive, send)
+        limit = self.max_body_size
+        for k, v in scope.get('headers') or []:
+            if k == b'content-length':
+                try:
+                    if int(v) > limit:
+                        return await self._too_large()(scope, receive, send)
+                except ValueError:
+                    return await JSONResponse({'error': 'Invalid Content-Length'}, status_code=400)(
+                        scope, receive, send)
+        seen = 0
+        started = False
+
+        async def limited_receive():
+            nonlocal seen
+            message = await receive()
+            if message['type'] == 'http.request':
+                seen += len(message.get('body', b''))
+                if seen > limit:
+                    raise _BodyTooLarge(limit)
+            return message
+
+        async def tracking_send(message):
+            nonlocal started
+            if message['type'] == 'http.response.start':
+                started = True
+            await send(message)
+
+        try:
+            await self.app(scope, limited_receive, tracking_send)
+        except _BodyTooLarge:
+            if not started:
+                await self._too_large()(scope, receive, send)
+        except Exception as e:  # an app wrapping the body read in its own handler re-raises ours
+            if isinstance(e.__cause__, _BodyTooLarge) or isinstance(e.__context__, _BodyTooLarge):
+                if not started:
+                    await self._too_large()(scope, receive, send)
+                return
+            raise
 
 
 # ═══════════════════════════════════════════════════════════════════

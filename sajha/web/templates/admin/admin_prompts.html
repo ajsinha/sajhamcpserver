@@ -24,7 +24,7 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
             <a href="{{ url_for('prompt_create_page') }}" class="btn btn-primary">
                 <i class="bi bi-plus-circle"></i> Create New Prompt
             </a>
-            <button class="btn btn-success" onclick="refreshPrompts()">
+            <button class="btn btn-success" data-onclick="refreshPrompts()">
                 <i class="bi bi-arrow-clockwise"></i> Refresh All
             </button>
         </div>
@@ -96,15 +96,15 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
                 <table class="table table-hover" id="promptsTable">
                     <thead>
                         <tr>
-                            <th style="cursor: pointer;" onclick="sortTable('name')">
+                            <th style="cursor: pointer;" data-onclick="sortTable('name')">
                                 Name <i class="bi bi-arrow-down-up"></i>
                             </th>
                             <th>Description</th>
-                            <th style="cursor: pointer;" onclick="sortTable('category')">
+                            <th style="cursor: pointer;" data-onclick="sortTable('category')">
                                 Category <i class="bi bi-arrow-down-up"></i>
                             </th>
                             <th>Arguments</th>
-                            <th style="cursor: pointer;" onclick="sortTable('usage')">
+                            <th style="cursor: pointer;" data-onclick="sortTable('usage')">
                                 Usage <i class="bi bi-arrow-down-up"></i>
                             </th>
                             <th>Last Used</th>
@@ -147,7 +147,7 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
                                         <i class="bi bi-pencil"></i>
                                     </a>
                                     <button class="btn btn-sm btn-outline-danger"
-                                            onclick="deletePrompt('{{ prompt['name'] }}')" title="Delete">
+                                            data-onclick="deletePrompt('{{ prompt['name'] }}')" title="Delete">
                                         <i class="bi bi-trash"></i>
                                     </button>
                                 </div>
@@ -272,7 +272,7 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
 
 
 {% block extra_js %}
-<script>
+<script nonce="{{ csp_nonce() }}">
 let promptsData = [];
 let currentPage = 1;
 let rowsPerPage = 10;
@@ -368,7 +368,7 @@ function renderPagination(totalPages) {
     // Previous
     const prevLi = document.createElement('li');
     prevLi.className = `page-item ${currentPage === 1 ? 'disabled' : ''}`;
-    prevLi.innerHTML = `<a class="page-link" href="#" onclick="changePage(${currentPage - 1}); return false;">Previous</a>`;
+    prevLi.innerHTML = `<a class="page-link" href="#" data-onclick="changePage(${currentPage - 1}); return false;">Previous</a>`;
     pagination.appendChild(prevLi);
 
     // Pages
@@ -376,7 +376,7 @@ function renderPagination(totalPages) {
         if (i === 1 || i === totalPages || (i >= currentPage - 2 && i <= currentPage + 2)) {
             const li = document.createElement('li');
             li.className = `page-item ${i === currentPage ? 'active' : ''}`;
-            li.innerHTML = `<a class="page-link" href="#" onclick="changePage(${i}); return false;">${i}</a>`;
+            li.innerHTML = `<a class="page-link" href="#" data-onclick="changePage(${i}); return false;">${i}</a>`;
             pagination.appendChild(li);
         } else if (i === currentPage - 3 || i === currentPage + 3) {
             const li = document.createElement('li');
@@ -389,7 +389,7 @@ function renderPagination(totalPages) {
     // Next
     const nextLi = document.createElement('li');
     nextLi.className = `page-item ${currentPage === totalPages ? 'disabled' : ''}`;
-    nextLi.innerHTML = `<a class="page-link" href="#" onclick="changePage(${currentPage + 1}); return false;">Next</a>`;
+    nextLi.innerHTML = `<a class="page-link" href="#" data-onclick="changePage(${currentPage + 1}); return false;">Next</a>`;
     pagination.appendChild(nextLi);
 }
 

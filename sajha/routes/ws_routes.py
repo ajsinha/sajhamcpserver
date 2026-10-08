@@ -118,6 +118,14 @@ async def mcp_websocket(ws: WebSocket):
     from sajha.policy.context import set_source
     set_source('websocket')      # policy rules can match sources: [websocket]; this connection's context only
 
+    # The /mcp Origin allow-list (DNS rebinding, cross-site socket hijacking): a browser page from
+    # another origin may not open the socket (mcp.allowed_origins; loopback and no Origin pass)
+    from sajha.core.mcp_2025_11_25 import validate_origin
+    if not validate_origin(ws.headers.get('origin')):
+        logger.warning(f"WebSocket refused: Origin {ws.headers.get('origin')!r} not allowed")
+        await ws.close(code=1008, reason='Origin not allowed')
+        return
+
     await ws.accept()
     session_id = str(uuid.uuid4())
     session = WSSession(ws, session_id)

@@ -84,6 +84,7 @@ class Shared:
     peer_cache: PeerCacheSettings = field(default_factory=PeerCacheSettings)
     max_injections_per_minute: int = 6
     agent_lease_seconds: float = 15
+    plugin_modules: List[str] = field(default_factory=list)     # sajhanet.plugins.modules (third-party plug-ins)
 
 
 def shared() -> Shared:
@@ -104,6 +105,12 @@ def shared() -> Shared:
     s.data_dir = str(_g('data_dir', 'data/sajhanet'))
     s.max_injections_per_minute = int(_num(_g('max_injections_per_minute', 6), 6))
     s.agent_lease_seconds = max(3.0, _num(_g('agent_lease_seconds', 15), 15))
+    mods = _g('plugins.modules', None)
+    if mods is None:
+        mods = (raw.get('plugins') or {}).get('modules') if isinstance(raw.get('plugins'), dict) else None
+    if isinstance(mods, str):
+        mods = [m.strip() for m in mods.strip('[]').split(',')]
+    s.plugin_modules = [str(m).strip().strip('\'"') for m in mods or [] if str(m).strip().strip('\'"')]
     g = GossipSettings()
     for k in GOSSIP_KEYS:
         setattr(g, k, type(getattr(g, k))(_num(_g('gossip.' + k, getattr(g, k)), getattr(g, k))))

@@ -170,7 +170,7 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
         </div>
         <div class="card-body">
             <pre class="border rounded p-3" style="background-color: var(--sajha-canvas); color: var(--sajha-ink); max-height: 400px; overflow-y: auto; font-family: 'Courier New', monospace;"><code>{{ schema_json }}</code></pre>
-            <button class="btn btn-sm btn-outline-primary mt-2" onclick="copyToClipboard('schema')">
+            <button class="btn btn-sm btn-outline-primary mt-2" data-onclick="copyToClipboard('schema')">
                 <i class="bi bi-clipboard"></i> Copy to Clipboard
             </button>
         </div>
@@ -184,7 +184,7 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
         <div class="card-body">
             {% if config_json %}
                 <pre class="border rounded p-3" style="background-color: var(--sajha-canvas); color: var(--sajha-ink); max-height: 400px; overflow-y: auto; font-family: 'Courier New', monospace;"><code>{{ config_json }}</code></pre>
-                <button class="btn btn-sm btn-outline-primary mt-2" onclick="copyToClipboard('config')">
+                <button class="btn btn-sm btn-outline-primary mt-2" data-onclick="copyToClipboard('config')">
                     <i class="bi bi-clipboard"></i> Copy to Clipboard
                 </button>
             {% elif not is_admin %}
@@ -213,10 +213,10 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
                           style="font-family: 'Courier New', monospace; font-size: 0.9em;">{{ literature_content }}</textarea>
             </div>
             <div class="d-flex gap-2">
-                <button class="btn btn-primary" onclick="saveLiterature()">
+                <button class="btn btn-primary" data-onclick="saveLiterature()">
                     <i class="bi bi-save"></i> Save Literature
                 </button>
-                <button class="btn btn-outline-secondary" onclick="copyToClipboard('literature')">
+                <button class="btn btn-outline-secondary" data-onclick="copyToClipboard('literature')">
                     <i class="bi bi-clipboard"></i> Copy to Clipboard
                 </button>
             </div>
@@ -251,7 +251,7 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
 
 
 {% block extra_js %}
-<script>
+<script nonce="{{ csp_nonce() }}">
 function copyToClipboard(type) {
     let textToCopy;
 

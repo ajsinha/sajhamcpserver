@@ -86,7 +86,8 @@ class NetConfig:
     admission: str = 'builtin_ca'            # builtin_ca | manual | package.module:Class
     membership: str = 'gossip'               # gossip | static | package.module:Class
     gossip: GossipSettings = field(default_factory=GossipSettings)
-    kind: str = 'sajha'
+    kind: str = 'sajha'                      # sajha | agent | sponsored (design §5.1)
+    sponsor: str = ''                        # kind sponsored: the instance that represents it (protocol §9.1)
     user_identity: List[str] = field(default_factory=lambda: ['none'])
     max_injections_per_minute: int = 6
 
@@ -111,6 +112,8 @@ def member_record(cfg: NetConfig, name: str, incarnation: int, seq: int, revocat
                     'revocations': int(revocations)},
         'leaving': bool(leaving), 'issued_at': rfc3339(now),
     }
+    if cfg.sponsor:
+        rec['sponsor'] = cfg.sponsor
     if cfg.region:
         rec['region'] = cfg.region[:64]
     if cfg.labels:

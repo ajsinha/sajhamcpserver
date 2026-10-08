@@ -73,7 +73,7 @@ Design: docs/architecture/Connected Accounts.md
         {% endif %}
         {% if c %}
         <form method="post" action="/account/connections/{{ p.id }}/disconnect" class="d-inline"
-              onsubmit="return confirm('Disconnect {{ p.title }}? SAJHA revokes the token where {{ p.title }} allows it and forgets it.');">
+              data-onsubmit="return confirm('Disconnect {{ p.title }}? SAJHA revokes the token where {{ p.title }} allows it and forgets it.');">
           <input type="hidden" name="csrf" value="{{ csrf }}">
           <button type="submit" class="btn btn-sm btn-outline-danger"><i class="bi bi-x-circle me-1" aria-hidden="true"></i>Disconnect</button>
         </form>
@@ -99,7 +99,7 @@ Design: docs/architecture/Connected Accounts.md
 {% endblock %}
 
 {% block extra_js %}
-<script>
+<script nonce="{{ csp_nonce() }}">
   (function () {   // bring the provider a tool asked for into view
     var el = document.querySelector('.acct-wanted');
     if (el) { el.scrollIntoView({ block: 'center' }); var b = el.querySelector('button.btn-primary'); if (b) b.focus(); }

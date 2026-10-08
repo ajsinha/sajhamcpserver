@@ -26,7 +26,7 @@
             <small class="text-muted">Background tool executions with result delivery</small>
         </div>
         <div>
-            <select id="statusFilter" class="form-select form-select-sm d-inline-block" style="width:auto" onchange="loadTasks()">
+            <select id="statusFilter" class="form-select form-select-sm d-inline-block" style="width:auto" data-onchange="loadTasks()">
                 <option value="">All Status</option>
                 <option value="queued">Queued</option>
                 <option value="running">Running</option>
@@ -41,7 +41,7 @@
                 <option value="10">10s</option>
                 <option value="30">30s</option>
             </select>
-            <button class="btn btn-sm btn-outline-primary ms-1" onclick="loadTasks()"><i class="bi bi-arrow-clockwise"></i></button>
+            <button class="btn btn-sm btn-outline-primary ms-1" data-onclick="loadTasks()"><i class="bi bi-arrow-clockwise"></i></button>
         </div>
     </div>
 
@@ -91,7 +91,7 @@
     <div id="detailPanel" class="detail-panel">
         <div class="d-flex justify-content-between mb-2">
             <strong id="detailTitle">Task Detail</strong>
-            <button class="btn btn-sm btn-outline-secondary" onclick="document.getElementById('detailPanel').style.display='none'"><i class="bi bi-x"></i></button>
+            <button class="btn btn-sm btn-outline-secondary" data-onclick="sajhaDisplay('detailPanel', 'none')"><i class="bi bi-x"></i></button>
         </div>
         <div class="row g-3">
             <div class="col-md-6"><strong>Arguments:</strong><pre id="detailArgs">{}</pre></div>
@@ -101,7 +101,7 @@
 </div>
 {% endblock %}
 {% block extra_js %}
-<script>
+<script nonce="{{ csp_nonce() }}">
 var refreshTimer = null;
 
 function loadTasks() {
@@ -131,9 +131,9 @@ function loadTasks() {
             var time = t.created_at ? new Date(t.created_at * 1000).toLocaleTimeString() : '—';
             var dest = (t.delivery_destination || '').length > 30 ? t.delivery_destination.substring(0,30)+'...' : t.delivery_destination;
             var actions = '';
-            if (t.status === 'queued') actions = '<button class="btn btn-sm btn-outline-warning" onclick="cancelTask(\''+t.task_id+'\')"><i class="bi bi-x-circle"></i></button>';
-            else if (t.status === 'failed' || t.status === 'cancelled') actions = '<button class="btn btn-sm btn-outline-primary" onclick="retryTask(\''+t.task_id+'\')"><i class="bi bi-arrow-repeat"></i></button>';
-            else if (t.status === 'completed' || t.status === 'delivered') actions = '<button class="btn btn-sm btn-outline-info" onclick="viewTask(\''+t.task_id+'\')"><i class="bi bi-eye"></i></button>';
+            if (t.status === 'queued') actions = '<button class="btn btn-sm btn-outline-warning" data-onclick="cancelTask(\''+t.task_id+'\')"><i class="bi bi-x-circle"></i></button>';
+            else if (t.status === 'failed' || t.status === 'cancelled') actions = '<button class="btn btn-sm btn-outline-primary" data-onclick="retryTask(\''+t.task_id+'\')"><i class="bi bi-arrow-repeat"></i></button>';
+            else if (t.status === 'completed' || t.status === 'delivered') actions = '<button class="btn btn-sm btn-outline-info" data-onclick="viewTask(\''+t.task_id+'\')"><i class="bi bi-eye"></i></button>';
             html += '<tr>';
             html += '<td><code class="small">'+t.task_id+'</code></td>';
             html += '<td><strong>'+t.tool_name+'</strong></td>';

@@ -29,7 +29,7 @@
         · last seen {{ i.last_seen or '—' }}{% if i.note %} · {{ i.note }}{% endif %}</div>
     </div>
   </div>
-  <form class="mb-2" role="search" onsubmit="return false" aria-label="Filter tools">
+  <form class="mb-2" role="search" data-onsubmit="return false" aria-label="Filter tools">
     <label class="form-label small" for="nt-q">Search the tools</label>
     <input class="form-control form-control-sm" id="nt-q" placeholder="name or description" autocomplete="off">
   </form>
@@ -63,7 +63,7 @@
   <p class="nt-meta">{% if i.self %}You may use none of this server's tools.{% else %}{{ i.name }} offers you no tools through this server now.{% endif %}</p>
   {% endfor %}
 </div>
-<script>
+<script nonce="{{ csp_nonce() }}">
 (function(){
   const q = document.getElementById('nt-q');
   q.addEventListener('input', () => {

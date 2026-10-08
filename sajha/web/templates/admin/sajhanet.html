@@ -79,7 +79,7 @@
         </tbody>
       </table>
       </div>
-      <form class="row g-2 mt-2 align-items-end" onsubmit="return addPeer(event, '{{ n.net }}', this)">
+      <form class="row g-2 mt-2 align-items-end" data-onsubmit="return addPeer(event, '{{ n.net }}', this)">
         <div class="col-md-6"><label class="form-label small" for="addr-{{ loop.index }}">Add a peer by address</label>
           <input class="form-control form-control-sm" id="addr-{{ loop.index }}" name="address" placeholder="10.20.4.17:3002 or https://sajha-peer.example.internal" autocomplete="off"></div>
         <div class="col-auto"><label class="small"><input type="checkbox" name="keep"> Keep as a runtime seed</label></div>
@@ -109,7 +109,7 @@
           <tbody class="sn-blocks"><tr><td colspan="5" class="sn-meta">Loading blocks…</td></tr></tbody>
         </table>
         </div>
-        <form class="row g-2 mt-2 align-items-end" onsubmit="return addBlock(event, '{{ n.net }}', this)">
+        <form class="row g-2 mt-2 align-items-end" data-onsubmit="return addBlock(event, '{{ n.net }}', this)">
           <div class="col-6 col-md-2"><label class="form-label small" for="lv-{{ loop.index }}">Block</label>
             <select class="form-select form-select-sm" id="lv-{{ loop.index }}" name="level">
               <option value="instance">instance, entirely</option><option value="inbound">inbound</option>
@@ -128,7 +128,7 @@
         </form>
         <p class="sn-meta mt-2 mb-1">Remote users: <span class="sn-users">loading…</span></p>
         <p class="sn-meta mb-0">Key directory: <span class="sn-keys">loading…</span>
-          <button class="btn btn-link btn-sm p-0 ms-1" type="button" onclick="resyncKeys('{{ n.net }}', this)">re-sync</button></p>
+          <button class="btn btn-link btn-sm p-0 ms-1" type="button" data-onclick="resyncKeys('{{ n.net }}', this)">re-sync</button></p>
       </div>
       {% endif %}
     </div>
@@ -137,7 +137,7 @@
   {% if status.enabled %}<p class="text-muted">No nets are configured (<code>sajhanet.nets</code>).</p>{% endif %}
   {% endfor %}
 </div>
-<script>
+<script nonce="{{ csp_nonce() }}">
 function addPeer(ev, net, form){
   ev.preventDefault();
   const out = form.querySelector('[role=status]');

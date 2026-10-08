@@ -78,7 +78,7 @@ Guide: docs/studio/MCP Studio LLM Tool Creator Guide.md; design: docs/architectu
                 </div>
             </details>
 
-            <form id="ltForm" novalidate onsubmit="return false">
+            <form id="ltForm" novalidate data-onsubmit="return false">
             <!-- 1. Basics -->
             <div class="form-section">
                 <div class="section-header"><i class="bi bi-card-text" aria-hidden="true"></i>1. The tool</div>
@@ -422,7 +422,7 @@ Guide: docs/studio/MCP Studio LLM Tool Creator Guide.md; design: docs/architectu
 {% endblock %}
 
 {% block extra_js %}
-<script>
+<script nonce="{{ csp_nonce() }}">
 (function () {
     'use strict';
     const D = JSON.parse(document.getElementById('ltData').textContent);

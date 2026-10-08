@@ -118,7 +118,7 @@ class IMFBaseTool(BaseMCPTool):
             }
             
             req = urllib.request.Request(url, headers=headers)
-            with urllib.request.urlopen(req) as response:
+            with urllib.request.urlopen(req, timeout=30) as response:
                 data = safe_json_response(response, ENCODINGS_ALL)
                 
                 compact_data = data.get('CompactData', {})
@@ -273,7 +273,7 @@ class IMFGetDataflowsTool(IMFBaseTool):
             }
             
             req = urllib.request.Request(url, headers=headers)
-            with urllib.request.urlopen(req) as response:
+            with urllib.request.urlopen(req, timeout=30) as response:
                 data = safe_json_response(response, ENCODINGS_ALL)
                 
                 structure = data.get('Structure', {})

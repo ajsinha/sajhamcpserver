@@ -351,7 +351,7 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
                     
                     <div class="mb-2 d-flex justify-content-between align-items-center">
                         <label class="form-label fw-bold mb-0">Script Code *</label>
-                        <button type="button" class="btn btn-sm btn-outline-secondary" onclick="clearScript()">
+                        <button type="button" class="btn btn-sm btn-outline-secondary" data-onclick="clearScript()">
                             <i class="bi bi-trash me-1"></i>Clear
                         </button>
                     </div>
@@ -403,7 +403,7 @@ echo &quot;Hello from SAJHA MCP Server!&quot;
                             <div id="envVarsContainer">
                                 <!-- Environment variable rows will be added here -->
                             </div>
-                            <button type="button" class="btn btn-sm btn-outline-primary" onclick="addEnvVar()">
+                            <button type="button" class="btn btn-sm btn-outline-primary" data-onclick="addEnvVar()">
                                 <i class="bi bi-plus me-1"></i>Add Environment Variable
                             </button>
                         </div>
@@ -442,10 +442,10 @@ echo &quot;Hello from SAJHA MCP Server!&quot;
             
             <!-- Action Buttons -->
             <div class="d-flex gap-3 mb-4">
-                <button type="button" class="btn btn-primary btn-action" onclick="previewTool()">
+                <button type="button" class="btn btn-primary btn-action" data-onclick="previewTool()">
                     <i class="bi bi-eye me-2"></i>Preview Tool
                 </button>
-                <button type="button" class="btn btn-success btn-action" onclick="deployTool()">
+                <button type="button" class="btn btn-success btn-action" data-onclick="deployTool()">
                     <i class="bi bi-rocket me-2"></i>Deploy Tool
                 </button>
             </div>
@@ -457,7 +457,7 @@ echo &quot;Hello from SAJHA MCP Server!&quot;
             <div class="preview-panel mb-4">
                 <div class="preview-header">
                     <h6><i class="bi bi-code-square me-2"></i>Generated Config Preview</h6>
-                    <button class="btn btn-sm btn-outline-light" onclick="copyPreview('jsonPreview')">
+                    <button class="btn btn-sm btn-outline-light" data-onclick="copyPreview('jsonPreview')">
                         <i class="bi bi-clipboard"></i>
                     </button>
                 </div>
@@ -469,7 +469,7 @@ echo &quot;Hello from SAJHA MCP Server!&quot;
             <div class="preview-panel mb-4">
                 <div class="preview-header">
                     <h6><i class="bi bi-filetype-py me-2"></i>Generated Python Wrapper</h6>
-                    <button class="btn btn-sm btn-outline-light" onclick="copyPreview('pythonPreview')">
+                    <button class="btn btn-sm btn-outline-light" data-onclick="copyPreview('pythonPreview')">
                         <i class="bi bi-clipboard"></i>
                     </button>
                 </div>
@@ -486,22 +486,22 @@ echo &quot;Hello from SAJHA MCP Server!&quot;
                     <i class="bi bi-lightning me-2"></i>Quick Examples
                 </div>
                 <div class="card-body">
-                    <div class="example-card" onclick="loadExample('system_info')">
+                    <div class="example-card" data-onclick="loadExample('system_info')">
                         <h6><i class="bi bi-pc-display me-2"></i>System Information</h6>
                         <p>Bash script to collect system information (CPU, memory, disk)</p>
                         <span class="badge bg-secondary">Bash</span>
                     </div>
-                    <div class="example-card" onclick="loadExample('file_search')">
+                    <div class="example-card" data-onclick="loadExample('file_search')">
                         <h6><i class="bi bi-search me-2"></i>File Search</h6>
                         <p>Search for files by pattern in a directory</p>
                         <span class="badge bg-secondary">Bash</span>
                     </div>
-                    <div class="example-card" onclick="loadExample('json_processor')">
+                    <div class="example-card" data-onclick="loadExample('json_processor')">
                         <h6><i class="bi bi-braces me-2"></i>JSON Processor</h6>
                         <p>Python script to process and transform JSON data</p>
                         <span class="badge bg-info">Python</span>
                     </div>
-                    <div class="example-card" onclick="loadExample('log_analyzer')">
+                    <div class="example-card" data-onclick="loadExample('log_analyzer')">
                         <h6><i class="bi bi-file-text me-2"></i>Log Analyzer</h6>
                         <p>Analyze log files and extract patterns</p>
                         <span class="badge bg-info">Python</span>
@@ -514,7 +514,7 @@ echo &quot;Hello from SAJHA MCP Server!&quot;
 {% endblock %}
 
 {% block extra_js %}
-<script>
+<script nonce="{{ csp_nonce() }}">
     // Tags management
     const tagContainer = document.getElementById('tagContainer');
     const tagInput = document.getElementById('tagInput');
@@ -544,7 +544,7 @@ echo &quot;Hello from SAJHA MCP Server!&quot;
         const tagsHtml = tags.map(tag => `
             <span class="tag">
                 ${tag}
-                <span class="remove-tag" onclick="removeTag('${tag}')">&times;</span>
+                <span class="remove-tag" data-onclick="removeTag('${tag}')">&times;</span>
             </span>
         `).join('');
         tagContainer.innerHTML = tagsHtml + `<input type="text" class="tag-input" id="tagInput" placeholder="Type and press Enter...">`;
@@ -633,7 +633,7 @@ echo &quot;Hello from SAJHA MCP Server!&quot;
         row.innerHTML = `
             <input type="text" class="form-control" placeholder="Variable name" style="flex: 1;">
             <input type="text" class="form-control" placeholder="Value" style="flex: 2;">
-            <button type="button" class="btn btn-outline-danger btn-sm" onclick="this.parentElement.remove()">
+            <button type="button" class="btn btn-outline-danger btn-sm" data-onclick="sajhaRemoveParent(this)">
                 <i class="bi bi-trash"></i>
             </button>
         `;

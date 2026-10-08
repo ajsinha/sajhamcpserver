@@ -143,5 +143,5 @@ Design: docs/architecture/Tool Quality.md, section 5
     </div>
   </div>
 </div>
-{% if running %}<script>setTimeout(function () { location.reload(); }, 3000);</script>{% endif %}
+{% if running %}<script nonce="{{ csp_nonce() }}">setTimeout(function () { location.reload(); }, 3000);</script>{% endif %}
 {% endblock %}

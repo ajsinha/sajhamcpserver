@@ -183,6 +183,6 @@ Design: docs/architecture/Workflows.md
 {% endblock %}
 
 {% block extra_js %}
-<script>window.WF_TOOLS = {{ tool_names | tojson }}; window.WF_IS_ADMIN = {{ 'true' if is_admin else 'false' }};</script>
+<script nonce="{{ csp_nonce() }}">window.WF_TOOLS = {{ tool_names | tojson }}; window.WF_IS_ADMIN = {{ 'true' if is_admin else 'false' }};</script>
 <script src="/static/js/workflows.js"></script>
 {% endblock %}

@@ -24,6 +24,7 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
     <link href="{{ url_for('static', filename='css/notices.css') }}?v={{ app_version }}" rel="stylesheet">
     
     {% block extra_css %}{% endblock %}
+    <script src="{{ url_for('static', filename='js/csp-actions.js') }}?v={{ app_version }}"></script>
 </head>
 <body class="sajha-app">
     <!-- #6 Skip-to-content link (A11y) -->
@@ -72,7 +73,7 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
     {% include "common/_theme_script.html" %}
 
     <!-- UX Scripts -->
-    <script>
+    <script nonce="{{ csp_nonce() }}">
         document.addEventListener('DOMContentLoaded', function() {
             // #1 Active location: the mega item whose link best matches the path, and its menu
             var path = window.location.pathname, best = null, bestLen = 0;

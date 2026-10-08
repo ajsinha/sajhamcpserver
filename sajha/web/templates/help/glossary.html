@@ -44,7 +44,7 @@
 {% endblock %}
 
 {% block extra_js %}
-<script>
+<script nonce="{{ csp_nonce() }}">
 (function () {
     var q = document.getElementById('glq');
     var terms = Array.prototype.slice.call(document.querySelectorAll('.gl-term'));

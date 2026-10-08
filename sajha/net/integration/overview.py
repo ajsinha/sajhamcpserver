@@ -196,7 +196,13 @@ def overview_view(net: Optional[str] = None, records: Optional[List[Dict[str, An
         'name': name, 'edges': [],
         'nodes': [{'name': out['instance'], 'kind': cfg.kind, 'region': cfg.region, 'state': 'alive', 'self': True}] +
                  [{'name': m['name'], 'kind': m.get('kind') or 'sajha', 'region': m.get('region') or '',
-                   'state': m['state'], 'self': False} for m in members]}
+                   'sponsor': m.get('sponsor') or '', 'state': m['state'], 'self': False} for m in members]}
+    # plain MCP servers this server sponsors into the net (design §5.1)
+    try:
+        sp = getattr(svc, 'sponsorships', None)
+        out['sponsored'] = [r for r in (sp.view() if sp is not None else []) if r.get('net') == name]
+    except Exception:
+        out['sponsored'] = []
     # notices of this net (open and acknowledged)
     try:
         from sajha import notices

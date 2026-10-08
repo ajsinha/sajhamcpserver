@@ -29,12 +29,12 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
     <div class="card mb-4">
         <div class="card-body">
             <div class="btn-group w-100" role="group">
-                <input type="radio" class="btn-check" name="createMode" id="formMode" checked autocomplete="off" onclick="switchMode('form')">
+                <input type="radio" class="btn-check" name="createMode" id="formMode" checked autocomplete="off" data-onclick="switchMode('form')">
                 <label class="btn btn-outline-primary" for="formMode">
                     <i class="bi bi-ui-checks"></i> Form Mode
                 </label>
 
-                <input type="radio" class="btn-check" name="createMode" id="jsonMode" autocomplete="off" onclick="switchMode('json')">
+                <input type="radio" class="btn-check" name="createMode" id="jsonMode" autocomplete="off" data-onclick="switchMode('json')">
                 <label class="btn btn-outline-primary" for="jsonMode">
                     <i class="bi bi-code-square"></i> JSON Mode
                 </label>
@@ -131,7 +131,7 @@ Provide feedback on:
                     <div class="card mb-4">
                         <div class="card-header card-header-info d-flex justify-content-between align-items-center">
                             <h5 class="mb-0"><i class="bi bi-list-check"></i> Arguments</h5>
-                            <button type="button" class="btn btn-sm btn-light" onclick="addArgument()">
+                            <button type="button" class="btn btn-sm btn-light" data-onclick="addArgument()">
                                 <i class="bi bi-plus"></i> Add Argument
                             </button>
                         </div>
@@ -155,10 +155,10 @@ Provide feedback on:
                                 <button type="submit" class="btn btn-primary btn-lg">
                                     <i class="bi bi-save"></i> Create Prompt
                                 </button>
-                                <button type="button" class="btn btn-outline-info" onclick="previewPrompt()">
+                                <button type="button" class="btn btn-outline-info" data-onclick="previewPrompt()">
                                     <i class="bi bi-eye"></i> Preview JSON
                                 </button>
-                                <button type="button" class="btn btn-outline-secondary" onclick="resetForm()">
+                                <button type="button" class="btn btn-outline-secondary" data-onclick="resetForm()">
                                     <i class="bi bi-arrow-counterclockwise"></i> Reset Form
                                 </button>
                             </div>
@@ -216,13 +216,13 @@ Provide feedback on:
   }
 }'></textarea>
                 <div class="mt-3">
-                    <button class="btn btn-primary" onclick="createFromJson()">
+                    <button class="btn btn-primary" data-onclick="createFromJson()">
                         <i class="bi bi-save"></i> Create from JSON
                     </button>
-                    <button class="btn btn-info" onclick="validateJsonInput()">
+                    <button class="btn btn-info" data-onclick="validateJsonInput()">
                         <i class="bi bi-check-circle"></i> Validate JSON
                     </button>
-                    <button class="btn btn-secondary" onclick="loadTemplate()">
+                    <button class="btn btn-secondary" data-onclick="loadTemplate()">
                         <i class="bi bi-file-earmark"></i> Load Template
                     </button>
                 </div>
@@ -234,7 +234,7 @@ Provide feedback on:
 
 <!-- Preview Section (replaced modal) -->
 <div id="previewSection" class="card mt-3 d-none">
-    <div class="card-header card-header-info d-flex justify-content-between"><span><i class="bi bi-eye me-2"></i>Prompt Preview (JSON)</span><button class="btn btn-sm btn-outline-light" onclick="this.closest('.card').classList.add('d-none')">Close</button></div>
+    <div class="card-header card-header-info d-flex justify-content-between"><span><i class="bi bi-eye me-2"></i>Prompt Preview (JSON)</span><button class="btn btn-sm btn-outline-light" data-onclick="sajhaHideClosest(this, '.card')">Close</button></div>
     <div class="card-body"><pre id="previewContent" class="bg-dark text-light p-3 rounded" style="max-height:400px;overflow:auto"></pre></div>
 </div>
 
@@ -242,7 +242,7 @@ Provide feedback on:
 
 
 {% block extra_js %}
-<script>
+<script nonce="{{ csp_nonce() }}">
 let argumentCount = 0;
 let currentMode = 'form';
 
@@ -278,7 +278,7 @@ function addArgument() {
         <div class="card-body">
             <div class="d-flex justify-content-between mb-2">
                 <h6 class="mb-0">Argument #${argumentCount}</h6>
-                <button type="button" class="btn btn-sm btn-danger" onclick="removeArgument(${argumentCount})">
+                <button type="button" class="btn btn-sm btn-danger" data-onclick="removeArgument(${argumentCount})">
                     <i class="bi bi-trash"></i>
                 </button>
             </div>

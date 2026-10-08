@@ -25,10 +25,10 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
                 <i class="bi bi-play-circle"></i> Test Prompt
             </a>
             {% if user and user.roles and 'admin' in user.roles %}
-            <button class="btn btn-warning" onclick="toggleEditMode()">
+            <button class="btn btn-warning" data-onclick="toggleEditMode()">
                 <i class="bi bi-pencil"></i> <span id="editButtonText">Edit</span>
             </button>
-            <button class="btn btn-danger" onclick="deletePrompt()">
+            <button class="btn btn-danger" data-onclick="deletePrompt()">
                 <i class="bi bi-trash"></i> Delete
             </button>
             {% endif %}
@@ -155,13 +155,13 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
                         </div>
                         <textarea id="promptJson" class="form-control font-monospace bg-dark text-light" rows="25" style="border: 1px solid var(--sajha-border);">{{ prompt_json }}</textarea>
                         <div class="mt-3">
-                            <button class="btn btn-primary" onclick="savePrompt()">
+                            <button class="btn btn-primary" data-onclick="savePrompt()">
                                 <i class="bi bi-save"></i> Save Changes
                             </button>
-                            <button class="btn btn-secondary" onclick="cancelEdit()">
+                            <button class="btn btn-secondary" data-onclick="cancelEdit()">
                                 <i class="bi bi-x-circle"></i> Cancel
                             </button>
-                            <button class="btn btn-info" onclick="validateJson()">
+                            <button class="btn btn-info" data-onclick="validateJson()">
                                 <i class="bi bi-check-circle"></i> Validate JSON
                             </button>
                         </div>
@@ -206,7 +206,7 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
                 </div>
                 <div class="card-body">
                     <pre class="bg-dark text-light p-2 rounded" style="max-height: 400px; overflow-y: auto; font-size: 0.75rem;"><code>{{ prompt_json }}</code></pre>
-                    <button class="btn btn-sm btn-outline-secondary w-100" onclick="copyJson()">
+                    <button class="btn btn-sm btn-outline-secondary w-100" data-onclick="copyJson()">
                         <i class="bi bi-clipboard"></i> Copy JSON
                     </button>
                 </div>
@@ -227,7 +227,7 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
                            class="btn btn-outline-secondary">
                             <i class="bi bi-folder"></i> View Category
                         </a>
-                        <button class="btn btn-outline-info" onclick="downloadJson()">
+                        <button class="btn btn-outline-info" data-onclick="downloadJson()">
                             <i class="bi bi-download"></i> Download JSON
                         </button>
                     </div>
@@ -241,7 +241,7 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
 
 
 {% block extra_js %}
-<script>
+<script nonce="{{ csp_nonce() }}">
 let editMode = false;
 const promptName = "{{ prompt.name }}";
 const originalJson = {{ prompt_json|tojson }};

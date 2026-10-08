@@ -86,7 +86,7 @@ Design: docs/architecture/LLM Tools.md section 10; endpoints: docs/protocol/API 
 {% endblock %}
 
 {% block extra_js %}
-<script>
+<script nonce="{{ csp_nonce() }}">
 (function () {
   'use strict';
   var D = JSON.parse(document.getElementById('cvData').textContent);

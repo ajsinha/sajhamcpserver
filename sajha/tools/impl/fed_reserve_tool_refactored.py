@@ -88,7 +88,7 @@ class FedReserveBaseTool(BaseMCPTool):
         url = f"{self.api_url}/series/observations?{urllib.parse.urlencode(params)}"
         
         try:
-            with urllib.request.urlopen(url) as response:
+            with urllib.request.urlopen(url, timeout=30) as response:
                 data = safe_json_response(response, ENCODINGS_DEFAULT)
                 
                 observations = data.get('observations', [])
@@ -103,7 +103,7 @@ class FedReserveBaseTool(BaseMCPTool):
                 
                 # Get series info
                 info_url = f"{self.api_url}/series?series_id={series_id}&api_key={self.api_key}&file_type=json"
-                with urllib.request.urlopen(info_url) as info_response:
+                with urllib.request.urlopen(info_url, timeout=30) as info_response:
                     info_data = safe_json_response(info_response, ENCODINGS_DEFAULT)
                     series_info = info_data.get('seriess', [{}])[0]
                 
@@ -492,7 +492,7 @@ class FedSearchSeriesTool(FedReserveBaseTool):
         url = f"{self.api_url}/series/search?{urllib.parse.urlencode(params)}"
         
         try:
-            with urllib.request.urlopen(url) as response:
+            with urllib.request.urlopen(url, timeout=30) as response:
                 data = safe_json_response(response, ENCODINGS_DEFAULT)
                 
                 series = data.get('seriess', [])

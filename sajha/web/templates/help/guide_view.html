@@ -28,7 +28,7 @@
             <summary class="head">Contents</summary>
             <nav aria-label="Contents">{{ toc_list(toc) }}</nav>
         </details>
-        <script>
+        <script nonce="{{ csp_nonce() }}">
             (function () {
                 var toc = document.getElementById('guide-toc');
                 if (window.matchMedia && window.matchMedia('(max-width: 991.98px)').matches) toc.open = false;

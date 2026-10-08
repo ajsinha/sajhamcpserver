@@ -30,7 +30,7 @@
   </div>
   {% endif %}
 
-  <form class="obs-filters card mb-3" id="obsFilters" onsubmit="return false">
+  <form class="obs-filters card mb-3" id="obsFilters" data-onsubmit="return false">
     <div class="card-body py-2">
       <div class="row g-2 align-items-end">
         <div class="col-6 col-md-2"><label class="form-label" for="fSince">From (UTC)</label>
@@ -108,7 +108,7 @@
 
 {% block extra_js %}
 <script src="{{ url_for('static', filename='vendor/chartjs/chart.umd.js') }}"></script>
-<script>
+<script nonce="{{ csp_nonce() }}">
 (function () {
   'use strict';
   var IS_ADMIN = {{ 'true' if is_admin else 'false' }};

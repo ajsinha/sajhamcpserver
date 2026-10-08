@@ -216,6 +216,8 @@ INTERFACES: Dict[str, Type[Plugin]] = {c.kind: c for c in (
 
 _REGISTRY: Dict[str, Dict[str, Type[Plugin]]] = {k: {} for k in INTERFACES}
 _entry_points_loaded = False
+#: third-party plug-ins that failed to load or to pass their contract check: {source, kind, name, error}
+LOAD_ERRORS: List[Dict[str, str]] = []
 
 
 def register(kind: str, name: Optional[str] = None):
@@ -250,8 +252,78 @@ def _load_entry_points() -> None:
                 register(kind, getattr(cls, 'name', '') or nm or ep.name)(cls)
             except Exception as e:
                 logger.warning(f'SAJHA Net plug-in entry point {ep.name}: {e}')
+                _record_error(f'entry point {ep.name}', ep.name.partition('.')[0], ep.name, str(e))
     except Exception as e:                      # pragma: no cover
         logger.debug(f'SAJHA Net plug-in entry points: {e}')
+
+
+def _record_error(source: str, kind: str, name: str, error: str) -> None:
+    item = {'source': source, 'kind': kind, 'name': name, 'error': error[:500]}
+    if item not in LOAD_ERRORS:
+        LOAD_ERRORS.append(item)
+
+
+def _snapshot() -> Dict[str, Dict[str, Type[Plugin]]]:
+    return {k: dict(v) for k, v in _REGISTRY.items()}
+
+
+def _new_since(before: Dict[str, Dict[str, Type[Plugin]]]) -> List[tuple]:
+    return [(k, n) for k, v in _REGISTRY.items() for n, c in v.items() if before.get(k, {}).get(n) is not c]
+
+
+def _check_new(before, source: str) -> List[Dict[str, str]]:
+    """Run the contract check of every plug-in registered since ``before``; one that fails is
+    unregistered (it cannot be selected) and reported."""
+    from sajha.net import contract
+    out = []
+    for kind, name in _new_since(before):
+        try:
+            contract.check(kind, lambda k=kind, n=name: create(k, n))
+            out.append({'source': source, 'kind': kind, 'name': name, 'error': ''})
+        except Exception as e:
+            _REGISTRY[kind].pop(name, None)
+            if before.get(kind, {}).get(name) is not None:
+                _REGISTRY[kind][name] = before[kind][name]
+            msg = f'fails its contract check: {e}' if isinstance(e, AssertionError) else f'cannot be built: {e}'
+            logger.warning(f'SAJHA Net plug-in {kind}.{name} from {source} {msg}; it is not available')
+            _record_error(source, kind, name, msg)
+            out.append({'source': source, 'kind': kind, 'name': name, 'error': msg})
+    return out
+
+
+def load_plugins(modules: Optional[List[str]] = None) -> List[Dict[str, str]]:
+    """Load third-party plug-ins at start (design §5.3): the entry-point group ``sajha.net.plugins``
+    and every module in ``modules`` (``sajhanet.plugins.modules``; a module registers its classes
+    with :func:`register` when imported). Each new plug-in must pass its contract check. Returns one
+    row per plug-in found or module that failed (``error`` empty when it loaded); failures are also
+    kept in :data:`LOAD_ERRORS`."""
+    out: List[Dict[str, str]] = []
+    before = _snapshot()
+    _load_entry_points()
+    out += _check_new(before, 'entry points')
+    out += [dict(e) for e in LOAD_ERRORS if e['source'].startswith('entry point ')]
+    for mod in modules or []:
+        mod = str(mod).strip()
+        if not mod:
+            continue
+        before = _snapshot()
+        import sys
+        if mod in sys.modules:                       # loaded before (a second start): nothing new to check
+            out.append({'source': f'module {mod}', 'kind': '', 'name': mod, 'error': ''})
+            continue
+        try:
+            importlib.import_module(mod)
+        except Exception as e:
+            logger.warning(f'SAJHA Net plug-in module {mod}: {e}')
+            _record_error(f'module {mod}', '', mod, f'cannot be imported: {e}')
+            out.append({'source': f'module {mod}', 'kind': '', 'name': mod, 'error': f'cannot be imported: {e}'})
+            continue
+        found = _check_new(before, f'module {mod}')
+        if not found:
+            out.append({'source': f'module {mod}', 'kind': '', 'name': mod,
+                        'error': 'registers no SAJHA Net plug-in (use sajha.net.plugins.register)'})
+        out += found
+    return out
 
 
 def registered(kind: str) -> Dict[str, Type[Plugin]]:

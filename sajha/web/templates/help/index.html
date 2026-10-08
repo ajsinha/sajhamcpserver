@@ -70,7 +70,7 @@
 {% endblock %}
 
 {% block extra_js %}
-<script>
+<script nonce="{{ csp_nonce() }}">
 (function () {
     var form = document.getElementById('askDocsForm');
     if (!form) return;

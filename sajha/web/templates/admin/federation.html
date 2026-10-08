@@ -38,8 +38,8 @@ details.schema pre{background:var(--t-inp);color:var(--t-text);padding:.5rem;bor
       <small class="text-muted">Other MCP servers whose tools SAJHA re-exposes, under SAJHA's access control, audit, cache, circuit breakers and rate limits</small>
     </div>
     <div class="d-flex gap-1">
-      <button class="btn btn-sm btn-success" type="button" onclick="showForm()"><i class="bi bi-plus-lg me-1" aria-hidden="true"></i>Add upstream</button>
-      <button class="btn btn-sm btn-outline-primary" type="button" onclick="load()" aria-label="Reload"><i class="bi bi-arrow-clockwise" aria-hidden="true"></i></button>
+      <button class="btn btn-sm btn-success" type="button" data-onclick="showForm()"><i class="bi bi-plus-lg me-1" aria-hidden="true"></i>Add upstream</button>
+      <button class="btn btn-sm btn-outline-primary" type="button" data-onclick="load()" aria-label="Reload"><i class="bi bi-arrow-clockwise" aria-hidden="true"></i></button>
     </div>
   </div>
 
@@ -73,7 +73,7 @@ details.schema pre{background:var(--t-inp);color:var(--t-text);padding:.5rem;bor
         <div class="col-md-3"><label class="form-label" for="fPrefix">Prefix (default: the id)</label>
           <input class="form-control form-control-sm" id="fPrefix" placeholder="weather"></div>
         <div class="col-md-3"><label class="form-label" for="fTransport">Transport</label>
-          <select class="form-select form-select-sm" id="fTransport" onchange="transportChanged()">
+          <select class="form-select form-select-sm" id="fTransport" data-onchange="transportChanged()">
             <option value="streamable_http">Streamable HTTP</option>
             <option value="sse">Legacy SSE (2024-11-05)</option>
             {% if summary.allow_stdio %}<option value="stdio">stdio (subprocess)</option>{% endif %}
@@ -91,7 +91,7 @@ details.schema pre{background:var(--t-inp);color:var(--t-text);padding:.5rem;bor
         <div class="col-md-3 stdio-only" style="display:none"><label class="form-label" for="fArgs">Arguments (comma separated)</label>
           <input class="form-control form-control-sm" id="fArgs"></div>
         <div class="col-md-3"><label class="form-label" for="fAuth">Credentials</label>
-          <select class="form-select form-select-sm" id="fAuth" onchange="authChanged()">
+          <select class="form-select form-select-sm" id="fAuth" data-onchange="authChanged()">
             <option value="none">None</option>
             <option value="bearer">Bearer token</option>
             <option value="header">API-key header</option>
@@ -136,9 +136,9 @@ details.schema pre{background:var(--t-inp);color:var(--t-text);padding:.5rem;bor
       </div>
       <p class="small text-muted mt-2 mb-2">Secrets are references (<code>env:NAME</code>, <code>file:/path</code>, <code>db:llm_providers/&lt;type&gt;</code>), never values.</p>
       <div class="d-flex flex-wrap gap-2">
-        <button class="btn btn-sm btn-outline-primary" type="button" onclick="testUp()"><i class="bi bi-plug me-1" aria-hidden="true"></i>Test connection</button>
-        <button class="btn btn-sm btn-success" type="button" onclick="saveUp()"><i class="bi bi-check-lg me-1" aria-hidden="true"></i>Save</button>
-        <button class="btn btn-sm btn-outline-secondary" type="button" onclick="hideForm()">Cancel</button>
+        <button class="btn btn-sm btn-outline-primary" type="button" data-onclick="testUp()"><i class="bi bi-plug me-1" aria-hidden="true"></i>Test connection</button>
+        <button class="btn btn-sm btn-success" type="button" data-onclick="saveUp()"><i class="bi bi-check-lg me-1" aria-hidden="true"></i>Save</button>
+        <button class="btn btn-sm btn-outline-secondary" type="button" data-onclick="hideForm()">Cancel</button>
       </div>
       <div id="formMsg" class="small mt-2" role="status" aria-live="polite"></div>
     </div>
@@ -148,7 +148,7 @@ details.schema pre{background:var(--t-inp);color:var(--t-text);padding:.5rem;bor
 </div>
 {% endblock %}
 {% block extra_js %}
-<script>
+<script nonce="{{ csp_nonce() }}">
 var editing = null, cache = {};
 function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})}
 function api(method, url, body){

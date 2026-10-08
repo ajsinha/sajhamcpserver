@@ -346,7 +346,7 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
                     <div id="parametersList">
                         <!-- Parameters will be added here -->
                     </div>
-                    <button type="button" class="btn btn-outline-primary" onclick="addParameter()">
+                    <button type="button" class="btn btn-outline-primary" data-onclick="addParameter()">
                         <i class="bi bi-plus me-1"></i>Add Parameter
                     </button>
                 </div>
@@ -381,13 +381,13 @@ ORDER BY sale_date DESC"></textarea>
 
             <!-- Action Buttons -->
             <div class="d-flex gap-3 mb-4">
-                <button type="button" id="previewBtn" class="btn btn-primary btn-action" onclick="previewTool()">
+                <button type="button" id="previewBtn" class="btn btn-primary btn-action" data-onclick="previewTool()">
                     <i class="bi bi-eye me-2"></i>Preview Tool
                 </button>
-                <button type="button" id="deployBtn" class="btn btn-success btn-action" onclick="deployTool()" disabled>
+                <button type="button" id="deployBtn" class="btn btn-success btn-action" data-onclick="deployTool()" disabled>
                     <i class="bi bi-cloud-upload me-2"></i>Deploy Tool
                 </button>
-                <button type="button" class="btn btn-outline-secondary btn-action" onclick="clearForm()">
+                <button type="button" class="btn btn-outline-secondary btn-action" data-onclick="clearForm()">
                     <i class="bi bi-x-circle me-2"></i>Clear
                 </button>
             </div>
@@ -402,22 +402,22 @@ ORDER BY sale_date DESC"></textarea>
                     Quick Examples - Click to Load
                 </div>
                 <div class="section-body">
-                    <div class="example-card" onclick="loadExample('sales')">
+                    <div class="example-card" data-onclick="loadExample('sales')">
                         <h6><i class="bi bi-graph-up me-1"></i>Sales by Region</h6>
                         <p>Query sales data filtered by region and date range</p>
                         <span class="db-badge">DuckDB</span>
                     </div>
-                    <div class="example-card" onclick="loadExample('users')">
+                    <div class="example-card" data-onclick="loadExample('users')">
                         <h6><i class="bi bi-people me-1"></i>User Search</h6>
                         <p>Search users by name with pagination</p>
                         <span class="db-badge">SQLite</span>
                     </div>
-                    <div class="example-card" onclick="loadExample('inventory')">
+                    <div class="example-card" data-onclick="loadExample('inventory')">
                         <h6><i class="bi bi-box-seam me-1"></i>Inventory Status</h6>
                         <p>Check inventory levels by category</p>
                         <span class="db-badge">PostgreSQL</span>
                     </div>
-                    <div class="example-card" onclick="loadExample('aggregation')">
+                    <div class="example-card" data-onclick="loadExample('aggregation')">
                         <h6><i class="bi bi-calculator me-1"></i>Sales Aggregation</h6>
                         <p>Aggregate sales with grouping</p>
                         <span class="db-badge">DuckDB</span>
@@ -430,9 +430,9 @@ ORDER BY sale_date DESC"></textarea>
                 <div class="preview-header">
                     <h6><i class="bi bi-code-slash me-2"></i>Generated Code Preview</h6>
                     <div class="btn-group btn-group-sm">
-                        <button class="btn btn-outline-light btn-sm active" onclick="showPreviewTab('json')">JSON</button>
-                        <button class="btn btn-outline-light btn-sm" onclick="showPreviewTab('python')">Python</button>
-                        <button class="btn btn-outline-light btn-sm" onclick="showPreviewTab('schema')">Schema</button>
+                        <button class="btn btn-outline-light btn-sm active" data-onclick="showPreviewTab('json')">JSON</button>
+                        <button class="btn btn-outline-light btn-sm" data-onclick="showPreviewTab('python')">Python</button>
+                        <button class="btn btn-outline-light btn-sm" data-onclick="showPreviewTab('schema')">Schema</button>
                     </div>
                 </div>
                 <div class="preview-content" id="previewContent">
@@ -496,7 +496,7 @@ ORDER BY sale_date DESC"></textarea>
 
 
 {% block extra_js %}
-<script>
+<script nonce="{{ csp_nonce() }}">
 // Store existing tool names for validation
 const existingTools = {{ existing_tools | tojson }};
 let selectedDbType = 'duckdb';
@@ -581,7 +581,7 @@ function addParameter() {
                     <input type="text" class="form-control param-default" placeholder="Optional">
                 </div>
                 <div class="col-md-1 d-flex align-items-end">
-                    <button type="button" class="btn btn-outline-danger btn-sm w-100" onclick="removeParameter(${id})">
+                    <button type="button" class="btn btn-outline-danger btn-sm w-100" data-onclick="removeParameter(${id})">
                         <i class="bi bi-trash"></i>
                     </button>
                 </div>

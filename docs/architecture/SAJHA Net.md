@@ -295,7 +295,9 @@ Wave 4, phase 4.1 built membership; phase 4.2 built catalogs and routing (sectio
 alongside identity and authorization; phase 4.3 built the first console pages, the net of one and the
 three-instance test net. Wave 5, phase 5.1 adds locality-aware planners, remote LLM tools and the
 combined hop and depth limit (sections 13 and 14); phase 5.2 adds re-export and bridges, the
-`assertion` and `token_exchange` identity resolvers and the topology data (sections 10.2, 14 and 17).
+`assertion` and `token_exchange` identity resolvers and the topology data (sections 10.2, 14 and 17);
+phase 5.3 adds the other MCP servers of section 5.1 (sponsored servers, the SAJHA Net agent and the
+reference library), the conformance suite runner and third-party plug-in registration.
 What is not listed here is still design.
 
 - **The protocol core** is `sajha/net/` and imports nothing from the rest of SAJHA
@@ -313,6 +315,13 @@ What is not listed here is still design.
   `in_process`; identity `none`, `api_key`, `assertion` and `token_exchange`; catalog source `static` (and `native`, SAJHA's registry);
   key directory store `memory` and `database`; rules `allow_all`, `deny_all` and `policy_engine`;
   snapshot sink `local_files`; routing `local_first`, `lowest_latency` and `pinned`.
+  **Third-party plug-ins** (phase 5.3): at start SAJHA loads the entry-point group and every module named
+  in `sajhanet.plugins.modules` (`plugins.load_plugins`); each newly registered class must pass its
+  contract check or it is unregistered and cannot be selected; a module that cannot be imported, registers
+  nothing or fails its check is an error notice (`sajhanet.plugin:<source>:<name>`) and an audit record,
+  never a failed start; `GET /api/sajhanet/status` lists what loaded (`plugins`). The example is the
+  routing strategy `region_first` (`sajha/examples/sajhanet/region_first.py`); tests in
+  `tests/net/test_net_plugin_loading.py`.
 - **SAJHA's integration** is `sajha/net/integration/` (configuration, state store, notices,
   metrics, audit, the gossip agent's lease) and `sajha/routes/sajhanet_routes.py` (the protocol
   endpoints, the admin API and the `/admin/sajhanet` page); the command line is `sajha net ...`.
@@ -517,13 +526,53 @@ What is not listed here is still design.
   FB-01 to FB-06; ERR-01; LIM-01. Remaining: CAT-05 (the `visibility` feature is not built); CALL-11 and FB-07 (progress, cancellation, input requests and tasks are not
   relayed on forwarded calls); CALL-12 (forwarded calls use the 2026-07-28 era only, so there is no
   2025-11-25 session to share); CALL-06 is covered step by step across the files (each refusal, its code
-  and `executed`) but not yet by one test that walks every step of §15.4 in order.
+  and `executed`) but not yet by one test that walks every step of §15.4 in order. The same ids are reported by the
+  conformance suite runner (phase 5.3, below), which also runs the remote cases against an agent (target A)
+  and a sponsored participant, and the library cases (target L).
+- **Built of section 5.1: other MCP servers** (wave 5, phase 5.3). **Sponsored servers**
+  (`sajha/net/integration/sponsored.py`): an entry of `sajhanet.sponsored` (or one added with
+  `POST /api/sajhanet/sponsored`) names a net, an instance name and a federation upstream; the sponsor runs a
+  node for it (kind `sponsored`, its member record and extension object carrying `sponsor`, the sponsor's
+  name in the net, an optional field of protocol §9.1) on the sponsor's own URL, reached by `Sajha-Net-To`
+  (`Participant` selects a sponsored node by it), seeded by the sponsor and ticked with the sponsor's gossip
+  agent. Its key and certificate are the sponsor's to hold (`<data_dir>/<net>/sponsored/<name>/`):
+  self-signed in an `open` or `manual` net, issued by the sponsor when it is the CA participant, else
+  enrolled with a token (`POST /api/sajhanet/sponsored/{net}/{instance}/enroll`). Its catalog is the
+  upstream's federated tools under the server's own names (filtered by `tools` globs) with the sponsor's
+  data classes; a forwarded call runs the sponsor's checks as for its own tools (its identity resolvers with
+  the sponsored participant as audience, `api_key` only; blocks; export rules under the tool's local
+  registry name; the local account's access, policy and approvals; residency on the result; audit) and then
+  federation's connection to the server. It imports nothing. The sponsor's other members pull its catalog
+  and call it like any member; the sponsor's own users reach it through their proxies, by a signed call to
+  the sponsor's own URL. Shown in the members of `GET /api/sajhanet/status`, the Instances data (kind and
+  `sponsor`), the topology nodes and the Net overview data (`sponsored`). **The reference library**
+  (`sajha/net/library.py`): `NetParticipant` assembles node, catalog book, host endpoint and (with key
+  verification) the key directory from the core, with identity files, self-signed or CA-enrolled identities
+  (`enroll`), an export policy (`ExportPolicy`) and the `api_key` resolver of a host without accounts
+  (`KeyDirectoryIdentity`: the user is the key's owner at home, with the key's tool access as a ceiling).
+  **The SAJHA Net agent** (`sajhanet_agent/`, `python -m sajhanet_agent`): the library in front of an MCP
+  server over stdio or Streamable HTTP, served by the standard library's HTTP server (TLS optional), with the
+  server's `tools/list` as its catalog and `tools/list_changed` honoured; it is never a home and publishes no
+  keys. It imports nothing from SAJHA outside `sajha.net` (`tests/test_sajhanet_agent_boundary.py`; importing
+  `sajha` no longer loads the server, as the package names its exports lazily). Its guide is
+  [SAJHA Net Agent](../clients/SAJHA%20Net%20Agent.md). **The conformance suite** (`sajha/net/conformance/`,
+  `python -m sajha.net.conformance --target <url>|library`): every id of protocol §20 with its targets; the
+  remote cases run against a participant over HTTP as a participant that never joins (signed, tampered and
+  oversized requests to `/sajhanet/v1/` and the signed MCP endpoint), the library cases against the core with
+  the §21 vectors, and the cases that need a target's insides are reported `skip` naming the test file that
+  covers them. The wave exit is `tests/net/test_net_mixed_conformance.py`: a SAJHA instance, a server it
+  sponsors and an agent-fronted server in one net, a user's calls to the latter two with her own key, and the
+  suite on all three targets and the library with no case failing. A SAJHA instance's signed `initialize`
+  now carries the net's extension object under `capabilities.experimental` (CAP-02) also for nets built in
+  code.
 - **Built of section 17 in phase 5.2:** the Net overview with the topology map, the Your net access
   page, and the admission panel and runtime seeds on the admin page (section 17.5).
 - **Not yet:** the other console pages of section 17.1 (instance detail, conflicts and reviews as their
   own page, users, access and blocks as a matrix, key directory, snapshots, live activity, certificates
-  and net settings as pages of their own; certificates and settings are panels of the admin page), mutual TLS (`mtls` stays off), the
-  SAJHA Net agent and the reference library.
+  and net settings as pages of their own; certificates and settings are panels of the admin page) and mutual
+  TLS (`mtls` stays off); for other MCP servers: an agent that is also a home (calls other members' tools),
+  sponsored participants with the `assertion` or `token_exchange` identity, and console pages for
+  sponsoring (the admin API and the data views carry it).
 
 ---
 
@@ -1369,6 +1418,11 @@ only as the user on the instance that issued it, and the host maps that identity
 
 The SAJHA Net console (section 17) shows, for each instance, which remote users are linked, matched,
 mapped or refused, and lets an administrator link or unlink them.
+
+**Signing in to several consoles.** A person who uses the consoles of several instances signs in
+once when those instances trust the same identity provider ([console single
+sign-on](../security/Security%20Model.md#console-single-sign-on)); each instance still maps the
+person to its own local user, as above.
 
 ### 11.4 Blocking
 

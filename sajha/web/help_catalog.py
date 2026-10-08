@@ -398,6 +398,9 @@ CATALOG: List[dict] = [
             _g('Command Line', 'Command Line.md', 'bi-terminal',
                'The sajha CLI (tools, prompts, ask, Studio, federation) and MCP over stdio for '
                'Claude Desktop, Claude Code and IDEs.'),
+            _g('SAJHA Net Agent', 'SAJHA Net Agent.md', 'bi-hdd-network',
+               'Any MCP server as a SAJHA Net participant: the agent, the reference library, sponsoring '
+               'instead, and the conformance suite.'),
             _g('Security Model', 'Security Model.md', 'bi-shield-check',
                'Credentials, roles, tool access, OAuth, Origin checks, headers, rate limits, the '
                'security fixes, known limitations and the deployment checklist.'),

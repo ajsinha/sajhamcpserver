@@ -41,7 +41,7 @@
   </div>
   {% endif %}
 
-  <form class="ni-bar" role="search" onsubmit="return false" aria-label="Filter instances">
+  <form class="ni-bar" role="search" data-onsubmit="return false" aria-label="Filter instances">
     <div><label class="form-label small" for="ni-q">Search</label>
       <input class="form-control form-control-sm" id="ni-q" placeholder="name, region, label" autocomplete="off"></div>
     <div><label class="form-label small" for="ni-net">Net</label>
@@ -91,7 +91,7 @@
   </section>
   {% endfor %}
 </div>
-<script>
+<script nonce="{{ csp_nonce() }}">
 (function(){
   const ids = ['ni-q', 'ni-net', 'ni-state', 'ni-kind', 'ni-region', 'ni-labelf'];
   const v = id => (document.getElementById(id).value || '').trim().toLowerCase();

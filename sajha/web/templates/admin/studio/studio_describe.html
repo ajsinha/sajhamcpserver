@@ -203,7 +203,7 @@ Design: docs/architecture/Tool Generation.md
 {% endblock %}
 
 {% block extra_js %}
-<script>
+<script nonce="{{ csp_nonce() }}">
 (function () {
     const BASE = '/admin/studio/describe';
     let draft = null;

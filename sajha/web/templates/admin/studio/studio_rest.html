@@ -459,12 +459,12 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
                             <div class="header-row d-flex gap-2 mb-2">
                                 <input type="text" class="form-control header-name" placeholder="Header Name">
                                 <input type="text" class="form-control header-value" placeholder="Header Value">
-                                <button type="button" class="btn btn-outline-danger btn-sm" onclick="removeHeader(this)">
+                                <button type="button" class="btn btn-outline-danger btn-sm" data-onclick="removeHeader(this)">
                                     <i class="bi bi-trash"></i>
                                 </button>
                             </div>
                         </div>
-                        <button type="button" class="btn btn-outline-primary btn-sm" onclick="addHeader()">
+                        <button type="button" class="btn btn-outline-primary btn-sm" data-onclick="addHeader()">
                             <i class="bi bi-plus me-1"></i>Add Header
                         </button>
                     </div>
@@ -587,13 +587,13 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
 
             <!-- Action Buttons -->
             <div class="d-flex gap-3 mb-4">
-                <button type="button" id="previewBtn" class="btn btn-primary btn-action" onclick="previewTool()">
+                <button type="button" id="previewBtn" class="btn btn-primary btn-action" data-onclick="previewTool()">
                     <i class="bi bi-eye me-2"></i>Preview Tool
                 </button>
-                <button type="button" id="deployBtn" class="btn btn-success btn-action" onclick="deployTool()" disabled>
+                <button type="button" id="deployBtn" class="btn btn-success btn-action" data-onclick="deployTool()" disabled>
                     <i class="bi bi-cloud-upload me-2"></i>Deploy Tool
                 </button>
-                <button type="button" class="btn btn-outline-secondary btn-action" onclick="clearForm()">
+                <button type="button" class="btn btn-outline-secondary btn-action" data-onclick="clearForm()">
                     <i class="bi bi-x-circle me-2"></i>Clear
                 </button>
             </div>
@@ -608,32 +608,32 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
                     Quick Examples - Click to Load
                 </div>
                 <div class="section-body">
-                    <div class="example-card" onclick="loadExample('weather')">
+                    <div class="example-card" data-onclick="loadExample('weather')">
                         <h6><i class="bi bi-cloud-sun me-1"></i>Open-Meteo Weather</h6>
                         <p>Free weather API - no auth required</p>
                         <span class="method-badge bg-success text-white">GET</span>
                     </div>
-                    <div class="example-card" onclick="loadExample('jsonplaceholder')">
+                    <div class="example-card" data-onclick="loadExample('jsonplaceholder')">
                         <h6><i class="bi bi-file-post me-1"></i>JSONPlaceholder Posts</h6>
                         <p>Demo REST API - Create posts</p>
                         <span class="method-badge bg-primary text-white">POST</span>
                     </div>
-                    <div class="example-card" onclick="loadExample('github')">
+                    <div class="example-card" data-onclick="loadExample('github')">
                         <h6><i class="bi bi-github me-1"></i>GitHub User Info</h6>
                         <p>Path parameter example: /users/{username}</p>
                         <span class="method-badge bg-success text-white">GET</span>
                     </div>
-                    <div class="example-card" onclick="loadExample('coinbase')">
+                    <div class="example-card" data-onclick="loadExample('coinbase')">
                         <h6><i class="bi bi-currency-bitcoin me-1"></i>Coinbase Prices</h6>
                         <p>Cryptocurrency spot prices</p>
                         <span class="method-badge bg-success text-white">GET</span>
                     </div>
-                    <div class="example-card" onclick="loadExample('catfact')">
+                    <div class="example-card" data-onclick="loadExample('catfact')">
                         <h6><i class="bi bi-emoji-smile me-1"></i>Random Cat Facts</h6>
                         <p>Simple no-parameter API</p>
                         <span class="method-badge bg-success text-white">GET</span>
                     </div>
-                    <div class="example-card example-accent" onclick="loadExample('fred_csv')">
+                    <div class="example-card example-accent" data-onclick="loadExample('fred_csv')">
                         <h6><i class="bi bi-file-earmark-spreadsheet me-1 text-primary"></i>FRED Economic Data</h6>
                         <p>CSV response example - economic data</p>
                         <span class="method-badge bg-success text-white">GET</span>
@@ -737,14 +737,14 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
     <p class="mb-2">Your tool has been saved and is ready to use.</p>
     <div class="d-flex gap-2">
         <a href="/tools" class="btn btn-success btn-sm">View Tools</a>
-        <button class="btn btn-outline-success btn-sm" onclick="this.closest('.alert').classList.add('d-none')">Dismiss</button>
+        <button class="btn btn-outline-success btn-sm" data-onclick="sajhaHideClosest(this, '.alert')">Dismiss</button>
     </div>
 </div>
 {% endblock %}
 
 
 {% block extra_js %}
-<script>
+<script nonce="{{ csp_nonce() }}">
 // Store existing tool names for validation
 const existingTools = {{ existing_tools | tojson }};
 let selectedMethod = 'GET';
@@ -837,7 +837,7 @@ function renderTags() {
     tags.forEach((tag, idx) => {
         const tagEl = document.createElement('span');
         tagEl.className = 'tag';
-        tagEl.innerHTML = `${tag}<span class="remove-tag" onclick="removeTag(${idx})">&times;</span>`;
+        tagEl.innerHTML = `${tag}<span class="remove-tag" data-onclick="removeTag(${idx})">&times;</span>`;
         container.appendChild(tagEl);
     });
     container.appendChild(input);
@@ -855,7 +855,7 @@ function addHeader() {
     row.innerHTML = `
         <input type="text" class="form-control header-name" placeholder="Header Name">
         <input type="text" class="form-control header-value" placeholder="Header Value">
-        <button type="button" class="btn btn-outline-danger btn-sm" onclick="removeHeader(this)">
+        <button type="button" class="btn btn-outline-danger btn-sm" data-onclick="removeHeader(this)">
             <i class="bi bi-trash"></i>
         </button>
     `;

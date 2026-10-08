@@ -51,7 +51,7 @@
     </div>
   </section>
 
-  <form class="rt-bar" role="search" onsubmit="return false" aria-label="Filter remote tools">
+  <form class="rt-bar" role="search" data-onsubmit="return false" aria-label="Filter remote tools">
     <div><label class="form-label small" for="rt-q">Search</label>
       <input class="form-control form-control-sm" id="rt-q" placeholder="tool, host or alias" autocomplete="off"></div>
     <div><label class="form-label small" for="rt-net">Net</label>
@@ -107,7 +107,7 @@
   </section>
   <p class="rt-meta" id="rt-act" role="status" aria-live="polite"></p>
 </div>
-<script>
+<script nonce="{{ csp_nonce() }}">
 (function(){
   const v = id => (document.getElementById(id).value || '').trim().toLowerCase();
   function apply(){

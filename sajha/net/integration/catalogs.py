@@ -586,6 +586,13 @@ class NetCatalogs:
         tool = reg.get_tool(ctx.tool) if reg is not None and rx is None else None
         if rx is None and (tool is None or isinstance(tool, NetProxyTool)):
             raise HostRefusal('export')
+        return self.execute_tool(ctx, arguments, tool)
+
+    def execute_tool(self, ctx: CallContext, arguments: Dict[str, Any], tool, local_name: str = '') -> Dict[str, Any]:
+        """Steps 10 and 11 for ``tool`` (a registry tool; None for a re-exported call): access under
+        ``local_name`` (default the tool's name in the call), policy, approvals, then the tool. A
+        sponsored participant's host runs its calls here (sajha/net/integration/sponsored.py)."""
+        rx = ctx.reexport
         from sajha.observability.caller import Caller, reset, set_caller
         user = ctx.user or {}
         roles = tuple(user.get('roles') or ())
@@ -617,7 +624,7 @@ class NetCatalogs:
                     except Exception:
                         pass
             source = ((rx or {}).get('_source') or {}).get('qualified_name')
-            if not access(ctx.tool) and not (source and access(source)):
+            if not access(local_name or ctx.tool) and not (source and access(source)):
                 raise HostRefusal('access')
         if rx is not None:
             token = set_caller(Caller(uid, '', roles, 'sajhanet', access, 'admin' in roles))
@@ -672,13 +679,26 @@ class NetCatalogs:
             if method == 'ping':
                 return {'jsonrpc': '2.0', 'id': rid, 'result': {}}
             if method in ('server/discover', 'initialize'):
-                try:
-                    from sajha.app import mcp_handler
-                    if mcp_handler is not None and method == 'initialize':
-                        return {'jsonrpc': '2.0', 'id': rid, 'result': mcp_handler.server_info}
-                except Exception as e:
-                    logger.debug(f'SAJHA Net initialize: {e}')
                 ext = net_extension.extension_object(net) or {}
+                if 'instance' not in ext:            # nets not in the YAML (built in code): the node's own view
+                    try:
+                        ext = self.svc.participant.extension(net)
+                    except Exception:
+                        pass
+                if method == 'initialize':           # CAP-02: the 2025-11-25 result carries it under experimental
+                    info: Dict[str, Any] = {}
+                    try:
+                        from sajha.app import mcp_handler
+                        if mcp_handler is not None:
+                            info = copy.deepcopy(mcp_handler.server_info)
+                    except Exception as e:
+                        logger.debug(f'SAJHA Net initialize: {e}')
+                    info = info if isinstance(info, dict) and info else {
+                        'protocolVersion': '2025-11-25', 'serverInfo': {'name': 'sajha', 'version': ''}}
+                    caps = info.setdefault('capabilities', {})
+                    caps.setdefault('tools', {})
+                    caps.setdefault('experimental', {})[EXTENSION_ID] = ext
+                    return {'jsonrpc': '2.0', 'id': rid, 'result': info}
                 return {'jsonrpc': '2.0', 'id': rid, 'result': {
                     'supportedVersions': ['2026-07-28', '2025-11-25'],
                     'capabilities': {'extensions': {EXTENSION_ID: ext}, 'tools': {}}}}
@@ -843,6 +863,8 @@ class NetCatalogs:
                 rec = m.get('record') or {}
                 nodes.append({'name': m['name'], 'kind': rec.get('kind') or '', 'region': rec.get('region') or '',
                               'state': m.get('state') or '', 'self': False})
+                if rec.get('sponsor'):                   # a sponsored member names its sponsor (design §5.1)
+                    nodes[-1]['sponsor'] = rec['sponsor']
             edges: List[Dict[str, Any]] = []
             for peer, held in sorted(b.live_peers().items()):
                 direct = [e for e in held.get('tools') or [] if not (e.get('meta') or {}).get('origin')]

@@ -205,7 +205,7 @@ Design: docs/architecture/API Import.md
 {% endblock %}
 
 {% block extra_js %}
-<script>
+<script nonce="{{ csp_nonce() }}">
 (function () {
     const BASE = '/admin/studio/api-import', READ = '/api/studio/api-import';
     const CONNECTED = {{ 'true' if connected_accounts else 'false' }};

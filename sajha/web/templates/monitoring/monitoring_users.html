@@ -168,7 +168,7 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
 
 {% block extra_js %}
 <script src="{{ url_for('static', filename='vendor/chartjs/chart.umd.js') }}"></script>
-<script>
+<script nonce="{{ csp_nonce() }}">
 // Initialize activity chart
 const ctx = document.getElementById('activityChart').getContext('2d');
 const T = window.SajhaChartTheme;
@@ -443,7 +443,7 @@ function renderPagination(totalPages) {
     // Previous button
     const prevLi = document.createElement('li');
     prevLi.className = `page-item ${currentPage === 1 ? 'disabled' : ''}`;
-    prevLi.innerHTML = `<a class="page-link" href="#" onclick="changePage(${currentPage - 1}); return false;">Previous</a>`;
+    prevLi.innerHTML = `<a class="page-link" href="#" data-onclick="changePage(${currentPage - 1}); return false;">Previous</a>`;
     pagination.appendChild(prevLi);
 
     // Page numbers
@@ -460,7 +460,7 @@ function renderPagination(totalPages) {
     if (startPage > 1) {
         const li = document.createElement('li');
         li.className = 'page-item';
-        li.innerHTML = `<a class="page-link" href="#" onclick="changePage(1); return false;">1</a>`;
+        li.innerHTML = `<a class="page-link" href="#" data-onclick="changePage(1); return false;">1</a>`;
         pagination.appendChild(li);
 
         if (startPage > 2) {
@@ -475,7 +475,7 @@ function renderPagination(totalPages) {
     for (let i = startPage; i <= endPage; i++) {
         const li = document.createElement('li');
         li.className = `page-item ${i === currentPage ? 'active' : ''}`;
-        li.innerHTML = `<a class="page-link" href="#" onclick="changePage(${i}); return false;">${i}</a>`;
+        li.innerHTML = `<a class="page-link" href="#" data-onclick="changePage(${i}); return false;">${i}</a>`;
         pagination.appendChild(li);
     }
 
@@ -490,14 +490,14 @@ function renderPagination(totalPages) {
 
         const li = document.createElement('li');
         li.className = 'page-item';
-        li.innerHTML = `<a class="page-link" href="#" onclick="changePage(${totalPages}); return false;">${totalPages}</a>`;
+        li.innerHTML = `<a class="page-link" href="#" data-onclick="changePage(${totalPages}); return false;">${totalPages}</a>`;
         pagination.appendChild(li);
     }
 
     // Next button
     const nextLi = document.createElement('li');
     nextLi.className = `page-item ${currentPage === totalPages ? 'disabled' : ''}`;
-    nextLi.innerHTML = `<a class="page-link" href="#" onclick="changePage(${currentPage + 1}); return false;">Next</a>`;
+    nextLi.innerHTML = `<a class="page-link" href="#" data-onclick="changePage(${currentPage + 1}); return false;">Next</a>`;
     pagination.appendChild(nextLi);
 }
 

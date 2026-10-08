@@ -35,10 +35,12 @@ The cookie is set in `sajha/routes/auth_routes.py`. Its value is the SAJHA JWT i
 |---|---|
 | `HttpOnly` | yes |
 | `SameSite` | `Lax` |
-| `Secure` | only when the request scheme is `https` |
-| `Max-Age` | 3600 seconds |
+| `Secure` | `auth.cookie.secure`: `auto` (default: when the request scheme is `https`; behind a TLS proxy set `server.trusted_proxies` so the scheme is seen), `true` or `false` |
+| `Path` | `/` |
+| `Max-Age` | `auth.jwt.expiry_minutes` × 60 seconds |
 
-SameSite=Lax is the only CSRF defence for cookie-authenticated web and admin requests. The web forms do not use CSRF tokens; only the OAuth consent form does.
+- **Session rotation.** Every sign-in (password form, single sign-on) first signs out the session the browser already held, if any, and then sets a new token (`start_session` in `sajha/routes/auth_routes.py`), so a token planted in or left on a browser never outlives a sign-in. Tokens are only ever issued after authentication, so there is no pre-login session to fix.
+- **CSRF.** Two layers protect cookie-authenticated changes: SameSite=Lax, and the cross-site check that refuses any state-changing request carrying the cookie from another site ([Cross-site requests](#cross-site-requests-csrf)). Many console forms and APIs also carry a CSRF token bound to the session (API keys, credential files, policies, notices, quality, connected accounts, the OAuth consent form).
 
 ### SAJHA JWT (REST and web)
 
@@ -95,6 +97,19 @@ its own switch is on. Every use is audited. Disable it before production.
 **Keys toward particular members.** `sajhanet.peer_keys` (local to each server, never shared) maps
 `<net>/<instance>` or `<instance>` to a key that member issued; calls to that member carry it in
 place of the caller's key or the test admin key.
+
+### Console single sign-on
+
+The console can sign people in with an OpenID Connect identity provider (`sajha/auth/sso.py`, routes in `sajha/routes/sso_routes.py`). It is **off** unless `auth.sso.enabled` is true and `auth.sso.issuer` and `auth.sso.client_id` are set, and it works **alongside** the other sign-ins: the users file, database users, password login and API keys are unchanged. The login page then shows "Sign in with `auth.sso.label`" above the password form.
+
+- **Flow.** `GET /auth/sso/login?next=/path` reads the provider's OpenID Connect discovery document (under `<issuer>/.well-known/`; its `issuer` must match), keeps a random `state`, `nonce` and PKCE verifier in the [state store](../architecture/Scaling%20and%20State.md) for ten minutes, sets the `sajha_sso` cookie (HttpOnly, SameSite=Lax, path `/auth/sso`) that binds them to this browser, and redirects to the authorization endpoint with `response_type=code`, `code_challenge_method=S256` and `auth.sso.scopes` (always including `openid`). `GET /auth/sso/callback` takes the state (once; another browser, a replay or an expired state is refused), exchanges the code at the token endpoint with the verifier and the client secret (`client_secret_basic`, or `auth.sso.token_auth: client_secret_post`; a public client without a secret sends PKCE only), and validates the ID token: an asymmetric signature (RS, PS or ES family; `none` and HMAC are refused) by a key of the provider's JWKS, `iss`, `aud` (and `azp` when there are several audiences), `exp`, `iat` (`auth.sso.clock_skew_seconds` leeway, default 60), `sub`, `nonce`, and `at_hash` when present. The provider's endpoints must be `https` (plain `http` only on localhost). Failed callbacks count toward the per-IP failed sign-in limit and are audited as `user.login_failed`.
+- **Which SAJHA user.** First the account linked to this provider and subject (`users.oauth_provider` = `auth.sso.provider_name`, default `oidc`, and `users.oauth_subject` = `sub`). Otherwise the user ID named by the claim `auth.sso.user_claim` (default `preferred_username`; with `email`, an `email_verified: false` address is refused): an existing account is linked on first sign-in when `auth.sso.link_existing` is true (the default; audited `user.sso_linked`), unless it is already linked to another subject. Without an account, `auth.sso.auto_provision` (default false) creates one with an unusable random password and a default API key (audited `user.create`); else the sign-in is refused. A disabled account is refused.
+- **Roles.** `auth.sso.roles_claim` names a claim (a list or a space-separated string; dotted names reach nested claims such as `realm_access.roles`), and `auth.sso.role_map` maps its values to SAJHA roles (`["sajha-admins=admin", "staff=user"]`; only existing roles are granted). A created user gets the mapped roles, or `auth.sso.default_roles` (default `user`) when none apply. `auth.sso.sync_roles` (default false) replaces an existing user's roles with the mapped ones at each sign-in, except for users defined in `config/users.json`, whose file always wins. `auth.sso.require_role` refuses a sign-in that maps to no role.
+- **Session.** A successful callback starts the same session as a password sign-in: a SAJHA JWT in the `sajha_token` cookie (with `amr: ["sso"]`), audited as `user.login` with the method. Everything after that (tool access, revocation, sign out everywhere) is as described on this page.
+- **Sign-out.** `GET /logout` (and `POST /api/auth/logout`, which returns the URL as `idp_logout_url`) revokes the SAJHA token and, for a session single sign-on started, redirects to the provider's `end_session_endpoint` with `id_token_hint`, `client_id` and `post_logout_redirect_uri=<this server>/login` (`auth.sso.idp_logout`, default true). A password session signs out locally only.
+- **Several instances, one sign-in.** Instances of a SAJHA Net that are clients of the **same** provider share one sign-in: a person who signed in at the provider for one instance is signed in to the next instance's console without a password prompt, and with `auth.sso.auto_redirect` that instance's `/login` goes straight to the provider (`/login?local=1` still shows the password form). Each instance still maps the person to **its own** user, as SAJHA Net keeps users per instance ([SAJHA Net](../architecture/SAJHA%20Net.md#113-users-across-instances)). This design was chosen over one SAJHA instance acting as the identity provider for the others: the shared provider needs no new trust between instances and no SAJHA OpenID Provider (ID tokens, consent, key rotation, its own availability), and it keeps each instance's console usable when any other instance is down.
+- **Redirect URI.** `auth.sso.redirect_uri`, default `<mcp.auth.public_url or the request's origin>/auth/sso/callback`; register it with the provider for each instance. The client secret comes from the environment (`SAJHA_AUTH_SSO_CLIENT_SECRET`), never from `config/application.yml`.
+- `GET /api/auth/sso` (public) answers whether single sign-on is on, its label and its login URL.
 
 ### Revocable sign-in
 
@@ -251,7 +266,7 @@ The `/mcp`, `/api/mcp`, `/mcp/sse` and `/mcp/message` handlers call `validate_or
 - `localhost`, `127.0.0.1` and `[::1]` on any port are always allowed.
 - Other origins must be listed exactly in `mcp.allowed_origins` (env `SAJHA_MCP_ALLOWED_ORIGINS`). `"*"` disables the check.
 
-The WebSocket endpoint `/mcp/ws` does **not** check `Origin`.
+The WebSocket endpoint `/mcp/ws` applies the same check before it accepts the upgrade and closes a disallowed Origin with 1008 (`sajha/routes/ws_routes.py`).
 
 ### Security headers and CSP
 
@@ -261,19 +276,23 @@ The WebSocket endpoint `/mcp/ws` does **not** check `Origin`.
 |---|---|---|
 | `X-Content-Type-Options` | `nosniff` | no |
 | `X-Frame-Options` | `SAMEORIGIN` | yes |
-| `X-XSS-Protection` | `1; mode=block` | no |
+| `X-XSS-Protection` | `0` (the legacy XSS auditor is off; the CSP protects) | no |
 | `Referrer-Policy` | `strict-origin-when-cross-origin` | yes |
-| `Permissions-Policy` | `camera=(), microphone=(), geolocation=()` | no |
-| `Content-Security-Policy` | `default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data:; connect-src 'self' ws: wss:` | yes |
-| `Strict-Transport-Security` | `max-age=31536000; includeSubDomains`, only when the request scheme is `https` | no |
+| `Permissions-Policy` | `camera=(), microphone=(), geolocation=(), payment=(), usb=()` | yes |
+| `Content-Security-Policy` | `default-src 'self'; script-src 'self' 'nonce-<per response>'; script-src-attr 'none'; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data:; connect-src 'self' ws: wss:; object-src 'none'; base-uri 'self'; frame-ancestors 'self'` | yes |
+| `Strict-Transport-Security` | `max-age=<security.hsts.max_age>` (default 31536000) plus `; includeSubDomains` (`security.hsts.include_subdomains`, default true), only when the request scheme is `https`; `max_age: 0` sends none | no |
 
-The overridable headers are applied with `setdefault`, so a stricter value set by a route (for example the OAuth consent page) is no longer overwritten. All JS, CSS and fonts are vendored under `/static/vendor`. The CSP still allows `'unsafe-inline'` for inline template scripts and styles.
+- **Nonces.** Every response gets a fresh random nonce (`csp_nonce` in `sajha/security.py`, a Jinja global). Each inline `<script>` in the templates carries `nonce="{{ csp_nonce() }}"`; any other inline script, injected or not, is refused by the browser. Data blocks (`<script type="application/json">`) are never run and carry none.
+- **No inline event handlers.** `script-src-attr 'none'` refuses `onclick=` and its kind. Console pages write handlers as `data-onclick`, `data-onchange`, `data-onsubmit` (and `dblclick`, `input`, `keydown`, `keyup`), run by `sajha/web/static/js/csp-actions.js`. It does not evaluate script: a handler is a short program of calls to functions the page itself declares (never a browser built-in such as `eval`, except `confirm`) with literal, `this` or `event` arguments, and `return false` cancels the default action. So an attribute injected into a page can only call the page's own functions. `tests/test_csp_handlers.py` keeps the templates free of inline handlers and un-nonced scripts and checks every handler against the grammar; `scripts/check_mobile.py` fails a page that reports a CSP violation, keeps an inline handler, has a handler that would not run or throws a script error.
+- **Styles** keep `'unsafe-inline'`: style attributes are used throughout the templates and by the vendored libraries, and CSS cannot run script.
+- The overridable headers are applied with `setdefault`, so a stricter value set by a route is kept: the OAuth consent page sends `X-Frame-Options: DENY`, `Referrer-Policy: no-referrer` and the same CSP with `frame-ancestors 'none'`. All JS, CSS and fonts are vendored under `/static/vendor`.
 
 One route family sets its own policy: the Python Playground. `/playground` adds `worker-src 'self'`
 and sends `Cross-Origin-Opener-Policy: same-origin` and `Cross-Origin-Embedder-Policy: require-corp`
 (cross-origin isolation, for the Stop button's `SharedArrayBuffer`); its worker script,
 `/api/playground/worker.js`, is the only response whose CSP allows `'wasm-unsafe-eval'`, plus the
-Pyodide CDN when `playground.assets` is `cdn` and PyPI when `playground.allow_pypi` is true.
+Pyodide CDN when `playground.assets` is `cdn` and PyPI when `playground.allow_pypi` is true. The page
+itself uses the console policy above (nonces, no inline handlers) with `blob:` images.
 User code runs only in the browser; its tool calls are ordinary API requests under the user's
 session. Details: [Python Playground](../getting-started/Python%20Playground.md#security).
 
@@ -281,9 +300,20 @@ session. Details: [Python Playground](../getting-started/Python%20Playground.md#
 
 `CORSMiddleware` (`sajha/app.py`) allows the origins in `SAJHA_CORS_ORIGINS` (comma-separated). The default is `http://localhost:3002`, `http://127.0.0.1:3002` and `http://0.0.0.0:3002`. It sets `allow_credentials=True` with all methods and headers allowed, and exposes `Mcp-Session-Id`. Set `SAJHA_CORS_ORIGINS` to your real UI origins in production.
 
+### Cross-site requests (CSRF)
+
+`CrossSiteRequestMiddleware` (`sajha/security.py`) refuses with 403 every `POST`, `PUT`, `PATCH` or `DELETE` that carries the `sajha_token` cookie and was sent from another site: the browser's `Origin` (or, without one, the `Referer`'s origin) must be the host the request was sent to, the origin of `mcp.auth.public_url`, an origin in `SAJHA_CORS_ORIGINS` or one in `security.csrf.trusted_origins`. `Origin: null` is refused. A request without either header passes, since browsers always send `Origin` on a cross-site POST; requests without the cookie (API keys, bearer tokens, SAJHA Net) are not affected. It runs before `/sajhanet/` loses its `Origin` header. The MCP endpoints (`/mcp`, `/api/mcp`) keep their own [Origin allow-list](#origin-allow-list-for-mcp). Behind a proxy that rewrites `Host`, set `mcp.auth.public_url` (or `security.csrf.trusted_origins`) to the public origin. `tests/test_browser_hardening.py` enumerates every state-changing route of the app and checks that each refuses a cross-site cookie request.
+
 ### Request size
 
-`RequestSizeLimitMiddleware` (`sajha/security.py`) rejects requests whose `Content-Length` exceeds 10 MB with 413. Bodies sent without a `Content-Length` (chunked) are not measured.
+`RequestSizeLimitMiddleware` (`sajha/security.py`) answers 413 when a request body exceeds `server.max_request_bytes` (default 10 MB): at once when the `Content-Length` says so, and while the body is read when it is streamed without one (chunked).
+
+### Hosts, proxies and TLS
+
+- **Allowed hosts.** `security.allowed_hosts` (exact names or `*.example.com`; empty, the default, allows any) makes `AllowedHostsMiddleware` answer 400 to any other `Host` header (and close a WebSocket with 1008), a defence against DNS rebinding and host-header poisoning. `localhost`, `127.0.0.1` and `[::1]` always pass, so local tools and health checks keep working.
+- **Trusted proxies.** `server.trusted_proxies` is passed to uvicorn as `forwarded_allow_ips`: only those proxies' `X-Forwarded-For` and `X-Forwarded-Proto` are believed (empty: uvicorn's default, `FORWARDED_ALLOW_IPS` or `127.0.0.1`). It decides the client address of the per-IP limits and whether a request counts as `https` (HSTS, `Secure` cookies).
+- **TLS.** SAJHA can serve https itself with `server.tls.certfile` and `server.tls.keyfile` (`sajha/core/transport.py`, used by `run_server.py`); the floor is `server.tls.min_version` (`TLSv1.2`, the default, or `TLSv1.3`) with TLS compression off. With `--workers` or `--reload` the floor is TLS 1.2 whatever the setting. Most deployments terminate TLS at a proxy instead.
+- **Outbound timeouts.** Every outbound HTTP call (`urlopen`, `requests`, `httpx`) outside `sajha/net/` passes a timeout; `tests/test_browser_hardening.py` checks the source.
 
 ### Rate limiting and lockout
 
@@ -299,7 +329,7 @@ All limiters are sliding windows in `sajha/security.py`, keyed by client IP and 
 
 There is no other per-user or per-key limiter: the unused `check_user_rate_limit` and `check_key_rate_limit` were removed, so a policy rule is the only place such a limit can come from.
 
-Behind a reverse proxy the per-IP limits need the real client address: uvicorn takes it from `X-Forwarded-For` only when the proxy is in `FORWARDED_ALLOW_IPS` (default `127.0.0.1`).
+Behind a reverse proxy the per-IP limits need the real client address: uvicorn takes it from `X-Forwarded-For` only when the proxy is in `server.trusted_proxies` (or `FORWARDED_ALLOW_IPS`; default `127.0.0.1`).
 
 ### WebSocket authentication
 
@@ -437,8 +467,10 @@ Configuration is resolved from a `SAJHA_<KEY>` environment variable first, then 
 | **Public URL** `mcp.auth.public_url` | Set it to the external origin (e.g. `https://mcp.example.com`). If it is empty, the issuer and token audience come from the request's `Host` header, which is for local development only. |
 | **OAuth signing key** | Generated at `data/oauth/signing_key.pem` (or `mcp.auth.builtin.signing_key_path`) with mode 0600. `data/oauth/` is in `.gitignore`. Back it up, keep it out of images, and share it between instances. |
 | **External issuer user claim** | `mcp.auth.external.user_claim` is matched to SAJHA user IDs, so a token whose claim equals `admin` maps to the SAJHA admin. Use only a claim the IdP controls. |
-| **HTTPS** | Terminate TLS at a reverse proxy. The cookie `Secure` flag and HSTS depend on the request scheme. Uvicorn trusts `X-Forwarded-Proto` only from `FORWARDED_ALLOW_IPS` (default `127.0.0.1`), so set that if the proxy is on another host. |
+| **HTTPS** | Terminate TLS at a reverse proxy (or set `server.tls.*`). The cookie `Secure` flag and HSTS depend on the request scheme. Uvicorn trusts `X-Forwarded-Proto` only from `server.trusted_proxies` (or `FORWARDED_ALLOW_IPS`; default `127.0.0.1`), so set that if the proxy is on another host, or set `auth.cookie.secure: true`. |
 | **Origins** | Set `SAJHA_CORS_ORIGINS` and `mcp.allowed_origins` to the real browser origins. |
+| **Hosts** | Set `security.allowed_hosts` to the names the server is reached by. |
+| **Single sign-on** | When `auth.sso` is on, keep its client secret in `SAJHA_AUTH_SSO_CLIENT_SECRET`, register one redirect URI per instance, and decide `link_existing` and `auto_provision` for your provider ([Console single sign-on](#console-single-sign-on)). |
 | **Bind address** | `server.host` defaults to `0.0.0.0`. Bind to loopback behind a proxy. |
 | **Risky features** | Keep `shell.enabled`, `mcp.conformance_fixtures`, `mcp.auth.builtin.dynamic_client_registration` and `federation.allow_stdio` off unless needed. Review `config/plugins`. |
 | **Metrics** | Keep `observability.metrics.auth` at `admin` or `token` (token in `SAJHA_OBSERVABILITY_METRICS_TOKEN`), or serve `/metrics` on a private `observability.metrics.port`. |
@@ -494,9 +526,10 @@ These describe the code as it stands. They are listed so you can compensate for 
 - **Account lockout can be triggered by anyone who knows a user ID** (a deliberate trade-off against password guessing); the lock expires after `auth.login.lockout_minutes`, and an admin password reset clears it.
 - **Sign-out reaches other workers only through a shared state store.** With `state.backend: memory`, a signed-out token is refused only by the process that handled the sign-out until it expires; sign out everywhere (the token version) works on every worker. A state-store outage skips the signed-out check.
 
-**Missing account features**
+**Single sign-on**
 
-- **No SSO for the web UI.** No login path uses an external identity provider; the `oauth_provider` / `oauth_subject` user columns are unused. OAuth 2.1 applies only to the MCP endpoints.
+- **No back-channel sign-out.** Signing out at the identity provider or on one instance does not end SAJHA sessions other instances already issued; they last until they expire (`auth.jwt.expiry_minutes`) or are revoked there.
+- **Linking by name trusts the provider.** With `auth.sso.link_existing` on, whoever the provider says is `alice` signs in as the local `alice`; turn it off, or link accounts deliberately, when the provider lets people choose their user names.
 
 **Process-local state**
 
@@ -509,9 +542,8 @@ These describe the code as it stands. They are listed so you can compensate for 
 
 **Headers and transport**
 
-- **CSP allows `'unsafe-inline'`** for scripts and styles.
-- **The request size limit** relies on `Content-Length`.
-- **The WebSocket transport** does not check `Origin`.
+- **Styles keep `'unsafe-inline'`** in the CSP; scripts do not.
+- **`server.tls.min_version: TLSv1.3`** applies only in single-process mode.
 
 ---
 

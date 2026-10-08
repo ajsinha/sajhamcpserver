@@ -92,7 +92,7 @@ capitals, as shown here.
 
 | Role | Meaning |
 |---|---|
-| **Participant** | Anything that holds a net certificate and speaks this protocol: a SAJHA instance, a server with the reference library built in, or the SAJHA Net agent in front of an MCP server. A *sponsored* MCP server is not a participant; its sponsor is. |
+| **Participant** | Anything that holds a net certificate and speaks this protocol: a SAJHA instance, a server with the reference library built in, or the SAJHA Net agent in front of an MCP server. A *sponsored* MCP server speaks none of it: its sponsor runs a participant for it under its own instance name (`kind: "sponsored"`, `sponsor` in its member record), holds that participant's key and answers for it (§7.7, §9.1). |
 | **Sender / receiver** | The two ends of one HTTP exchange between participants. |
 | **Home / host** | For a forwarded tool call, the participant that received the caller's request, and the participant that owns the tool. |
 | **CA participant** | The one participant that runs the net's certificate authority and serves the endpoints of §14 (feature `ca`). |
@@ -532,6 +532,11 @@ every response between participants carries and which the signature always cover
   §16).
 - **Requests the participant sends** carry the `Sajha-Net-Name` of the net the receiver was learned
   in, signed with the participant's certificate for that net.
+- **Sponsored participants.** A server that sponsors participants in a net (design §5.1) serves them on
+  its own base URL too: within the net, the receiver is the participant `Sajha-Net-To` names, falling
+  back to the sponsor itself (a `*` recipient, an unknown name). Each sponsored participant has its own
+  instance name, certificate (whose subjectAltName names the sponsor's host), member record, incarnation
+  and nonce store, and is checked as any participant is.
 
 ## 8. Certificates and signatures
 
@@ -804,6 +809,9 @@ gossip and everything else in this section run separately in each net.
   label changed) and resets to 0 when the incarnation changes.
 - A record is accepted only if its signature verifies against a certificate whose `CN` equals
   `name` and whose subjectAltName contains the host of `url`.
+- `kind` is `sajha`, `agent` or `sponsored`; a `sponsored` record carries `sponsor`, the instance name of the
+  participant that represents it in this net (informational: it changes no check, and peers show it).
+  The extension object of a sponsored participant (§6.1) carries the same `sponsor`.
 
 ### 9.2 Member entry and states
 
@@ -2007,6 +2015,12 @@ Oversized bodies get `413 too_large`.
 Every target (S = SAJHA instance, A = SAJHA Net agent, L = reference library) runs this suite in CI.
 A test marked with a feature applies only to targets that list it. The examples of §21 are test
 vectors for SIG-01, SIG-12 and REC-01.
+
+The runner is `python -m sajha.net.conformance --target <base URL>` (or `--target library` for L): it
+checks from outside, as a participant that never joins, every case observable that way, and reports each
+id `pass`, `fail` or `skip` with its reason (not for this target, a feature not advertised, or a case that
+needs the target's insides). A sponsored participant is tested as target S, through its sponsor's URL
+(`--instance` names it). Usage: [SAJHA Net Agent](../clients/SAJHA%20Net%20Agent.md) section 9.
 
 | Id | Targets | Asserts |
 |---|---|---|

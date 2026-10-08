@@ -37,9 +37,9 @@
       <small class="text-muted">Databases, warehouses, vector stores and search clusters as governed, read-only tools: catalog, describe, query and curated views</small>
     </div>
     <div class="d-flex flex-wrap gap-1">
-      <button class="btn btn-sm btn-success" type="button" onclick="showForm()"><i class="bi bi-plus-lg me-1" aria-hidden="true"></i>Add connection</button>
-      <button class="btn btn-sm btn-outline-primary" type="button" onclick="syncAll()"><i class="bi bi-arrow-repeat me-1" aria-hidden="true"></i>Sync tools</button>
-      <button class="btn btn-sm btn-outline-secondary" type="button" onclick="load()" aria-label="Reload"><i class="bi bi-arrow-clockwise" aria-hidden="true"></i></button>
+      <button class="btn btn-sm btn-success" type="button" data-onclick="showForm()"><i class="bi bi-plus-lg me-1" aria-hidden="true"></i>Add connection</button>
+      <button class="btn btn-sm btn-outline-primary" type="button" data-onclick="syncAll()"><i class="bi bi-arrow-repeat me-1" aria-hidden="true"></i>Sync tools</button>
+      <button class="btn btn-sm btn-outline-secondary" type="button" data-onclick="load()" aria-label="Reload"><i class="bi bi-arrow-clockwise" aria-hidden="true"></i></button>
     </div>
   </div>
 
@@ -66,7 +66,7 @@
         <div class="col-6 col-md-3"><label class="form-label" for="fId">Id (tool prefix)</label>
           <input class="form-control form-control-sm" id="fId" placeholder="shop" autocomplete="off"></div>
         <div class="col-6 col-md-3"><label class="form-label" for="fKind">Kind</label>
-          <select class="form-select form-select-sm" id="fKind" onchange="kindChanged()"></select></div>
+          <select class="form-select form-select-sm" id="fKind" data-onchange="kindChanged()"></select></div>
         <div class="col-12 col-md-6"><label class="form-label" for="fTitle">Title</label>
           <input class="form-control form-control-sm" id="fTitle" placeholder="Shop database"></div>
         <div class="col-12"><label class="form-label" for="fDesc">Description (planners read it: say what the data is)</label>
@@ -119,9 +119,9 @@
       </div>
       <p class="small text-muted mt-2 mb-2">Secrets are references (<code>env:NAME</code>, <code>file:/path</code>, <code>db:llm_providers/&lt;type&gt;</code>), never values. Use an account with read privileges only.</p>
       <div class="cx-actions">
-        <button class="btn btn-sm btn-outline-primary" type="button" onclick="testConn()"><i class="bi bi-plug me-1" aria-hidden="true"></i>Test</button>
-        <button class="btn btn-sm btn-success" type="button" onclick="saveConn()"><i class="bi bi-check-lg me-1" aria-hidden="true"></i>Save</button>
-        <button class="btn btn-sm btn-outline-secondary" type="button" onclick="hideForm()">Cancel</button>
+        <button class="btn btn-sm btn-outline-primary" type="button" data-onclick="testConn()"><i class="bi bi-plug me-1" aria-hidden="true"></i>Test</button>
+        <button class="btn btn-sm btn-success" type="button" data-onclick="saveConn()"><i class="bi bi-check-lg me-1" aria-hidden="true"></i>Save</button>
+        <button class="btn btn-sm btn-outline-secondary" type="button" data-onclick="hideForm()">Cancel</button>
       </div>
       <div id="formMsg" class="small mt-2" role="status" aria-live="polite"></div>
     </div>
@@ -131,7 +131,7 @@
 </div>
 {% endblock %}
 {% block extra_js %}
-<script>
+<script nonce="{{ csp_nonce() }}">
 var KINDS={}, cache={}, editing=null, OPS={{ view_operators|list|tojson }};
 function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})}
 function api(method,url,body){

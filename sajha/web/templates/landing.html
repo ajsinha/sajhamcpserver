@@ -29,6 +29,7 @@ the SAJHA Net ring beside it by static/js/netring.js).
         .sajha-nav .nav-public .nav-link { padding-top: 1.3rem !important; padding-bottom: 1.3rem !important; }
         .sajha-foot-links a { margin: 0 .5rem; text-decoration: none; }
     </style>
+    <script src="{{ url_for('static', filename='js/csp-actions.js') }}?v={{ app_version }}"></script>
 </head>
 <body class="sajha-app">
 <a href="#main-content" class="visually-hidden-focusable sajha-skip">Skip to content</a>
@@ -245,7 +246,7 @@ the SAJHA Net ring beside it by static/js/netring.js).
 <script src="{{ url_for('static', filename='vendor/bootstrap/bootstrap.bundle.min.js') }}"></script>
 {% include "common/_theme_script.html" %}
 
-<script>
+<script nonce="{{ csp_nonce() }}">
 // Smooth scroll for in-page links (the fixed bar's height is allowed for by scroll-padding-top)
 document.querySelectorAll('a[href^="#"]').forEach(function (a) {
     a.addEventListener('click', function (e) {

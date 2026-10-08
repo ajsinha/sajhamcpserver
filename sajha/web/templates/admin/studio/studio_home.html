@@ -802,7 +802,7 @@
             <div class="d-flex gap-2">
                 <input type="text" id="toolName" class="form-control tool-name-input flex-grow-1" 
                        placeholder="my_custom_tool" pattern="[a-z][a-z0-9_]*">
-                <button id="deleteExistsBtn" class="btn btn-delete-exists" onclick="deleteIfExists()" title="Delete existing tool files">
+                <button id="deleteExistsBtn" class="btn btn-delete-exists" data-onclick="deleteIfExists()" title="Delete existing tool files">
                     <i class="bi bi-trash delete-warning-icon"></i>Delete if Exists
                 </button>
             </div>
@@ -810,17 +810,17 @@
             <small class="text-muted">Lowercase letters, numbers, and underscores only</small>
         </div>
         <div class="col-md-8 d-flex align-items-end gap-2">
-            <button id="analyzeBtn" class="btn btn-studio btn-analyze" onclick="analyzeCode()">
+            <button id="analyzeBtn" class="btn btn-studio btn-analyze" data-onclick="analyzeCode()">
                 <i class="bi bi-search me-1"></i>Analyze Code
             </button>
-            <button id="deployBtn" class="btn btn-studio btn-deploy" onclick="deployTool()" disabled>
+            <button id="deployBtn" class="btn btn-studio btn-deploy" data-onclick="deployTool()" disabled>
                 <i class="bi bi-cloud-upload me-1"></i>Deploy Tool
             </button>
-            <button class="btn btn-studio btn-clear" onclick="clearAll()">
+            <button class="btn btn-studio btn-clear" data-onclick="clearAll()">
                 <i class="bi bi-x-circle me-1"></i>Clear
             </button>
             {% if playground_enabled is defined and playground_enabled() %}
-            <button class="btn btn-studio btn-outline-secondary" onclick="openInPlayground()"
+            <button class="btn btn-studio btn-outline-secondary" data-onclick="openInPlayground()"
                     title="Try this function in the Python Playground (runs in your browser)">
                 <i class="bi bi-filetype-py me-1"></i>Open in playground
             </button>
@@ -902,7 +902,7 @@
 
 
 {% block extra_js %}
-<script>
+<script nonce="{{ csp_nonce() }}">
 let analysisComplete = false;
 let existingTools = {{ existing_tools | tojson }};
 

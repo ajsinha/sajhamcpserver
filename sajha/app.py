@@ -35,6 +35,9 @@ VERSION = _get_settings().app_version  # Single source: config/application.yml �
 # ── Template engine (shared across routes) ───────────────────────
 _web_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'web')
 templates = Jinja2Templates(directory=os.path.join(_web_dir, 'templates'))
+# Inline <script> elements carry nonce="{{ csp_nonce() }}" (the response's CSP nonce, sajha/security.py)
+from sajha.security import csp_nonce as _csp_nonce
+templates.env.globals['csp_nonce'] = _csp_nonce
 
 
 def render(request: Request, template_name: str, context: dict = None, status_code: int = 200):
@@ -66,6 +69,9 @@ def render_standalone(request: Request, template_name: str, context: dict = None
     ctx.setdefault('app_email', s.app_email)
     ctx.setdefault('app_github_repo', s.app_github_repo)
     ctx.setdefault('app_copyright_years', s.app_copyright_years)
+    if template_name == 'auth/login.html' and 'sso' not in ctx:
+        from sajha.auth.sso import public_info
+        ctx['sso'] = public_info()
     return templates.TemplateResponse(request, template_name, ctx, status_code=status_code)
 
 
@@ -174,13 +180,20 @@ class SajhaMCPServerWebApp:
         )
 
         # Security headers middleware
-        from sajha.security import SecurityHeadersMiddleware, RequestSizeLimitMiddleware
+        from sajha.security import (SecurityHeadersMiddleware, RequestSizeLimitMiddleware,
+                                    CrossSiteRequestMiddleware, AllowedHostsMiddleware, max_request_bytes)
         app.add_middleware(SecurityHeadersMiddleware)
-        app.add_middleware(RequestSizeLimitMiddleware, max_body_size=10 * 1024 * 1024)
+        # server.max_request_bytes: Content-Length and streamed (chunked) bodies alike
+        app.add_middleware(RequestSizeLimitMiddleware, max_body_size=max_request_bytes())
+        # security.allowed_hosts (empty: any Host)
+        app.add_middleware(AllowedHostsMiddleware)
 
         # SAJHA Net endpoints are not for browsers: no CORS on /sajhanet/ (protocol §7.3)
         from sajha.net.integration.asgi import NoCorsForNetPaths
         app.add_middleware(NoCorsForNetPaths)
+        # Cookie-authenticated state changes from another site are refused (CSRF).  Outside
+        # NoCorsForNetPaths, which drops Origin on /sajhanet/, so those paths are checked too.
+        app.add_middleware(CrossSiteRequestMiddleware)
 
         # Outermost: HTTP metrics and the server span (plain ASGI; streams pass through)
         from sajha.observability.middleware import ObservabilityMiddleware
@@ -231,6 +244,7 @@ class SajhaMCPServerWebApp:
         from sajha.routes.openai_routes import router as openai_router
         from sajha.routes.conversations_routes import router as conversations_router
         from sajha.routes.sajhanet_routes import router as sajhanet_router
+        from sajha.routes.sso_routes import router as sso_router
 
         routers = [
             credential_files_router,   # before apikeys/admin: /admin/apikeys/file, /admin/users/file
@@ -258,6 +272,7 @@ class SajhaMCPServerWebApp:
             openai_router,
             conversations_router,
             sajhanet_router,
+            sso_router,
         ]
 
         for router in routers:

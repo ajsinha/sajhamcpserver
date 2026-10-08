@@ -6,9 +6,10 @@ the setup manual. The requirement-by-requirement description and the security
 decisions are in [MCP 2026-07-28 Compliance §4.1](MCP%202026-07-28%20Compliance.md);
 every key is listed in the [Configuration Reference](../getting-started/Configuration%20Reference.md).
 
-What OAuth here is **not**: it is not single sign-on for the SAJHA web UI, and SAJHA is
-not an OpenID Connect provider (it issues no ID tokens, and
-`/.well-known/openid-configuration` is 404). It controls who may call `/mcp`.
+What OAuth here is **not**: it is not single sign-on for the SAJHA web UI (that is
+[console single sign-on](../security/Security%20Model.md#console-single-sign-on), where SAJHA is an
+OpenID Connect client of your identity provider), and SAJHA is not an OpenID Connect provider (it
+issues no ID tokens, and `/.well-known/openid-configuration` is 404). It controls who may call `/mcp`.
 
 ---
 

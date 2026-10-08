@@ -11,6 +11,10 @@ Opens every page in ROUTES at phone and tablet widths and checks, per page:
     * on phones, the navigation: the hamburger opens the menu, every menu panel opens
       inside the viewport, and the hamburger closes it again
 
+    * the Content-Security-Policy: no violation is reported while the page loads, no element
+      carries an inline event handler (onclick=...), every data-on* handler parses in
+      csp-actions.js's language and names a function the page declares, and no script error
+
   warnings (reported, never fail the run)
     * tap targets under 40 px for primary controls (buttons, inputs, selects, nav items)
     * text under 12 px
@@ -152,6 +156,42 @@ _NOTICES_JS = r"""
           items: document.querySelectorAll('#ssp-body .ssp-item').length};
 }
 """
+#: Collects CSP violations from the first script on; runs before every page's own scripts.
+_CSP_INIT = r"""
+window.__sajhaCsp = [];
+document.addEventListener('securitypolicyviolation', function (e) {
+  window.__sajhaCsp.push(e.violatedDirective + ' ' + (e.blockedURI || '') + ' ' + (e.sample || '').slice(0, 60));
+});
+"""
+
+#: Inline handler attributes left in the DOM, and data-on* handlers that would not run.
+_CSP_CHECK = r"""
+() => {
+  const out = {violations: window.__sajhaCsp || [], inline: [], handlers: []};
+  const NATIVE = /\{\s*\[native code\]\s*\}\s*$/;
+  for (const el of document.querySelectorAll('*')) {
+    for (const a of el.attributes) {
+      if (/^on[a-z]+$/.test(a.name)) out.inline.push(el.tagName.toLowerCase() + '[' + a.name + ']');
+      if (/^data-on[a-z]+$/.test(a.name)) {
+        try {
+          const prog = window.SajhaActions.parse(a.value);
+          const names = [];
+          const walk = n => { if (n && n.k === 'call') { names.push(n.f); n.a.forEach(walk); } if (n && n.e) walk(n.e); };
+          prog.forEach(walk);
+          for (const f of names) {
+            if (f === 'confirm') continue;
+            const fn = window[f];
+            if (typeof fn !== 'function' || NATIVE.test(Function.prototype.toString.call(fn)))
+              out.handlers.push(a.name + '="' + a.value.slice(0, 50) + '": ' + f + ' is not a page function');
+          }
+        } catch (e) { out.handlers.push(a.name + '="' + a.value.slice(0, 50) + '": ' + e.message); }
+      }
+    }
+  }
+  return out;
+}
+"""
+
 PHONE_MAX = 991  # below Bootstrap's lg breakpoint the nav collapses behind the hamburger
 
 # One pass over the page in the browser. Returns the measurements; Python decides.
@@ -322,6 +362,7 @@ def run(base: str, user: str, password: str, routes: List[Tuple[str, bool]], vie
                     continue
                 ctx = browser.new_context(viewport={'width': w, 'height': h}, device_scale_factor=2,
                                           is_mobile=w < 900, has_touch=w < 900)
+                ctx.add_init_script(_CSP_INIT)
                 if theme:
                     ctx.add_init_script(
                         "try{localStorage.setItem('sajha.theme', %s)}catch(e){}" % json.dumps(theme))
@@ -333,6 +374,8 @@ def run(base: str, user: str, password: str, routes: List[Tuple[str, bool]], vie
                         ctx.close()
                         continue
                 page = ctx.new_page()
+                page._sajha_errors = []
+                page.on('pageerror', lambda e, pg=page: pg._sajha_errors.append(str(e)[:120]))
                 for path in todo:
                     _check_page(page, base, path, spec, w, report, shots, theme, verbose,
                                 notices=notices and signed)
@@ -344,6 +387,9 @@ def run(base: str, user: str, password: str, routes: List[Tuple[str, bool]], vie
 def _check_page(page, base: str, path: str, spec: str, w: int, report: Dict,
                 shots: Optional[str], theme: Optional[str], verbose: bool, notices: bool = False) -> None:
     where = f'{spec} {path}'
+    errors = getattr(page, '_sajha_errors', None)
+    if errors is not None:
+        errors.clear()
     try:
         resp = page.goto(base + path, wait_until='load', timeout=30000)
     except Exception as exc:  # noqa: BLE001 — report and go on
@@ -364,6 +410,15 @@ def _check_page(page, base: str, path: str, spec: str, w: int, report: Dict,
     status = resp.status if resp else 0
     if status >= 400:
         report['warnings'].append(f'{where}: HTTP {status}')
+    csp = page.evaluate(_CSP_CHECK)
+    for v in sorted(set(csp['violations']))[:8]:
+        report['failures'].append(f'{where}: CSP violation: {v}')
+    for h in sorted(set(csp['inline']))[:8]:
+        report['failures'].append(f'{where}: inline event handler {h}')
+    for h in sorted(set(csp['handlers']))[:8]:
+        report['failures'].append(f'{where}: handler {h}')
+    for e in sorted(set(errors or []))[:5]:
+        report['failures'].append(f'{where}: script error: {e}')
     if not page.evaluate("!!document.querySelector('meta[name=viewport]')"):
         report['failures'].append(f'{where}: no <meta name=viewport>')
     m = page.evaluate(_MEASURE)

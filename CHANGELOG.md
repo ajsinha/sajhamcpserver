@@ -14,6 +14,60 @@ Newest first. The current version is `app.version` in `config/application.yml`.
   `ca.auto_init`; owner decision): audited, with a warning notice to back up the CA key. Peers can
   enroll without running `sajha net ca init` first.
 
+### Console single sign-on, browser and transport hardening (wave 5, phase 5.3, roadmap X5 and X6)
+
+- Added: **console single sign-on** with OpenID Connect (authorization code + PKCE, `sajha/auth/sso.py`,
+  `GET /auth/sso/login`, `GET /auth/sso/callback`, `GET /api/auth/sso`), opt-in with `auth.sso.enabled`
+  (default off) and alongside password sign-in, the users file and API keys. The ID token's signature
+  (the provider's JWKS), `iss`, `aud`/`azp`, `exp`, `iat`, `nonce` and `at_hash` are checked; the state
+  is single-use and bound to the browser. Claims map to SAJHA users (linked by `sub`, or by
+  `auth.sso.user_claim` with `link_existing`; `auto_provision` creates them) and roles (`roles_claim`,
+  `role_map`, `default_roles`, `sync_roles`, `require_role`). Sign-out also ends the provider session
+  (`idp_logout`). Instances of a net that trust the same provider share one sign-in (`auto_redirect`).
+  [Security Model](docs/security/Security%20Model.md#console-single-sign-on).
+- Changed: the **Content-Security-Policy** uses a per-response nonce for scripts (`script-src 'self'
+  'nonce-…'; script-src-attr 'none'`, plus `object-src 'none'`, `base-uri 'self'`, `frame-ancestors
+  'self'`); `'unsafe-inline'` remains for styles only. Every inline script carries the nonce, and the
+  console's inline event handlers became `data-on*` attributes run by `static/js/csp-actions.js`
+  without evaluating script. `X-XSS-Protection` is `0`; HSTS is configurable (`security.hsts.*`).
+  `scripts/check_mobile.py` and `scripts/check_console.py` now fail on CSP violations.
+- Added: the **cross-site request check**: a cookie-authenticated `POST`/`PUT`/`PATCH`/`DELETE` from another
+  site's `Origin` or `Referer` is refused with 403 on every route (`security.csrf.trusted_origins`); a
+  test enumerates every state-changing route. Signing in now signs out the browser's previous session
+  (session rotation). The session cookie's `Secure` is `auth.cookie.secure` and its lifetime follows
+  `auth.jwt.expiry_minutes`.
+- Added: transport settings: `server.max_request_bytes` (also enforced on streamed bodies without a
+  `Content-Length`), `security.allowed_hosts`, `server.trusted_proxies`, and native TLS with
+  `server.tls.certfile`, `server.tls.keyfile` and `server.tls.min_version`.
+- Fixed: the WebSocket transport `/mcp/ws` applies the `/mcp` Origin allow-list before the upgrade;
+  outbound HTTP calls in several data tools had no timeout; `/admin/tools` threw a script error when no
+  tool had metrics.
+
+### SAJHA Net: other MCP servers, the agent, the conformance suite and plug-ins (wave 5, phase 5.3)
+
+- Added: **sponsored MCP servers**. A SAJHA server represents a plain MCP server (a federation upstream) in
+  a net under an instance name of its own (kind `sponsored`, its member record naming the `sponsor`), with
+  the sponsor's export rules, access, policy, residency and audit on every call; it shares the sponsor's URL
+  and is reached by `Sajha-Net-To`. Configured in `sajhanet.sponsored` or through
+  `/api/sajhanet/sponsored` (list, add, remove, enroll); shown in the status, Instances, topology and
+  overview data. [SAJHA Net](docs/architecture/SAJHA%20Net.md) §5.5.
+- Added: **the SAJHA Net agent** (`sajhanet_agent/`, `python -m sajhanet_agent`): any MCP server, over stdio
+  or Streamable HTTP, as a participant of kind `agent` (self-signed or CA-enrolled identity, gossip, catalog,
+  forwarded-key verification against the net key directory, an export policy, signed calls), and **the
+  reference library** it is built on (`sajha.net.library.NetParticipant`). Neither loads the SAJHA server
+  (`tests/test_sajhanet_agent_boundary.py`). [SAJHA Net Agent](docs/clients/SAJHA%20Net%20Agent.md).
+- Added: **the conformance suite runner**, `python -m sajha.net.conformance --target <url>|library`: every
+  id of protocol §20 reported pass, fail or skip for a SAJHA instance, an agent, a sponsored participant or
+  the library. A mixed net of all three passes it (`tests/net/test_net_mixed_conformance.py`).
+- Added: **third-party plug-in registration**: `sajhanet.plugins.modules` and the entry-point group
+  `sajha.net.plugins` are loaded at start; each plug-in must pass its contract check to be selectable, and a
+  failure is an error notice and an audit record. Example: the routing strategy `region_first`
+  (`sajha/examples/sajhanet/region_first.py`).
+- Changed: importing the `sajha` package no longer loads the whole server (its top-level names load on first
+  use), so the protocol core can be used on its own.
+- Fixed: a signed `initialize` from a participant carries the net's extension object under
+  `capabilities.experimental` (CAP-02) also for nets configured in code.
+
 ### SAJHA Net: re-export, identity resolvers and topology data (wave 5, phase 5.2)
 
 - Added: **re-export** ([SAJHA Net](docs/architecture/SAJHA%20Net.md) §14, §5.5): with `sajhanet.reexport`

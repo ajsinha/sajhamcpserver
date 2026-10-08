@@ -68,7 +68,7 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
                             <button type="submit" class="btn btn-success btn-lg">
                                 <i class="bi bi-play-fill"></i> Render Prompt
                             </button>
-                            <button type="button" class="btn btn-secondary" onclick="clearForm()">
+                            <button type="button" class="btn btn-secondary" data-onclick="clearForm()">
                                 <i class="bi bi-arrow-counterclockwise"></i> Clear All
                             </button>
                         </div>
@@ -105,13 +105,13 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
                     <!-- Actions -->
                     <div id="outputActions" style="display: none;" class="mt-3">
                         <div class="btn-group w-100" role="group">
-                            <button class="btn btn-outline-primary" onclick="copyOutput()">
+                            <button class="btn btn-outline-primary" data-onclick="copyOutput()">
                                 <i class="bi bi-clipboard"></i> Copy
                             </button>
-                            <button class="btn btn-outline-success" onclick="downloadOutput()">
+                            <button class="btn btn-outline-success" data-onclick="downloadOutput()">
                                 <i class="bi bi-download"></i> Download
                             </button>
-                            <button class="btn btn-outline-secondary" onclick="clearOutput()">
+                            <button class="btn btn-outline-secondary" data-onclick="clearOutput()">
                                 <i class="bi bi-x-circle"></i> Clear
                             </button>
                         </div>
@@ -148,7 +148,7 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
 
 
 {% block extra_js %}
-<script>
+<script nonce="{{ csp_nonce() }}">
 const promptName = "{{ prompt.name }}";
 let renderCount = 0;
 let currentOutput = '';

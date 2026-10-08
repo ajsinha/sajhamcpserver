@@ -94,7 +94,7 @@ class TavilyBaseTool(BaseMCPTool):
                 }
             )
             
-            with urllib.request.urlopen(req) as response:
+            with urllib.request.urlopen(req, timeout=30) as response:
                 result = safe_json_response(response, ENCODINGS_ALL)
                 
                 # Format results

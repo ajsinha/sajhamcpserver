@@ -32,6 +32,7 @@ SAJHA MCP Server — Sign in (MAYA's sign-in page: a white card standing on the 
         .login-links { display: flex; gap: 1.5rem; justify-content: center; flex-wrap: wrap; }
         .sajha-public .sajha-foot { border-top: 0; padding-top: 0; }
     </style>
+    <script src="{{ url_for('static', filename='js/csp-actions.js') }}?v={{ app_version }}"></script>
 </head>
 <body class="sajha-public">
 {% include "common/_icons.html" ignore missing %}
@@ -48,7 +49,11 @@ SAJHA MCP Server — Sign in (MAYA's sign-in page: a white card standing on the 
         <div class="card login-card"><div class="card-body">
             <h1 class="h3"><i class="bi bi-lock me-2" aria-hidden="true"></i>Sign In</h1>
             {% if error %}<div class="alert alert-danger py-2 d-flex align-items-center gap-2" role="alert"><i class="bi bi-exclamation-triangle-fill" aria-hidden="true"></i> {{ error }}</div>{% endif %}
-            <form method="POST" action="/login">
+            {% if sso and sso.enabled %}
+            <a class="btn btn-outline-primary w-100 py-2 mb-3" href="{{ sso.login_url }}{% if next and next != '/dashboard' %}?next={{ next|urlencode }}{% endif %}"><i class="bi bi-shield-lock me-2" aria-hidden="true"></i>Sign in with {{ sso.label }}</a>
+            <div class="text-center small-muted mb-3">or with your SAJHA user ID</div>
+            {% endif %}
+            <form method="POST" action="/login{% if next and next != '/dashboard' %}?next={{ next|urlencode }}{% endif %}">
                 <div class="mb-3"><label class="form-label" for="user_id">User ID</label>
                     <div class="input-group"><span class="input-group-text"><i class="bi bi-person" aria-hidden="true"></i></span>
                     <input class="form-control" type="text" id="user_id" name="user_id" placeholder="Enter your user ID" autocomplete="username" required autofocus></div></div>

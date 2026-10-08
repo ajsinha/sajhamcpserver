@@ -47,7 +47,7 @@
                 <option value="30">30s</option>
                 <option value="60">60s</option>
             </select>
-            <button class="btn btn-sm btn-outline-primary ms-1 refresh-btn" onclick="refreshData()"><i class="bi bi-arrow-clockwise"></i></button>
+            <button class="btn btn-sm btn-outline-primary ms-1 refresh-btn" data-onclick="refreshData()"><i class="bi bi-arrow-clockwise"></i></button>
         </div>
     </div>
 
@@ -212,7 +212,7 @@
     <div class="card mb-3">
         <div class="card-header d-flex justify-content-between align-items-center">
             <span><i class="bi bi-database me-2"></i>Tool Cache</span>
-            <button class="btn btn-sm btn-outline-danger" onclick="invalidateCache()"><i class="bi bi-trash me-1"></i>Invalidate All</button>
+            <button class="btn btn-sm btn-outline-danger" data-onclick="invalidateCache()"><i class="bi bi-trash me-1"></i>Invalidate All</button>
         </div>
         <div class="card-body">
             <div class="row g-3 text-center">
@@ -253,7 +253,7 @@
 </div>
 {% endblock %}
 {% block extra_js %}
-<script>
+<script nonce="{{ csp_nonce() }}">
 var refreshTimer = null;
 
 function usageClass(pct) {

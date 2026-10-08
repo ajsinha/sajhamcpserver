@@ -115,6 +115,13 @@ def main():
     # Without --reload, we can pass the app object directly.
 
     import uvicorn
+    # server.trusted_proxies and server.tls.* (sajha/core/transport.py)
+    from sajha.core.transport import uvicorn_kwargs, harden_ssl_context, tls_min_version
+    import ssl
+    extra = uvicorn_kwargs()
+    if extra.get('ssl_certfile') and (args.workers > 1 or args.reload) and tls_min_version() != ssl.TLSVersion.TLSv1_2:
+        logger.warning('server.tls.min_version above TLSv1.2 is applied in single-process mode only; '
+                       'with --workers or --reload the floor is TLS 1.2')
 
     if args.workers and args.workers > 1:
         # Each worker is its own process: uvicorn needs an import string, and the
@@ -126,6 +133,7 @@ def main():
             workers=args.workers,
             log_level=log_level.lower(),
             factory=True,
+            **extra,
         )
     elif args.reload:
         # Factory mode: uvicorn imports and calls create_app()
@@ -135,17 +143,17 @@ def main():
             reload=True,
             log_level=log_level.lower(),
             factory=True,
+            **extra,
         )
     else:
         # Direct mode: instantiate SajhaMCPServerWebApp here
         from sajha.app import SajhaMCPServerWebApp
         webapp = SajhaMCPServerWebApp()
-        uvicorn.run(
-            webapp.app,
-            host=host, port=port,
-            workers=args.workers,
-            log_level=log_level.lower(),
-        )
+        config = uvicorn.Config(webapp.app, host=host, port=port, workers=args.workers,
+                                log_level=log_level.lower(), **extra)
+        config.load()
+        harden_ssl_context(config.ssl)       # server.tls.min_version
+        uvicorn.Server(config).run()
 
 
 if __name__ == '__main__':

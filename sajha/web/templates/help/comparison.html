@@ -115,7 +115,7 @@
 {% endblock %}
 
 {% block extra_js %}
-<script>
+<script nonce="{{ csp_nonce() }}">
 (function () {
     var btn = document.getElementById('cmpNotes'), table = document.getElementById('cmpTable');
     if (!btn || !table) return;

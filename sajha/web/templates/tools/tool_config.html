@@ -247,7 +247,7 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
 <!-- JSONEditor JS -->
 <script src="{{ url_for('static', filename='vendor/jsoneditor/jsoneditor.min.js') }}"></script>
 
-<script>
+<script nonce="{{ csp_nonce() }}">
 const toolName = "{{ tool_name }}";
 let editor = null;
 let originalConfig = null;

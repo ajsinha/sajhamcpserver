@@ -20,6 +20,9 @@ enforces it), so the SAJHA Net agent and the reference library can be built from
 * :mod:`sajha.net.ca`          the SAJHA Net CA: tokens, enrollment, renewal, revocation list (§13, §14)
 * :mod:`sajha.net.node`        one participant's view of one net, and the endpoint handlers (§7, §9, §13, §14)
 * :mod:`sajha.net.contract`    contract checks every plug-in implementation must pass
+* :mod:`sajha.net.library`     the reference library: a complete participant from the core alone (the
+                               SAJHA Net agent, ``sajhanet_agent/``, is built on it)
+* :mod:`sajha.net.conformance` the conformance suite of §20 and its runner (``python -m sajha.net.conformance``)
 
 SAJHA's integration (configuration, state store, notices, metrics, audit, the routes in
 ``sajha/routes/sajhanet_routes.py``) is :mod:`sajha.net.integration`, which depends on the core and

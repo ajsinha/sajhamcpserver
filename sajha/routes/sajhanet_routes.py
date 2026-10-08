@@ -397,6 +397,57 @@ async def sajhanet_unapprove(net: str, peer: str, tool: str, auth: AuthContext =
     return _off() if c is None else await _call(c.approve, net, peer, tool, False, auth.user_id)
 
 
+# ── sponsored MCP servers (design §5.1) ─────────────────────────────
+
+def _sponsorships():
+    svc = _svc()
+    if svc is None or not svc.shared.enabled:
+        return None
+    from sajha.net.integration.sponsored import get_sponsorships
+    return get_sponsorships(svc)
+
+
+@router.get('/api/sajhanet/sponsored')
+async def sajhanet_sponsored(auth: AuthContext = Depends(require_admin)):
+    """The plain MCP servers this server sponsors, per net: upstream, tools offered, state, certificate."""
+    sp = _sponsorships()
+    return _off() if sp is None else await _call(lambda: {'sponsored': sp.view()})
+
+
+@router.post('/api/sajhanet/sponsored')
+async def sajhanet_sponsor(request: Request, auth: AuthContext = Depends(require_admin)):
+    """Sponsor a federation upstream into a net: ``{"net", "instance_name", "upstream", "tools", "region",
+    "labels"}``."""
+    sp = _sponsorships()
+    if sp is None:
+        return _off()
+    b = await _body(request)
+    return await _call(sp.add, b, auth.user_id)
+
+
+@router.delete('/api/sajhanet/sponsored/{net}/{instance}')
+async def sajhanet_unsponsor(net: str, instance: str, auth: AuthContext = Depends(require_admin)):
+    sp = _sponsorships()
+    if sp is None:
+        return _off()
+    try:
+        ok = await run_in_threadpool(sp.remove, net, instance, auth.user_id)
+    except Exception as e:
+        return _err(e)
+    return JSONResponse({'removed': ok}, status_code=200 if ok else 404)
+
+
+@router.post('/api/sajhanet/sponsored/{net}/{instance}/enroll')
+async def sajhanet_sponsored_enroll(net: str, instance: str, request: Request,
+                                    auth: AuthContext = Depends(require_admin)):
+    """A certificate for a sponsored participant from the net's CA: ``{"ca_url", "token"}``."""
+    sp = _sponsorships()
+    if sp is None:
+        return _off()
+    b = await _body(request)
+    return await _call(sp.enroll, net, instance, str(b.get('ca_url') or ''), str(b.get('token') or ''), auth.user_id)
+
+
 # ── the Instances page (every signed-in user) and Remote tools (admin), design §17.1 ─────
 
 def _user(auth: AuthContext) -> Dict[str, Any]:

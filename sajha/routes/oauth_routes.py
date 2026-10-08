@@ -121,11 +121,10 @@ async def oauth_jwks():
 # ── /oauth/authorize ───────────────────────────────────────────────
 
 def _page_headers() -> Dict[str, str]:
+    from sajha.security import console_csp
     # Clickjacking: the consent page must never be framed.  The security middleware keeps these.
     return {**_NO_STORE, 'X-Frame-Options': 'DENY', 'Referrer-Policy': 'no-referrer',
-            'Content-Security-Policy': ("default-src 'self'; script-src 'self' 'unsafe-inline'; "
-                                        "style-src 'self' 'unsafe-inline'; img-src 'self' data:; "
-                                        "font-src 'self'; frame-ancestors 'none'")}
+            'Content-Security-Policy': console_csp(frame_ancestors="'none'")}
 
 
 def _error_page(request: Request, message: str, status: int = 400):

@@ -77,12 +77,27 @@ both keys.
 | `server.host` | `0.0.0.0` (YAML `${SERVER_HOST:0.0.0.0}`) | `SERVER_HOST`, `SAJHA_SERVER_HOST` | Bind address (`run_server.py`). Also used in the startup log and the A2A card URL. |
 | `server.port` | `3002` (YAML `${SERVER_PORT:3002}`) | `SERVER_PORT`, `SAJHA_SERVER_PORT` | Listen port (`run_server.py`, `sajha/routes/a2a_routes.py`). |
 | `server.debug` | `false` | `SAJHA_SERVER_DEBUG` | **Not used.** It is loaded into Settings, but nothing reads it. |
+| `server.max_request_bytes` | `10485760` (min 1024) | `SAJHA_SERVER_MAX_REQUEST_BYTES` | Request bodies above this get 413, by `Content-Length` or while a streamed body is read (`RequestSizeLimitMiddleware`, `sajha/security.py`; read at start-up). |
+| `server.trusted_proxies` | `""` | `SAJHA_SERVER_TRUSTED_PROXIES` | Proxies whose `X-Forwarded-For` / `X-Forwarded-Proto` uvicorn believes (its `forwarded_allow_ips`, comma-separated addresses or `*`; `sajha/core/transport.py`, `run_server.py`). Empty: uvicorn's default, `FORWARDED_ALLOW_IPS` or `127.0.0.1`. |
+| `server.tls.certfile`, `server.tls.keyfile` | `""` | `SAJHA_SERVER_TLS_CERTFILE`, `SAJHA_SERVER_TLS_KEYFILE` | Serve https directly with this certificate chain and key (both or neither; `run_server.py`). Usually TLS ends at a proxy instead. |
+| `server.tls.min_version` | `TLSv1.2` | `SAJHA_SERVER_TLS_MIN_VERSION` | `TLSv1.2` or `TLSv1.3`: the lowest TLS version served (single-process mode; with `--workers` or `--reload` the floor is TLS 1.2). |
 
 Env-only:
 
 | Env var | Default | Purpose |
 |---------|---------|---------|
-| `SAJHA_CORS_ORIGINS` | `http://localhost:3002,http://127.0.0.1:3002,http://0.0.0.0:3002` | Comma-separated CORS allow-list (`sajha/app.py`). It has no YAML key. The default is fixed to port 3002 whatever `server.port` is. This is separate from `mcp.allowed_origins`. |
+| `SAJHA_CORS_ORIGINS` | `http://localhost:3002,http://127.0.0.1:3002,http://0.0.0.0:3002` | Comma-separated CORS allow-list (`sajha/app.py`). It has no YAML key. The default is fixed to port 3002 whatever `server.port` is. This is separate from `mcp.allowed_origins`. Its origins may also send cookie-authenticated changes (the cross-site check, `sajha/security.py`). |
+
+## security
+
+Browser and transport hardening (`sajha/security.py`; [Security Model §3](../security/Security%20Model.md#3-transport-protections)). Reader: live `_get`, except `security.allowed_hosts`, read at start-up.
+
+| Key | Default | Env | Purpose / reader |
+|-----|---------|-----|------------------|
+| `security.allowed_hosts` | `[]` (any host) | `SAJHA_SECURITY_ALLOWED_HOSTS` | `Host` header allow-list: exact names or `*.example.com`; others get 400. `localhost`, `127.0.0.1` and `[::1]` always pass (`AllowedHostsMiddleware`). |
+| `security.hsts.max_age` | `31536000` | `SAJHA_SECURITY_HSTS_MAX_AGE` | `Strict-Transport-Security` max-age on https responses; `0` sends no header. |
+| `security.hsts.include_subdomains` | `true` | `SAJHA_SECURITY_HSTS_INCLUDE_SUBDOMAINS` | Adds `includeSubDomains`. |
+| `security.csrf.trusted_origins` | `[]` | `SAJHA_SECURITY_CSRF_TRUSTED_ORIGINS` | Origins besides this server (its `Host`, `mcp.auth.public_url`) and `SAJHA_CORS_ORIGINS` whose pages may send cookie-authenticated `POST`/`PUT`/`PATCH`/`DELETE` requests (`cross_site_refusal`). |
 
 ## db
 
@@ -131,7 +146,7 @@ Reader: Settings.
 |-----|-----------------------|-----|------------------|
 | `auth.jwt.secret` | YAML `${JWT_SECRET:}` / code `""`: empty means generated once (256 bits) and persisted in `auth.secrets_file` | `JWT_SECRET`, `SAJHA_JWT_SECRET`, `SAJHA_AUTH_JWT_SECRET` | HMAC key for SAJHA login JWTs (`sajha/auth/jwt_handler.py`). A value equal to a placeholder SAJHA ever shipped stops start-up (`sajha/core/server_secrets.py`); a value shorter than 32 characters logs a warning. |
 | `auth.jwt.algorithm` | `HS256` | `SAJHA_JWT_ALGORITHM`, `SAJHA_AUTH_JWT_ALGORITHM` | JWT algorithm (`jwt_handler.py`). |
-| `auth.jwt.expiry_minutes` | `60` (YAML `${JWT_EXPIRY:60}`) | `JWT_EXPIRY`, `SAJHA_JWT_EXPIRY_MINUTES`, `SAJHA_AUTH_JWT_EXPIRY_MINUTES` | Token lifetime (`jwt_handler.py`). The browser cookie `sajha_token` has a fixed `max_age` of 3600 s (`sajha/routes/auth_routes.py`). |
+| `auth.jwt.expiry_minutes` | `60` (YAML `${JWT_EXPIRY:60}`) | `JWT_EXPIRY`, `SAJHA_JWT_EXPIRY_MINUTES`, `SAJHA_AUTH_JWT_EXPIRY_MINUTES` | Token lifetime (`jwt_handler.py`); the browser cookie `sajha_token` lasts as long (`sajha/routes/auth_routes.py`). |
 | `auth.session.secret_key` | YAML `${SESSION_SECRET:}` / code `""`: empty means generated and persisted, like `auth.jwt.secret` | `SESSION_SECRET`, `SAJHA_SECRET_KEY`, `SAJHA_AUTH_SESSION_SECRET_KEY` | Keys the OAuth consent-form CSRF tokens (`sajha/auth/oauth/authorization_server.py`). It is also the seed for the MRTR state secret when `mcp.mrtr.state_secret` is empty (`sajha/core/mcp_mrtr.py` uses the resolved Settings value). Placeholder values stop start-up. |
 | `auth.session.timeout_minutes` | `60` | — | **Not used.** Nothing reads this key. |
 | `auth.secrets_file` | `""` → `<data.dir>/secrets/server_secrets.json` | `SAJHA_AUTH_SECRETS_FILE` | Where generated secrets are kept: JSON, mode 0600 in a 0700 directory, created on first start (`sajha/core/server_secrets.py`). `data/secrets/` is git-ignored. Workers that share it share the secrets. Deleting it signs everyone out. |
@@ -146,6 +161,35 @@ Reader: Settings.
 | `auth.login.ip_window_seconds` | `300` (min 1) | `SAJHA_AUTH_LOGIN_IP_WINDOW_SECONDS` | The window for `ip_max_failures`. |
 | `auth.password.min_length` | not in YAML / `8` (never below 8) | `SAJHA_AUTH_PASSWORD_MIN_LENGTH` | Minimum length of a new password (`sajha/auth/password.py`). |
 | `auth.api_keys.max_per_user` | not in YAML / `25` (min 1) | `SAJHA_AUTH_API_KEYS_MAX_PER_USER` | API keys a user may hold besides their default key (live `_get`, `sajha/auth/apikeys.py`). |
+| `auth.cookie.secure` | `auto` | `SAJHA_AUTH_COOKIE_SECURE` | The `Secure` attribute of the `sajha_token` and `sajha_sso` cookies: `auto` (when the request scheme is https; behind a TLS proxy set `server.trusted_proxies`), `true` or `false` (live `_get`, `cookie_secure` in `sajha/routes/auth_routes.py`). |
+
+### Console single sign-on (`auth.sso`)
+
+OpenID Connect sign-in for the console (`sajha/auth/sso.py`; [Security Model](../security/Security%20Model.md#console-single-sign-on)). All keys are read live with `_get` (env `SAJHA_AUTH_SSO_<KEY>`). It is on only when `enabled` is true and `issuer` and `client_id` are set.
+
+| Key | Default | Purpose |
+|-----|---------|---------|
+| `auth.sso.enabled` | `false` | Turn single sign-on on. Password sign-in keeps working. |
+| `auth.sso.issuer` | `""` | The provider's issuer URL; its OpenID Connect discovery document is read from under `<issuer>/.well-known/`. `https` (plain `http` only on localhost). |
+| `auth.sso.client_id` | `""` | This instance's client at the provider. |
+| `auth.sso.client_secret` | not in YAML / `""` | Env only: `SAJHA_AUTH_SSO_CLIENT_SECRET`. Empty: a public client (PKCE only). |
+| `auth.sso.token_auth` | not in YAML / `client_secret_basic` with a secret, else `none` | How the secret goes to the token endpoint: `client_secret_basic` or `client_secret_post`. |
+| `auth.sso.scopes` | `openid profile email` | Requested scopes; `openid` is always added. |
+| `auth.sso.redirect_uri` | `""` → `<mcp.auth.public_url or the request's origin>/auth/sso/callback` | The callback URL registered with the provider. |
+| `auth.sso.label` | `Single sign-on` | The login page button reads "Sign in with <label>". |
+| `auth.sso.provider_name` | not in YAML / `oidc` | Stored in `users.oauth_provider` for linked accounts. |
+| `auth.sso.user_claim` | `preferred_username` | The ID token claim that names the SAJHA user (`email` requires `email_verified` not false). |
+| `auth.sso.roles_claim` | `""` | The claim holding groups or roles (dotted for nested claims, e.g. `realm_access.roles`); empty: no mapping. |
+| `auth.sso.role_map` | `[]` | `["<claim value>=<SAJHA role>", ...]`; only existing roles are granted. |
+| `auth.sso.default_roles` | `[user]` | Roles of a created (or synced) user when no mapped role applies. |
+| `auth.sso.auto_provision` | `false` | Create a SAJHA user on first sign-in. |
+| `auth.sso.link_existing` | `true` | Link an existing user whose ID equals the claim on first sign-in. |
+| `auth.sso.sync_roles` | `false` | Replace a user's roles with the mapped ones at each sign-in (never for users in `config/users.json`). |
+| `auth.sso.require_role` | `false` | Refuse a sign-in that maps to no role. |
+| `auth.sso.auto_redirect` | `false` | `/login` goes straight to the provider (`/login?local=1` shows the password form): one sign-in across instances that share the provider. |
+| `auth.sso.idp_logout` | `true` | Sign-out of an SSO session also redirects to the provider's `end_session_endpoint`. |
+| `auth.sso.clock_skew_seconds` | not in YAML / `60` | Leeway for the ID token's `exp` and `iat`. |
+| `auth.sso.timeout_seconds` | not in YAML / `10` | Timeout of each call to the provider. |
 
 ## mcp
 
@@ -700,6 +744,8 @@ whole design, with every planned key, is
 | `sajhanet.data_classes.tools` | `{}` | YAML only. Classify tools without editing them: `{<tool name or glob>: {arguments: {<field path>: <class or list>}, results: {...}}}`; a path is dotted property names, `[]` for every array item (`rows.[].email`), `*` for the whole value. Adds to the tools' own `x-sajha-data-class` marks and `data_classes`; at a home it applies to remote tools by their host tool name or qualified name. Server-wide only. |
 | `sajhanet.memory.remote_results` | `store` | What conversation memory keeps of an answer that used results from other instances: `store` (as written), `summary` (every figure replaced by `[remote figure]`) or `none` (a placeholder). Server-wide only. |
 | `sajhanet.memory.by_class` | `{}` | YAML only. `{<data class or glob>: store\|summary\|none}`: the mode for answers that used remote results of that class; the strictest mode of the classes involved wins, `remote_results` for the rest. |
+| `sajhanet.plugins.modules` | `[]` | Third-party plug-in modules imported at start (YAML list, or `SAJHA_SAJHANET_PLUGINS_MODULES` comma separated); each registers its classes with `sajha.net.plugins.register`. Plug-ins in the entry-point group `sajha.net.plugins` load as well. Every new plug-in must pass its contract check (`sajha/net/contract.py`) or it is not selectable; a module that cannot be imported, registers nothing or fails its check raises an error notice and an audit record, and start goes on. Example: `sajha.examples.sajhanet.region_first` (routing `region_first`). Server-wide only. |
+| `sajhanet.sponsored` | `[]` | YAML only. Plain MCP servers this server sponsors into a net ([SAJHA Net](../architecture/SAJHA%20Net.md) §5.1): a list of `{net, instance_name, upstream, tools, region, labels}`. `upstream` is a federation upstream id (`federation.upstreams`): its tools, by the server's own names and filtered by the `tools` globs (default all), are offered under `instance_name` (kind `sponsored`); `region` and `labels` default to this server's. Calls are governed here: export rules under the tools' local names, access, policy, residency, audit. Its key and certificate are in `<data_dir>/<net>/sponsored/<instance_name>/`: self-signed in `open` and `manual` nets, issued here when this server is the net's CA participant, else obtained with `POST /api/sajhanet/sponsored/{net}/{instance}/enroll`. Entries added through the admin API are kept in the storage backend (`<data_dir>/sponsored.json`). |
 
 Fields of a `sajhanet.nets` entry (YAML or `SAJHA_SAJHANET_NETS`). An entry may also set `base_url`,
 `region`, `labels`, `signature_max_age_seconds`, `require_https`, `min_protocol_version`, `gossip`

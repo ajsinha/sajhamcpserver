@@ -20,7 +20,7 @@
         <div class="tab-pane fade show active" id="providers">
             <div class="d-flex justify-content-between align-items-center mb-3">
                 <h5 class="mb-0"><i class="bi bi-cloud me-2"></i>Configured Providers</h5>
-                <button class="btn btn-success" onclick="showAddProvider()"><i class="bi bi-plus-lg me-1"></i>Add Provider</button>
+                <button class="btn btn-success" data-onclick="showAddProvider()"><i class="bi bi-plus-lg me-1"></i>Add Provider</button>
             </div>
             <div class="row g-3" id="providerCards"></div>
 
@@ -31,7 +31,7 @@
                     <div class="row g-3">
                         <div class="col-md-4">
                             <label class="form-label fw-bold">Provider Type <span class="text-danger">*</span></label>
-                            <select class="form-select" id="newProvType" onchange="updateProviderFields()">
+                            <select class="form-select" id="newProvType" data-onchange="updateProviderFields()">
                                 <option value="">Select provider...</option>
                                 <option value="anthropic">Anthropic (Claude)</option>
                                 <option value="openai">OpenAI (GPT)</option>
@@ -60,7 +60,7 @@
                             <div class="input-group">
                                 <span class="input-group-text"><i class="bi bi-key"></i></span>
                                 <input type="password" class="form-control" id="newProvApiKey" placeholder="sk-ant-... or sk-...">
-                                <button class="btn btn-outline-secondary" type="button" onclick="toggleKeyVisibility('newProvApiKey', this)"><i class="bi bi-eye"></i></button>
+                                <button class="btn btn-outline-secondary" type="button" data-onclick="toggleKeyVisibility('newProvApiKey', this)"><i class="bi bi-eye"></i></button>
                             </div>
                             <div class="form-text" id="apiKeyHint">Required for cloud providers. Not needed for Ollama.</div>
                         </div>
@@ -135,9 +135,9 @@
 
                     <hr>
                     <div class="d-flex gap-2 align-items-center">
-                        <button class="btn btn-success" onclick="saveNewProvider()"><i class="bi bi-check-lg me-1"></i>Save Provider</button>
-                        <button class="btn btn-outline-info" onclick="testNewProvider()"><i class="bi bi-heart-pulse me-1"></i>Test Connection</button>
-                        <button class="btn btn-secondary" onclick="cancelAddProvider()">Cancel</button>
+                        <button class="btn btn-success" data-onclick="saveNewProvider()"><i class="bi bi-check-lg me-1"></i>Save Provider</button>
+                        <button class="btn btn-outline-info" data-onclick="testNewProvider()"><i class="bi bi-heart-pulse me-1"></i>Test Connection</button>
+                        <button class="btn btn-secondary" data-onclick="cancelAddProvider()">Cancel</button>
                         <div id="addProvStatus" class="ms-3"></div>
                     </div>
                 </div>
@@ -154,7 +154,7 @@
                             <div class="input-group">
                                 <span class="input-group-text"><i class="bi bi-key"></i></span>
                                 <input type="password" class="form-control" id="editProvApiKey" placeholder="Enter new API key (leave blank to keep current)">
-                                <button class="btn btn-outline-secondary" type="button" onclick="toggleKeyVisibility('editProvApiKey', this)"><i class="bi bi-eye"></i></button>
+                                <button class="btn btn-outline-secondary" type="button" data-onclick="toggleKeyVisibility('editProvApiKey', this)"><i class="bi bi-eye"></i></button>
                             </div>
                         </div>
                         <div class="col-md-6">
@@ -163,8 +163,8 @@
                         </div>
                     </div>
                     <div class="mt-3 d-flex gap-2">
-                        <button class="btn btn-primary" onclick="saveProvider()"><i class="bi bi-check-lg me-1"></i>Save</button>
-                        <button class="btn btn-secondary" onclick="cancelEditProvider()">Cancel</button>
+                        <button class="btn btn-primary" data-onclick="saveProvider()"><i class="bi bi-check-lg me-1"></i>Save</button>
+                        <button class="btn btn-secondary" data-onclick="cancelEditProvider()">Cancel</button>
                     </div>
                 </div>
             </div>
@@ -191,12 +191,12 @@
                         <div class="col-md-2"><label class="form-label">Output Cost ($/1K)</label><input type="number" step="0.001" class="form-control" id="newModelCostOut" value="0.015"></div>
                     </div>
                     <div class="mt-3 d-flex gap-2">
-                        <button class="btn btn-success" onclick="saveNewModel()"><i class="bi bi-plus-lg me-1"></i>Add</button>
-                        <button class="btn btn-secondary" onclick="document.getElementById('addModelForm').style.display='none'">Cancel</button>
+                        <button class="btn btn-success" data-onclick="saveNewModel()"><i class="bi bi-plus-lg me-1"></i>Add</button>
+                        <button class="btn btn-secondary" data-onclick="sajhaDisplay('addModelForm', 'none')">Cancel</button>
                     </div>
                 </div>
             </div>
-            <button class="btn btn-outline-success mt-3" onclick="document.getElementById('addModelForm').style.display='block'" id="showAddModel"><i class="bi bi-plus-lg me-1"></i>Add Model</button>
+            <button class="btn btn-outline-success mt-3" data-onclick="sajhaDisplay('addModelForm', 'block')" id="showAddModel"><i class="bi bi-plus-lg me-1"></i>Add Model</button>
         </div>
 
         <!-- ═══ Preferences Tab ═══ -->
@@ -212,8 +212,8 @@
                         <div class="col-md-2"><label class="form-label fw-bold">Max Tokens</label><input type="number" class="form-control" id="prefMaxTokens" value="4096"></div>
                     </div>
                     <div class="mt-3 d-flex gap-2">
-                        <button class="btn btn-primary" onclick="savePreferences()"><i class="bi bi-check-lg me-1"></i>Save Preferences</button>
-                        <button class="btn btn-outline-danger" onclick="clearPreferences()"><i class="bi bi-trash me-1"></i>Clear (Use Defaults)</button>
+                        <button class="btn btn-primary" data-onclick="savePreferences()"><i class="bi bi-check-lg me-1"></i>Save Preferences</button>
+                        <button class="btn btn-outline-danger" data-onclick="clearPreferences()"><i class="bi bi-trash me-1"></i>Clear (Use Defaults)</button>
                     </div>
                     <div id="prefStatus" class="mt-2"></div>
                 </div>
@@ -228,7 +228,7 @@
                     <p class="text-muted">Describe what you need in plain English. SAJHA finds the best matching tools using vector similarity.</p>
                     <div class="input-group mb-3">
                         <input type="text" class="form-control form-control-lg" id="semanticQuery" placeholder="e.g. find companies with high debt-to-equity ratios">
-                        <button class="btn btn-primary" onclick="semanticSearch()"><i class="bi bi-search me-1"></i>Search</button>
+                        <button class="btn btn-primary" data-onclick="semanticSearch()"><i class="bi bi-search me-1"></i>Search</button>
                     </div>
                     <div id="semanticResults" role="status" aria-live="polite"></div>
                 </div>
@@ -247,7 +247,7 @@
 {% endblock %}
 
 {% block extra_js %}
-<script>
+<script nonce="{{ csp_nonce() }}">
 // Load providers on page load
 function loadProviders() {
     fetch('/api/ai/providers').then(r=>r.json()).then(data => {
@@ -267,10 +267,10 @@ function loadProviders() {
                     <div class="mb-2 small">${hasKey}<span class="text-muted">${p.base_url || 'Default endpoint'}</span></div>
                     <div class="mb-2 small text-muted">${p.model_count || 0} models configured</div>
                     <div class="d-flex gap-2 mt-auto flex-wrap">
-                        <button class="btn btn-sm btn-outline-warning" onclick="editProvider('${p.type}')"><i class="bi bi-pencil me-1"></i>Edit</button>
-                        <button class="btn btn-sm btn-outline-info" onclick="testProvider('${p.type}')"><i class="bi bi-heart-pulse me-1"></i>Test</button>
-                        <button class="btn btn-sm btn-outline-primary" onclick="setDefault('${p.type}')"><i class="bi bi-star me-1"></i>Default</button>
-                        <button class="btn btn-sm btn-outline-${p.enabled?'secondary':'success'}" onclick="toggleProvider('${p.type}', ${!p.enabled})">${p.enabled?'Disable':'Enable'}</button>
+                        <button class="btn btn-sm btn-outline-warning" data-onclick="editProvider('${p.type}')"><i class="bi bi-pencil me-1"></i>Edit</button>
+                        <button class="btn btn-sm btn-outline-info" data-onclick="testProvider('${p.type}')"><i class="bi bi-heart-pulse me-1"></i>Test</button>
+                        <button class="btn btn-sm btn-outline-primary" data-onclick="setDefault('${p.type}')"><i class="bi bi-star me-1"></i>Default</button>
+                        <button class="btn btn-sm btn-outline-${p.enabled?'secondary':'success'}" data-onclick="toggleProvider('${p.type}', ${!p.enabled})">${p.enabled?'Disable':'Enable'}</button>
                     </div>
                 </div>
             </div></div>`;
@@ -329,7 +329,7 @@ function loadModels() {
                 <td>${m.context_window?.toLocaleString()||'-'}</td>
                 <td>$${m.input_cost_per_1k||0} / $${m.output_cost_per_1k||0}</td>
                 <td>${m.is_default?'<i class="bi bi-star-fill text-warning"></i>':''}</td>
-                <td><button class="btn btn-sm btn-outline-danger" onclick="deleteModel('${m.id}')"><i class="bi bi-trash"></i></button></td>
+                <td><button class="btn btn-sm btn-outline-danger" data-onclick="deleteModel('${m.id}')"><i class="bi bi-trash"></i></button></td>
             </tr>`;
         });
         // Re-enhance table after dynamic data load
@@ -345,7 +345,7 @@ function saveNewModel() {
         context_window: parseInt(document.getElementById('newModelCtx').value),
         input_cost_per_1k: parseFloat(document.getElementById('newModelCostIn').value),
         output_cost_per_1k: parseFloat(document.getElementById('newModelCostOut').value)
-    })}).then(()=>{document.getElementById('addModelForm').style.display='none'; loadModels();});
+    })}).then(()=>{sajhaDisplay('addModelForm', 'none'); loadModels();});
 }
 
 function deleteModel(id) {

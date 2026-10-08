@@ -14,6 +14,9 @@ from sajha.db.engine import get_db
 from sajha.auth import AuthManager, get_current_user, require_auth, require_admin, AuthContext
 from sajha.app import render
 
+import logging
+logger = logging.getLogger(__name__)
+
 router = APIRouter(tags=['auth'])
 
 
@@ -21,8 +24,16 @@ router = APIRouter(tags=['auth'])
 async def login_page(request: Request):
     """Render login page."""
     from sajha.app import render_standalone
+    from sajha.auth import sso
+    # auth.sso.auto_redirect: straight to the identity provider (one sign-in across instances);
+    # /login?local=1 still shows the password form
+    if sso.auto_redirect() and not request.query_params.get('local'):
+        from urllib.parse import urlencode
+        nxt = request.query_params.get('next')
+        return RedirectResponse('/auth/sso/login' + (('?' + urlencode({'next': nxt})) if nxt else ''),
+                                status_code=302)
     return render_standalone(request, 'auth/login.html', {
-        'error': None,
+        'error': None, 'next': sso.safe_next(request.query_params.get('next')),
     })
 
 
@@ -30,15 +41,43 @@ _LOCKED_MSG = 'Too many failed sign-ins for this account. Try again later.'
 _THROTTLED_MSG = 'Too many failed sign-in attempts from your address. Wait a few minutes and retry.'
 
 
+def cookie_secure(request: Request) -> bool:
+    """``auth.cookie.secure``: ``auto`` (the default: Secure when the request came over https,
+    which behind a proxy needs ``server.trusted_proxies``), ``true`` or ``false``."""
+    from sajha.core.config import _get, parse_bool
+    mode = str(_get('auth.cookie.secure', 'auto') or 'auto').strip().lower()
+    if mode == 'auto':
+        return request.url.scheme == 'https'
+    return parse_bool(mode, False)
+
+
 def _set_session_cookie(request: Request, response, token: str) -> None:
+    from sajha.core.config import get_settings
     response.set_cookie(
         key='sajha_token',
         value=token,
         httponly=True,
         samesite='lax',
-        secure=request.url.scheme == 'https',
-        max_age=3600,
+        secure=cookie_secure(request),
+        max_age=max(60, int(get_settings().jwt_expiry_minutes or 60) * 60),
+        path='/',
     )
+
+
+def start_session(request: Request, response, token: str) -> None:
+    """A new sign-in: the session the browser held before (if any) is signed out first, so a
+    session token planted in or left on the browser never outlives the sign-in (fixation), then
+    the new token is set."""
+    if request.cookies.get('sajha_token'):
+        try:
+            from sajha.auth.jwt_handler import decode_access_token
+            from sajha.auth.revocation import revoke_token
+            payload = decode_access_token(request.cookies.get('sajha_token', ''))
+            if payload:
+                revoke_token(payload)
+        except Exception as e:  # noqa: BLE001 - never fail a sign-in over the old session
+            logger.debug(f'previous session not revoked: {e}')
+    _set_session_cookie(request, response, token)
 
 
 @router.post('/login')
@@ -68,7 +107,7 @@ async def login_form(
     if not next_url.startswith('/') or next_url.startswith(('//', '/\\')) or '\\' in next_url:
         next_url = '/dashboard'
     response = RedirectResponse(url=next_url, status_code=302)
-    _set_session_cookie(request, response, token)
+    start_session(request, response, token)
     return response
 
 
@@ -243,21 +282,45 @@ def _revoke_presented_token(request: Request) -> bool:
     return revoke_token(payload) if payload else False
 
 
+def _presented_payload(request: Request):
+    from sajha.auth.jwt_handler import decode_access_token
+    header = request.headers.get('Authorization', '')
+    token = header[7:] if header.startswith('Bearer ') else request.cookies.get('sajha_token', '')
+    return decode_access_token(token) if token else None
+
+
+async def _sso_logout_url(request: Request, payload):
+    """The identity provider's end-session URL when single sign-on started this session."""
+    try:
+        from sajha.auth import sso
+        return await sso.logout_url(request, payload)
+    except Exception as e:  # noqa: BLE001 - local sign-out never depends on the provider
+        logger.debug(f'SSO sign-out URL unavailable: {e}')
+        return None
+
+
 @router.get('/logout')
 async def logout(request: Request):
-    """Logout — the session token is revoked (not only the cookie cleared)."""
+    """Logout — the session token is revoked (not only the cookie cleared); a session single
+    sign-on started also ends at the identity provider (``auth.sso.idp_logout``)."""
+    payload = _presented_payload(request)
     _revoke_presented_token(request)
-    response = RedirectResponse(url='/', status_code=302)
-    response.delete_cookie('sajha_token')
+    response = RedirectResponse(url=(await _sso_logout_url(request, payload)) or '/', status_code=302)
+    response.delete_cookie('sajha_token', path='/')
     return response
 
 
 @router.post('/api/auth/logout')
 async def api_logout(request: Request):
     """Revoke the presented SAJHA JWT (``Authorization: Bearer`` or the cookie)."""
+    payload = _presented_payload(request)
     revoked = _revoke_presented_token(request)
-    response = JSONResponse({'success': True, 'revoked': revoked})
-    response.delete_cookie('sajha_token')
+    body = {'success': True, 'revoked': revoked}
+    idp = await _sso_logout_url(request, payload)
+    if idp:
+        body['idp_logout_url'] = idp
+    response = JSONResponse(body)
+    response.delete_cookie('sajha_token', path='/')
     return response
 
 

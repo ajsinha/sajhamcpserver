@@ -60,7 +60,8 @@ streams, what each phase waits for, and its status.
 | 2 | 7.2.0 | Model interface and LLM tools | OpenAI-style canonical interface and providers, the LLM tool type and its modes, conversation memory and resource safety, `sajha_ask` moved onto the type | 1 | done (7.2.0) |
 | 3 | 7.3.0 | Planners and authoring | Configurable planners and every shipped strategy, `auto`, Studio LLM tool creator and planner editor, sampling, the OpenAI-compatible endpoint | 2 | done (7.3.0) |
 | 4 | 8.0.0 | SAJHA Net core | Named nets (several per server), membership with required seeds, CA, signed requests on one port, catalogs and proxy tools, resolution order and preferences, offline removal, one name one contract, waterfall fallback, identity across instances, blocks, the Instances page | 1 (3 for remote LLM tools) | done (8.0.0) |
-| 5 | 8.1.0 | Sovereignty, console, other MCP servers | Residency, locality-aware planners, re-export, the full SAJHA Net console, sponsored servers, the agent and library, the extension's conformance suite | 4 | pending |
+| 5 | 8.1.0 | Sovereignty, console, other MCP servers | Residency, locality-aware planners, re-export, the full SAJHA Net console, sponsored servers, the agent and library, the extension's conformance suite | 4 | in progress |
+| 6 | 8.2.0 | Protocol uniformity between servers, and its security | Server to server on the same streaming MCP as client to server: progress, partial results, cancellation, input requests and tasks relayed to the client on its own transport (Roadmap L17a), with security per event: signing, replay protection, residency on partial results (L17b) | 5 | pending |
 Wave 4 is a major version because it adds a new table (`sajhanet_api_keys`), new columns on
 `api_keys` and a new signed protocol surface; operators must apply schema changes on PostgreSQL by
 hand, as for every schema change.
@@ -223,8 +224,8 @@ to servers that are not SAJHA.
 |---|---|---|---|
 | 5.1 | A residency (data classes, policy conditions, field redaction, shortlists, memory handling) ‖ B locality-aware planners, remote LLM tools, combined hop and depth limits | wave 4 | done |
 | 5.2 | C re-export and the assertion and token-exchange resolvers ‖ D the full SAJHA Net console | 5.1 | done |
-| 5.3 | E sponsored servers, the agent and library, the extension's full conformance suite ‖ F console single sign-on (X5), browser and transport hardening (X6) | 5.2 | in progress |
-| 5.4 | Comparison page update, full documentation pass and deck, combined gate, release 8.1.0, drill | 5.3 | pending |
+| 5.3 | E sponsored servers, the agent and library, the extension's full conformance suite ‖ F console single sign-on (X5), browser and transport hardening (X6) | 5.2 | done |
+| 5.4 | Comparison page update, full documentation pass and deck, combined gate, release 8.1.0, drill | 5.3 | in progress |
 
 **Exit:** gates of section 9; a mixed net (SAJHA instances, an agent-fronted server, a sponsored
 server) passes the conformance suite and the end-to-end residency tests.
@@ -233,8 +234,14 @@ server) passes the conformance suite and the end-to-end residency tests.
 
 ## 8. After wave 5
 
-Open Roadmap items not placed in a wave, in suggested order. Each keeps its Roadmap entry as the
-owner of its detail.
+**Wave 6 (decided by the owner, 2026-10-07): protocol uniformity between servers, and its
+security.** Roadmap [L17](Roadmap.md): server to server speaks the same streaming MCP as client to
+server, so progress, partial results and cancellation reach the client as the remote work builds,
+over whatever transport the client chose (L17a); and the security that goes with it, per event
+(L17b). Both are in wave 6. Phases are cut when wave 6 starts; it ships as its own release, 8.2.0.
+
+Other open Roadmap items not placed in a wave, in suggested order. Each keeps its Roadmap entry as
+the owner of its detail.
 
 | Item | Why not earlier |
 |---|---|

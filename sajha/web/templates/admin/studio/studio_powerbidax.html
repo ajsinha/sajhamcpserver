@@ -275,7 +275,7 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
                     <div class="mb-3">
                         <label class="form-label fw-bold">Query Parameters</label>
                         <div id="parametersContainer"></div>
-                        <button type="button" class="btn btn-outline-success btn-sm" onclick="addParameter()">
+                        <button type="button" class="btn btn-outline-success btn-sm" data-onclick="addParameter()">
                             <i class="bi bi-plus-circle me-1"></i>Add Parameter
                         </button>
                     </div>
@@ -295,10 +295,10 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
             
             <!-- Action Buttons -->
             <div class="d-flex gap-3 mb-4">
-                <button type="button" class="btn btn-secondary" onclick="previewTool()">
+                <button type="button" class="btn btn-secondary" data-onclick="previewTool()">
                     <i class="bi bi-eye me-2"></i>Preview
                 </button>
-                <button type="button" class="btn btn-deploy" onclick="deployTool()">
+                <button type="button" class="btn btn-deploy" data-onclick="deployTool()">
                     <i class="bi bi-rocket-takeoff me-2"></i>Deploy Tool
                 </button>
                 <a href="{{ url_for('studio_home') }}" class="btn btn-outline-secondary">
@@ -327,7 +327,7 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
     </div>
 </div>
 
-<script>
+<script nonce="{{ csp_nonce() }}">
     let parameterCount = 0;
     
     function addParameter() {
@@ -352,7 +352,7 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
                     <input type="text" class="form-control param-desc" placeholder="Description">
                 </div>
                 <div class="col-md-2">
-                    <button type="button" class="btn btn-outline-danger btn-sm" onclick="removeParameter(${parameterCount})">
+                    <button type="button" class="btn btn-outline-danger btn-sm" data-onclick="removeParameter(${parameterCount})">
                         <i class="bi bi-trash"></i>
                     </button>
                 </div>

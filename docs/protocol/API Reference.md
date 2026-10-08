@@ -58,14 +58,22 @@ curl -H "X-API-Key: sja_your_key_here" http://localhost:3002/api/metrics
 | POST | `/account/password` | user | Change-password form (`current_password`, `new_password`, `confirm_password`); sets a fresh cookie. |
 | POST | `/api/auth/change-password` | user | `{"current_password", "new_password"}`; returns `{"success": true, "token": <new JWT>}`. Every other session of the user ends. Not for API keys. |
 | POST | `/api/admin/users/{uid}/password` | admin | Reset a password: `{"password", "must_change_password": true}`; also unlocks the account and ends the user's sessions. |
-| POST | `/api/auth/logout` | none | Revoke the presented SAJHA JWT (`Authorization: Bearer` or the cookie) until it expires; clears the cookie. `{"success": true, "revoked": true}`. |
+| POST | `/api/auth/logout` | none | Revoke the presented SAJHA JWT (`Authorization: Bearer` or the cookie) until it expires; clears the cookie. `{"success": true, "revoked": true}`, plus `idp_logout_url` (the identity provider's end-session URL) when single sign-on started the session. |
 | POST | `/api/auth/sessions/revoke` | user (not an API key; cookie callers send `X-CSRF-Token`) | Sign out everywhere: every SAJHA JWT and built-in OAuth token of the caller stops working, this one included. |
 | POST | `/account/sessions/revoke` | user (form, CSRF) | The "Sign out everywhere" button on `/account/apikeys`; then redirects to `/login`. |
 | POST | `/api/admin/users/{uid}/sessions/revoke` | admin (not an API key) | End every session of a user; returns the new `token_version`. |
-| GET | `/login` | none | Login page (HTML). |
-| POST | `/login` | none | Login form (`user_id`, `password`); sets the `sajha_token` cookie and redirects to `?next=` (local paths only) or `/dashboard`. Same throttle (429) and lockout (423) as the JSON login. |
-| GET | `/logout` | none | Revokes the session token, clears the cookie, redirects to `/`. |
+| GET | `/login` | none | Login page (HTML), with a "Sign in with ..." button when single sign-on is on. With `auth.sso.auto_redirect`, redirects to `/auth/sso/login` (keeping `?next=`) unless `?local=1`. |
+| POST | `/login` | none | Login form (`user_id`, `password`); signs out the browser's previous session, sets the `sajha_token` cookie and redirects to `?next=` (local paths only) or `/dashboard`. Same throttle (429) and lockout (423) as the JSON login. |
+| GET | `/logout` | none | Revokes the session token, clears the cookie, redirects to `/`, or to the identity provider's end-session endpoint when single sign-on started the session (`auth.sso.idp_logout`). |
 | GET | `/` | optional | Landing page, or redirect to `/dashboard` when signed in. |
+
+Console single sign-on (`sso_routes.py`; off unless `auth.sso.enabled`; [Security Model](../security/Security%20Model.md#console-single-sign-on)):
+
+| Method | Path | Auth | Purpose |
+|---|---|---|---|
+| GET | `/api/auth/sso` | none | `{"enabled", "label", "login_url", "auto_redirect"}`. |
+| GET | `/auth/sso/login` | none | Starts an OpenID Connect sign-in (authorization code + PKCE): sets the `sajha_sso` browser-binding cookie and redirects to the identity provider. `?next=` (local paths only) is where the callback lands. 404 when off; 502 when the provider does not answer. |
+| GET | `/auth/sso/callback` | none | The provider's redirect (`code`, `state`, or `error`): validates the ID token, maps it to a SAJHA user, starts the session (the `sajha_token` cookie) and redirects to `next`. A refused sign-in renders the login page with the reason (403). |
 
 `POST /api/auth/login` accepts the user id as `user_id`, `username` or `uid`:
 
@@ -151,7 +159,7 @@ The client POSTs JSON-RPC to the announced `/mcp?session=<id>`; the server answe
 
 ### 2.4 WebSocket `/mcp/ws`
 
-Authenticate with a query parameter: `?token=<SAJHA JWT>` or `?api_key=<sja_ key>` (OAuth access tokens are not accepted here). An invalid credential, or no credential while `mcp.auth.mode` is `required` or `mcp.anonymous.enabled` is false, closes the connection with code 1008. `tools/list` and `tools/call` apply the caller's tool access. Batches are accepted on this transport, and the server pushes `list_changed` notifications.
+Authenticate with a query parameter: `?token=<SAJHA JWT>` or `?api_key=<sja_ key>` (OAuth access tokens are not accepted here). A browser `Origin` outside the `/mcp` allow-list (`mcp.allowed_origins`; loopback origins pass) is closed with 1008 before the upgrade. An invalid credential, or no credential while `mcp.auth.mode` is `required` or `mcp.anonymous.enabled` is false, closes the connection with code 1008. `tools/list` and `tools/call` apply the caller's tool access. Batches are accepted on this transport, and the server pushes `list_changed` notifications.
 
 ```python
 import asyncio, json, websockets
@@ -848,7 +856,8 @@ does not offer; its responses never carry CORS headers. Requests are signed by p
 authenticated by session or API key. Served today: gossip ping and ping-req, membership sync and
 leave, the revocation list, the catalog and conflicts endpoints, the token endpoint
 (`POST /sajhanet/v1/token`, protocol §15.9) in nets where this server accepts the `token_exchange`
-identity, and on the CA instance enrollment and renewal.
+identity, and on the CA instance enrollment and renewal. A participant this server sponsors (kind
+`sponsored`) shares its URL: a request whose `Sajha-Net-To` names it is served by its node.
 
 **Admin API.** Admin only; every change is written to the audit log. Errors are
 `{"error": "message", ...}`: 400 a bad request or an address the network rules refuse, 404 a net
@@ -864,7 +873,7 @@ not answer (with `reason`), 503 SAJHA Net is off.
 | GET | `/api/sajhanet/instances` | user | The Instances page as JSON: `{enabled, nets: [{net, instance, networked, single_member, state, instances: [{net, name, kind, region, labels, state, last_seen, url, self, networked, tools_total, tools_usable, note}]}]}`. |
 | GET | `/api/sajhanet/instances/{net}/{instance}` | user | One participant and the tools it offers the caller (`{net, instance, tools: [{name, qualified_name, alias, description, inputs, outputs, state, version, latency_ms, try_it}]}`); 404 when unknown. |
 | GET | `/admin/sajhanet/tools` | admin | The Remote tools page: the host and tool table with filters (net, host, state, trust), Approve and Withdraw for tools under `review` trust (the approve API below), each tool's data classes, and the contract conflicts with every offer and description warnings. |
-| GET | `/api/sajhanet/status` | admin | `{enabled, protocol_versions, nets: [...]}`: per net the instance name, URL, founder, seeds and runtime seeds, error, joined, refused (a `name_conflict` with the holder), features, incarnation, certificate, revocation-list version, the gossip agent's holder and the members (name, state, URL, incarnation, last seen). |
+| GET | `/api/sajhanet/status` | admin | `{enabled, protocol_versions, nets: [...], plugins: [...], sponsored: [...]}`: per net the instance name, URL, founder, seeds and runtime seeds, error, joined, refused (a `name_conflict` with the holder), features, incarnation, certificate, revocation-list version, the gossip agent's holder and the members (name, state, URL, kind, `sponsor` for a sponsored member, incarnation, last seen); `plugins` the third-party plug-ins loaded at start (`source`, `kind`, `name`, `error`, empty when it loaded); `sponsored` as `GET /api/sajhanet/sponsored`. |
 | POST | `/api/sajhanet/nets/{net}/peers` | admin | `{"address": "ip:port" \| "host:port" \| URL, "keep_as_seed"?}`: contact that address now with an ordinary signed join. Refused before any contact when the address fails the SSRF rules (`sajhanet.allowed_networks`). On success `{ok, peer, url, kept_as_seed}`; on failure nothing is stored. |
 | DELETE | `/api/sajhanet/nets/{net}/seeds` | admin | `{"url"}`: remove a runtime seed. 404 when it is not one. |
 | GET | `/api/sajhanet/nets/{net}/first-use` | admin | Open mode: `{net, keys}`, each instance name and the key thumbprint first seen for it. |
@@ -890,10 +899,14 @@ not answer (with `reason`), 503 SAJHA Net is off.
 | GET | `/api/sajhanet/tools` | admin | The host and tool table (`?net=` for one net): `rows` (qualified name, net, host instance, host tool, tool part, `version`, `contract_hash`, `description_hash`, `trust`, `state`: `active`, `unavailable`, `held`, `hidden`, `invalid`, `blocked`, `quarantined`; `alias`; `resolution`: the row's place in its plain name's order and why, or why it is not eligible, such as `residency rule`; `data_classes`: `{arguments, results}` of the tool's data classes), `resolution` per plain name (`kind` `local`, `plain` or `unknown`, `order`, `skipped`), the `aliases` offered, `preferences`, `max_fallbacks` and `bare_aliases`. |
 | GET | `/api/sajhanet/conflicts` | admin | Per net (`?net=`): the `quarantined` tool names with their reports (every offer and contract hash, `agreeing`, `differing`, the first differing JSON Pointer or annotation, `reported_by`, `since`, the text logged), this server's signed conflicts `document`, and description-only differences as `warnings`. |
 | GET | `/api/sajhanet/catalogs` | admin | Per net: this server's catalog digest and exported tool count, each peer's live catalog (tools, hash, flags such as `contract_hash_mismatch` or `too_many_tools`, state, pulled at), the conflicts-document version, the quarantined names and pull counters. |
-| GET | `/api/sajhanet/topology` | admin | The data of the topology map (`?net=` for one net): `{nets: [{name, nodes: [{name, kind, region, state, self}], edges: [{from, to, kind, tools, calls}]}]}`. `nodes` are this server (`self: true`, state `alive`) and every member it holds, with the member state. `edges` are what this server knows, by instance name: `offers` (own tools offered to a peer, or a peer's own tools offered here; `tools` the count), `reexports` (tools offered onward, with `origins`: the origin instances within the net, or `<net>/<instance>` for a bridge's source) and `calls` (call paths observed since this process started: calls this server sent and every step of the chains that reached it; `calls` the count, `tools` the distinct tools). `calls` is 0 on the other kinds. With SAJHA Net off: 503. |
+| GET | `/api/sajhanet/topology` | admin | The data of the topology map (`?net=` for one net): `{nets: [{name, nodes: [{name, kind, region, state, self, sponsor?}], edges: [{from, to, kind, tools, calls}]}]}`. `nodes` are this server (`self: true`, state `alive`) and every member it holds, with the member state (and, for a sponsored member, its `sponsor`). `edges` are what this server knows, by instance name: `offers` (own tools offered to a peer, or a peer's own tools offered here; `tools` the count), `reexports` (tools offered onward, with `origins`: the origin instances within the net, or `<net>/<instance>` for a bridge's source) and `calls` (call paths observed since this process started: calls this server sent and every step of the chains that reached it; `calls` the count, `tools` the distinct tools). `calls` is 0 on the other kinds. With SAJHA Net off: 503. |
 | POST | `/api/sajhanet/nets/{net}/peers/{peer}/trust` | admin | `{"trust": "auto"\|"review"\|"pinned", "pinned"?: [tool, ...]}`: the peer's trust level for its tools ([SAJHA Net](../architecture/SAJHA%20Net.md) §7.3); the peer's catalog is pulled again at once. |
 | POST | `/api/sajhanet/nets/{net}/peers/{peer}/tools/{tool}/approve` | admin | Under `review` trust: approve the peer's tool at the contract it offers now (a later change is held at this version until approved again). 404 when the peer does not offer it. |
 | DELETE | `/api/sajhanet/nets/{net}/peers/{peer}/tools/{tool}/approve` | admin | Withdraw that approval. |
+| GET | `/api/sajhanet/sponsored` | admin | `{sponsored: [...]}`: the plain MCP servers this server sponsors into its nets ([SAJHA Net](../architecture/SAJHA%20Net.md) §5.1): per entry `net`, `instance_name`, `upstream` (the federation upstream), `tools` (globs), `region`, `labels`, `source` (`config` or `admin`), `sponsor`, `kind: "sponsored"`, `running`, `joined`, `error`, the `tools` it offers and its certificate thumbprint. |
+| POST | `/api/sajhanet/sponsored` | admin | `{"net", "instance_name", "upstream", "tools"?, "region"?, "labels"?}`: sponsor a federation upstream into a net under that instance name; kept in `<sajhanet.data_dir>/sponsored.json` and started at once. 400 an invalid name or no upstream; 404 a net this server is not configured for; 409 already sponsored. The answer is the entry as `GET` lists it; `error` says when it still needs a certificate (an instance that is not the net's CA participant: enroll it). |
+| DELETE | `/api/sajhanet/sponsored/{net}/{instance}` | admin | Stop sponsoring (the participant leaves the net). 404 when it is not sponsored here; 409 when it comes from `sajhanet.sponsored` (remove it there). |
+| POST | `/api/sajhanet/sponsored/{net}/{instance}/enroll` | admin | `{"ca_url", "token"}`: a certificate for the sponsored participant from the net's CA participant (a token for its instance name); it then joins. 502 when the CA refuses. |
 | GET | `/admin/sajhanet/overview` | admin | The Net overview page for one net (`?net=`, the first configured net by default): totals, the topology map (drawn from `GET /api/sajhanet/topology`, with a table equivalent; members without links when that answers nothing), members and gossip health, open notices, quarantined and held tools (Approve), blocks, the admission panel, recent forwarded calls with trace ids, call-chain refusals and residency decisions. Read-only apart from the actions it names. |
 | GET | `/api/sajhanet/overview` | admin | The Net overview as JSON (`?net=`): `{enabled, nets, net}`; `net` holds `instance`, `admission`, `admission_detail` (`first_use` in open mode, `pins` in manual mode, `ca` in `builtin_ca` mode), `members`, `counts`, `gossip` (`state`, `level`, `words`, `joined_via`, `last_errors`, intervals), `notices`, `quarantined`, `warnings`, `held`, `remote_tools` (count by state), `router_counters`, `blocks` (`mine`, `published`), `activity` (`calls`, `chain_refusals`, `outcomes`, `residency` with `by_flow` and `recent`, read from the newest `net.*` audit records) and `fallback_topology`. With SAJHA Net off: `{enabled: false, nets, net: null, self}`. |
 | GET | `/api/sajhanet/nets/{net}/pins` | admin | Manual mode: `{net, admission, configured, runtime}`, the pinned thumbprints from configuration and those added with `POST .../pins`. 404 for a net this server is not configured for. |
@@ -928,7 +941,9 @@ Framework-level responses (`sajha/app.py`, `sajha/security.py`):
 | 302 | Same, from a browser page navigation (any other GET) | Redirect to `/` |
 | 403 | `admin` route called by a non-admin, or `studio` route called by someone without Studio access | `{"error": "..."}` for an API caller (as above); otherwise an HTML error page |
 | 404 | No such route | HTML error page. Route handlers' own 404s (unknown tool, user, prompt...) are JSON. |
-| 413 | `Content-Length` over 10 MB | `{"error": "Request body too large. Maximum: 10485760 bytes"}` |
+| 400 | `Host` header not in `security.allowed_hosts` (when set) | `{"error": "Invalid host header"}` |
+| 403 | A `POST`/`PUT`/`PATCH`/`DELETE` with the `sajha_token` cookie from another site's `Origin` (or `Referer`) ([Security Model](../security/Security%20Model.md#cross-site-requests-csrf)) | `{"error": "cross-site request refused", "detail": "..."}` |
+| 413 | Request body over `server.max_request_bytes` (default 10 MB), by `Content-Length` or while a streamed body is read | `{"error": "Request body too large. Maximum: <n> bytes"}` (`{"detail": ...}` when the limit is passed while the route reads the body) |
 | 422 | Query/path parameter of the wrong type (e.g. `days=abc`) | FastAPI's `{"detail": [...]}` |
 | 429 | Sign-in throttle (per address) on `POST /api/auth/login`; other rate limits ([Security Model](../security/Security%20Model.md#rate-limiting-and-lockout)) | `{"error": "..."}` |
 | 500 | Unhandled exception | HTML error page |

@@ -13,8 +13,8 @@
             <h5 class="mb-0"><i class="bi bi-tools"></i> Tool Catalog</h5>
             <div class="d-flex align-items-center gap-2">
                 <div class="btn-group btn-group-sm" role="group">
-                    <button type="button" class="btn btn-light active" id="viewTable" onclick="setView('table')" title="Table view"><i class="bi bi-list-ul"></i></button>
-                    <button type="button" class="btn btn-outline-light" id="viewCards" onclick="setView('cards')" title="Card view"><i class="bi bi-grid-3x3-gap"></i></button>
+                    <button type="button" class="btn btn-light active" id="viewTable" data-onclick="setView('table')" title="Table view"><i class="bi bi-list-ul"></i></button>
+                    <button type="button" class="btn btn-outline-light" id="viewCards" data-onclick="setView('cards')" title="Card view"><i class="bi bi-grid-3x3-gap"></i></button>
                 </div>
                 <span class="badge bg-light text-primary" id="headerCount">{{ tools|length }} tools</span>
             </div>
@@ -71,7 +71,7 @@
             </div>
             <!-- #10 Category quick-filter chips -->
             <div class="mb-3" id="categoryChips">
-                <span class="filter-chip active" data-cat="all" onclick="filterCategory(this)">All</span>
+                <span class="filter-chip active" data-cat="all" data-onclick="filterCategory(this)">All</span>
             </div>
 
             <!-- Group Badges (clickable) -->
@@ -130,7 +130,7 @@
 {% endblock %}
 
 {% block extra_js %}
-<script>
+<script nonce="{{ csp_nonce() }}">
 const toolsData = [
     {% for tool in tools %}
     { name: "{{ tool.name }}", description: {{ tool.description|tojson }},
@@ -270,7 +270,7 @@ function renderTable() {
 function renderPagination(tp) {
     const el = document.getElementById('pagination'); el.innerHTML = '';
     if (tp <= 1) return;
-    const li = (l,p,d=false,a=false) => `<li class="page-item ${d?'disabled':''} ${a?'active':''}"><a class="page-link" href="#" onclick="changePage(${p});return false;">${l}</a></li>`;
+    const li = (l,p,d=false,a=false) => `<li class="page-item ${d?'disabled':''} ${a?'active':''}"><a class="page-link" href="#" data-onclick="changePage(${p});return false;">${l}</a></li>`;
     el.innerHTML += li('&laquo;', currentPage-1, currentPage===1);
     let st = Math.max(1,currentPage-2), en = Math.min(tp,currentPage+2);
     if (st > 1) { el.innerHTML += li('1',1); if(st>2) el.innerHTML += li('...',0,true); }
@@ -294,7 +294,7 @@ var chipContainer = document.getElementById('categoryChips');
 if (chipContainer) {
     chipGroups.forEach(function(g) {
         var count = toolsData.filter(function(t){return t.group===g}).length;
-        chipContainer.innerHTML += '<span class="filter-chip" data-cat="'+g+'" onclick="filterCategory(this)">'+g+' <small>('+count+')</small></span>';
+        chipContainer.innerHTML += '<span class="filter-chip" data-cat="'+g+'" data-onclick="filterCategory(this)">'+g+' <small>('+count+')</small></span>';
     });
 }
 function filterCategory(el) {

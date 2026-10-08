@@ -437,11 +437,38 @@ class SajhaNetService:
             _clear(f'sajhanet.name_conflict:{net}')
         rt.node = node
         self.participant.nodes[net] = node
+        try:                                             # sponsored MCP servers in this net (design §5.1)
+            from sajha.net.integration.sponsored import get_sponsorships
+            get_sponsorships(self).build_net(net)
+        except Exception as e:
+            logger.warning(f'SAJHA Net {net}: sponsored servers not started: {e}', exc_info=True)
+
+    def load_plugins(self) -> List[Dict[str, str]]:
+        """Third-party plug-ins (design §5.3): entry points and ``sajhanet.plugins.modules``, each
+        contract-checked; a failure is a System Notice and an audit record, never a failed start."""
+        rows = plugins.load_plugins(self.shared.plugin_modules)
+        self.plugin_report = rows
+        for r in rows:
+            nid = f'sajhanet.plugin:{r["source"]}:{r["name"]}'
+            if r.get('error'):
+                _notice(nid, 'error', f'SAJHA Net plug-in {r["name"]} is not available',
+                        f'{r["source"]}: {r["error"]}. Fix or remove it (sajhanet.plugins.modules); configuration '
+                        f'that selects it falls back or fails as each part says.', ttl=0)
+                _audit('plugin_failed', 'system', r)
+            else:
+                _clear(nid)
+                if r.get('kind'):
+                    logger.info(f'SAJHA Net plug-in {r["kind"]}.{r["name"]} loaded from {r["source"]}')
+        return rows
 
     def start(self, run_agents: bool = True) -> None:
         _add_collector()
         if not self.shared.enabled:
             return
+        try:
+            self.load_plugins()
+        except Exception as e:
+            logger.warning(f'SAJHA Net plug-ins: {e}', exc_info=True)
         if self.shared.mtls not in ('off', 'false', ''):
             logger.warning(f'sajhanet.mtls: {self.shared.mtls!r} is not built yet; requests are checked by their '
                            f'signatures only')
@@ -522,6 +549,7 @@ class SajhaNetService:
         rt = self._rt(net)
         self._stop_agent(rt, leave=False)
         self.participant.nodes.pop(net, None)
+        self.participant.sponsored.pop(net, None)
         if getattr(self, 'catalogs', None) is not None:
             self.catalogs.detach(net)
         self._build(rt)
@@ -530,6 +558,9 @@ class SajhaNetService:
         return rt
 
     def stop(self) -> None:
+        sp = getattr(self, 'sponsorships', None)
+        if sp is not None:
+            sp.stop()
         for rt in self.runtimes.values():
             self._stop_agent(rt, leave=True)
         if getattr(self, 'catalogs', None) is not None:
@@ -567,6 +598,7 @@ class SajhaNetService:
                             agent=rt.lease.current_holder() if rt.lease is not None else None,
                             members=[{'name': m['name'], 'state': m['state'], 'url': m['record'].get('url'),
                                       'region': m['record'].get('region', ''), 'kind': m['record'].get('kind'),
+                                      'sponsor': m['record'].get('sponsor'),
                                       'incarnation': m['record'].get('incarnation'),
                                       'features': m['record'].get('features'),
                                       'last_seen': crypto.rfc3339(m['last_seen']) if m.get('last_seen') else None}
@@ -578,7 +610,15 @@ class SajhaNetService:
                 except Exception as e:
                     logger.debug(f'SAJHA Net {net}: authorization status: {e}')
             nets.append(item)
-        return {'enabled': self.shared.enabled, 'protocol_versions': [1], 'nets': nets}
+        out = {'enabled': self.shared.enabled, 'protocol_versions': [1], 'nets': nets,
+               'plugins': list(getattr(self, 'plugin_report', None) or [])}
+        sp = getattr(self, 'sponsorships', None)
+        if sp is not None:
+            try:
+                out['sponsored'] = sp.view()
+            except Exception as e:
+                logger.debug(f'SAJHA Net sponsored view: {e}')
+        return out
 
     # ── operations (admin API, CLI) ────────────────────────────────
 

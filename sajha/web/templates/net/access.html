@@ -41,7 +41,7 @@
     SAJHA Net is off, so this server is a net of one: there are no remote tools to use.
   </div>
   {% else %}
-  <form class="na-bar" role="search" onsubmit="return false" aria-label="Filter remote tools">
+  <form class="na-bar" role="search" data-onsubmit="return false" aria-label="Filter remote tools">
     <div><label class="form-label small" for="na-q">Search</label>
       <input class="form-control form-control-sm" id="na-q" placeholder="tool or instance" autocomplete="off"></div>
     <div><label class="form-label small" for="na-show">Show</label>
@@ -86,7 +86,7 @@
   </section>
   {% endfor %}
 </div>
-<script>
+<script nonce="{{ csp_nonce() }}">
 (function(){
   const q = document.getElementById('na-q'), show = document.getElementById('na-show'), out = document.getElementById('na-count');
   if (!q) return;

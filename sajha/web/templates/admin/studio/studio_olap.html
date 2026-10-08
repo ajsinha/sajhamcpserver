@@ -233,7 +233,7 @@
         </div>
         <div class="section-body">
             <div id="joinsContainer"></div>
-            <button class="btn btn-outline-info" onclick="addJoin()">
+            <button class="btn btn-outline-info" data-onclick="addJoin()">
                 <i class="bi bi-plus-lg me-2"></i>Add Join
             </button>
         </div>
@@ -247,7 +247,7 @@
         <div class="section-body">
             <p class="mb-3">Define the dimensions (categorical attributes) for grouping and filtering data.</p>
             <div id="dimensionsContainer"></div>
-            <button class="btn btn-outline-primary" onclick="addDimension()">
+            <button class="btn btn-outline-primary" data-onclick="addDimension()">
                 <i class="bi bi-plus-lg me-2"></i>Add Dimension
             </button>
         </div>
@@ -261,7 +261,7 @@
         <div class="section-body">
             <p class="mb-3">Define the measures (numeric values) to aggregate in analyses.</p>
             <div id="measuresContainer"></div>
-            <button class="btn btn-outline-success" onclick="addMeasure()">
+            <button class="btn btn-outline-success" data-onclick="addMeasure()">
                 <i class="bi bi-plus-lg me-2"></i>Add Measure
             </button>
         </div>
@@ -295,19 +295,19 @@
     
     <!-- Action Buttons -->
     <div class="d-flex gap-2 justify-content-end mt-4">
-        <button class="btn btn-outline-secondary" onclick="resetForm()">
+        <button class="btn btn-outline-secondary" data-onclick="resetForm()">
             <i class="bi bi-arrow-counterclockwise me-2"></i>Reset
         </button>
-        <button class="btn btn-primary" onclick="validateDataset()">
+        <button class="btn btn-primary" data-onclick="validateDataset()">
             <i class="bi bi-check-circle me-2"></i>Validate
         </button>
-        <button class="btn btn-success" onclick="deployDataset()">
+        <button class="btn btn-success" data-onclick="deployDataset()">
             <i class="bi bi-rocket me-2"></i>Deploy Dataset
         </button>
     </div>
 </div>
 
-<script>
+<script nonce="{{ csp_nonce() }}">
 let dimensionCount = 0;
 let measureCount = 0;
 let joinCount = 0;
@@ -319,7 +319,7 @@ function addDimension() {
         <div class="dimension-row" id="dimension_${dimensionCount}">
             <div class="d-flex justify-content-between align-items-start mb-2">
                 <strong>Dimension ${dimensionCount}</strong>
-                <span class="remove-btn" onclick="removeDimension(${dimensionCount})"><i class="bi bi-trash"></i></span>
+                <span class="remove-btn" data-onclick="removeDimension(${dimensionCount})"><i class="bi bi-trash"></i></span>
             </div>
             <div class="row">
                 <div class="col-md-4">
@@ -355,7 +355,7 @@ function addMeasure() {
         <div class="measure-row" id="measure_${measureCount}">
             <div class="d-flex justify-content-between align-items-start mb-2">
                 <strong>Measure ${measureCount}</strong>
-                <span class="remove-btn" onclick="removeMeasure(${measureCount})"><i class="bi bi-trash"></i></span>
+                <span class="remove-btn" data-onclick="removeMeasure(${measureCount})"><i class="bi bi-trash"></i></span>
             </div>
             <div class="row">
                 <div class="col-md-3">
@@ -393,7 +393,7 @@ function addJoin() {
         <div class="join-row" id="join_${joinCount}">
             <div class="d-flex justify-content-between align-items-start mb-2">
                 <strong>Join ${joinCount}</strong>
-                <span class="remove-btn" onclick="removeJoin(${joinCount})"><i class="bi bi-trash"></i></span>
+                <span class="remove-btn" data-onclick="removeJoin(${joinCount})"><i class="bi bi-trash"></i></span>
             </div>
             <div class="row">
                 <div class="col-md-3">

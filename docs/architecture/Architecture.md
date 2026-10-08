@@ -284,6 +284,15 @@ with an "About this page" panel from `sajha/web/page_help.py`, whose terms are l
 in `GLOSSARY.md`. These pages need no login. The old `/docs` URLs redirect to
 `/help/guides`. `/comparison` is rendered from `sajha/web/competitive.py`, its only copy.
 
+**Scripts under the CSP.** The console's Content-Security-Policy runs only scripts from this
+origin or carrying the response's nonce, and no inline event handlers ([Security
+Model](../security/Security%20Model.md#security-headers-and-csp)). So a template writes each inline
+script as `<script nonce="{{ csp_nonce() }}">`, and a handler as `data-onclick="fn(this, 'x')"`
+(or `data-onchange`, `data-onsubmit`, ...), never `onclick=`; HTML built in script follows the same
+rule. `static/js/csp-actions.js` runs those handlers: calls to functions the page declares
+globally, with literal, `this` or `event` arguments, and `return false`. `tests/test_csp_handlers.py`
+enforces this.
+
 **Small screens.** The rules for phones and tablets are one block, "Mobile", at the end of
 `style.css`: below 992px the top menu collapses behind the hamburger and its mega-menu
 panels become a scrollable accordion; below 768px controls are at least 40px tall and
@@ -300,8 +309,9 @@ python scripts/check_mobile.py --base http://127.0.0.1:3002 --password '<admin p
 ```
 
 It opens each page in its `ROUTES` list at 375, 390 and 768px wide and fails on a
-horizontally scrolling page, on elements outside the viewport, and on a phone menu that
-does not open, fit and close. It warns about tap targets under 40px, text under 12px
+horizontally scrolling page, on elements outside the viewport, on a phone menu that
+does not open, fit and close, and on a CSP violation, an inline event handler, a `data-on*`
+handler that would not run or a script error. It warns about tap targets under 40px, text under 12px
 and tall fixed elements. `tests/test_mobile_layout.py` checks that its routes still
 render and that every page has a viewport meta; it runs the browser check only when
 `SAJHA_CHECK_BASE` names a running server.

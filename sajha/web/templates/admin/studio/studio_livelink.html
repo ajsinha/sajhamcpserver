@@ -333,10 +333,10 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
             
             <!-- Action Buttons -->
             <div class="d-flex gap-3 mb-4">
-                <button type="button" class="btn btn-secondary" onclick="previewTool()">
+                <button type="button" class="btn btn-secondary" data-onclick="previewTool()">
                     <i class="bi bi-eye me-2"></i>Preview
                 </button>
-                <button type="button" class="btn btn-deploy" onclick="deployTool()">
+                <button type="button" class="btn btn-deploy" data-onclick="deployTool()">
                     <i class="bi bi-rocket-takeoff me-2"></i>Deploy Tool
                 </button>
                 <a href="{{ url_for('studio_home') }}" class="btn btn-outline-secondary">
@@ -375,7 +375,7 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
     </div>
 </div>
 
-<script>
+<script nonce="{{ csp_nonce() }}">
     // Auth type selection
     document.querySelectorAll('.auth-type-btn').forEach(btn => {
         btn.addEventListener('click', function() {

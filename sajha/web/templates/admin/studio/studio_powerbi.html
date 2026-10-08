@@ -406,10 +406,10 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
             
             <!-- Action Buttons -->
             <div class="d-flex gap-3 mb-4">
-                <button type="button" class="btn btn-preview" onclick="previewTool()">
+                <button type="button" class="btn btn-preview" data-onclick="previewTool()">
                     <i class="bi bi-eye me-2"></i>Preview Configuration
                 </button>
-                <button type="button" class="btn btn-deploy" onclick="deployTool()">
+                <button type="button" class="btn btn-deploy" data-onclick="deployTool()">
                     <i class="bi bi-rocket-takeoff me-2"></i>Deploy Tool
                 </button>
                 <a href="{{ url_for('studio_home') }}" class="btn btn-outline-secondary">
@@ -452,7 +452,7 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
     </div>
 </div>
 
-<script>
+<script nonce="{{ csp_nonce() }}">
     // Format button selection
     document.querySelectorAll('.format-btn').forEach(btn => {
         btn.addEventListener('click', function() {

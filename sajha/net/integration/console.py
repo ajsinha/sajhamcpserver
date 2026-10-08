@@ -179,7 +179,9 @@ def instances_view(auth=None) -> Dict[str, Any]:
                           'region': rec.get('region') or '', 'labels': dict(rec.get('labels') or {}),
                           'state': m['state'], 'last_seen': _rfc(m.get('last_seen')), 'url': rec.get('url') or '',
                           'self': False, 'networked': True, 'tools_total': len(mine), 'tools_usable': len(usable),
-                          'note': ''})
+                          'sponsor': rec.get('sponsor') or '',
+                          'note': (f'sponsored by {rec.get("sponsor")}' if rec.get('kind') == 'sponsored' and
+                                   rec.get('sponsor') else '')})
         st = node.status() if node is not None else {}
         entry['single_member'] = not members
         entry['state'] = ('name conflict' if node is not None and node.refused() else

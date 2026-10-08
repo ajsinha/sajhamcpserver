@@ -125,7 +125,7 @@ The editor is CodeMirror 6, vendored as one bundle in `sajha/web/static/vendor/c
   output (pandas tables) is rebuilt from an allowlist of table and text tags before it is
   shown: no scripts, event handlers or links.
 - **Limits.** Tool calls are ordinary `POST /api/tools/execute` requests, so the server's
-  own limits apply (the 10 MB request-body cap, each tool's own timeouts, and for
+  own limits apply (the request-body cap, `server.max_request_bytes`, each tool's own timeouts, and for
   `sajha.ask` the `ai.ask` step, call and time limits). The bridge gives up on a request
   after 120 seconds on the browser side. While a call is waiting for the server, **Stop**
   takes effect when it returns.

@@ -89,7 +89,7 @@ class BankOfCanadaBaseTool(BaseMCPTool):
             }
             
             req = urllib.request.Request(url, headers=headers)
-            with urllib.request.urlopen(req) as response:
+            with urllib.request.urlopen(req, timeout=30) as response:
                 data = safe_json_response(response, ENCODINGS_EUROPEAN)
                 
                 series_detail = data.get('seriesDetail', {}).get(series_name, {})

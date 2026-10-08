@@ -1,5 +1,5 @@
 {# The theme menu's behaviour, MAYA's: crimson is stored as "light"; only dark is dark to Bootstrap. #}
-<script>
+<script nonce="{{ csp_nonce() }}">
   (function () {
     var THEMES = ['light', 'dark', 'blue', 'green'];
     function applyTheme(t) {

@@ -32,7 +32,7 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
                             <td>{{ tool_name }}</td>
                             <td class="text-danger">{{ error }}</td>
                             <td>
-                                <button class="btn btn-sm btn-warning" onclick="reloadTools()">
+                                <button class="btn btn-sm btn-warning" data-onclick="reloadTools()">
                                     <i class="bi bi-arrow-clockwise"></i> Reload All
                                 </button>
                             </td>
@@ -121,17 +121,17 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
                             <td>
                                 {% if metric.enabled %}
                                 <button class="btn btn-sm btn-warning"
-                                        onclick="toggleTool('{{ metric.name }}', false)">
+                                        data-onclick="toggleTool('{{ metric.name }}', false)">
                                     <i class="bi bi-pause-circle"></i> Disable
                                 </button>
                                 {% else %}
                                 <button class="btn btn-sm btn-success"
-                                        onclick="toggleTool('{{ metric.name }}', true)">
+                                        data-onclick="toggleTool('{{ metric.name }}', true)">
                                     <i class="bi bi-play-circle"></i> Enable
                                 </button>
                                 {% endif %}
                                 <button class="btn btn-sm btn-info"
-                                        onclick="viewConfig('{{ metric.name }}')">
+                                        data-onclick="viewConfig('{{ metric.name }}')">
                                     <i class="bi bi-file-code"></i> Config
                                 </button>
                             </td>
@@ -166,16 +166,16 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
             <h5 class="mb-0"><i class="bi bi-lightning"></i> Quick Actions</h5>
         </div>
         <div class="card-body">
-            <button class="btn btn-primary" onclick="reloadTools()">
+            <button class="btn btn-primary" data-onclick="reloadTools()">
                 <i class="bi bi-arrow-clockwise"></i> Reload All Tools
             </button>
-            <button class="btn btn-success" onclick="enableAllTools()">
+            <button class="btn btn-success" data-onclick="enableAllTools()">
                 <i class="bi bi-check-circle"></i> Enable All Tools
             </button>
-            <button class="btn btn-warning" onclick="disableAllTools()">
+            <button class="btn btn-warning" data-onclick="disableAllTools()">
                 <i class="bi bi-x-circle"></i> Disable All Tools
             </button>
-            <button class="btn btn-info" onclick="exportMetrics()">
+            <button class="btn btn-info" data-onclick="exportMetrics()">
                 <i class="bi bi-download"></i> Export Metrics
             </button>
         </div>
@@ -185,7 +185,7 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
 
 
 {% block extra_js %}
-<script>
+<script nonce="{{ csp_nonce() }}">
 // Store original metrics data
 const metricsData = [
     {% for metric in tools_metrics %}
@@ -209,6 +209,7 @@ let currentSortColumn = 'name';
 
 // Initialize
 document.addEventListener('DOMContentLoaded', function() {
+    if (!document.getElementById('toolsMetricsTable')) return;   // no tools: no table
     renderTable();
 
     // Search functionality
@@ -346,10 +347,10 @@ function renderTable() {
             : '<span class="text-muted">Never</span>';
 
         const toggleButton = metric.enabled
-            ? `<button class="btn btn-sm btn-warning" onclick="toggleTool('${metric.name}', false)">
+            ? `<button class="btn btn-sm btn-warning" data-onclick="toggleTool('${metric.name}', false)">
                 <i class="bi bi-pause-circle"></i> Disable
                </button>`
-            : `<button class="btn btn-sm btn-success" onclick="toggleTool('${metric.name}', true)">
+            : `<button class="btn btn-sm btn-success" data-onclick="toggleTool('${metric.name}', true)">
                 <i class="bi bi-play-circle"></i> Enable
                </button>`;
 
@@ -362,7 +363,7 @@ function renderTable() {
             <td>${lastExecutionText}</td>
             <td>
                 ${toggleButton}
-                <button class="btn btn-sm btn-info" onclick="viewConfig('${metric.name}')">
+                <button class="btn btn-sm btn-info" data-onclick="viewConfig('${metric.name}')">
                     <i class="bi bi-file-code"></i> Config
                 </button>
             </td>
@@ -391,7 +392,7 @@ function renderPagination(totalPages) {
     // Previous button
     const prevLi = document.createElement('li');
     prevLi.className = `page-item ${currentPage === 1 ? 'disabled' : ''}`;
-    prevLi.innerHTML = `<a class="page-link" href="#" onclick="changePage(${currentPage - 1}); return false;">Previous</a>`;
+    prevLi.innerHTML = `<a class="page-link" href="#" data-onclick="changePage(${currentPage - 1}); return false;">Previous</a>`;
     pagination.appendChild(prevLi);
 
     // Page numbers
@@ -408,7 +409,7 @@ function renderPagination(totalPages) {
     if (startPage > 1) {
         const li = document.createElement('li');
         li.className = 'page-item';
-        li.innerHTML = `<a class="page-link" href="#" onclick="changePage(1); return false;">1</a>`;
+        li.innerHTML = `<a class="page-link" href="#" data-onclick="changePage(1); return false;">1</a>`;
         pagination.appendChild(li);
 
         if (startPage > 2) {
@@ -423,7 +424,7 @@ function renderPagination(totalPages) {
     for (let i = startPage; i <= endPage; i++) {
         const li = document.createElement('li');
         li.className = `page-item ${i === currentPage ? 'active' : ''}`;
-        li.innerHTML = `<a class="page-link" href="#" onclick="changePage(${i}); return false;">${i}</a>`;
+        li.innerHTML = `<a class="page-link" href="#" data-onclick="changePage(${i}); return false;">${i}</a>`;
         pagination.appendChild(li);
     }
 
@@ -438,14 +439,14 @@ function renderPagination(totalPages) {
 
         const li = document.createElement('li');
         li.className = 'page-item';
-        li.innerHTML = `<a class="page-link" href="#" onclick="changePage(${totalPages}); return false;">${totalPages}</a>`;
+        li.innerHTML = `<a class="page-link" href="#" data-onclick="changePage(${totalPages}); return false;">${totalPages}</a>`;
         pagination.appendChild(li);
     }
 
     // Next button
     const nextLi = document.createElement('li');
     nextLi.className = `page-item ${currentPage === totalPages ? 'disabled' : ''}`;
-    nextLi.innerHTML = `<a class="page-link" href="#" onclick="changePage(${currentPage + 1}); return false;">Next</a>`;
+    nextLi.innerHTML = `<a class="page-link" href="#" data-onclick="changePage(${currentPage + 1}); return false;">Next</a>`;
     pagination.appendChild(nextLi);
 }
 

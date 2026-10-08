@@ -117,6 +117,7 @@ workers ([Scaling and State](../architecture/Scaling%20and%20State.md)).
 | The web console | Pages, navigation, themes, the "About this page" panels, phones and tablets (`scripts/check_mobile.py`) | [Architecture §10](../architecture/Architecture.md) |
 | Calling SAJHA from Python | `SajhaMCPClient` on the official SDK; REST and A2A clients | [Client SDK Guide](../clients/Client%20SDK%20Guide.md) |
 | Command line and desktop clients | The `sajha` CLI; MCP over stdio for Claude Desktop, Claude Code, IDEs | [Command Line](../clients/Command%20Line.md) |
+| Other MCP servers in a SAJHA Net | The SAJHA Net agent in front of any MCP server, the reference library, sponsoring a server instead, and the conformance suite runner | [SAJHA Net Agent](../clients/SAJHA%20Net%20Agent.md) |
 
 ---
 

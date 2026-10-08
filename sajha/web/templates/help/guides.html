@@ -43,7 +43,7 @@
 {% endblock %}
 
 {% block extra_js %}
-<script>
+<script nonce="{{ csp_nonce() }}">
 (function () {
     var box = document.getElementById('helpSearch');
     var items = Array.prototype.slice.call(document.querySelectorAll('.help-item'));

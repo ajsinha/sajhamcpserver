@@ -59,7 +59,7 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
                                 <div class="input-group">
                                     <input type="password" class="form-control" id="userPassword" name="password" required
                                            minlength="6" placeholder="Minimum 6 characters">
-                                    <button class="btn btn-outline-secondary" type="button" onclick="togglePassword()">
+                                    <button class="btn btn-outline-secondary" type="button" data-onclick="togglePassword()">
                                         <i class="bi bi-eye" id="passwordToggleIcon"></i>
                                     </button>
                                 </div>
@@ -164,7 +164,7 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
                                 <i class="bi bi-arrow-left me-1"></i> Cancel
                             </a>
                             <div>
-                                <button type="button" class="btn btn-outline-primary me-2" onclick="resetForm()">
+                                <button type="button" class="btn btn-outline-primary me-2" data-onclick="resetForm()">
                                     <i class="bi bi-arrow-clockwise me-1"></i> Reset
                                 </button>
                                 <button type="submit" class="btn btn-primary">
@@ -289,7 +289,7 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
 
 
 {% block extra_js %}
-<script>
+<script nonce="{{ csp_nonce() }}">
 // Check for existing users to validate uniqueness
 const existingUserIds = [
     {% for u in users %}"{{ u.user_id }}"{% if not loop.last %},{% endif %}{% endfor %}

@@ -65,7 +65,7 @@ Design: docs/architecture/Connected Accounts.md
             <td>{{ r.last_used_at or '—' }}</td>
             <td>{{ r.created_at }}</td>
             <td class="text-end">
-              <form method="post" action="/admin/connections/revoke" onsubmit="return confirm('Unlink {{ r.provider }} for {{ r.user_id }}? The token is revoked where the service allows it and deleted.');">
+              <form method="post" action="/admin/connections/revoke" data-onsubmit="return confirm('Unlink {{ r.provider }} for {{ r.user_id }}? The token is revoked where the service allows it and deleted.');">
                 <input type="hidden" name="csrf" value="{{ csrf }}">
                 <input type="hidden" name="user_id" value="{{ r.user_id }}">
                 <input type="hidden" name="provider" value="{{ r.provider }}">

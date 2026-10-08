@@ -208,7 +208,7 @@ class UnitedNationsBaseTool(BaseMCPTool):
             }
             
             req = urllib.request.Request(url, headers=headers)
-            with urllib.request.urlopen(req) as response:
+            with urllib.request.urlopen(req, timeout=30) as response:
                 return safe_json_response(response, ENCODINGS_ALL)
         except Exception as e:
             self.logger.error(f"Failed to fetch from SDG API: {e}", exc_info=True)
@@ -545,7 +545,7 @@ class UNGetSDGDataTool(UnitedNationsBaseTool):
             }
             
             req = urllib.request.Request(url, headers=headers)
-            with urllib.request.urlopen(req) as response:
+            with urllib.request.urlopen(req, timeout=30) as response:
                 data = safe_json_response(response, ENCODINGS_ALL)
                 
                 formatted_data = []

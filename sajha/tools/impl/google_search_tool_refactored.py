@@ -238,7 +238,7 @@ class GoogleSearchTool(BaseMCPTool):
         url = f"{self.api_url}?{urllib.parse.urlencode(params)}"
         
         try:
-            with urllib.request.urlopen(url) as response:
+            with urllib.request.urlopen(url, timeout=30) as response:
                 data = safe_json_response(response, ENCODINGS_ALL)
                 
                 # Extract search information

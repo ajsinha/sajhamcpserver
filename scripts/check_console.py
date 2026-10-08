@@ -12,6 +12,9 @@ Chromium). Roadmap X15; the layout check at phone widths is scripts/check_mobile
                  a stage path
     conversations  the Conversations page lists the conversation the ask flow made
 
+  csp            a Content-Security-Policy violation or a failing data-on* handler reported to the
+                 browser console during the flows or the page scans fails the run
+
   accessibility (on PAGES, or every check_mobile.py route with --all)
     With axe-core (``--axe path/to/axe.min.js`` or SAJHA_AXE_JS; https://github.com/dequelabs/axe-core):
     the WCAG 2.x A and AA rules; a violation of impact serious or critical fails, others warn.
@@ -229,6 +232,13 @@ def run(base: str, user: str, password: str, paths: List[str], axe_path: Optiona
     with sync_playwright() as pw:
         browser = pw.chromium.launch()
         ctx = browser.new_context(viewport={'width': 1280, 'height': 900})
+        # Content-Security-Policy violations anywhere in the flows fail the run (roadmap X6)
+        ctx.add_init_script("window.__sajhaCsp=[];document.addEventListener('securitypolicyviolation',"
+                            "function(e){window.__sajhaCsp.push(e.violatedDirective+' '+(e.blockedURI||''));"
+                            "try{sessionStorage.setItem('sajha.csp',JSON.stringify(window.__sajhaCsp))}catch(x){}});")
+        violations: List[str] = []
+        ctx.on('console', lambda m: violations.append(m.text[:160])
+               if 'Content Security Policy' in m.text or 'data-on' in m.text else None)
         if theme:
             ctx.add_init_script("try{localStorage.setItem('sajha.theme', %s)}catch(e){}" % json.dumps(theme))
         page = ctx.new_page()
@@ -240,6 +250,8 @@ def run(base: str, user: str, password: str, paths: List[str], axe_path: Optiona
                 report['failures'].append(f'sign-in failed (HTTP {r.status})')
         if do_a11y and 'sign-in' not in [f.split(':')[0] for f in report['failures']]:
             accessibility(page, base, paths, axe, report)
+        for v in sorted(set(violations))[:10]:
+            report['failures'].append(f'csp: {v}')
         browser.close()
     return report
 

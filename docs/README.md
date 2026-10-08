@@ -167,6 +167,7 @@ These guides document each provider's tools, parameters and API keys.
 
 - [Client SDK Guide](clients/Client%20SDK%20Guide.md)
 - [Command Line](clients/Command%20Line.md): the `sajha` CLI, and SAJHA over stdio for desktop clients
+- [SAJHA Net Agent](clients/SAJHA%20Net%20Agent.md): any MCP server as a SAJHA Net participant, the reference library and the conformance suite
 - [Security Model](security/Security%20Model.md)
 
 ## Elsewhere in the repository

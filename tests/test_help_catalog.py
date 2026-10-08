@@ -222,7 +222,8 @@ def test_page_help_keys_are_real_routes(web):
 
 #: GET routes that render a page but are not console pages with "About this page".
 NOT_CONSOLE = {'login_page', 'logout', 'root', 'health', 'health_liveness', 'health_readiness',
-               'openapi', 'swagger_ui_html', 'swagger_ui_redirect', 'redoc_html'}
+               'openapi', 'swagger_ui_html', 'swagger_ui_redirect', 'redoc_html',
+               'sso_login', 'sso_callback'}   # single sign-on redirects (sajha/routes/sso_routes.py)
 API_PREFIXES = ('/api', '/mcp', '/a2a', '/oauth', '/.well-known', '/static', '/ws', '/admin/apikeys/{key_id}/', '/v1/',
                 '/metrics', '/sajhanet/')
 

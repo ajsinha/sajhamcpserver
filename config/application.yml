@@ -24,6 +24,23 @@ server:
   host: ${SERVER_HOST:0.0.0.0}
   port: ${SERVER_PORT:3002}
   debug: false
+  max_request_bytes: 10485760    # larger request bodies get 413 (Content-Length or streamed)
+  trusted_proxies: ""            # proxies whose X-Forwarded-For/-Proto count (uvicorn forwarded_allow_ips);
+                                 # empty: uvicorn's default (FORWARDED_ALLOW_IPS, else 127.0.0.1)
+  tls:                           # serve https directly (else terminate TLS at a proxy)
+    certfile: ""
+    keyfile: ""
+    min_version: TLSv1.2         # TLSv1.2 or TLSv1.3
+
+# ── Browser and transport hardening ─────────────────────────────────────────
+# docs/security/Security Model.md section 3
+security:
+  allowed_hosts: []              # Host header allow-list (exact or *.example.com); empty: any. Loopback always passes
+  hsts:
+    max_age: 31536000            # Strict-Transport-Security on https responses; 0: not sent
+    include_subdomains: true
+  csrf:
+    trusted_origins: []          # other origins whose pages may send cookie-authenticated changes
 
 # ── Database ─────────────────────────────────────────────────────────────────
 # One schema file per dialect, no migrations: db/scripts/<sqlite|postgresql>/schema.sql
@@ -127,6 +144,31 @@ auth:
     lockout_minutes: 15
     ip_max_failures: 20                   # failed sign-ins per client IP per window -> 429
     ip_window_seconds: 300
+  # The console session cookie (sajha_token): HttpOnly, SameSite=Lax. Secure: auto (when the request
+  # came over https; behind a TLS proxy set server.trusted_proxies), true or false.
+  cookie:
+    secure: auto
+  # Console single sign-on: OpenID Connect (authorization code + PKCE) against your identity provider.
+  # Off by default; password sign-in and the users file keep working alongside it. Instances of a
+  # net that trust the same provider share one sign-in. docs/security/Security Model.md
+  # "Console single sign-on". The client secret comes from SAJHA_AUTH_SSO_CLIENT_SECRET, never here.
+  sso:
+    enabled: false
+    issuer: ""                            # e.g. https://login.example.com/realms/acme
+    client_id: ""
+    scopes: openid profile email
+    redirect_uri: ""                      # default: <mcp.auth.public_url or this server>/auth/sso/callback
+    label: Single sign-on                 # the login page button: "Sign in with <label>"
+    user_claim: preferred_username        # the claim that names the SAJHA user (or email, sub, ...)
+    roles_claim: ""                       # e.g. groups or realm_access.roles; empty: no role mapping
+    role_map: []                          # ["<claim value>=<SAJHA role>", ...]
+    default_roles: [user]                 # roles of a created user when no mapped role applies
+    auto_provision: false                 # create a SAJHA user on first sign-in
+    link_existing: true                   # an existing user with the same name is linked on first sign-in
+    sync_roles: false                     # replace a user's roles with the mapped ones at each sign-in
+    require_role: false                   # refuse a sign-in that maps to no role
+    auto_redirect: false                  # /login goes straight to the provider (/login?local=1: password form)
+    idp_logout: true                      # sign-out also ends the provider session (end_session_endpoint)
 
 # ── MCP transport (Streamable HTTP, spec 2025-11-25) ────────────────────────
 mcp:
@@ -889,6 +931,8 @@ sajhanet:
     connector: sajha_native
     key_directory_store: database  # database (sajhanet_api_keys) | memory | package.module:Class
     routing: local_first           # order of the hosts of one tool within a net: local_first | lowest_latency | pinned
+    modules: []                    # third-party plug-in modules loaded at start (each contract-checked; failures are
+                                   # notices), e.g. [sajha.examples.sajhanet.region_first]; entry points load too
   # catalogs and routing (docs/architecture/SAJHA Net.md §7-§9)
   preferences: {}                  # per tool: ["<net>/<instance>", "<net>", ...] tried before the nets in order
   max_fallbacks: 3                 # other hosts tried after the first, for a call by plain name (§9.1)
@@ -942,6 +986,9 @@ sajhanet:
     remote_results: store          # store | summary | none: what memory keeps of answers using remote results
     by_class: {}                   # {<class or glob>: store | summary | none}; the strictest wins
   # a net entry may also set export: and import: rules (see the Configuration Reference)
+  # plain MCP servers (federation upstreams) this server sponsors into a net, each a participant of kind
+  # sponsored under its own instance name; also added in the admin API (/api/sajhanet/sponsored)
+  sponsored: []                    # [{net: acme-net, instance_name: vendor-search, upstream: vendor, tools: ["*"]}]
   peer_cache:
     interval_minutes: 10           # the saved peer list is written on change and at least this often
     max_age_days: 7                # saved peers not seen for longer are skipped on restart
