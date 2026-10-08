@@ -1,3 +1,4 @@
+# Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.com
 """
 Catalog visibility beyond tools/list: prompts (MCP and REST), the catalog resources,
 completion/complete and the A2A agent card follow the same policy as the tool catalog

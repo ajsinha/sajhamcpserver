@@ -69,6 +69,7 @@ def render_standalone(request: Request, template_name: str, context: dict = None
     ctx.setdefault('app_email', s.app_email)
     ctx.setdefault('app_github_repo', s.app_github_repo)
     ctx.setdefault('app_copyright_years', s.app_copyright_years)
+    ctx.setdefault('app_author_email', s.app_author_email)
     if template_name == 'auth/login.html' and 'sso' not in ctx:
         from sajha.auth.sso import public_info
         ctx['sso'] = public_info()
@@ -390,6 +391,7 @@ class SajhaMCPServerWebApp:
             'app_author': s.app_author,
             'app_email': s.app_email,
             'app_copyright_years': s.app_copyright_years,
+            'app_author_email': s.app_author_email,
             'app_github_repo': s.app_github_repo,
             'app_github_repo_name': s.app_github_repo_name,
             'current_year': datetime.now().year,

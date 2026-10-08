@@ -1,3 +1,4 @@
+# Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.com
 """IntelligenceService.ask over the real offline calc_* tools with the mock planner: tool choice,
 limits, confirmation of destructive tools, prompt-injection hygiene, RBAC, event order, and the
 POST /api/ai/ask route (JSON and SSE)."""

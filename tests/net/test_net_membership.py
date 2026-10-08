@@ -1,3 +1,4 @@
+# Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.com
 """
 SAJHA Net membership (protocol §5.2, §9) with participants in one process: GOS-01 to GOS-14,
 NAME-06, NAME-07, NAME-09, NAME-11, REV-01 and the clean-leave, crash and restart paths.

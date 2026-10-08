@@ -1,3 +1,4 @@
+# Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.com
 """
 Tests for HTTP endpoints — API, MCP, A2A, Web UI.
 Uses FastAPI TestClient (no real server needed).

@@ -1,3 +1,4 @@
+# Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.com
 """
 Workflows (sajha/workflows; docs/architecture/Workflows.md): the definition model, parameter
 mapping, DAG execution order and parallelism, branches, loops, retries, timeouts, cancel,

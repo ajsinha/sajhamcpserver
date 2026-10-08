@@ -1,3 +1,4 @@
+# Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.com
 """
 Observability: Prometheus exposition and /metrics protection, the instrumentation points
 (HTTP, both MCP eras, tools, LLM, ask, auth, sandbox, federation), the usage ledger and

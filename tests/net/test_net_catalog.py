@@ -1,3 +1,4 @@
+# Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.com
 """
 SAJHA Net catalogs, one name one contract, forwarded calls and fallback, as conformance cases of
 docs/protocol/SAJHA Net Protocol.md §20 (CAT-*, CON-*, FB-*, CALL-08 hops, CALL-09), on in-process

@@ -1,3 +1,4 @@
+# Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.com
 """
 Data Connectors against real databases: PostgreSQL 16 and MySQL 8 (docs/architecture/Data Connectors.md).
 

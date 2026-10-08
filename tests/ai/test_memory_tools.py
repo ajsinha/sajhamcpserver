@@ -1,3 +1,4 @@
+# Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.com
 """Conversation memory for LLM tools (sajha/ai/memory.py; docs/architecture/LLM Tools.md §10): the handle
 (create, continue, "conversation not found" for everything else), per-tool scoping, expiry, turn folding,
 question clipping, reading only the window, client history, no storage for anonymous callers, the

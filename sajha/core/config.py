@@ -213,6 +213,7 @@ class Settings(BaseSettings):
     app_author: str = Field(default_factory=lambda: _get('app.author', 'Ashutosh Sinha'))
     app_email: str = Field(default_factory=lambda: _get('app.email', 'ajsinha@gmail.com'))
     app_copyright_years: str = Field(default_factory=lambda: _get('app.copyright_years', '2025-2030'))
+    app_author_email: str = Field(default_factory=lambda: _get('app.author_email', 'ajsinha@gmail.com'))
     app_github_repo: str = Field(default_factory=lambda: _get('app.github.repo', 'https://github.com/ajsinha/sajhamcpserver'))
     app_github_repo_name: str = Field(default_factory=lambda: _get('app.github.repo_name', 'ajsinha/sajhamcpserver'))
 

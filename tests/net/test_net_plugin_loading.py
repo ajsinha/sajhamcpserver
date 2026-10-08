@@ -1,3 +1,4 @@
+# Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.com
 """Third-party SAJHA Net plug-ins (design §5.3): modules named in ``sajhanet.plugins.modules`` and the
 entry-point group ``sajha.net.plugins`` are loaded at start, contract-checked, and failures are reported
 as System Notices; the example plug-in ``region_first`` (sajha/examples/sajhanet/region_first.py)."""

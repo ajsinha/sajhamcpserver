@@ -1,3 +1,4 @@
+{# Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.com #}
 {# One help topic card. Expects `t` (a CATALOG topic) and `c` (its category). #}
 <div class="col-md-6 col-xl-4 mb-3 help-item" data-search="{{ (t.title ~ ' ' ~ t.summary ~ ' ' ~ c.name ~ ' ' ~ (t.file or ''))|lower }}">
     <a class="card help-card h-100" href="{{ topic_href(t) }}">

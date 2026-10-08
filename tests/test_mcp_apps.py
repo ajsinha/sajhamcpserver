@@ -1,3 +1,4 @@
+# Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.com
 """
 MCP Apps extension (io.modelcontextprotocol/ui) on the 2026-07-28 path, and
 x-mcp-header annotations on tool inputSchemas (Mcp-Param-{Name} headers).

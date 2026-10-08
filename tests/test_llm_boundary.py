@@ -1,3 +1,4 @@
+# Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.com
 """The LLM package boundary (Implementation Plan wave 3, phase 3.2 D; LLM Tools §13).
 
 Every LLM is reached through ``sajha.ai.llm``: provider and model specifics live only inside

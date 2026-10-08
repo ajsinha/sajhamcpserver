@@ -1,3 +1,4 @@
+# Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.com
 """
 Every tool call as a ``tool.call`` record in the tamper-evident audit chain
 (sajha/audit/tool_calls.py; docs/architecture/Policy and Audit.md section 13), the deferred

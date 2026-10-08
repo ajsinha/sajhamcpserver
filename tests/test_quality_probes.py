@@ -1,3 +1,4 @@
+# Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.com
 """Health probes: schedule slots (interval and cron), single fire across workers through a shared
 state store, stored state and history, metrics, and the scheduler's opt-in."""
 

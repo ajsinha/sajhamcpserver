@@ -1,3 +1,4 @@
+# Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.com
 """The Ask SAJHA tool-search index follows every change to the tool registry, whatever made it
 (Studio creators, composites, federation, API import, the file watcher): ToolsRegistry calls its
 change listeners on each register/unregister/enable/disable, once per bulk(), and the resolver

@@ -1,3 +1,4 @@
+# Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.com
 """Kubernetes deployment artefacts: Helm chart, Kustomize manifests, Dockerfile.
 
 Static checks that need no cluster. `helm lint` / `helm template` and a real install are

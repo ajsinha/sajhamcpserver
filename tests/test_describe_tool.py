@@ -1,3 +1,4 @@
+# Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.com
 """
 Studio "Describe a tool" (sajha/studio/describe.py, sajha/ai/llm/mock_toolsmith.py,
 sajha/routes/describe_routes.py, ``sajha studio describe``), all with the offline mock.

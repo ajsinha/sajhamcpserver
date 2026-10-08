@@ -1,3 +1,4 @@
+# Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.com
 """
 The administrators' credential files and plain storage (owner decisions, docs/security/Security
 Model.md "Credential storage and files"): config/users.json wins over the database and is applied

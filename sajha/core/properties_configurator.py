@@ -1,3 +1,4 @@
+# Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.com
 """
 Properties configurator for managing application properties with auto-reload
 Enhanced with command-line args, precedence ordering, and source tracking

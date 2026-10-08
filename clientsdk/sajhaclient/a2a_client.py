@@ -1,3 +1,4 @@
+# Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.com
 """
 SAJHA MCP Server — Client SDK A2A (Agent-to-Agent) Protocol Client
 

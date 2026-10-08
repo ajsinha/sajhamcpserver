@@ -1,3 +1,4 @@
+# Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.com
 """SQL injection regressions for the OLAP tools, the semantic layer and duckdb_sql.
 
 Filter values are bound as DuckDB parameters (a hostile value is just a value that matches

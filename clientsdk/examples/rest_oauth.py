@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.com
 """
 Example: SAJHA Client with OAuth 2.0 Authentication
 

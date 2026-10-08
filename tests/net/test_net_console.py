@@ -1,3 +1,4 @@
+# Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.com
 """
 The SAJHA Net console pages (design §17.1, §17.2) on a SAJHA with SAJHA Net off: this server is always
 listed as a net of one, the navbar badge names it, the Instances pages are for every signed-in user and

@@ -1,3 +1,4 @@
+# Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.com
 """FBI Crime Data Explorer tools: request shape, parsing and error mapping.
 
 All HTTP is mocked. The fixtures in tests/fixtures/fbi/ are real CDE API responses

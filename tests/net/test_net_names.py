@@ -1,3 +1,4 @@
+# Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.com
 """SAJHA Net names (protocol §5): conformance cases NAME-01 to NAME-05 and NAME-10."""
 
 import pytest

@@ -1,3 +1,4 @@
+# Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.com
 """
 Re-export with hop limits, the ``assertion`` and ``token_exchange`` identity resolvers, and the topology
 view's data (Implementation Plan wave 5, phase 5.2 stream C; design §10.2, §14, §17; protocol §15.5, §15.9,

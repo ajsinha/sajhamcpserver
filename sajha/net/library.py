@@ -1,3 +1,4 @@
+# Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.com
 """
 The SAJHA Net reference library (design §5.1, §5.4): a complete participant assembled from the
 protocol core alone, for any MCP server that wants to join a net without SAJHA.

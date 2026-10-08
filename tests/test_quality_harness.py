@@ -1,3 +1,4 @@
+# Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.com
 """The tool test harness: JSONPath, assertions, cases, cassettes (urllib, requests, httpx; record and
 replay against a local HTTP server, strict replay, secret redaction), the runner, JUnit XML and the CLI."""
 

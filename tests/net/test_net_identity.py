@@ -1,3 +1,4 @@
+# Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.com
 """
 SAJHA Net identity and authorization across instances (design §10, §11; protocol §11, §12, §15.3,
 §15.4): three participants in one process, each with its own SQLite database (users, API keys and

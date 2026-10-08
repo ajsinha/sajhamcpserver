@@ -105,7 +105,11 @@ WRITTEN_BY_READER = {
     'config/policies/50-tutorial.yaml',                      # Tutorial 20 writes this policy
     'config/tools/my_priority.json',                         # Tutorial 26 builds these
     'config/evals/my_priority.yaml',
-    'config/mcp_servers.json',                               # git-ignored; the admin copies a template to it
+}
+#: Git-ignored files the server itself writes at run time (no template exists), so a clean
+#: checkout lacks them although guides describe them.
+WRITTEN_BY_SERVER = {
+    'config/apikeys_db.json',                                # the database's keys, dumped every 10 minutes
 }
 #: Default directories the server reads but does not ship (created on first use), and
 #: so anything a guide puts in them.
@@ -121,6 +125,26 @@ def _cited_path(raw):
     return path
 
 
+def _git_files():
+    import subprocess
+    try:
+        out = subprocess.run(['git', 'ls-files'], cwd=REPO, capture_output=True, text=True, check=True).stdout
+    except Exception:                                 # not a git checkout: fall back to the file system
+        return None
+    return set(out.splitlines())
+
+
+_GIT_FILES = _git_files()
+#: a git-ignored file an administrator creates from a tracked template, e.g. config/users.json
+#: from config/users.json.example: a guide may cite it although a clean checkout lacks it
+_TRACKED_EXAMPLES = {f[:-len('.example')] for f in (_GIT_FILES or ()) if f.endswith('.example')}
+
+
+def _is_untracked_file(path):
+    full = os.path.join(REPO, path)
+    return _GIT_FILES is not None and os.path.isfile(full) and path not in _GIT_FILES
+
+
 @pytest.mark.parametrize('doc', DOCS, ids=IDS)
 def test_cited_repository_paths_exist(doc):
     missing = []
@@ -130,7 +154,12 @@ def test_cited_repository_paths_exist(doc):
             continue
         if path in WRITTEN_BY_READER or any(path.rstrip('/') == d or path.startswith(d + '/') for d in RUNTIME_DIRS):
             continue
+        if path.rstrip('/') in _TRACKED_EXAMPLES or path in WRITTEN_BY_SERVER:   # git-ignored by design
+            continue
         full = os.path.join(REPO, path)
+        if _is_untracked_file(path):                  # exists only on this machine: a clean checkout lacks it
+            missing.append(path)
+            continue
         if os.path.exists(full) or os.path.exists(full.rstrip('/') + '.py'):   # module path
             continue
         missing.append(path)
@@ -238,5 +267,5 @@ def test_the_router_is_actually_being_read():
 
 
 def test_the_exclusions_are_narrow():
-    assert len(WRITTEN_BY_READER) <= 11 and len(RUNTIME_DIRS) <= 3 and len(KNOWN_UNSERVED) <= 1
+    assert len(WRITTEN_BY_READER) <= 10 and len(WRITTEN_BY_SERVER) <= 2 and len(RUNTIME_DIRS) <= 3 and len(KNOWN_UNSERVED) <= 1
     assert len(STALE) >= 3

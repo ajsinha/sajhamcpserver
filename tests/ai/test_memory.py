@@ -1,3 +1,4 @@
+# Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.com
 """Conversation memory (sajha/ai/memory.py): multi-turn asks with follow-ups rewritten to stand alone,
 older turns summarised through the gateway, per-user privacy, retention, and the delete-my-history
 endpoints. Mock provider only; each test has its own SQLite database."""

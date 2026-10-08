@@ -1,3 +1,4 @@
+# Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.com
 """
 Planners and LLM tools across SAJHA Net (design §13 and §14; Implementation Plan wave 5, phase 5.1
 stream B), on the in-process three-instance net of tests/net/test_net_three_instances.py:

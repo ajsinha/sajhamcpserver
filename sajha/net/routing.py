@@ -1,3 +1,4 @@
+# Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.com
 """
 Names, resolution, forwarded calls and waterfall fallback (protocol §5.3, §15, §16, §17;
 design §8.2, §8.4, §9, §9.1, §14, §15).

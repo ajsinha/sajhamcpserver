@@ -1,3 +1,4 @@
+# Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.com
 """Documents as RAG sources (sajha/ai/rag/extract.py): PDF and Word files beside the text types,
 read through optional packages, skipped by byte hash when unchanged, and a clear "install X"
 message when the reader is missing."""

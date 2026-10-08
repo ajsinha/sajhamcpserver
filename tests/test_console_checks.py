@@ -1,3 +1,4 @@
+# Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.com
 """Console end-to-end flows and accessibility (scripts/check_console.py, Roadmap X15): its page list
 stays live, its built-in rule subset is documented, and (when a server and Playwright are
 available) the flows and the scan pass.

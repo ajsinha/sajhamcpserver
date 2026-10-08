@@ -1,3 +1,4 @@
+# Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.com
 """
 SAJHA Net residency inside SAJHA (design §12 and §13; protocol §15.4 step 12, §17 ``-32012``).
 

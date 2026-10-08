@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.com
 """
 Console end-to-end flows and accessibility check for SAJHA's web UI (Playwright, headless
 Chromium). Roadmap X15; the layout check at phone widths is scripts/check_mobile.py.

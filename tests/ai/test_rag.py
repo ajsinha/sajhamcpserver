@@ -1,3 +1,4 @@
+# Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.com
 """Document retrieval (sajha/ai/rag): chunking with section anchors, the index over SAJHA's guides and
 admin sources (incremental by content hash), uploads, the in-process store's persistence, the
 pgvector store's SQL, the sajha_search_docs tool (alone and through the ask loop) and the

@@ -1,3 +1,4 @@
+# Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.com
 """Gateway: aliases, capability matching, retry/backoff, fallback, breaker, budgets, policy, cache,
 preferences, configuration precedence, registry loading, secrets and the legacy API shims."""
 

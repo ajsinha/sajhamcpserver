@@ -1,3 +1,4 @@
+# Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.com
 """
 The Python Playground's cell runner. Runs inside Pyodide in the browser's Web Worker
 (see worker.mjs); the server never executes it.

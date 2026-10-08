@@ -1,3 +1,4 @@
+# Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.com
 """
 Provider contract suite: every registered provider family, offline against recorded-shape fake
 APIs (httpx.MockTransport; a fake boto3 client for Bedrock), plus live runs when a key is set.

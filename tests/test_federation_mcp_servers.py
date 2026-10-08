@@ -1,3 +1,4 @@
+# Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.com
 """
 The mcpServers file (docs/architecture/Federation.md, "The mcpServers file"): the de-facto standard
 ``{"mcpServers": {...}}`` JSON becomes federation upstreams, external servers in SAJHA Net by default;

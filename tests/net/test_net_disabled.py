@@ -1,3 +1,4 @@
+# Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.com
 """SAJHA Net is off by default: every /sajhanet/ path is a bare 404 (protocol §7.3, SIG-15)."""
 
 

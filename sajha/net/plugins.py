@@ -1,3 +1,4 @@
+# Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.com
 """
 Plug-in points of SAJHA Net (design §5.3): one interface per moving part, each with registered
 implementations chosen by name or by ``package.module:Class``. Third parties add their own through

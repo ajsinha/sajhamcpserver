@@ -1,3 +1,4 @@
+# Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.com
 """
 Wave 3 phase 3.2 authoring: the Studio LLM tool creator, the planner editor, Describe-a-tool
 LLM proposals, the Conversations page, and Studio permissions per creator with ownership

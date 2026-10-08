@@ -1,3 +1,4 @@
+# Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.com
 """
 API Import (sajha/api_import/): OpenAPI 3.0, Swagger 2.0, a GitHub-like subset with local,
 relative and recursive $refs, and a GraphQL introspection result → tools, schemas and

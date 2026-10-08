@@ -1,3 +1,4 @@
+# Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.com
 """LLM-tool resource safety (sajha/ai/llm_tools/runtime.py; docs/architecture/LLM Tools.md §10.3–10.4): the
 memory guard's states with a simulated resident memory and cgroup-style limits, admission (concurrency,
 bounded queue, busy), the working-set budget and spill to the per-run spool, the spool caps and janitor,

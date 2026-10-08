@@ -1,3 +1,4 @@
+# Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.com
 """
 SAJHA Net identity and authorization inside SAJHA (design §10, §11, §16, §17.4; protocol §11, §12,
 §15.3, §15.4).

@@ -1,3 +1,4 @@
+# Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.com
 """System notices (docs/architecture/System Notices.md, section 6): the service, its sources,
 the admin API, the live stream and the console banner, panel and badge."""
 import json

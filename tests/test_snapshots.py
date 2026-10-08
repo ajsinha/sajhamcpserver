@@ -1,3 +1,4 @@
+# Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.com
 """Snapshots of users, API keys and tools (snapshots.*; SAJHA Net §20.4, working without a net):
 contents, chain, signature, rotation, one writer, audit, permissions, the CLI, restore."""
 

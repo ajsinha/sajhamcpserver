@@ -1,3 +1,4 @@
+# Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.com
 """
 Golden translation tests: canonical Chat Completions requests -> each vendor's wire format, and
 recorded vendor replies and stream events -> canonical, compared with stored expectations.

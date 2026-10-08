@@ -1,3 +1,4 @@
+# Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.com
 """
 The worked examples of docs/architecture/Extending the Intelligence Layer.md, run for real
 (sajha/examples/intelligence/), so the guide cannot describe code that does not work:

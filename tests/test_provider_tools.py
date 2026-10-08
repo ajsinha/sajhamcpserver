@@ -1,3 +1,4 @@
+# Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.com
 """Provider tool regressions: PBoC / BoJ (FRED), UN Comtrade,
 duckdb_sql, and the OLAP pivot / time-series tools. All HTTP is mocked."""
 import io

@@ -1,3 +1,4 @@
+# Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.com
 """
 SAJHA Net catalogs and routing inside SAJHA (design §7, §8, §9, §15, §17.2, §17.4; protocol §10, §15).
 

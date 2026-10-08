@@ -1,3 +1,4 @@
+# Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.com
 """The SAJHA Net agent boundary (SAJHA Net design §5.4, phase 8).
 
 The SAJHA Net agent (``sajhanet_agent/``), the reference library (``sajha/net/library.py``) and the

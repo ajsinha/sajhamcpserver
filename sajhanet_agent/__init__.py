@@ -15,3 +15,7 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
 from sajhanet_agent.agent import Agent, AgentConfig, McpCatalog, make_client  # noqa: F401
 from sajhanet_agent.mcp_client import (CallableMCPClient, HttpMCPClient, MCPClient, MCPError,  # noqa: F401
                                        MCPUnavailable, StdioMCPClient)
+
+__author__ = "Ashutosh Sinha <ajsinha@gmail.com>"
+__copyright__ = "Copyright (c) 2025-2030 Ashutosh Sinha. All rights reserved."
+__license__ = "Proprietary (see LICENSE)"

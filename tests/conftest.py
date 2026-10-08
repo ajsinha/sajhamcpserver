@@ -1,3 +1,4 @@
+# Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.com
 """SAJHA MCP Server v3 — Test Configuration"""
 import os, sys
 from pathlib import Path

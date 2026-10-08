@@ -1,3 +1,4 @@
+# Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.com
 """
 SAJHA Net residency (design §12 and §13; protocol §15.4 step 12, §17 ``-32012``; conformance CALL-07 and
 the ``residency_result`` part of FB-01): data classes, residency rules on arguments and results,

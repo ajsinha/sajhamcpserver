@@ -1,3 +1,4 @@
+# Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.com
 """
 Connected accounts (sajha/accounts): per-user OAuth links, the token vault, refresh,
 revocation, tool binding, the "connect your account" answers on every front end, and

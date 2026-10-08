@@ -1,3 +1,4 @@
+# Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.com
 """
 The three-instance test net, end to end in one process (Implementation Plan phase 4.3): three
 SajhaNetService instances, each with its own SQLite database (users, API keys, the net key directory),

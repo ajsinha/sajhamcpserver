@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.com
 """
 Example: SAJHA standard MCP client (official MCP Python SDK under the hood)
 

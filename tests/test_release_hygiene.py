@@ -1,3 +1,4 @@
+# Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.com
 """Release hygiene (Roadmap N3, N4, N5): one rate limiter, the demo users file retired, the
 test suite in CI, and the schema check reporting through System Notices."""
 

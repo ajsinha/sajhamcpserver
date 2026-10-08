@@ -1,4 +1,5 @@
 #!/bin/bash
+# Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.com
 # ═══════════════════════════════════════════════════════════════
 # Upload local config/tools to S3 for ECS containers to consume
 # Run this from the project root on your dev machine:

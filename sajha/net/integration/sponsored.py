@@ -1,3 +1,4 @@
+# Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.com
 """
 Sponsored MCP servers (design §5.1, kind ``sponsored``): a plain MCP server that knows nothing of
 SAJHA Net, connected to this server as a federation upstream, represented in a net under an

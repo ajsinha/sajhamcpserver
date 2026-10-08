@@ -1,3 +1,4 @@
+# Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.com
 """
 Catalog exchange and one name, one contract (protocol §10; design §7, §8.4, §8.5, §8.7).
 

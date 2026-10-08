@@ -1,3 +1,4 @@
+# Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.com
 """The configurable planner engine (sajha/ai/planners_engine; docs/architecture/Planner Reference.md):
 the shipped files (schema, plain yaml.safe_load), a path test per shipped strategy against the
 mock model, bound tests (a critic that never passes exhausts and still answers), the validation

@@ -1,3 +1,4 @@
+# Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.com
 """
 Who may use MCP Studio: an admin, or a role with the ``studio`` permission (the seeded
 ``developer`` role). ``user`` and ``viewer`` may not. Some things stay admin only.

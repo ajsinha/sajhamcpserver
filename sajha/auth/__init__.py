@@ -230,12 +230,14 @@ class AuthManager:
         """
         Validate an API key and return an AuthContext.
 
-        The database decides for every key it knows (unknown, disabled, revoked or expired:
-        refused). A key with an owner signs in as that user, with the user's roles (refused
-        when the owner is disabled); its tool access mode and list stay an extra ceiling. A
-        key without an owner keeps the older service identity ``apikey:<name>`` with the
-        role ``api_consumer``. A key the database does not know, or every key while the
-        database does not answer, is looked up in the persistent key file
+        Lookup order (owner decision): the administrators' keys file ``config/apikeys.json``
+        first, and it wins (its roles apply; a ``test_admin`` record signs in as an administrator
+        while ``sajhanet.test_admin_key.enabled``); then the database, which decides for every
+        key it knows (unknown, disabled, revoked or expired: refused); then the database dump
+        ``config/apikeys_db.json`` when the database does not know the key or does not answer.
+        A key with an owner signs in as that user, with the user's roles (refused when the owner
+        is disabled); its tool access mode and list stay an extra ceiling. A key without an owner
+        keeps the older service identity ``apikey:<name>`` with the role ``api_consumer``
         (sajha/auth/persistent_keys.py).
         """
         # 1. the administrators' keys file wins over everything (config/apikeys.json)

@@ -1,3 +1,4 @@
+# Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.com
 """
 Portability suite: one set of canonical Chat Completions requests through the mock and through
 every provider adapter, offline (recorded-shape fake vendors from fakes.py), checking that the

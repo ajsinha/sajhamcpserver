@@ -1,3 +1,4 @@
+# Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.com
 """
 SAJHA Net inside SAJHA: three instances in one process, each with its own state store, key files
 and storage, talking over HTTP through the ASGI stack. The first is a full SAJHA app (lifespan,

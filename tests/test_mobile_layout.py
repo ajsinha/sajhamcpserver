@@ -1,3 +1,4 @@
+# Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.com
 """Mobile layout: the route list of scripts/check_mobile.py stays live, every page has a
 viewport meta, and (when a server and Playwright are available) the browser check passes.
 

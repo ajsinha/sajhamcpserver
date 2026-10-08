@@ -1,4 +1,5 @@
 #!/bin/bash
+# Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.com
 # ═══════════════════════════════════════════════════════════════
 # SAJHA MCP Server — Container Bootstrap Script
 # Runs before uvicorn. Handles S3 sync, secrets injection and

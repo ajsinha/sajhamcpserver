@@ -1,3 +1,4 @@
+# Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.com
 """The SAJHA Net CA (protocol §5.2, §13, §14): CA-01 to CA-03 and NAME-08."""
 
 import json

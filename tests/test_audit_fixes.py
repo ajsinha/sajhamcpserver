@@ -1,3 +1,4 @@
+# Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.com
 """Regressions for defects found by the documentation audit: OLAP operation binding,
 REST catalog visibility, JSON Schema argument validation, the Yahoo symbol pattern, FRED
 "latest" ordering, per-upstream federation rate limits, plugin .py tools, the SharePoint

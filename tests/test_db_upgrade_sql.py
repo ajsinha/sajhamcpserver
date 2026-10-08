@@ -1,3 +1,4 @@
+# Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.com
 """The start-up schema check prints the SQL to run, and ``python -m sajha.db upgrade-sql``
 prints the DDL that brings a database up to its dialect's schema file (Roadmap N2, X17).
 

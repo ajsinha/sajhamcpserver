@@ -1,3 +1,4 @@
+# Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.com
 """
 MCP over stdio (sajha/cli/stdio.py): the official SDK client in both eras, the
 transport rules (newline-delimited JSON, nothing but protocol on stdout), identity

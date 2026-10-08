@@ -1,3 +1,4 @@
+# Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.com
 """Planners (sajha/ai/planners.py, sajha/ai/planners_engine): the registry and configuration, a contract suite that runs every
 built-in strategy through the ask loop's safety guarantees (RBAC, tools not offered, destructive
 confirmation, limits, injected instructions, event order), and each strategy's own behaviour:

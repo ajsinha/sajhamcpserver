@@ -1,3 +1,4 @@
+# Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.com
 """
 The tamper-evident audit (sajha/audit/; docs/architecture/Policy and Audit.md, sections 7-8):
 the hash chain and its signed anchors, detection of every kind of tampering, several writers

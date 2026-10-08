@@ -1,3 +1,4 @@
+# Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.com
 """
 ``sajha`` CLI — terminal output: tables, results, and the ask step stream.
 

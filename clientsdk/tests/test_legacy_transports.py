@@ -1,3 +1,4 @@
+# Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.com
 """
 Offline tests for the zero-dependency clients (MCPClient, MCPSSEClient,
 MCPWebSocketClient) and the transport coalgebra wrappers.

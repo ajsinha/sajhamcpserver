@@ -1,3 +1,4 @@
+# Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.com
 """
 A SAJHA Net test net in one process: one CA, participants as :class:`sajha.net.node.NetNode`s
 with their own stores, keys and peer caches, wired together by the in-process connector, on a

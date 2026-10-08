@@ -1,3 +1,4 @@
+# Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.com
 """The RAG store contract (sajha/ai/rag/stores.py ``VectorStore``): every shipped store passes these
 cases. pgvector runs only when SAJHA_TEST_POSTGRES_URL names a PostgreSQL database with the vector
 extension available (the fixture creates and drops ``rag_chunks``). A third-party store can reuse

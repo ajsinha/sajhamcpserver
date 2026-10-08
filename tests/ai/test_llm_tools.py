@@ -1,3 +1,4 @@
+# Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.com
 """LLM tools (sajha/ai/llm_tools; docs/architecture/LLM Tools.md): load-time validation, every mode on
 the mock (answer, complete, extract with its one retry, classify, judge, grounded, narrate), caching,
 identity (inner calls run as the caller, never with more access), derived annotations, recursion and

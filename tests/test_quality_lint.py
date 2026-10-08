@@ -1,3 +1,4 @@
+# Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.com
 """The schema linter: each rule, the registry walk, JUnit output and the CLI's exit status."""
 
 import xml.etree.ElementTree as ET

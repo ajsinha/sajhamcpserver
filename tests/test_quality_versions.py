@@ -1,3 +1,4 @@
+# Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.com
 """Tool versions: the versions file, routing (API-key pin > user > role > canary > stable), canary
 stickiness, automatic rollback shared across workers, deprecation and sunset, MCP exposure (one
 name, the version in _meta, hidden after the tool's sunset), REST, and the admin API."""

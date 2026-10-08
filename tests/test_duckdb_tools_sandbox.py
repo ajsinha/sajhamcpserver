@@ -1,3 +1,4 @@
+# Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.com
 """SQL injection and file-access regressions for the duckdb_* tools
 (sajha/tools/impl/duckdb_olap_tools_refactored.py): table and column names are looked up
 in the catalog and quoted, values are bound, duckdb_query runs one read-only statement,

@@ -1,3 +1,4 @@
+/* Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.com */
 // SAJHA's CodeMirror 6 bundle: just Python editing. Built with esbuild, exposed as window.SajhaEditor.
 import {EditorView, keymap, lineNumbers, highlightActiveLine, highlightActiveLineGutter, drawSelection} from '@codemirror/view';
 import {EditorState, Prec} from '@codemirror/state';

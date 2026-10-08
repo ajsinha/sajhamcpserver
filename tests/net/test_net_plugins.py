@@ -1,3 +1,4 @@
+# Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.com
 """SAJHA Net plug-in points (design §5.3, §5.4): registry, selection and every contract suite."""
 
 import ast

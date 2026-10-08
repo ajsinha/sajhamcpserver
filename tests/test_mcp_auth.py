@@ -1,3 +1,4 @@
+# Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.com
 """
 OAuth 2.1 authorization for /mcp: resource server (RFC 9728, RFC 8707, RFC 6750
 challenges), the built-in authorization server (RFC 8414, code + PKCE S256,

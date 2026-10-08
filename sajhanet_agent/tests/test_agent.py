@@ -1,3 +1,4 @@
+# Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.com
 """
 The SAJHA Net agent (sajhanet_agent/): its MCP clients (stdio, Streamable HTTP), two agents in an
 open-admission net over real HTTP, the conformance suite against an agent over HTTP, and the command

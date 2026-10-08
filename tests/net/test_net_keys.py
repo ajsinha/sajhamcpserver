@@ -1,3 +1,4 @@
+# Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.com
 """
 SAJHA Net key directory and block publication in one process (protocol §11, §12): KEY-01 to KEY-05,
 REC-01 for the records SAJHA signs, NET-03 and NET-06 for key records and blocks documents, BLK-01,

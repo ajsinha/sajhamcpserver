@@ -1,3 +1,4 @@
+# Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.com
 """
 The policy engine (sajha/policy/; docs/architecture/Policy and Audit.md): the rule language,
 each effect and obligation, approvals (also across workers sharing a state store), rate

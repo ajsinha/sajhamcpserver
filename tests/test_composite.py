@@ -1,3 +1,4 @@
+# Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.com
 """
 Composite tools: param-mapping forms, both arrangements, and registration of
 DB-saved composites into the registry (they used to fail to register).

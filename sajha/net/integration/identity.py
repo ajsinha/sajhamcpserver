@@ -1,3 +1,4 @@
+# Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.com
 """
 SAJHA Net user identity beyond API keys (design §10.2, §14; protocol §15.5, §15.9, §16).
 

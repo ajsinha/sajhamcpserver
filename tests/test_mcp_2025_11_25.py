@@ -1,3 +1,4 @@
+# Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.com
 """
 MCP 2025-11-25 protocol/transport conformance tests for POST/GET/DELETE /mcp.
 

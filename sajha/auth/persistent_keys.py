@@ -2,18 +2,21 @@
 SAJHA MCP Server — persistent API keys: hashed key records in a file.
 Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.com
 
-API keys live in the database, which can be lost. Keys an administrator marks
-*persistent* are also written, as records, to the file at ``config.apikeys.path``
-(default ``config/apikeys.json``), so they keep working when the database does not
-know them or cannot be reached:
+Two files sit beside the database (owner decisions; docs/security/Security Model.md,
+"Credential storage and files"):
 
-* A record holds the key's id, display prefix, name, the SHA-256 of the key (never the
-  key), the owner's user ID, name and roles (the users table may be gone too), the
-  enabled flag, expiry, tool access, creation time and creator, and revocation.
-* Verification checks the database first; only a key the database does not know (or a
-  database that does not answer) is looked up here. When the database knows the key, the
-  database decides, so disabling or revoking a key there always wins. When the database
-  answers but the record's owner is not a user there (or is disabled), the key is refused.
+* ``config/apikeys.json`` (``config.apikeys.path``) is the administrators' keys file. It is
+  checked FIRST and wins over the database for every key it holds. A record holds the key's id,
+  display prefix, name, the raw ``key`` (or, for older records, its ``sha256``), the owner's user
+  ID, name and roles, the enabled flag, expiry, tool access, creation time and creator,
+  revocation, and optionally ``test_admin`` (honoured only while
+  ``sajhanet.test_admin_key.enabled``). Persistent database keys are also written here.
+* ``config/apikeys_db.json`` (``auth.api_keys.db_dump_path``) is the database's keys, dumped
+  every ``auth.api_keys.db_dump_interval_minutes`` (raw under plain credential storage, else the
+  hash). It is the LAST fallback: used only when the database does not know a key or does not
+  answer.
+
+Lookup order: keys file -> database -> database dump.
 * SAJHA rewrites the file atomically (a temporary file, then a rename) whenever a
   persistent key is created, changed, rotated or revoked, and re-reads it when it changes
   on disk (checked at most once a second when a lookup needs it, and by the hot-reload
@@ -21,10 +24,10 @@ know them or cannot be reached:
 * The file is written with owner-only permissions (0600) and is git-ignored;
   ``config/apikeys.json.example`` documents the format.
 
-The older plaintext format (a top-level ``apikeys`` list with raw ``key`` values) is
-never read: such a file is ignored with a warning and replaced on the first write.
+The older format with a top-level ``apikeys`` list is never read: such a file is ignored
+with a warning and replaced on the first write.
 
-Owner guide: docs/security/Security Model.md ("Persistent API keys").
+Owner guide: docs/security/Security Model.md ("Credential storage and files").
 """
 
 from __future__ import annotations

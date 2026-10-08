@@ -1,3 +1,4 @@
+# Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.com
 """
 A SAJHA Net test net with catalogs and calls: :class:`tests.net.harness.TestNet` participants, each with
 a :class:`~sajha.net.catalog.CatalogBook` over a static tool list, a :class:`~sajha.net.routing.HostServer`

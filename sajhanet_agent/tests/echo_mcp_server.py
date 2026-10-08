@@ -1,3 +1,4 @@
+# Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.com
 """A minimal MCP server over stdio for the agent's tests: one tool, ``echo``."""
 
 import json

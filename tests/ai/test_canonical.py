@@ -1,3 +1,4 @@
+# Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.com
 """
 The canonical Chat Completions format: lossless converters from the original types, the
 request refusals of §13.6, the six behaviours that used to be silent, the gateway's canonical

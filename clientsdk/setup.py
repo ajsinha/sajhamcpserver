@@ -20,6 +20,7 @@ setup(
     version=VERSION,
     author="Ashutosh Sinha",
     author_email="ajsinha@gmail.com",
+    license="Proprietary. Copyright (c) 2025-2030 Ashutosh Sinha. All rights reserved.",
     description="Python Client SDK for SAJHA MCP Server — REST, MCP, and A2A protocols",
     long_description=open("README.md").read(),
     long_description_content_type="text/markdown",
@@ -47,6 +48,7 @@ setup(
         ],
     },
     classifiers=[
+        "License :: Other/Proprietary License",
         "Development Status :: 4 - Beta",
         "Intended Audience :: Developers",
         "Programming Language :: Python :: 3",

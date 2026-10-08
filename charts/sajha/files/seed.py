@@ -1,3 +1,4 @@
+# Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.com
 """SAJHA pod seed step (init container; same image as the server).
 
 1. Copies the image's config/ and sajha/tools/impl/ into the writable volumes mounted

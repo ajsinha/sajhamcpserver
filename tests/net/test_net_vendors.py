@@ -1,3 +1,4 @@
+# Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.com
 """
 Vendors and external servers (SAJHA Net design §5.6; protocol §5.5) and how a node recognises itself
 (protocol §9.4).

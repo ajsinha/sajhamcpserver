@@ -1,3 +1,4 @@
+# Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.com
 """
 Changes to existing code that SAJHA Net builds on (docs/architecture/SAJHA Net.md section 21.1,
 items 2, 5, 6, 9 and 12): the provider-safe tool part, the peer URL guard with its network

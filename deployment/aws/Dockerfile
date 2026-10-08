@@ -16,6 +16,10 @@ RUN pip install --no-cache-dir --prefix=/install -r requirements.txt \
 
 # ── Stage 2: Production image ────────────────────────────────
 FROM python:3.11-slim AS production
+LABEL org.opencontainers.image.title="SAJHA MCP Server" \
+      org.opencontainers.image.authors="Ashutosh Sinha <ajsinha@gmail.com>" \
+      org.opencontainers.image.licenses="LicenseRef-Proprietary" \
+      org.opencontainers.image.description="Proprietary software. Copyright (c) 2025-2030 Ashutosh Sinha. All rights reserved."
 
 LABEL maintainer="Ashutosh Sinha <ajsinha@gmail.com>"
 LABEL description="SAJHA MCP Server — Production Container"

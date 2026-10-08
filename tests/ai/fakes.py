@@ -1,3 +1,4 @@
+# Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.com
 """Recorded-shape fake vendor APIs for the provider contract suite (httpx.MockTransport)."""
 
 import json

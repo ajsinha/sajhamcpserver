@@ -1,3 +1,4 @@
+# Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.com
 """
 The renewing state-store lease (sajha/core/state/base.py lease_*, sajha/core/state/lease.py)
 against every backend available here: memory, fakeredis (when installed), a real Redis at

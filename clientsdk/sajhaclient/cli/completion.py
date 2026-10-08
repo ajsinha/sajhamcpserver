@@ -1,3 +1,4 @@
+# Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.com
 """
 ``sajha completion bash|zsh|fish`` — completion scripts generated from the argparse tree,
 so they never drift from the commands.  Tool and prompt names complete live

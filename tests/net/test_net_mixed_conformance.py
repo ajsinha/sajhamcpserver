@@ -1,3 +1,4 @@
+# Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.com
 """
 The wave 5 exit (SAJHA Net design §5.1, phase 8): a mixed net in one process passes the conformance
 suite (protocol §20) on all three kinds of participant.

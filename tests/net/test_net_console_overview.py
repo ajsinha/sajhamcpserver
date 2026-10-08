@@ -1,3 +1,4 @@
+# Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.com
 """
 The SAJHA Net console of phase 5.2 (design §17.5): the Net overview (admin), Your net access (every
 signed-in user), the pins view behind the admission panel, and the pages with SAJHA Net off and with a

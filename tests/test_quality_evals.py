@@ -1,3 +1,4 @@
+# Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.com
 """Evals for Ask SAJHA, offline on the mock provider: set parsing, scoring (tool selection, answer
 checks, limits), per model x planner runs, comparison, saved runs, the CLI and JUnit."""
 

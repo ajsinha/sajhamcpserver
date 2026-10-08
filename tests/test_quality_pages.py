@@ -1,3 +1,4 @@
+# Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.com
 """The Tool Health, Evals and Tool Versions pages and their API: admin only, CSRF on forms, and
 each action end to end on the live app."""
 

@@ -1,3 +1,4 @@
+# Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.com
 """
 SAJHA Net catalogs and routing inside SAJHA: three SajhaNetService instances in one process, each with
 its own tools registry, state store and key files, talking over HTTP (TestClient) through

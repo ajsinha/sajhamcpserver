@@ -77,9 +77,13 @@ RUN set -eux; mkdir -p /out; \
 
 # ── Stage 3: runtime ──────────────────────────────────────────────────────
 FROM python:${PYTHON_VERSION}-slim AS runtime
+LABEL org.opencontainers.image.title="SAJHA MCP Server" \
+      org.opencontainers.image.authors="Ashutosh Sinha <ajsinha@gmail.com>" \
+      org.opencontainers.image.licenses="LicenseRef-Proprietary" \
+      org.opencontainers.image.description="Proprietary software. Copyright (c) 2025-2030 Ashutosh Sinha. All rights reserved."
 
 LABEL org.opencontainers.image.title="SAJHA MCP Server" \
-      org.opencontainers.image.description="Model Context Protocol server (FastAPI)" \
+      org.opencontainers.image.description="SAJHA MCP Server. Proprietary software. Copyright (c) 2025-2030 Ashutosh Sinha. All rights reserved." \
       org.opencontainers.image.source="https://github.com/ajsinha/sajhamcpserver" \
       org.opencontainers.image.authors="Ashutosh Sinha <ajsinha@gmail.com>"
 

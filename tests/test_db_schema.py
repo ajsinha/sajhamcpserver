@@ -1,3 +1,4 @@
+# Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.com
 """
 The schema files and the code agree: db/scripts/sqlite/schema.sql, db/scripts/postgresql/schema.sql
 and every SQLAlchemy MetaData in SAJHA (sajha.db.schema.metadatas()) describe the same tables,

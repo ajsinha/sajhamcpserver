@@ -1,3 +1,4 @@
+# Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.com
 """The pivot grand-total row re-aggregates each measure over the underlying rows: SUM and COUNT
 add up, AVG is the weighted average (not the average of group averages), MIN/MAX are extremes."""
 

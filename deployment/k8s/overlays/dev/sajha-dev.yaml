@@ -44,7 +44,7 @@ spec:
         app.kubernetes.io/instance: sajha
         app.kubernetes.io/component: server
       annotations:
-        checksum/config: 930e042e1f8df67abbab34c72662fc11abd6fdb5a3a07cea6638131c4d0490b4
+        checksum/config: 8937500a6cbcff09d9545500b74abfb95b77310ccc57e5b291db79dda40b06c6
     spec:
       serviceAccountName: sajha
       automountServiceAccountToken: false

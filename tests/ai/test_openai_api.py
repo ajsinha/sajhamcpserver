@@ -1,3 +1,4 @@
+# Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.com
 """SAJHA as an OpenAI-compatible endpoint (sajha/ai/openai_api.py, sajha/routes/openai_routes.py;
 docs/architecture/LLM Tools.md §13.4), proved with the official ``openai`` Python SDK where it is
 installed: chat, streaming, models, embeddings and an LLM tool as a model; API-key auth as the

@@ -1,3 +1,4 @@
+# Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.com
 """MCP sampling for LLM tools (sajha/ai/llm_tools/sampling.py; docs/architecture/LLM Tools.md §12):
 ``llm.sampling: prefer | require | never`` on modes complete, extract, classify and judge; on 2026-07-28
 the model call is an MRTR input request, on 2025-11-25 a server request on the session's stream;
