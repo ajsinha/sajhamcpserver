@@ -28,7 +28,7 @@ from __future__ import annotations
 from typing import Dict, List, Optional
 
 #: When the competitor columns were last checked against the vendors' public pages.
-AS_OF = '2026-10-06'
+AS_OF = '2026-10-08'
 
 #: Verdict -> (CSS class, what it means). Every cell is one of these; the word is always
 #: shown, colour is only a second signal.
@@ -88,11 +88,12 @@ def _s(verdict, note, code=(), guide=None, page=None):
 #: SAJHA's own column. Notes may use {tools}, {groups}, {modern}, {handshake}.
 SAJHA = {
     'id': 'sajha', 'name': 'SAJHA', 'vendor': 'Ashutosh Sinha', 'kind': 'Server',
-    'licence': 'All rights reserved',
-    'best_for': 'One self-hosted server that brings its own data tools, a browser tool builder and an LLM '
-                'layer that uses them, speaking both MCP eras, and can put a few other MCP servers behind its '
-                'own governance, when you do not need to isolate servers in containers or a catalog of '
-                'thousands of SaaS actions (it acts as each user in a few services it links).',
+    'licence': 'Proprietary; all rights reserved (LICENSE)',
+    'best_for': 'Self-hosted servers that bring their own data tools, a browser tool builder and an LLM '
+                'layer that uses them, speak both MCP eras, proxy other MCP servers under their own '
+                'governance, and join into a SAJHA Net that shares tools across domains while each server '
+                'keeps its own data, rules and AI; when you do not need to isolate servers in containers or a '
+                'catalog of thousands of SaaS actions (it acts as each user in a few services it links).',
     'cells': {
         'spec_2026': _s('Yes', 'Stateless era: {modern}, on the same /mcp endpoint.',
                         ['sajha/core/mcp_modern.py'], 'MCP Protocol Guide.md'),
@@ -140,10 +141,16 @@ SAJHA = {
                                   'approvals, cron/webhook/file/event triggers and durable, resumable runs, '
                                   'optionally published as tools.',
                           ['sajha/core/composition.py', 'sajha/workflows'], 'Workflows.md'),
-        'federation': _s('Yes', 'Fronts upstream MCP servers (both eras, SSE, opt-in stdio) as namespaced '
-                                '<prefix>__<tool> registry tools under its own access policy, approval, circuit '
-                                'breakers and audit; off by default (federation.enabled).',
-                         ['sajha/federation', 'sajha/routes/federation_routes.py'], 'Federation.md'),
+        'federation': _s('Yes', 'Proxied MCP servers (both eras, SSE, opt-in stdio), configured in YAML, the '
+                                'console or a standard mcpServers file: internal ones keep their tool names, '
+                                'external ones are offered as <vendor>__<tool>, all under its own access policy, '
+                                'approvals, residency, circuit breakers and audit; proxies of proxies are bounded '
+                                'by a call-depth budget. Beyond one server, SAJHA Net joins SAJHA servers into a '
+                                'net: gossip membership, signed requests, automatic proxy tools, one name one '
+                                'contract, fallback, identity across servers, blocks and residency rules. Off by '
+                                'default (federation.enabled, sajhanet.enabled).',
+                         ['sajha/federation', 'sajha/federation/mcp_servers.py', 'config/mcp_servers', 'sajha/net',
+                          'sajha/routes/federation_routes.py'], 'Federation.md'),
         'llm': _s('Yes', 'One OpenAI-style interface over many providers (Ollama, Vertex AI and Entra ID '
                          'included) behind a governed factory; LLM tools: tools whose work is done by a model, '
                          'configured like any tool, in seven modes (answer, complete, extract, classify, '
@@ -163,7 +170,10 @@ SAJHA = {
                              'sajha/observability/usage.py', 'sajha/observability/alerts.py',
                              'sajha/routes/observability_routes.py', 'sajha/audit'], 'Observability.md',
                             page='monitoring_usage'),
-        'admin_ui': _s('Yes', 'Web console: tools, users, roles, API keys, prompts, monitoring.',
+        'admin_ui': _s('Yes', 'Web console: tools, users, roles, API keys and the credential files, prompts, '
+                              'policies, workflows, proxied MCP servers, monitoring, and the SAJHA Net pages '
+                              '(overview with a topology map, instances, remote tools, admission); optional '
+                              'single sign-on (OIDC).',
                        ['sajha/web/templates/admin'], 'How SAJHA Fits Together.md'),
         'isolation': _s('Partial', 'Code users add in Studio (Python and script tools) and the shell run in a '
                                    'per-call sandbox: by default a subprocess with rlimits, plus Landlock, seccomp '
@@ -175,7 +185,8 @@ SAJHA = {
                                  'manifests, plus recipes for AWS, Hetzner and bare metal.',
                           ['deployment/README.md', 'Dockerfile', 'charts/sajha', 'deployment/k8s'],
                           'Kubernetes Deployment.md'),
-        'open_source': _s('No', 'All rights reserved: no OSI licence.', ['README.md']),
+        'open_source': _s('No', 'Proprietary software owned by Ashutosh Sinha: all rights reserved, no licence '
+                                'granted (see LICENSE).', ['LICENSE']),
         'managed': _s('No', 'No hosted service: you run it.'),
         'client_sdk': _s('Yes', 'sajhaclient on the official MCP SDK, plus REST and A2A clients, and the '
                                 'sajha command line.',
@@ -197,7 +208,11 @@ SHORT_VERSION: List[str] = [
     'built to put many MCP servers behind one endpoint at scale (SAJHA federates upstreams too, off by '
     'default, as one process), and Docker and Microsoft run each server in its own container, which SAJHA '
     'does not (it sandboxes only the code users add in Studio, and the shell). Composio, Zapier and Smithery reach thousands of SaaS apps with per-user sign-in and '
-    'run it all for you. SAJHA has no hosted service and no open-source licence.',
+    'run it all for you. SAJHA has no hosted service and is proprietary (no open-source licence).',
+    'What SAJHA adds: SAJHA Net. Several SAJHA servers form a net and use each other\'s tools '
+    'as the person who asked, while each keeps its own data, rules, AI and memory, with residency rules '
+    'on where data may go; other MCP servers join as proxied servers (external ones under their vendor '
+    'name) or through the SAJHA Net agent.',
 ]
 
 
