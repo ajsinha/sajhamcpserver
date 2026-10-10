@@ -488,3 +488,156 @@ def verify_message(msg: Dict[str, Any], request_nonce_value: str, certificate: x
         return False
     return crypto.verify_raw(certificate.public_key(), str(rs.get('alg') or ''), _message_input(msg, request_nonce_value),
                              sig)
+
+
+# ── signed event streams (§8.9, design L17b) ───────────────────────
+
+STREAM_PREFIX = b'sajha-net-v1:stream:'
+EVENT_PREFIX = b'sajha-net-v1:event:'
+
+
+def _event_slot(event: Dict[str, Any], create: bool) -> Optional[Dict[str, Any]]:
+    """``params._meta["io.sajha/net"]`` of a notification (created on demand)."""
+    params = event.setdefault('params', {}) if create else event.get('params')
+    if not isinstance(params, dict):
+        return None
+    if create:
+        params.setdefault('_meta', {})
+        if isinstance(params['_meta'], dict):
+            params['_meta'].setdefault(EXTENSION_ID, {})
+    meta = params.get('_meta')
+    if not isinstance(meta, dict):
+        return None
+    ext = meta.get(EXTENSION_ID)
+    return ext if isinstance(ext, dict) else None
+
+
+class EventChain:
+    """The hash chain of one streamed response (§8.9)::
+
+        c0 = SHA-256("sajha-net-v1:stream:" || request_signature_bytes)
+        ci = SHA-256(c(i-1) || uint32_be(i) || JCS(event_i without event_signature))
+        sig_i = Sign(host key, "sajha-net-v1:event:" || ci)
+
+    Event ``i`` (from 1) carries ``params._meta["io.sajha/net"].event_signature = {alg, keyid, seq, sig}``
+    (``sig`` base64url); "without event_signature" removes that one member and keeps its containers (as
+    :func:`sign_message` does). The final response is number ``n`` = events + 1: :meth:`close` adds
+    ``stream: {seq: n, chain: hex(c(n-1))}`` to its ``io.sajha/net`` slot before it gets its
+    ``response_signature``, and ``c(n)`` is taken over it without ``response_signature``; ``hex(c(n))`` is
+    the transcript digest both sides audit. The host uses :meth:`sign_event` and :meth:`close`, the home
+    :meth:`verify_event` (or :meth:`check_event` for the refusal reason) and :meth:`verify_close`. A chain
+    only advances on an event that signed or verified."""
+
+    def __init__(self, req_sig: bytes):
+        self.seq = 0
+        self.chain = hashlib.sha256(STREAM_PREFIX + bytes(req_sig)).digest()
+        self.closed = False
+
+    @property
+    def transcript(self) -> str:
+        return self.chain.hex()
+
+    @staticmethod
+    def _input(event: Dict[str, Any]) -> bytes:
+        e = copy.deepcopy(event)
+        ext = _event_slot(e, create=False)
+        if ext is not None:
+            ext.pop('event_signature', None)
+        return jcs.canonicalize(e)
+
+    def _next(self, seq: int, canonical: bytes) -> bytes:
+        return hashlib.sha256(self.chain + int(seq).to_bytes(4, 'big') + canonical).digest()
+
+    def sign_event(self, signer: Signer, event: Dict[str, Any]) -> Dict[str, Any]:
+        """A copy of notification ``event`` carrying its ``event_signature``; the chain advances."""
+        if self.closed:
+            raise ValueError('the stream is closed')
+        e = copy.deepcopy(event)
+        slot = _event_slot(e, create=True)
+        if slot is None:
+            raise ValueError('an event is a JSON-RPC notification with object params')
+        slot.pop('event_signature', None)
+        seq = self.seq + 1
+        ci = self._next(seq, jcs.canonicalize(e))
+        sig = crypto.sign_raw(signer.key, EVENT_PREFIX + ci)
+        slot['event_signature'] = {'alg': signer.alg, 'keyid': signer.keyid, 'seq': seq, 'sig': crypto.b64url(sig)}
+        self.seq, self.chain = seq, ci
+        return e
+
+    def check_event(self, certificate: x509.Certificate, event: Dict[str, Any]) -> Optional[str]:
+        """None when ``event`` is the next event of this stream signed under ``certificate`` (the chain
+        advances); else ``event_invalid`` or ``event_order`` (the chain stays)."""
+        if self.closed or not isinstance(event, dict):
+            return 'event_invalid'
+        ext = _event_slot(event, create=False)
+        es = (ext or {}).get('event_signature')
+        if not isinstance(es, dict):
+            return 'event_invalid'
+        seq = es.get('seq')
+        if not isinstance(seq, int) or isinstance(seq, bool):
+            return 'event_invalid'
+        if seq != self.seq + 1:
+            return 'event_order'
+        if es.get('keyid') != crypto.thumbprint(crypto.cert_der(certificate)):
+            return 'event_invalid'
+        try:
+            alg = crypto.alg_of(certificate.public_key())
+            sig = crypto.unb64url(str(es.get('sig') or ''))
+        except Exception:
+            return 'event_invalid'
+        if es.get('alg') != alg:
+            return 'event_invalid'
+        try:
+            ci = self._next(seq, self._input(event))
+        except Exception:
+            return 'event_invalid'
+        if not crypto.verify_raw(certificate.public_key(), alg, EVENT_PREFIX + ci, sig):
+            return 'event_invalid'
+        self.seq, self.chain = seq, ci
+        return None
+
+    def verify_event(self, certificate: x509.Certificate, event: Dict[str, Any]) -> bool:
+        return self.check_event(certificate, event) is None
+
+    def close(self, final: Dict[str, Any]) -> Dict[str, Any]:
+        """A copy of the final JSON-RPC response bound to the chain (sign it with :func:`sign_message`
+        afterwards); the chain advances to ``c(n)``, the transcript."""
+        if self.closed:
+            raise ValueError('the stream is closed')
+        m = copy.deepcopy(final)
+        slot = _slot(m, create=True)
+        if slot is None:
+            raise ValueError('the final message is a JSON-RPC response')
+        slot.pop('response_signature', None)
+        n = self.seq + 1
+        slot['stream'] = {'seq': n, 'chain': self.chain.hex()}
+        self.chain = self._next(n, _message_canonical(m))
+        self.seq, self.closed = n, True
+        return m
+
+    def verify_close(self, final: Dict[str, Any]) -> bool:
+        """True when ``final`` names this chain (``stream.seq`` = events + 1, ``stream.chain`` = the chain so
+        far); the chain then advances to the transcript. Its ``response_signature`` is checked separately
+        (:func:`verify_message`)."""
+        if self.closed or not isinstance(final, dict):
+            return False
+        ext = _slot(final, create=False)
+        st = (ext or {}).get('stream')
+        n = self.seq + 1
+        if not isinstance(st, dict) or st.get('seq') != n or isinstance(st.get('seq'), bool) \
+                or st.get('chain') != self.chain.hex():
+            return False
+        try:
+            self.chain = self._next(n, _message_canonical(final))
+        except Exception:
+            return False
+        self.seq, self.closed = n, True
+        return True
+
+
+def _message_canonical(msg: Dict[str, Any]) -> bytes:
+    m = copy.deepcopy(msg)
+    ext = _slot(m, create=False)
+    if ext is not None:
+        ext.pop('response_signature', None)
+    return jcs.canonicalize(m)

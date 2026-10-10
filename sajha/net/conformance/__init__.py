@@ -80,7 +80,7 @@ CASES: List[Case] = [
     _c('SIG-07', 'S A', 'remote'), _c('SIG-08', 'S A', where=T + 'test_net_signatures.py'),
     _c('SIG-09', 'S A L', 'remote'), _c('SIG-10', 'S A', 'remote'), _c('SIG-11', 'S A', 'remote'),
     _c('SIG-12', 'S A L', 'remote'), _c('SIG-13', 'S A L', 'library'),
-    _c('SIG-14', 'S A', where='(streamed forwarded responses are not relayed yet)'),
+    _c('SIG-14', 'S A L', 'library'),
     _c('SIG-15', 'S A', 'remote'),
     _c('REC-01', 'S A L', 'library'), _c('REC-02', 'S A L', 'library'),
     _c('GOS-01', 'S A', 'remote', 'gossip'), _c('GOS-02', 'S A', 'remote', 'gossip'),
@@ -108,15 +108,24 @@ CASES: List[Case] = [
     _c('CALL-06', 'S A', where=T + 'test_net_identity.py, test_net_routing_integration.py'),
     _c('CALL-07', 'S A', feature='residency', where=T + 'test_net_residency.py'), _c('CALL-08', 'S A', 'remote'),
     _c('CALL-09', 'S', where=T + 'test_net_routing_integration.py'), _c('CALL-10', 'S A', where=T + 'test_net_identity.py'),
-    _c('CALL-11', 'S A', feature='progress', where='(progress and cancellation are not relayed yet)'),
-    _c('CALL-12', 'S A', where='(forwarded calls use the 2026-07-28 era only)'),
+    _c('CALL-11', 'S A', feature='progress', where=T + 'test_net_streaming.py'),
+    _c('CALL-12', 'S A', where='(SAJHA forwards on the 2026-07-28 era only: protocol §22 decision 40)'),
     _c('CALL-13', 'S A', feature='reexport', where=T + 'test_net_reexport_identity.py'),
     _c('CALL-14', 'S A', where=T + 'test_net_reexport_identity.py'),
     _c('CALL-15', 'S A', feature='token_exchange', where=T + 'test_net_reexport_identity.py'),
+    _c('CALL-16', 'S A', feature='mrtr', where='(phase 6.3 of wave 6: input requests are not relayed yet)'),
     _c('FB-01', 'S A', 'remote'), _c('FB-02', 'S', where=T + 'test_net_catalog.py'),
     _c('FB-03', 'S', where=T + 'test_net_catalog.py'), _c('FB-04', 'S', where=T + 'test_net_catalog.py'),
     _c('FB-05', 'S', where=T + 'test_net_catalog.py'), _c('FB-06', 'S', where=T + 'test_net_catalog.py'),
-    _c('FB-07', 'S', where='(progress, input requests and tasks are not relayed yet)'),
+    _c('FB-07', 'S', where=T + 'test_net_streaming.py'),
+    _c('STR-01', 'S A', 'remote'), _c('STR-02', 'S A', 'remote'),
+    _c('STR-03', 'S', where=T + 'test_net_stream_signatures.py, test_net_streaming.py'),
+    _c('STR-04', 'S', where=T + 'test_net_stream_signatures.py, test_net_streaming.py'),
+    _c('STR-05', 'S A', where=T + 'test_net_streaming.py'),
+    _c('STR-06', 'S', where='(phase 6.2 of wave 6: progress on every client transport is not built yet)'),
+    _c('STR-07', 'S', feature='residency', where='(phase 6.2 of wave 6: residency on streamed events is not built yet)'),
+    _c('STR-08', 'S A', feature='reexport', where=T + 'test_net_streaming.py'),
+    _c('STR-09', 'S', where=T + 'test_net_streaming.py'),
     _c('ERR-01', 'S A', 'remote'), _c('LIM-01', 'S A', 'remote'),
 ]
 BY_ID = {c.id: c for c in CASES}
@@ -265,6 +274,52 @@ def lib_sig_12():
     check(not crypto.verify_raw(pub, 'ed25519', base2, sig), 'bound to its request')
 
 
+
+def lib_sig_14():
+    """§21.4: the headers verify as a streamed response; every event and the final message verify against
+    the stream's chain, with the published chain values and transcript; mutations fail."""
+    from sajha.net.conformance import vectors as V
+    req_sig = httpsig.request_signature_bytes(V.STREAM_HEADERS)
+    nonce = httpsig.request_nonce(V.STREAM_HEADERS)
+    check(nonce == V.STREAM_NONCE, 'the §21.4 request carries the published nonce')
+    httpsig.verify_response(_ExampleTrust(), 'risk-eu', 'cust-na', 200, V.STREAM_RESPONSE_HEADERS, b'', req_sig,
+                            streamed=True, now=V.T0 + 1)
+    cert = crypto.load_cert(base64.b64decode(V.STREAM_HOST_CERT))
+    events = [json.loads(e) for e in V.STREAM_EVENTS]
+    final = json.loads(V.STREAM_FINAL)
+    chain = httpsig.EventChain(req_sig)
+    check(chain.transcript == V.STREAM_CHAIN[0], 'c0 is the published value')
+    for i, ev in enumerate(events, 1):
+        check(chain.verify_event(cert, copy.deepcopy(ev)), f'event {i} verifies')
+        check(chain.transcript == V.STREAM_CHAIN[i], f'c{i} is the published value')
+    check(chain.verify_close(copy.deepcopy(final)), 'the final message is bound to the chain')
+    check(httpsig.verify_message(final, nonce, cert), 'the final response_signature verifies')
+    check(chain.transcript == V.STREAM_TRANSCRIPT, 'the transcript digest is the published value')
+
+    def refused(evs, what):
+        c = httpsig.EventChain(req_sig)
+        check(not all(c.verify_event(cert, copy.deepcopy(e)) for e in evs), what)
+
+    changed = copy.deepcopy(events[0])
+    changed['params']['progress'] = 3
+    refused([changed], 'a changed event is refused')
+    reseq = copy.deepcopy(events[0])
+    reseq['params']['_meta'][EXTENSION_ID]['event_signature']['seq'] = 2
+    refused([reseq], 'a changed seq is refused')
+    refused([events[1], events[0]], 'reordered events are refused')
+    refused([events[0], events[0]], 'a repeated event is refused')
+    refused([events[0], events[2]], 'a skipped event is refused')
+    check(not httpsig.EventChain(b'\x00' * 64).verify_event(cert, copy.deepcopy(events[0])),
+          'an event of another request is refused')
+    short = httpsig.EventChain(req_sig)
+    for ev in events[:2]:
+        short.verify_event(cert, copy.deepcopy(ev))
+    check(not short.verify_close(copy.deepcopy(final)), 'a final message after a dropped event is refused')
+    bad = copy.deepcopy(final)
+    bad['result']['structuredContent']['var'] = 1.0
+    check(not httpsig.verify_message(bad, nonce, cert), 'a changed result is refused')
+
+
 def lib_sig_09():
     from sajha.net.conformance import vectors as V
     for bad in ('ed25519";x="', 'hmac-sha256', 'rsa-pss-sha512', 'ecdsa-p256-sha256'):
@@ -386,7 +441,7 @@ def lib_gos_06():
 LIBRARY: Dict[str, Callable[[], None]] = {
     'NAME-01': lib_name_01, 'NAME-02': lib_name_02, 'NAME-03': lib_name_03, 'NAME-05': lib_name_05,
     'NAME-10': lib_name_10, 'NET-03': lib_net_03, 'CAP-04': lib_cap_04, 'SIG-01': lib_sig_01, 'SIG-09': lib_sig_09,
-    'SIG-12': lib_sig_12, 'SIG-13': lib_sig_13, 'REC-01': lib_rec_01, 'REC-02': lib_rec_02, 'GOS-05': lib_gos_05,
+    'SIG-12': lib_sig_12, 'SIG-13': lib_sig_13, 'SIG-14': lib_sig_14, 'REC-01': lib_rec_01, 'REC-02': lib_rec_02, 'GOS-05': lib_gos_05,
     'GOS-06': lib_gos_06, 'KEY-02': lib_key_02, 'KEY-03': lib_key_03, 'REV-01': lib_rev_01,
 }
 
@@ -972,6 +1027,33 @@ class Suite:
             else:
                 check(r.get('executed') is False, f'{r.get("reason")}: a refusal before execution carries executed: '
                                                   f'false')
+
+    def c_STR_01(self):
+        """``Accept: text/event-stream`` alone (every call of this runner sends it) gets JSON; a call that asks
+        for a stream (``_meta["io.sajha/net"].stream``) gets one only from a target that lists ``streaming``
+        and only once it is past step 9 of §15.4, so with no executable call here the stream half is covered by
+        ``tests/net/test_net_streaming.py``."""
+        a = self._call(extra={'authorization': 'Bearer conformance'})
+        ct = a.headers.get('content-type', '').split(';')[0].strip()
+        check(ct == 'application/json' and a.json is not None, f'Accept alone gets JSON ({ct})')
+        check(a.verify() is None, f'the JSON answer is signed ({a.verify()})')
+
+    def c_STR_02(self):
+        """A refusal before step 10 of §15.4 is one signed JSON response even when the call asked for a stream."""
+        tool = self.some_tool()
+
+        def ask(**kw):
+            params = {'name': tool, 'arguments': {}, '_meta': {EXTENSION_ID: {'home': self.name, 'stream': 1}}}
+            return self.mcp('tools/call', params, tool=tool, **kw)
+
+        for a, code, reason, what in (
+                (ask(extra={'authorization': 'Bearer conformance'}), -32013, 'ambiguous_credentials',
+                 'a stream request also carrying Authorization'),
+                (ask(hop=9, visited=[f'{self.net}/x{i}' for i in range(8)] + [f'{self.net}/{self.name}']),
+                 -32016, 'hop_limit', 'a stream request at hop 9')):
+            ct = a.headers.get('content-type', '').split(';')[0].strip()
+            check(ct == 'application/json', f'{what}: a JSON answer, not a stream ({ct})')
+            self._refused(a, code, reason, what)
 
     def c_ERR_01(self):
         if not self.problems:

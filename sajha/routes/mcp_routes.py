@@ -262,11 +262,12 @@ async def mcp_post(request: Request, db: Session = Depends(get_db)):
 _modern_servers: dict = {}
 
 
-async def _serve_net(request: Request, raw: bytes) -> Response:
+async def _serve_net(request: Request, raw: bytes, svc=None) -> Response:
     """A signed participant request to the MCP endpoint (SAJHA Net §15.4); an unsigned 404 when SAJHA Net
-    is off or the net is not one of this server's (§7.7)."""
+    is off or the net is not one of this server's (§7.7). A streamed answer (§15.10) is sent as it is
+    produced. ``svc``: the SAJHA Net service (default: this process's)."""
     from sajha.net.integration import get_service
-    svc = get_service()
+    svc = svc if svc is not None else get_service()
     if svc is None or not svc.participant.enabled:
         return Response(status_code=404)
     proto = request.headers.get('x-forwarded-proto', '').split(',')[0].strip().lower()
@@ -277,6 +278,23 @@ async def _serve_net(request: Request, raw: bytes) -> Response:
     if r is None:
         return Response(status_code=404)
     headers = {k: v for k, v in r.headers.items() if k.lower() != 'content-length'}
+    if r.stream is not None:
+        # a signed event stream (§15.10): chunks pulled off the event loop; a dropped home ends the
+        # iteration and closes the stream, which cancels the call at this host
+        from starlette.responses import StreamingResponse
+        stream, close = r.stream, r.close
+
+        async def body():
+            try:
+                while True:
+                    chunk = await run_in_threadpool(next, stream, None)
+                    if chunk is None:
+                        break
+                    yield chunk
+            finally:
+                if close is not None:
+                    close()
+        return StreamingResponse(body(), status_code=r.status, headers=headers)
     return Response(content=r.body, status_code=r.status, headers=headers)
 
 

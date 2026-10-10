@@ -4,7 +4,23 @@ Newest first. The current version is `app.version` in `config/application.yml`.
 
 ## Unreleased
 
-Nothing yet.
+- Added (wave 6, phase 6.1): signed streaming between SAJHA Net members. A home asks for a stream in
+  the signed body (`params._meta["io.sajha/net"].stream`) when the host lists `streaming`; the host
+  streams progress and log events and the final answer as Server-Sent Events, every event signed over a
+  running hash of the stream so far (protocol §8.9), so an injected, reordered, dropped, replayed or
+  re-signed event is refused (`event_invalid`, `event_order`, `stream_truncated`, `stream_limit`,
+  `stream_idle`), nothing after it reaches the caller, and the stream is closed (which cancels the
+  host's tool). Cancellation from the caller closes the stream; limits `sajhanet.streaming.*`. Homes
+  and hosts without the feature keep the single signed JSON answer.
+- Fixed: `pip install -r requirements.txt` failed (`mcp` needs `sse-starlette>=3`); the pin is now
+  `sse-starlette>=3.0.0,<4.0.0`.
+
+### Docs
+
+- SAJHA Net Protocol: signed event streams on forwarded calls (§8.9 event chain, event signature and
+  final binding; §15.6 for 2026-07-28 hops; new §15.10; stream refusals in §17, limits in §18, §19, the
+  §21.4 test vector, decisions 38 to 42) and conformance ids SIG-14 (now S A L), STR-01 to STR-09 and
+  CALL-16; CALL-11 and FB-07 now run.
 
 ## v8.1.0 (October 2026) — sovereignty, the console and other MCP servers
 

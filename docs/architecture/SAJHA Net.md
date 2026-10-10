@@ -196,7 +196,8 @@ L17 for the streaming items, L16 for the rest):
 
 | Not built | Effect today | Protocol |
 |---|---|---|
-| Progress, cancellation, input requests (MRTR) and tasks on forwarded calls | A forwarded call is one signed request answered with one JSON result; the caller sees only the final result, and cancelling does not reach the host | §15.6; CALL-11, FB-07 |
+| Input requests (MRTR) and host-side tasks on forwarded calls | A host's request for input reaches the caller as an error result; the `mrtr` and `tasks` features are not listed | §15.6; CALL-16 |
+| Progress from forwarded calls on 2025-11-25 (HTTP and stdio), HTTP+SSE and WebSocket clients; the residency rule for streamed events | A forwarded call streams signed progress, log and cancellation (protocol §15.10), but only a 2026-07-28 client sees the progress; a host streams a tool's progress and log text even when the tool has result data classes | §15.10; STR-06, STR-07 |
 | Forwarding on the 2025-11-25 era | Forwarded calls always use 2026-07-28 (every SAJHA host speaks it) | §6.4; CALL-12 |
 | The `visibility` feature | A home cannot ask a host which tools a user may call there; it shows what its own rules allow, and the host decides again on every call | §10.5; CAT-05 |
 | Mutual TLS (`sajhanet.mtls`) | A value other than `off` only logs a warning; requests are checked by their signatures | — |
@@ -347,7 +348,7 @@ library cases against the core with the protocol's §21 vectors, and reports eac
 Usage is in [SAJHA Net Agent](../clients/SAJHA%20Net%20Agent.md) section 9.
 
 SAJHA's own suite covers every S case under `tests/net/` (and `tests/test_sajhanet_groundwork.py` for
-CAP-01 to CAP-03) except those of section 5.5: CAT-05, CALL-11, FB-07 and CALL-12. CALL-06 (every
+CAP-01 to CAP-03) except those of section 5.5: CAT-05, CALL-12, CALL-16, STR-06 and STR-07. CALL-06 (every
 step of the host's processing order, in order) is covered step by step across the files rather than by
 one test. The wave exit `tests/net/test_net_mixed_conformance.py` puts a SAJHA instance, a server it
 sponsors and an agent-fronted server in one net and runs the suite on all three targets and the library.

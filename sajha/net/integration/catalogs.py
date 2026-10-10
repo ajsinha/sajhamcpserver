@@ -42,7 +42,8 @@ from typing import Any, Dict, List, Optional, Tuple
 from sajha.net import EXTENSION_ID, names, plugins
 from sajha.net.catalog import TRUST_LEVELS, CatalogBook, Limits
 from sajha.net.plugins import CatalogSource
-from sajha.net.routing import CODES, CallContext, Candidate, HostRefusal, HostServer, PeerSettings, Router, origin_of
+from sajha.net.routing import (CODES, LOG, PROGRESS, CallContext, Candidate, HostRefusal, HostServer, PeerSettings,
+                                Router, StreamSettings, origin_of)
 from sajha.tools.base_mcp_tool import BaseMCPTool
 
 logger = logging.getLogger(__name__)
@@ -86,6 +87,7 @@ class CatalogSettings:
     routing: str = 'local_first'
     limits: Limits = field(default_factory=Limits)
     peer: PeerSettings = field(default_factory=PeerSettings)
+    streaming: StreamSettings = field(default_factory=StreamSettings)
     host_calls_per_minute: int = 600
     anonymous_may_call_remote: bool = False
     per_net: Dict[str, Dict[str, Any]] = field(default_factory=dict)
@@ -129,6 +131,23 @@ def load_settings() -> CatalogSettings:
                           breaker_reset_seconds=_num(_g('peer.breaker_reset_seconds', 30), 30),
                           calls_per_minute=int(_num(_g('peer.calls_per_minute', 600), 600)))
     s.host_calls_per_minute = int(_num(_g('peer.inbound_calls_per_minute', 600), 600))
+    d = StreamSettings()
+    st = StreamSettings(enabled=parse_bool(_g('streaming.enabled', 'true'), True),
+                        max_events=max(1, int(_num(_g('streaming.max_events', d.max_events), d.max_events))),
+                        max_event_bytes=max(1024, int(_num(_g('streaming.max_event_bytes', d.max_event_bytes),
+                                                           d.max_event_bytes))),
+                        max_stream_bytes=max(4096, int(_num(_g('streaming.max_stream_bytes', d.max_stream_bytes),
+                                                            d.max_stream_bytes))),
+                        idle_timeout_seconds=max(1.0, _num(_g('streaming.idle_timeout_seconds', d.idle_timeout_seconds),
+                                                           d.idle_timeout_seconds)),
+                        heartbeat_seconds=max(0.1, _num(_g('streaming.heartbeat_seconds', d.heartbeat_seconds),
+                                                        d.heartbeat_seconds)),
+                        progress_min_interval_ms=max(0, int(_num(_g('streaming.progress_min_interval_ms',
+                                                                    d.progress_min_interval_ms),
+                                                                 d.progress_min_interval_ms))))
+    if st.heartbeat_seconds >= st.idle_timeout_seconds:      # a heartbeat must come before the home gives up
+        st.heartbeat_seconds = max(0.1, st.idle_timeout_seconds / 3)
+    s.streaming = st
     s.anonymous_may_call_remote = parse_bool(_g('anonymous_may_call_remote', 'false'), False)
     from sajha.net.integration.config import external_servers
     s.external_servers, s.external_errors = external_servers(raw)
@@ -399,6 +418,10 @@ class NetCatalogs:
                            reexports=lambda peer, net=net: self.reexports(net, peer)).attach()
         if book.reexport and 'reexport' not in node.extra_features:
             node.extra_features.append('reexport')          # protocol §6.2: offers imported tools onward here
+        if s.streaming.enabled:                             # §6.2, §15.10: signed event streams on forwarded calls
+            for f in ('streaming', 'progress', 'cancellation'):
+                if f not in node.extra_features:
+                    node.extra_features.append(f)
         node.observers.append(lambda kind, data, net=net: self._on_event(net, kind, data))
         book.start()
         self.books[net] = book
@@ -406,7 +429,8 @@ class NetCatalogs:
                           max_hops=int(s.for_net(net, 'max_hops')), max_chain=s.max_call_chain,
                           own_identities=lambda: [f'{n}/{b.node.name}' for n, b in self.books.items()],
                           other=lambda msg, v, net=net: self._other(net, msg, v),
-                          calls_per_minute=s.host_calls_per_minute, audit=self._audit).attach()
+                          calls_per_minute=s.host_calls_per_minute, audit=self._audit,
+                          streaming=s.streaming).attach()
         self.hosts[net] = host
         self._build_router()
         return book
@@ -486,7 +510,7 @@ class NetCatalogs:
                              default_timeout=self.settings.default_timeout_seconds, identity=identity, rules=rules,
                              peer=self.settings.peer, clock=self.svc.clock, audit=self._audit,
                              screen_result=_screen_result, max_hops=self.settings.max_hops,
-                             max_chain=self.settings.max_call_chain)
+                             max_chain=self.settings.max_call_chain, streaming=self.settings.streaming)
 
     def _local_names(self) -> List[str]:
         reg = self.registry
@@ -680,7 +704,8 @@ class NetCatalogs:
             tp = None
         from sajha.core import inner_calls
         hop_in, depth = inner_calls.outgoing()      # a call made while serving a forwarded one continues its chain
-        out = self.router.call(name, arguments, user=user, traceparent=tp, hop_in=hop_in, depth=depth)
+        out = self.router.call(name, arguments, user=user, traceparent=tp, hop_in=hop_in, depth=depth,
+                               **stream_hooks())
         return self._arrived(name, out, user)
 
     def _arrived(self, name: str, out: Dict[str, Any], user: Dict[str, Any]) -> Dict[str, Any]:
@@ -962,7 +987,8 @@ class NetCatalogs:
                 raise HostRefusal('no_account', 'a bridge calls into another net only as one of its own users')
             user.update(_bridge=True, net=str(src.get('net') or ''), authenticated=True)
         out = self.router.call(q, dict(arguments or {}), user=user, traceparent=ctx.traceparent,
-                               hop_in=(ctx.hop, list(ctx.visited)), depth=ctx.depth, relay=relay)
+                               hop_in=(ctx.hop, list(ctx.visited)), depth=ctx.depth, relay=relay,
+                               **stream_hooks())            # the next hop's events re-signed into this stream
         meta = ((out or {}).get('_meta') or {}).get(EXTENSION_ID) or {}
         rf = meta.get('refusal')
         if (out or {}).get('isError') and isinstance(rf, dict) and rf.get('executed') is False \
@@ -1187,6 +1213,42 @@ class NetCatalogs:
 
     def status(self) -> Dict[str, Any]:
         return {n: b.status() for n, b in self.books.items()}
+
+
+def stream_hooks() -> Dict[str, Any]:
+    """The streaming arguments of :meth:`Router.call` for the tool context running now (protocol §15.10): a
+    verified event from the host is relayed into ``current_context()`` (progress under the caller's own
+    token, log at the caller's level; text screened and capped), and the caller's cancellation closes the
+    stream. With no tool context the call still streams (heartbeats, cancellation) but relays nothing."""
+    from sajha.core import mcp_tool_context as mtc
+    ctx = mtc.current_context()
+    hooks: Dict[str, Any] = {'cancelled': mtc.is_cancelled}
+    if ctx is None:
+        return hooks
+
+    def on_event(ev: Dict[str, Any]) -> None:
+        from sajha.federation.security import screen_text
+        p = ev.get('params') or {}
+        if ev.get('method') == PROGRESS:
+            prog, total = p.get('progress'), p.get('total')
+            if not isinstance(prog, (int, float)) or isinstance(prog, bool):
+                return
+            if not isinstance(total, (int, float)) or isinstance(total, bool):
+                total = None
+            msg = p.get('message')
+            msg = screen_text(msg, 2000)[0] if isinstance(msg, str) and msg else None
+            ctx.emit_progress(prog, total, msg)
+        elif ev.get('method') == LOG:
+            level = p.get('level')
+            if level not in mtc.LOG_LEVELS:
+                return
+            data = p.get('data')
+            if isinstance(data, str):
+                data = screen_text(data, 8000)[0]
+            lg = p.get('logger')
+            ctx.emit_log(level, data, lg[:200] if isinstance(lg, str) else None)
+    hooks.update(on_event=on_event, progress=ctx.progress_token is not None, log_level=ctx.log_level)
+    return hooks
 
 
 def _llm_last_run():

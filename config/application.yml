@@ -962,6 +962,14 @@ sajhanet:
     breaker_reset_seconds: 30
     calls_per_minute: 600          # this home's calls to one peer
     inbound_calls_per_minute: 600  # forwarded calls accepted from one peer
+  streaming:                       # signed event streams on forwarded calls (progress, log, cancellation; §15.10)
+    enabled: true                  # lists the features streaming, progress and cancellation; false: JSON answers only
+    max_events: 1000               # events per stream, the final answer excluded
+    max_event_bytes: 65536         # one event
+    max_stream_bytes: 8388608      # one whole stream
+    idle_timeout_seconds: 30       # home: no event or heartbeat for this long ends the stream (the call is cancelled)
+    heartbeat_seconds: 10          # host: a heartbeat this often while nothing else is sent (below the idle timeout)
+    progress_min_interval_ms: 100  # host: progress coalesced to one event per interval (the last kept)
   # identity and authorization (docs/architecture/SAJHA Net.md §10-§11)
   user_identity: api_key           # api_key (the user's own key travels, verified by the host) | assertion (a
                                    # user assertion signed by the home; only a key id crosses) | token_exchange
