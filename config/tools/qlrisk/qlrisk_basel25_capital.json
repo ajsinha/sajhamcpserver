@@ -1,0 +1,32 @@
+{
+  "name": "qlrisk_basel25_capital",
+  "implementation": "sajha.tools.impl.qlrisk.qlrisk_tools.QlriskBasel25CapitalTool",
+  "title": "Basel 2.5 market-risk capital",
+  "description": "Basel 2.5 capital = max(VaR, m x avg60 VaR) + max(SVaR, m x avg60 SVaR), m = 3 + the backtesting plus factor. Give var_series and svar_series (the last 60 daily 10-day figures) and the backtest exceptions, or give trades to compute 10-day VaR, SVaR and the exception count from a history. Example: {\"var_series\": [1000000], \"svar_series\": [2000000], \"exceptions\": 3}.",
+  "version": "1.0.0",
+  "enabled": true,
+  "requires": [
+    "qlrisk"
+  ],
+  "outputSchema": {
+    "type": "object"
+  },
+  "annotations": {
+    "title": "Basel 2.5 market-risk capital",
+    "readOnlyHint": true,
+    "destructiveHint": false,
+    "idempotentHint": true,
+    "openWorldHint": false
+  },
+  "metadata": {
+    "author": "Ashutosh Sinha",
+    "email": "ajsinha@gmail.com",
+    "copyright": "Copyright All rights Reserved 2025-2030, Ashutosh Sinha",
+    "category": "Risk Analytics",
+    "provider": "qlrisk",
+    "tags": [
+      "qlrisk",
+      "risk"
+    ]
+  }
+}

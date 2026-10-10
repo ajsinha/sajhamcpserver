@@ -1,0 +1,32 @@
+{
+  "name": "qlrisk_simulate_paths",
+  "implementation": "sajha.tools.impl.qlrisk.qlrisk_tools.QlriskSimulatePathsTool",
+  "title": "Monte Carlo path generation",
+  "description": "Simulate stochastic-process paths with qlrisk's Monte Carlo library: gbm, ou, cir, heston, vasicek, hull_white, merton_jump. Rate models (ou, cir, vasicek, hull_white) use initial_value as the starting rate and mean_reversion_speed / long_term_mean; heston adds vol_of_vol, correlation, initial_variance; merton_jump adds jump_intensity, jump_mean, jump_std. Returns summary statistics on up to 60 time points, the terminal distribution and a few sample paths (not the full path matrix). Example: {\"process\": \"gbm\", \"initial_value\": 100, \"drift\": 0.05, \"volatility\": 0.2, \"maturity\": 1, \"num_steps\": 252, \"num_paths\": 10000}. Bounds: 20000 paths, 1000 steps.",
+  "version": "1.0.0",
+  "enabled": true,
+  "requires": [
+    "qlrisk"
+  ],
+  "outputSchema": {
+    "type": "object"
+  },
+  "annotations": {
+    "title": "Monte Carlo path generation",
+    "readOnlyHint": true,
+    "destructiveHint": false,
+    "idempotentHint": true,
+    "openWorldHint": false
+  },
+  "metadata": {
+    "author": "Ashutosh Sinha",
+    "email": "ajsinha@gmail.com",
+    "copyright": "Copyright All rights Reserved 2025-2030, Ashutosh Sinha",
+    "category": "Risk Analytics",
+    "provider": "qlrisk",
+    "tags": [
+      "qlrisk",
+      "risk"
+    ]
+  }
+}

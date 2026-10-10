@@ -4,6 +4,26 @@ Newest first. The current version is `app.version` in `config/application.yml`.
 
 ## Unreleased
 
+- Added: qlrisk risk tools as native tools in `config/tools/qlrisk/` (names `qlrisk_<tool>`, code in
+  `sajha/tools/impl/qlrisk/`). Coarse-grained, read-only tools cover discovery, pricing and sensitivities,
+  VaR / ES (historical, age-weighted, filtered, Monte Carlo, parametric; stressed VaR, decomposition,
+  liquidity VaR), backtesting and PLA, P&L explain, stress (library, custom, reverse), FRTB SA and IMA,
+  Basel 2.5, exposure and wrong-way risk, SA-CCR netting sets, ISDA SIMM, credit risk, XVA with SA-CVA and
+  BA-CVA, Monte Carlo paths, the unified risk report and limit checks. Input schemas and enums are built
+  from the installed qlrisk when a tool loads; results are `structuredContent` plus a one-line summary; work
+  is bounded by the `qlrisk.*` keys (or a tool config's `bounds`). qlrisk is not on PyPI and not in
+  `requirements.txt`: install its wheel (`requirements-qlrisk.txt`). Guide:
+  [QLRisk Tool Reference Guide](docs/tools/qlrisk/QLRisk%20Tool%20Reference%20Guide.md);
+  [Tutorial 41](docs/tutorials/TUTORIAL_41_qlrisk_risk_tools.md). The tests skip when qlrisk is not installed.
+  Also one pricing tool per qlrisk product, `qlrisk_price_<product>`, whose inputs are only that product's
+  fields; their configs are generated from qlrisk's product registry (`python -m sajha.tools.impl.qlrisk.generate`),
+  and a test fails when they drift from it.
+- Added: tool configs may declare `requires` (Python modules the tool needs). A tool whose module is
+  missing is skipped (not loaded, not a failed tool, not in `tools/list`) with one info notice per missing
+  module counting the tools; the failed-tool retry loop (`tools.retry_failed_seconds`) re-checks them, so
+  installing the module loads them without a restart
+  ([Architecture](docs/architecture/Architecture.md#tool-config-files-and-folders)).
+- Changed: `POST /api/tools/execute` runs the tool in a worker thread, off the event loop, as `/mcp` does.
 - Docs: the [Adversarial QA Plan](docs/architecture/Adversarial%20QA%20Plan.md) — every attack surface, what to try,
   the safe behaviour expected, priorities, automation and existing coverage, starting from the bugs this
   cycle found.

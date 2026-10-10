@@ -133,6 +133,7 @@ These guides document each provider's tools, parameters and API keys.
   [OLAP Analytics](tools/analytics/OLAP%20Analytics%20Tool%20Reference%20Guide.md) ·
   [SQL Select](tools/analytics/SQL%20Select%20Tool%20Reference%20Guide.md)
 - **Enterprise:** [SharePoint](tools/enterprise/SharePoint%20Tool%20Reference%20Guide.md), [Connected account tools](tools/enterprise/Connected%20Account%20Tools%20Reference%20Guide.md) (GitHub, Slack, Google Drive, Outlook, as the user), [Data connectors](tools/enterprise/Data%20Connectors%20Reference%20Guide.md) (setup per database, warehouse and vector store)
+- **Risk analytics:** [QLRisk](tools/qlrisk/QLRisk%20Tool%20Reference%20Guide.md) (pricing, sensitivities, VaR and ES, stress, backtesting, FRTB SA and IMA, SA-CCR, exposure, credit risk, XVA, SIMM, from the qlrisk library as native tools, enabled by installing qlrisk)
 - **Prompts:** [Prompts Management Guide](tools/prompts/Prompts%20Management%20Guide.md)
 
 ## Tutorials
@@ -177,6 +178,7 @@ These guides document each provider's tools, parameters and API keys.
 38. [Tutorial 38: The SAJHA Net Conformance Runner](tutorials/TUTORIAL_38_net_conformance_runner.md)
 39. [Tutorial 39: Console Single Sign-On](tutorials/TUTORIAL_39_console_single_sign_on.md)
 40. [Tutorial 40: Stream a Call Across the Net](tutorials/TUTORIAL_40_stream_a_net_call.md)
+41. [Tutorial 41: qlrisk Risk Tools](tutorials/TUTORIAL_41_qlrisk_risk_tools.md)
 
 ## Clients and security
 

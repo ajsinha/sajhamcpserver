@@ -278,6 +278,7 @@ CATALOG: List[dict] = [
             ('Search', ['Google Search', 'MSDOC Search', 'Tavily Search', 'Web Crawler',
                         'Wikipedia Search']),
             ('Analytics', ['DuckDB', 'Financial Calculators', 'OLAP Analytics', 'SQL Select']),
+            ('Risk analytics', ['QLRisk']),
             ('Enterprise', ['SharePoint (tools)', 'Connected accounts (tools)', 'Data connectors (tools)']),
             ('Prompts', ['Prompts Management Guide']),
         ],
@@ -313,6 +314,9 @@ CATALOG: List[dict] = [
             _tool('Financial Calculators', 'bi-calculator', 'Pure-math financial calculators that need no API key.'),
             _tool('OLAP Analytics', 'bi-graph-up-arrow', 'Slice and aggregate OLAP datasets.'),
             _tool('SQL Select', 'bi-table', 'Read-only SQL queries against configured databases.'),
+            _tool('QLRisk', 'bi-graph-down-arrow', 'qlrisk risk analytics as native tools: pricing, sensitivities, '
+                  'VaR and ES, stress, backtesting, FRTB SA and IMA, SA-CCR, exposure, credit risk, XVA and SIMM; they '
+                  'appear once qlrisk is installed.'),
             _g('SharePoint (tools)', 'SharePoint Tool Reference Guide.md', 'bi-microsoft',
                'Documents, lists and search on a SharePoint Online site, and their known issues.'),
             _g('Connected accounts (tools)', 'Connected Account Tools Reference Guide.md', 'bi-link-45deg',
@@ -434,6 +438,9 @@ CATALOG: List[dict] = [
             _g('40. Stream a call across the net', 'TUTORIAL_40_stream_a_net_call.md', 'bi-broadcast',
                'Progress from a tool on another instance as it runs, cancelling it, matching transcript digests '
                'in both audits, and an input request answered across the net.'),
+            _g('41. qlrisk risk tools', 'TUTORIAL_41_qlrisk_risk_tools.md', 'bi-graph-down-arrow',
+               'Install qlrisk into SAJHA\'s environment so the qlrisk_ tools load, then price a swap, '
+               'run VaR and ES, a stress test, SA-CCR and CVA, and ask Ask SAJHA a risk question.'),
         ],
     },
     {

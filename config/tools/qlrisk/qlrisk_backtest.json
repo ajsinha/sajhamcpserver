@@ -1,0 +1,32 @@
+{
+  "name": "qlrisk_backtest",
+  "implementation": "sajha.tools.impl.qlrisk.qlrisk_tools.QlriskBacktestTool",
+  "title": "VaR / ES backtest and PLA test",
+  "description": "Validate a risk model. mode='portfolio' backtests the book's historical VaR and ES over test_days of (synthetic or supplied) history and runs the FRTB P&L attribution test: exceptions, Kupiec POF, Christoffersen independence, Basel traffic-light zone and multiplier, Acerbi-Szekely ES Z-tests, PLA Spearman / KS zone. mode='var_series' / 'es_series' / 'pla' test series you supply (P&L, VaR/ES forecasts as positive losses, HPL and RTPL). Example: {\"mode\": \"var_series\", \"pnl\": [...250 numbers], \"var_forecasts\": [...250 numbers]}.",
+  "version": "1.0.0",
+  "enabled": true,
+  "requires": [
+    "qlrisk"
+  ],
+  "outputSchema": {
+    "type": "object"
+  },
+  "annotations": {
+    "title": "VaR / ES backtest and PLA test",
+    "readOnlyHint": true,
+    "destructiveHint": false,
+    "idempotentHint": true,
+    "openWorldHint": false
+  },
+  "metadata": {
+    "author": "Ashutosh Sinha",
+    "email": "ajsinha@gmail.com",
+    "copyright": "Copyright All rights Reserved 2025-2030, Ashutosh Sinha",
+    "category": "Risk Analytics",
+    "provider": "qlrisk",
+    "tags": [
+      "qlrisk",
+      "risk"
+    ]
+  }
+}

@@ -1,0 +1,32 @@
+{
+  "name": "qlrisk_pnl_explain",
+  "implementation": "sajha.tools.impl.qlrisk.qlrisk_tools.QlriskPnlExplainTool",
+  "title": "P&L explain",
+  "description": "Explain a book's P&L between two market states: actual full-revaluation P&L per trade split into theta (time decay), per-risk-class and per-factor Taylor contributions, and the unexplained remainder. The end state is end_market_data, or the start market plus end_shocks, and end_valuation_date for the time roll. Example: {\"trades\": [...], \"end_shocks\": [{\"factor\": \"EQ.SPX\", \"size\": -0.05, \"shock_type\": \"relative\"}], \"end_valuation_date\": \"2026-10-12\"}.",
+  "version": "1.0.0",
+  "enabled": true,
+  "requires": [
+    "qlrisk"
+  ],
+  "outputSchema": {
+    "type": "object"
+  },
+  "annotations": {
+    "title": "P&L explain",
+    "readOnlyHint": true,
+    "destructiveHint": false,
+    "idempotentHint": true,
+    "openWorldHint": false
+  },
+  "metadata": {
+    "author": "Ashutosh Sinha",
+    "email": "ajsinha@gmail.com",
+    "copyright": "Copyright All rights Reserved 2025-2030, Ashutosh Sinha",
+    "category": "Risk Analytics",
+    "provider": "qlrisk",
+    "tags": [
+      "qlrisk",
+      "risk"
+    ]
+  }
+}

@@ -1,0 +1,32 @@
+{
+  "name": "qlrisk_frtb_ima_capital",
+  "implementation": "sajha.tools.impl.qlrisk.qlrisk_tools.QlriskFrtbImaCapitalTool",
+  "title": "FRTB Internal Models Approach capital",
+  "description": "FRTB IMA capital (MAR31/33). mode='full' runs the book end to end: liquidity-horizon-adjusted, stress-calibrated ES and IMCC, stressed ES for non-modellable factors (nmrf), the IMA default risk charge (two-factor Gaussian copula, from ratings) and capital = max(IMCC + SES, m x avg60) + DRC. Other modes: 'imcc', 'lh_es' (liquidity-adjusted ES only), 'liquidity_horizons' (MAR33.12 horizon per factor), 'rfet' (risk-factor eligibility test on real-price observation dates), 'ima_drc' (on positions you supply) and 'capital' (from IMCC, SES and DRC numbers). Example: {\"mode\": \"rfet\", \"as_of\": \"2026-10-09\", \"observations\": {\"CR.GLOBEX.5Y\": [\"2026-09-30\", \"2026-08-29\"]}}.",
+  "version": "1.0.0",
+  "enabled": true,
+  "requires": [
+    "qlrisk"
+  ],
+  "outputSchema": {
+    "type": "object"
+  },
+  "annotations": {
+    "title": "FRTB Internal Models Approach capital",
+    "readOnlyHint": true,
+    "destructiveHint": false,
+    "idempotentHint": true,
+    "openWorldHint": false
+  },
+  "metadata": {
+    "author": "Ashutosh Sinha",
+    "email": "ajsinha@gmail.com",
+    "copyright": "Copyright All rights Reserved 2025-2030, Ashutosh Sinha",
+    "category": "Risk Analytics",
+    "provider": "qlrisk",
+    "tags": [
+      "qlrisk",
+      "risk"
+    ]
+  }
+}

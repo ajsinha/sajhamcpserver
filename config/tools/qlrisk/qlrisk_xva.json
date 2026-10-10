@@ -1,0 +1,32 @@
+{
+  "name": "qlrisk_xva",
+  "implementation": "sajha.tools.impl.qlrisk.qlrisk_tools.QlriskXvaTool",
+  "title": "XVA and CVA capital",
+  "description": "Valuation adjustments and CVA capital. measure cva (unilateral or bilateral, analytic or Monte Carlo, optional wrong-way), dva, fva, kva, mva run qlrisk's calculators on an exposure profile; 'total' runs any of them together (inputs: {cva: {...}, dva: {...}, ..., colva: number}) and sums them; 'sa_cva' is the MAR50 standardised CVA capital from an expected-exposure profile and the counterparty's credit curve, with optional hedge trades; 'ba_cva' is the basic approach (reduced, or full with hedges). Fields: cva: ee_profile (array, required); time_grid (array, required); credit_spread (number, required); recovery_rate (number, default 0.4); spread_term_structure (array); discount_rates (array); risk_free_rate (number, default 0.05); own_credit_spread (['number', 'null']); own_recovery_rate (number, default 0.4); notional (number, default 1.0). dva: exposure_profile (array); time_grid (array); own_pd_curve (object); own_lgd (number, default 0.6); discount_curve (object). fva: exposure_profile (array); time_grid (array); funding_spread (number, default 0.01); discount_curve (object); counterparty_survival_curve (object). kva: ead_profile (array); time_grid (array); counterparty_pd (number, default 0.01); counterparty_lgd (number, default 0.45); cost_of_capital (number, default 0.1); discount_curve (object); capital_floor (number, default 0.0003). mva: initial_margin_profile (array); time_grid (array); funding_spread (number, default 0.01); discount_curve (object). Config: cva: method (analytical|monte_carlo|sa_cva), bilateral, wrong_way_risk, wwr_correlation. Example: {\"measure\": \"cva\", \"inputs\": {\"ee_profile\": [2e6, 3e6, 3.5e6, 3e6, 2e6, 1e6], \"time_grid\": [0.5, 1, 2, 3, 4, 5], \"credit_spread\": 0.012}}.",
+  "version": "1.0.0",
+  "enabled": true,
+  "requires": [
+    "qlrisk"
+  ],
+  "outputSchema": {
+    "type": "object"
+  },
+  "annotations": {
+    "title": "XVA and CVA capital",
+    "readOnlyHint": true,
+    "destructiveHint": false,
+    "idempotentHint": true,
+    "openWorldHint": false
+  },
+  "metadata": {
+    "author": "Ashutosh Sinha",
+    "email": "ajsinha@gmail.com",
+    "copyright": "Copyright All rights Reserved 2025-2030, Ashutosh Sinha",
+    "category": "Risk Analytics",
+    "provider": "qlrisk",
+    "tags": [
+      "qlrisk",
+      "risk"
+    ]
+  }
+}

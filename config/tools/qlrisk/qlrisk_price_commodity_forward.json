@@ -1,0 +1,39 @@
+{
+  "name": "qlrisk_price_commodity_forward",
+  "implementation": "sajha.tools.impl.qlrisk.qlrisk_tools.QlriskPriceProductTool",
+  "product": "CommodityForward",
+  "title": "Price a CommodityForward",
+  "description": "Price one qlrisk CommodityForward (Commodity Forward; commodity, commodity): NPV in the trade currency and the reporting currency, pricing components, analytic Greeks where the pricer gives them, and optional cash flows. Inputs are this product's fields only; required: notional (maturity_date or tenor_years); pricer terms: commodity, convenience_yield, is_long, quantity, spot, strike. Market data defaults to qlrisk's sample snapshot valued today; override curves, spots and vols, or apply shocks, with market_data as in qlrisk_price_trades. For a book of several products use qlrisk_price_trades. Example: {\"notional\": 1000000, \"tenor_years\": 5}.",
+  "version": "1.0.0",
+  "enabled": true,
+  "requires": [
+    "qlrisk"
+  ],
+  "outputSchema": {
+    "type": "object"
+  },
+  "annotations": {
+    "title": "Price a CommodityForward",
+    "readOnlyHint": true,
+    "destructiveHint": false,
+    "idempotentHint": true,
+    "openWorldHint": false
+  },
+  "metadata": {
+    "author": "Ashutosh Sinha",
+    "email": "ajsinha@gmail.com",
+    "copyright": "Copyright All rights Reserved 2025-2030, Ashutosh Sinha",
+    "category": "Risk Analytics",
+    "provider": "qlrisk",
+    "tags": [
+      "qlrisk",
+      "pricing",
+      "commodity"
+    ],
+    "generated_by": "sajha.tools.impl.qlrisk.generate",
+    "example": {
+      "notional": 1000000,
+      "tenor_years": 5
+    }
+  }
+}

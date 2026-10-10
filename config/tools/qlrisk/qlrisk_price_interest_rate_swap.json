@@ -1,0 +1,40 @@
+{
+  "name": "qlrisk_price_interest_rate_swap",
+  "implementation": "sajha.tools.impl.qlrisk.qlrisk_tools.QlriskPriceProductTool",
+  "product": "InterestRateSwap",
+  "title": "Price a InterestRateSwap",
+  "description": "Price one qlrisk InterestRateSwap (Interest Rate Swap product; interest_rate, interest_rate): NPV in the trade currency and the reporting currency, pricing components, analytic Greeks where the pricer gives them, and optional cash flows. Inputs are this product's fields only; required: notional, fixed_rate (maturity_date or tenor_years). Market data defaults to qlrisk's sample snapshot valued today; override curves, spots and vols, or apply shocks, with market_data as in qlrisk_price_trades. For a book of several products use qlrisk_price_trades. Example: {\"notional\": 1000000, \"tenor_years\": 5, \"fixed_rate\": 0.04}.",
+  "version": "1.0.0",
+  "enabled": true,
+  "requires": [
+    "qlrisk"
+  ],
+  "outputSchema": {
+    "type": "object"
+  },
+  "annotations": {
+    "title": "Price a InterestRateSwap",
+    "readOnlyHint": true,
+    "destructiveHint": false,
+    "idempotentHint": true,
+    "openWorldHint": false
+  },
+  "metadata": {
+    "author": "Ashutosh Sinha",
+    "email": "ajsinha@gmail.com",
+    "copyright": "Copyright All rights Reserved 2025-2030, Ashutosh Sinha",
+    "category": "Risk Analytics",
+    "provider": "qlrisk",
+    "tags": [
+      "qlrisk",
+      "pricing",
+      "interest_rate"
+    ],
+    "generated_by": "sajha.tools.impl.qlrisk.generate",
+    "example": {
+      "notional": 1000000,
+      "tenor_years": 5,
+      "fixed_rate": 0.04
+    }
+  }
+}

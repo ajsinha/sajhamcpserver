@@ -1,0 +1,13 @@
+# Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.com
+#
+# Optional: the qlrisk risk tools (config/tools/qlrisk, guide docs/tools/qlrisk/QLRisk Tool Reference Guide.md).
+# qlrisk is not on PyPI, so it is not in requirements.txt. Replace the path below with your qlrisk wheel and
+# install into SAJHA's own environment:  pip install -r requirements-qlrisk.txt
+# Without qlrisk the qlrisk_ tools are skipped (their configs declare "requires": ["qlrisk"]); once it is
+# installed they load within tools.retry_failed_seconds, without a restart.
+# Tested with qlrisk 2.3.1 and QuantLib 1.43 on Python 3.14.
+
+/path/to/qlrisk-2.3.1-py3-none-any.whl
+QuantLib>=1.40,<2
+numpy>=2.3,<3
+scipy>=1.16,<2

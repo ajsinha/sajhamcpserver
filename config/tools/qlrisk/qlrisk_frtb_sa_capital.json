@@ -1,0 +1,32 @@
+{
+  "name": "qlrisk_frtb_sa_capital",
+  "implementation": "sajha.tools.impl.qlrisk.qlrisk_tools.QlriskFrtbSaCapitalTool",
+  "title": "FRTB Standardised Approach capital",
+  "description": "FRTB SA market-risk capital (MAR21-23) for a book: sensitivities-based method (GIRR, CSR, equity, commodity, FX delta, vega and curvature under the low / medium / high correlation scenarios), default risk charge (non-securitisation) and the residual risk add-on, with breakdowns by component and bucket. Map names to buckets (credit_buckets {'ACME': 4}, equity_buckets {'SPX': 12}), ratings for DRC ({'ACME': 'BBB'}) and vol surfaces to underlyings ({'eq_vol': 'SPX'}); unmapped factors are reported. mode='sbm_from_sensitivities' aggregates FRTB sensitivities you supply; mode='drc_from_positions' charges DRC on positions you supply.",
+  "version": "1.0.0",
+  "enabled": true,
+  "requires": [
+    "qlrisk"
+  ],
+  "outputSchema": {
+    "type": "object"
+  },
+  "annotations": {
+    "title": "FRTB Standardised Approach capital",
+    "readOnlyHint": true,
+    "destructiveHint": false,
+    "idempotentHint": true,
+    "openWorldHint": false
+  },
+  "metadata": {
+    "author": "Ashutosh Sinha",
+    "email": "ajsinha@gmail.com",
+    "copyright": "Copyright All rights Reserved 2025-2030, Ashutosh Sinha",
+    "category": "Risk Analytics",
+    "provider": "qlrisk",
+    "tags": [
+      "qlrisk",
+      "risk"
+    ]
+  }
+}

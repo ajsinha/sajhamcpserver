@@ -1,0 +1,32 @@
+{
+  "name": "qlrisk_price_trades",
+  "implementation": "sajha.tools.impl.qlrisk.qlrisk_tools.QlriskPriceTradesTool",
+  "title": "Price trades",
+  "description": "Price one or more trades with qlrisk: NPV in the trade currency and the reporting currency, pricing components (forward, vol, spread ...), analytic Greeks where the pricer gives them, and optional cash flows. Use this for 'what is it worth'; use qlrisk_sensitivities for DV01/CS01/delta/vega/theta. Market data defaults to qlrisk's sample snapshot valued today (override any curve, spot or vol). Example: {\"trades\": [{\"product\": \"InterestRateSwap\", \"notional\": 10000000, \"tenor_years\": 5, \"fixed_rate\": 0.044}]} returns total_npv and one row per trade.",
+  "version": "1.0.0",
+  "enabled": true,
+  "requires": [
+    "qlrisk"
+  ],
+  "outputSchema": {
+    "type": "object"
+  },
+  "annotations": {
+    "title": "Price trades",
+    "readOnlyHint": true,
+    "destructiveHint": false,
+    "idempotentHint": true,
+    "openWorldHint": false
+  },
+  "metadata": {
+    "author": "Ashutosh Sinha",
+    "email": "ajsinha@gmail.com",
+    "copyright": "Copyright All rights Reserved 2025-2030, Ashutosh Sinha",
+    "category": "Risk Analytics",
+    "provider": "qlrisk",
+    "tags": [
+      "qlrisk",
+      "risk"
+    ]
+  }
+}

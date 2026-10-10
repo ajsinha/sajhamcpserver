@@ -1,0 +1,42 @@
+{
+  "name": "qlrisk_price_swaption",
+  "implementation": "sajha.tools.impl.qlrisk.qlrisk_tools.QlriskPriceProductTool",
+  "product": "Swaption",
+  "title": "Price a Swaption",
+  "description": "Price one qlrisk Swaption (Swaption - option to enter into a swap; interest_rate, interest_rate): NPV in the trade currency and the reporting currency, pricing components, analytic Greeks where the pricer gives them, and optional cash flows. Inputs are this product's fields only; required: option_expiry, swap_effective, swap_maturity, notional, strike. Market data defaults to qlrisk's sample snapshot valued today; override curves, spots and vols, or apply shocks, with market_data as in qlrisk_price_trades. For a book of several products use qlrisk_price_trades. Example: {\"notional\": 1000000, \"option_expiry\": \"2027-10-11\", \"swap_effective\": \"2027-10-13\", \"swap_maturity\": \"2032-10-13\", \"strike\": 0.04}.",
+  "version": "1.0.0",
+  "enabled": true,
+  "requires": [
+    "qlrisk"
+  ],
+  "outputSchema": {
+    "type": "object"
+  },
+  "annotations": {
+    "title": "Price a Swaption",
+    "readOnlyHint": true,
+    "destructiveHint": false,
+    "idempotentHint": true,
+    "openWorldHint": false
+  },
+  "metadata": {
+    "author": "Ashutosh Sinha",
+    "email": "ajsinha@gmail.com",
+    "copyright": "Copyright All rights Reserved 2025-2030, Ashutosh Sinha",
+    "category": "Risk Analytics",
+    "provider": "qlrisk",
+    "tags": [
+      "qlrisk",
+      "pricing",
+      "interest_rate"
+    ],
+    "generated_by": "sajha.tools.impl.qlrisk.generate",
+    "example": {
+      "notional": 1000000,
+      "option_expiry": "2027-10-11",
+      "swap_effective": "2027-10-13",
+      "swap_maturity": "2032-10-13",
+      "strike": 0.04
+    }
+  }
+}

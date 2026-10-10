@@ -1,0 +1,32 @@
+{
+  "name": "qlrisk_sensitivities",
+  "implementation": "sajha.tools.impl.qlrisk.qlrisk_tools.QlriskSensitivitiesTool",
+  "title": "Sensitivities and Greeks",
+  "description": "Bump-and-reprice sensitivities for a book: DV01 (rates, per 1bp), CS01 (credit spreads, per 1bp), DIV01, equity/FX/commodity delta, vega, gamma (second order with central bumps), 1-day theta, key-rate ladders on native pillars or FRTB vertices, and optional cross-gamma between named factors. Results by risk class and measure, by trade, and by risk factor. Example: {\"trades\": [{\"product\": \"InterestRateSwap\", \"notional\": 10000000, \"tenor_years\": 5, \"fixed_rate\": 0.044}], \"ladder_vertices\": \"frtb_girr\"} gives the swap's DV01 and its SOFR/discount ladders.",
+  "version": "1.0.0",
+  "enabled": true,
+  "requires": [
+    "qlrisk"
+  ],
+  "outputSchema": {
+    "type": "object"
+  },
+  "annotations": {
+    "title": "Sensitivities and Greeks",
+    "readOnlyHint": true,
+    "destructiveHint": false,
+    "idempotentHint": true,
+    "openWorldHint": false
+  },
+  "metadata": {
+    "author": "Ashutosh Sinha",
+    "email": "ajsinha@gmail.com",
+    "copyright": "Copyright All rights Reserved 2025-2030, Ashutosh Sinha",
+    "category": "Risk Analytics",
+    "provider": "qlrisk",
+    "tags": [
+      "qlrisk",
+      "risk"
+    ]
+  }
+}

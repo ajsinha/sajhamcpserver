@@ -1,0 +1,32 @@
+{
+  "name": "qlrisk_value_at_risk",
+  "implementation": "sajha.tools.impl.qlrisk.qlrisk_tools.QlriskValueAtRiskTool",
+  "title": "Value at Risk and Expected Shortfall",
+  "description": "Market-risk VaR and Expected Shortfall for a book: historical, age-weighted (BRW), filtered historical (EWMA), Monte Carlo (normal or Student-t from the return covariance) or parametric (delta-normal); full revaluation or Taylor; optional stressed VaR (the worst 250-day window), Euler component / incremental / standalone decomposition by trade or group, and liquidity-adjusted VaR (half-spread exit cost plus sqrt-of-time scaling). History defaults to a 750-day synthetic history with a stress regime. mode='pnl_series' instead computes VaR/ES from a P&L vector you supply. Example: {\"trades\": [{\"product\": \"EquityOption\", \"notional\": 1000000, \"tenor_years\": 0.5, \"ticker\": \"SPX\", \"strike\": 5000, \"is_call\": false}], \"method\": \"historical\", \"horizon_days\": 10}.",
+  "version": "1.0.0",
+  "enabled": true,
+  "requires": [
+    "qlrisk"
+  ],
+  "outputSchema": {
+    "type": "object"
+  },
+  "annotations": {
+    "title": "Value at Risk and Expected Shortfall",
+    "readOnlyHint": true,
+    "destructiveHint": false,
+    "idempotentHint": true,
+    "openWorldHint": false
+  },
+  "metadata": {
+    "author": "Ashutosh Sinha",
+    "email": "ajsinha@gmail.com",
+    "copyright": "Copyright All rights Reserved 2025-2030, Ashutosh Sinha",
+    "category": "Risk Analytics",
+    "provider": "qlrisk",
+    "tags": [
+      "qlrisk",
+      "risk"
+    ]
+  }
+}

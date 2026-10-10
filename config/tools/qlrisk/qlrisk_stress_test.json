@@ -1,0 +1,32 @@
+{
+  "name": "qlrisk_stress_test",
+  "implementation": "sajha.tools.impl.qlrisk.qlrisk_tools.QlriskStressTestTool",
+  "title": "Stress testing",
+  "description": "Stress a book. mode='library' revalues it under qlrisk's historical crisis scenarios (1987_black_monday, 1998_ltcm_russia, 2008_gfc_lehman, 2010_euro_crisis, 2013_taper_tantrum, 2016_brexit, 2020_covid, 2022_rates_shock, 2023_regional_banks) or a chosen subset; mode='custom' under your scenarios, each a list of shocks (factor or curve twist / butterfly / parallel) or a stylised definition (equity, vol, rates, credit, fx_usd, commodity moves); mode='reverse' finds the most plausible market move (minimum Mahalanobis distance) that loses target_loss. Returns P&L per scenario and per trade, worst first. Example: {\"trades\": [...], \"mode\": \"custom\", \"custom_scenarios\": [{\"name\": \"rates +100bp\", \"shocks\": [{\"risk_classes\": [\"IR\"], \"shape\": \"parallel\", \"size\": 0.01}]}]}.",
+  "version": "1.0.0",
+  "enabled": true,
+  "requires": [
+    "qlrisk"
+  ],
+  "outputSchema": {
+    "type": "object"
+  },
+  "annotations": {
+    "title": "Stress testing",
+    "readOnlyHint": true,
+    "destructiveHint": false,
+    "idempotentHint": true,
+    "openWorldHint": false
+  },
+  "metadata": {
+    "author": "Ashutosh Sinha",
+    "email": "ajsinha@gmail.com",
+    "copyright": "Copyright All rights Reserved 2025-2030, Ashutosh Sinha",
+    "category": "Risk Analytics",
+    "provider": "qlrisk",
+    "tags": [
+      "qlrisk",
+      "risk"
+    ]
+  }
+}

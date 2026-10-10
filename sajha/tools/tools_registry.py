@@ -66,6 +66,8 @@ class ToolsRegistry:
         self.tools: Dict[str, BaseMCPTool] = {}
         self.tool_configs: Dict[str, Dict] = {}
         self.tool_errors: Dict[str, str] = {}
+        # tools skipped because a module their config "requires" is not installed: name -> missing modules
+        self.skipped_tools: Dict[str, List[str]] = {}
         self._tools_lock = threading.RLock()
         self.logger = logging.getLogger(__name__)
         
@@ -223,6 +225,9 @@ class ToolsRegistry:
                 self._bulk_depth -= 1
                 outermost = self._bulk_depth == 0
                 dirty = outermost and self._bulk_dirty
+                skipped_dirty = outermost and self.__dict__.pop('_skipped_dirty', False)
+            if skipped_dirty:
+                self._report_skipped()
             if dirty and self._catalog_fingerprint() != getattr(self, '_bulk_before', None):
                 _publish_tools_changed()
                 self._notify_change()
@@ -338,8 +343,89 @@ class ToolsRegistry:
         except Exception:
             pass
 
+    # ── optional dependencies ("requires") ───────────────────────────
+    # A tool config may declare "requires": ["<module>", ...]. While one of those modules is not
+    # importable the tool is skipped: not loaded, not a failed tool, not in tools/list; one info notice
+    # per missing module says how many tools wait for it. retry_failed re-checks them, so installing
+    # the module loads them without a restart (docs/architecture/Architecture.md §5).
+
+    def _skip(self, name: str, missing: List[str]) -> None:
+        with self._tools_lock:
+            if name in self.tools:
+                self.unregister_tool(name)
+            self.tool_configs.pop(name, None)
+            self.tool_errors.pop(name, None)
+            new = self.skipped_tools.get(name) != missing
+            self.skipped_tools[name] = missing
+        if new:
+            self.logger.info(f"Tool {name} skipped: {', '.join(missing)} not installed")
+            self._skipped_changed()
+
+    def _unskip(self, name: str) -> None:
+        if self.skipped_tools.pop(name, None) is not None:
+            self._skipped_changed()
+
+    def _skipped_changed(self) -> None:
+        """Refresh the notices now, or once at the end of the current bulk() (a load of many tools)."""
+        if getattr(self, '_bulk_depth', 0):
+            self._skipped_dirty = True
+        else:
+            self._report_skipped()
+
+    def _report_skipped(self) -> None:
+        """One info notice per missing module (with the count of tools waiting for it); clear the rest."""
+        by_module: Dict[str, List[str]] = {}
+        for name, mods in list(self.skipped_tools.items()):
+            for m in mods:
+                by_module.setdefault(m, []).append(name)
+        try:
+            from sajha import notices
+            for n in notices.list_notices(state='open', source='tools'):
+                nid = str(n.get('id') or '')
+                if nid.startswith('tools.requires:') and nid.split(':', 1)[1] not in by_module:
+                    notices.clear_notice(nid)
+            for module, names in sorted(by_module.items()):
+                names = sorted(names)
+                notices.raise_notice(
+                    f'tools.requires:{module}', severity='info', source='tools',
+                    title=f'{module} is not installed: {len(names)} {module} tool{"s" if len(names) != 1 else ""} '
+                          f'{"are" if len(names) != 1 else "is"} skipped',
+                    detail=f'Their configs declare "requires": ["{module}"]. Install {module} into SAJHA\'s Python '
+                           f'environment (pip install it, or its wheel) to enable them; they load within '
+                           f'tools.retry_failed_seconds, without a restart. Skipped: ' + ', '.join(names),
+                    link='/help/guides/Architecture.md', ttl_minutes=0)
+        except Exception:
+            pass
+
+    def get_skipped_tools(self) -> Dict[str, List[str]]:
+        with self._tools_lock:
+            return {k: list(v) for k, v in self.skipped_tools.items()}
+
+    def retry_skipped(self) -> List[str]:
+        """Load the skipped tools whose required modules are importable now; returns the ones that loaded."""
+        with self._tools_lock:
+            waiting = dict(self.__dict__.setdefault('skipped_tools', {}))
+        if not waiting:
+            return []
+        importlib.invalidate_caches()              # a module installed since start-up is found
+        loaded = []
+        with self.bulk():
+            for name, mods in sorted(waiting.items()):
+                if missing_modules(mods):
+                    continue
+                rel = self.tool_path(name)
+                if rel is None:
+                    self._unskip(name)
+                    continue
+                self.load_tool_from_config(rel)
+                if name in self.tools:
+                    loaded.append(name)
+                    self.logger.info(f"Tool {name} loaded: its required modules are installed now")
+        return loaded
+
     def _mark_duplicate(self, name: str, rels) -> None:
         """Two or more files share a tool name: load none of them until one is removed."""
+        self._unskip(name)
         with self._tools_lock:
             if name in self.tools:
                 self.unregister_tool(name)
@@ -420,6 +506,7 @@ class ToolsRegistry:
                     self.tool_configs.pop(name, None)
                     self.tool_errors[name] = "Configuration file deleted"
                     self._clear_duplicate(name)
+                    self._unskip(name)
                 elif len(paths) > 1:
                     self._mark_duplicate(name, paths)
                 else:
@@ -454,6 +541,13 @@ class ToolsRegistry:
                 tool_name = config.get('name')
                 if not tool_name:
                     raise ValueError("Tool configuration missing 'name' field")
+
+                self.__dict__.setdefault('skipped_tools', {})     # registries built without __init__ (tests)
+                missing = missing_requirements(config)
+                if missing:
+                    self._skip(tool_name, missing)
+                    return
+                self._unskip(tool_name)
 
                 self.tool_configs[tool_name] = config
 
@@ -722,6 +816,10 @@ class ToolsRegistry:
         if not base:
             return []
         now = _time.time() if now is None else now
+        loaded_skipped = []
+        if now >= self.__dict__.get('_skipped_next', 0):
+            self._skipped_next = now + base
+            loaded_skipped = self.retry_skipped()
         state = self.__dict__.setdefault('_retry_state', {})
         with self._tools_lock:
             failed = {n: str(e) for n, e in self.tool_errors.items() if self._retryable(n, str(e))}
@@ -753,7 +851,7 @@ class ToolsRegistry:
                 if err != st['error']:
                     st['error'] = err
                     self.logger.warning(f"Tool {name} still fails to load, now: {err}")
-        return loaded
+        return loaded_skipped + loaded
 
     def start_retrying(self):
         """Start the retry thread (``tools.retry_failed_seconds``; 0: none)."""
@@ -897,11 +995,13 @@ class ToolsRegistry:
                 self.tools.clear()
                 self.tool_configs.clear()
                 self.tool_errors.clear()
+                self.__dict__.setdefault('skipped_tools', {}).clear()
                 self._file_timestamps.clear()
                 self._bulk_dirty = True
 
                 # Reload all
                 self.load_all_tools()
+                self._report_skipped()
 
             # Listeners run outside the lock but inside bulk(): composites re-register here,
             # so a reload that ends where it started announces nothing
@@ -950,6 +1050,30 @@ class ToolsRegistry:
             
             # Reload all tools
             self.reload_all_tools()
+
+
+def missing_modules(modules) -> List[str]:
+    """The modules of ``modules`` that cannot be imported (found without importing them)."""
+    import importlib.util
+    out = []
+    for m in modules:
+        try:
+            found = importlib.util.find_spec(m) is not None
+        except (ImportError, ValueError):
+            found = False
+        if not found:
+            out.append(m)
+    return out
+
+
+def missing_requirements(config: dict) -> List[str]:
+    """The modules a tool config's ``requires`` names that are not installed ([] when none, or no requires)."""
+    req = config.get('requires') if isinstance(config, dict) else None
+    if isinstance(req, str):
+        req = [req]
+    if not isinstance(req, list):
+        return []
+    return missing_modules([str(m).strip() for m in req if str(m).strip()])
 
 
 def _script_tool_compat(tool_class):

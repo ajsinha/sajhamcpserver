@@ -68,9 +68,13 @@ async def api_tool_execute(
     from sajha.policy.context import set_source      # policy rules can match the source
     set_source('playground' if request.headers.get('X-SAJHA-Client') == 'playground' else 'rest')
     from sajha.quality import versions as _versions    # a versioned tool says which version ran
+    def _run():
+        with _versions.collect_meta() as meta:
+            return tool.execute_with_tracking(arguments), meta
     try:
-        with _versions.collect_meta() as version_meta:
-            result = tool.execute_with_tracking(arguments)
+        # off the event loop (a tool may be slow or CPU-bound); the context set above goes with it
+        from starlette.concurrency import run_in_threadpool
+        result, version_meta = await run_in_threadpool(_run)
         duration_ms = int((time.time() - start) * 1000)
 
         # Log to DB

@@ -1,0 +1,42 @@
+{
+  "name": "qlrisk_price_fx_forward",
+  "implementation": "sajha.tools.impl.qlrisk.qlrisk_tools.QlriskPriceProductTool",
+  "product": "FXForward",
+  "title": "Price a FXForward",
+  "description": "Price one qlrisk FXForward (FX Forward - agreement to exchange currencies at future date; fx, fx): NPV in the trade currency and the reporting currency, pricing components, analytic Greeks where the pricer gives them, and optional cash flows. Inputs are this product's fields only; required: settlement_date, base_currency, quote_currency, base_notional, forward_rate. Market data defaults to qlrisk's sample snapshot valued today; override curves, spots and vols, or apply shocks, with market_data as in qlrisk_price_trades. For a book of several products use qlrisk_price_trades. Example: {\"settlement_date\": \"2027-10-11\", \"base_currency\": \"EUR\", \"quote_currency\": \"USD\", \"base_notional\": 1000000, \"forward_rate\": 1.1}.",
+  "version": "1.0.0",
+  "enabled": true,
+  "requires": [
+    "qlrisk"
+  ],
+  "outputSchema": {
+    "type": "object"
+  },
+  "annotations": {
+    "title": "Price a FXForward",
+    "readOnlyHint": true,
+    "destructiveHint": false,
+    "idempotentHint": true,
+    "openWorldHint": false
+  },
+  "metadata": {
+    "author": "Ashutosh Sinha",
+    "email": "ajsinha@gmail.com",
+    "copyright": "Copyright All rights Reserved 2025-2030, Ashutosh Sinha",
+    "category": "Risk Analytics",
+    "provider": "qlrisk",
+    "tags": [
+      "qlrisk",
+      "pricing",
+      "fx"
+    ],
+    "generated_by": "sajha.tools.impl.qlrisk.generate",
+    "example": {
+      "settlement_date": "2027-10-11",
+      "base_currency": "EUR",
+      "quote_currency": "USD",
+      "base_notional": 1000000,
+      "forward_rate": 1.1
+    }
+  }
+}

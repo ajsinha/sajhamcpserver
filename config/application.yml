@@ -327,7 +327,8 @@ hot_reload:
 # upstream) is tried again on its own, without a change to its file: every
 # retry_failed_seconds at first, then with doubling back-off up to 30 minutes.
 # 0 turns the retry off. A tool whose name is in two files is not retried; it
-# loads when one file is removed. Every worker retries its own registry.
+# loads when one file is removed. Every worker retries its own registry. The same
+# rhythm re-checks tools skipped because a module their config "requires" is missing.
 tools:
   retry_failed_seconds: 300
 

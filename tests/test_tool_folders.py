@@ -82,7 +82,7 @@ def test_the_migrated_tree_registers_exactly_what_the_flat_layout_did(tmp_path, 
         seen[label] = ({n: json.dumps(c, sort_keys=True) for n, c in reg.tool_configs.items()},
                        sorted(reg.tools), dict(reg.tool_errors))
     assert seen['flat'] == seen['tree']
-    assert len(seen['tree'][1]) == len(files)
+    assert len(seen['tree'][1]) + len(reg.skipped_tools) == len(files)   # skipped: a "requires" module is missing
     assert not any(TOOLS.glob('*.json')), 'root leftovers: every shipped tool is in a folder'
 
 
@@ -507,3 +507,73 @@ def test_a_creator_honours_the_folder_and_refuses_names_taken_in_a_folder(admin)
     assert not v['valid'] and 'zz_test_folder_a' in v['error']
     d = c.post('/admin/studio/delete', json={'tool_name': 'zz_test_fold_rest'}, headers=h).json()
     assert d['success'] and not (TOOLS / 'zz_test_folder_b').exists()
+
+
+# ── "requires": tools that need an optional module ───────────────────────
+
+@pytest.fixture(autouse=True)
+def _no_requires_notices_left():
+    yield
+    from sajha import notices
+    for nid in _open_notices('tools.requires:'):
+        notices.clear_notice(nid)
+
+
+def test_a_tool_whose_required_module_is_missing_is_skipped_with_one_notice_per_module(store, monkeypatch):
+    monkeypatch.setenv('SAJHA_TOOLS_RETRY_FAILED_SECONDS', '60')
+    for n in ('zz_req_a', 'zz_req_b'):
+        _put(store, f'zzopt/{n}.json', dict(_cfg(n), requires=['zz_optional_mod']))
+    _put(store, 'zzopt/zz_req_c.json', dict(_cfg('zz_req_c'), requires=['zz_optional_mod', 'json']))
+    _put(store, 'zz_req_ok.json', dict(_cfg('zz_req_ok'), requires=['json']))
+    reg = _registry(store)
+    assert 'zz_req_ok' in reg.tools                                     # an installed requirement loads
+    for n in ('zz_req_a', 'zz_req_b', 'zz_req_c'):
+        assert n not in reg.tools and n not in reg.tool_errors and n not in reg.tool_configs
+        assert reg.skipped_tools[n] == ['zz_optional_mod']
+    open_ = _open_notices('tools.requires:')
+    assert list(open_) == ['tools.requires:zz_optional_mod']
+    n = open_['tools.requires:zz_optional_mod']
+    assert n['severity'] == 'info'
+    assert n['title'] == 'zz_optional_mod is not installed: 3 zz_optional_mod tools are skipped'
+    assert 'zz_req_a, zz_req_b, zz_req_c' in n['detail']
+    assert reg.retry_failed(now=1000.0) == []                           # still missing: nothing loads
+    assert not reg._retry_state                                         # skipped tools are not failed tools
+
+
+def test_installing_the_required_module_loads_the_tools_on_the_retry_loop_and_clears_the_notice(store, monkeypatch, tmp_path):
+    monkeypatch.setenv('SAJHA_TOOLS_RETRY_FAILED_SECONDS', '60')
+    _put(store, 'zzopt/zz_req_late.json', dict(_cfg('zz_req_late'), requires=['zz_late_mod']))
+    reg = _registry(store)
+    assert 'zz_req_late' in reg.skipped_tools and 'tools.requires:zz_late_mod' in _open_notices('tools.requires:')
+    t0 = 1000.0
+    assert reg.retry_failed(now=t0) == []
+    site = tmp_path / 'site'
+    site.mkdir()
+    (site / 'zz_late_mod.py').write_text('X = 1\n', encoding='utf-8')
+    monkeypatch.syspath_prepend(str(site))                              # "pip install" while running
+    assert reg.retry_failed(now=t0 + 30) == []                          # checked at most once per interval
+    assert reg.retry_failed(now=t0 + 60) == ['zz_req_late']
+    assert 'zz_req_late' in reg.tools and not reg.skipped_tools
+    assert 'tools.requires:zz_late_mod' not in _open_notices('tools.requires:')
+
+
+def test_deleting_a_skipped_tools_file_clears_its_notice(store, monkeypatch):
+    p = _put(store, 'zzopt/zz_req_gone.json', dict(_cfg('zz_req_gone'), requires=['zz_gone_mod']))
+    reg = _registry(store)
+    assert 'tools.requires:zz_gone_mod' in _open_notices('tools.requires:')
+    p.unlink()
+    reg.rescan(deleted=['config/tools/zzopt/zz_req_gone.json'])
+    assert not reg.skipped_tools and 'tools.requires:zz_gone_mod' not in _open_notices('tools.requires:')
+
+
+def test_shipped_qlrisk_tools_are_skipped_without_qlrisk(store, monkeypatch):
+    """The 18 shipped qlrisk configs declare requires qlrisk: without it they are skipped with one notice."""
+    import sajha.tools.tools_registry as tr
+    real = tr.missing_modules
+    monkeypatch.setattr(tr, 'missing_modules', lambda mods: [m for m in mods if m == 'qlrisk'] + real([m for m in mods if m != 'qlrisk']))
+    shutil.copytree(TOOLS / 'qlrisk', store / 'config' / 'tools' / 'qlrisk')
+    reg = _registry(store)
+    shipped = sorted(p.stem for p in (TOOLS / 'qlrisk').glob('*.json'))
+    assert sorted(reg.skipped_tools) == shipped and not reg.tools and not reg.tool_errors
+    n = _open_notices('tools.requires:')['tools.requires:qlrisk']
+    assert n['severity'] == 'info' and n['title'] == f'qlrisk is not installed: {len(shipped)} qlrisk tools are skipped'

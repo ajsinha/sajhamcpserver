@@ -1,0 +1,32 @@
+{
+  "name": "qlrisk_risk_report",
+  "implementation": "sajha.tools.impl.qlrisk.qlrisk_tools.QlriskRiskReportTool",
+  "title": "Unified risk report",
+  "description": "Every risk in one call with qlrisk's RiskEngine: PV, sensitivities (DV01/CS01/delta/vega), historical VaR and ES, parametric VaR, stressed VaR, the stress library, backtest, FRTB SA capital and counterparty exposure (peak PFE and SA-CCR EAD netted per netting set), rolled up a reporting hierarchy (VaR and ES are non-additive, recomputed per node), with optional limit checks. measures: PV, SENSITIVITIES, VAR, ES, PARAMETRIC_VAR, SVAR, STRESS, BACKTEST, FRTB_SA, EXPOSURE (default PV, SENSITIVITIES, VAR, ES, SVAR, STRESS, FRTB_SA, EXPOSURE). use_demo_book=true runs qlrisk's six-trade demo book (swap, bond, CDS, FX option, equity option, commodity forward) with its history, hierarchy and FRTB maps. Example: {\"use_demo_book\": true, \"limits\": [{\"name\": \"Firm 1d VaR\", \"metric\": \"var.1d\", \"limit\": 500000}]}.",
+  "version": "1.0.0",
+  "enabled": true,
+  "requires": [
+    "qlrisk"
+  ],
+  "outputSchema": {
+    "type": "object"
+  },
+  "annotations": {
+    "title": "Unified risk report",
+    "readOnlyHint": true,
+    "destructiveHint": false,
+    "idempotentHint": true,
+    "openWorldHint": false
+  },
+  "metadata": {
+    "author": "Ashutosh Sinha",
+    "email": "ajsinha@gmail.com",
+    "copyright": "Copyright All rights Reserved 2025-2030, Ashutosh Sinha",
+    "category": "Risk Analytics",
+    "provider": "qlrisk",
+    "tags": [
+      "qlrisk",
+      "risk"
+    ]
+  }
+}

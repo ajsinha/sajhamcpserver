@@ -230,6 +230,7 @@ Remove `countdown` and `reset_counter` from `risk-eu`'s `mcp_servers.json` and r
 
 - The design: [SAJHA Net](../architecture/SAJHA%20Net.md) section 9; the wire:
   [SAJHA Net Protocol](../protocol/SAJHA%20Net%20Protocol.md) §8.9, §15.6, §15.10
-- This is the last tutorial; the [documentation index](../README.md) lists every guide
+- Next: [Tutorial 41: qlrisk Risk Tools](TUTORIAL_41_qlrisk_risk_tools.md), risk analytics as native SAJHA
+  tools
 
 Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.com

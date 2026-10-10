@@ -1,0 +1,32 @@
+{
+  "name": "qlrisk_catalog",
+  "implementation": "sajha.tools.impl.qlrisk.qlrisk_tools.QlriskCatalogTool",
+  "title": "qlrisk catalog",
+  "description": "Discover what qlrisk can do before calling another tool. topic='products' lists every product (name, category, required fields, terms); add name='InterestRateSwap' for its full trade schema. topic='calculators' lists the credit, exposure, XVA, margin and SA-CCR calculators with their input fields and configuration (name='cva' for one). Other topics: 'stress_scenarios' (the historical crisis library), 'report_measures' (qlrisk_risk_report measures), 'processes' (Monte Carlo processes and parameters), 'market_data' (the sample snapshot and every risk-factor key, e.g. 'EQ.SPX', 'IR.FWD.SOFR.5Y'), 'enumerations' (currencies, indices, frequencies, risk classes ...), 'version' (qlrisk version and work bounds). Example: {\"topic\": \"products\", \"category\": \"fx\"}.",
+  "version": "1.0.0",
+  "enabled": true,
+  "requires": [
+    "qlrisk"
+  ],
+  "outputSchema": {
+    "type": "object"
+  },
+  "annotations": {
+    "title": "qlrisk catalog",
+    "readOnlyHint": true,
+    "destructiveHint": false,
+    "idempotentHint": true,
+    "openWorldHint": false
+  },
+  "metadata": {
+    "author": "Ashutosh Sinha",
+    "email": "ajsinha@gmail.com",
+    "copyright": "Copyright All rights Reserved 2025-2030, Ashutosh Sinha",
+    "category": "Risk Analytics",
+    "provider": "qlrisk",
+    "tags": [
+      "qlrisk",
+      "risk"
+    ]
+  }
+}

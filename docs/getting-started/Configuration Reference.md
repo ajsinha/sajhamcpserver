@@ -308,7 +308,21 @@ Reader: `sajha/core/config.py::_get`, read when the registry starts its retry th
 
 | Key | Default | Env | Purpose / reader |
 |-----|---------|-----|------------------|
-| `tools.retry_failed_seconds` | `300` | `SAJHA_TOOLS_RETRY_FAILED_SECONDS` | Retry of tools that failed to load, without a change to their file: first after this many seconds, then doubling up to 30 minutes; `0` turns it off. Duplicate names and deleted files are not retried. Per worker process (`ToolsRegistry.retry_failed` in `sajha/tools/tools_registry.py`; [Architecture](../architecture/Architecture.md#tool-config-files-and-folders)). |
+| `tools.retry_failed_seconds` | `300` | `SAJHA_TOOLS_RETRY_FAILED_SECONDS` | Retry of tools that failed to load, without a change to their file: first after this many seconds, then doubling up to 30 minutes; `0` turns it off. Duplicate names and deleted files are not retried. Per worker process (`ToolsRegistry.retry_failed` in `sajha/tools/tools_registry.py`; [Architecture](../architecture/Architecture.md#tool-config-files-and-folders)). The same rhythm re-checks tools skipped because a module their config `requires` is missing. |
+
+## qlrisk
+
+Reader: `sajha/core/config.py::_get` (`Limits.from_config` in `sajha/tools/impl/qlrisk/options.py`), read when a qlrisk tool loads. Not in `application.yml`; set a key there under `qlrisk:` or with its environment variable. A tool config's `"bounds"` object overrides a bound for that one tool. A request above a bound is rejected naming it ([QLRisk Tool Reference Guide](../tools/qlrisk/QLRisk%20Tool%20Reference%20Guide.md#limits)).
+
+| Key | Default | Env | Purpose / reader |
+|-----|---------|-----|------------------|
+| `qlrisk.max_trades` | `200` | `SAJHA_QLRISK_MAX_TRADES` | Trades in one request |
+| `qlrisk.max_mc_paths` | `20000` | `SAJHA_QLRISK_MAX_MC_PATHS` | Monte Carlo paths, scenarios and calculator simulations |
+| `qlrisk.max_time_steps` | `1000` | `SAJHA_QLRISK_MAX_TIME_STEPS` | Time steps of a simulated path |
+| `qlrisk.max_history_days` | `2500` | `SAJHA_QLRISK_MAX_HISTORY_DAYS` | Days of a factor history (synthetic or supplied) |
+| `qlrisk.max_drc_simulations` | `200000` | `SAJHA_QLRISK_MAX_DRC_SIMULATIONS` | FRTB IMA DRC simulations |
+| `qlrisk.max_cross_gamma_factors` | `8` | `SAJHA_QLRISK_MAX_CROSS_GAMMA_FACTORS` | Factors in a cross-gamma request |
+| `qlrisk.max_text_chars` | `20000` | `SAJHA_QLRISK_MAX_TEXT_CHARS` | Characters of JSON in the MCP text block (structuredContent is never cut) |
 
 ## features
 

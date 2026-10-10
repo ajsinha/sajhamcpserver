@@ -237,6 +237,16 @@ filed one folder per provider; list them with `python -m sajha.tools folders`.
   It is logged when retrying starts, when the error changes and when the tool loads; a load publishes
   the catalog change. A duplicate name or a deleted file is not retried. Every worker process retries
   its own registry (each process holds its own catalog), so there is no cross-worker claim.
+- **Optional dependencies (`requires`).** A tool config may declare `"requires": ["<module>", ...]`,
+  the Python modules its implementation needs beyond SAJHA's own requirements. Before loading such a
+  tool the registry checks that each module is importable (without importing it). If one is missing
+  the tool is **skipped**: not loaded, not a failed tool (absent from `tool_errors` and the failed-tool
+  retry), absent from `tools/list`; `ToolsRegistry.get_skipped_tools()` lists the skipped tools. One
+  info notice `tools.requires:<module>` per missing module counts the tools waiting for it ("qlrisk is
+  not installed: N qlrisk tools are skipped") and names them. The retry loop re-checks skipped tools
+  every `tools.retry_failed_seconds`, so installing the module loads them without a restart and clears
+  the notice; with `0` the check happens on reload only. The qlrisk tools use it
+  ([QLRisk Tool Reference Guide](../tools/qlrisk/QLRisk%20Tool%20Reference%20Guide.md)).
 
 ## 6. Composition
 

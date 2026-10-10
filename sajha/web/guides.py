@@ -48,6 +48,7 @@ FOLDERS: Dict[str, str] = {
     'tools/search': 'Tools: search',
     'tools/analytics': 'Tools: analytics',
     'tools/enterprise': 'Tools: enterprise',
+    'tools/qlrisk': 'Tools: qlrisk risk analytics',
     'tools/prompts': 'Prompts',
     'tutorials': 'Tutorials',
     'clients': 'Clients',
