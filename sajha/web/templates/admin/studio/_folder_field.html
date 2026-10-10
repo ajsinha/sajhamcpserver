@@ -1,17 +1,23 @@
 {# Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.com #}
-{# The tool folder a creator files a NEW tool in (config/tools/<folder>/; empty: the default). Editing a
-   tool never moves it. studioFolder() is what the creator's deploy request sends. #}
-{% set FP = folder_placeholder if folder_placeholder is defined else 'empty: the root of config/tools' %}
+{# The tool folder a creator files a NEW tool in (<tools dir>/<folder>/). Optional: it starts at "Unfiled" (the root
+   of the tools directory); a page whose new tools have another default sets folder_default = '' and
+   folder_placeholder. Typing a new valid name creates that folder when the tool is saved. Editing a tool never
+   moves it. studioFolder() is what the creator's deploy request sends ("Unfiled" and empty both mean the root
+   on the server, unless the page has its own default for empty). #}
+{% set FD = folder_default if folder_default is defined else 'Unfiled' %}
+{% set FP = folder_placeholder if folder_placeholder is defined else 'Unfiled: the root of ' ~ tools_dir() %}
 <div class="card mb-3">
     <div class="card-body py-2 d-flex flex-wrap align-items-center gap-2">
-        <label class="form-label fw-bold mb-0" for="studioToolFolder"><i class="bi bi-folder2 me-1" aria-hidden="true"></i>Folder</label>
+        <label class="form-label fw-bold mb-0" for="studioToolFolder"><i class="bi bi-folder2 me-1" aria-hidden="true"></i>Folder <span class="fw-normal text-muted small">(optional)</span></label>
         <input id="studioToolFolder" class="form-control form-control-sm" style="max-width: 18rem" list="studioToolFolders"
-               maxlength="32" autocomplete="off" placeholder="{{ FP }}" aria-describedby="studioToolFolderHelp">
+               maxlength="32" autocomplete="off" value="{{ FD }}" placeholder="{{ FP }}" aria-describedby="studioToolFolderHelp">
         <datalist id="studioToolFolders">
+            <option value="Unfiled">the root of {{ tools_dir() }}</option>
             {% for f in (tool_folders if tool_folders is defined else []) %}<option value="{{ f }}">{% endfor %}
         </datalist>
-        <small id="studioToolFolderHelp" class="text-muted">The tool folder the new tool's config goes in: lowercase letters,
-            digits, <code>_</code> or <code>-</code>. It files the tool; it does not change its name.</small>
+        <small id="studioToolFolderHelp" class="text-muted">Unfiled (the root of <code>{{ tools_dir() }}</code>), an existing
+            folder, or a new name (lowercase letters, digits, <code>_</code> or <code>-</code>), which is created on save.
+            It files the tool; it does not change its name.</small>
     </div>
 </div>
 <script nonce="{{ csp_nonce() }}">
@@ -19,5 +25,9 @@ function studioFolder() {
     const el = document.getElementById('studioToolFolder');
     const v = el ? el.value.trim() : '';
     return v || undefined;
+}
+function studioFolderPath() {   // the folder part of the new config's path ('' at the root; undefined: the page's default)
+    const v = studioFolder();
+    return v === undefined ? undefined : (v.toLowerCase() === 'unfiled' ? '' : v);
 }
 </script>

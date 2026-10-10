@@ -16,8 +16,8 @@ from datetime import datetime
 from .base_mcp_tool import BaseMCPTool
 from sajha.core.storage import get_storage
 
-# Default path relative to project root
-DEFAULT_TOOLS_DIR = 'config/tools'
+# The conventional tools directory: storage paths written with it are mapped onto config.tools.dir (_config_rel)
+from sajha.tools.tool_files import DEFAULT_PREFIX as DEFAULT_TOOLS_DIR
 
 
 class ToolsRegistry:
@@ -49,7 +49,8 @@ class ToolsRegistry:
         
         # Handle config directory path
         if tools_config_dir is None:
-            tools_config_dir = DEFAULT_TOOLS_DIR
+            from sajha.tools.tool_files import default_prefix
+            tools_config_dir = default_prefix()
         
         self.tools_config_dir = Path(tools_config_dir)
         if not self.tools_config_dir.is_absolute():
@@ -61,7 +62,7 @@ class ToolsRegistry:
         try:
             self._config_prefix = str(self.tools_config_dir.relative_to(Path.cwd())).replace('\\', '/')
         except ValueError:
-            self._config_prefix = 'config/tools'
+            self._config_prefix = self._outside_prefix()
         
         self.tools: Dict[str, BaseMCPTool] = {}
         self.tool_configs: Dict[str, Dict] = {}
@@ -100,6 +101,15 @@ class ToolsRegistry:
         self.start_monitoring()
         self.start_retrying()
     
+    def _outside_prefix(self) -> str:
+        """A tools directory outside the storage base cannot be addressed by storage paths; the tool file
+        index's default (sajha/tools/tool_files.py) is used instead, and that is logged."""
+        from sajha.tools.tool_files import DEFAULT_PREFIX
+        logging.getLogger(__name__).warning(
+            f'tools directory {self.tools_config_dir} is outside the working directory; config.tools.dir must be '
+            f'relative to the storage base; using {DEFAULT_PREFIX}')
+        return DEFAULT_PREFIX
+
     def _init_properties_configurator(self):
         """Initialize reference to PropertiesConfigurator for variable substitution"""
         try:
@@ -1044,7 +1054,7 @@ class ToolsRegistry:
             try:
                 self._config_prefix = str(self.tools_config_dir.relative_to(Path.cwd())).replace('\\', '/')
             except ValueError:
-                self._config_prefix = DEFAULT_TOOLS_DIR
+                self._config_prefix = self._outside_prefix()
             
             self.logger.info(f"ToolsRegistry reconfigured with: {self.tools_config_dir}")
             

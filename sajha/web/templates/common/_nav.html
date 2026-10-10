@@ -9,7 +9,8 @@
   ('Tools', 'tools', [
     ('Use', [
       (url_for('dashboard'), 'speedometer2', 'Dashboard', 'Server status, tools and recent activity'),
-      (url_for('tools_list'), 'tools', 'All tools', 'Browse, inspect and execute every registered tool')]
+      (url_for('tools_list'), 'tools', 'All tools', 'Browse, inspect and execute every registered tool'),
+      (url_for('tools_domains'), 'grid-1x2', 'Domains', 'Tools by domain: each tool folder, proxied server and Unfiled')]
       + ([(url_for('playground_page'), 'filetype-py', 'Python Playground', 'Python in your browser; call tools with import sajha')]
          if playground_enabled is defined and playground_enabled() else []) + [
       (url_for('workflows_page'), 'diagram-3', 'Workflows', 'Schedules, triggers and run history for DAGs of tools'),

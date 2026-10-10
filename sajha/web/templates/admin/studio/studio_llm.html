@@ -36,6 +36,7 @@ Guide: docs/studio/MCP Studio LLM Tool Creator Guide.md; design: docs/architectu
 
 {% block content %}
 {% include "admin/studio/_studio_nav.html" %}
+{% set folder_default = '' %}
 {% set folder_placeholder = "empty: llm (the LLM tools folder)" %}
 {% include "admin/studio/_folder_field.html" %}
 <div class="container-fluid py-3">
@@ -363,7 +364,7 @@ Guide: docs/studio/MCP Studio LLM Tool Creator Guide.md; design: docs/architectu
                     <div id="ltProblems"></div>
                     <dl class="lt-kv" id="ltFacts"></dl>
                     <details class="mt-2">
-                        <summary class="fw-bold">The config file (<code id="ltFile">config/tools/…</code>)</summary>
+                        <summary class="fw-bold">The config file (<code id="ltFile">{{ tools_dir() }}/…</code>)</summary>
                         <pre class="lt-pre mt-2" id="ltConfig" tabindex="0" aria-label="Generated config"></pre>
                     </details>
                     <details class="mt-2" id="ltAdvanced">
@@ -549,7 +550,8 @@ Guide: docs/studio/MCP Studio LLM Tool Creator Guide.md; design: docs/architectu
         last = config;
         $('ltConfig').textContent = JSON.stringify(config, null, 2);
         if (!jsonMode) $('ltJson').value = JSON.stringify(config, null, 2);
-        $('ltFile').textContent = 'config/tools/' + (editing ? '' : (studioFolder() || 'llm') + '/') + (config.name || '<name>') + '.json';
+        const fp = studioFolderPath();
+        $('ltFile').textContent = {{ (tools_dir() ~ '/')|tojson }} + (editing ? '' : (fp === undefined ? 'llm/' : (fp ? fp + '/' : ''))) + (config.name || '<name>') + '.json';
         const errs = check.errors || [], warns = check.warnings || [];
         $('ltProblems').innerHTML = errs.map(e => '<div class="alert alert-danger py-1 small mb-2">' + esc(e) + '</div>').join('') +
             warns.map(w => '<div class="alert alert-warning py-1 small mb-2">' + esc(w) + '</div>').join('') +

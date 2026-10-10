@@ -404,8 +404,10 @@ def _db_table_count() -> int:
 async def root(request: Request, auth: AuthContext = Depends(get_current_user)):
     if auth.authenticated:
         return RedirectResponse(url='/dashboard', status_code=302)
-    # Show landing page for unauthenticated visitors. The counts and the hero's constellation
-    # come from the live registry, grouped by name prefix exactly as the help pages group them.
+    # Show landing page for unauthenticated visitors. The counts, the "Out of the box" domain chips
+    # and the hero's constellation come from the live registry, grouped by tool domain (tool folder,
+    # proxied server, Unfiled) exactly as the Tools page and the help pages group them.
+    from urllib.parse import quote
     from sajha.app import render_standalone
     from sajha.auth.access import anonymous_policy
     from sajha.web.help_catalog import live_tool_groups
@@ -419,5 +421,9 @@ async def root(request: Request, auth: AuthContext = Depends(get_current_user)):
                                for m in (getattr(r, 'methods', None) or ())}),
         'tool_count': live['total_tools'],
         'group_count': live['total_groups'],
-        'tool_groups': [[g['name'], g['tool_count'], g['tools']] for g in live['groups']],
+        'tool_groups': [[g['name'], g['tool_count'], g['tools'], g['label']] for g in live['groups']],
+        'tool_prefixes': live['prefixes'],
+        # a chip opens the Tools page filtered to its domain, through sign-in for an anonymous visitor
+        'domain_chips': [{'label': g['label'], 'count': g['tool_count'],
+                          'href': '/login?next=' + quote(g['href'], safe='')} for g in live['groups']],
     })

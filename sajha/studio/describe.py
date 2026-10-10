@@ -388,8 +388,8 @@ def _taken(name: str, registry=None) -> bool:
     if reg is not None and name in getattr(reg, 'tools', {}):
         return True
     try:
-        from sajha.routes.studio_routes import CONFIG_DIR
-        return (Path(CONFIG_DIR) / f'{name}.json').exists()
+        from sajha.tools.tool_files import name_taken
+        return bool(name_taken(name))
     except Exception:
         return False
 

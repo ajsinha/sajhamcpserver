@@ -9,7 +9,7 @@ Usage:
     from sajha.core.reload_manager import init_reload_manager, get_reload_manager
 
     rm = init_reload_manager(config)          # LocalReloadManager or S3ReloadManager
-    rm.watch('config/tools', on_tools_change) # register callback
+    rm.watch(tools_dir, on_tools_change)      # tools_dir: config.tools.dir (sajha/tools/tool_files.py)
     rm.start()                                # begin monitoring
 """
 

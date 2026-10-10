@@ -90,7 +90,10 @@ class SharePointToolGenerator:
     
     def __init__(self, output_dir: str = None):
         """Initialize the generator."""
-        self.output_dir = Path(output_dir) if output_dir else Path("config/tools")
+        if not output_dir:
+            from sajha.tools.tool_files import default_prefix
+            output_dir = default_prefix()
+        self.output_dir = Path(output_dir)
         self.output_dir.mkdir(parents=True, exist_ok=True)
     
     def generate(self, config: SharePointToolConfig) -> Dict[str, Any]:

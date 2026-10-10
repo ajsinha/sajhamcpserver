@@ -1,6 +1,6 @@
 /*
  * SAJHA constellation: the tool catalog drawn as a night sky, one star per tool, clustered by
- * provider group, with a chain of links from the question to each tool it calls.
+ * tool domain, with a chain of links from the question to each tool it calls.
  * Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.com
  *
  * Shared by the landing page (static/js/landing.js: scripted demo questions) and Ask SAJHA
@@ -12,8 +12,9 @@
  *   C.tok('--sajha-ink')          a design token's current value
  *   C.onTheme(fn)                 fn() whenever the theme (data-theme or the system scheme) changes
  *   C.whenVisible(el, fn)         fn(isVisible) as el scrolls in and out of view
- *   C.groupOf('calc_npv')         'calc' (GLOSSARY: Tool group)
- *   var sky = C.sky(canvas, groups)   groups: [[name, count, [tool names]?], ...]
+ *   C.learn(groups, prefixes)     remember each named tool's domain and each name prefix's domain
+ *   C.groupOf('calc_npv')         the tool's domain (GLOSSARY: Tool domain): learned, else by its prefix
+ *   var sky = C.sky(canvas, groups, prefixes)   groups: [[domain, count, [tool names]?, label?], ...]
  *     sky.readTokens()            (re)read colours: sky.T, sky.colors[group]
  *     sky.resize()                fit the canvas backing store to its CSS box; false if 0×0
  *     sky.place()                 lay the stars out (deterministic: the same sky every time)
@@ -46,9 +47,16 @@
     if (!('IntersectionObserver' in window)) { fn(true); return; }
     new IntersectionObserver(function (es) { fn(es[es.length - 1].isIntersecting); }, { threshold: 0.15 }).observe(el);
   }
-  function groupOf(name) { return name.indexOf('_') >= 0 ? name.split('_')[0] : name; }
+  var nameGroup = {}, prefixGroup = {};
+  function prefixOf(name) { return name.indexOf('_') >= 0 ? name.split('_')[0] : name; }
+  function learn(groups, prefixes) {
+    (groups || []).forEach(function (g) { (g[2] || []).forEach(function (n) { nameGroup[n] = g[0]; }); });
+    Object.keys(prefixes || {}).forEach(function (p) { prefixGroup[p] = prefixes[p]; });
+  }
+  function groupOf(name) { return nameGroup[name] || prefixGroup[prefixOf(name)] || prefixOf(name); }
 
-  function sky(cv, groups) {
+  function sky(cv, groups, prefixes) {
+    learn(groups, prefixes);
     var cx = cv.getContext('2d');
     var S = { canvas: cv, ctx: cx, groups: groups, stars: [], W: 0, H: 0, T: {}, colors: {} };
     var seed = 7;
@@ -273,6 +281,6 @@
   window.SajhaConstellation = {
     reduce: mm('(prefers-reduced-motion: reduce)').matches,
     tok: tok, onTheme: function (fn) { themeFns.push(fn); }, whenVisible: whenVisible,
-    groupOf: groupOf, sky: sky, tips: tips, MONO: MONO
+    groupOf: groupOf, learn: learn, sky: sky, tips: tips, MONO: MONO
   };
 })();

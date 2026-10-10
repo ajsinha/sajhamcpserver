@@ -121,7 +121,9 @@
 
   /* ── the sky ──────────────────────────────────────────────────────────────────────────── */
   var GROUPS = (D.groups || []).filter(function (g) { return g[1] > 0; });
-  var skyEl = $('askSky'), cv = $('askSkyCanvas'), S = C.sky(cv, GROUPS);
+  var skyEl = $('askSky'), cv = $('askSkyCanvas'), S = C.sky(cv, GROUPS, D.prefixes);
+  var LBL = {};
+  GROUPS.forEach(function (g) { LBL[g[0]] = g[3] || g[0]; });
   $('askSkyStats').textContent = (D.total || 0) + ' tools · ' + GROUPS.length + ' provider groups';
   var ease = function (x) { return 1 - Math.pow(1 - Math.min(Math.max(x, 0), 1), 3); };
   // what the sky shows: the shortlist (lit stars), the chain (links + labels), the phase
@@ -243,7 +245,7 @@
   /* ── hover tooltips: a star's tool, its group and its one-line description ────────────── */
   var DESC = D.descriptions || {};
   var tip = C.tips(S, skyEl, {
-    info: function (st) { return st.n ? { name: st.n, group: st.g, desc: DESC[st.n] || '' } : null; },
+    info: function (st) { return st.n ? { name: st.n, group: LBL[st.g], desc: DESC[st.n] || '' } : null; },
     redraw: function () { kick(); }
   });
 

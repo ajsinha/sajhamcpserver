@@ -123,7 +123,7 @@ def test_landing_sky_names_only_tools_anonymous_callers_may_see(web, monkeypatch
     an anonymous MCP caller could see that tool (mcp.anonymous.tools; empty by default)."""
     c, _ = web
     groups = _landing_groups(c)
-    assert groups and all(len(g) == 3 and g[1] > 0 for g in groups)
+    assert groups and all(len(g) == 4 and g[1] > 0 and g[3] for g in groups)       # [domain, count, names, label]
     assert not any(g[2] for g in groups)            # default policy: no tool names leak
     monkeypatch.setenv('SAJHA_MCP_ANONYMOUS_TOOLS', 'calc_*')
     names = {n for g in _landing_groups(c) for n in g[2]}

@@ -152,8 +152,8 @@ const GPAL = ['var(--sajha-crimson)','var(--sajha-indigo)','var(--sajha-ok)','va
     'color-mix(in srgb, var(--sajha-crimson) 55%, var(--sajha-warn))',
     'color-mix(in srgb, var(--sajha-indigo) 60%, var(--sajha-crimson))'];
 function gcol(g){ let h=0; for (const ch of String(g||'')) h=(h*31+ch.charCodeAt(0))>>>0; return GPAL[h%GPAL.length]; }
-// A tool's domain is its tool folder (config/tools/<folder>/), a proxied server's prefix, or the folder a
-// remote SAJHA Net host publishes; tools at the root of config/tools are "Unfiled".
+// A tool's domain is its tool folder (<tools dir>/<folder>/), a proxied server's prefix, or the folder a
+// remote SAJHA Net host publishes; tools at the root of the tools directory are "Unfiled".
 function glabel(g){ return g === '__unfiled__' ? 'Unfiled' : (g || '—'); }
 function gstyle(c){ return `background:color-mix(in srgb, ${c} 14%, var(--sajha-surface));color:color-mix(in srgb, ${c} 80%, var(--sajha-ink));border:1px solid color-mix(in srgb, ${c} 35%, transparent);`; }
 
@@ -290,6 +290,9 @@ document.getElementById('searchTools').addEventListener('input', applyFilters);
 document.getElementById('sortBy').addEventListener('change', applyFilters);
 document.getElementById('rowsPerPage').addEventListener('change', e => { rowsPerPage = e.target.value==='all'?'all':parseInt(e.target.value); currentPage=1; renderTable(); });
 document.getElementById('clearSearch').addEventListener('click', () => { document.getElementById('searchTools').value=''; applyFilters(); });
+// ?domain=<name> (the Domains page, the landing page) preselects that domain's filter and chip
+const preDomain = {{ (selected_domain or '')|tojson }};
+if (preDomain && groupCounts[preDomain]) gs.value = preDomain;
 document.addEventListener('DOMContentLoaded', applyFilters);
 
 // #10 Category chips
@@ -300,6 +303,7 @@ if (chipContainer) {
         var count = toolsData.filter(function(t){return t.group===g}).length;
         chipContainer.innerHTML += '<span class="filter-chip" data-cat="'+g+'" data-onclick="filterCategory(this)">'+glabel(g)+' <small>('+count+')</small></span>';
     });
+    if (gs.value !== 'all') chipContainer.querySelectorAll('.filter-chip').forEach(function(c){ c.classList.toggle('active', c.getAttribute('data-cat') === gs.value); });
 }
 function filterCategory(el) {
     document.querySelectorAll('.filter-chip').forEach(function(c){c.classList.remove('active')});

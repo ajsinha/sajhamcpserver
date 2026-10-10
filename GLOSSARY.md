@@ -256,8 +256,9 @@ Written for someone who does *not* already know the field. Where a term has a ge
 |---|---|
 | **BaseMCPTool** | The abstract base class (`sajha/tools/base_mcp_tool.py`) every tool extends, implementing `get_input_schema()`, `get_output_schema()` and `execute()`. |
 | **Tool configuration** | A JSON file in `config/tools/` (or one of its tool folders) defining a tool's name, implementation class, description, schemas and metadata (`annotations`, `cache_ttl`, `execution.taskSupport`, `_meta.ui`, literature). |
-| **Tool folder** | A folder one level below `config/tools/` (`config/tools/<folder>/<name>.json`) that files tool configs, usually one per provider (`fmp`, `fred`, `llm`). It organises and never renames: a tool's name is the one in its config. A name may exist in one place only (the root or one folder); two files with the same name load neither. Files nested deeper are ignored. |
-| **Unfiled (tool)** | On the Tools page, a local tool with no tool folder: its config is at the root of `config/tools/` (or it has no config file). |
+| **Tool folder** | A folder one level below the tools directory (`config.tools.dir`, by default `config/tools/`; `<tools dir>/<folder>/<name>.json`) that files tool configs, usually one per provider (`fmp`, `fred`, `llm`). It organises and never renames: a tool's name is the one in its config. A name may exist in one place only (the root or one folder); two files with the same name load neither. Files nested deeper are ignored. |
+| **Unfiled (tool)** | On the Tools page, a local tool with no tool folder: its config is at the root of the tools directory (or it has no config file). A creator's Folder field offers Unfiled as its default, meaning that root. |
+| **Tool domain** | What the console groups tools by: a local tool's tool folder, a proxied MCP server tool's prefix, a remote SAJHA Net tool's published folder, or Unfiled. The Domains page, the Tools page filter, the landing page and the tool catalog help use it. |
 | **JSON Configuration** | The underlying JSON document that defines a tool or prompt, editable in the console. |
 | **JSON Schema** | A vocabulary for describing and validating the structure of JSON documents; SAJHA uses the 2020-12 dialect for tool schemas. |
 | **Input Schema** | The console's label for a tool's **inputSchema**. |

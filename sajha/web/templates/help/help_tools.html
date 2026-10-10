@@ -11,14 +11,15 @@
         <div class="ico"><i class="bi bi-grid-3x3-gap" aria-hidden="true"></i></div>
         <div>
             <h1>Tool catalog</h1>
-            <p>What this server has loaded right now: {{ catalog_live.total_tools }} tools in {{ catalog_live.total_groups }} groups.
-               A tool's group is the text before the first <code class="text-reset">_</code> in its name.</p>
+            <p>What this server has loaded right now: {{ catalog_live.total_tools }} tools in {{ catalog_live.total_groups }} domains.
+               A tool's domain is its tool folder, a proxied server's prefix, or Unfiled (the root of the tools directory);
+               <a href="/tools/domains">Tool domains</a> has the same grouping with your visible counts.</p>
         </div>
     </div>
 
     <div class="help-search">
         <i class="bi bi-search" aria-hidden="true"></i>
-        <input id="toolGroupSearch" type="search" autocomplete="off" placeholder="Filter groups and example tools&hellip;" aria-label="Filter tool groups">
+        <input id="toolGroupSearch" type="search" autocomplete="off" placeholder="Filter domains and example tools&hellip;" aria-label="Filter tool domains">
     </div>
 
     <div class="row g-3" id="toolGroupGrid">
@@ -27,7 +28,7 @@
         <div class="col-md-6 col-xl-4 tool-group-col">
             <div class="card h-100">
                 <div class="card-header d-flex align-items-center" style="background:{{ tok }};color:var(--sajha-on-crimson)">
-                    <i class="bi {{ g.icon }} me-2" aria-hidden="true"></i><strong>{{ g.name }}</strong>
+                    <i class="bi {{ g.icon }} me-2" aria-hidden="true"></i><strong>{{ g.label }}</strong>
                     <span class="badge ms-auto" style="background:var(--sajha-surface);color:var(--sajha-ink)">{{ g.tool_count }} tools</span>
                 </div>
                 <div class="card-body">
@@ -39,13 +40,13 @@
                 </div>
                 <div class="card-footer d-flex align-items-center">
                     <small class="text-muted"><i class="bi bi-check-circle me-1" aria-hidden="true"></i>{{ g.enabled_count }} enabled</small>
-                    {% if session.token %}<a href="/tools?group={{ g.name|urlencode }}" class="btn btn-sm btn-outline-secondary ms-auto"><i class="bi bi-eye me-1" aria-hidden="true"></i>View</a>{% endif %}
+                    {% if session.token %}<a href="{{ g.href }}" class="btn btn-sm btn-outline-secondary ms-auto"><i class="bi bi-eye me-1" aria-hidden="true"></i>View</a>{% endif %}
                 </div>
             </div>
         </div>
         {% endfor %}
     </div>
-    <div id="helpNoHits" class="help-none"><i class="bi bi-search" aria-hidden="true"></i> No group matches.</div>
+    <div id="helpNoHits" class="help-none"><i class="bi bi-search" aria-hidden="true"></i> No domain matches.</div>
 
     <div class="help-box concept mt-4">
         <div class="hb-title">Each provider's tools, parameters and API keys</div>

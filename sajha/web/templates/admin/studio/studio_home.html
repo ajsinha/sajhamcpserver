@@ -1121,7 +1121,7 @@ async function deleteIfExists() {
     // Double confirmation for safety
     const confirmed = confirm(
         `⚠️ WARNING: This will DELETE the following files if they exist:\n\n` +
-        `• config/tools/${toolName}.json\n` +
+        `• {{ tools_dir() }}/${toolName}.json\n` +
         `• sajha/tools/impl/studio_${toolName}.py\n\n` +
         `This action CANNOT be undone!\n\n` +
         `Are you sure you want to proceed?`

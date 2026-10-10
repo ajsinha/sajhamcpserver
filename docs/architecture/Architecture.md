@@ -196,8 +196,11 @@ on every transport. See the [OAuth Guide](../protocol/OAuth%20Guide.md) and the
 
 ### Tool config files and folders
 
-A tool config is `config/tools/<name>.json` (the root) or `config/tools/<folder>/<name>.json` (a
-**tool folder**), exactly one level deep; `config.tools.dir` sets the directory. The shipped tools are
+A tool config is `<tools dir>/<name>.json` (the root) or `<tools dir>/<folder>/<name>.json` (a
+**tool folder**), exactly one level deep. `config.tools.dir` (env `SAJHA_CONFIG_TOOLS_DIR`, a path relative
+to the storage base) sets the tools directory, `config/tools` unless changed; every reader and writer (the
+registry, the creators, Ask SAJHA's config, tool groups, the console) gets it from
+`sajha/tools/tool_files.py` (`default_prefix`). The shipped tools are
 filed one folder per provider; list them with `python -m sajha.tools folders`.
 
 - **Folders organise; they never rename.** A tool's name is the `name` in its config (the file stem
@@ -220,9 +223,12 @@ filed one folder per provider; list them with `python -m sajha.tools folders`.
   connectors. An edit writes the tool back to its current file (it never moves a tool); a new tool
   goes to the folder its writer names, else the root. Plugin tool folders (`config/plugins/<p>/tools`)
   are unchanged.
-- **Where new tools go.** The Studio creators and Import JSON have a Folder field (default: the root;
-  Import JSON offers the config's optional `"folder"` key, else its `metadata.category`); the LLM tool
-  creator defaults to `llm`; Describe a tool files a tool under its category when that is a valid
+- **Where new tools go.** The Studio creators and Import JSON have an optional Folder field. It starts at
+  **Unfiled** (the root); its list offers Unfiled and the existing folders, and a new valid name creates
+  that folder when the tool is written (the storage backend makes parents; an object store has none to
+  make). On the server `Unfiled` (any case) and empty both mean the root, so `unfiled` cannot name a
+  folder. Import JSON offers the config's optional `"folder"` key, else its `metadata.category`; the LLM tool
+  creator defaults to `llm` and API Import to the import's prefix when the field is left empty; Describe a tool files a tool under its category when that is a valid
   folder name; API Import uses the import's prefix ([API Import](API%20Import.md)); a data connection
   uses its id ([Data Connectors](Data%20Connectors.md)).
 - **Changes on disk.** With the local backend the registry polls the directory and its folders every
@@ -358,9 +364,15 @@ under `docs/` by its unique file name and renders it server-side at
 
 **The Tools page** (`/tools`) groups tools by domain: a tool's tool folder; a proxied MCP server's
 tools by their prefix; a remote SAJHA Net tool by the folder its host publishes, when it publishes
-one (else none). Local tools at the root of `config/tools` are under one "Unfiled" chip. The domain
+one (else none). Local tools at the root of the tools directory are under one "Unfiled" chip. The domain
 drives the chips, the Group column, the group filter and the sort (`tool_domain` in
-`sajha/routes/tools_routes.py`). Admin > Tools shows each tool's folder (search `folder:<name>`), a
+`sajha/tools/domains.py`, which also holds the one map of folder names to readable labels; a folder it
+does not map is title-cased). `/tools?domain=<name>` (`unfiled` for the root) opens the page with that
+domain selected. **Domains** (`/tools/domains`) shows one card per domain with the number of tools the
+viewer may see in it (the `tools/list` visibility) and opens the filtered Tools page. The landing page,
+`/help/tools` and Ask SAJHA's sky group the catalog the same way (`live_tool_groups` in
+`sajha/web/help_catalog.py`); the landing page's "Out of the box" strip has a chip per domain, biggest
+first, each going to the filtered Tools page through sign-in. Admin > Tools shows each tool's folder (search `folder:<name>`), a
 tool's configuration page shows its file, and `/api/tools/list` adds `folder` to each tool. Every console page ends
 with an "About this page" panel from `sajha/web/page_help.py`, whose terms are looked up
 in `GLOSSARY.md`. These pages need no login. The old `/docs` URLs redirect to
@@ -419,7 +431,7 @@ python scripts/check_console.py --base http://127.0.0.1:3087 --axe /path/to/axe.
 
 | Menu | Pages (path) |
 |---|---|
-| **Tools** | Dashboard (`/dashboard`), All tools (`/tools`), Python Playground (`/playground`, when enabled), Workflows (`/workflows`), Reports (`/reports`); Tool metrics (`/monitoring/tools`), Usage & cost (`/monitoring/usage`), User activity (`/monitoring/users`, administrators) |
+| **Tools** | Dashboard (`/dashboard`), All tools (`/tools`), Domains (`/tools/domains`), Python Playground (`/playground`, when enabled), Workflows (`/workflows`), Reports (`/reports`); Tool metrics (`/monitoring/tools`), Usage & cost (`/monitoring/usage`), User activity (`/monitoring/users`, administrators) |
 | **AI** | Ask SAJHA (`/ask`), Conversations (`/conversations`), LLM (`/ai/settings`), Prompts (`/prompts`) |
 | **SAJHA Net** | Instances (`/net/instances`), Your net access (`/net/access`); for administrators Net overview (`/admin/sajhanet/overview`), Remote tools (`/admin/sajhanet/tools`), SAJHA Net admin (`/admin/sajhanet`) |
 | **MCP Studio** | Studio home with the Python code creator (`/studio/`), Describe a tool (`/studio/describe`), REST (`/studio/rest`), Import an API (`/studio/api-import`), DB query (`/studio/dbquery`), Script (`/studio/script`); Power BI (`/studio/powerbi`), Power BI DAX (`/studio/powerbidax`), LiveLink (`/studio/livelink`), SharePoint (`/studio/sharepoint`), OLAP (`/studio/olap`); LLM tool (`/studio/llm`), Planner editor (`/studio/planners`, administrators); Composite builder (`/composite/builder`), Workflows |

@@ -2,7 +2,7 @@
  * SAJHA landing page: the constellation (hero) and the wire (how it works).
  * Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.com
  *
- * The catalog (provider groups and their tool counts) comes from the live registry through
+ * The catalog (tool domains, their labels and tool counts) comes from the live registry through
  * #lpData. The sky is drawn by static/js/constellation.js (shared with Ask SAJHA): canvas
  * colours are --sajha-* tokens, read again whenever the theme changes. With
  * prefers-reduced-motion both figures stand still on their final frame.
@@ -37,6 +37,9 @@
     var GROUPS = (data.groups || []).filter(function (g) { return g[1] > 0; });
     var have = {};
     GROUPS.forEach(function (g) { have[g[0]] = 1; });
+    C.learn(GROUPS, data.prefixes);
+    var LBL = {};
+    GROUPS.forEach(function (g) { LBL[g[0]] = g[3] || g[0]; });
     var grp = C.groupOf;
     var SCENES = RAW.map(function (s) {
       return { q: s.q, conf: s.conf, a: s.a, steps: s.steps.filter(function (st) { return have[grp(st[0])]; }) };
@@ -49,7 +52,7 @@
         ansChain = $('lpSkyChain'), sceneNo = $('lpSkyScene'), srDesc = $('lpSkyDesc'),
         pauseBtn = $('lpSkyPause'), nextBtn = $('lpSkyNext');
     var total = data.total || GROUPS.reduce(function (a, g) { return a + g[1]; }, 0);
-    $('lpSkyStats').textContent = total + ' tools · ' + GROUPS.length + ' provider groups';
+    $('lpSkyStats').textContent = total + ' tools · ' + GROUPS.length + ' domains';
 
     var W = 0, H = 0, chains = [];
     function rectIn(el, base) {
@@ -62,8 +65,8 @@
     var tip = C.tips(S, sky, {
       info: function (st) {
         var ch = chains[scene] || [];
-        for (var i = 0; i < ch.length; i++) if (ch[i].s === st) return { name: ch[i].n, group: st.g };
-        return st.n ? { name: st.n, group: st.g } : { name: st.g + '_*', group: st.g };
+        for (var i = 0; i < ch.length; i++) if (ch[i].s === st) return { name: ch[i].n, group: LBL[st.g] };
+        return st.n ? { name: st.n, group: LBL[st.g] } : { name: 'a ' + LBL[st.g] + ' tool', group: LBL[st.g] };
       },
       redraw: function () { kick(); }
     });

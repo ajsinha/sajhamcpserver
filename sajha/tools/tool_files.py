@@ -44,14 +44,27 @@ def folder_problem(folder: str, check_tools: bool = True) -> Optional[str]:
                 f'letters, digits, "_" or "-"')
     if '__' in folder:
         return f'folder name {folder!r} contains "__", which is reserved'
+    if folder.lower() == UNFILED.lower():
+        return f'folder name {folder!r} is reserved: it means the root of the tools directory'
     if check_tools and get_index().refresh().exists(folder):
         return f'folder name {folder!r} is the name of a tool; choose another'
     return None
 
 
+#: The Folder field's explicit choice for the root of the tools directory (any case); same as empty.
+UNFILED = 'Unfiled'
+
+
+def is_unfiled(folder) -> bool:
+    """True when ``folder`` is the explicit "Unfiled" choice (the root), as opposed to empty or a name."""
+    return isinstance(folder, str) and folder.strip().strip('/').strip().lower() == UNFILED.lower()
+
+
 def clean_folder(folder) -> str:
-    """A folder as given by a form or an API: stripped of spaces and slashes ('' for the root)."""
-    return str(folder or '').strip().strip('/').strip()
+    """A folder as given by a form or an API: stripped of spaces and slashes ('' for the root, which
+    "Unfiled" also names)."""
+    s = str(folder or '').strip().strip('/').strip()
+    return '' if s.lower() == UNFILED.lower() else s
 
 
 def slug_folder(text) -> str:

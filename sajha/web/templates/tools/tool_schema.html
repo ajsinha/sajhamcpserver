@@ -179,7 +179,7 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
     <!-- JSON Configuration -->
     <div class="card mb-4">
         <div class="card-header card-header-warning text-dark">
-            <h5 class="mb-0"><i class="bi bi-file-earmark-code"></i> JSON Configuration (from config/tools)</h5>
+            <h5 class="mb-0"><i class="bi bi-file-earmark-code"></i> JSON Configuration (from {{ tools_dir() }})</h5>
         </div>
         <div class="card-body">
             {% if config_json %}
@@ -193,7 +193,7 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
                 </div>
             {% else %}
                 <div class="alert alert-info">
-                    <i class="bi bi-info-circle"></i> No configuration file found for this tool in config/tools folder.
+                    <i class="bi bi-info-circle"></i> No configuration file found for this tool in {{ tools_dir() }}.
                 </div>
             {% endif %}
         </div>

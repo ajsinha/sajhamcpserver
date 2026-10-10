@@ -3,7 +3,7 @@ SAJHA MCP Server — ``sajha_ask``: a compatibility shim over the LLM-tool type.
 Copyright All rights Reserved 2025-2030, Ashutosh Sinha
 
 ``sajha_ask`` is an LLM tool (docs/architecture/LLM Tools.md §18): its definition is
-``config/tools/sajha/sajha_ask.json`` (mode ``answer``, conversation memory, every tool allowed), loaded
+``<tools dir>/sajha/sajha_ask.json`` (``config.tools.dir``) (mode ``answer``, conversation memory, every tool allowed), loaded
 by the tool registry like any tool and disabled there. ``ai.ask.mcp_tool_enabled`` stays its on/off
 switch: :func:`register_if_enabled` turns the tool on or off from it at start-up and after each
 reload.
@@ -31,16 +31,17 @@ from sajha.ai.llm_tools.tool import LLMTool
 logger = logging.getLogger(__name__)
 
 TOOL_NAME = "sajha_ask"
-CONFIG_REL = f"config/tools/{TOOL_NAME}.json"      # the root location; the file may be in a tool folder
 
 
 def config_rel() -> str:
-    """Where the tool's config is (root or folder), from the tool file index."""
+    """Where the tool's config is (root or folder), from the tool file index; the root of the tools
+    directory (``config.tools.dir``) when the index cannot say."""
+    from sajha.tools.tool_files import default_prefix
     try:
         from sajha.tools.tool_files import config_path
         return config_path(TOOL_NAME)
     except Exception:
-        return CONFIG_REL
+        return f"{default_prefix()}/{TOOL_NAME}.json"
 
 
 def load_config() -> Dict[str, Any]:
@@ -50,7 +51,8 @@ def load_config() -> Dict[str, Any]:
         from sajha.core.storage import get_storage
         return dict(get_storage().read_json(config_rel()))
     except Exception:
-        root = Path(__file__).resolve().parents[2] / "config" / "tools"
+        from sajha.tools.tool_files import default_prefix
+        root = Path(__file__).resolve().parents[2] / default_prefix()
         found = [root / f"{TOOL_NAME}.json"] + sorted(root.glob(f"*/{TOOL_NAME}.json"))
         path = next((p for p in found if p.is_file()), found[0])
         return json.loads(path.read_text(encoding="utf-8"))

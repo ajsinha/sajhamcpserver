@@ -420,7 +420,8 @@ async def ask_page(request: Request, auth: AuthContext = Depends(require_auth)):
         'user': {'user_id': auth.user_id, 'user_name': auth.user_name, 'roles': auth.roles},
         'is_admin': auth.is_admin,
         'ask_data': {
-            'groups': [[g['name'], g['tool_count'], g['tools']] for g in live['groups']],
+            'groups': [[g['name'], g['tool_count'], g['tools'], g['label']] for g in live['groups']],
+            'prefixes': live['prefixes'],
             'total': live['total_tools'],
             'descriptions': _tool_blurbs(visible=can_see),
             'examples': ASK_EXAMPLES,

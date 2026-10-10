@@ -40,6 +40,15 @@ from sajha.security import csp_nonce as _csp_nonce
 templates.env.globals['csp_nonce'] = _csp_nonce
 
 
+def _tools_dir() -> str:
+    """The tools directory (``config.tools.dir``) for templates; sajha/tools/tool_files.py resolves it."""
+    from sajha.tools.tool_files import default_prefix
+    return default_prefix()
+
+
+templates.env.globals['tools_dir'] = _tools_dir
+
+
 def render(request: Request, template_name: str, context: dict = None, status_code: int = 200):
     """
     Render a template with automatic session injection.

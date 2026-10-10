@@ -1,0 +1,49 @@
+{% extends "common/base.html" %}
+{# Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.com #}
+{# Tools > Domains: one card per tool domain (GLOSSARY: Tool domain) with the tools the viewer may see in it.
+   Built by sajha/tools/domains.py::summarize from the live registry; a card opens /tools?domain=<name>. #}
+{% block title %}Tool Domains - SAJHA MCP Server{% endblock %}
+
+{% block extra_css %}
+<style>
+    .dom-card { display: block; height: 100%; text-decoration: none; color: var(--sajha-ink);
+        border: 1px solid var(--sajha-border); border-radius: .6rem; background: var(--sajha-surface);
+        padding: .9rem 1rem; transition: border-color .15s, box-shadow .15s; min-height: 44px; }
+    .dom-card:hover, .dom-card:focus-visible { border-color: var(--sajha-crimson); box-shadow: 0 2px 10px color-mix(in srgb, var(--sajha-crimson) 18%, transparent); color: var(--sajha-ink); }
+    .dom-count { font-size: 1.6rem; font-weight: 700; line-height: 1; color: var(--sajha-crimson); }
+    .dom-label { font-weight: 600; }
+    .dom-folder { font-size: 12px; color: var(--sajha-slate); overflow-wrap: anywhere; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <h1 class="h3 mb-1"><i class="bi bi-grid-1x2" aria-hidden="true"></i> Tool Domains
+        <span class="badge bg-primary ms-2">{{ domains|length }}</span></h1>
+    <p class="text-muted mb-4">{{ tool_total }} tools you can see, by domain: a tool folder, a proxied MCP server, or Unfiled
+        (the root of the tools directory). Choose a domain to open the Tools page filtered to it.</p>
+    {% if domains %}
+    <div class="row g-3">
+        {% for d in domains %}
+        <div class="col-12 col-sm-6 col-lg-4 col-xxl-3">
+            <a class="dom-card" href="{{ d.href }}" aria-label="{{ d.label }}: {{ d.count }} tool{{ 's' if d.count != 1 }}">
+                <div class="d-flex justify-content-between align-items-start gap-2">
+                    <div>
+                        <div class="dom-label">{{ d.label }}</div>
+                        <div class="dom-folder">
+                            {% if d.kind == 'unfiled' %}<i class="bi bi-folder2-open me-1" aria-hidden="true"></i>root of {{ tools_dir() }}
+                            {% elif d.kind == 'folder' %}<i class="bi bi-folder2 me-1" aria-hidden="true"></i>{{ d.folder }}
+                            {% else %}<i class="bi bi-diagram-3 me-1" aria-hidden="true"></i>{{ d.key }}__* (proxied server){% endif %}
+                        </div>
+                    </div>
+                    <div class="text-end"><div class="dom-count">{{ d.count }}</div><small class="text-muted">tool{{ 's' if d.count != 1 }}</small></div>
+                </div>
+            </a>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="alert alert-info">No tools are visible to you yet.</div>
+    {% endif %}
+</div>
+{% endblock %}

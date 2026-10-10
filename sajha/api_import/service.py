@@ -624,7 +624,9 @@ def _remove_config(name: str) -> bool:
 def tool_folder(req: 'ImportRequest', prefix: str, record: Optional[Dict[str, Any]] = None) -> str:
     """The folder new tools of an import go into: the request's, else the one recorded, else the
     import's prefix (when that is a valid folder name), else the root."""
-    from sajha.tools.tool_files import folder_problem, slug_folder
+    from sajha.tools.tool_files import folder_problem, is_unfiled, slug_folder
+    if is_unfiled(req.folder):
+        return ''
     if req.folder:
         why = folder_problem(req.folder)
         if why:

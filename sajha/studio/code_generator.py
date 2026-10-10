@@ -31,16 +31,19 @@ class ToolCodeGenerator:
     
     def __init__(
         self, 
-        tools_dir: str = 'config/tools',
+        tools_dir: str = None,
         impl_dir: str = 'sajha/tools/impl'
     ):
         """
         Initialize the code generator.
         
         Args:
-            tools_dir: Directory for tool JSON configs
+            tools_dir: Directory for tool JSON configs (default: ``config.tools.dir``)
             impl_dir: Directory for Python implementations
         """
+        if not tools_dir:
+            from sajha.tools.tool_files import default_prefix
+            tools_dir = default_prefix()
         self.tools_dir = Path(tools_dir)
         self.impl_dir = Path(impl_dir)
         

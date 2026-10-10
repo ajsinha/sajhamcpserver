@@ -49,14 +49,16 @@ Reference: docs/studio/MCP Studio User Guide.md ("Import JSON")
         <div class="col-lg-4">
             <div class="card">
                 <div class="card-body">
-                    <label class="form-label fw-bold" for="jiFolder">Folder</label>
-                    <input id="jiFolder" class="form-control" list="jiFolders" maxlength="32" autocomplete="off"
-                           placeholder="empty: the root of config/tools" aria-describedby="jiFolderHelp">
+                    <label class="form-label fw-bold" for="jiFolder">Folder <span class="fw-normal text-muted small">(optional)</span></label>
+                    <input id="jiFolder" class="form-control" list="jiFolders" maxlength="32" autocomplete="off" value="Unfiled"
+                           placeholder="Unfiled: the root of {{ tools_dir() }}" aria-describedby="jiFolderHelp">
                     <datalist id="jiFolders">
+                        <option value="Unfiled">the root of {{ tools_dir() }}</option>
                         {% for f in tool_folders %}<option value="{{ f }}">{% endfor %}
                     </datalist>
-                    <p id="jiFolderHelp" class="small text-muted mt-1 mb-2">Filled from the config's <code>"folder"</code>,
-                        else its <code>metadata.category</code>; lowercase letters, digits, <code>_</code> or <code>-</code>.
+                    <p id="jiFolderHelp" class="small text-muted mt-1 mb-2">Optional. Filled from the config's <code>"folder"</code>,
+                        else its <code>metadata.category</code>, else Unfiled (the root); a new name (lowercase letters, digits,
+                        <code>_</code> or <code>-</code>) creates the folder on deploy.
                         The <code>"folder"</code> key is not saved in the config.</p>
                     <p class="small mb-2">Saved as <code id="jiPath">-</code></p>
                     <div class="d-flex gap-2 flex-wrap">
@@ -92,7 +94,7 @@ Reference: docs/studio/MCP Studio User Guide.md ("Import JSON")
         if (!$('jiText').value.trim()) { $('jiPath').textContent = '-'; if (!quiet) message('Paste or upload a config first.', 'warning'); return null; }
         const d = await post('/admin/studio/json/preview');
         if (!d.success) { message(d.error, 'danger'); return null; }
-        if (!folderTouched) $('jiFolder').value = d.folder || '';
+        if (!folderTouched) $('jiFolder').value = d.folder || 'Unfiled';
         $('jiPath').textContent = d.path;
         if (d.errors && d.errors.length) message(d.errors.join('; '), quiet ? 'warning' : 'danger');
         else message(quiet ? '' : 'The config is ready to deploy.', 'success');

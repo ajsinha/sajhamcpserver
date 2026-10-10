@@ -289,7 +289,7 @@ Reader: Settings.
 
 | Key | Default | Env | Purpose / reader |
 |-----|---------|-----|------------------|
-| `config.tools.dir` | `config/tools` | `SAJHA_CONFIG_TOOLS_DIR` | Tool JSON configs, at the root or one tool folder down (`sajha/app.py` → tools registry; layout and rules in [Architecture](../architecture/Architecture.md#tool-config-files-and-folders)). |
+| `config.tools.dir` | `config/tools` | `SAJHA_CONFIG_TOOLS_DIR` | Tool JSON configs, at the root or one tool folder down; relative to the storage base. Everything that reads or writes tool configs follows it (the registry, Studio creators, Import JSON, API Import, Ask SAJHA's config, tool groups, the console), resolved by `sajha/tools/tool_files.py` (`sajha/app.py` → tools registry; layout and rules in [Architecture](../architecture/Architecture.md#tool-config-files-and-folders)). |
 | `config.prompts.dir` | `config/prompts` | `SAJHA_CONFIG_PROMPTS_DIR` | Prompt configs (`sajha/app.py` → prompts registry). |
 | `config.plugins.dir` | `config/plugins` | `SAJHA_CONFIG_PLUGINS_DIR` | Plugins (`sajha/core/plugins.py`). |
 | `config.apikeys.path` | `config/apikeys.json` | `SAJHA_CONFIG_APIKEYS_PATH` | The persistent API key file: hashed records of the keys an administrator marks persistent, read after the database and re-read when it changes; written atomically, mode 0600, git-ignored; format in `config/apikeys.json.example` (`sajha/auth/persistent_keys.py`; [API keys](../security/Security%20Model.md#api-keys)). The older plaintext format is not read. |

@@ -12,6 +12,7 @@ from sqlalchemy.orm import Session
 from sajha.db.engine import get_db
 from sajha.auth import require_auth, require_admin, AuthContext
 from sajha.app import render
+from sajha.tools.domains import tool_domain  # the one grouping of a tool (re-exported here)
 
 logger = logging.getLogger(__name__)
 router = APIRouter(tags=['tools'])
@@ -22,32 +23,21 @@ def _visible(auth: AuthContext, tool_name: str) -> bool:
     return policy_for(auth).can_see(tool_name)
 
 
-def tool_domain(registry, tool: dict) -> dict:
-    """The Tools page's grouping of one tool: ``folder`` (its tool folder; '' at the root; None without a
-    config file), ``domain`` (the folder; a proxied MCP server tool's prefix; a remote SAJHA Net tool's
-    published folder, when its host sends one) and ``unfiled`` (a local tool with no domain: the root)."""
-    name = str(tool.get('name') or '')
-    net = ((tool.get('_meta') or {}).get('io.sajha/net') or {})
-    if net.get('locality') == 'remote':
-        folder = net.get('folder') if isinstance(net.get('folder'), str) else ''
-        return {'folder': folder or None, 'domain': folder, 'unfiled': False}
-    tool_folder = getattr(registry, 'tool_folder', None)
-    folder = tool_folder(name) if callable(tool_folder) else None
-    if folder:
-        return {'folder': folder, 'domain': folder, 'unfiled': False}
-    if folder is None and '__' in name:            # a proxied (federated or external) MCP server's tool
-        return {'folder': None, 'domain': name.split('__', 1)[0], 'unfiled': False}
-    return {'folder': folder, 'domain': '', 'unfiled': True}
-
-
-@router.get('/tools')
-async def tools_list(request: Request, auth: AuthContext = Depends(require_auth)):
+def _visible_tools(auth: AuthContext):
+    """(registry, the tools the caller may see in MCP form): the MCP tools/list visibility."""
     from sajha.app import tools_registry
     from sajha.auth.access import policy_for
     tools = tools_registry.get_all_tools() if tools_registry else []
     policy = policy_for(auth)       # the MCP tools/list visibility (sajha/auth/access.py)
     if not policy.unrestricted():
         tools = [t for t in tools if policy.can_see(t.get('name'))]
+    return tools_registry, tools
+
+
+@router.get('/tools')
+async def tools_list(request: Request, auth: AuthContext = Depends(require_auth)):
+    from sajha.tools.domains import query_key
+    tools_registry, tools = _visible_tools(auth)
     tools = [dict(t, **tool_domain(tools_registry, t)) for t in tools]
     tool_errors = tools_registry.get_tool_errors() if tools_registry else {}
     return render(request, 'tools/tools_list.html', {
@@ -55,6 +45,21 @@ async def tools_list(request: Request, auth: AuthContext = Depends(require_auth)
         'tools': tools,
         'tool_errors': tool_errors,
         'is_admin': auth.is_admin,
+        'selected_domain': query_key(request.query_params.get('domain')),
+    })
+
+
+@router.get('/tools/domains')
+async def tools_domains(request: Request, auth: AuthContext = Depends(require_auth)):
+    """One card per tool domain (folder, proxied server, Unfiled) with the caller's visible tool count;
+    a card opens /tools filtered to that domain."""
+    from sajha.tools.domains import summarize
+    registry, tools = _visible_tools(auth)
+    domains = summarize(registry, tools)
+    return render(request, 'tools/tools_domains.html', {
+        'user': {'user_id': auth.user_id, 'user_name': auth.user_name, 'roles': auth.roles},
+        'domains': domains,
+        'tool_total': sum(d['count'] for d in domains),
     })
 
 

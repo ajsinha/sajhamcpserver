@@ -39,6 +39,11 @@ PAGE_HELP: dict = {
                 'server\'s tools by their prefix.',
         'terms': _TOOLS_TERMS + ['Namespaced tool', 'Proxy tool', 'Tool folder', 'Unfiled (tool)'],
         'guide': 'TUTORIAL_01_getting_started.md'},
+    'tools_domains': {
+        'what': 'The tools you may use, by domain: one card per tool folder, proxied MCP server and Unfiled, with its '
+                'tool count; a card opens the Tools page filtered to that domain.',
+        'terms': ['Tool domain', 'Tool folder', 'Unfiled (tool)', 'Proxy tool'],
+        'guide': 'Architecture.md'},
     'tool_execute_page': {
         'what': 'Run one tool with arguments you enter, and see the result exactly as an MCP client would.',
         'terms': ['Execute', 'Input Schema', 'Arguments (tool)', 'Execution Result',
@@ -49,7 +54,7 @@ PAGE_HELP: dict = {
         'terms': ['JSON Schema', 'Input Schema', 'Output Schema', 'Properties', 'Required', 'Type'],
         'guide': 'TUTORIAL_02_create_a_custom_tool.md'},
     'tool_config_page': {
-        'what': "A tool's JSON configuration as loaded from config/tools/ or one of its tool folders, and the file it is in.",
+        'what': "A tool's JSON configuration as loaded from the tools directory (config.tools.dir) or one of its tool folders, and the file it is in.",
         'terms': ['Tool configuration', 'Tool folder', 'JSON Schema', 'Input Schema', 'Output Schema',
                   'Hot-reload', 'Enabled / Tool Status'],
         'guide': 'TUTORIAL_02_create_a_custom_tool.md'},

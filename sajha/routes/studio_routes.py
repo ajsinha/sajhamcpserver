@@ -42,10 +42,15 @@ actions = APIRouter(prefix='/admin/studio', tags=['studio'])
 
 #: Repository root (…/sajha/routes/studio_routes.py → three levels up)
 BASE_DIR = Path(__file__).resolve().parents[2]
-CONFIG_DIR = BASE_DIR / 'config' / 'tools'
 SCRIPTS_DIR = BASE_DIR / 'config' / 'scripts'
 IMPL_DIR = BASE_DIR / 'sajha' / 'tools' / 'impl'
 OLAP_DIR = BASE_DIR / 'config' / 'olap'
+
+
+def _config_dir() -> Path:
+    """The tools directory (``config.tools.dir``, resolved by sajha/tools/tool_files.py) under the base."""
+    from sajha.tools.tool_files import default_prefix
+    return BASE_DIR / default_prefix()
 
 TOOL_NAME_RE = re.compile(r'^[a-z][a-z0-9_]{2,63}$')
 #: Implementation module prefixes the Studio generators write (``<prefix><tool_name>``)
@@ -163,7 +168,7 @@ def _unload(tool_name: str) -> None:
 def _studio_files(tool_name: str, config: Dict[str, Any]) -> Optional[List[Path]]:
     """Files Studio generated for this tool, or None if Studio did not make it."""
     impl = config.get('implementation')
-    files = [CONFIG_DIR / f'{tool_name}.json']
+    files = [_config_dir() / f'{tool_name}.json']
     if isinstance(impl, dict) or (isinstance(impl, str) and
                                   impl.startswith(f'sajha.tools.impl.{tool_name}_script_tool.')):
         files.append(IMPL_DIR / f'{tool_name}_script_tool.py')
@@ -457,7 +462,7 @@ def _analyze_code(data: Dict[str, Any]):
 
 def _code_generator():
     from sajha.studio import ToolCodeGenerator
-    return ToolCodeGenerator(tools_dir=str(CONFIG_DIR), impl_dir=str(IMPL_DIR))
+    return ToolCodeGenerator(tools_dir=str(_config_dir()), impl_dir=str(IMPL_DIR))
 
 
 @actions.post('/analyze')
@@ -524,7 +529,7 @@ async def studio_delete(request: Request, auth: AuthContext = Depends(require_st
     if not TOOL_NAME_RE.match(tool_name):
         return _fail('Invalid tool name format')
     from sajha.tools.tool_files import name_taken
-    json_path = CONFIG_DIR / f'{tool_name}.json'
+    json_path = _config_dir() / f'{tool_name}.json'
     reg = _registry()
     config = (reg.tool_configs.get(tool_name) if reg else None) or {}
     where = name_taken(tool_name)
@@ -612,7 +617,7 @@ def _rest_definition(data):
 def _rest_generator():
     from sajha.studio import RESTToolGenerator
     g = RESTToolGenerator()
-    g.config_dir, g.impl_dir = CONFIG_DIR, IMPL_DIR
+    g.config_dir, g.impl_dir = _config_dir(), IMPL_DIR
     return g
 
 
@@ -683,7 +688,7 @@ def _dbquery_definition(data):
 def _dbquery_generator():
     from sajha.studio import DBQueryToolGenerator
     g = DBQueryToolGenerator()
-    g.config_dir, g.impl_dir = CONFIG_DIR, IMPL_DIR
+    g.config_dir, g.impl_dir = _config_dir(), IMPL_DIR
     return g
 
 
@@ -749,7 +754,7 @@ def _script_config(data):
 
 def _script_generator():
     from sajha.studio import ScriptToolGenerator
-    return ScriptToolGenerator(config_dir=str(CONFIG_DIR), scripts_dir=str(SCRIPTS_DIR), impl_dir=str(IMPL_DIR))
+    return ScriptToolGenerator(config_dir=str(_config_dir()), scripts_dir=str(SCRIPTS_DIR), impl_dir=str(IMPL_DIR))
 
 
 @actions.post('/script/preview')
@@ -816,7 +821,7 @@ def _powerbi(data):
         export_format=data.get('export_format') or 'PDF',
         timeout_seconds=int(data.get('timeout_seconds') or 120),
     )
-    return config, PowerBIToolGenerator(config_dir=str(CONFIG_DIR), impl_dir=str(IMPL_DIR))
+    return config, PowerBIToolGenerator(config_dir=str(_config_dir()), impl_dir=str(IMPL_DIR))
 
 
 def _powerbidax(data):
@@ -838,7 +843,7 @@ def _powerbidax(data):
         max_rows=int(data.get('max_rows') or 10000),
         parameters=data.get('parameters') or [],
     )
-    return config, PowerBIDAXToolGenerator(config_dir=str(CONFIG_DIR), impl_dir=str(IMPL_DIR))
+    return config, PowerBIDAXToolGenerator(config_dir=str(_config_dir()), impl_dir=str(IMPL_DIR))
 
 
 def _livelink(data):
@@ -860,7 +865,7 @@ def _livelink(data):
         max_file_size_mb=int(data.get('max_file_size_mb') or 50),
         api_version=data.get('api_version') or 'v2',
     )
-    return config, LiveLinkToolGenerator(config_dir=str(CONFIG_DIR), impl_dir=str(IMPL_DIR))
+    return config, LiveLinkToolGenerator(config_dir=str(_config_dir()), impl_dir=str(IMPL_DIR))
 
 
 _CONFIG_CREATORS = {'powerbi': ('PowerBI', _powerbi), 'powerbidax': ('PowerBI DAX', _powerbidax),
@@ -965,7 +970,7 @@ def _sharepoint(data):
         category=data.get('category') or 'Document Management',
         tags=data.get('tags') or ['sharepoint', 'microsoft', 'documents'],
     )
-    return config, SharePointToolGenerator(output_dir=str(CONFIG_DIR))
+    return config, SharePointToolGenerator(output_dir=str(_config_dir()))
 
 
 @actions.post('/sharepoint/preview')

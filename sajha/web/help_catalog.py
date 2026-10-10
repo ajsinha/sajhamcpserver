@@ -268,7 +268,7 @@ CATALOG: List[dict] = [
         'id': 'tools', 'name': 'Tools and prompts', 'icon': 'bi-tools',
         'blurb': 'The live tool catalog, one reference guide per provider, and prompts.',
         'groups': [
-            ('Live', ['Tool catalog']),
+            ('Live', ['Tool catalog', 'Tool domains']),
             ('Market data', ['Alpha Vantage', 'CoinGecko', 'FMP', 'FRED', 'OpenBB', 'Yahoo Finance']),
             ('Central banks', ['Bank of Canada', 'Bank of Japan', 'Banque de France',
                                'European Central Bank', 'Federal Reserve',
@@ -284,8 +284,11 @@ CATALOG: List[dict] = [
         ],
         'topics': [
             _b('Tool catalog', 'help_tools_page', 'bi-grid-3x3-gap',
-               'Every tool the server has loaded right now, by provider group. Derived from the '
+               'Every tool the server has loaded right now, by tool domain. Derived from the '
                'registry, so it is never out of date.'),
+            _b('Tool domains', 'tools_domains', 'bi-grid-1x2',
+               'One card per tool domain (tool folder, proxied server, Unfiled) with the tools you can see '
+               'in it; a card opens the Tools page filtered to that domain.'),
             _tool('Alpha Vantage', 'bi-graph-up', 'Stock quotes and time series, fundamentals, technical indicators, forex and crypto.'),
             _tool('CoinGecko', 'bi-currency-bitcoin', 'Coin prices and charts, exchanges, categories, DeFi, derivatives and NFTs.'),
             _tool('FMP', 'bi-building', 'Financial Modeling Prep: statements, valuation, market data and screens.'),
@@ -578,25 +581,33 @@ _GROUP_TONES = ['crimson', 'ok', 'indigo', 'warn', 'bad', 'slate']
 
 
 def live_tool_groups(registry=None, with_names: bool = False, visible=None) -> dict:
-    """{'total_tools', 'total_groups', 'groups': [...]} from the tools registry.
+    """{'total_tools', 'total_groups', 'groups': [...], 'prefixes': {...}} from the tools registry.
 
     Counts cover the whole catalog; tool *names* and descriptions (``examples``, ``tools``)
     are limited to those ``visible(name)`` allows, so a page can pass the viewer's
     ``ToolPolicy.can_see`` (sajha/auth/access.py) and show nobody a tool that ``tools/list``
     would hide from them. ``visible=None`` shows every name (callers that print counts only).
 
-    A tool's group is the text before the first '_' in its name (GLOSSARY: Tool group).
-    This is the one implementation; the landing page, /help/tools and Ask SAJHA use it.
-    ``with_names`` adds each group's sorted tool names as 'tools' (Ask SAJHA's sky: one star
-    per named tool)."""
+    A group is a tool domain (GLOSSARY: Tool domain; sajha/tools/domains.py), the same grouping as
+    the Tools page: its ``name`` is the domain key, ``label`` its readable label and ``href`` the
+    Tools page filtered to it. ``prefixes`` maps a tool-name prefix (text before the first '_') to
+    the domain most of its tools are in, so the landing page's scripted scenes find a domain for a
+    tool whose name it may not show. This is the one implementation; the landing page,
+    /help/tools and Ask SAJHA use it. ``with_names`` adds each group's sorted tool names as
+    'tools' (Ask SAJHA's sky: one star per named tool)."""
+    from sajha.tools.domains import UNFILED_KEY, domain_label, key_of_name
     if registry is None:
         from sajha.app import tools_registry as registry
-    tools = getattr(registry, 'tools', None) or {}
+    tools = dict(getattr(registry, 'tools', None) or {})
     group_map: Dict[str, dict] = {}
+    by_prefix: Dict[str, Dict[str, int]] = {}
     for name, tool in tools.items():
-        prefix = name.split('_')[0] if '_' in name else name
-        g = group_map.setdefault(prefix, {'count': 0, 'enabled': 0, 'examples': [], 'names': []})
+        key = key_of_name(registry, name, tool) or UNFILED_KEY
+        g = group_map.setdefault(key, {'count': 0, 'enabled': 0, 'examples': [], 'names': []})
         g['count'] += 1
+        prefix = name.split('_')[0] if '_' in name else name
+        by_prefix.setdefault(prefix, {})
+        by_prefix[prefix][key] = by_prefix[prefix].get(key, 0) + 1
         cfg = getattr(tool, 'config', {}) or {}
         if cfg.get('enabled', True):
             g['enabled'] += 1
@@ -606,11 +617,16 @@ def live_tool_groups(registry=None, with_names: bool = False, visible=None) -> d
         if len(g['examples']) < 3:
             g['examples'].append({'name': name, 'description': (cfg.get('description') or '')[:90]})
     groups = []
-    for i, (gname, g) in enumerate(sorted(group_map.items(), key=lambda x: (-x[1]['count'], x[0]))):
-        groups.append({'name': gname, 'tool_count': g['count'], 'enabled_count': g['enabled'],
+    order = sorted(group_map.items(), key=lambda x: (-x[1]['count'], domain_label(x[0]).lower()))
+    for i, (gname, g) in enumerate(order):
+        groups.append({'name': gname, 'label': domain_label(gname),
+                       'href': '/tools?domain=' + ('unfiled' if gname == UNFILED_KEY else gname),
+                       'tool_count': g['count'], 'enabled_count': g['enabled'],
                        'icon': _GROUP_ICONS[i % len(_GROUP_ICONS)],
                        'tone': _GROUP_TONES[i % len(_GROUP_TONES)],
                        'examples': g['examples']})
         if with_names:
             groups[-1]['tools'] = sorted(g['names'])
-    return {'total_tools': len(tools), 'total_groups': len(group_map), 'groups': groups}
+    prefixes = {p: max(c.items(), key=lambda kv: (kv[1], kv[0]))[0] for p, c in by_prefix.items()}
+    return {'total_tools': len(tools), 'total_groups': len(group_map), 'groups': groups,
+            'prefixes': prefixes}

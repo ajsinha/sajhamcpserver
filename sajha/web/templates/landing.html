@@ -68,7 +68,7 @@ the SAJHA Net ring beside it by static/js/netring.js).
     <div class="lp2-hero-inner">
         <div class="lp2-badge"><i class="bi bi-circle-fill" aria-hidden="true"></i> MCP 2026-07-28 + 2025-11-25 · Conformance Verified · Production Ready</div>
         <h1 class="lp2-title">The <span class="lp2-gradient">Intelligence Layer</span><br>for AI Agents</h1>
-        <p class="lp2-sub">{{ tool_count }} tools in {{ group_count }} provider groups.{% if llm_provider_count %} {{ llm_provider_count }} LLM provider types.{% endif %} Both MCP eras on one endpoint.<br>
+        <p class="lp2-sub">{{ tool_count }} tools across {{ group_count }} domains, ready out of the box.{% if llm_provider_count %} {{ llm_provider_count }} LLM provider types.{% endif %} Both MCP eras on one endpoint.<br>
         SAJHA connects every AI agent to financial markets, government data, analytics, and enterprise systems through a single MCP endpoint.</p>
         <div class="lp2-actions">
             <a href="/login" class="lp2-btn lp2-btn-primary"><i class="bi bi-rocket-takeoff" aria-hidden="true"></i> Get Started</a>
@@ -88,12 +88,12 @@ the SAJHA Net ring beside it by static/js/netring.js).
                 <div class="lp2-sky-stats" id="lpSkyStats" aria-hidden="true"></div>
             </div>
             <figcaption class="lp2-sky-cap">
-                <span class="visually-hidden">Every star is one of SAJHA's tools, clustered by provider group. </span>
+                <span class="visually-hidden">Every star is one of SAJHA's tools, clustered by domain. </span>
                 <span class="visually-hidden" id="lpSkyDesc"></span>
                 <button type="button" class="lp2-sky-btn" id="lpSkyPause" aria-pressed="false"><i class="bi bi-pause-fill" aria-hidden="true"></i> Pause</button>
                 <button type="button" class="lp2-sky-btn" id="lpSkyNext"><i class="bi bi-skip-forward-fill" aria-hidden="true"></i> Next question</button>
                 <span id="lpSkyScene"></span>
-                <span class="lp2-sky-note">Every star is a live tool, grouped by provider; point at one (or tap it) to see its name. The questions, step results and confidence are illustrative; the tool names are real.</span>
+                <span class="lp2-sky-note">Every star is a live tool, grouped by domain; point at one (or tap it) to see its name. The questions, step results and confidence are illustrative; the tool names are real.</span>
             </figcaption>
         </figure>
     <figure class="lp2-net-wrap">
@@ -120,10 +120,21 @@ the SAJHA Net ring beside it by static/js/netring.js).
     </div>
 </section>
 
+<!-- Out of the box: one chip per tool domain with its live count, biggest first; each opens the Tools page
+     filtered to that domain (sign-in first) -->
+{% if domain_chips %}
+<section class="lp2-domains" aria-labelledby="lpDomainsTitle">
+    <h2 class="lp2-domains-title" id="lpDomainsTitle"><i class="bi bi-box-seam" aria-hidden="true"></i> Out of the box</h2>
+    <ul class="lp2-domain-chips">
+        {% for c in domain_chips %}<li><a class="lp2-domain-chip" href="{{ c.href }}">{{ c.label }} <span class="lp2-domain-n">{{ c.count }}</span></a></li>{% endfor %}
+    </ul>
+</section>
+{% endif %}
+
 <!-- Stats -->
 <section class="lp2-stats" aria-label="SAJHA in numbers">
     <div><span class="lp2-num">{{ tool_count }}</span><span class="lp2-label">Built-in Tools</span></div>
-    <div><span class="lp2-num">{{ group_count }}</span><span class="lp2-label">Provider Groups</span></div>
+    <div><span class="lp2-num">{{ group_count }}</span><span class="lp2-label">Tool Domains</span></div>
     {% if llm_provider_count %}<div><span class="lp2-num">{{ llm_provider_count }}</span><span class="lp2-label">LLM Provider Types</span></div>{% endif %}
     <div><span class="lp2-num">2</span><span class="lp2-label">MCP Eras</span></div>
     {% if db_table_count %}<div><span class="lp2-num">{{ db_table_count }}</span><span class="lp2-label">Database Tables</span></div>{% endif %}
@@ -260,7 +271,7 @@ document.querySelectorAll('a[href^="#"]').forEach(function (a) {
 });
 </script>
 
-<script type="application/json" id="lpData">{{ {'groups': tool_groups, 'total': tool_count, 'server': {'name': app_name, 'version': app_version}}|tojson }}</script>
+<script type="application/json" id="lpData">{{ {'groups': tool_groups, 'prefixes': tool_prefixes, 'total': tool_count, 'server': {'name': app_name, 'version': app_version}}|tojson }}</script>
 <script src="{{ url_for('static', filename='js/constellation.js') }}?v={{ app_version }}"></script>
 <script src="{{ url_for('static', filename='js/landing.js') }}?v={{ app_version }}"></script>
 <script src="{{ url_for('static', filename='js/netring.js') }}?v={{ app_version }}"></script>

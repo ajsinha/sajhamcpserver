@@ -4,6 +4,22 @@ Newest first. The current version is `app.version` in `config/application.yml`.
 
 ## Unreleased
 
+- Added: **Domains** page (`/tools/domains`, Tools menu): one card per tool domain (tool folder, proxied MCP
+  server, Unfiled) with the number of tools the viewer may see, readable labels, and a link to the Tools page
+  filtered to that domain (`/tools?domain=<name>`, new). Labels come from one map in `sajha/tools/domains.py`
+  (a folder it does not map is title-cased) ([Architecture §10](docs/architecture/Architecture.md#10-web-ui)).
+- Changed: the landing page, `/help/tools` and Ask SAJHA's sky group tools by tool domain (as the Tools page
+  does) instead of by name prefix; the landing hero says how many tools across how many domains, and a new
+  "Out of the box" strip has a chip per domain with its live count, each opening the filtered Tools page
+  through sign-in.
+- Changed: the creators' and Import JSON's Folder field is optional and starts at **Unfiled** (the root of the
+  tools directory); it lists Unfiled and the existing folders, and a new valid name creates the folder on save.
+  `Unfiled` and empty both mean the root on the server, so `unfiled` is reserved as a folder name.
+- Changed: the tools directory follows `config.tools.dir` (env `SAJHA_CONFIG_TOOLS_DIR`) everywhere: the
+  Studio routes and generators, Ask SAJHA's config, the tool groups manager, the registry's default and the
+  console's text no longer assume `config/tools`
+  ([Configuration Reference](docs/getting-started/Configuration%20Reference.md#config)).
+
 - Added: qlrisk risk tools as native tools in `config/tools/qlrisk/` (names `qlrisk_<tool>`, code in
   `sajha/tools/impl/qlrisk/`). Coarse-grained, read-only tools cover discovery, pricing and sensitivities,
   VaR / ES (historical, age-weighted, filtered, Monte Carlo, parametric; stressed VaR, decomposition,

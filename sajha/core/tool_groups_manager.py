@@ -155,7 +155,8 @@ class ToolGroupsManager:
         
         # Handle tools directory path
         if tools_dir is None:
-            tools_dir = 'config/tools'
+            from sajha.tools.tool_files import default_prefix
+            tools_dir = default_prefix()
         
         self.tools_dir = Path(tools_dir)
         if not self.tools_dir.is_absolute():
