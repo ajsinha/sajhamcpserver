@@ -4,7 +4,9 @@ Newest first. The current version is `app.version` in `config/application.yml`.
 
 ## Unreleased
 
-Nothing yet.
+- Docs: the [Adversarial QA Plan](docs/architecture/Adversarial%20QA%20Plan.md) — every attack surface, what to try,
+  the safe behaviour expected, priorities, automation and existing coverage, starting from the bugs this
+  cycle found.
 
 ## v8.2.0 (October 2026) — streaming between servers, and tool folders
 

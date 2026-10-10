@@ -175,6 +175,9 @@ CATALOG: List[dict] = [
             _g('Workflows', 'Workflows.md', 'bi-diagram-3',
                'DAGs of tools, composites and Ask SAJHA steps; cron, webhook, file and event triggers; '
                'durable runs that resume after a crash, re-run from a step, publish as a tool.'),
+            _g('Adversarial QA Plan', 'Adversarial QA Plan.md', 'bi-bug',
+               'How to attack SAJHA on purpose: every surface, what to try, the safe behaviour expected, '
+               'priorities, automation and the tests that already cover each item.'),
             _g('Tool Quality', 'Tool Quality.md', 'bi-heart-pulse',
                'Test cases with recorded HTTP cassettes and JUnit output, the schema linter, health probes, '
                'evals for Ask SAJHA, and tool versions with canary routing, rollback and sunset dates.'),
