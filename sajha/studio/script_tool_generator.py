@@ -565,7 +565,7 @@ TOOL_CLASS = {self._to_class_name(config.tool_name)}
             logger.info(f"Generated Python wrapper: {wrapper_path}")
 
             from sajha.core.storage import write_tool_config
-            write_tool_config(config_path, tool_config)
+            config_path = write_tool_config(config_path, tool_config)
             logger.info(f"Generated tool config via storage backend: {config_path}")
             
             return {

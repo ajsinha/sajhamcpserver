@@ -45,6 +45,7 @@ CREATORS = {
     "livelink": ("OpenText LiveLink", "Browse and fetch documents from a LiveLink repository."),
     "describe": ("Describe a tool", "One sentence becomes a proposed, tested tool for review."),
     "api_import": ("Import an API", "OpenAPI 3, Swagger 2 or GraphQL becomes reviewed tools."),
+    "json": ("Import JSON", "A pasted tool config, filed into a folder (administrators)."),
 }
 
 
@@ -82,7 +83,7 @@ def _categories(F: dict[str, Any]) -> list[list[str]]:
 # Studio creators by family; a creator the Studio has and this map does not fails the build.
 FAMILIES = [
     ("Code", ("python", "script")),
-    ("Services", ("rest", "api_import")),
+    ("Services", ("rest", "api_import", "json")),
     ("Data and BI", ("dbquery", "olap", "powerbi", "powerbidax")),
     ("Documents", ("sharepoint", "livelink")),
     ("A sentence", ("describe",)),

@@ -143,6 +143,6 @@ instances and provider sign-out. A real provider was not part of the run.
 ## Next
 
 - The SAJHA Net design these tutorials explored: [SAJHA Net](../architecture/SAJHA%20Net.md)
-- This is the last tutorial; the [documentation index](../README.md) lists every guide
+- Next tutorial: [Tutorial 40: Stream a Call Across the Net](TUTORIAL_40_stream_a_net_call.md)
 
 Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.com

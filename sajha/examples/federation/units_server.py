@@ -48,12 +48,14 @@ def build_server(name: str = 'units') -> MCPServer:
     def kilometres_to_miles(km: float) -> float:
         return round(km * 0.621371, 4)
 
-    @server.tool(description='Count down from a number of steps, reporting progress at each step.')
-    async def countdown(steps: int, ctx: Context) -> str:
+    @server.tool(description='Count down from a number of steps, reporting progress at each step '
+                             '(seconds_per_step apart, at most 2).')
+    async def countdown(steps: int, ctx: Context, seconds_per_step: float = 0.05) -> str:
         steps = max(1, min(int(steps), 20))
+        pause = max(0.0, min(float(seconds_per_step), 2.0))
         for i in range(steps):
             await ctx.report_progress(i + 1, steps, f'{steps - i - 1} to go')
-            await asyncio.sleep(0.05)
+            await asyncio.sleep(pause)
         return 'lift-off'
 
     @server.tool(description='Reset a named counter to zero, after the user confirms.')

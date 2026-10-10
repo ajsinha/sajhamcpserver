@@ -1,6 +1,6 @@
 # Implementation Plan
 
-> **Status: waves 1 to 5 done (8.1.0); wave 6 in progress** (the Status column of
+> **Status: waves 1 to 6 done (8.2.0)** (the Status column of
 > section 2 is the per-wave record). This is the build order for the two features,
 > [LLM Tools](LLM%20Tools.md) (with the [Planner Reference](Planner%20Reference.md)) and
 > [SAJHA Net](SAJHA%20Net.md) (with the [SAJHA Net Protocol](../protocol/SAJHA%20Net%20Protocol.md)),
@@ -62,7 +62,7 @@ streams, what each phase waits for, and its status.
 | 3 | 7.3.0 | Planners and authoring | Configurable planners and every shipped strategy, `auto`, Studio LLM tool creator and planner editor, sampling, the OpenAI-compatible endpoint | 2 | done (7.3.0) |
 | 4 | 8.0.0 | SAJHA Net core | Named nets (several per server), membership with required seeds, CA, signed requests on one port, catalogs and proxy tools, resolution order and preferences, offline removal, one name one contract, waterfall fallback, identity across instances, blocks, the Instances page | 1 (3 for remote LLM tools) | done (8.0.0) |
 | 5 | 8.1.0 | Sovereignty, console, other MCP servers | Residency, locality-aware planners, re-export, the full SAJHA Net console, sponsored servers, the agent and library, the extension's conformance suite | 4 | done (8.1.0) |
-| 6 | 8.2.0 | Protocol uniformity between servers, and its security | Server to server on the same streaming MCP as client to server: progress, partial results, cancellation, input requests and tasks relayed to the client on its own transport (Roadmap L17a), with security per event: signing, replay protection, residency on partial results (L17b) | 5 | pending |
+| 6 | 8.2.0 | Protocol uniformity between servers, and its security | Server to server on the same streaming MCP as client to server: progress, partial results, cancellation and input requests relayed to the client on its own transport, tasks at the home wrapping forwarded calls (Roadmap L17a; host-side tasks are L19), with security per event: signing, replay protection, residency on partial results (L17b) | 5 | done (8.2.0) |
 Wave 4 is a major version because it adds a new table (`sajhanet_api_keys`), new columns on
 `api_keys` and a new signed protocol surface; operators must apply schema changes on PostgreSQL by
 hand, as for every schema change.
@@ -239,10 +239,17 @@ server) passes the conformance suite and the end-to-end residency tests.
 ## 8. After wave 5
 
 **Wave 6 (decided by the owner, 2026-10-07): protocol uniformity between servers, and its
-security.** Roadmap [L17](Roadmap.md): server to server speaks the same streaming MCP as client to
+security.** Roadmap L17 (its row removed once built; host-side tasks, deferred by the owner, are
+[L19](Roadmap.md)): server to server speaks the same streaming MCP as client to
 server, so progress, partial results and cancellation reach the client as the remote work builds,
 over whatever transport the client chose (L17a); and the security that goes with it, per event
-(L17b). Both are in wave 6. Phases are cut when wave 6 starts; it ships as its own release, 8.2.0.
+(L17b). Both are in wave 6; it ships as its own release, 8.2.0.
+
+| Phase | Streams, in parallel | Depends on | Status |
+|---|---|---|---|
+| 6.1 | A signed streaming hop (event chain, host stream at execution, home stream reader, limits, the new refusals, FB-07) ‖ B protocol sections and conformance cases | wave 5 | done |
+| 6.2 | A progress and cancellation on every client transport ‖ B residency on streamed events, audit of streams | 6.1 | done |
+| 6.3 | A input requests (MRTR) across the net, a task at the home wrapping the streamed call ‖ B guides, configuration, glossary, tutorial | 6.2 | done |
 
 Other open Roadmap items not placed in a wave, in suggested order. Each keeps its Roadmap entry as
 the owner of its detail.

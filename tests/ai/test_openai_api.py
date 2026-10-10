@@ -12,6 +12,7 @@ import uuid
 from pathlib import Path
 
 import pytest
+from tests.tool_config_files import tool_file, tool_files  # noqa: E402
 
 ROOT = Path(__file__).resolve().parent.parent.parent
 sys.path.insert(0, str(ROOT))
@@ -52,7 +53,7 @@ def _key(uid):
 
 def _llm_tool(name, base, **llm):
     from sajha.ai.llm_tools import LLMTool
-    with open(f'config/tools/{base}.json') as f:
+    with open(tool_file(base)) as f:
         cfg = json.load(f)
     cfg.update(name=name, enabled=True)
     cfg['llm'] = {**cfg['llm'], **llm}

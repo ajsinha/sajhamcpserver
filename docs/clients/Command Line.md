@@ -255,6 +255,28 @@ async with Client(params) as client:          # mode="auto": server/discover, 20
 `sajha serve` without `--stdio` runs `run_sajha_web.py` from the checkout (`--host`,
 `--port`, and anything after them is passed through), the same as running it directly.
 
+## 6. Tool folders
+
+`python -m sajha.tools` (`sajha/tools/__main__.py`) runs on the server's checkout, not through the
+client SDK: it files tool configs into tool folders through the configured storage backend
+(`storage.*` in `config/application.yml`). The layout and its rules are in
+[Architecture](../architecture/Architecture.md#tool-config-files-and-folders).
+
+```bash
+python -m sajha.tools folders                          # the folders, and root files grouped by prefix
+python -m sajha.tools move 'fmp_*' --to fmp --dry-run  # what would move
+python -m sajha.tools move 'fmp_*' --to fmp            # move them ("" moves back to the root)
+```
+
+`folders` prints each folder with its tool count, the root files grouped by name prefix with a
+suggested folder, and any duplicate name or file nested too deep. `move` takes a tool name or a glob
+of names. It refuses a folder name that is not valid, a name with more than one file, and a target
+path that exists. On the local backend it renames each file (atomic); on an object store it writes
+the new object and then deletes the old one. It never copies: a name in two places loads neither.
+In a git checkout it prints the matching git commands (`git mv` for a dry run; after a move, the
+`git add -A -- <old> <new>` that records each as a rename). The running server picks the moves up on
+its next scan. Exit status: 0 done, 1 refused or nothing matched.
+
 ---
 
 Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.com

@@ -289,7 +289,7 @@ Reader: Settings.
 
 | Key | Default | Env | Purpose / reader |
 |-----|---------|-----|------------------|
-| `config.tools.dir` | `config/tools` | `SAJHA_CONFIG_TOOLS_DIR` | Tool JSON configs (`sajha/app.py` → tools registry). |
+| `config.tools.dir` | `config/tools` | `SAJHA_CONFIG_TOOLS_DIR` | Tool JSON configs, at the root or one tool folder down (`sajha/app.py` → tools registry; layout and rules in [Architecture](../architecture/Architecture.md#tool-config-files-and-folders)). |
 | `config.prompts.dir` | `config/prompts` | `SAJHA_CONFIG_PROMPTS_DIR` | Prompt configs (`sajha/app.py` → prompts registry). |
 | `config.plugins.dir` | `config/plugins` | `SAJHA_CONFIG_PLUGINS_DIR` | Plugins (`sajha/core/plugins.py`). |
 | `config.apikeys.path` | `config/apikeys.json` | `SAJHA_CONFIG_APIKEYS_PATH` | The persistent API key file: hashed records of the keys an administrator marks persistent, read after the database and re-read when it changes; written atomically, mode 0600, git-ignored; format in `config/apikeys.json.example` (`sajha/auth/persistent_keys.py`; [API keys](../security/Security%20Model.md#api-keys)). The older plaintext format is not read. |
@@ -300,7 +300,15 @@ Reader: Settings.
 | Key | Default | Env | Purpose / reader |
 |-----|---------|-----|------------------|
 | `hot_reload.enabled` | `true` | `SAJHA_HOT_RELOAD_ENABLED` | **Not used.** The config reloader always starts (`sajha/app.py`). |
-| `hot_reload.interval_seconds` | `300` | `SAJHA_HOT_RELOAD_INTERVAL`, `SAJHA_HOT_RELOAD_INTERVAL_SECONDS` | Poll interval of the config reloader (`sajha/app.py`). `sajha/core/reload_manager.py` also reads this key, with a `SAJHA_RELOAD_INTERVAL` fallback, but its `init_reload_manager()` is never called. |
+| `hot_reload.interval_seconds` | `300` | `SAJHA_HOT_RELOAD_INTERVAL`, `SAJHA_HOT_RELOAD_INTERVAL_SECONDS` | Poll interval of the config reloader (`sajha/app.py`); each check also scans `config/tools` and its tool folders (new, changed and deleted files, removed folders). `sajha/core/reload_manager.py` also reads this key, with a `SAJHA_RELOAD_INTERVAL` fallback, but its `init_reload_manager()` is never called. |
+
+## tools
+
+Reader: `sajha/core/config.py::_get`, read when the registry starts its retry thread and on each retry.
+
+| Key | Default | Env | Purpose / reader |
+|-----|---------|-----|------------------|
+| `tools.retry_failed_seconds` | `300` | `SAJHA_TOOLS_RETRY_FAILED_SECONDS` | Retry of tools that failed to load, without a change to their file: first after this many seconds, then doubling up to 30 minutes; `0` turns it off. Duplicate names and deleted files are not retried. Per worker process (`ToolsRegistry.retry_failed` in `sajha/tools/tools_registry.py`; [Architecture](../architecture/Architecture.md#tool-config-files-and-folders)). |
 
 ## features
 
@@ -366,17 +374,17 @@ YAML placeholder.
 
 | Key | YAML value | Env | Used by |
 |-----|-----------|-----|---------|
-| `fmp.api.key` | `${FMP_API_KEY:}` | `FMP_API_KEY` | `config/tools/fmp_*.json` |
-| `fred.api.key` | `${FRED_API_KEY:}` | `FRED_API_KEY` | `config/tools/fred_*.json`, and the Bank of Japan (`boj_*`) and People's Bank of China (`pboc_*`) configs |
-| `fbi.api.key` | `${FBI_API_KEY:}` | `FBI_API_KEY` (the tool also falls back to `DATA_GOV_API_KEY`, then `DEMO_KEY`) | `config/tools/fbi_*.json` |
-| `google.api.key` | `${GOOGLE_API_KEY:}` | `GOOGLE_API_KEY` | `config/tools/google_search.json` |
-| `google.search.engine.id` | `${GOOGLE_SEARCH_ENGINE_ID:}` | `GOOGLE_SEARCH_ENGINE_ID` | `config/tools/google_search.json` |
-| `tavily.api.key` | `${TAVILY_API_KEY:}` | `TAVILY_API_KEY` | `config/tools/tavily_*.json` |
-| `alpha_vantage.api.key` | `${ALPHA_VANTAGE_API_KEY:}` | `ALPHA_VANTAGE_API_KEY` | `config/tools/av_*.json` |
-| `sharepoint.site.url` | `${SHAREPOINT_SITE_URL:}` | `SHAREPOINT_SITE_URL` | `config/tools/sharepoint_*.json` (the site, e.g. `https://contoso.sharepoint.com/sites/team`) |
-| `sharepoint.client.id` | `${SHAREPOINT_CLIENT_ID:}` | `SHAREPOINT_CLIENT_ID` | `config/tools/sharepoint_*.json` (the Entra ID app registration) |
-| `sharepoint.client.secret` | `${SHAREPOINT_CLIENT_SECRET:}` | `SHAREPOINT_CLIENT_SECRET` | `config/tools/sharepoint_*.json` |
-| `azure.tenant.id` | `${AZURE_TENANT_ID:}` | `AZURE_TENANT_ID` | `config/tools/sharepoint_*.json` (the app's tenant) |
+| `fmp.api.key` | `${FMP_API_KEY:}` | `FMP_API_KEY` | `config/tools/fmp/fmp_*.json` |
+| `fred.api.key` | `${FRED_API_KEY:}` | `FRED_API_KEY` | `config/tools/fred/fred_*.json`, and the Bank of Japan (`boj_*`) and People's Bank of China (`pboc_*`) configs |
+| `fbi.api.key` | `${FBI_API_KEY:}` | `FBI_API_KEY` (the tool also falls back to `DATA_GOV_API_KEY`, then `DEMO_KEY`) | `config/tools/fbi/fbi_*.json` |
+| `google.api.key` | `${GOOGLE_API_KEY:}` | `GOOGLE_API_KEY` | `config/tools/google/google_search.json` |
+| `google.search.engine.id` | `${GOOGLE_SEARCH_ENGINE_ID:}` | `GOOGLE_SEARCH_ENGINE_ID` | `config/tools/google/google_search.json` |
+| `tavily.api.key` | `${TAVILY_API_KEY:}` | `TAVILY_API_KEY` | `config/tools/tavily/tavily_*.json` |
+| `alpha_vantage.api.key` | `${ALPHA_VANTAGE_API_KEY:}` | `ALPHA_VANTAGE_API_KEY` | `config/tools/alphavantage/av_*.json` |
+| `sharepoint.site.url` | `${SHAREPOINT_SITE_URL:}` | `SHAREPOINT_SITE_URL` | `config/tools/sharepoint/sharepoint_*.json` (the site, e.g. `https://contoso.sharepoint.com/sites/team`) |
+| `sharepoint.client.id` | `${SHAREPOINT_CLIENT_ID:}` | `SHAREPOINT_CLIENT_ID` | `config/tools/sharepoint/sharepoint_*.json` (the Entra ID app registration) |
+| `sharepoint.client.secret` | `${SHAREPOINT_CLIENT_SECRET:}` | `SHAREPOINT_CLIENT_SECRET` | `config/tools/sharepoint/sharepoint_*.json` |
+| `azure.tenant.id` | `${AZURE_TENANT_ID:}` | `AZURE_TENANT_ID` | `config/tools/sharepoint/sharepoint_*.json` (the app's tenant) |
 
 `Settings` also defines `google_api_key`, `google_search_engine_id`, `fred_api_key` and
 `tavily_api_key` fields, but no code reads those fields.
@@ -466,7 +474,7 @@ fields below. Built-in providers not listed still exist, disabled.
 | `ai.ask.confirm_destructive` | `true` | Hold destructive tools for confirmation. |
 | `ai.ask.synthesize` | `true` | Final structured-output call. |
 | `ai.ask.audit` | `true` | Write an `ai_ask` audit entry per ask. |
-| `ai.ask.mcp_tool_enabled` | `false` | Turns the `sajha_ask` MCP tool on (an LLM tool defined in `config/tools/sajha_ask.json`, which stays disabled there); applied at start-up and after every reload of the catalog. |
+| `ai.ask.mcp_tool_enabled` | `false` | Turns the `sajha_ask` MCP tool on (an LLM tool defined in `config/tools/sajha/sajha_ask.json`, which stays disabled there); applied at start-up and after every reload of the catalog. |
 | `ai.ask.mcp_allowed_tools` | `[]` | fnmatch patterns that narrow what `sajha_ask` may run; its inner calls run as the MCP caller, so it never runs a tool the caller may not. Empty: the caller's access alone. Only where no caller was recorded (code calling the tool directly) are they added to the anonymous MCP policy. |
 | `ai.ask.planner` | `react` | The Ask SAJHA page's planner, resolved by the planner registry ([Planner Reference](../architecture/Planner%20Reference.md) §2): a planner file in `ai.planners.dir` (the shipped ones are `react`, `plan_execute`, `rewoo`, `reflect`, `verify_then_answer`, `self_consistency`, `branch_and_judge`, `map_reduce`, `router`, `recipes`, `human_in_the_loop`, `auto`), `name@version`, a Python planner registered with `@register_planner`, or `package.module:Class` (`model` is an alias of `react`). Unknown names fail at startup. |
 | `ai.ask.locality` | `any` | Where the tools offered to a planner may run: `any`, `local` (this server's own tools), or `net:<name>` (this server's tools and that SAJHA Net net's). An ask's `locality` and a planner's `settings.locality` take precedence. Local tools rank before remote ones whatever the setting ([SAJHA Net](../architecture/SAJHA%20Net.md) §13). Env `SAJHA_AI_ASK_LOCALITY`. |
@@ -744,6 +752,13 @@ Kubernetes the chart's
 | `sajhanet.limits.max_tools_per_peer`, `limits.max_catalog_bytes`, `limits.max_description_chars` | `2000`, `5242880`, `1024` | Caps on what is imported from one peer; a peer that exceeds them is flagged (a warning notice) and the excess ignored. |
 | `sajhanet.peer.breaker_threshold`, `peer.breaker_reset_seconds` | `5`, `30` | Per-peer circuit breaker at the home: after this many consecutive availability failures calls to the peer pause for this long (a call by plain name moves to the next host). |
 | `sajhanet.peer.calls_per_minute`, `peer.inbound_calls_per_minute` | `600`, `600` | Per-peer rate limits: this home's calls to one peer, and forwarded calls accepted from one peer (`-32019 rate_limited` beyond). |
+| `sajhanet.streaming.enabled` | `true` | Signed event streams on forwarded calls ([SAJHA Net](../architecture/SAJHA%20Net.md) §9; protocol §15.10): on, this server lists the features `streaming`, `progress`, `cancellation` and `mrtr`, asks hosts that list `streaming` for a stream and streams to homes that ask. Off: JSON answers only, no progress, cancellation only by the deadline, and the features are not listed (input requests still relay when the other side sends them). |
+| `sajhanet.streaming.max_events` | `1000` | Events in one stream, the final answer excluded (minimum 1). The host drops events past it; the home refuses a stream that exceeds it (`stream_limit`). |
+| `sajhanet.streaming.max_event_bytes` | `65536` | One event (minimum 1024): larger events are dropped at the host and refused at the home (`stream_limit`). |
+| `sajhanet.streaming.max_stream_bytes` | `8388608` | One whole stream, the final answer included (minimum 4096); beyond it the home closes the stream (`stream_limit`). |
+| `sajhanet.streaming.idle_timeout_seconds` | `30` | Home: no event or heartbeat for this long ends the stream, which cancels the call at the host (`stream_idle`, retryable; minimum 1). The call's overall deadline is `sajhanet.default_timeout_seconds`. |
+| `sajhanet.streaming.heartbeat_seconds` | `10` | Host: an unsigned SSE comment this often while nothing else is sent (minimum 0.1). A value at or above the idle timeout is lowered to a third of it. |
+| `sajhanet.streaming.progress_min_interval_ms` | `100` | Host: progress is coalesced to one event per interval, the latest kept (0 sends every one). |
 | `sajhanet.residency.enabled` | `true` | Residency checks on forwarded calls (residency rules on arguments at the home, on results at the host and on arrival, residency-aware shortlists). Residency rules are policy rules, so `policy.enabled: false` also turns them off. Server-wide only. |
 | `sajhanet.residency.default_effect` | `allow` | `deny`: arguments or results that carry any data class cross to another instance only when a residency rule `allow`s it ([Policy and Audit](../architecture/Policy%20and%20Audit.md) 3.5). Read on every decision. |
 | `sajhanet.data_classes.tools` | `{}` | YAML only. Classify tools without editing them: `{<tool name or glob>: {arguments: {<field path>: <class or list>}, results: {...}}}`; a path is dotted property names, `[]` for every array item (`rows.[].email`), `*` for the whole value. Adds to the tools' own `x-sajha-data-class` marks and `data_classes`; at a home it applies to remote tools by their host tool name or qualified name. Server-wide only. |

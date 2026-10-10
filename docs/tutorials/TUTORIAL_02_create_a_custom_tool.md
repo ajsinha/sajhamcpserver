@@ -44,7 +44,7 @@ class WordCountTool(BaseMCPTool):
 
 ### 2. Write the JSON config
 
-Create `config/tools/text_word_count.json`. Tool configs sit directly in `config/tools/`, one file per tool, and the file name should match the tool `name`:
+Create `config/tools/text_word_count.json`. Tool configs sit in `config/tools/` or one tool folder below it (`config/tools/<folder>/`, which files the tool and does not rename it), one file per tool, and the file name should match the tool `name`:
 
 ```json
 {

@@ -311,13 +311,13 @@ class ToolResolver:
         self.refresh_lexical()
         if self.embedder is None or self.index is None:
             return {'embedded': 0, 'removed': 0, 'total': 0, 'mode': 'bm25'}
-        stale_before = self._vector_stale
-        self._vector_stale = False
-        try:
-            result = self.index.sync(self.tools_registry, self.embedder)
-        except Exception:
-            self._vector_stale = stale_before
-            raise
+        # The vector tier counts as fresh only once the sync has finished, and only if no further change
+        # arrived meanwhile (BM25 answers until then); clearing the flag first let a search use the old
+        # index during the sync and miss a tool just added.
+        result = self.index.sync(self.tools_registry, self.embedder)
+        with self._sync_lock:
+            if not self._sync_again:
+                self._vector_stale = False
         self._built = result['total'] > 0
         return result
 

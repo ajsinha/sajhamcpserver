@@ -58,7 +58,7 @@ def _version() -> str:
         from sajha.core.config import get_settings
         return get_settings().app_version
     except Exception:
-        return '8.1.0'
+        return '8.2.0'
 
 
 def _registry():
@@ -92,9 +92,23 @@ def _check_new_name(name: str) -> Optional[str]:
     if not TOOL_NAME_RE.match(name or ''):
         return ('Tool name must be 3-64 characters: a lowercase letter, then lowercase '
                 'letters, digits or underscores')
-    if name in _existing_tools() or (CONFIG_DIR / f'{name}.json').exists():
-        return f'Tool "{name}" already exists'
+    from sajha.tools.tool_files import name_taken
+    where = name_taken(name)
+    if name in _existing_tools() or where:
+        return f'Tool "{name}" already exists' + (f' ({where})' if where else '')
     return None
+
+
+def _folder_error(data: Dict[str, Any]) -> Optional[str]:
+    """Why the request's "folder" (the tool folder a new tool goes into) is not valid, else None."""
+    from sajha.tools.tool_files import clean_folder, folder_problem
+    return folder_problem(clean_folder(data.get('folder')))
+
+
+def _into(data: Dict[str, Any]):
+    """Write the new tool's config into the request's folder (root when none)."""
+    from sajha.tools.tool_files import clean_folder, writing_into
+    return writing_into(clean_folder(data.get('folder')))
 
 
 # ── Registry hot-load / unload ───────────────────────────────────────────
@@ -109,13 +123,15 @@ def _impl_module(config: Dict[str, Any]) -> Optional[str]:
 
 
 def _hot_load(tool_name: str) -> Tuple[bool, str]:
-    """Load config/tools/<tool_name>.json into the live registry."""
+    """Load the tool's config (root or folder) into the live registry."""
     reg = _registry()
     if reg is None:
         return False, 'Tools registry is not initialised'
     importlib.invalidate_caches()
     try:
-        cfg = json.loads((CONFIG_DIR / f'{tool_name}.json').read_text(encoding='utf-8'))
+        from sajha.core.storage import get_storage
+        from sajha.tools.tool_files import config_path
+        cfg = get_storage().read_json(config_path(tool_name))
         mod = _impl_module(cfg)
         # A module of the same name may be cached from an earlier (deleted) deploy
         if mod and mod.rsplit('.', 1)[-1].startswith(STUDIO_MODULE_PREFIXES + (tool_name,)):
@@ -164,6 +180,8 @@ def _studio_files(tool_name: str, config: Dict[str, Any]) -> Optional[List[Path]
             return files  # API Import: config only, shared executor
         if impl == 'sajha.ai.llm_tools.LLMTool' and (config.get('metadata') or {}).get('studio_creator') == 'llm':
             return files  # LLM tool creator / Describe a tool: config only, shared implementation
+    if (config.get('metadata') or {}).get('studio_creator') == 'json':
+        return files      # Import JSON: config only
     return None
 
 
@@ -175,15 +193,20 @@ def _deploy_result(tool_name: str, written: List[str], message: str, auth: Optio
         stamp_file(tool_name, auth.user_id or '', creator)
     loaded, err = _hot_load(tool_name)
     if not loaded:
+        from sajha.tools.tool_files import delete_config
         for f in written:
             try:
-                if f and Path(f).exists():
+                if f and Path(f).name != f'{tool_name}.json' and Path(f).exists():
                     Path(f).unlink()
             except OSError:
                 pass
         _unload(tool_name)
+        delete_config(tool_name)
         return _fail(f'Tool files were generated but the tool failed to load: {err}', 500)
     logger.info(f'Studio deployed tool {tool_name}: {written}')
+    reg = _registry()
+    extra.setdefault('config_file', reg.tool_path(tool_name) if hasattr(reg, 'tool_path') else None)
+    extra.setdefault('folder', reg.tool_folder(tool_name) if hasattr(reg, 'tool_folder') else None)
     return _ok(message=message, tool_name=tool_name, **extra)
 
 
@@ -335,7 +358,17 @@ def _studio_ctx(auth: AuthContext) -> dict:
         'existing_tools': _existing_tools(),
         'examples': CODE_EXAMPLES,
         'sandbox': _sandbox_policy(),
+        'tool_folders': _tool_folders(),
     }
+
+
+def _tool_folders() -> List[str]:
+    """The tool folders that exist, offered by each creator's Folder field."""
+    from sajha.tools.tool_files import get_index
+    try:
+        return get_index().refresh().folders()
+    except Exception:
+        return []
 
 
 def _sandbox_policy() -> Optional[Dict[str, Any]]:
@@ -462,11 +495,15 @@ async def studio_deploy(request: Request, auth: AuthContext = Depends(require_cr
     refused = _unsandboxed_refusal(auth)
     if refused:
         return refused
-    res = _analyze_code(await _body(request))
+    data = await _body(request)
+    if _folder_error(data):
+        return _fail(_folder_error(data))
+    res = _analyze_code(data)
     if isinstance(res, JSONResponse):
         return res
     tool_name, tool_def, _ = res
-    ok, message, json_path, python_path = _code_generator().save_tool(tool_def, tool_name, overwrite=False)
+    with _into(data):
+        ok, message, json_path, python_path = _code_generator().save_tool(tool_def, tool_name, overwrite=False)
     if not ok:
         return _fail(message)
     return _deploy_result(tool_name, [json_path, python_path], f'Tool "{tool_name}" deployed successfully!',
@@ -486,12 +523,15 @@ async def studio_delete(request: Request, auth: AuthContext = Depends(require_st
     tool_name = ((await _body(request)).get('tool_name') or '').strip().lower()
     if not TOOL_NAME_RE.match(tool_name):
         return _fail('Invalid tool name format')
+    from sajha.tools.tool_files import name_taken
     json_path = CONFIG_DIR / f'{tool_name}.json'
     reg = _registry()
     config = (reg.tool_configs.get(tool_name) if reg else None) or {}
-    if not config and json_path.exists():
+    where = name_taken(tool_name)
+    if not config and where:
         try:
-            config = json.loads(json_path.read_text(encoding='utf-8'))
+            from sajha.core.storage import get_storage
+            config = get_storage().read_json(where)
         except Exception:
             config = {}
     if not config:
@@ -519,16 +559,14 @@ async def studio_delete(request: Request, auth: AuthContext = Depends(require_st
     _unload(tool_name)
     deleted, not_found = [], []
     from sajha.core.storage import get_storage
+    from sajha.tools.tool_files import delete_config
     for f in files:
         if f == json_path:
             try:
-                existed = get_storage().delete(f'config/tools/{tool_name}.json')
+                existed = delete_config(tool_name)
             except Exception:
                 existed = False
-            if json_path.exists():
-                json_path.unlink()
-                existed = True
-            (deleted if existed else not_found).append(str(f) if existed else f.name)
+            (deleted if existed else not_found).append((where or str(f)) if existed else f.name)
         elif f.exists():
             f.unlink()
             deleted.append(str(f))
@@ -597,11 +635,13 @@ async def studio_rest_preview(request: Request, auth: AuthContext = Depends(requ
 @actions.post('/rest/deploy')
 async def studio_rest_deploy(request: Request, auth: AuthContext = Depends(require_creator('rest'))):
     try:
-        definition = _rest_definition(await _body(request))
-        err = _check_new_name(definition.name)
+        data = await _body(request)
+        definition = _rest_definition(data)
+        err = _check_new_name(definition.name) or _folder_error(data)
         if err:
             return _fail(err)
-        ok, message, json_path, python_path = _rest_generator().save_tool(definition, overwrite=False)
+        with _into(data):
+            ok, message, json_path, python_path = _rest_generator().save_tool(definition, overwrite=False)
         if not ok:
             return _fail(message)
         return _deploy_result(definition.name, [json_path, python_path],
@@ -667,11 +707,13 @@ async def studio_dbquery_preview(request: Request, auth: AuthContext = Depends(r
 @actions.post('/dbquery/deploy')
 async def studio_dbquery_deploy(request: Request, auth: AuthContext = Depends(require_creator('dbquery'))):
     try:
-        definition = _dbquery_definition(await _body(request))
-        err = _check_new_name(definition.name)
+        data = await _body(request)
+        definition = _dbquery_definition(data)
+        err = _check_new_name(definition.name) or _folder_error(data)
         if err:
             return _fail(err)
-        ok, message, json_path, python_path = _dbquery_generator().save_tool(definition, overwrite=False)
+        with _into(data):
+            ok, message, json_path, python_path = _dbquery_generator().save_tool(definition, overwrite=False)
         if not ok:
             return _fail(message)
         return _deploy_result(definition.name, [json_path, python_path],
@@ -735,11 +777,13 @@ async def studio_script_deploy(request: Request, auth: AuthContext = Depends(req
     if refused:
         return refused
     try:
-        config = _script_config(await _body(request))
-        err = _check_new_name(config.tool_name)
+        data = await _body(request)
+        config = _script_config(data)
+        err = _check_new_name(config.tool_name) or _folder_error(data)
         if err:
             return _fail(err)
-        result = _script_generator().generate_tool(config)
+        with _into(data):
+            result = _script_generator().generate_tool(config)
         if not result.get('success'):
             return _fail('Errors: ' + ', '.join(result.get('errors', ['Unknown error'])))
         files = [result.get('config_path'), result.get('wrapper_path'), result.get('script_path')]
@@ -841,11 +885,13 @@ async def _config_creator_preview(kind: str, request: Request) -> JSONResponse:
 async def _config_creator_deploy(kind: str, request: Request, auth: Optional[AuthContext] = None) -> JSONResponse:
     label, build = _CONFIG_CREATORS[kind]
     try:
-        config, gen = build(await _body(request))
-        err = _check_new_name(config.tool_name)
+        data = await _body(request)
+        config, gen = build(data)
+        err = _check_new_name(config.tool_name) or _folder_error(data)
         if err:
             return _fail(err)
-        result = gen.generate_tool(config)
+        with _into(data):
+            result = gen.generate_tool(config)
         if not result.get('success'):
             return _fail(result.get('message') or 'Deployment failed')
         files = list((result.get('files') or {}).values())
@@ -942,18 +988,68 @@ async def studio_sharepoint_preview(request: Request, auth: AuthContext = Depend
 @actions.post('/sharepoint/deploy')
 async def deploy_sharepoint_tool(request: Request, auth: AuthContext = Depends(require_creator('sharepoint'))):
     try:
-        config, gen = _sharepoint(await _body(request))
-        err = _check_new_name(config.name)
+        data = await _body(request)
+        config, gen = _sharepoint(data)
+        err = _check_new_name(config.name) or _folder_error(data)
         errors = ([err] if err else []) + gen.validate(config)
         if errors:
             return _fail('; '.join(errors))
-        output_path = gen.save(config)
+        with _into(data):
+            output_path = gen.save(config)
         return _deploy_result(config.name, [str(output_path)],
                               f'SharePoint tool "{config.name}" deployed successfully!', auth=auth,
-                              creator='sharepoint', config_file=str(output_path))
+                              creator='sharepoint')
     except Exception as e:
         logger.error(f'Error deploying SharePoint tool: {e}', exc_info=True)
         return _fail(str(e), 500)
+
+
+# ── Import JSON (administrators) ─────────────────────────────────────────
+
+JSON_IMPORT = require_creator('json')
+
+
+@pages.get('/json')
+async def studio_json(request: Request, auth: AuthContext = Depends(JSON_IMPORT)):
+    from sajha.tools.tool_files import get_index
+    return render(request, 'admin/studio/studio_json.html', {
+        'user': {'user_id': auth.user_id, 'user_name': auth.user_name, 'roles': auth.roles},
+        'is_admin': auth.is_admin, **_studio_ctx(auth),
+        'tool_folders': get_index().refresh().folders(),
+    })
+
+
+@actions.post('/json/preview')
+async def studio_json_preview(request: Request, auth: AuthContext = Depends(JSON_IMPORT)):
+    from sajha.studio import json_import
+    try:
+        return _ok(**json_import.preview(await _body(request)))
+    except json_import.ImportError_ as e:
+        return _fail(str(e))
+
+
+@actions.post('/json/deploy')
+async def studio_json_deploy(request: Request, auth: AuthContext = Depends(JSON_IMPORT)):
+    """Save a pasted or uploaded tool config into the chosen folder and load it."""
+    from sajha.core.storage import write_tool_config
+    from sajha.studio import json_import
+    from sajha.studio.ownership import stamp
+    data = await _body(request)
+    try:
+        cfg = json_import.parse(data)
+    except json_import.ImportError_ as e:
+        return _fail(str(e))
+    folder = data.get('folder') if isinstance(data.get('folder'), str) else None
+    config, target, errors = json_import.check(cfg, folder)
+    if errors:
+        return _fail('; '.join(errors), errors=errors)
+    name = config['name']
+    stamp(config, auth.user_id or '', 'json')
+    try:
+        rel = write_tool_config(f'{name}.json', json.dumps(config, indent=2), folder=target)
+    except Exception as e:
+        return _fail(f'could not write the config: {e}', 500)
+    return _deploy_result(name, [], f'Tool "{name}" imported into {target or "the root"}', path=rel)
 
 
 # ── OLAP dataset creator ─────────────────────────────────────────────────

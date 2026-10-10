@@ -36,7 +36,7 @@ Tavily options they fix and which they expose.
 | `tavily_domain_search` | `basic` | `general` | Search restricted to / excluding given domains |
 
 Implementation: `sajha.tools.impl.tavily_tool_refactored`; tool configs:
-`config/tools/tavily_*.json`.
+`config/tools/tavily/tavily_*.json`.
 
 ---
 

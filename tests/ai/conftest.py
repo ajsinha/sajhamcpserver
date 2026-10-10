@@ -8,6 +8,7 @@ import json
 import pytest
 
 from sajha.tools.base_mcp_tool import BaseMCPTool
+from tests.tool_config_files import tool_file, tool_files  # noqa: E402
 
 
 class FakeTool(BaseMCPTool):
@@ -40,7 +41,7 @@ class ToolBox:
     def __init__(self, with_calc=True):
         self.tools = {}
         if with_calc:
-            for f in sorted(glob.glob("config/tools/calc_*.json")):
+            for f in tool_files("calc_*.json"):
                 cfg = json.load(open(f))
                 mod, cls = cfg["implementation"].rsplit(".", 1)
                 self.tools[cfg["name"]] = getattr(importlib.import_module(mod), cls)(cfg)

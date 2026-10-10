@@ -15,6 +15,7 @@ from sajha.ai.llm.settings import AskSettings, MemorySettings
 from sajha.ai.llm_tools import LLMConfigError, LLMTool, LLMToolSettings, set_settings
 from sajha.ai.llm_tools.runtime import Runtime, set_runtime
 from tests.ai.conftest import FakeTool, ToolBox, make_gateway
+from tests.tool_config_files import tool_file, tool_files  # noqa: E402
 
 ADMIN = RequestContext(user_id="", roles=["admin"], is_admin=True)
 
@@ -35,7 +36,7 @@ def fresh_runtime(tmp_path):
 
 
 def shipped(name):
-    with open(f"config/tools/{name}.json") as f:
+    with open(tool_file(name)) as f:
         return json.load(f)
 
 

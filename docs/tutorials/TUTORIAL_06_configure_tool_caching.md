@@ -33,7 +33,7 @@ cache:
 
 ### 1. Add `cache_ttl` to the tool config
 
-Tool configs sit directly in `config/tools/`, one file per tool, named after the tool. Open the tool's file, for example `config/tools/fred_gdp.json`, and add `cache_ttl` (in seconds) at the top level:
+Tool configs sit in `config/tools/` or one tool folder below it (the shipped ones are filed by provider), one file per tool, named after the tool. Open the tool's file, for example `config/tools/fred/fred_gdp.json`, and add `cache_ttl` (in seconds) at the top level:
 
 ```json
 {

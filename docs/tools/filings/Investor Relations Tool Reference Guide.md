@@ -2,7 +2,7 @@
 
 The Investor Relations (IR) tools fetch documents from public company IR websites: annual reports, earnings and investor presentations, proxy statements, press releases and ESG reports. They scrape the company's IR pages. When scraping finds nothing and the company's CIK is known, they fall back to SEC EDGAR filings.
 
-The tools are implemented in `sajha/tools/impl/investor_relations_tool_refactored.py`, which builds on the scrapers in `sajha/ir/`. Each tool is defined in `config/tools/ir_*.json`, and the `inputSchema` there is authoritative. No API key is needed.
+The tools are implemented in `sajha/tools/impl/investor_relations_tool_refactored.py`, which builds on the scrapers in `sajha/ir/`. Each tool is defined in `config/tools/investor_relations/ir_*.json`, and the `inputSchema` there is authoritative. No API key is needed.
 
 ---
 

@@ -161,8 +161,8 @@ on every transport. See the [OAuth Guide](../protocol/OAuth%20Guide.md) and the
 
 ## 5. Tools
 
-- **Definition.** Each tool is a JSON file in `config/tools/` (through the storage
-  backend): `name`, `implementation` (a Python class path), `description`,
+- **Definition.** Each tool is a JSON file in `config/tools/` or one of its tool folders
+  (through the storage backend; see "Tool config files and folders" below): `name`, `implementation` (a Python class path), `description`,
   `inputSchema`, optional `outputSchema`, `title`, `annotations`, `icons`,
   `execution.taskSupport`, `_meta.ui`, `cache_ttl`, `enabled`, `version`.
 - **Implementation.** Classes derive from `BaseMCPTool` (`sajha/tools/base_mcp_tool.py`);
@@ -193,6 +193,50 @@ on every transport. See the [OAuth Guide](../protocol/OAuth%20Guide.md) and the
 - **Remote tools.** With SAJHA Net on, the tools other members of a net offer are proxy tools
   in the same registry, under qualified names (`<net>__<instance>__<tool>`) and bare aliases,
   forwarded as signed calls to their host ([SAJHA Net](SAJHA%20Net.md)).
+
+### Tool config files and folders
+
+A tool config is `config/tools/<name>.json` (the root) or `config/tools/<folder>/<name>.json` (a
+**tool folder**), exactly one level deep; `config.tools.dir` sets the directory. The shipped tools are
+filed one folder per provider; list them with `python -m sajha.tools folders`.
+
+- **Folders organise; they never rename.** A tool's name is the `name` in its config (the file stem
+  when it has none), wherever the file is. The `__` rule for namespaced tools is unchanged.
+- **One place per name.** A tool name may exist in one file only, root or any folder. If two files
+  carry the same name, the registry loads **neither**, logs an error on every load and reload, and
+  raises the critical notice `tools.duplicate:<name>` naming both files ([System
+  Notices](System%20Notices.md)). The tool is absent from `tools/list`, calls and SAJHA Net until one
+  file is removed; it then loads on the next check and the notice clears. So a tool is **moved, never
+  copied**: `git mv`, `mv`, or `python -m sajha.tools move` ([Command
+  Line](../clients/Command%20Line.md#6-tool-folders)). Creators and the move command
+  refuse a name that exists anywhere.
+- **Deeper files are ignored.** `config/tools/<a>/<b>/<name>.json` is never loaded; the warning notice
+  `tools.too_deep` names every such file.
+- **Folder names**: a lowercase letter, then lowercase letters, digits, `_` or `-`; at most 32
+  characters; no `__`; not the name of a tool.
+- **One authority.** `sajha/tools/tool_files.py` maps names to files (`ToolFileIndex`, built from the
+  storage backend's recursive listing). Everything that turns a tool name into a path asks it: the
+  registry's save, enable, disable and reload; Studio ownership; the creators; API Import; data
+  connectors. An edit writes the tool back to its current file (it never moves a tool); a new tool
+  goes to the folder its writer names, else the root. Plugin tool folders (`config/plugins/<p>/tools`)
+  are unchanged.
+- **Where new tools go.** The Studio creators and Import JSON have a Folder field (default: the root;
+  Import JSON offers the config's optional `"folder"` key, else its `metadata.category`); the LLM tool
+  creator defaults to `llm`; Describe a tool files a tool under its category when that is a valid
+  folder name; API Import uses the import's prefix ([API Import](API%20Import.md)); a data connection
+  uses its id ([Data Connectors](Data%20Connectors.md)).
+- **Changes on disk.** With the local backend the registry polls the directory and its folders every
+  5 s, and every hot-reload check (`hot_reload.interval_seconds`) runs the same scan: a new file or
+  folder registers its tools, a changed file reloads its tool, a deleted file or removed folder
+  unregisters its tools, and removing one file of a duplicate pair loads the other. On an object store
+  the sync manager reloads when an object under the directory is added, changed or deleted ([Storage
+  Guide](../getting-started/Storage%20Guide.md)). Studio writes apply at once.
+- **Retry of failed tools.** A tool that failed to load (a missing environment variable, API key,
+  package or upstream) is tried again without a change to its file: `tools.retry_failed_seconds`
+  after the failure (default 300, the rhythm of the hot-reload check), then twice as long each time, at most 30 minutes; `0` turns it off.
+  It is logged when retrying starts, when the error changes and when the tool loads; a load publishes
+  the catalog change. A duplicate name or a deleted file is not retried. Every worker process retries
+  its own registry (each process holds its own catalog), so there is no cross-worker claim.
 
 ## 6. Composition
 
@@ -300,7 +344,14 @@ The in-app help is data-driven. `sajha/web/help_catalog.py` is the registry of h
 topics (rendered at `/help` and `/help/c/{cid}`); `sajha/web/guides.py` finds each guide
 under `docs/` by its unique file name and renders it server-side at
 `/help/guides/{name}` (`docs/archive/` is never served); `/glossary` is rendered from
-`GLOSSARY.md`; `/help/tools` is derived from the tools registry. Every console page ends
+`GLOSSARY.md`; `/help/tools` is derived from the tools registry.
+
+**The Tools page** (`/tools`) groups tools by domain: a tool's tool folder; a proxied MCP server's
+tools by their prefix; a remote SAJHA Net tool by the folder its host publishes, when it publishes
+one (else none). Local tools at the root of `config/tools` are under one "Unfiled" chip. The domain
+drives the chips, the Group column, the group filter and the sort (`tool_domain` in
+`sajha/routes/tools_routes.py`). Admin > Tools shows each tool's folder (search `folder:<name>`), a
+tool's configuration page shows its file, and `/api/tools/list` adds `folder` to each tool. Every console page ends
 with an "About this page" panel from `sajha/web/page_help.py`, whose terms are looked up
 in `GLOSSARY.md`. These pages need no login. The old `/docs` URLs redirect to
 `/help/guides`. `/comparison` is rendered from `sajha/web/competitive.py`, its only copy.

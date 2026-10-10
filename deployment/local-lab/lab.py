@@ -124,6 +124,12 @@ def _ai_section(base_ai: dict) -> dict:
     return ai
 
 
+def _tool_file(tools: Path, name: str) -> Path:
+    """A tool's config file in a copy of config/tools: the root or one tool folder down."""
+    found = [tools / f'{name}.json'] + sorted(tools.glob(f'*/{name}.json'))
+    return next((f for f in found if f.exists()), found[0])
+
+
 def generate(i: dict) -> Path:
     """Write the instance's folder (only what is missing) and return its application.yml."""
     import yaml
@@ -144,11 +150,11 @@ def generate(i: dict) -> Path:
     if not tools.exists():
         shutil.copytree(REPO / 'config' / 'tools', tools)
         for name in i['remove']:
-            (tools / f'{name}.json').unlink(missing_ok=True)
+            _tool_file(tools, name).unlink(missing_ok=True)
         for name in i['llm_tools']:
-            _set_enabled(tools / f'{name}.json', True)
+            _set_enabled(_tool_file(tools, name), True)
         if i['rag']:                    # the documentation tool answers from the lab's own source
-            _patch(tools / 'llm_docs_qa.json', lambda t: t['llm'].setdefault('rag', {}).update({'sources': ['lab']}))
+            _patch(_tool_file(tools, 'llm_docs_qa'), lambda t: t['llm'].setdefault('rag', {}).update({'sources': ['lab']}))
     policies = cfg_dir / 'policies'
     if not policies.exists():
         shutil.copytree(REPO / 'config' / 'policies', policies)

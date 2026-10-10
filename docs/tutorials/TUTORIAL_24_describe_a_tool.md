@@ -47,7 +47,8 @@ and press **Propose a tool**. The proposal is a **python** tool named
 - **Notes** from the model state its assumptions (percent units, basis points).
 - **Files:** the generated module `studio_us_treasury_10y_change.py` in `sajha/tools/impl/`
   (the generated class with the function's body) and its config
-  `us_treasury_10y_change.json` in `config/tools/`, whose `sandbox` block starts with
+  `us_treasury_10y_change.json` in `config/tools/` (in the tool folder named by the proposal's
+  category, when that is a valid folder name), whose `sandbox` block starts with
   `"enabled": true`. Every line is shown as an addition: nothing
   existing changes.
 

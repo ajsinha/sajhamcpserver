@@ -64,7 +64,7 @@ The first `duckdb_*` tool built for a data directory creates its sandbox: an in-
 | Setting | Where | Default |
 |---------|-------|---------|
 | Data directory | `data.duckdb.dir` in `config/application.yml`, passed to each tool as `data_directory` | `./data/duckdb` |
-| Auto refresh | `auto_refresh_enabled`, `auto_refresh_interval` (seconds) in a tool's `config/tools/duckdb_*.json` | enabled, 600 s (the shipped `duckdb_query.json` sets 300 s) |
+| Auto refresh | `auto_refresh_enabled`, `auto_refresh_interval` (seconds) in a tool's `config/tools/duckdb/duckdb_*.json` | enabled, 600 s (the shipped `duckdb_query.json` sets 300 s) |
 
 No API keys are needed. See the [Configuration Reference](../../getting-started/Configuration%20Reference.md); for where data files live on S3/Azure/GCS deployments see the [Storage Guide](../../getting-started/Storage%20Guide.md).
 

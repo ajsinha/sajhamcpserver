@@ -135,6 +135,7 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
 
 {% block content %}
 {% include "admin/studio/_studio_nav.html" %}
+{% include "admin/studio/_folder_field.html" %}
 <div class="sharepoint-creator-container py-4">
     <!-- Header -->
     <div class="creator-header">
@@ -698,7 +699,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 headers: {
                     'Content-Type': 'application/json'
                 },
-                body: JSON.stringify(data)
+                body: JSON.stringify({...data, folder: studioFolder()})
             });
             
             const result = await response.json();

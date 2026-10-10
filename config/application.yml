@@ -11,7 +11,7 @@
 
 app:
   name: SAJHA MCP Server
-  version: 8.1.0
+  version: 8.2.0
   description: Model Context Protocol Server
   author: Ashutosh Sinha
   author_email: ajsinha@gmail.com       # shown with the copyright notice; SAJHA is proprietary (see LICENSE)
@@ -321,6 +321,15 @@ config:
 hot_reload:
   enabled: true
   interval_seconds: 300
+
+# ── Tool loading ─────────────────────────────────────────────────────────────
+# A tool that failed to load (a missing environment variable, API key, package or
+# upstream) is tried again on its own, without a change to its file: every
+# retry_failed_seconds at first, then with doubling back-off up to 30 minutes.
+# 0 turns the retry off. A tool whose name is in two files is not retried; it
+# loads when one file is removed. Every worker retries its own registry.
+tools:
+  retry_failed_seconds: 300
 
 # ── Features ─────────────────────────────────────────────────────────────────
 

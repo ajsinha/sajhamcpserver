@@ -13,7 +13,7 @@ only the LLM tools that record them as creator.
   POST /admin/studio/llm/check             {config} -> check: a hand-edited config, validated
   POST /admin/studio/llm/match             {allow, deny, name?, nesting_allow?, confirm?} -> live matching
   POST /admin/studio/llm/test              {form | config, arguments, run_all?} -> one run against the mock model
-  POST /admin/studio/llm/deploy            {form | config, edit?} -> written to config/tools and loaded
+  POST /admin/studio/llm/deploy            {form | config, edit?, folder?} -> written (new: tool folder llm) and loaded
 
 Served through studio_routes.router. Guide: docs/studio/MCP Studio LLM Tool Creator Guide.md.
 """
@@ -67,6 +67,11 @@ def _config_of(data: Dict[str, Any]) -> Dict[str, Any]:
     raise BuildError('send {"form": {...}} or {"config": {...}}')
 
 
+def _tool_folders():
+    from sajha.routes.studio_routes import _tool_folders as folders
+    return folders()
+
+
 @pages.get('/llm')
 async def studio_llm(request: Request, auth: AuthContext = Depends(LLM)):
     from sajha.studio import llm_tool_builder as b
@@ -75,6 +80,7 @@ async def studio_llm(request: Request, auth: AuthContext = Depends(LLM)):
         'is_admin': auth.is_admin,
         'llm_options': await run_in_threadpool(b.options),
         'edit_name': request.query_params.get('edit') or '',
+        'tool_folders': await run_in_threadpool(_tool_folders),
     })
 
 
@@ -144,7 +150,8 @@ async def llm_test(request: Request, auth: AuthContext = Depends(LLM)):
 async def llm_deploy(request: Request, auth: AuthContext = Depends(LLM)):
     from sajha.studio import llm_tool_builder as b
     data = await _body(request)
-    return await _run(lambda: b.deploy(_config_of(data), auth, edit=bool(data.get('edit'))))
+    folder = data.get('folder') if isinstance(data.get('folder'), str) else None
+    return await _run(lambda: b.deploy(_config_of(data), auth, edit=bool(data.get('edit')), folder=folder))
 
 
 router = APIRouter()

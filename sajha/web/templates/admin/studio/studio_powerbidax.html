@@ -151,6 +151,7 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
 
 {% block content %}
 {% include "admin/studio/_studio_nav.html" %}
+{% include "admin/studio/_folder_field.html" %}
 <div class="dax-creator-container py-4">
     <!-- Header -->
     <div class="creator-header">
@@ -448,7 +449,7 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
             const response = await fetch('/admin/studio/powerbidax/deploy', {
                 method: 'POST',
                 headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify(data)
+                body: JSON.stringify({...data, folder: studioFolder()})
             });
             const result = await response.json();
             if (result.success) {

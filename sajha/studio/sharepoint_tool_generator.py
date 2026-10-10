@@ -232,7 +232,7 @@ class SharePointToolGenerator:
         output_path = self.output_dir / f"{config.name}.json"
         
         from sajha.core.storage import write_tool_config
-        write_tool_config(output_path, tool_config)
+        output_path = Path(write_tool_config(output_path, tool_config))
         logger.info(f"SharePoint tool saved via storage backend: {output_path}")
         return output_path
     

@@ -22,6 +22,24 @@ def _visible(auth: AuthContext, tool_name: str) -> bool:
     return policy_for(auth).can_see(tool_name)
 
 
+def tool_domain(registry, tool: dict) -> dict:
+    """The Tools page's grouping of one tool: ``folder`` (its tool folder; '' at the root; None without a
+    config file), ``domain`` (the folder; a proxied MCP server tool's prefix; a remote SAJHA Net tool's
+    published folder, when its host sends one) and ``unfiled`` (a local tool with no domain: the root)."""
+    name = str(tool.get('name') or '')
+    net = ((tool.get('_meta') or {}).get('io.sajha/net') or {})
+    if net.get('locality') == 'remote':
+        folder = net.get('folder') if isinstance(net.get('folder'), str) else ''
+        return {'folder': folder or None, 'domain': folder, 'unfiled': False}
+    tool_folder = getattr(registry, 'tool_folder', None)
+    folder = tool_folder(name) if callable(tool_folder) else None
+    if folder:
+        return {'folder': folder, 'domain': folder, 'unfiled': False}
+    if folder is None and '__' in name:            # a proxied (federated or external) MCP server's tool
+        return {'folder': None, 'domain': name.split('__', 1)[0], 'unfiled': False}
+    return {'folder': folder, 'domain': '', 'unfiled': True}
+
+
 @router.get('/tools')
 async def tools_list(request: Request, auth: AuthContext = Depends(require_auth)):
     from sajha.app import tools_registry
@@ -30,6 +48,7 @@ async def tools_list(request: Request, auth: AuthContext = Depends(require_auth)
     policy = policy_for(auth)       # the MCP tools/list visibility (sajha/auth/access.py)
     if not policy.unrestricted():
         tools = [t for t in tools if policy.can_see(t.get('name'))]
+    tools = [dict(t, **tool_domain(tools_registry, t)) for t in tools]
     tool_errors = tools_registry.get_tool_errors() if tools_registry else {}
     return render(request, 'tools/tools_list.html', {
         'user': {'user_id': auth.user_id, 'user_name': auth.user_name, 'roles': auth.roles},
@@ -102,5 +121,6 @@ async def tool_config_page(tool_name: str, request: Request, auth: AuthContext =
         'tool_name': tool_name,
         'tool_config': config,
         'tool_config_json': json.dumps(config, indent=2),
+        'tool_file': tools_registry.tool_path(tool_name) if hasattr(tools_registry, 'tool_path') else None,
         'is_admin': auth.is_admin,
     })

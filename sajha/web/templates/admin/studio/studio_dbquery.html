@@ -206,6 +206,7 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
 
 {% block content %}
 {% include "admin/studio/_studio_nav.html" %}
+{% include "admin/studio/_folder_field.html" %}
 <div class="container-fluid py-3 dbquery-container">
     <!-- Breadcrumb -->
     <nav aria-label="breadcrumb" class="mb-3">
@@ -737,7 +738,7 @@ async function deployTool() {
         const response = await fetch('/admin/studio/dbquery/deploy', {
             method: 'POST',
             headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify(data)
+            body: JSON.stringify({...data, folder: studioFolder()})
         });
         
         const result = await response.json();

@@ -82,6 +82,8 @@ for _c, _rs in ((RPC_AUTHORIZATION, ('export', 'access', 'policy', 'approval_req
                                    'unavailable', 'response_invalid', 'no_host', 'cancelled') + STREAM_REASONS)):
     for _r in _rs:
         CODES[_r] = _c
+RPC_INVALID_PARAMS = -32602
+CODES['state_invalid'] = RPC_INVALID_PARAMS      # §15.6: as MCP refuses a requestState that does not match
 
 SAFE_WORDS = {
     'export': 'the tool is not offered to you there', 'access': 'you do not have access to the tool there',
@@ -107,6 +109,7 @@ SAFE_WORDS = {
     'stream_limit': 'the server\'s streamed answer exceeded the stream limits',
     'stream_idle': 'the server\'s streamed answer went silent',
     'cancelled': 'the call was cancelled',
+    'state_invalid': 'the answer to the server\'s input request does not belong to this call or this user',
 }
 
 PROGRESS = 'notifications/progress'
@@ -644,7 +647,8 @@ class Router:
              on_event: Optional[Callable[[Dict[str, Any]], None]] = None,
              cancelled: Optional[Callable[[], bool]] = None, progress: bool = False,
              log_level: Optional[str] = None,
-             input_responses: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+             input_responses: Optional[Dict[str, Any]] = None,
+             request_state: Optional[str] = None) -> Dict[str, Any]:
         """Call ``name`` (qualified or plain) at its host(s); always returns a CallToolResult. ``hop_in``
         is the chain a call made while serving a forwarded call arrived on (hop count, visited list);
         ``depth`` the tools nested in one another so far on every instance passed (§16). ``relay``: the
@@ -656,7 +660,8 @@ class Router:
         message) before the result. ``progress`` asks the host for progress, ``log_level`` for log
         messages at or above it. ``cancelled()`` is polled while the stream is read; True closes the stream,
         which cancels the call at the host. ``input_responses``: the caller's answers to the host's input
-        requests (MRTR), sent as ``inputResponses`` and checked by residency like the arguments."""
+        requests (MRTR), sent as ``inputResponses`` and checked by residency like the arguments, with the host's
+        ``request_state`` from its ``input_required`` answer (§15.6): a new signed request, not a session."""
         res = self.resolve(name, user)
         tp = traceparent if trace_of(traceparent) else new_traceparent()
         trace_id = trace_of(tp)
@@ -684,7 +689,7 @@ class Router:
             if i > 1 and self.clock() >= deadline:
                 break
             stream = {'on_event': on_event, 'cancelled': cancelled, 'progress': progress, 'log_level': log_level,
-                      'input_responses': input_responses}
+                      'input_responses': input_responses, 'request_state': request_state}
             outcome = self._attempt(c, arguments, user, tp, trace_id, i, deadline, hop_in, depth, relay, stream)
             outcome['attempt'] = i
             st = outcome.get('stream') or {}
@@ -859,6 +864,8 @@ class Router:
                 'params': {'name': c.host_tool, 'arguments': arguments, '_meta': pmeta}}
         if isinstance(input_responses, dict) and input_responses:
             body['params']['inputResponses'] = input_responses
+        if isinstance(stream.get('request_state'), str):
+            body['params']['requestState'] = stream['request_state']
         raw = json.dumps(body, separators=(',', ':'), ensure_ascii=False).encode('utf-8')
         headers = {'content-type': 'application/json', 'accept': 'application/json, text/event-stream',
                    'mcp-protocol-version': MODERN, 'mcp-method': 'tools/call', 'mcp-name': c.host_tool,
@@ -1101,6 +1108,23 @@ class CallContext:
     relay: Dict[str, str] = field(default_factory=dict)        # the caller's assertion, for a re-exported call
     reexport: Optional[Dict[str, Any]] = None                   # the re-exported tool (with ``_source``), if any
     local_tool: str = ''           # the host's local name of the tool (§5.5; ``tool`` is the published name)
+    # §15.6 input requests: the answers gathered so far and the state of this host's verified requestState
+    input_responses: Dict[str, Any] = field(default_factory=dict)
+    mrtr_state: Dict[str, Any] = field(default_factory=dict)
+    mrtr_round: int = 0
+    state_verified: bool = False
+
+    def tool_context(self, **kw):
+        """The :class:`~sajha.core.mcp_tool_context.ModernToolContext` the host runs the tool under."""
+        from sajha.core.mcp_tool_context import ModernToolContext
+        return ModernToolContext(input_responses=self.input_responses, state=self.mrtr_state,
+                                 state_verified=self.state_verified, **kw)
+
+
+def mrtr_user(net: str, peer: str, user: Optional[Dict[str, Any]]) -> str:
+    """The caller a host binds its ``requestState`` to (§15.6): ``<net>/<peer>/<user id>``."""
+    u = user or {}
+    return f"{net}/{peer}/{u.get('user_id') or u.get('name') or ''}"
 
 
 class HostServer:
@@ -1213,6 +1237,8 @@ class HostServer:
         tp = h.get('traceparent') or pmeta.get('traceparent') or ''
         trace_id = trace_of(tp) or ''
         nmeta = pmeta.get(EXTENSION_ID) or {}
+        answers, request_state = params.get('inputResponses'), params.get('requestState')
+        mrtr = 'inputResponses' in params or 'requestState' in params
 
         def no(reason: str, status: int = 200, retry_after: Optional[int] = None, executed: bool = False, **extra):
             code = RPC_AUTHORIZATION if reason == 'contract_conflict' else CODES.get(reason, RPC_AUTHORIZATION)
@@ -1293,13 +1319,34 @@ class HostServer:
         q = self.book.is_quarantined(tool)
         if q:
             return no('contract_conflict', conflict={'tool': q.get('tool'), 'offers': q.get('offers') or []})
+        # §15.6: the answer to this host's input request carries its requestState, bound to this net, the
+        # sending participant and the user resolved again above; any other presenter is refused
+        responses: Dict[str, Any] = {}
+        mstate: Dict[str, Any] = {}
+        mround, verified = 0, False
+        if mrtr:
+            from sajha.core.mcp_mrtr import validate_input_responses, verify_state
+            try:
+                if 'inputResponses' in msg['params'] and answers is None:
+                    raise ValueError('inputResponses must be an object')
+                responses = dict(validate_input_responses(answers))
+                if request_state is not None:
+                    pay = verify_state(request_state, method='tools/call', target=tool, arguments=arguments,
+                                       user=mrtr_user(net, v.sender, user))
+                    mstate = dict(pay.get('s') or {})
+                    mround = int(pay.get('n') or 0)
+                    responses = {**(pay.get('r') or {}), **responses}
+                    verified = True
+            except (ValueError, TypeError):              # RequestStateError is a ValueError
+                return no('state_invalid')
         ctx = CallContext(net=net, peer=v.sender, user=user, tool=tool, trace_id=trace_id, traceparent=tp, hop=hop,
                           visited=visited, home=str(nmeta.get('home') or ''),
                           qualified_name=str(nmeta.get('qualified_name') or ''),
                           attempt=int(nmeta.get('attempt') or 1) if str(nmeta.get('attempt') or 1).isdigit() else 1,
                           key_id=str((user or {}).get('key_id') or ''), depth=depth,
                           relay={'Sajha-Net-User-Assertion': h['sajha-net-user-assertion']}
-                          if h.get('sajha-net-user-assertion') else {}, reexport=rx, local_tool=local_tool)
+                          if h.get('sajha-net-user-assertion') else {}, reexport=rx, local_tool=local_tool,
+                          input_responses=responses, mrtr_state=mstate, mrtr_round=mround, state_verified=verified)
         # 10-13: from here a call may stream (§15.10): only when the home asked (the signed body's
         # _meta["io.sajha/net"].stream = 1) and accepts an event stream; every refusal above is one JSON answer
         want = isinstance(nmeta, dict) and nmeta.get('stream') == 1 and not isinstance(nmeta.get('stream'), bool)
@@ -1315,13 +1362,12 @@ class HostServer:
             out['cache-control'] = 'no-store'
             out['x-accel-buffering'] = 'no'
             return PeerResponse(200, out, b'', stream=hs, close=hs.close)
-        from sajha.core.mcp_tool_context import ModernToolContext
-        tctx = ModernToolContext()               # a JSON answer carries no events; nothing leaks to another context
+        tctx = ctx.tool_context()                # a JSON answer carries no events; nothing leaks to another context
         token = tctx.activate()
         try:
             msg, log = self._finish(ctx, arguments, rid)
         finally:
-            ModernToolContext.deactivate(token)
+            tctx.deactivate(token)
         self._log(*log)
         return self._respond(200, msg, h, v.sender)
 
@@ -1336,10 +1382,22 @@ class HostServer:
                      'error': refusal(code, reason, 'host', net, me, tool, trace_id, executed=executed, **extra)},
                     ('net.host_refused', ctx.peer, tool, trace_id, reason, executed))
         # 10, 11: the host's own access, policy and approvals; execution
+        from sajha.core.mcp_mrtr import InputRequired, sign_state
         try:
             result = self.execute(ctx, arguments)
         except HostRefusal as e:
             return no(e.reason, executed=e.executed, **(getattr(e, 'extra', None) or {}))
+        except InputRequired as ir:
+            # §15.6: the tool needs its caller's input: the final answer is an input_required result with
+            # this host's requestState (answers so far, the tool's state), bound to net, peer and user
+            carried = {k: val for k, val in ctx.input_responses.items() if k not in ir.requests}
+            state = sign_state(method='tools/call', target=tool, arguments=arguments,
+                               user=mrtr_user(net, ctx.peer, ctx.user), responses=carried,
+                               state={**ctx.mrtr_state, **ir.state}, round_no=ctx.mrtr_round + 1)
+            result = {'resultType': 'input_required', 'inputRequests': dict(ir.requests), 'requestState': state,
+                      '_meta': {EXTENSION_ID: {'instance': me}}}
+            return ({'jsonrpc': '2.0', 'id': rid, 'result': result},
+                    ('net.host_call', ctx.peer, tool, trace_id, 'input_required', True, ctx))
         # 12: residency of the result
         d = _decide(self.rules, 'residency_result', {'net': net, 'host': me, 'peer': ctx.peer, 'tool': tool,
                                                       'user': ctx.user, 'result': result, 'trace_id': trace_id})
@@ -1391,14 +1449,13 @@ class _HostStream:
 
     def __init__(self, host: HostServer, ctx: CallContext, arguments: Dict[str, Any], rid: Any, h: Dict[str, str],
                  progress_token: Any, log_level: Optional[str]):
-        from sajha.core.mcp_tool_context import ModernToolContext
         self.host, self.ctx, self.rid = host, ctx, rid
         self.settings = host.streaming
         self.signer = host.node.signer
         self.chain = httpsig.EventChain(httpsig.request_signature_bytes(h))
         self.nonce = httpsig.request_nonce(h)
         self.q: 'queue.Queue[Tuple[str, Any]]' = queue.Queue()
-        self.tctx = ModernToolContext(progress_token=progress_token, log_level=log_level, emit=self._emit)
+        self.tctx = ctx.tool_context(progress_token=progress_token, log_level=log_level, emit=self._emit)
         self._out: 'collections.deque[bytes]' = collections.deque()
         self._closed = threading.Event()
         self._lock = threading.Lock()

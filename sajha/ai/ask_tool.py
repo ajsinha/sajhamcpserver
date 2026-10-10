@@ -3,7 +3,7 @@ SAJHA MCP Server — ``sajha_ask``: a compatibility shim over the LLM-tool type.
 Copyright All rights Reserved 2025-2030, Ashutosh Sinha
 
 ``sajha_ask`` is an LLM tool (docs/architecture/LLM Tools.md §18): its definition is
-``config/tools/sajha_ask.json`` (mode ``answer``, conversation memory, every tool allowed), loaded
+``config/tools/sajha/sajha_ask.json`` (mode ``answer``, conversation memory, every tool allowed), loaded
 by the tool registry like any tool and disabled there. ``ai.ask.mcp_tool_enabled`` stays its on/off
 switch: :func:`register_if_enabled` turns the tool on or off from it at start-up and after each
 reload.
@@ -31,17 +31,29 @@ from sajha.ai.llm_tools.tool import LLMTool
 logger = logging.getLogger(__name__)
 
 TOOL_NAME = "sajha_ask"
-CONFIG_REL = f"config/tools/{TOOL_NAME}.json"
+CONFIG_REL = f"config/tools/{TOOL_NAME}.json"      # the root location; the file may be in a tool folder
+
+
+def config_rel() -> str:
+    """Where the tool's config is (root or folder), from the tool file index."""
+    try:
+        from sajha.tools.tool_files import config_path
+        return config_path(TOOL_NAME)
+    except Exception:
+        return CONFIG_REL
 
 
 def load_config() -> Dict[str, Any]:
-    """The tool's definition: through the storage backend, else the file shipped in the repository."""
+    """The tool's definition: through the storage backend, else the file shipped in the repository
+    (in the tools directory or one of its folders)."""
     try:
         from sajha.core.storage import get_storage
-        return dict(get_storage().read_json(CONFIG_REL))
+        return dict(get_storage().read_json(config_rel()))
     except Exception:
-        root = Path(__file__).resolve().parents[2]
-        return json.loads((root / CONFIG_REL).read_text(encoding="utf-8"))
+        root = Path(__file__).resolve().parents[2] / "config" / "tools"
+        found = [root / f"{TOOL_NAME}.json"] + sorted(root.glob(f"*/{TOOL_NAME}.json"))
+        path = next((p for p in found if p.is_file()), found[0])
+        return json.loads(path.read_text(encoding="utf-8"))
 
 
 class SajhaAskTool(LLMTool):
@@ -131,7 +143,7 @@ def register_if_enabled(tools_registry, settings) -> bool:
         try:
             tool = SajhaAskTool()
         except Exception as e:
-            logger.warning(f"sajha_ask: cannot load {CONFIG_REL}: {e}")
+            logger.warning(f"sajha_ask: cannot load {config_rel()}: {e}")
             return False
         tools_registry.register_tool(tool)
     if not tool.enabled:

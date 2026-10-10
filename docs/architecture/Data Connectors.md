@@ -44,11 +44,11 @@ generated tools.
  config/connectors/<id>.json  (storage backend; the admin page writes it)
         │  save / startup sync
         ▼
- sajha/connectors/service.py ── writes ──► config/tools/<id>__list_tables.json   ┐
-        │                                  config/tools/<id>__describe_table.json│ ConnectorTool
-        │                                  config/tools/<id>__query.json         │ (one generic
-        │                                  config/tools/<id>__<view>.json        │  implementation)
-        │                                  config/tools/<id>__search.json        ┘
+ sajha/connectors/service.py ── writes ──► config/tools/<id>/<id>__list_tables.json   ┐
+        │                                  config/tools/<id>/<id>__describe_table.json│ ConnectorTool
+        │                                  config/tools/<id>/<id>__query.json         │ (one generic
+        │                                  config/tools/<id>/<id>__<view>.json        │  implementation)
+        │                                  config/tools/<id>/<id>__search.json        ┘
         ▼
  MCP · REST · Ask SAJHA · A2A · composites
         │
@@ -66,6 +66,8 @@ generated tools.
         ├─ masking.apply()    hide / null / redact / hash / partial / pii per column
         └─ audit + metrics    connector.query record; sajha_connector_* series
 ```
+
+A connection's tools are filed in the tool folder named by its id (when the id is a valid folder name, else the root); a tool that already exists stays in its file ([Architecture](Architecture.md#tool-config-files-and-folders)).
 
 | Code | What |
 |---|---|

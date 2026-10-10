@@ -14,12 +14,13 @@ from unittest import mock
 
 import pytest
 import yaml
+from tests.tool_config_files import tool_file, tool_files  # noqa: E402
 
 ROOT = Path(__file__).resolve().parent.parent
 
 
 def _config(name: str) -> dict:
-    return json.loads((ROOT / 'config' / 'tools' / f'{name}.json').read_text())
+    return json.loads(tool_file(name).read_text())
 
 
 # ── 1. OLAP: the operation is the tool's own name ───────────────────────────
@@ -102,7 +103,7 @@ def test_valid_arguments_pass_and_a_broken_schema_falls_back_to_required():
 def test_every_builtin_tool_schema_is_valid_json_schema():
     import jsonschema
     bad = []
-    for path in sorted((ROOT / 'config' / 'tools').glob('*.json')):
+    for path in tool_files('*.json'):
         schema = json.loads(path.read_text()).get('inputSchema')
         if not schema:
             continue
@@ -582,12 +583,19 @@ def test_registry_load_all_tools_publishes_once(tmp_path):
         def list_files(self, prefix, pattern):
             return [f'config/tools/calc_{n}.json' for n in ('percentage_change', 'future_value', 'present_value')]
 
-    loaded = []
+        def get_modified_time(self, rel):
+            return 0.0
+
+        def read_json(self, rel):
+            return {'name': Path(rel).stem}
+
+    loaded, st = [], Storage()
     with mock.patch('sajha.core.change_bus.get_change_bus', return_value=bus), \
-            mock.patch('sajha.tools.tools_registry.get_storage', return_value=Storage()), \
-            mock.patch.object(reg, 'load_tool_from_config',
-                              side_effect=lambda rel: (loaded.append(rel),
-                                                       reg.register_tool(_schema_tool_named(Path(rel).stem)))):
+            mock.patch('sajha.tools.tools_registry.get_storage', return_value=st), \
+            mock.patch('sajha.tools.tool_files._storage', return_value=st), \
+            mock.patch.object(reg, 'register_tool_from_dict',
+                              side_effect=lambda cfg, source='': (loaded.append(source),
+                                                                  reg.register_tool(_schema_tool_named(cfg['name'])))):
         reg.load_all_tools()
     assert len(loaded) == 3 and len(store.published) == 3
     bus.detach_store()

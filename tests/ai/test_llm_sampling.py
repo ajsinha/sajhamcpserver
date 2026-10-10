@@ -22,6 +22,7 @@ from sajha.ai.llm_tools.runtime import Runtime, set_runtime
 from sajha.core.mcp_mrtr import InputRequired
 from sajha.core.mcp_tool_context import ModernToolContext
 from tests.ai.conftest import ToolBox, make_gateway
+from tests.tool_config_files import tool_file, tool_files  # noqa: E402
 
 ROOT = Path(__file__).resolve().parent.parent.parent
 ADMIN = RequestContext(user_id="", roles=["admin"], is_admin=True)
@@ -39,7 +40,7 @@ def fresh_runtime(tmp_path):
 
 
 def summariser(sampling="prefer", name="t_sum", cache=False):
-    with open(ROOT / "config/tools/llm_summarise.json") as f:
+    with open(tool_file("llm_summarise")) as f:
         cfg = json.load(f)
     cfg.update(name=name, enabled=True)
     cfg["llm"] = {**cfg["llm"], "sampling": sampling, "cache": cache}

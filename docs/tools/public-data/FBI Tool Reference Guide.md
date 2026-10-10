@@ -16,7 +16,7 @@
 
 ## Overview
 
-The FBI tools (prefix `fbi_`, one implementation module: `sajha/tools/impl/fbi_tool_refactored.py`, configs `config/tools/fbi_*.json`) read crime statistics from the FBI Crime Data Explorer (CDE), the publication platform of the FBI's Uniform Crime Reporting (UCR) program, at national, state and agency level. The live catalog in the app (Tools page, or `tools/list`) is authoritative for the tools and their schemas.
+The FBI tools (prefix `fbi_`, one implementation module: `sajha/tools/impl/fbi_tool_refactored.py`, configs `config/tools/fbi/fbi_*.json`) read crime statistics from the FBI Crime Data Explorer (CDE), the publication platform of the FBI's Uniform Crime Reporting (UCR) program, at national, state and agency level. The live catalog in the app (Tools page, or `tools/list`) is authoritative for the tools and their schemas.
 
 | Tool | Answers | CDE API path(s) |
 |------|---------|-----------------|

@@ -564,9 +564,14 @@ class S3SyncManager:
                     logger.error(f"S3 sync error for {prefix}: {e}", exc_info=True)
 
     def _check_changes(self, prefix: str) -> List[str]:
-        """Check for new/modified files under prefix."""
+        """Check for new, modified and deleted files under prefix (folders included: listing is recursive,
+        and a removed folder is its files deleted)."""
         changed = []
         files = self.storage.list_files(prefix)
+        listed = set(files)
+        for f in [k for k in self._timestamps if k.startswith(prefix.rstrip('/') + '/') and k not in listed]:
+            self._timestamps.pop(f, None)
+            changed.append(f)
         for f in files:
             mtime = self.storage.get_modified_time(f)
             if f not in self._timestamps or mtime > self._timestamps[f]:
@@ -676,21 +681,34 @@ def get_storage() -> StorageBackend:
     return _storage
 
 
-def write_tool_config(local_path, config_or_text) -> str:
+def write_tool_config(local_path, config_or_text, folder: Optional[str] = None) -> str:
     """
     Persist a Studio/registry tool-config JSON through the active storage backend.
 
-    `local_path` is the conventional local path (e.g. '.../config/tools/<name>.json');
-    the object is stored at the storage-relative key 'config/tools/<name>.json', so the
-    config lands in whatever backend is configured (local | s3 | azure | gcs). The tool's
-    generated .py implementation is written separately to the local package by the
-    generator, because importlib needs a real module on the Python path.
+    `local_path` names the tool: a conventional path ('.../config/tools/<name>.json') or a
+    storage-relative one. Where it lands is decided by the tool file index
+    (sajha/tools/tool_files.py): an existing tool is written back to its current file, root or
+    folder (an edit never moves a tool); a new one goes to `folder` (default: the writer's target
+    folder, else the root). A storage-relative path that already names a folder
+    ('config/tools/<folder>/<name>.json') is written as given. The backend is whatever is
+    configured (local | s3 | azure | gcs). The tool's generated .py implementation is written
+    separately to the local package by the generator, because importlib needs a real module.
     """
-    import os as _os
-    rel = f"config/tools/{_os.path.basename(str(local_path))}"
-    st = get_storage()
-    if isinstance(config_or_text, (dict, list)):
-        st.write_json(rel, config_or_text)
-    else:
-        st.write_text(rel, config_or_text)
-    return rel
+    from sajha.tools import tool_files
+    s = str(local_path).replace('\\', '/')
+    if Path(s).is_absolute():
+        try:
+            s = Path(s).relative_to(Path.cwd()).as_posix()
+        except ValueError:
+            pass
+    idx = tool_files.get_index()
+    folder_given, ok = idx.split(s)
+    if ok and folder_given:
+        st = get_storage()
+        if isinstance(config_or_text, (dict, list)):
+            st.write_json(s, config_or_text)
+        else:
+            st.write_text(s, config_or_text)
+        idx.note(s, tool_files._name_of(config_or_text, s))
+        return s
+    return tool_files.write_config(Path(s).stem, config_or_text, folder)

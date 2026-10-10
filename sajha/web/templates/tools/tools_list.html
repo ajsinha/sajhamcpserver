@@ -138,7 +138,7 @@ const toolsData = [
       executeUrl: "{{ url_for('tool_execute', tool_name=tool.name) }}",
       requiredParams: {% if tool.inputSchema and tool.inputSchema.required %}{{ tool.inputSchema.required|length }}{% else %}0{% endif %},
       totalParams: {% if tool.inputSchema and tool.inputSchema.properties %}{{ tool.inputSchema.properties|length }}{% else %}0{% endif %},
-      group: "{{ tool.name.split('_')[0] if '_' in tool.name else 'unknown' }}",
+      group: {{ ('__unfiled__' if tool.unfiled else (tool.domain or ''))|tojson }},
       cacheTtl: {{ tool.config.get('cache_ttl', 0) if tool.config else 0 }},
       net: {{ ((tool.get('_meta') or {}).get('io.sajha/net') or {})|tojson }}
     }{% if not loop.last %},{% endif %}
@@ -152,20 +152,23 @@ const GPAL = ['var(--sajha-crimson)','var(--sajha-indigo)','var(--sajha-ok)','va
     'color-mix(in srgb, var(--sajha-crimson) 55%, var(--sajha-warn))',
     'color-mix(in srgb, var(--sajha-indigo) 60%, var(--sajha-crimson))'];
 function gcol(g){ let h=0; for (const ch of String(g||'')) h=(h*31+ch.charCodeAt(0))>>>0; return GPAL[h%GPAL.length]; }
+// A tool's domain is its tool folder (config/tools/<folder>/), a proxied server's prefix, or the folder a
+// remote SAJHA Net host publishes; tools at the root of config/tools are "Unfiled".
+function glabel(g){ return g === '__unfiled__' ? 'Unfiled' : (g || '—'); }
 function gstyle(c){ return `background:color-mix(in srgb, ${c} 14%, var(--sajha-surface));color:color-mix(in srgb, ${c} 80%, var(--sajha-ink));border:1px solid color-mix(in srgb, ${c} 35%, transparent);`; }
 
 let currentPage = 1, rowsPerPage = 25, filteredData = [...toolsData];
 
 // Build group index
 const groupCounts = {};
-toolsData.forEach(t => { groupCounts[t.group] = (groupCounts[t.group]||0) + 1; });
-const groups = Object.keys(groupCounts).sort();
+toolsData.forEach(t => { if (t.group) groupCounts[t.group] = (groupCounts[t.group]||0) + 1; });
+const groups = Object.keys(groupCounts).sort((a, b) => (a === '__unfiled__') - (b === '__unfiled__') || a.localeCompare(b));
 
 // Populate dropdown
 const gs = document.getElementById('groupFilter');
 groups.forEach(g => {
     const o = document.createElement('option');
-    o.value = g; o.textContent = `${g.toUpperCase()} (${groupCounts[g]})`;
+    o.value = g; o.textContent = `${glabel(g)} (${groupCounts[g]})`;
     gs.appendChild(o);
 });
 
@@ -174,7 +177,7 @@ const bb = document.getElementById('groupBadges');
 groups.forEach(g => {
     const b = document.createElement('span');
     b.className = 'badge rounded-pill'; b.style.cssText = `${gstyle(gcol(g))}cursor:pointer;font-size:0.72rem;`;
-    b.textContent = `${g} (${groupCounts[g]})`;
+    b.textContent = `${glabel(g)} (${groupCounts[g]})`; b.dataset.group = g;
     b.onclick = () => { gs.value = g; applyFilters(); };
     bb.appendChild(b);
 });
@@ -227,11 +230,11 @@ function applyFilters() {
     const sort = document.getElementById('sortBy').value;
     if (sort === 'name_asc') filteredData.sort((a,b) => a.name.localeCompare(b.name));
     else if (sort === 'name_desc') filteredData.sort((a,b) => b.name.localeCompare(a.name));
-    else if (sort === 'group_asc') filteredData.sort((a,b) => a.group.localeCompare(b.group) || a.name.localeCompare(b.name));
+    else if (sort === 'group_asc') filteredData.sort((a,b) => glabel(a.group).localeCompare(glabel(b.group)) || a.name.localeCompare(b.name));
     currentPage = 1; renderTable();
     document.getElementById('headerCount').textContent = `${filteredData.length} of ${toolsData.length} tools`;
     // Highlight active badge
-    bb.querySelectorAll('.badge').forEach(b => { b.style.opacity = group === 'all' || b.textContent.startsWith(group) ? '1' : '0.5'; });
+    bb.querySelectorAll('.badge').forEach(b => { b.style.opacity = group === 'all' || b.dataset.group === group ? '1' : '0.5'; });
 }
 
 function hl(text, term) {
@@ -254,7 +257,7 @@ function renderTable() {
         const pBadge = t.totalParams > 0 ? `<span class="badge bg-secondary">${t.totalParams}</span>` : '<span class="badge bg-light text-dark">0</span>';
         const cacheBadge = t.cacheTtl > 0 ? `<span class="badge bg-info" title="Cached ${t.cacheTtl}s"><i class="bi bi-database me-1"></i>${t.cacheTtl >= 3600 ? Math.round(t.cacheTtl/3600)+'h' : t.cacheTtl >= 60 ? Math.round(t.cacheTtl/60)+'m' : t.cacheTtl+'s'}</span>` : '';
         tbody.innerHTML += `<tr>
-            <td><span class="badge" style="${gstyle(c)}">${t.group.toUpperCase()}</span></td>
+            <td><span class="badge" style="${gstyle(c)}">${glabel(t.group)}</span></td>
             <td><strong>${search ? hl(t.name, search) : t.name}</strong> ${cacheBadge} ${netBadge(t)}</td>
             <td class="small">${search ? hl(t.description, search) : t.description}</td>
             <td>${pBadge}</td>
@@ -290,12 +293,12 @@ document.getElementById('clearSearch').addEventListener('click', () => { documen
 document.addEventListener('DOMContentLoaded', applyFilters);
 
 // #10 Category chips
-var chipGroups = [...new Set(toolsData.map(t => t.group))].sort();
+var chipGroups = groups;
 var chipContainer = document.getElementById('categoryChips');
 if (chipContainer) {
     chipGroups.forEach(function(g) {
         var count = toolsData.filter(function(t){return t.group===g}).length;
-        chipContainer.innerHTML += '<span class="filter-chip" data-cat="'+g+'" data-onclick="filterCategory(this)">'+g+' <small>('+count+')</small></span>';
+        chipContainer.innerHTML += '<span class="filter-chip" data-cat="'+g+'" data-onclick="filterCategory(this)">'+glabel(g)+' <small>('+count+')</small></span>';
     });
 }
 function filterCategory(el) {
@@ -333,14 +336,14 @@ function renderCards() {
     container.innerHTML = '';
     const data = filteredData || allTools;
     data.forEach(t => {
-        const group = (t.name || '').split('_')[0];
+        const group = t.group;
         const color = gcol(group);
         const card = document.createElement('div');
         card.className = 'col-md-6 col-lg-4 col-xl-3';
         card.innerHTML = `<div class="tool-card">
             <a href="/tools/${t.name}/schema" class="tool-name">${t.name}</a>
             <div class="tool-desc">${t.description || 'No description'}</div>
-            <span class="tool-provider" style="${gstyle(color)}">${group.toUpperCase()}</span>
+            <span class="tool-provider" style="${gstyle(color)}">${glabel(group)}</span>
         </div>`;
         container.appendChild(card);
     });

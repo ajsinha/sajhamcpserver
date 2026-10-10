@@ -353,6 +353,8 @@ class Sponsorships:
                            limits=s.limits).attach()
         if 'residency' in main.extra_features and 'residency' not in node.extra_features:
             node.extra_features.append('residency')
+        if 'mrtr' in main.extra_features and 'mrtr' not in node.extra_features:
+            node.extra_features.append('mrtr')              # §15.6: its proxied tools' input requests relay too
         book.start()
 
         def execute(ctx: CallContext, arguments: Dict[str, Any], source=source):

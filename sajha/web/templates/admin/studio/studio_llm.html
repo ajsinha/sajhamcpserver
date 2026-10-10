@@ -36,6 +36,8 @@ Guide: docs/studio/MCP Studio LLM Tool Creator Guide.md; design: docs/architectu
 
 {% block content %}
 {% include "admin/studio/_studio_nav.html" %}
+{% set folder_placeholder = "empty: llm (the LLM tools folder)" %}
+{% include "admin/studio/_folder_field.html" %}
 <div class="container-fluid py-3">
     <nav aria-label="breadcrumb" class="mb-3">
         <ol class="breadcrumb">
@@ -392,7 +394,7 @@ Guide: docs/studio/MCP Studio LLM Tool Creator Guide.md; design: docs/architectu
             <div class="form-section">
                 <div class="section-header"><i class="bi bi-rocket-takeoff" aria-hidden="true"></i>10. <span id="ltDeployTitle">Deploy</span></div>
                 <div class="section-body">
-                    <p class="small text-muted mb-2" id="ltDeployHelp">Writes <code>config/tools/&lt;name&gt;.json</code> and loads it: it is callable over MCP at once, under the same access rules, policies and audit as every tool.</p>
+                    <p class="small text-muted mb-2" id="ltDeployHelp">Writes the tool's config (a new tool goes into the folder above, <code>llm</code> by default; an edit stays where it is) and loads it: it is callable over MCP at once, under the same access rules, policies and audit as every tool.</p>
                     <button type="button" class="btn btn-success" id="ltDeploy" disabled><i class="bi bi-rocket-takeoff me-1" aria-hidden="true"></i><span id="ltDeployLabel">Deploy</span></button>
                     <button type="button" class="btn btn-outline-secondary ms-2" id="ltNew">Start a new tool</button>
                     <div id="ltDeployResult" class="mt-2" aria-live="polite"></div>
@@ -547,7 +549,7 @@ Guide: docs/studio/MCP Studio LLM Tool Creator Guide.md; design: docs/architectu
         last = config;
         $('ltConfig').textContent = JSON.stringify(config, null, 2);
         if (!jsonMode) $('ltJson').value = JSON.stringify(config, null, 2);
-        $('ltFile').textContent = 'config/tools/' + (config.name || '<name>') + '.json';
+        $('ltFile').textContent = 'config/tools/' + (editing ? '' : (studioFolder() || 'llm') + '/') + (config.name || '<name>') + '.json';
         const errs = check.errors || [], warns = check.warnings || [];
         $('ltProblems').innerHTML = errs.map(e => '<div class="alert alert-danger py-1 small mb-2">' + esc(e) + '</div>').join('') +
             warns.map(w => '<div class="alert alert-warning py-1 small mb-2">' + esc(w) + '</div>').join('') +
@@ -697,7 +699,7 @@ Guide: docs/studio/MCP Studio LLM Tool Creator Guide.md; design: docs/architectu
         try { b = body(); } catch (e) { message(e.message, 'danger'); return; }
         const name = jsonMode ? (b.config.name || '') : b.form.name;
         if (!confirm((editing ? 'Save the changes to ' : 'Deploy ') + name + ' now? It becomes callable at once.')) return;
-        const data = await call('POST', '/admin/studio/llm/deploy', {...b, edit: !!editing});
+        const data = await call('POST', '/admin/studio/llm/deploy', {...b, edit: !!editing, folder: editing ? undefined : studioFolder()});
         if (!data.success) {
             $('ltDeployResult').innerHTML = '<div class="alert alert-danger py-2">' + esc(data.error) + '</div>';
             if (data.check) show(jsonMode ? b.config : last, data.check);

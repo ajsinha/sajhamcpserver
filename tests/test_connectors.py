@@ -26,6 +26,7 @@ import pytest
 from sajha.connectors import catalog, engine, guard, model, pool, service, sqltext, store, vector
 from sajha.connectors.drivers import ConnectorError, DriverMissing, QueryTimeout, get_driver
 from sajha.connectors.guard import GuardError
+from tests.tool_config_files import tool_file, tool_files  # noqa: E402
 
 
 # ── fixtures ────────────────────────────────────────────────────────────
@@ -64,7 +65,11 @@ class FakeRegistry:
         self._tools_lock = threading.RLock()
 
     def _config_rel(self, ref):
-        return f'config/tools/{Path(str(ref)).stem}.json'
+        s = str(ref)                    # a storage path keeps its tool folder; a name is looked up
+        if s.startswith('config/tools/'):
+            return s
+        from sajha.tools.tool_files import get_index
+        return get_index('config/tools').target_path(Path(s).stem, '')
 
     def load_tool_from_config(self, ref):
         from sajha.connectors.tools import ConnectorTool
@@ -315,7 +320,8 @@ def test_saving_generates_planner_friendly_read_only_tools(shop, storage_dir):
     assert ':name' in cfg['description'] and 'Orders and customers.' in cfg['description']
     assert 'shop__describe_table' in reg.tool_configs['shop__list_tables']['description']
     assert (storage_dir / 'config' / 'connectors' / 'shop.json').exists()
-    assert (storage_dir / 'config' / 'tools' / 'shop__query.json').exists()
+    assert (storage_dir / 'config' / 'tools' / 'shop' / 'shop__query.json').exists()   # the connection's tool folder
+    assert not (storage_dir / 'config' / 'tools' / 'shop__query.json').exists()
     # the record holds no secret values and the tool configs hold no connection settings
     assert 'path' not in json.dumps(cfg) and cfg['connector'] == {'connection': 'shop', 'op': 'query'}
 
@@ -955,5 +961,5 @@ def test_admin_page_and_api(web, tmp_path):
     finally:
         out = c.delete('/api/connectors/zz_test_conn', cookies=admin).json()
         assert out['success'] and 'zz_test_conn__query' in out['removed']
-        assert not list((ROOT / 'config' / 'tools').glob('zz_test_conn__*.json'))
+        assert not tool_files('zz_test_conn__*.json')
         assert not (ROOT / 'config' / 'connectors' / 'zz_test_conn.json').exists()

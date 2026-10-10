@@ -255,7 +255,9 @@ Written for someone who does *not* already know the field. Where a term has a ge
 | Term | Meaning |
 |---|---|
 | **BaseMCPTool** | The abstract base class (`sajha/tools/base_mcp_tool.py`) every tool extends, implementing `get_input_schema()`, `get_output_schema()` and `execute()`. |
-| **Tool configuration** | A JSON file in `config/tools/` defining a tool's name, implementation class, description, schemas and metadata (`annotations`, `cache_ttl`, `execution.taskSupport`, `_meta.ui`, literature). |
+| **Tool configuration** | A JSON file in `config/tools/` (or one of its tool folders) defining a tool's name, implementation class, description, schemas and metadata (`annotations`, `cache_ttl`, `execution.taskSupport`, `_meta.ui`, literature). |
+| **Tool folder** | A folder one level below `config/tools/` (`config/tools/<folder>/<name>.json`) that files tool configs, usually one per provider (`fmp`, `fred`, `llm`). It organises and never renames: a tool's name is the one in its config. A name may exist in one place only (the root or one folder); two files with the same name load neither. Files nested deeper are ignored. |
+| **Unfiled (tool)** | On the Tools page, a local tool with no tool folder: its config is at the root of `config/tools/` (or it has no config file). |
 | **JSON Configuration** | The underlying JSON document that defines a tool or prompt, editable in the console. |
 | **JSON Schema** | A vocabulary for describing and validating the structure of JSON documents; SAJHA uses the 2020-12 dialect for tool schemas. |
 | **Input Schema** | The console's label for a tool's **inputSchema**. |
@@ -304,8 +306,9 @@ Written for someone who does *not* already know the field. Where a term has a ge
 | **MCP Studio** | The visual tool-creation console at `/studio`, open to administrators and to roles with a Studio permission (the seeded `developer` role has `studio:*`). Generates a tool's Python class and JSON config without hand-coding. |
 | **Studio permission** | A role permission with resource type `studio` that opens one creator: `studio:<creator>` (`python`, `rest`, `api_import`, `dbquery`, `script`, `powerbi`, `powerbidax`, `livelink`, `sharepoint`, `olap`, `composite`, `describe`, `llm`) or `studio:*` for all of them. The planner editor needs the admin role. |
 | **Tool creator** (*ownership*) | The user a Studio-made tool records as its maker (`metadata.created_by` in the tool config; the row's `created_by` for a composite; the import record for API Import). A non-admin may change or delete only what records them. |
-| **Creator** | One of Studio's tool builders: Python Code, REST Service, Import an API, DB Query, Script, Power BI Report, Power BI DAX, LiveLink, SharePoint, OLAP, Composite, Describe a tool and LLM tool. |
+| **Creator** | One of Studio's tool builders: Python Code, REST Service, Import an API, DB Query, Script, Power BI Report, Power BI DAX, LiveLink, SharePoint, OLAP, Composite, Describe a tool, LLM tool and Import JSON. |
 | **LLM tool creator** | The Studio page (`/studio/llm`, permission `studio:llm`) that writes an LLM tool's config from a form: mode, model alias, instructions, allowed tools with live matching, limits within the ceilings, memory, planner, sampling; it checks the config with the loader's own rules, runs it once on the mock model and deploys or edits the file. |
+| **Import JSON** | The Studio page (`/studio/json`, administrators only) that deploys a tool from a pasted or uploaded tool config into a chosen tool folder (offered from the config's optional `folder` key, else its `metadata.category`); the `folder` key is not saved. |
 | **Planner editor** | The Studio page (`/studio/planners`, administrators only) for planner files: the registry's load problems, the file with schema and P-rule findings, a graph of stages and transitions, a dry run, and saving a new version (the replaced one kept as `name@version`). |
 | **@sajhamcptool decorator** | A Python decorator that marks a function for conversion into an MCP tool by the Python Code creator. |
 | **AST** (*Abstract Syntax Tree*) | The parsed structure of code. Studio analyses a function's AST to find its name, parameters, type hints and docstring. |
@@ -725,6 +728,9 @@ Written for someone who does *not* already know the field. Where a term has a ge
 | **Reference library** | `sajha.net.library`: a complete SAJHA Net participant built from the protocol core alone (`NetParticipant`), for a Python MCP server that joins a net itself; the SAJHA Net agent is built on it. |
 | **SAJHA Net conformance suite** | The cases of the SAJHA Net protocol's §20, run by `python -m sajha.net.conformance` against a SAJHA instance, an agent or a sponsored participant over HTTP, or against the protocol core (`--target library`); every case is reported pass, fail or skip with its reason. |
 | **SAJHA Net plug-in** | A third-party implementation of one of SAJHA Net's plug-in interfaces (membership, admission, connector, identity, catalog source, key directory store, rules, snapshot sink, routing), loaded at start from `sajhanet.plugins.modules` or the entry-point group `sajha.net.plugins`, and selectable only after it passes its contract check. |
+| **Signed event stream** | A host's answer to a forwarded call sent as server-sent events, asked for by the home and given only by a host that lists `streaming`: progress and log events as the tool runs, each signed, then the signed final answer; the home verifies each event before relaying it to its caller (protocol §15.10). |
+| **Event chain** | How a signed event stream is protected: each event's signature covers a running hash of every event before it, starting from the request's own signature, and the final answer closes the chain, so a forged, reordered, dropped or spliced event, or a cut stream, is refused (protocol §8.9). |
+| **Transcript digest** | The final hash of a stream's event chain, recorded in the audit by both the home (`net.call_attempt`) and the host (`net.host_call`); equal digests show both saw the same events in the same order. |
 
 ---
 

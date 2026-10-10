@@ -78,28 +78,31 @@ The generator classes in `sajha.studio` (`ToolCodeGenerator`, `RESTToolGenerator
 
 | Creator | Tool config | Generated implementation | Other files |
 |---------|-------------|--------------------------|-------------|
-| Python code | `config/tools/<name>.json` | `sajha/tools/impl/studio_<name>.py` | none |
-| REST service | `config/tools/<name>.json` | `sajha/tools/impl/rest_<name>.py` | none |
-| DB query | `config/tools/<name>.json` | `sajha/tools/impl/dbquery_<name>.py` | none |
-| Script | `config/tools/<name>.json` | `sajha/tools/impl/<name>_script_tool.py` | the script itself, `config/scripts/<name>.<ext>` |
-| PowerBI report | `config/tools/<name>.json` | `sajha/tools/impl/powerbi_<name>.py` | none |
-| PowerBI DAX | `config/tools/<name>.json` | `sajha/tools/impl/powerbidax_<name>.py` | none |
-| IBM LiveLink | `config/tools/<name>.json` | `sajha/tools/impl/livelink_<name>.py` | none |
-| SharePoint | `config/tools/<name>.json` | none (points at the built-in `sajha.tools.impl.sharepoint_tool` classes) | none |
-| Import an API | `config/tools/<name>.json`, one per operation | none (every tool uses `sajha.api_import.executor.ImportedAPITool`) | the import record, `config/api_imports/<api_id>.json` |
+| Python code | `config/tools/[<folder>/]<name>.json` | `sajha/tools/impl/studio_<name>.py` | none |
+| REST service | `config/tools/[<folder>/]<name>.json` | `sajha/tools/impl/rest_<name>.py` | none |
+| DB query | `config/tools/[<folder>/]<name>.json` | `sajha/tools/impl/dbquery_<name>.py` | none |
+| Script | `config/tools/[<folder>/]<name>.json` | `sajha/tools/impl/<name>_script_tool.py` | the script itself, `config/scripts/<name>.<ext>` |
+| PowerBI report | `config/tools/[<folder>/]<name>.json` | `sajha/tools/impl/powerbi_<name>.py` | none |
+| PowerBI DAX | `config/tools/[<folder>/]<name>.json` | `sajha/tools/impl/powerbidax_<name>.py` | none |
+| IBM LiveLink | `config/tools/[<folder>/]<name>.json` | `sajha/tools/impl/livelink_<name>.py` | none |
+| SharePoint | `config/tools/[<folder>/]<name>.json` | none (points at the built-in `sajha.tools.impl.sharepoint_tool` classes) | none |
+| Import an API | `config/tools/<prefix>/<name>.json`, one per operation | none (every tool uses `sajha.api_import.executor.ImportedAPITool`) | the import record, `config/api_imports/<api_id>.json` |
+| Import JSON | `config/tools/[<folder>/]<name>.json`, the config as given less its `folder` key | none (the config names its own `implementation`) | none |
 | OLAP dataset | none | none | dataset definitions under `config/olap/` |
-| LLM tool | `config/tools/<name>.json` | none (every LLM tool uses `sajha.ai.llm_tools.LLMTool`) | none |
+| LLM tool | `config/tools/[<folder>/]<name>.json` | none (every LLM tool uses `sajha.ai.llm_tools.LLMTool`) | none |
 | Planner editor | none | none | `config/planners/<name>.yaml`, the replaced version kept as `<name>@<version>.yaml` |
 
-Tool configs are written through the storage layer (`write_tool_config` in `sajha/core/storage`). They land at the storage key `config/tools/<name>.json` in whichever backend is configured: local disk, S3, Azure Blob or GCS. Generated `.py` files, and script files, are always written to the local filesystem of the instance that ran the generator, because Python has to import them from the package. In a multi-instance or cloud-storage deployment, every instance therefore needs those generated modules. See the [Storage Guide](../getting-started/Storage%20Guide.md).
+`[<folder>/]` is the **Folder** field at the top of each creator page: the tool folder the new tool's config is filed in (empty: the root of `config/tools`; the LLM tool creator's default is `llm`, API Import's the import's prefix, Describe a tool's the proposed category when that is a valid folder name). The folder files a tool; it does not change its name, and an edit keeps a tool where it is. A name may exist in one place only, so a creator refuses a name that exists in the root or any folder. The rules are in [Architecture](../architecture/Architecture.md#tool-config-files-and-folders).
+
+Tool configs are written through the storage layer (`write_tool_config` in `sajha/core/storage`, which asks the tool file index in `sajha/tools/tool_files.py` for the path). They land at the storage key `config/tools/[<folder>/]<name>.json` in whichever backend is configured: local disk, S3, Azure Blob or GCS. Generated `.py` files, and script files, are always written to the local filesystem of the instance that ran the generator, because Python has to import them from the package. In a multi-instance or cloud-storage deployment, every instance therefore needs those generated modules. See the [Storage Guide](../getting-started/Storage%20Guide.md).
 
 ---
 
 ## Hot reload and registration
 
-- With the local storage backend, the tools registry (`sajha/tools/tools_registry.py`) polls `config/tools/*.json` every few seconds. It loads new configs, reloads changed ones and unregisters deleted ones. It also tracks changes to the modules in `sajha/tools/impl/`.
+- With the local storage backend, the tools registry (`sajha/tools/tools_registry.py`) polls `config/tools` and its tool folders every few seconds. It loads new configs, reloads changed ones and unregisters deleted ones (a removed folder unregisters its tools). It also tracks changes to the modules in `sajha/tools/impl/`.
 - With a cloud storage backend the local poller is disabled. Reloads come from the object-store sync manager instead (the backend's `sync_interval` under `storage` in `config/application.yml`).
-- The separate hot-reload manager (`hot_reload` in `config/application.yml`) also watches tool configs and implementation modules.
+- The separate hot-reload manager (`hot_reload` in `config/application.yml`) runs the same scan of the tools directory on every check, and watches implementation modules. A tool that failed to load is retried on its own (`tools.retry_failed_seconds`).
 - OLAP dataset definitions in `config/olap/` are not watched. A Studio OLAP deploy or delete re-creates the OLAP tools itself; after editing the files by hand, use **Reload All** on the Tools admin page, or restart the server.
 - When the registry changes, connected MCP clients that support it get a `tools/list_changed` notification.
 - Python code tools and script tools are loaded as sandboxed stand-ins: their code runs in the [sandbox](../architecture/Sandbox.md) at call time and is never imported into the server, so an edit to the generated module or script takes effect on the next call. The other creators generate in-process tools from SAJHA's own templates.
@@ -165,6 +168,18 @@ How the proposal is checked, the deploy gate and the limits are in
 [Tool Generation](../architecture/Tool%20Generation.md);
 [Tutorial 24](../tutorials/TUTORIAL_24_describe_a_tool.md) walks through it.
 
+## Import JSON
+
+**Import JSON** (`/studio/json`, administrators only) deploys a tool from a tool config you paste or
+upload: the same JSON a file in `config/tools` holds. Its **Folder** field is filled from the config's
+optional top-level `"folder"` key, else from `metadata.category` made into a folder name (`"Market
+Data"` becomes `market_data`) when that is a valid one, else left empty (the root); you may change it.
+The `folder` key is a filing instruction, not part of the tool, so it is not saved in the config.
+**Check** (`POST /admin/studio/json/preview`) shows where the config would be saved and what is wrong
+with it: a name that exists anywhere, a `__` in the name, no `implementation`, a folder name that is not
+valid. **Deploy** (`POST /admin/studio/json/deploy`) writes it, records you as its creator and loads it;
+a config that does not load is removed again. Studio's `delete` removes an imported tool's config.
+
 ## Other ways in
 
 - **Command line:** `sajha studio deploy <file.py>` analyses and deploys a decorated function, `sajha studio import-openapi <url|file>` imports an API description, `sajha studio describe "<text>"` proposes and tests a tool from a description (`--deploy` to approve it), and `sajha studio delete <name>` removes a tool ([Command Line](../clients/Command%20Line.md)).
@@ -180,15 +195,15 @@ Studio access is per creator (`sajha/auth/__init__.py`: `require_creator`, `can_
 |---|---|
 | `studio:*` (resource name `*`) | every creator below. The seeded `developer` role has it, and it is what the single `studio` permission always meant, so existing roles keep their access. |
 | `studio:python`, `studio:rest`, `studio:api_import`, `studio:dbquery`, `studio:script`, `studio:powerbi`, `studio:powerbidax`, `studio:livelink`, `studio:sharepoint`, `studio:olap`, `studio:composite`, `studio:describe`, `studio:llm` | that creator's page, its `/admin/studio/<creator>/…` actions and its `/api/studio/<creator>/…` reads. The seeded `llm_author` role has `studio:llm` only. |
-| none (administrators only) | the planner editor (`/studio/planners`): a planner decides how much every tool that uses it may spend ([LLM Tools](../architecture/LLM%20Tools.md) §9.10). |
+| none (administrators only) | the planner editor (`/studio/planners`): a planner decides how much every tool that uses it may spend ([LLM Tools](../architecture/LLM%20Tools.md) §9.10); Import JSON (`/studio/json`, `require_creator('json')`): a config names the Python class that runs it. |
 
 Permissions are data (rows in `permissions`, actions `*` or `use`): give a role more by adding rows, no migration. Studio home, the Examples page and `delete` need any Studio permission. Describe a tool needs `studio:describe` to propose and test, and its deploy also needs the permission of the kind deployed (`studio:python`, `studio:rest`, `studio:dbquery`, `studio:composite`, `studio:llm`; an OpenAPI proposal goes to Import an API, `studio:api_import`). Anyone without the permission, `user` and `viewer` included, gets *Access Forbidden* (403); API keys never have Studio access. The **MCP Studio** menu, the Studio sub-navigation and the Dashboard links show only what the caller may use.
 
 **Ownership.** Every Studio deploy records its creator (`metadata.created_by` in the tool config; `created_by` on a composite; `created_by` in an API import record; on an OLAP dataset `created_by_user`). A non-admin may change or delete only what records them; an administrator may change or delete anything Studio made. A tool that records no creator (shipped tools, tools made before creators were recorded) is the administrators'. The rules for everyone:
 
 - **Developers can deploy and delete Studio tools**, including Describe a tool proposals: the deploy gate is the same for everyone (reviewed hash, explicit approval, passing tests or `accept_failures`, and the policy engine's `studio.deploy` decision, so a policy can deny developers or `require_approval` for them). A developer sees and deploys only their own Describe drafts; an administrator sees all of them.
-- **Admin only:** the planner editor; deploying a Python code or script tool while `sandbox.enforce_for_generated_tools` is `false` (that code would run inside the server, so a developer gets 403); changing the sandbox policy and its `sandbox.max` limits (configuration); and deleting tools Studio did not create (refused for everyone; use Admin > Tools). Federation, data connectors, policies, approvals, audit, users and API keys stay admin only.
-- Deploying writes to `config/tools/`, `sajha/tools/impl/` and, for scripts, `config/scripts/`. The server process needs write access to those paths, and to the configured storage backend.
+- **Admin only:** the planner editor; Import JSON; deploying a Python code or script tool while `sandbox.enforce_for_generated_tools` is `false` (that code would run inside the server, so a developer gets 403); changing the sandbox policy and its `sandbox.max` limits (configuration); and deleting tools Studio did not create (refused for everyone; use Admin > Tools). Federation, data connectors, policies, approvals, audit, users and API keys stay admin only.
+- Deploying writes to `config/tools/` (and its tool folders), `sajha/tools/impl/` and, for scripts, `config/scripts/`. The server process needs write access to those paths, and to the configured storage backend.
 
 The threat model behind these rules is in the [Security Model](../security/Security%20Model.md).
 

@@ -115,7 +115,7 @@ the result object.
 
 ### 10. Deploy, or save the changes
 
-**Deploy** (`POST /admin/studio/llm/deploy`) writes `config/tools/<name>.json` through the storage
+**Deploy** (`POST /admin/studio/llm/deploy`) writes `config/tools/llm/<name>.json` (a new tool goes into the Folder field's tool folder, `llm` by default; an edit stays in its current file) through the storage
 layer and loads it: it is in `tools/list` and callable at once, under the same tool permissions,
 policies, audit and quality checks as every tool. It refuses a config with errors and a name in
 use. The config records `metadata.created_by` and `metadata.studio_creator: llm`.

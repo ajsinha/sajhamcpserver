@@ -167,7 +167,7 @@ the calculator is not run, the `call` stage ends `error`, and the path shows the
 ### 6. Use it from an LLM tool
 
 In the `llm` block of an `answer`-mode tool (for example a copy of
-`config/tools/llm_markets_assistant.json`), name the planner, pinned:
+`config/tools/llm/llm_markets_assistant.json`), name the planner, pinned:
 
 ```json
 "planner": "pct_desk@1.0.0",

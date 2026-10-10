@@ -3,7 +3,7 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
 Hot Reload Manager for SAJHA MCP Server
 Handles automatic reloading of:
 - apikeys.json (API key configuration)
-- Tool JSON configs (config/tools/*.json)
+- Tool JSON configs (config/tools/*.json and config/tools/<folder>/*.json)
 - Tool Python modules (sajha/tools/impl/*.py)
 - Prompts (config/prompts/*.json)
 """
@@ -61,6 +61,9 @@ class HotReloadManager:
         self._stop_event = threading.Event()
         self._lock = threading.RLock()
         
+        # Directory scanners run on every check (the tools directory: adds, deletes, folders)
+        self._scanners: List[Callable] = []
+
         # Track what we're monitoring
         self._monitored_paths: Dict[str, Path] = {}
         self._monitored_modules: Dict[str, Path] = {}
@@ -106,6 +109,11 @@ class HotReloadManager:
                 self._file_timestamps[name] = file_path.stat().st_mtime
                 logger.debug(f"Watching file: {name} -> {file_path}")
     
+    def add_scanner(self, scan: Callable):
+        """Run ``scan()`` on every check: for a directory whose files come and go (config/tools and its
+        tool folders), where per-file watches would miss new files and removed folders."""
+        self._scanners.append(scan)
+
     def add_module_watch(self, module_name: str, module_path: Path):
         """
         Add a Python module to watch for changes.
@@ -162,6 +170,13 @@ class HotReloadManager:
             
             # Check JSON config files
             self._check_config_files()
+
+            # Directory scanners (the tools directory and its folders)
+            for scan in list(self._scanners):
+                try:
+                    scan()
+                except Exception as e:
+                    logger.error(f"Error in hot-reload scanner: {e}", exc_info=True)
             
             # Check Python modules
             self._check_python_modules()
@@ -348,21 +363,19 @@ class ConfigReloader:
             self.hot_reload.add_file_watch('apikeys.json', apikeys_path, 'apikeys')
             logger.info(f"Watching apikeys config: {apikeys_path}")
         
-        # Watch all tool JSON configs (get path from tools_registry if available)
-        if self.tools_registry and hasattr(self.tools_registry, 'tools_config_dir'):
-            tools_config_path = self.tools_registry.tools_config_dir
-        else:
-            tools_config_path = base_path / 'config' / 'tools'
-        
-        if tools_config_path.exists():
-            for config_file in tools_config_path.glob('*.json'):
-                self.hot_reload.add_file_watch(
-                    f'tool_config:{config_file.stem}',
-                    config_file,
-                    'tools_config'
-                )
-            logger.info(f"Watching tool configs in: {tools_config_path}")
-        
+        # Tool configs: the registry scans config/tools and every tool folder on each check (new files,
+        # changed files, deleted files and removed folders; a duplicate name loads neither copy)
+        scan = getattr(self.tools_registry, '_scan_once', None) if self.tools_registry else None
+        if callable(scan):
+            from sajha.tools.tools_registry import registry_bulk
+
+            def scan_tools(reg=self.tools_registry):
+                with registry_bulk(reg):
+                    reg._scan_once()
+            self.hot_reload.add_scanner(scan_tools)
+            logger.info(f"Watching tool configs in: {getattr(self.tools_registry, 'tools_config_dir', 'config/tools')} "
+                        f"and its folders")
+
         # Watch all tool Python modules
         tools_impl_path = base_path / 'sajha' / 'tools' / 'impl'
         if tools_impl_path.exists():
@@ -404,13 +417,21 @@ class ConfigReloader:
         def on_tools_config_change(action, name, path):
             if self.tools_registry:
                 tool_name = name.replace('tool_config:', '')
+                rel = self.tools_registry._config_rel(path) if path is not None else None
+                rescan = getattr(self.tools_registry, 'rescan', None)
                 if action == 'deleted':
-                    logger.info(f"Unregistering deleted tool: {tool_name}")
-                    self.tools_registry.unregister_tool(tool_name)
+                    logger.info(f"Tool configuration deleted: {tool_name}")
+                    if callable(rescan) and rel:
+                        rescan(deleted=[rel])         # keeps the one-place rule (a duplicate's twin loads)
+                    else:
+                        self.tools_registry.unregister_tool(tool_name)
                 else:
                     logger.info(f"Reloading tool configuration: {tool_name}")
                     if path and path.exists():
-                        self.tools_registry.load_tool_from_config(path)
+                        if callable(rescan) and rel:
+                            rescan(changed=[rel])
+                        else:
+                            self.tools_registry.load_tool_from_config(path)
         
         self.hot_reload.register_callback('tools_config', on_tools_config_change)
         
@@ -454,14 +475,13 @@ class ConfigReloader:
             if impl.startswith(module_name) or module_name in impl:
                 logger.info(f"Re-registering tool {tool_name} due to module change")
                 
-                # Find the config file
-                base_path = Path(__file__).parent.parent
-                config_path = base_path / 'config' / 'tools' / f'{tool_name}.json'
-                
-                if config_path.exists():
+                # Find the config file (root or folder) through the tool file index
+                tool_path = getattr(self.tools_registry, 'tool_path', None)
+                rel = tool_path(tool_name) if callable(tool_path) else None
+                if rel:
                     # Unregister and reload
                     self.tools_registry.unregister_tool(tool_name)
-                    self.tools_registry.load_tool_from_config(config_path)
+                    self.tools_registry.load_tool_from_config(rel)
     
     def start(self):
         """Start hot-reload monitoring."""

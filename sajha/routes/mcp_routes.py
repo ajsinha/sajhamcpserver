@@ -304,7 +304,18 @@ async def _serve_net(request: Request, raw: bytes, svc=None) -> Response:
             finally:
                 if close is not None:
                     close()
-        return StreamingResponse(body(), status_code=r.status, headers=headers)
+
+        class _NetStream(StreamingResponse):
+            # On ASGI 2.4 servers a dropped home surfaces as an error from send(), which leaves body()
+            # suspended until garbage collection: close the stream as soon as the response ends, however
+            # it ends (close is idempotent), so the host's tool sees the cancellation at once.
+            async def __call__(self, scope, receive, send):
+                try:
+                    await super().__call__(scope, receive, send)
+                finally:
+                    if close is not None:
+                        close()
+        return _NetStream(body(), status_code=r.status, headers=headers)
     return Response(content=r.body, status_code=r.status, headers=headers)
 
 

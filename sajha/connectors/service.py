@@ -4,7 +4,7 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
 
 * :func:`save`        validate a connection, write its record, regenerate its tools
 * :func:`test`        connect with an unsaved definition: server version, allowed tables
-* :func:`sync`        make ``config/tools/<id>__*.json`` match the connection (write, hot-load, remove)
+* :func:`sync`        make the ``<id>__*`` tool configs (in the tool folder ``<id>``) match the connection (write, hot-load, remove)
 * :func:`sync_all`    every connection at start-up (and the page's "Sync tools"); orphans removed
 * :func:`delete`      a connection, its tools, its pooled connections and its catalog
 * :func:`tool_configs` the generated tool configs (planner-friendly descriptions, schemas, annotations)
@@ -257,9 +257,10 @@ def _owner(name: str, registry) -> Tuple[bool, Optional[str]]:
             return True, None
     if cfg is None:
         try:
-            rel = f'config/tools/{name}.json'
+            from sajha.tools.tool_files import name_taken
+            rel = name_taken(name)
             st = _storage()
-            if st.exists(rel):
+            if rel and st.exists(rel):
                 cfg = st.read_json(rel)
         except Exception:
             cfg = {'name': name}
@@ -271,21 +272,31 @@ def _owner(name: str, registry) -> Tuple[bool, Optional[str]]:
 
 def _stored(name: str) -> Optional[Dict[str, Any]]:
     try:
-        rel = f'config/tools/{name}.json'
+        from sajha.tools.tool_files import name_taken
+        rel = name_taken(name)
         st = _storage()
-        return st.read_json(rel) if st.exists(rel) else None
+        return st.read_json(rel) if rel and st.exists(rel) else None
     except Exception:
         return None
 
 
-def _write(name: str, cfg: Dict[str, Any]) -> None:
+def tool_folder(cid: str) -> str:
+    """The tool folder a connection's new tools go into: its id, when that is a valid folder name
+    (else the root). An existing tool stays where it is."""
+    from sajha.tools.tool_files import folder_problem, slug_folder
+    folder = slug_folder(cid)
+    return folder if folder == cid and folder_problem(folder) is None else ''
+
+
+def _write(name: str, cfg: Dict[str, Any], folder: str = '') -> None:
     from sajha.core.storage import write_tool_config
-    write_tool_config(f'{name}.json', cfg)
+    write_tool_config(f'{name}.json', cfg, folder=folder)
 
 
 def _remove(name: str) -> None:
+    from sajha.tools.tool_files import delete_config
     try:
-        _storage().delete(f'config/tools/{name}.json')
+        delete_config(name)
     except FileNotFoundError:
         pass
 
@@ -338,8 +349,8 @@ def _owned_names(cid: str, registry) -> List[str]:
             if isinstance(spec, dict) and spec.get('connection') == cid:
                 names.add(n)
     try:
-        for rel in _storage().list_files('config/tools', f'{cid}__*.json'):
-            n = rel.rsplit('/', 1)[-1][:-len('.json')]
+        from sajha.tools.tool_files import files_matching
+        for n, _rel in files_matching(f'{cid}__*'):
             if _owner(n, registry) == (True, cid):
                 names.add(n)
     except Exception:
@@ -360,6 +371,7 @@ def _invalidate_cache(names: List[str]) -> None:
 def sync(conn: Connection, registry=None, details: Optional[Dict[str, Dict[str, Any]]] = None) -> Dict[str, Any]:
     desired = tool_configs(conn, details)
     owned = _owned_names(conn.id, registry)
+    folder = tool_folder(conn.id)
     added, updated, removed, kept, failed = [], [], [], [], []
     with _bulk(registry):
         for name in owned:
@@ -383,7 +395,7 @@ def sync(conn: Connection, registry=None, details: Optional[Dict[str, Dict[str, 
                 kept.append(name)
                 continue
             try:
-                _write(name, cfg)
+                _write(name, cfg, folder)
             except Exception as e:
                 failed.append({'name': name, 'error': f'could not write the config: {e}'})
                 continue

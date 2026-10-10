@@ -716,7 +716,7 @@ class SajhaMCPServerWebApp:
             from sajha.ai.ask_tool import register_if_enabled, TOOL_NAME
             if _get_gw() is not None:
                 _svc = init_intelligence(_get_gw(), tools_registry)
-                # sajha_ask is an LLM tool (config/tools/sajha_ask.json); ai.ask.mcp_tool_enabled turns
+                # sajha_ask is an LLM tool (config/tools/sajha/sajha_ask.json); ai.ask.mcp_tool_enabled turns
                 # it on or off, now and after every reload of the catalog
                 register_if_enabled(tools_registry, _svc.settings)
                 tools_registry.add_reload_listener(lambda: register_if_enabled(tools_registry, _svc.settings))

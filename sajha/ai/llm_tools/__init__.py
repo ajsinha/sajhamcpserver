@@ -2,7 +2,7 @@
 SAJHA MCP Server — LLM tools: tools whose work is done by a language model.
 Copyright All rights Reserved 2025-2030, Ashutosh Sinha
 
-An LLM tool is an ordinary config file in ``config/tools/`` whose ``implementation`` is
+An LLM tool is an ordinary config file in ``config/tools/`` (or a tool folder) whose ``implementation`` is
 ``sajha.ai.llm_tools.LLMTool`` and which carries an ``llm`` block (mode, model, prompt or template,
 allowed tools, limits, memory). Design and as-built: docs/architecture/LLM Tools.md; a walk-through:
 docs/tutorials/TUTORIAL_26_build_an_llm_tool.md.

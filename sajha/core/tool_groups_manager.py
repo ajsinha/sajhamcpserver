@@ -213,7 +213,8 @@ class ToolGroupsManager:
                 return
             
             # Scan all JSON files
-            json_files = list(self.tools_dir.glob('*.json'))
+            # The root and every tool folder, one level down (sajha/tools/tool_files.py)
+            json_files = sorted(self.tools_dir.glob('*.json')) + sorted(self.tools_dir.glob('*/*.json'))
             
             for json_file in json_files:
                 try:
@@ -254,7 +255,8 @@ class ToolGroupsManager:
                         'enabled': enabled,
                         'category': raw_category,
                         'tags': tags,
-                        'filename': json_file.name
+                        'filename': json_file.name,
+                        'folder': json_file.parent.name if json_file.parent != self.tools_dir else ''
                     }
                     
                     tools_by_group[display_group].append(tool_info)

@@ -52,7 +52,7 @@ When a tool is loaded it opens an in-memory DuckDB connection and creates a view
 
 ## Data Sources Configuration
 
-Each `config/tools/sqlselect_*.json` carries the same `data_directory` and `data_sources` block:
+Each `config/tools/sqlselect/sqlselect_*.json` carries the same `data_directory` and `data_sources` block:
 
 ```json
 {

@@ -844,7 +844,7 @@ def artifacts(p: Dict[str, Any], draft_id: str = '') -> Dict[str, Any]:
         _with_harness_cases(config, name, p['tests'])
         cls = config['implementation'].rsplit('.', 1)[1]
         return {'files': [{'path': f'sajha/tools/impl/studio_{name}.py', 'content': module, 'language': 'python'},
-                          {'path': f'config/tools/{name}.json', 'content': json.dumps(config, indent=2),
+                          {'path': _config_file(name, p), 'content': json.dumps(config, indent=2),
                            'language': 'json'}],
                 'config': config, 'class_name': cls, 'module_source': module,
                 'input_schema': config['inputSchema'], 'output_schema': config['outputSchema']}
@@ -869,7 +869,7 @@ def artifacts(p: Dict[str, Any], draft_id: str = '') -> Dict[str, Any]:
         _with_harness_cases(config, name, p['tests'])
         cls = config['implementation'].rsplit('.', 1)[1]
         return {'files': [{'path': f'sajha/tools/impl/rest_{name}.py', 'content': module, 'language': 'python'},
-                          {'path': f'config/tools/{name}.json', 'content': json.dumps(config, indent=2),
+                          {'path': _config_file(name, p), 'content': json.dumps(config, indent=2),
                            'language': 'json'}],
                 'config': config, 'class_name': cls, 'module_source': module,
                 'input_schema': gen._build_input_schema(d), 'output_schema': gen._build_output_schema(d)}
@@ -893,7 +893,7 @@ def artifacts(p: Dict[str, Any], draft_id: str = '') -> Dict[str, Any]:
         _with_harness_cases(config, name, p['tests'])
         cls = config['implementation'].rsplit('.', 1)[1]
         return {'files': [{'path': f'sajha/tools/impl/dbquery_{name}.py', 'content': module, 'language': 'python'},
-                          {'path': f'config/tools/{name}.json', 'content': json.dumps(config, indent=2),
+                          {'path': _config_file(name, p), 'content': json.dumps(config, indent=2),
                            'language': 'json'}],
                 'config': config, 'class_name': cls, 'module_source': module,
                 'input_schema': gen._build_input_schema(d), 'output_schema': gen._build_output_schema(d)}
@@ -902,7 +902,7 @@ def artifacts(p: Dict[str, Any], draft_id: str = '') -> Dict[str, Any]:
         config['version'] = '1.0.0'
         config['metadata'] = {**config['metadata'], **stamp, 'studio_creator': 'llm'}
         _with_harness_cases(config, name, p['tests'])
-        return {'files': [{'path': f'config/tools/{name}.json', 'content': json.dumps(config, indent=2),
+        return {'files': [{'path': _config_file(name, p), 'content': json.dumps(config, indent=2),
                            'language': 'json'}],
                 'config': config, 'input_schema': config['inputSchema'], 'output_schema': config['outputSchema']}
     if kind == 'composite':
@@ -1392,26 +1392,33 @@ def deploy(draft_id: str, reviewed_hash: str, approve: bool, accept_failures: bo
     return {**public(d), 'message': f"Deployed {p['name']} ({p['kind']}); it is callable now."}
 
 
+def _config_file(name: str, p: Dict[str, Any]) -> str:
+    """Where a described tool's config goes: the tool folder named by its category when that is a
+    valid folder name (Studio > Describe), else the root."""
+    from sajha.tools.tool_files import folder_problem, get_index, slug_folder
+    folder = slug_folder(p.get('category'))
+    if folder and folder_problem(folder) is not None:
+        folder = ''
+    return get_index().new_path(name, folder)
+
+
 def _deploy_config_only(p: Dict[str, Any], art: Dict[str, Any], user=None) -> Dict[str, Any]:
     """An LLM tool: one config file (the implementation is the shared LLMTool)."""
     from pathlib import Path
     from sajha.core.storage import get_storage, write_tool_config
     from sajha.routes.studio_routes import BASE_DIR, _hot_load, _unload
     from sajha.studio.ownership import stamp
-    json_file = Path(BASE_DIR) / art['files'][0]['path']
-    if json_file.exists():
+    from sajha.tools.tool_files import delete_config, name_taken
+    rel = art['files'][0]['path']
+    json_file = Path(BASE_DIR) / rel
+    if name_taken(p['name']):
         raise DescribeError(f"files for {p['name']} exist already", 409)
     config = stamp(copy.deepcopy(art['config']), str(getattr(user, 'user_id', '') or ''), 'llm')
-    write_tool_config(json_file, json.dumps(config, indent=2))
+    write_tool_config(rel, json.dumps(config, indent=2), folder='')
     loaded, err = _hot_load(p['name'])
     if not loaded:
-        try:
-            get_storage().delete(f"config/tools/{p['name']}.json")
-        except Exception:
-            pass
-        if json_file.exists():
-            json_file.unlink()
         _unload(p['name'])
+        delete_config(p['name'])
         raise DescribeError(f'the tool was written but failed to load, so it was removed: {err}', 500)
     return {'files': [str(json_file)]}
 
@@ -1420,28 +1427,25 @@ def _deploy_files(p: Dict[str, Any], art: Dict[str, Any], user=None) -> Dict[str
     from pathlib import Path
     from sajha.core.storage import write_tool_config
     from sajha.routes.studio_routes import BASE_DIR, _hot_load, _unload
+    from sajha.tools.tool_files import delete_config, name_taken
     module_file = Path(BASE_DIR) / art['files'][0]['path']
-    json_file = Path(BASE_DIR) / art['files'][1]['path']
-    if module_file.exists() or json_file.exists():
+    rel = art['files'][1]['path']
+    json_file = Path(BASE_DIR) / rel
+    if module_file.exists() or name_taken(p['name']):
         raise DescribeError(f"files for {p['name']} exist already", 409)
     module_file.parent.mkdir(parents=True, exist_ok=True)
     module_file.write_text(art['module_source'], encoding='utf-8')          # module first: the watcher loads JSON
     from sajha.studio.ownership import stamp
     config = stamp(json.loads(art['files'][1]['content']), str(getattr(user, 'user_id', '') or ''), p['kind'])
-    write_tool_config(json_file, json.dumps(config, indent=2))
+    write_tool_config(rel, json.dumps(config, indent=2), folder='')
     loaded, err = _hot_load(p['name'])
     if not loaded:
-        for f in (module_file, json_file):
-            try:
-                f.unlink()
-            except OSError:
-                pass
         try:
-            from sajha.core.storage import get_storage
-            get_storage().delete(f"config/tools/{p['name']}.json")
-        except Exception:
+            module_file.unlink()
+        except OSError:
             pass
         _unload(p['name'])
+        delete_config(p['name'])
         raise DescribeError(f'the tool was written but failed to load, so it was removed: {err}', 500)
     return {'files': [str(module_file), str(json_file)]}
 

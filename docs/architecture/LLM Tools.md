@@ -157,7 +157,7 @@ An LLM tool is a normal entry in the tool registry:
 
 | Framework piece | How an LLM tool uses it |
 |---|---|
-| Config file | `config/tools/<name>.json`, same top-level shape as any tool, plus an `llm` block. |
+| Config file | `config/tools/[<folder>/]<name>.json` (the LLM tool creator files new ones in `llm`), same top-level shape as any tool, plus an `llm` block. |
 | Implementation | One generic class, `sajha.ai.llm_tools.LLMTool` (a `BaseMCPTool`), named in `implementation`. Like imported API tools (`ImportedAPITool`) and data-connector tools (`ConnectorTool`), the behaviour comes from config. |
 | Schemas | `inputSchema` and `outputSchema` are JSON Schema 2020-12, authored per tool. Each mode adds the fields it needs (section 6) and the loader checks they are present. |
 | Annotations | Derived, never trusted from config: `readOnlyHint` is true only if every tool the LLM tool may call is read-only; `destructiveHint` is true if any may be destructive; `openWorldHint` is true if any reaches outside the server. A config that claims less is corrected and the lint flags it. |
@@ -1562,7 +1562,7 @@ notes:
 The Ask SAJHA page keeps using the intelligence service directly; the tool and the page share
 the same pipeline.
 
-*Built.* `config/tools/sajha_ask.json` (version 2.0.0) is loaded like any tool and disabled there;
+*Built.* `config/tools/sajha/sajha_ask.json` (version 2.0.0) is loaded like any tool and disabled there;
 `register_if_enabled` in `sajha/ai/ask_tool.py` turns it on from `ai.ask.mcp_tool_enabled` at
 start-up and after every reload. `sajha/ai/ask_tool.py` is a shim (`SajhaAskTool`, a subclass of
 `LLMTool`) that keeps `ai.ask.mcp_allowed_tools` as a narrowing of `tools.allow: ["*"]`, the

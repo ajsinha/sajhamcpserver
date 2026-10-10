@@ -16,7 +16,7 @@ configuration key and its default is in the
 in the [API Reference](../protocol/API%20Reference.md#424-sajha-net-sajhanet_routespy); the
 definitions are in the [Glossary](../../GLOSSARY.md#12-sajha-net); the hands-on walkthrough is
 [Tutorial 28](../tutorials/TUTORIAL_28_build_a_sajha_net.md). What is not built is listed in
-[section 5.5](#55-what-is-built) and tracked in the [Roadmap](Roadmap.md) (L16, L17).
+[section 5.5](#55-what-is-built) and tracked in the [Roadmap](Roadmap.md) (L16, L19).
 
 SAJHA Net is **off by default** (`sajhanet.enabled: false`). Off, every `/sajhanet/` path answers a
 bare `404` and a server behaves exactly as without it.
@@ -192,11 +192,11 @@ raises an error notice (`sajhanet.plugin:<source>:<name>`) and an audit record, 
 ### 5.5 What is built
 
 Everything this guide describes is built, with these exceptions (each a [Roadmap](Roadmap.md) item:
-L17 for the streaming items, L16 for the rest):
+L19 for host-side tasks, L16 for the rest):
 
 | Not built | Effect today | Protocol |
 |---|---|---|
-| Input requests (MRTR) and host-side tasks on forwarded calls | A host's request for input reaches the caller as an error result; the `mrtr` and `tasks` features are not listed | §15.6; CALL-16 |
+| Host-side tasks on forwarded calls | A task at the home wraps a forwarded call (section 9), so a remote tool can be run as a task, polled and cancelled; a task held at the host, which would survive a home restart or outlast the hop's deadline, is not built, and the `tasks` feature is not listed | §15.6 |
 | Forwarding on the 2025-11-25 era | Forwarded calls always use 2026-07-28 (every SAJHA host speaks it) | §6.4; CALL-12 |
 | The `visibility` feature | A home cannot ask a host which tools a user may call there; it shows what its own rules allow, and the host decides again on every call | §10.5; CAT-05 |
 | Mutual TLS (`sajhanet.mtls`) | A value other than `off` only logs a warning; requests are checked by their signatures | — |
@@ -797,7 +797,24 @@ as it is.
   [MCP Protocol Guide](../protocol/MCP%20Protocol%20Guide.md) lists what each carries). REST and A2A
   callers receive the final result only. The caller's cancellation (a closed stream, or
   `notifications/cancelled`) closes the hop's stream, which cancels the tool at the host. Residency
-  applies to the events too (section 12).
+  applies to the events too (section 12). Each event is signed into a hash chain over the whole stream
+  so far (an **event chain**); a forged, reordered, dropped or spliced event, or a stream cut before its
+  final answer, is refused (`event_invalid`, `event_order`, `stream_truncated`), nothing after it reaches
+  the caller, and the stream is closed. Both sides audit the chain's **transcript digest**, which match
+  for the same call (section 16). The limits are `sajhanet.streaming.*` (section 19).
+- **Input requests (MRTR).** A host tool that needs its caller's input (an elicitation, a confirmation, a
+  connected account) answers `input_required` with a `requestState` the host signs and binds to the net,
+  the sending server and the user (protocol §15.6). The home keeps that state inside its own signed
+  state and asks its caller: a 2026-07-28 client answers and calls again; the answer goes back to the
+  same host as a new signed request, the user is resolved again, and the host refuses a state presented
+  by another server or for another user (`state_invalid`). The answers pass the home's residency rules on
+  the way out (section 12). A caller that cannot answer (2025-11-25, REST, A2A) gets a tool error asking
+  it to call over 2026-07-28, as for a federated tool. A re-exporting intermediary relays the question
+  and the answer under a state of its own (section 14).
+- **Tasks.** A client that runs a remote tool as a task (the MCP tasks extension on 2026-07-28) gets a
+  task at the home that wraps the forwarded call: `tasks/get` polls it, and `tasks/cancel` cancels the
+  task's context, which closes the hop's stream and so cancels the tool at the host. Tasks held at the
+  host are not built (section 5.5).
 
 ### 9.1 Waterfall fallback
 
@@ -1139,7 +1156,9 @@ Residency decides where classified data may flow between instances, in both dire
   in place of export rules, the key's tool access as a ceiling, its own access to the proxy), then relays
   the assertion unchanged with hop + 1 through its own router, so residency, hops and the chain budget
   apply on every step; a downstream refusal that did not execute comes back as the intermediary's with
-  `refused_by`.
+  `refused_by`. The origin's streamed events are verified at the intermediary and signed again into its
+  own stream, the caller's cancellation closes both streams, and an input request from the origin is
+  asked again under the intermediary's own `requestState`, with the origin's state inside it (section 9).
 - **Bridges between nets.** A server in two nets never offers one net's tools in the other unless
   `reexport` is on for **the net it offers into**. Then a tool imported in net M is offered in net N as
   this server's own (no origin: nothing signed in M can be checked in N). A call from N runs as the local
@@ -1183,7 +1202,7 @@ the header and in `_meta`) and the key id (`linked_audit`, `sajha/net/integratio
 |---|---|---|
 | `net.call` | home | the name called, the resolution with each host's place, the outcome |
 | `net.call_attempt` | home | one per attempt: number, net, host, outcome, `executed`, the identity sent (a per-member or test admin key is marked, never the key), a remote LLM tool's usage |
-| `net.host_call`, `net.host_refused` | host | sender, tool (published) and `local_tool`, outcome, `executed`, identity, mapping, hops and visited list |
+| `net.host_call`, `net.host_refused` | host | sender, tool (published) and `local_tool`, outcome (`ok`, `error`, `cancelled`, `input_required`, or the refusal reason, such as `state_invalid`), `executed`, identity, mapping, hops and visited list |
 | `net.residency` | either | every residency decision on classified data (section 12) |
 | `net.token_issued` | host | each host-scoped token issued (never the token) |
 
@@ -1297,6 +1316,8 @@ net, `auth.test_admin_key` (critical) and `auth.plain_credentials`.
 | Fallback used to shop for a host that says yes | A refusal is returned, never routed around |
 | SSRF through a peer URL | URLs only from signed records whose host is in the certificate; `check_peer_url` with `sajhanet.allowed_networks`; ping-req targets are names, never URLs |
 | A slow or hostile peer drags others down | Per-peer timeouts, breakers and rate limits; catalog caps; local tools unaffected |
+| A streamed answer is tampered with (events forged, reordered, dropped, spliced from another call, or the stream cut) | Every event is signed into an event chain bound to the request's signature; the home verifies each before relaying it and refuses the stream at the first failure (`event_invalid`, `event_order`, `stream_truncated`); limits on events, sizes and silence (`stream_limit`, `stream_idle`); a verified event makes a later failure "may have run", so a destructive tool is never retried elsewhere |
+| A captured `requestState` is replayed by another server or for another user | The host signs the state with its own secret, binds it to method, tool, arguments, net, sender and user, with an expiry, and resolves the user again on every round; anything else is refused (`state_invalid`) before the tool runs |
 
 The wire-level considerations are
 [protocol §19](../protocol/SAJHA%20Net%20Protocol.md#19-security-considerations); SAJHA's security as a
@@ -1335,6 +1356,10 @@ sajhanet:
       default_trust: review
   preferences:
     var_calc: ["acme-net/risk-eu", "acme-net"]
+  streaming:                                           # signed event streams on forwarded calls (section 9)
+    enabled: true                                      # lists streaming, progress, cancellation and mrtr
+    idle_timeout_seconds: 30                           # also max_events, max_event_bytes, max_stream_bytes,
+    heartbeat_seconds: 10                              #   progress_min_interval_ms
 ```
 
 **Where keys live.** Only in a net entry: `name`, `instance_name`, `advertise_address`, `founder`,

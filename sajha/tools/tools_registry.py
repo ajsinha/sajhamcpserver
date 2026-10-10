@@ -94,8 +94,9 @@ class ToolsRegistry:
         # Load initial tools
         self.load_all_tools()
         
-        # Start file monitoring
+        # Start file monitoring, and the retry of tools that failed to load
         self.start_monitoring()
+        self.start_retrying()
     
     def _init_properties_configurator(self):
         """Initialize reference to PropertiesConfigurator for variable substitution"""
@@ -167,12 +168,38 @@ class ToolsRegistry:
             return obj
     
     def _config_rel(self, ref) -> str:
-        """Normalize any reference (storage path / Path / bare filename) to the
-        storage-relative tool-config path, e.g. 'config/tools/foo.json'."""
-        name = Path(str(ref)).name
-        if not name.endswith('.json'):
-            name = f'{name}.json'
-        return f"{self._config_prefix}/{name}"
+        """Normalize any reference to the storage-relative path of a tool config: a storage path
+        ('config/tools/fmp/foo.json') or a local Path under the tools directory keeps its folder; a
+        bare tool name or filename ('foo', 'foo.json') is looked up in the tool file index, so a tool
+        in a folder resolves to its own file (a name with no file resolves to the root)."""
+        s = str(ref).replace('\\', '/')
+        p = Path(str(ref))
+        if p.is_absolute():
+            try:
+                s = f"{self._config_prefix}/{p.relative_to(self.tools_config_dir).as_posix()}"
+            except ValueError:
+                s = p.name
+        elif s.startswith(DEFAULT_TOOLS_DIR + '/') and self._config_prefix != DEFAULT_TOOLS_DIR:
+            s = f"{self._config_prefix}/{s[len(DEFAULT_TOOLS_DIR) + 1:]}"
+        if s.startswith(self._config_prefix + '/'):
+            return s if s.endswith('.json') else f'{s}.json'
+        if '/' in s:
+            return f"{self._config_prefix}/{s if s.endswith('.json') else s + '.json'}"
+        name = s[:-5] if s.endswith('.json') else s
+        return self.file_index().target_path(name, '')
+
+    def file_index(self):
+        """The tool file index of this registry's tools directory (sajha/tools/tool_files.py)."""
+        from sajha.tools.tool_files import get_index
+        return get_index(self._config_prefix)
+
+    def tool_path(self, tool_name: str) -> Optional[str]:
+        """The storage-relative config file of a file-backed tool (None: plugin, federated, ...)."""
+        return self.file_index().path_of(tool_name)
+
+    def tool_folder(self, tool_name: str) -> Optional[str]:
+        """The tool folder of a file-backed tool ('' for the root, None when it has no file)."""
+        return self.file_index().folder_of(tool_name)
 
     # ── change notification ──────────────────────────────────────────
     # One registration used to publish one change (three bus events, each also written to the
@@ -245,44 +272,171 @@ class ToolsRegistry:
                 self._change_listeners = [r for r in self._change_listeners if r not in dead]
 
     def load_all_tools(self):
-        """Load all tools from the configured store (local | s3 | azure | gcs)."""
+        """Load all tools from the configured store (local | s3 | azure | gcs): the root of the tools
+        directory and its folders, one level deep. A name in two files loads neither."""
         storage = get_storage()
         self.logger.info(f"Loading tools from '{self._config_prefix}' via {type(storage).__name__}")
+        from sajha.tools.tool_files import get_index
+        idx = get_index(self._config_prefix, build=False)
+        configs = {}
+        rels = [r.replace('\\', '/') for r in storage.list_files(self._config_prefix, '*.json')]
+        for rel in rels:
+            if Path(rel).name.startswith('.') or not idx.split(rel)[1]:
+                continue
+            configs[rel] = self._read_config(rel)
+        idx.refresh({rel: cfg for rel, cfg in configs.items() if cfg is not None}, rels=rels)
+        self._report_layout(idx)
+        dups = idx.duplicates()
         with self.bulk():
-            for rel in storage.list_files(self._config_prefix, '*.json'):
-                try:
-                    self.load_tool_from_config(rel)
-                except Exception as e:
-                    self.logger.error(f"Error loading tool from {rel}: {e}", exc_info=True)
-                    self.tool_errors[Path(rel).stem] = str(e)
+            for rel, config in configs.items():
+                if config is None:
+                    continue
+                name = idx.name_at(rel)
+                if name in dups:
+                    continue
+                self.register_tool_from_dict(config, source=rel)
+
+    def _read_config(self, rel: str):
+        """Read one config file (recording its time), or None with the error recorded."""
+        storage = get_storage()
+        try:
+            self._file_timestamps[rel] = storage.get_modified_time(rel)
+            return storage.read_json(rel)
+        except FileNotFoundError:
+            self.logger.error(f"Tool config not found: {rel}")
+            self.tool_errors[Path(rel).stem] = "Config not found"
+        except json.JSONDecodeError as e:
+            self.logger.error(f"Invalid JSON in {rel}: {e}", exc_info=True)
+            self.tool_errors[Path(rel).stem] = f"Invalid JSON: {str(e)}"
+        except Exception as e:
+            self.logger.error(f"Error reading tool config {rel}: {e}", exc_info=True)
+            self.tool_errors[Path(rel).stem] = str(e)
+        return None
+
+    def _report_layout(self, idx) -> None:
+        """Duplicate names and too-deep files: unload, log and raise (or clear) their notices."""
+        dups = idx.duplicates()
+        for name, rels in dups.items():
+            self._mark_duplicate(name, rels)
+        try:
+            from sajha import notices
+            for n in notices.list_notices(state='open', source='tools'):
+                nid = str(n.get('id') or '')
+                if nid.startswith('tools.duplicate:') and nid.split(':', 1)[1] not in dups:
+                    notices.clear_notice(nid)
+            deep = idx.too_deep()
+            if deep:
+                for rel in deep:
+                    self.logger.warning(f"Tool config ignored, nested deeper than one folder: {rel}")
+                notices.raise_notice('tools.too_deep', severity='warning', source='tools',
+                                     title=f'{len(deep)} tool config file(s) nested too deep are ignored',
+                                     detail='A tool config must be in the tools directory or one folder below '
+                                            'it. Ignored: ' + ', '.join(deep),
+                                     link='/help/guides/Architecture.md', ttl_minutes=0)
+            else:
+                notices.clear_notice('tools.too_deep')
+        except Exception:
+            pass
+
+    def _mark_duplicate(self, name: str, rels) -> None:
+        """Two or more files share a tool name: load none of them until one is removed."""
+        with self._tools_lock:
+            if name in self.tools:
+                self.unregister_tool(name)
+            self.tool_configs.pop(name, None)
+            why = f"Duplicate tool name: {name} is defined in {', '.join(rels)}; none is loaded"
+            self.tool_errors[name] = why
+        self.logger.error(why + '. Remove (or move) all but one of them.')
+        try:
+            from sajha import notices
+            notices.raise_notice(f'tools.duplicate:{name}', severity='critical', source='tools',
+                                 title=f'Tool {name} is defined twice and is not loaded',
+                                 detail=why + '. A tool name may exist in one place only (the tools directory '
+                                              'or one folder). Remove or move all but one file; the tool loads '
+                                              'again on the next reload. Move files, never copy them.',
+                                 link='/help/guides/Architecture.md', ttl_minutes=0)
+        except Exception:
+            pass
+
+    def _clear_duplicate(self, name: str) -> None:
+        try:
+            from sajha import notices
+            notices.clear_notice(f'tools.duplicate:{name}')
+        except Exception:
+            pass
 
     def load_tool_from_config(self, config_ref):
         """
         Load a tool from its JSON configuration, read through the storage backend.
 
         Args:
-            config_ref: a storage-relative path, a Path, or a bare filename. All are
-                        normalized to 'config/tools/<name>.json' and read via get_storage().
+            config_ref: a storage-relative path, a Path, or a bare tool name / filename; see
+                        _config_rel. A tool whose name is in another file too is not loaded.
         """
         rel = self._config_rel(config_ref)
-        storage = get_storage()
+        idx = self.file_index()
         with self._tools_lock:
-            try:
-                self._file_timestamps[rel] = storage.get_modified_time(rel)
-                config = storage.read_json(rel)
-            except FileNotFoundError:
-                self.logger.error(f"Tool config not found: {rel}")
-                self.tool_errors[Path(rel).stem] = "Config not found"
+            config = self._read_config(rel)
+            if config is None:
                 return
-            except json.JSONDecodeError as e:
-                self.logger.error(f"Invalid JSON in {rel}: {e}", exc_info=True)
-                self.tool_errors[Path(rel).stem] = f"Invalid JSON: {str(e)}"
+            if not idx.split(rel)[1]:
+                self.logger.warning(f"Tool config ignored, nested deeper than one folder: {rel}")
                 return
-            except Exception as e:
-                self.logger.error(f"Error reading tool config {rel}: {e}", exc_info=True)
-                self.tool_errors[Path(rel).stem] = str(e)
+            from sajha.tools.tool_files import _name_of
+            name = _name_of(config, rel)
+            idx.note(rel, name)
+            others = [r for r in idx.refresh().paths_of(name) if r != rel]
+            if others:
+                self._mark_duplicate(name, sorted([rel] + others))
                 return
             self.register_tool_from_dict(config, source=rel)
+
+    def rescan(self, changed=(), deleted=()) -> None:
+        """Apply file changes (storage-relative paths) to the catalog: load the changed files, drop the
+        deleted ones, and keep the one-place rule (a name in two files loads neither; when one goes, the
+        other loads again)."""
+        from sajha.tools.tool_files import _name_of
+        idx = self.file_index()
+        affected, read = set(), {}
+        with self._tools_lock:
+            for rel in deleted:
+                old = idx.name_at(rel)
+                idx.forget(rel)
+                self._file_timestamps.pop(rel, None)
+                if old:
+                    affected.add(old)
+            for rel in changed:
+                old = idx.name_at(rel)
+                config = self._read_config(rel)
+                name = _name_of(config, rel) if config is not None else (old or Path(rel).stem)
+                idx.note(rel, name)
+                read[rel] = config
+                affected.update(n for n in (old, name) if n)
+            for name in sorted(affected):
+                paths = idx.paths_of(name)
+                if not paths:
+                    if name in self.tools:
+                        self.unregister_tool(name)
+                    self.tool_configs.pop(name, None)
+                    self.tool_errors[name] = "Configuration file deleted"
+                    self._clear_duplicate(name)
+                elif len(paths) > 1:
+                    self._mark_duplicate(name, paths)
+                else:
+                    rel = paths[0]
+                    was_duplicate = str(self.tool_errors.get(name, '')).startswith('Duplicate tool name')
+                    self._clear_duplicate(name)
+                    if was_duplicate:
+                        self.tool_errors.pop(name, None)
+                    if rel in read:
+                        if name in self.tools:
+                            self.unregister_tool(name)
+                        if read[rel] is not None:
+                            self.register_tool_from_dict(read[rel], source=rel)
+                    elif name not in self.tools or was_duplicate:
+                        config = self._read_config(rel)
+                        if config is not None:
+                            self.register_tool_from_dict(config, source=rel)
 
     def register_tool_from_dict(self, config: dict, source: str = ''):
         """
@@ -537,8 +691,90 @@ class ToolsRegistry:
             self._monitor_thread.start()
             self.logger.info("Started file monitoring for tool configurations")
     
+    # ── retry of failed tools ────────────────────────────────────────
+    # A tool that failed to load (an environment variable, key, package or upstream missing) loads
+    # later without a change to its file. Per process on purpose: every worker has its own registry.
+
+    RETRY_CAP_SECONDS = 1800
+
+    @staticmethod
+    def retry_interval() -> int:
+        """``tools.retry_failed_seconds`` (0: off)."""
+        try:
+            from sajha.core.config import _get
+            return max(0, int(float(_get('tools.retry_failed_seconds', '300') or 0)))
+        except (TypeError, ValueError):
+            return 300
+
+    def _retryable(self, name: str, error: str) -> bool:
+        """A failed tool with a config file of its own; not a duplicate name or a deleted file (those
+        resolve only through a file change)."""
+        if name in self.tools or error.startswith('Duplicate tool name') or error == 'Configuration file deleted':
+            return False
+        return self.tool_path(name) is not None
+
+    def retry_failed(self, now: Optional[float] = None) -> List[str]:
+        """Try the failed tools whose back-off has run out once more; returns the ones that loaded. The
+        first retry is ``tools.retry_failed_seconds`` after the failure, each later one twice as long,
+        at most RETRY_CAP_SECONDS. Logs once when a tool starts retrying and once when it loads."""
+        import time as _time
+        base = self.retry_interval()
+        if not base:
+            return []
+        now = _time.time() if now is None else now
+        state = self.__dict__.setdefault('_retry_state', {})
+        with self._tools_lock:
+            failed = {n: str(e) for n, e in self.tool_errors.items() if self._retryable(n, str(e))}
+        for gone in [n for n in state if n not in failed]:
+            state.pop(gone, None)
+        loaded = []
+        with self.bulk():
+            for name, error in sorted(failed.items()):
+                st = state.get(name)
+                if st is None:
+                    state[name] = {'attempts': 0, 'next': now + base, 'error': error}
+                    self.logger.warning(f"Tool {name} failed to load ({error}); retrying every "
+                                        f"{base}s and less often after that")
+                    continue
+                if now < st['next']:
+                    continue
+                rel = self.tool_path(name)
+                if rel:
+                    self.load_tool_from_config(rel)
+                if name in self.tools:
+                    state.pop(name, None)
+                    self.tool_errors.pop(name, None)
+                    loaded.append(name)
+                    self.logger.info(f"Tool {name} loaded on retry {st['attempts'] + 1}")
+                    continue
+                st['attempts'] += 1
+                st['next'] = now + min(base * (2 ** st['attempts']), self.RETRY_CAP_SECONDS)
+                err = str(self.tool_errors.get(name, ''))
+                if err != st['error']:
+                    st['error'] = err
+                    self.logger.warning(f"Tool {name} still fails to load, now: {err}")
+        return loaded
+
+    def start_retrying(self):
+        """Start the retry thread (``tools.retry_failed_seconds``; 0: none)."""
+        base = self.retry_interval()
+        if not base:
+            return
+        if getattr(self, '_retry_thread', None) is not None and self._retry_thread.is_alive():
+            return
+        tick = max(1, min(base, 30))
+
+        def loop():
+            while not self._stop_monitor.wait(tick):
+                try:
+                    self.retry_failed()
+                except Exception as e:
+                    self.logger.error(f"Retrying failed tools: {e}", exc_info=True)
+        self._retry_thread = threading.Thread(target=loop, daemon=True, name='tool-retry')
+        self._retry_thread.start()
+
     def stop_monitoring(self):
-        """Stop monitoring configuration files"""
+        """Stop monitoring configuration files (and retrying failed tools)"""
         self._stop_monitor.set()
         if self._monitor_thread:
             self._monitor_thread.join(timeout=5)
@@ -555,58 +791,38 @@ class ToolsRegistry:
                 self._scan_once()
 
     def _scan_once(self):
-        """One pass of the file monitor (see _monitor_files)."""
+        """One pass of the file monitor (see _monitor_files): the root and every folder."""
         try:
-            config_path = Path(self.tools_config_dir)
-            
-            # Check for new or modified JSON config files
-            for config_file in config_path.glob('*.json'):
-                # Key by the storage-relative path so it matches the timestamps
-                # recorded by load_tool_from_config (which is storage-backed).
-                file_path = self._config_rel(config_file)
-                current_mtime = config_file.stat().st_mtime
-                
-                if file_path not in self._file_timestamps:
-                    # New file
-                    self.logger.info(f"New tool configuration detected: {config_file.name}")
-                    self.load_tool_from_config(config_file)
-                elif self._file_timestamps[file_path] < current_mtime:
-                    # Modified file
-                    self.logger.info(f"Tool configuration changed: {config_file.name}")
-                    tool_name = config_file.stem
-                    
-                    # Unload existing tool
-                    if tool_name in self.tools:
-                        self.unregister_tool(tool_name)
-                    
-                    # Reload tool
-                    self.load_tool_from_config(config_file)
-            
-            # Check for deleted JSON files (compare on the same relative keys)
-            tracked_files = set(self._file_timestamps.keys())
-            existing_files = {self._config_rel(f) for f in config_path.glob('*.json')}
-            
-            for deleted_file in tracked_files - existing_files:
-                self.logger.info(f"Tool configuration deleted: {Path(deleted_file).name}")
-                tool_name = Path(deleted_file).stem
-                
-                # Unregister tool
-                if tool_name in self.tools:
-                    self.unregister_tool(tool_name)
-                
-                # Remove from tracking
-                del self._file_timestamps[deleted_file]
-                
-                # Remove from configs
-                if tool_name in self.tool_configs:
-                    del self.tool_configs[tool_name]
-                
-                # Mark as error
-                self.tool_errors[tool_name] = "Configuration file deleted"
-            
+            storage = get_storage()
+            idx = self.file_index()
+            current, deep = {}, []
+            for rel in storage.list_files(self._config_prefix, '*.json'):
+                rel = rel.replace('\\', '/')
+                if Path(rel).name.startswith('.'):
+                    continue
+                if not idx.split(rel)[1]:
+                    deep.append(rel)
+                    continue
+                try:
+                    current[rel] = storage.get_modified_time(rel)
+                except FileNotFoundError:
+                    continue
+            changed = [rel for rel, mtime in current.items()
+                       if rel not in self._file_timestamps or self._file_timestamps[rel] < mtime]
+            deleted = [rel for rel in list(self._file_timestamps) if rel not in current]
+            for rel in changed:
+                self.logger.info(f"Tool configuration {'changed' if rel in self._file_timestamps else 'detected'}: {rel}")
+            for rel in deleted:
+                self.logger.info(f"Tool configuration deleted: {rel}")
+            if changed or deleted:
+                self.rescan(changed, deleted)
+            if sorted(deep) != idx.too_deep():
+                idx.refresh()
+                self._report_layout(idx)
+
             # Check for Python module changes (every iteration)
             self._check_python_modules()
-                
+
         except Exception as e:
             self.logger.error(f"Error in file monitoring: {e}", exc_info=True)
 
@@ -666,10 +882,9 @@ class ToolsRegistry:
                     self.unregister_tool(tool_name)
                 
                 # Find config file and reload
-                config_path = Path(self.tools_config_dir)
-                config_file = config_path / f'{tool_name}.json'
-                if config_file.exists():
-                    self.load_tool_from_config(config_file)
+                rel = self.tool_path(tool_name)
+                if rel and get_storage().exists(rel):
+                    self.load_tool_from_config(rel)
                     
         except Exception as e:
             self.logger.error(f"Error reloading module {module_name}: {e}", exc_info=True)
@@ -726,6 +941,10 @@ class ToolsRegistry:
             self.tools_config_dir = Path(tools_config_dir)
             if not self.tools_config_dir.is_absolute():
                 self.tools_config_dir = Path.cwd() / self.tools_config_dir
+            try:
+                self._config_prefix = str(self.tools_config_dir.relative_to(Path.cwd())).replace('\\', '/')
+            except ValueError:
+                self._config_prefix = DEFAULT_TOOLS_DIR
             
             self.logger.info(f"ToolsRegistry reconfigured with: {self.tools_config_dir}")
             

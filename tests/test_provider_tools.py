@@ -8,12 +8,13 @@ from pathlib import Path
 from unittest import mock
 
 import pytest
+from tests.tool_config_files import tool_file, tool_files  # noqa: E402
 
 ROOT = Path(__file__).resolve().parent.parent
 
 
 def _config(name: str) -> dict:
-    return json.loads((ROOT / 'config' / 'tools' / f'{name}.json').read_text())
+    return json.loads(tool_file(name).read_text())
 
 
 class _Resp(io.BytesIO):

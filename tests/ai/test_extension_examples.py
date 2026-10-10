@@ -31,6 +31,7 @@ from sajha.ai.llm.settings import AskSettings
 from tests.ai import test_provider_contract as contract
 from tests.ai.conftest import ToolBox, make_gateway
 from tests.ai.fakes import FakeVendor
+from tests.tool_config_files import tool_file, tool_files  # noqa: E402
 
 REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 GUIDE = os.path.join(REPO, "docs", "architecture", "Extending the Intelligence Layer.md")
@@ -285,7 +286,7 @@ def _docs_toolbox(tmp_path, monkeypatch):
     set_doc_index(DocIndex(RagSettings(index_sajha_docs=False, persist=False, store="memory",
                                        sources=[{"name": "kb", "path": "kb"}]), make_gateway()))
     tb = ToolBox()
-    tb.add(SajhaSearchDocsTool(json.load(open(os.path.join(REPO, "config/tools/sajha_search_docs.json")))))
+    tb.add(SajhaSearchDocsTool(json.load(open(tool_file("sajha_search_docs")))))
     return tb
 
 

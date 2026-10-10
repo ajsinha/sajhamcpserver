@@ -15,6 +15,7 @@ from pathlib import Path
 from unittest import mock
 
 import pytest
+from tests.tool_config_files import tool_file, tool_files  # noqa: E402
 
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
@@ -227,9 +228,11 @@ def studio():
         # Clean up anything a failed test left behind
         for name in created:
             c.post('/admin/studio/delete', json={'tool_name': name}, headers=headers)
-        for pattern in ('config/tools/zz_test_*', 'sajha/tools/impl/*zz_test_*', 'config/scripts/zz_test_*'):
+        for pattern in ('config/tools/zz_test_*', 'config/tools/*/zz_test_*', 'sajha/tools/impl/*zz_test_*',
+                        'config/scripts/zz_test_*'):
             for f in ROOT.glob(pattern):
-                f.unlink()
+                if f.is_file():
+                    f.unlink()
 
 
 def _mcp_call(c, headers, name, arguments):
@@ -264,7 +267,7 @@ def _deploy_call_delete(studio, name, preview_url, deploy_url, payload, argument
     r = c.post('/admin/studio/delete', json={'tool_name': name}, headers=headers)
     assert r.status_code == 200 and r.json()['success'] and r.json()['deleted_files'], r.text
     assert name not in tools_registry.tools
-    assert not (ROOT / 'config' / 'tools' / f'{name}.json').exists()
+    assert not tool_file(name).exists()
     assert not list((ROOT / 'sajha' / 'tools' / 'impl').glob(f'*{name}*.py'))
     created.remove(name)
 
@@ -402,10 +405,10 @@ def test_olap_dataset_deploy_and_delete(studio, tmp_path, monkeypatch):
 def test_delete_refuses_tools_studio_did_not_create(studio):
     c, headers, _ = studio
     from sajha.app import tools_registry
-    builtin = next(n for n in tools_registry.tools if (ROOT / 'config' / 'tools' / f'{n}.json').exists())
+    builtin = next(n for n in tools_registry.tools if tool_file(n).exists())
     r = c.post('/admin/studio/delete', json={'tool_name': builtin}, headers=headers)
     assert r.status_code == 403
-    assert builtin in tools_registry.tools and (ROOT / 'config' / 'tools' / f'{builtin}.json').exists()
+    assert builtin in tools_registry.tools and tool_file(builtin).exists()
 
 
 def test_invalid_names_and_conflicts_rejected(studio):

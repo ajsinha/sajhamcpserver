@@ -298,7 +298,8 @@ def olap_tools():
     from pathlib import Path
     from sajha.tools.impl.duckdb_olap_advanced import DuckDBOLAPAdvancedTool
     root = Path(__file__).resolve().parent.parent / "config" / "tools"
-    return {n: DuckDBOLAPAdvancedTool(json.loads((root / f"{n}.json").read_text()))
+    from tests.tool_config_files import tool_file
+    return {n: DuckDBOLAPAdvancedTool(json.loads(tool_file(n, root).read_text()))
             for n in ("olap_pivot_table", "olap_time_series")}
 
 

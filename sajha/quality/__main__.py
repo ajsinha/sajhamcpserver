@@ -28,7 +28,7 @@ from typing import Any, List, Optional
 def _registry():
     from sajha.tools.tools_registry import get_tools_registry
     from sajha.core.config import _get
-    reg = get_tools_registry(_get('config.tools_dir', 'config/tools') or 'config/tools')
+    reg = get_tools_registry(_get('config.tools.dir', 'config/tools') or 'config/tools')
     try:
         reg.stop_monitoring()
     except Exception:

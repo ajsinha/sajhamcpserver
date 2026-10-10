@@ -1,0 +1,23 @@
+{# Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.com #}
+{# The tool folder a creator files a NEW tool in (config/tools/<folder>/; empty: the default). Editing a
+   tool never moves it. studioFolder() is what the creator's deploy request sends. #}
+{% set FP = folder_placeholder if folder_placeholder is defined else 'empty: the root of config/tools' %}
+<div class="card mb-3">
+    <div class="card-body py-2 d-flex flex-wrap align-items-center gap-2">
+        <label class="form-label fw-bold mb-0" for="studioToolFolder"><i class="bi bi-folder2 me-1" aria-hidden="true"></i>Folder</label>
+        <input id="studioToolFolder" class="form-control form-control-sm" style="max-width: 18rem" list="studioToolFolders"
+               maxlength="32" autocomplete="off" placeholder="{{ FP }}" aria-describedby="studioToolFolderHelp">
+        <datalist id="studioToolFolders">
+            {% for f in (tool_folders if tool_folders is defined else []) %}<option value="{{ f }}">{% endfor %}
+        </datalist>
+        <small id="studioToolFolderHelp" class="text-muted">The tool folder the new tool's config goes in: lowercase letters,
+            digits, <code>_</code> or <code>-</code>. It files the tool; it does not change its name.</small>
+    </div>
+</div>
+<script nonce="{{ csp_nonce() }}">
+function studioFolder() {
+    const el = document.getElementById('studioToolFolder');
+    const v = el ? el.value.trim() : '';
+    return v || undefined;
+}
+</script>

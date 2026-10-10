@@ -228,7 +228,7 @@ Example calls:
 
 `metadata.generator_version` is a fixed string that the generator stamps on every file. It does not describe the server release.
 
-Examples ship in `config/tools/`: `sharepoint_documents.json`, `sharepoint_lists.json` and `sharepoint_search.json`.
+Examples ship in `config/tools/sharepoint/`: `sharepoint_documents.json`, `sharepoint_lists.json` and `sharepoint_search.json`.
 
 From Python, without the page:
 

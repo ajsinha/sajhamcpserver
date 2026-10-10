@@ -33,6 +33,7 @@ from sajha.accounts.vault import LocalKeyProvider, TokenVault, set_vault, utcnow
 from sajha.core.mcp_mrtr import InputRequired
 from sajha.core.state.memory import MemoryStateStore
 from sajha.observability.caller import Caller, reset, set_caller
+from tests.tool_config_files import tool_file, tool_files  # noqa: E402
 
 AUTH = 'https://auth.fake.test'
 SECRET = 'fake-client-secret-value-0123456789'
@@ -225,7 +226,7 @@ class as_user:
 
 def load_tool(name):
     import importlib
-    cfg = json.load(open(f'config/tools/{name}.json'))
+    cfg = json.load(open(tool_file(name)))
     mod, cls = cfg['implementation'].rsplit('.', 1)
     return getattr(importlib.import_module(mod), cls)(cfg)
 

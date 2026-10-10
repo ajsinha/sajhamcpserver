@@ -69,6 +69,7 @@ class ImportRequest:
     names: Dict[str, str] = field(default_factory=dict)       # op key -> tool name
     selected: List[str] = field(default_factory=list)         # op keys to deploy
     remove: List[str] = field(default_factory=list)           # op keys whose tools to delete
+    folder: str = ''                                          # tool folder of new tools ('' -> the prefix)
 
     @classmethod
     def from_dict(cls, d: Dict[str, Any]) -> 'ImportRequest':
@@ -91,7 +92,8 @@ class ImportRequest:
                    rate_limit_per_minute=_int('rate_limit_per_minute'), graphql_depth=_int('graphql_depth'),
                    names={str(k): str(v).strip().lower() for k, v in (d.get('names') or {}).items() if v},
                    selected=[str(x) for x in d.get('selected') or []],
-                   remove=[str(x) for x in d.get('remove') or []])
+                   remove=[str(x) for x in d.get('remove') or []],
+                   folder=str(d.get('folder') or '').strip().strip('/'))
 
 
 # ── the source ───────────────────────────────────────────────────────
@@ -426,9 +428,10 @@ def _owner_of(name: str, registry) -> Tuple[bool, Optional[str]]:
     if cfg is None:
         try:
             from sajha.core.storage import get_storage
+            from sajha.tools.tool_files import name_taken
             st = get_storage()
-            rel = f'config/tools/{name}.json'
-            if st.exists(rel):
+            rel = name_taken(name)
+            if rel and st.exists(rel):
                 cfg = st.read_json(rel)
         except Exception:
             cfg = {'name': name}
@@ -604,17 +607,34 @@ def test_call(data: Dict[str, Any], registry=None) -> Dict[str, Any]:
 
 # ── deploy / delete ──────────────────────────────────────────────────
 
-def _write_config(name: str, config: Dict[str, Any]) -> None:
+def _write_config(name: str, config: Dict[str, Any], folder: str = '') -> None:
+    """Write a tool's config: an existing tool stays where it is; a new one goes into ``folder``."""
     from sajha.core.storage import write_tool_config
-    write_tool_config(f'{name}.json', config)
+    write_tool_config(f'{name}.json', config, folder=folder)
 
 
 def _remove_config(name: str) -> bool:
-    from sajha.core.storage import get_storage
+    from sajha.tools.tool_files import delete_config
     try:
-        return bool(get_storage().delete(f'config/tools/{name}.json'))
+        return delete_config(name)
     except FileNotFoundError:
         return False
+
+
+def tool_folder(req: 'ImportRequest', prefix: str, record: Optional[Dict[str, Any]] = None) -> str:
+    """The folder new tools of an import go into: the request's, else the one recorded, else the
+    import's prefix (when that is a valid folder name), else the root."""
+    from sajha.tools.tool_files import folder_problem, slug_folder
+    if req.folder:
+        why = folder_problem(req.folder)
+        if why:
+            raise APIImportError(why)
+        return req.folder
+    recorded = (record or {}).get('folder')
+    if isinstance(recorded, str) and recorded and folder_problem(recorded) is None:
+        return recorded
+    folder = slug_folder(prefix)
+    return folder if folder and folder_problem(folder) is None else ''
 
 
 def _hot_load(registry, name: str) -> Tuple[bool, str]:
@@ -696,6 +716,7 @@ def deploy(data: Dict[str, Any], registry=None, user: str = '') -> Dict[str, Any
 
     deployed, updated, removed, failed = [], [], [], []
     ctx = p.ctx()
+    folder = tool_folder(req, p.prefix, p.record)
     with _bulk(registry):
         for key in sorted(removing):
             name = recorded[key].get('tool_name', '')
@@ -710,7 +731,7 @@ def deploy(data: Dict[str, Any], registry=None, user: str = '') -> Dict[str, Any
             previous = (recorded.get(op['key']) or {}).get('tool_name')
             config = tool_config(op, name, ctx)
             try:
-                _write_config(name, config)
+                _write_config(name, config, folder)
             except Exception as e:
                 failed.append({'name': name, 'key': op['key'], 'error': f'could not write the config: {e}'})
                 continue
@@ -737,7 +758,7 @@ def deploy(data: Dict[str, Any], registry=None, user: str = '') -> Dict[str, Any
         'server_url': p.server_url, 'server_index': req.server_index, 'server_variables': req.server_variables,
         'base_url': req.base_url, 'auth': p.auth, 'filters': req.filters,
         'timeout_seconds': req.timeout_seconds, 'rate_limit_per_minute': req.rate_limit_per_minute,
-        'graphql_depth': req.graphql_depth,
+        'graphql_depth': req.graphql_depth, 'folder': folder,
         'operations': recorded, 'created_at': (p.record or {}).get('created_at') or now,
         'updated_at': now, 'updated_by': user,
         'created_by': (p.record or {}).get('created_by') or user,

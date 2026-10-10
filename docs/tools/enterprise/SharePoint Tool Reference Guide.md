@@ -13,7 +13,7 @@ generates (which use the same implementation).
 | `sharepoint_lists` | `SharePointListTool` | Lists and list items: read, create, update, delete, columns, OData queries |
 | `sharepoint_search` | `SharePointSearchTool` | Search within the site (everything, documents or sites) or people in the directory |
 
-The configs are `config/tools/sharepoint_documents.json`, `sharepoint_lists.json` and
+The configs are `config/tools/sharepoint/sharepoint_documents.json`, `sharepoint_lists.json` and
 `sharepoint_search.json`; the schemas there are the contract, and the server validates every
 call against them (open a tool's schema page in the console for the live version).
 `SharePointSiteTool` (site information, subsites, users, permissions, content types) has no

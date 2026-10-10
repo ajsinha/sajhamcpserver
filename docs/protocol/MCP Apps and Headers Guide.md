@@ -93,7 +93,7 @@ is missing but the body's 'symbol' argument is present"*. Legacy clients are not
 affected.
 
 The stock-quote tools annotate `symbol` this way (`symbol` → `Mcp-Param-Symbol`). The
-current list is whatever the configs say: `grep -l x-mcp-header config/tools/*.json`.
+current list is whatever the configs say: `grep -rl x-mcp-header config/tools`.
 
 ### Rules, and what happens when they are broken
 

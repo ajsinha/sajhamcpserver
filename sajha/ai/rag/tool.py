@@ -2,7 +2,7 @@
 SAJHA MCP Server — ``sajha_search_docs``: search SAJHA's documentation and the admin's document sources.
 Copyright All rights Reserved 2025-2030, Ashutosh Sinha
 
-Configured in config/tools/sajha_search_docs.json like any tool, so it is in tools/list, its
+Configured in config/tools/sajha/sajha_search_docs.json like any tool, so it is in tools/list, its
 access follows the usual role permissions, and Ask SAJHA's planner can call it. Each result
 carries its citation: the document, its section and, for SAJHA's guides, the help-page link.
 """

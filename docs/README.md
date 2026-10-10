@@ -175,6 +175,7 @@ These guides document each provider's tools, parameters and API keys.
 37. [Tutorial 37: Re-export and Bridges](tutorials/TUTORIAL_37_reexport_and_bridges.md)
 38. [Tutorial 38: The SAJHA Net Conformance Runner](tutorials/TUTORIAL_38_net_conformance_runner.md)
 39. [Tutorial 39: Console Single Sign-On](tutorials/TUTORIAL_39_console_single_sign_on.md)
+40. [Tutorial 40: Stream a Call Across the Net](tutorials/TUTORIAL_40_stream_a_net_call.md)
 
 ## Clients and security
 

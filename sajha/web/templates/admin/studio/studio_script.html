@@ -233,6 +233,7 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
 
 {% block content %}
 {% include "admin/studio/_studio_nav.html" %}
+{% include "admin/studio/_folder_field.html" %}
 <div class="container-fluid py-4 script-creator-container">
     <!-- Header -->
     <div class="creator-header">
@@ -732,7 +733,7 @@ echo &quot;Hello from SAJHA MCP Server!&quot;
             const response = await fetch('/admin/studio/script/deploy', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(data)
+                body: JSON.stringify({...data, folder: studioFolder()})
             });
             
             const result = await response.json();

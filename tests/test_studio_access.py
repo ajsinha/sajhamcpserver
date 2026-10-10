@@ -10,6 +10,7 @@ from pathlib import Path
 from unittest import mock
 
 import pytest
+from tests.tool_config_files import tool_file, tool_files  # noqa: E402
 
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
@@ -84,7 +85,7 @@ def env():
             c.post('/admin/studio/delete', json={'tool_name': name}, headers=heads['admin'])
         for uid in users.values():
             _drop_user(uid)
-        for pattern in ('config/tools/zz_test_dev_*', 'sajha/tools/impl/*zz_test_dev_*',
+        for pattern in ('config/tools/zz_test_dev_*', 'config/tools/*/zz_test_dev_*', 'sajha/tools/impl/*zz_test_dev_*',
                         'config/scripts/zz_test_dev_*'):
             for f in ROOT.glob(pattern):
                 f.unlink()
@@ -156,7 +157,7 @@ def test_admin_only_items_refuse_developers(env):
     dev, admin = heads['developer'], heads['admin']
     from sajha.app import tools_registry
     # tools Studio did not create: refused for everyone
-    builtin = next(n for n in tools_registry.tools if (ROOT / 'config' / 'tools' / f'{n}.json').exists())
+    builtin = next(n for n in tools_registry.tools if tool_file(n).exists())
     assert c.post('/admin/studio/delete', json={'tool_name': builtin}, headers=dev).status_code == 403
     assert builtin in tools_registry.tools
     # code that would run in-process (sandbox not enforced): admin only

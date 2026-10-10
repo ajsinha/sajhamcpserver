@@ -20,7 +20,7 @@ configured: an administrator registers an OAuth app with the service and sets
 | `ms365_list_my_events` | `microsoft` | `Calendars.Read` | `sajha.accounts.tools.microsoft.MS365ListMyEventsTool` | The user's Outlook calendar events in a window (UTC) |
 | `connected_http_request` | `github` (as shipped) | none | `sajha.accounts.tools.http_request.ConnectedHttpRequestTool` | Read-only GitHub REST calls under bound paths |
 
-The configs are in `config/tools/` under the tool names; the schemas there are the contract
+The configs are in `config/tools/connected_accounts/` under the tool names; the schemas there are the contract
 and every call is validated against them.
 
 ## The APIs behind them
@@ -55,7 +55,7 @@ The implementation reads its binding from the tool config:
          "headers": {}}
 ```
 
-To bind another service, copy `config/tools/connected_http_request.json` under a new
+To bind another service, copy `config/tools/connected_accounts/connected_http_request.json` under a new
 name, change `auth.connected_account`, `http.base_url` (a host in that provider's
 `api_hosts`), the allowed `methods` and the `paths` (fnmatch patterns), and the input
 schema's `method` enum. Paths with `..`, `//` or a scheme are refused, as is any host

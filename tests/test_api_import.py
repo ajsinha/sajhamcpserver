@@ -18,6 +18,7 @@ from pathlib import Path
 from urllib.parse import parse_qs, urlsplit
 
 import pytest
+from tests.tool_config_files import tool_file, tool_files  # noqa: E402
 
 ROOT = Path(__file__).resolve().parent.parent
 FIX = ROOT / 'tests' / 'fixtures' / 'api_import'
@@ -152,7 +153,11 @@ class FakeRegistry:
         self._tools_lock = threading.RLock()
 
     def _config_rel(self, ref):
-        return f'config/tools/{Path(str(ref)).stem}.json'
+        s = str(ref)                    # a storage path keeps its tool folder; a name is looked up
+        if s.startswith('config/tools/'):
+            return s
+        from sajha.tools.tool_files import get_index
+        return get_index('config/tools').target_path(Path(s).stem, '')
 
     def load_tool_from_config(self, ref):
         from sajha.api_import.executor import ImportedAPITool
@@ -533,7 +538,8 @@ def test_deploy_reimport_diff_and_remove(fake, local, store_dir):
     keys = ['GET /pets', 'GET /pets/{petId}', 'DELETE /pets/{petId}']
     out = service.deploy({**base, 'selected': keys}, reg, 'admin')
     assert out['success'] and sorted(out['deployed']) == ['pets_delete_pet', 'pets_list_pets', 'pets_show_pet_by_id']
-    assert (store_dir / 'config' / 'tools' / 'pets_list_pets.json').exists()
+    assert (store_dir / 'config' / 'tools' / 'pets' / 'pets_list_pets.json').exists()   # the prefix's tool folder
+    assert store.load('pets')['folder'] == 'pets'
     assert reg.tools['pets_show_pet_by_id'].execute({'petId': 1})['body']['name'] == 'Rex'
     record = store.load('pets')
     assert set(record['operations']) == set(keys) and record['updated_by'] == 'admin'
@@ -561,7 +567,7 @@ def test_deploy_reimport_diff_and_remove(fake, local, store_dir):
                           'remove': ['DELETE /pets/{petId}']}, reg)
     assert out['updated'] == ['pets_list_pets'] and out['deployed'] == ['pets_health']
     assert out['removed'] == ['pets_delete_pet'] and 'pets_delete_pet' not in reg.tools
-    assert not (store_dir / 'config' / 'tools' / 'pets_delete_pet.json').exists()
+    assert not (store_dir / 'config' / 'tools' / 'pets' / 'pets_delete_pet.json').exists()
     assert 'owner' in reg.tools['pets_list_pets'].input_schema['properties']
     assert set(store.load('pets')['operations']) == {'GET /pets', 'GET /pets/{petId}', 'GET /health'}
 
@@ -631,7 +637,7 @@ def app_client():
         r = c.post('/api/auth/login', json={'user_id': 'admin', 'password': 'admin123'})
         assert r.status_code == 200
         yield c, {'Authorization': f"Bearer {r.json()['token']}"}
-        for f in list((ROOT / 'config' / 'tools').glob('zz_test_pets_*.json')):
+        for f in tool_files('zz_test_pets_*.json'):
             f.unlink()
         rec = ROOT / 'config' / 'api_imports' / 'zz_test_pets.json'
         if rec.exists():
@@ -686,7 +692,7 @@ def test_studio_import_deploy_call_over_mcp_and_delete(app_client, fake, local):
     assert r.json()['success'] and sorted(r.json()['removed']) == ['zz_test_pets_list_pets',
                                                                    'zz_test_pets_show_pet_by_id']
     assert 'zz_test_pets_list_pets' not in tools_registry.tools
-    assert not list((ROOT / 'config' / 'tools').glob('zz_test_pets_*.json'))
+    assert not tool_files('zz_test_pets_*.json')
 
 
 def test_studio_page_and_admin_only(app_client):

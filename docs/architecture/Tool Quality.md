@@ -269,7 +269,7 @@ python -m sajha.quality runs [--kind eval|test]
 ```
 
 From the command line the runner builds its own gateway from `ai:` in the config file and
-its own registry from `config/tools/` (only the set's `tools`), so the shipped set runs offline
+its own registry from `config/tools/` and its tool folders (only the set's `tools`), so the shipped set runs offline
 on the mock provider with no server. On the Evals page (`/admin/evals`) a run executes in a
 background thread of the server against the live registry and gateway; the page polls it.
 
@@ -316,7 +316,7 @@ deprecation:                       # the tool as a whole
   message: Use calc_percent_change.
 ```
 
-The registered config (from `config/tools/`) is always the version named by its own `version`
+The registered config (from `config/tools/` or a tool folder) is always the version named by its own `version`
 field; other versions are built from it (overrides) or from their own config, instantiated
 the way the registry builds tools, and never registered, so nothing else sees them.
 

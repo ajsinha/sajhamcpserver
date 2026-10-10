@@ -14,6 +14,7 @@ from pathlib import Path
 from types import SimpleNamespace
 
 import pytest
+from tests.tool_config_files import tool_file, tool_files  # noqa: E402
 
 ROOT = Path(__file__).resolve().parent.parent
 ADMIN = SimpleNamespace(user_id='admin', roles=['admin'], auth_type='session')
@@ -189,7 +190,10 @@ def test_python_tests_run_in_the_sandbox():
     d = _propose('mean, median and standard deviation of a list of numbers')
     assert not d['errors'] and d['proposal']['kind'] == 'python'
     paths = [f['path'] for f in d['files']]
-    assert paths == ['sajha/tools/impl/studio_summary_statistics.py', 'config/tools/summary_statistics.json']
+    from sajha.tools.tool_files import slug_folder
+    folder = slug_folder(d['proposal']['category'])           # Describe files a tool under its category
+    assert folder and paths == ['sajha/tools/impl/studio_summary_statistics.py',
+                                f'config/tools/{folder}/summary_statistics.json']
     cfg = json.loads(d['files'][1]['content'])
     assert cfg['sandbox'] == {'enabled': True, 'network': 'none'}
     assert cfg['metadata']['generated_from'] == 'description' and cfg['metadata']['draft_id'] == d['id']
@@ -345,7 +349,7 @@ def test_page_and_endpoints_end_to_end(app_client, monkeypatch):
         out = r.json()
         assert out['deployed']['name'] == name and out['deployed']['harness'] == 'sajha.quality.save_cases'
         assert got and got[0][0] == name and len(got[0][1]) == 2
-        assert (ROOT / 'config' / 'tools' / f'{name}.json').exists()
+        assert tool_file(name).exists()
         from sajha.app import tools_registry
         tool = tools_registry.get_tool(name)
         assert type(tool).__name__ == 'SandboxedPythonTool'
@@ -357,7 +361,7 @@ def test_page_and_endpoints_end_to_end(app_client, monkeypatch):
         assert g['deployed']['name'] == name
     finally:
         _cleanup(client, admin, name)
-    assert not (ROOT / 'config' / 'tools' / f'{name}.json').exists()
+    assert not tool_file(name).exists()
     assert not (ROOT / 'sajha' / 'tools' / 'impl' / f'studio_{name}.py').exists()
 
 
@@ -399,7 +403,7 @@ def test_cli_describe_previews_without_deploying(monkeypatch, capsys, tmp_path):
     cli, calls = _cli(monkeypatch, tmp_path)
     code = cli.main(['studio', 'describe', 'mean, median and standard deviation of a list of numbers'])
     out = capsys.readouterr().out
-    assert code == 0 and 'python tool summary_statistics' in out and 'new file config/tools/summary_statistics.json' in out
+    assert code == 0 and 'python tool summary_statistics' in out and '/summary_statistics.json' in out and 'new file config/tools/' in out
     assert 'passed' in out and [c[0].rsplit('/', 1)[1] for c in calls] == ['propose', 'test']
 
 

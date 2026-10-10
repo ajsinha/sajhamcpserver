@@ -38,9 +38,10 @@ def stamp(config: Dict[str, Any], user_id: str, creator: str = '') -> Dict[str, 
 
 
 def stamp_file(tool_name: str, user_id: str, creator: str = '') -> bool:
-    """Record the creator in ``config/tools/<tool_name>.json`` (through the storage backend)."""
+    """Record the creator in the tool's config file, root or folder (through the storage backend)."""
     from sajha.core.storage import get_storage, write_tool_config
-    rel = f'config/tools/{tool_name}.json'
+    from sajha.tools.tool_files import config_path
+    rel = config_path(tool_name)
     try:
         config = json.loads(get_storage().read_text(rel))
     except Exception as e:

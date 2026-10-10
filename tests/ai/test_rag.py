@@ -15,6 +15,7 @@ from sajha.ai.rag.index import DocIndex, SAJHA_DOCS, UPLOADS, set_doc_index
 from sajha.ai.rag.stores import InProcessVectorStore, PgVectorStore, StoredChunk, pgvector_available
 from sajha.core.storage import LocalStorageBackend
 from tests.ai.conftest import ToolBox, make_gateway
+from tests.tool_config_files import tool_file, tool_files  # noqa: E402
 
 DOC = """# Widget Guide
 
@@ -144,7 +145,7 @@ def test_the_tool_and_the_ask_loop(storage, monkeypatch):
     idx = index(storage)
     set_doc_index(idx)
     try:
-        cfg = json.load(open("config/tools/sajha_search_docs.json"))
+        cfg = json.load(open(tool_file("sajha_search_docs")))
         tool = SajhaSearchDocsTool(cfg)
         out = tool.execute({"query": "flux capacitor power", "top_k": 2})
         assert out["count"] == 2 and out["results"][0]["section"] == "Configuring widgets"

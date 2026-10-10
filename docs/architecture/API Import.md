@@ -30,7 +30,8 @@ terms are in the [Glossary](../../GLOSSARY.md). The code is `sajha/api_import/`.
  plan          one entry per operation: tool name, inputSchema, outputSchema, annotations,
  (service.py)  flags (unsupported body, name conflict), diff against the last import
                                    │   the administrator selects, names, sets auth + server
- deploy        one JSON tool config per operation in config/tools/ (storage backend)
+ deploy        one JSON tool config per operation in config/tools/<folder>/ (storage backend;
+               folder: the request's "folder", else the one recorded, else the prefix)
                + the import record in config/api_imports/<api_id>.json
                                    │   hot-loaded into the registry
  execute       ImportedAPITool (executor.py): one generic class, configured per tool

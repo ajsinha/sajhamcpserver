@@ -350,7 +350,7 @@ result = client.execute_tool("boc_get_exchange_rate", indicator="usd_cad", recen
 
 ## Installation & Setup
 
-The tools ship with SAJHA and need no extra dependencies (standard library only) and no API key. Each tool is registered from its JSON config in `config/tools/boc_*.json`. To use the classes directly (tests, notebooks):
+The tools ship with SAJHA and need no extra dependencies (standard library only) and no API key. Each tool is registered from its JSON config in `config/tools/bank_of_canada/boc_*.json`. To use the classes directly (tests, notebooks):
 
 ```python
 from sajha.tools.impl.bank_of_canada_tool_refactored import (

@@ -106,7 +106,7 @@ v = llm_factory().model("embedding").embeddings_create(input=["a", "b"]).vectors
 | `sajha/ai/planners_engine/` | planner files (`config/planners/*.yaml`): validation, the stage library, the expression language, the graph runtime, the registry and the dry run ([Planner Reference](Planner%20Reference.md)) |
 | `sajha/ai/memory.py` | conversation memory: `ConversationStore` (tables `ai_conversations`, `ai_conversation_turns`), `ConversationMemory`, the scheduled purge |
 | `sajha/ai/rag/` | document retrieval: `chunking.py`, `extract.py` (PDF, Word), `stores.py` (the store contract, the memory and pgvector stores), `sqlite_vec.py` (the default store), `registry.py` (`ai.rag.store` selection), `index.py` (`DocIndex`), `tool.py` (`sajha_search_docs`) |
-| `sajha/ai/ask_tool.py` | the optional `sajha_ask` MCP tool: a shim over the LLM-tool type ([LLM Tools](LLM%20Tools.md)), defined in `config/tools/sajha_ask.json` |
+| `sajha/ai/ask_tool.py` | the optional `sajha_ask` MCP tool: a shim over the LLM-tool type ([LLM Tools](LLM%20Tools.md)), defined in `config/tools/sajha/sajha_ask.json` |
 | `sajha/ai/llm_tools/` | LLM tools: the `LLMTool` type and its modes, the `llm` block's validation, resource safety ([LLM Tools](LLM%20Tools.md)) |
 | `sajha/routes/ai_routes.py` | `POST /api/ai/ask`, `GET /api/ai/config` and the older `/api/ai/*` routes |
 
@@ -509,7 +509,7 @@ previous question's wording with its new numbers or symbols).
 
 ### Document search (RAG)
 
-`sajha_search_docs` is an ordinary tool (`config/tools/sajha_search_docs.json`, so it is in
+`sajha_search_docs` is an ordinary tool (`config/tools/sajha/sajha_search_docs.json`, so it is in
 `tools/list`, its access follows role permissions, and any planner can call it) over a document
 index (`sajha/ai/rag/`):
 
@@ -666,7 +666,7 @@ A walkthrough is [Tutorial 10: Ask SAJHA](../tutorials/TUTORIAL_10_ask_sajha.md)
 ### `sajha_ask` (MCP)
 
 `sajha_ask` is an [LLM tool](LLM%20Tools.md) in mode `answer`, defined in
-`config/tools/sajha_ask.json` (`question`, optional `model`, `conversation_id` and `confirm`;
+`config/tools/sajha/sajha_ask.json` (`question`, optional `model`, `conversation_id` and `confirm`;
 conversation memory; every tool allowed). The file keeps it disabled; `ai.ask.mcp_tool_enabled:
 true` turns it on, at start-up and after every reload of the catalog. The ask runs as the MCP
 caller (the caller context of `sajha/observability/caller.py`): its user ID and roles, and only

@@ -307,6 +307,7 @@
 
 {% block content %}
 {% include "admin/studio/_studio_nav.html" %}
+{% include "admin/studio/_folder_field.html" %}
 <div class="container-fluid py-3">
     <!-- Header with Breadcrumb -->
     <nav aria-label="breadcrumb" class="mb-2">
@@ -1066,7 +1067,7 @@ async function deployTool() {
         const response = await fetch('/admin/studio/deploy', {
             method: 'POST',
             headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify({code: code, tool_name: toolName})
+            body: JSON.stringify({code: code, tool_name: toolName, folder: studioFolder()})
         });
         
         const data = await response.json();

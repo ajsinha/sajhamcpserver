@@ -35,8 +35,9 @@ PAGE_HELP: dict = {
     'tools_list': {
         'what': 'Every tool you may use here: this server\'s own, proxied MCP servers\' and, in a SAJHA Net, other '
                 'instances\' (with net badges and local or remote filters); open one to inspect its schema, run it or '
-                'see its configuration.',
-        'terms': _TOOLS_TERMS + ['Namespaced tool', 'Proxy tool'],
+                'see its configuration. Tools are grouped by tool folder; tools at the root are Unfiled, a proxied '
+                'server\'s tools by their prefix.',
+        'terms': _TOOLS_TERMS + ['Namespaced tool', 'Proxy tool', 'Tool folder', 'Unfiled (tool)'],
         'guide': 'TUTORIAL_01_getting_started.md'},
     'tool_execute_page': {
         'what': 'Run one tool with arguments you enter, and see the result exactly as an MCP client would.',
@@ -48,8 +49,8 @@ PAGE_HELP: dict = {
         'terms': ['JSON Schema', 'Input Schema', 'Output Schema', 'Properties', 'Required', 'Type'],
         'guide': 'TUTORIAL_02_create_a_custom_tool.md'},
     'tool_config_page': {
-        'what': "A tool's JSON configuration as loaded from config/tools/.",
-        'terms': ['Tool configuration', 'JSON Schema', 'Input Schema', 'Output Schema',
+        'what': "A tool's JSON configuration as loaded from config/tools/ or one of its tool folders, and the file it is in.",
+        'terms': ['Tool configuration', 'Tool folder', 'JSON Schema', 'Input Schema', 'Output Schema',
                   'Hot-reload', 'Enabled / Tool Status'],
         'guide': 'TUTORIAL_02_create_a_custom_tool.md'},
     'reports_dashboard': {
@@ -129,8 +130,8 @@ PAGE_HELP: dict = {
         'guide': 'Observability.md'},
     # ── Admin ────────────────────────────────────────────────────────────────
     'admin_tools_page': {
-        'what': 'Enable, disable and reload tools, with their call counts and timings.',
-        'terms': ['Tool management', 'Hot-reload', 'Execution count', 'Average execution time',
+        'what': 'Enable, disable and reload tools, with their call counts, timings and tool folders (search folder:<name>).',
+        'terms': ['Tool management', 'Tool folder', 'Hot-reload', 'Execution count', 'Average execution time',
                   'Enabled / Tool Status', 'Force reload'],
         'guide': 'TUTORIAL_02_create_a_custom_tool.md'},
     'admin_users_page': {
@@ -364,6 +365,10 @@ PAGE_HELP: dict = {
         'terms': ['LLM tool creator', 'LLM tool', 'Mode (LLM tool)', 'Planner', 'Conversation memory',
                   'Sampling (LLM tools)', 'Mock provider', 'Studio permission', 'Tool creator (ownership)'],
         'guide': 'MCP Studio LLM Tool Creator Guide.md'},
+    'studio_json': {
+        'what': 'Deploy a tool from a pasted or uploaded tool config (administrators), filed in a tool folder you choose.',
+        'terms': ['Import JSON', 'Tool configuration', 'Tool folder', 'Creator'],
+        'guide': 'MCP Studio User Guide.md'},
     'studio_planners': {
         'what': 'Edit planner files (administrators): load problems, schema and P-rule findings, the graph of stages and '
                 'bounded edges, a dry run on the mock model, and saving new versions.',

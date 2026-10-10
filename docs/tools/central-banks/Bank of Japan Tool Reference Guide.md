@@ -56,7 +56,7 @@ Caching is opt-in per tool: add a top-level `"cache_ttl": <seconds>` to a tool's
 
 ## Advertised Schema
 
-The `inputSchema` in each `config/tools/boj_*.json` is what `tools/list` advertises, and it matches what the implementation reads:
+The `inputSchema` in each `config/tools/bank_of_japan/boj_*.json` is what `tools/list` advertises, and it matches what the implementation reads:
 
 | Tool | Parameter and values |
 |------|----------------------|

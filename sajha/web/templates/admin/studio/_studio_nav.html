@@ -19,6 +19,7 @@
             {% if ALL or 'sharepoint' in SC %}<a href="{{ url_for('studio_sharepoint') }}" class="filter-chip {% if 'sharepoint' in request.path %}active{% endif %}"><i class="bi bi-microsoft me-1"></i>SharePoint</a>{% endif %}
             {% if ALL or 'olap' in SC %}<a href="{{ url_for('studio_olap') }}" class="filter-chip {% if 'olap' in request.path %}active{% endif %}"><i class="bi bi-graph-up-arrow me-1"></i>OLAP</a>{% endif %}
             {% if ALL or 'llm' in SC %}<a href="{{ url_for('studio_llm') }}" class="filter-chip {% if request.path == '/studio/llm' %}active{% endif %}"><i class="bi bi-chat-square-text me-1"></i>LLM tool</a>{% endif %}
+            {% if ALL %}<a href="{{ url_for('studio_json') }}" class="filter-chip {% if request.path == '/studio/json' %}active{% endif %}"><i class="bi bi-filetype-json me-1"></i>Import JSON</a>{% endif %}
             {% if ALL %}<a href="{{ url_for('studio_planners') }}" class="filter-chip {% if 'planners' in request.path %}active{% endif %}"><i class="bi bi-signpost-split me-1"></i>Planners</a>{% endif %}
             {% if ALL or 'composite' in SC %}<a href="{{ url_for('composite_builder') }}" class="filter-chip {% if 'composite' in request.path %}active{% endif %}"><i class="bi bi-boxes me-1"></i>Composite</a>{% endif %}
         </nav>

@@ -40,7 +40,7 @@ selected store.
 
 | Subsystem | Storage path (relative to `base_dir` or bucket `prefix`) | Operations |
 |-----------|----------------------------------------------------------|------------|
-| Tools registry | `config/tools/*.json` | list and read at load; admin config edits and enable/disable persist with `write_json` |
+| Tools registry | `config/tools/*.json` and `config/tools/<folder>/*.json` (one level; the listing is recursive) | list and read at load; admin config edits and enable/disable persist with `write_json` |
 | Prompts registry | `config/prompts/*.json` | list and read at load; create and update use `write_json`; delete uses `delete` |
 | MCP Studio generators | `config/tools/<name>.json` | the generated tool **JSON** is written through `write_tool_config()` |
 | Guide pages (`/help/guides`, `/help/guides/{name}`) | `docs/**/*.md` except `docs/archive/` and `README.md` files | recursive listing (reused for 30 s) and a read per page; a guide is found by its file name |
@@ -246,15 +246,15 @@ Only one tool-reload mechanism is active per deployment.
 
 | Mechanism | Backend | What it watches | Interval |
 |-----------|---------|-----------------|----------|
-| Tools registry poller | `local` only (skipped on cloud) | `config/tools/*.json` on disk (new, modified, deleted) plus `sajha/tools/impl/*.py` | 5 s (fixed) |
+| Tools registry poller | `local` only (skipped on cloud) | `config/tools/*.json` and `config/tools/<folder>/*.json` on disk (new, modified, deleted, removed folders) plus `sajha/tools/impl/*.py` | 5 s (fixed) |
 | `ConfigReloader` / `HotReloadManager` | any (local files only) | local tool JSON, tool modules, prompt JSON, and the persistent API key file (`config.apikeys.path`) if present, which is also re-read on change when a key is looked up | `hot_reload.interval_seconds` |
 | `S3SyncManager` | `s3`, `azure`, `gcs` | `config/tools` → `reload_all_tools`; `config/prompts` → prompts `reload` | `storage.s3.sync_interval` (default 60 s), used for **all** cloud backends |
 | Prompts auto-refresh | any | full reload of prompts through storage | 600 s |
 
 How `S3SyncManager` works: at start it pulls every object under the watched prefixes into
 `cache_dir`. Each later cycle lists the prefix, compares each object's modified time with the
-last value seen, re-downloads new or changed objects, and fires the callback once per prefix
-when anything changed. It runs in a daemon thread named `s3-sync`.
+last value seen, re-downloads new or changed objects, notes objects that are gone (a removed tool
+folder is its objects gone), and fires the callback once per prefix when anything changed. It runs in a daemon thread named `s3-sync`.
 
 Behaviour you should expect on a cloud backend:
 
@@ -317,7 +317,7 @@ Behaviour you should expect on a cloud backend:
 |---------|---------------|
 | `SAJHA_STORAGE_BACKEND=s3` set, but the log says `LocalStorageBackend` | Backend construction failed and the server fell back to local; the line before it says why (next row). The environment does win over the YAML (see [Environment variables](#environment-variables)). |
 | `Storage backend init failed, falling back to local filesystem` | The constructor raised an error, such as a missing SDK (`ImportError` names the package) or Azure with neither `connection_string` nor `account_url`. The server keeps running on the local backend. |
-| No tools load on a cloud backend | The bucket is empty, the prefix is wrong, or the credentials lack `List`. The objects must be at `<prefix>/config/tools/*.json`. Check the startup line `Loading tools from 'config/tools' via ...`. |
+| No tools load on a cloud backend | The bucket is empty, the prefix is wrong, or the credentials lack `List`. The objects must be at `<prefix>/config/tools/*.json` or `<prefix>/config/tools/<folder>/*.json`. Check the startup line `Loading tools from 'config/tools' via ...`. |
 | Bucket edits take a while to appear | Polling cadence is `storage.s3.sync_interval` (there are no push notifications). Lower it, or call `POST /api/admin/tools/reload`. |
 | A tool deleted from the bucket is still listed | Deletions alone do not trigger a reload (see [Hot reload](#hot-reload-per-backend)). Call `POST /api/admin/tools/reload`. |
 | Tool JSON loads but the class fails to import on another instance | The Studio `.py` exists only on the instance that generated it. Share `sajha/tools/impl/` via EFS. |

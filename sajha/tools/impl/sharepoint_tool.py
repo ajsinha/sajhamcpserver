@@ -11,7 +11,7 @@ API, ``<site>/_api``, does not accept app-only tokens obtained with a client sec
 is not used.) The app needs Graph application permissions such as ``Sites.Read.All`` (read)
 or ``Sites.ReadWrite.All`` (writes), or ``Sites.Selected`` granted on the site.
 
-Configuration (``config/tools/sharepoint_*.json``): ``site_url`` and an ``authentication``
+Configuration (``config/tools/sharepoint/sharepoint_*.json``): ``site_url`` and an ``authentication``
 block (``type``, ``tenant_id``, ``client_id``, ``client_secret``), normally
 ``${sharepoint.site.url}``, ``${azure.tenant.id}``, ``${sharepoint.client.id}`` and
 ``${sharepoint.client.secret}`` resolved from ``config/application.yml`` / the environment.

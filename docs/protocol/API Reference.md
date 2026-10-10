@@ -240,7 +240,7 @@ curl http://localhost:3002/ready
 | Method | Path | Auth | Purpose |
 |---|---|---|---|
 | POST | `/api/tools/execute` | user | Run a tool: body `{"tool": "...", "arguments": {...}}`. 403 if the caller lacks access to the tool; 400 if the arguments do not satisfy its input schema; 428 with `error_code: connected_account_required` and `connect_url` when the tool acts through a connected account the caller has not linked ([Connected Accounts](../architecture/Connected%20Accounts.md)). For a versioned tool the body also has `_meta` naming the version that ran and any deprecation ([Tool Quality §6](../architecture/Tool%20Quality.md#6-tool-versions-and-canary)). An [LLM tool](../architecture/LLM%20Tools.md) whose run ended as an error (`stopped_by` such as `invalid_output` or `memory_pressure`) answers `success: false` with the result; one the server refused to protect itself (`stopped_by: busy`) answers 503 with `Retry-After`. Logged to tool usage. |
-| GET | `/api/tools/list` | as MCP | The tools the caller may see. |
+| GET | `/api/tools/list` | as MCP | The tools the caller may see. Each tool also carries `folder` (its tool folder, `''` the root, `null` without a config file). |
 | GET | `/api/tools/{tool_name}/schema` | as MCP | One tool in MCP format (name, description, input schema); 404 for a tool the caller may not see. |
 | GET | `/api/tool-groups/search?q=` | as MCP | Search the caller's visible tools by name/description (at least 2 characters; first 50 results). |
 | GET | `/api/tool-groups/{group_name}` | as MCP | The caller's visible tools whose name prefix (before the first `_`) is `group_name`. |
@@ -554,7 +554,9 @@ What each creator's fields mean is in the [MCP Studio User Guide](../studio/MCP%
 | POST | `/admin/studio/validate-name` | studio | `{"tool_name"}` → `{"valid", "error"}`. |
 | POST | `/admin/studio/delete` | studio | `{"tool_name"}`: unload a Studio-generated tool and remove its files (a non-admin: only tools that record them as creator). |
 | POST | `/admin/studio/rest/preview`, `/admin/studio/dbquery/preview`, `/admin/studio/script/preview`, `/admin/studio/powerbi/preview`, `/admin/studio/powerbidax/preview`, `/admin/studio/livelink/preview`, `/admin/studio/sharepoint/preview` | studio:x | One per creator: the generated config and code, without writing anything. |
-| POST | `/admin/studio/rest/deploy`, `/admin/studio/dbquery/deploy`, `/admin/studio/script/deploy`, `/admin/studio/powerbi/deploy`, `/admin/studio/powerbidax/deploy`, `/admin/studio/livelink/deploy`, `/admin/studio/sharepoint/deploy` | studio:x | One per creator: write the files and load the tool, as above. |
+| POST | `/admin/studio/rest/deploy`, `/admin/studio/dbquery/deploy`, `/admin/studio/script/deploy`, `/admin/studio/powerbi/deploy`, `/admin/studio/powerbidax/deploy`, `/admin/studio/livelink/deploy`, `/admin/studio/sharepoint/deploy` | studio:x | One per creator: write the files and load the tool, as above. Each (and `/admin/studio/deploy`) takes an optional `folder`: the tool folder of the new config (default the root); the answer adds `config_file` and `folder`. |
+| POST | `/admin/studio/json/preview` | admin | `{text \| config, folder?}` → `{config (without its folder key), folder, suggested_folder, path, errors, folders}`. Writes nothing. |
+| POST | `/admin/studio/json/deploy` | admin | `{text \| config, folder?}`: Import JSON; the folder defaults to the config's `folder` key, else its `metadata.category` as a folder name, else the root. Writes the config (less `folder`), records the creator, loads the tool; 400 with `errors` when the name exists anywhere or the folder is not valid. |
 | POST | `/admin/studio/olap/deploy` | studio:olap | Add an OLAP dataset (`name`, `dimensions`, `measures`, ...) and reload the OLAP tools. |
 | POST | `/admin/studio/olap/delete` | studio:olap | `{"name"}`: remove a dataset that Studio created (403 for any other, and for a non-admin's request for another user's dataset). |
 
@@ -568,7 +570,7 @@ in [API Import](../architecture/API%20Import.md)). Every body is the import requ
 |---|---|---|---|
 | POST | `/admin/studio/api-import/parse` | studio:api_import | The preview: API facts, one entry per operation (proposed name, schemas, annotations, flags, `new`/`changed`/`unchanged`), operations gone from the spec. Writes nothing. |
 | POST | `/admin/studio/api-import/test` | studio:api_import | Plus `operation` and `arguments`: call one operation once without deploying it. |
-| POST | `/admin/studio/api-import/deploy` | studio:api_import | Plus `selected` (operation keys) and `remove`: write and hot-load the tools, delete the removed ones, save the import record. |
+| POST | `/admin/studio/api-import/deploy` | studio:api_import | Plus `selected` (operation keys), `remove` and `folder` (the tool folder of new tools; default the prefix): write and hot-load the tools, delete the removed ones, save the import record. |
 | GET | `/api/studio/api-import/apis` | studio:api_import | Every import: id, kind, title, server, tools, how many are loaded. |
 | GET | `/api/studio/api-import/apis/{api_id}` | studio:api_import | An import's saved request, to re-import it. |
 | POST | `/admin/studio/api-import/delete` | studio:api_import | `{"api_id"}`: remove the import's tools and its record. |
@@ -603,7 +605,7 @@ carries either `form` (the page's fields) or `config` (a whole tool config); ans
 | POST | `/admin/studio/llm/check` | studio:llm | `{config, edit?}` → `{check}`: `errors` (the loader's messages), `warnings`, `lint`, `limits` (effective, asked, clamped), `annotations` (derived), `matching`, `valid`. |
 | POST | `/admin/studio/llm/match` | studio:llm | `{allow, deny, name?, nesting_allow?, confirm?}` → `{matching: {allowed, count, patterns, excluded, catalog}}`: the live allow/deny matching. |
 | POST | `/admin/studio/llm/test` | studio:llm | `{form \| config, arguments, run_all?}` → `{run: {ok, result, stopped_by, steps, planner, planner_path, models, model, duration_ms, usage}}`: one run on `ai.planners.dry_run_model`; only read-only tools run unless `run_all` (then those the caller may execute). Nothing remembered or audited. |
-| POST | `/admin/studio/llm/deploy` | studio:llm | `{form \| config, edit?}`: write `config/tools/<name>.json` and load it; `edit: true` replaces a tool the caller created (admins: any), keeping its creator. |
+| POST | `/admin/studio/llm/deploy` | studio:llm | `{form \| config, edit?, folder?}`: write `config/tools/<folder>/<name>.json` (`folder` default `llm`; an edit stays in its file) and load it; `edit: true` replaces a tool the caller created (admins: any), keeping its creator. |
 
 Planner editor (`planner_editor_routes.py`, served through `studio_routes.py`'s router;
 administrators only; [Planner Reference](../architecture/Planner%20Reference.md#141-the-planner-editor)).
@@ -634,7 +636,7 @@ These render templates; they are not JSON APIs. Unauthenticated requests to `use
 | user | `/dashboard`, `/account/password`, `/account/apikeys`, `/tools`, `/tools/{tool_name}/execute`, `/tools/{tool_name}/schema`, `/prompts`, `/prompts/{prompt_name}`, `/prompts/{prompt_name}/test`, `/prompts/category/{category}`, `/prompts/tag/{tag}`, `/reports`, `/composite/builder`, `/ai/settings`, `/ask`, `/conversations`, `/playground`, `/monitoring/usage`, `/net/instances`, `/net/instances/this`, `/net/instances/{net}/{instance}`, `/net/access` |
 | admin | `/admin/users`, `/admin/users/create`, `/admin/tools`, `/admin/system-monitor`, `/admin/prompts`, `/admin/async-tasks`, `/admin/apikeys`, `/admin/apikeys/create`, `/admin/apikeys/{key_id}/view`, `/admin/federation`, `/admin/sajhanet`, `/admin/sajhanet/overview`, `/admin/sajhanet/tools`, `/admin/connectors`, `/prompts/create`, `/tools/{tool_name}/config`, `/monitoring/tools`, `/monitoring/users` |
 | studio | `/studio`, `/studio/rest`, `/studio/dbquery`, `/studio/script`, `/studio/livelink`, `/studio/olap`, `/studio/powerbi`, `/studio/powerbidax`, `/studio/sharepoint`, `/studio/examples`, `/studio/api-import`, `/studio/describe`, `/studio/llm` (each needs its creator's permission) |
-| admin (Studio) | `/studio/planners` |
+| admin (Studio) | `/studio/planners`, `/studio/json` |
 
 ### 4.15 Python Playground (`playground_routes.py`)
 

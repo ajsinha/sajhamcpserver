@@ -480,10 +480,11 @@ STUDIO_PERMISSION = 'studio'
 
 #: Every Studio creator a permission can name (Roadmap X2; docs/security/Security Model.md §4).
 STUDIO_CREATORS = ('python', 'rest', 'api_import', 'dbquery', 'script', 'powerbi', 'powerbidax', 'livelink',
-                   'sharepoint', 'olap', 'composite', 'describe', 'llm', 'planner')
+                   'sharepoint', 'olap', 'composite', 'describe', 'llm', 'planner', 'json')
 
-#: Creators no permission opens: administrators only (LLM Tools §9.10, decision 6).
-ADMIN_ONLY_CREATORS = ('planner',)
+#: Creators no permission opens: administrators only (LLM Tools §9.10, decision 6). ``json`` (Import
+#: JSON) saves a config as given, and a config names the Python class that runs the tool.
+ADMIN_ONLY_CREATORS = ('planner', 'json')
 
 
 def _studio_grants(auth: AuthContext) -> list:
@@ -569,7 +570,8 @@ def require_creator(creator: str):
 
     def dependency(auth: AuthContext = Depends(require_auth)) -> AuthContext:
         if not can_use_creator(auth, creator):
-            detail = ('the planner editor is for administrators only' if creator in ADMIN_ONLY_CREATORS else
+            detail = (f'the {"planner editor" if creator == "planner" else "JSON import"} is for administrators only'
+                      if creator in ADMIN_ONLY_CREATORS else
                       f'this Studio creator needs the admin role or a role with the studio:{creator} '
                       f'(or studio:*) permission')
             raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=detail)

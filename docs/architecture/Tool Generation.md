@@ -38,8 +38,8 @@ the terms are in the [Glossary](../../GLOSSARY.md). The code is `sajha/studio/de
            composite / openapi: live only
       │  approve: true + the reviewed hash + tests run on that hash + policy allows studio.deploy
       ▼
- deploy    module + config/tools/<name>.json, hot-loaded (python, rest, dbquery)
-           config/tools/<name>.json only, hot-loaded (llm)
+ deploy    module + config/tools/[<category>/]<name>.json, hot-loaded (python, rest, dbquery)
+           config/tools/[<category>/]<name>.json only, hot-loaded (llm)
            a composite record in the database (composite) · hand-off to Import an API (openapi)
 ```
 
@@ -126,7 +126,7 @@ reviewer saw; if the draft has moved on, the deploy is refused.
 The files are produced by Studio's own generators, so a deploy writes exactly what the
 creators would: `ToolCodeGenerator` for Python (`sajha/tools/impl/studio_<name>.py`),
 `RESTToolGenerator` (`rest_<name>.py`), `DBQueryToolGenerator` (`dbquery_<name>.py`), each
-with `config/tools/<name>.json`; an LLM tool is the config file alone, with
+with `config/tools/[<category>/]<name>.json` (filed in the tool folder named by the proposal's category when that is a valid folder name, else the root; [Architecture](Architecture.md#tool-config-files-and-folders)); an LLM tool is the config file alone, with
 `implementation` `sajha.ai.llm_tools.LLMTool` and the proposal's `llm` block, as the
 [LLM tool creator](../studio/MCP%20Studio%20LLM%20Tool%20Creator%20Guide.md) writes it. The
 config's `metadata` records `generated_from: description`, the draft id and, on deploy, the

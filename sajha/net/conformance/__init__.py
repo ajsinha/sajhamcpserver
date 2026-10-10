@@ -113,7 +113,7 @@ CASES: List[Case] = [
     _c('CALL-13', 'S A', feature='reexport', where=T + 'test_net_reexport_identity.py'),
     _c('CALL-14', 'S A', where=T + 'test_net_reexport_identity.py'),
     _c('CALL-15', 'S A', feature='token_exchange', where=T + 'test_net_reexport_identity.py'),
-    _c('CALL-16', 'S A', feature='mrtr', where='(phase 6.3 of wave 6: input requests are not relayed yet)'),
+    _c('CALL-16', 'S A', feature='mrtr', where=T + 'test_net_mrtr.py'),
     _c('FB-01', 'S A', 'remote'), _c('FB-02', 'S', where=T + 'test_net_catalog.py'),
     _c('FB-03', 'S', where=T + 'test_net_catalog.py'), _c('FB-04', 'S', where=T + 'test_net_catalog.py'),
     _c('FB-05', 'S', where=T + 'test_net_catalog.py'), _c('FB-06', 'S', where=T + 'test_net_catalog.py'),

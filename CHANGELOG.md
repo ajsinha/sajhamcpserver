@@ -4,6 +4,30 @@ Newest first. The current version is `app.version` in `config/application.yml`.
 
 ## Unreleased
 
+Nothing yet.
+
+## v8.2.0 (October 2026) — streaming between servers, and tool folders
+
+Wave 6 of the [Implementation Plan](docs/architecture/Implementation%20Plan.md): protocol uniformity
+between SAJHA Net members, and its security. A remote tool now behaves like a local one: progress, log
+events, cancellation and input requests travel between servers as a signed event stream, every event
+signed over the stream so far, and reach the client on whatever transport it uses. With it, tool configs
+move into folders: every shipped tool now lives in a provider folder, the root keeps working, and a tool
+name exists in exactly one place.
+
+### Upgrading from 8.1.0
+
+- **Tool folders:** every shipped tool moved from `config/tools/<name>.json` to
+  `config/tools/<folder>/<name>.json`. Tool names are unchanged. Your own root files keep working; move
+  them when you like with `python -m sajha.tools move` (move, never copy: a tool name may exist in one
+  place only, and two files with one name disable both until one is removed).
+- **Retrying failed tools:** `tools.retry_failed_seconds` (default 300) retries tools that failed to
+  load; set 0 to turn it off.
+- **Streaming between servers** is on by default (`sajhanet.streaming.enabled`); members without it keep
+  the single signed JSON answer.
+- **Dependencies:** `sse-starlette>=3.0.0,<4.0.0` (the install failed with the old pin).
+- **Database:** no schema change since 8.1.0.
+
 - Added (wave 6, phase 6.1): signed streaming between SAJHA Net members. A home asks for a stream in
   the signed body (`params._meta["io.sajha/net"].stream`) when the host lists `streaming`; the host
   streams progress and log events and the final answer as Server-Sent Events, every event signed over a
@@ -25,10 +49,57 @@ Newest first. The current version is `app.version` in `config/application.yml`.
   signing (rule `residency_events`), the home again on arrival (`residency.on_event`). Input responses
   sent back to a host (`inputResponses`) are checked like arguments. The SAJHA Net overview's recent
   forwarded calls show whether each streamed and how many events. Conformance STR-07.
+- Added (wave 6, phase 6.3): input requests (MRTR) across SAJHA Net. A host tool that needs its caller's
+  input answers `input_required` with a `requestState` the host signs and binds to the net, the sending
+  server and the user (`<net>/<peer>/<user id>`), carrying the answers so far; the home keeps it inside
+  its own signed state (`sajha.net`) and asks its 2026-07-28 caller; the answer goes back to the same
+  host as a new signed request (residency checks `inputResponses` first), the user is resolved again,
+  and a state presented by another server or for another user is refused before anything runs (new
+  refusal `state_invalid`, `-32602`). Re-exporting intermediaries relay the question under their own
+  state. 2025-11-25, REST and A2A callers get a tool error asking them to call over 2026-07-28. SAJHA
+  (and its sponsored participants) now list `mrtr`. A task-augmented call at the home wraps the streamed
+  call (`tasks/cancel` cancels the tool at the host); host-side tasks are deferred (Roadmap L19) and
+  `tasks` is not listed. Conformance CALL-16 now runs (`tests/net/test_net_mrtr.py`).
+- Added: tool folders. A tool config may be `config/tools/<name>.json` or
+  `config/tools/<folder>/<name>.json` (one level; deeper files are ignored with the warning notice
+  `tools.too_deep`). Folders file tools and never rename them. A name may exist in one place only:
+  two files with one name load neither, with the critical notice `tools.duplicate:<name>`, until one
+  is removed. `sajha/tools/tool_files.py` is the one map from names to files; edits, enable/disable,
+  ownership, deletes, API Import and data connectors use it (an edit never moves a tool). Every Studio
+  creator has a Folder field (the LLM tool creator defaults to `llm`, Describe a tool to its category,
+  API Import to its prefix, a data connection to its id). New Studio page Import JSON (`/studio/json`,
+  administrators): deploy a pasted or uploaded tool config into a folder taken from its `"folder"` key
+  or `metadata.category`. `python -m sajha.tools folders | move <name-or-glob> --to <folder>
+  [--dry-run]`. The Tools page groups tools by folder (root tools under "Unfiled", proxied servers by
+  prefix); Admin > Tools and a tool's configuration page show the folder and file; `/api/tools/list`
+  adds `folder`. Every shipped tool moved into a provider folder (`fmp`, `fred`, `yahoo`, `llm`,
+  `sajha`, ...), content unchanged.
+- Added: hot reload covers tool folders (new folders, changed and deleted files, removed folders, a
+  duplicate resolved by removing a file), on the registry's poll and on every hot-reload check; the
+  object-store sync manager now notices deleted objects. New `tools.retry_failed_seconds` (default
+  300, 0 off): a tool that failed to load is retried without a change to its file, with doubling
+  back-off up to 30 minutes, per worker.
+- Fixed: a tool edited, enabled or disabled from outside the root of `config/tools` would have been
+  written to the root path (the registry reduced every path to its file name); `python -m
+  sajha.quality` read `config.tools_dir` instead of `config.tools.dir`; Admin > Tools never listed its
+  tools (the template's `tools_metrics` was not passed).
+- Fixed: a home that dropped a streamed forwarded call cancelled the host's tool only when the host's
+  response generator was garbage collected (ASGI 2.4 servers report the drop as an error from `send`);
+  `_serve_net` now closes the stream as soon as the response ends, so the tool stops at once.
+- Changed: the units example server's `countdown` takes an optional `seconds_per_step` (default 0.05, at
+  most 2), so Tutorial 40 can show a slow remote tool.
 - Fixed: a `tools/call` over WebSocket ran on the event loop, so a slow or remote tool blocked every
   connection; it now runs in a worker thread as its own task (calls on one socket overlap).
 - Fixed: `pip install -r requirements.txt` failed (`mcp` needs `sse-starlette>=3`); the pin is now
   `sse-starlette>=3.0.0,<4.0.0`.
+
+### Upgrading
+
+- **Tool configs:** nothing required. Files at the root of `config/tools` keep working, and the
+  shipped tools now live in folders. A tool name in two files (root and folder, or two folders) now
+  disables both until one is removed: move files (`git mv`, `mv`, `python -m sajha.tools move`),
+  never copy them. Scripts that read `config/tools/<name>.json` directly should look one folder down
+  too.
 
 ### Docs
 
@@ -39,6 +110,18 @@ Newest first. The current version is `app.version` in `config/application.yml`.
 - MCP Protocol Guide: "Progress and cancellation per transport" (§4). SAJHA Net: streaming on a call
   (§9), residency of streamed events (§12); §5.5 no longer lists STR-06 and STR-07. SAJHA Net Protocol
   §15.10: SAJHA applies the residency rule to streamed events.
+- Phase 6.3: SAJHA Net Protocol §15.6 (the input-request round trip as built), §6.2 (SAJHA lists `mrtr`),
+  §17.1 (`state_invalid`), CALL-16; SAJHA Net §5.5, §9 (event chain, input requests, tasks), §14, §16,
+  §18 (stream tampering, replayed request state), §19; Configuration Reference rows for
+  `sajhanet.streaming.*`; MCP Protocol Guide (remote tools in MRTR); glossary terms Signed event
+  stream, Event chain and Transcript digest; Roadmap L17 removed (built) and L19 (host-side tasks)
+  added; Implementation Plan wave 6 phases; new
+  [Tutorial 40](docs/tutorials/TUTORIAL_40_stream_a_net_call.md): stream a call across the net.
+- Tool folders: Architecture §5 "Tool config files and folders" (layout, one place per name, move
+  don't copy, hot reload, retry) and §10 (the Tools page by folder); Command Line §6; MCP Studio User
+  Guide (Folder field, Import JSON); API Import, Data Connectors, Tool Generation, Tool Quality, LLM
+  Tools, Storage Guide, Configuration Reference (`tools.retry_failed_seconds`); tool reference guides
+  and tutorials cite the moved paths; glossary terms Tool folder, Unfiled (tool) and Import JSON.
 
 ## v8.1.0 (October 2026) — sovereignty, the console and other MCP servers
 

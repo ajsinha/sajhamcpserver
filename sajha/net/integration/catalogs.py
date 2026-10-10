@@ -419,7 +419,7 @@ class NetCatalogs:
         if book.reexport and 'reexport' not in node.extra_features:
             node.extra_features.append('reexport')          # protocol §6.2: offers imported tools onward here
         if s.streaming.enabled:                             # §6.2, §15.10: signed event streams on forwarded calls
-            for f in ('streaming', 'progress', 'cancellation'):
+            for f in ('streaming', 'progress', 'cancellation', 'mrtr'):
                 if f not in node.extra_features:
                     node.extra_features.append(f)
         node.observers.append(lambda kind, data, net=net: self._on_event(net, kind, data))
@@ -704,8 +704,11 @@ class NetCatalogs:
             tp = None
         from sajha.core import inner_calls
         hop_in, depth = inner_calls.outgoing()      # a call made while serving a forwarded one continues its chain
-        out = self.router.call(name, arguments, user=user, traceparent=tp, hop_in=hop_in, depth=depth,
-                               **stream_hooks(self._event_rule(name, user)))
+        target, answers = mrtr_answers(name)
+        out = self.router.call(target, arguments, user=user, traceparent=tp, hop_in=hop_in, depth=depth,
+                               **answers, **stream_hooks(self._event_rule(name, user)))
+        if (out or {}).get('resultType') == 'input_required':
+            return mrtr_ask(name, out)
         return self._arrived(name, out, user)
 
     def _event_rule(self, name: str, user: Dict[str, Any]):
@@ -826,8 +829,7 @@ class NetCatalogs:
         except ToolArgumentError as e:
             return {'content': [{'type': 'text', 'text': str(e)}], 'isError': True}
         except InputRequired:
-            return {'content': [{'type': 'text', 'text': f'{ctx.tool} needs input that a forwarded call '
-                                                         f'cannot relay yet'}], 'isError': True}
+            raise                               # the host's answer is input_required (§15.6, HostServer._finish)
         except Exception as e:
             return {'content': [{'type': 'text', 'text': f'Tool execution failed: {e}'}], 'isError': True}
         return _format_result(tool, result)
@@ -995,9 +997,12 @@ class NetCatalogs:
             if ctx.user is None or user.get('guest'):
                 raise HostRefusal('no_account', 'a bridge calls into another net only as one of its own users')
             user.update(_bridge=True, net=str(src.get('net') or ''), authenticated=True)
-        out = self.router.call(q, dict(arguments or {}), user=user, traceparent=ctx.traceparent,
+        target, answers = mrtr_answers(q)
+        out = self.router.call(target, dict(arguments or {}), user=user, traceparent=ctx.traceparent,
                                hop_in=(ctx.hop, list(ctx.visited)), depth=ctx.depth, relay=relay,
-                               **stream_hooks(self._event_rule(q, user)))   # the next hop's events re-signed here
+                               **answers, **stream_hooks(self._event_rule(q, user)))   # events re-signed here
+        if (out or {}).get('resultType') == 'input_required':
+            return mrtr_ask(q, out)               # the next host's question, asked again under this host's state
         meta = ((out or {}).get('_meta') or {}).get(EXTENSION_ID) or {}
         rf = meta.get('refusal')
         if (out or {}).get('isError') and isinstance(rf, dict) and rf.get('executed') is False \
@@ -1222,6 +1227,51 @@ class NetCatalogs:
 
     def status(self) -> Dict[str, Any]:
         return {n: b.status() for n, b in self.books.items()}
+
+
+#: where a remote tool's pending input request lives in the caller's MRTR state (as federation's STATE_KEY)
+STATE_KEY = 'sajha.net'
+
+
+def mrtr_answers(name: str) -> Tuple[str, Dict[str, Any]]:
+    """The retry of a remote tool that asked for input (protocol §15.6): from the tool context running now,
+    the caller's answers to that tool's input requests and the host's ``requestState``, kept in this
+    server's own verified state under :data:`STATE_KEY`; the retry goes to the same host (its qualified
+    name), because only that host can read its state. Otherwise ``(name, {})``."""
+    from sajha.core import mcp_tool_context as mtc
+    ctx = mtc.current_context()
+    st = (getattr(ctx, 'state', None) or {}).get(STATE_KEY) if ctx is not None else None
+    if not isinstance(st, dict) or st.get('tool') != name or not isinstance(st.get('rs'), str):
+        return name, {}
+    keys = set(st.get('keys') or [])
+    answers = {k: v for k, v in (getattr(ctx, 'input_responses', None) or {}).items() if k in keys}
+    return str(st.get('target') or name), {'input_responses': answers or None, 'request_state': st['rs']}
+
+
+def mrtr_ask(name: str, out: Dict[str, Any]) -> Dict[str, Any]:
+    """A host answered ``input_required`` (§15.6): raise ``InputRequired`` for the caller, the host's state
+    kept under :data:`STATE_KEY` (this server signs it into its own ``requestState``). A caller that cannot
+    answer (MCP 2025-11-25, REST, A2A) gets a tool error naming the era that can, as for federated tools."""
+    from sajha.core import mcp_tool_context as mtc
+    from sajha.core.mcp_mrtr import InputRequired
+    from sajha.federation.security import screen_text
+    requests = out.get('inputRequests') if isinstance(out.get('inputRequests'), dict) else {}
+    ctx = mtc.current_context()
+    if ctx is None or isinstance(ctx, mtc.TransportToolContext) or not requests \
+            or not isinstance(out.get('requestState'), str):
+        return {'content': [{'type': 'text', 'text': f'{name} needs input from you; call it over MCP 2026-07-28 '
+                                                     f'from a client that can answer input requests'}],
+                'isError': True, '_meta': out.get('_meta') or {}}
+    clean: Dict[str, Any] = {}
+    for key, req in requests.items():              # the host's questions are untrusted text, like its results
+        req = copy.deepcopy(req) if isinstance(req, dict) else {}
+        p = req.get('params') if isinstance(req.get('params'), dict) else None
+        if p is not None and isinstance(p.get('message'), str):
+            p['message'] = screen_text(p['message'], 4000)[0]
+        clean[str(key)] = req
+    meta = ((out.get('_meta') or {}).get(EXTENSION_ID) or {})
+    raise InputRequired(clean, {STATE_KEY: {'tool': name, 'target': meta.get('qualified_name') or name,
+                                            'rs': out['requestState'], 'keys': sorted(clean)}})
 
 
 def stream_hooks(rule: Optional[Callable[[Dict[str, Any]], Optional[Dict[str, Any]]]] = None) -> Dict[str, Any]:

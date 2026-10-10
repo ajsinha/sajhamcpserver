@@ -214,7 +214,7 @@ For testing without an API key, the tools include a demo mode that generates syn
 
 The FRED API requires a free API key ([request one here](https://fred.stlouisfed.org/docs/api/api_key.html)). Without a key the tools run in **demo mode** and return synthetic data with a `note` field.
 
-The tool reads its key from the `api_key` field of its JSON config. **The shipped `config/tools/fed_*.json` configs do not set `api_key`, so out of the box the `fed_` tools always run in demo mode.** To get live data, add the same reference the `fred_` tools use to each `fed_` config:
+The tool reads its key from the `api_key` field of its JSON config. **The shipped `config/tools/federal_reserve/fed_*.json` configs do not set `api_key`, so out of the box the `fed_` tools always run in demo mode.** To get live data, add the same reference the `fred_` tools use to each `fed_` config:
 
 ```json
 "api_key": "${fred.api.key}"

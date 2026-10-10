@@ -26,6 +26,7 @@ import jsonschema
 import pytest
 
 from sajha.tools.impl import fbi_tool_refactored as fbi
+from tests.tool_config_files import tool_file, tool_files  # noqa: E402
 
 ROOT = Path(__file__).resolve().parent.parent
 FIX = ROOT / 'tests' / 'fixtures' / 'fbi'
@@ -37,7 +38,7 @@ def fixture(name):
 
 
 def config(name):
-    return json.loads((ROOT / 'config' / 'tools' / f'{name}.json').read_text())
+    return json.loads(tool_file(name).read_text())
 
 
 class _Resp(io.BytesIO):

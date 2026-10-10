@@ -138,6 +138,13 @@ client retries the same request with `inputResponses` and the echoed state.
 SAJHA signs `requestState` with HMAC-SHA256 (`mcp.mrtr.*`) and binds it to the method,
 target, arguments and caller, so no server memory is needed between rounds.
 
+Remote tools behave like local ones here too: a
+[SAJHA Net](../architecture/SAJHA%20Net.md#9-what-happens-on-a-call) tool whose host asks for
+input reaches a 2026-07-28 client as an ordinary `input_required` result, and the client's
+answer travels back to that host as a new signed request (protocol §15.6). Clients that
+cannot answer input requests (2025-11-25 sessions, REST, A2A) get a tool error asking them to
+call over 2026-07-28, as for a federated tool.
+
 Built on MRTR: optional confirmation before running a tool annotated
 `destructiveHint: true` (`mcp.confirm_destructive_tools`, off by default), and sampling by
 LLM tools (below).

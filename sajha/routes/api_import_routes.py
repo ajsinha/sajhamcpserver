@@ -91,6 +91,14 @@ async def _run(fn, *args, **kwargs) -> JSONResponse:
 
 # ── page ────────────────────────────────────────────────────────────
 
+
+def _tool_folders():
+    from sajha.tools.tool_files import get_index
+    try:
+        return get_index().refresh().folders()
+    except Exception:
+        return []
+
 @pages.get('/api-import')
 async def studio_api_import(request: Request, auth: AuthContext = Depends(require_creator('api_import'))):
     from sajha.api_import import settings
@@ -98,6 +106,7 @@ async def studio_api_import(request: Request, auth: AuthContext = Depends(requir
     return render(request, 'admin/studio/studio_api_import.html', {
         'user': {'user_id': auth.user_id, 'user_name': auth.user_name, 'roles': auth.roles},
         'is_admin': auth.is_admin,
+        'tool_folders': _tool_folders(),
         'max_tools': settings.max_tools(),
         'allow_localhost': settings.allow_localhost(),
         'allow_private': settings.allow_private_networks(),

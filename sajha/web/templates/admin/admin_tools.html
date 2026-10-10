@@ -57,7 +57,7 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
                 <div class="col-md-6">
                     <div class="input-group">
                         <span class="input-group-text"><i class="bi bi-search"></i></span>
-                        <input type="text" class="form-control" id="searchMetrics" placeholder="Search by tool name...">
+                        <input type="text" class="form-control" id="searchMetrics" placeholder="Search by tool name, or folder:<name>...">
                     </div>
                 </div>
                 <div class="col-md-6 text-end">
@@ -100,7 +100,7 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
                     <tbody>
                         {% for metric in tools_metrics %}
                         <tr>
-                            <td><strong>{{ metric.name }}</strong></td>
+                            <td><strong>{{ metric.name }}</strong> <span class="badge bg-light text-dark" title="Tool folder">{{ tool_folders.get(metric.name) or 'root' if tool_folders.get(metric.name) is not none else '' }}</span></td>
                             <td>{{ metric.version }}</td>
                             <td>
                                 {% if metric.enabled %}
@@ -191,6 +191,7 @@ const metricsData = [
     {% for metric in tools_metrics %}
     {
         name: "{{ metric.name }}",
+        folder: {{ tool_folders.get(metric.name)|tojson }},
         version: "{{ metric.version }}",
         enabled: {{ 'true' if metric.enabled else 'false' }},
         status: "{{ 'Enabled' if metric.enabled else 'Disabled' }}",
@@ -216,7 +217,8 @@ document.addEventListener('DOMContentLoaded', function() {
     document.getElementById('searchMetrics').addEventListener('input', function(e) {
         const searchTerm = e.target.value.toLowerCase();
         filteredData = metricsData.filter(metric =>
-            metric.name.toLowerCase().includes(searchTerm)
+            metric.name.toLowerCase().includes(searchTerm) ||
+            (metric.folder !== null && ('folder:' + (metric.folder || 'root')).includes(searchTerm))
         );
         currentPage = 1;
         renderTable();
@@ -355,7 +357,7 @@ function renderTable() {
                </button>`;
 
         row.innerHTML = `
-            <td><strong>${metric.name}</strong></td>
+            <td><strong>${metric.name}</strong>${metric.folder === null ? '' : ` <span class="badge bg-light text-dark" title="Tool folder">${metric.folder || 'root'}</span>`}</td>
             <td>${metric.version}</td>
             <td>${statusBadge}</td>
             <td>${metric.executionCount}</td>

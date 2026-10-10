@@ -428,6 +428,9 @@ CATALOG: List[dict] = [
             _g('39. Console single sign-on', 'TUTORIAL_39_console_single_sign_on.md', 'bi-door-open',
                'Sign in to three instances once through a fake OpenID Connect provider: linking, roles, provider '
                'sign-out, and what to set for a real one.'),
+            _g('40. Stream a call across the net', 'TUTORIAL_40_stream_a_net_call.md', 'bi-broadcast',
+               'Progress from a tool on another instance as it runs, cancelling it, matching transcript digests '
+               'in both audits, and an input request answered across the net.'),
         ],
     },
     {

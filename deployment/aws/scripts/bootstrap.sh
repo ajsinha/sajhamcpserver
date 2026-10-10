@@ -59,7 +59,7 @@ if [ "$SAJHA_STORAGE_BACKEND" = "s3" ] && [ -n "$SAJHA_S3_BUCKET" ]; then
     aws s3 cp "s3://${SAJHA_S3_BUCKET}/${S3_PREFIX}config/application.yml" \
         "$CACHE_DIR/config/application.yml" --quiet 2>/dev/null || true
     
-    TOOL_COUNT=$(ls "$CACHE_DIR/config/tools/"*.json 2>/dev/null | wc -l)
+    TOOL_COUNT=$(find "$CACHE_DIR/config/tools" -maxdepth 2 -name '*.json' 2>/dev/null | wc -l)
     echo "[bootstrap]   Synced: $TOOL_COUNT tool configs"
     
     # Add cache to PYTHONPATH so importlib finds synced .py files

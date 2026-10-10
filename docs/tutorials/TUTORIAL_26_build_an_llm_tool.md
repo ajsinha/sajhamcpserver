@@ -26,7 +26,7 @@ in the [Configuration Reference](../getting-started/Configuration%20Reference.md
 
 SAJHA ships four example LLM tools, all disabled: `llm_markets_assistant` (mode `answer`),
 `llm_summarise` (`complete`), `llm_triage_ticket` (`classify`) and `llm_docs_qa` (`grounded`).
-Open `config/tools/llm_triage_ticket.json`. It is an ordinary tool config (name, description,
+Open `config/tools/llm/llm_triage_ticket.json`. It is an ordinary tool config (name, description,
 `inputSchema`, `outputSchema`) whose `implementation` is `sajha.ai.llm_tools.LLMTool`, plus:
 
 ```json

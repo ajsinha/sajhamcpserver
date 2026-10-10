@@ -43,7 +43,7 @@ metadata; they never modify files and make no network calls.
 | `msdoc_extract_text` | both | All text as one plain-text string |
 
 Implementation: `sajha.tools.impl.msdoc_tools_tool_refactored`; tool configs:
-`config/tools/msdoc_*.json`.
+`config/tools/msdoc/msdoc_*.json`.
 
 ---
 
@@ -53,7 +53,7 @@ Implementation: `sajha.tools.impl.msdoc_tools_tool_refactored`; tool configs:
   missing the affected tools fail with a message naming the package to install.
 - **Documents directory:** `data/msdocs` (relative to the server's working
   directory). It is the default for every MSDOC tool and is set explicitly as
-  `"docs_directory": "data/msdocs"` in `config/tools/msdoc_list_files.json`;
+  `"docs_directory": "data/msdocs"` in `config/tools/msdoc/msdoc_list_files.json`;
   add the same key to another tool's config to point it elsewhere. The
   directory is created if it does not exist.
 - **Credentials:** none. Access to the tools is governed by normal SAJHA user

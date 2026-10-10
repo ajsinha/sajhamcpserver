@@ -648,7 +648,7 @@ __all__ = ['LiveLink{class_name}Tool']
             json_config = self.generate_tool_config(config)
             json_path = os.path.join(self.config_dir, f"{config.tool_name}.json")
             from sajha.core.storage import write_tool_config
-            write_tool_config(json_path, json_config)
+            json_path = write_tool_config(json_path, json_config)
             created_files['json_config'] = json_path
             
             logger.info(f"Successfully created LiveLink tool: {config.tool_name}")

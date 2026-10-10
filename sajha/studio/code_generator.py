@@ -364,7 +364,7 @@ class ToolCodeGenerator:
             
             # Save JSON config
             from sajha.core.storage import write_tool_config
-            write_tool_config(json_path, json_content)
+            json_path = write_tool_config(json_path, json_content)
             logger.info(f"Saved tool JSON via storage backend: {json_path}")
             
             # Save Python implementation

@@ -157,7 +157,7 @@ class LocalReloadManager(ReloadManager):
         p = self.base_dir / prefix
         if not p.is_dir():
             return
-        for f in p.glob(w['pattern']):
+        for f in p.rglob(w['pattern']):   # recursive, like the object-store manager's list_files
             if f.is_file():
                 rel = str(f.relative_to(self.base_dir))
                 w['timestamps'][rel] = f.stat().st_mtime
@@ -180,7 +180,7 @@ class LocalReloadManager(ReloadManager):
             return 0
         changed = 0
         current_files: Set[str] = set()
-        for f in p.glob(w['pattern']):
+        for f in p.rglob(w['pattern']):   # recursive, like the object-store manager's list_files
             if not f.is_file():
                 continue
             rel = str(f.relative_to(self.base_dir))

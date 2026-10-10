@@ -13,6 +13,7 @@ import uuid
 from pathlib import Path
 
 import pytest
+from tests.tool_config_files import tool_file, tool_files  # noqa: E402
 
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
@@ -84,7 +85,7 @@ def env():
         heads['admin'] = _headers(c, 'admin', 'admin123')
         yield c, heads, users
         from sajha.app import tools_registry
-        for f in (ROOT / 'config' / 'tools').glob(f'{PREFIX}*.json'):
+        for f in tool_files(f'{PREFIX}*.json'):
             c.post('/admin/studio/delete', json={'tool_name': f.stem}, headers=heads['admin'])
             if f.exists():
                 f.unlink()
@@ -124,7 +125,7 @@ def test_generated_schemas_per_mode(mode, extra, ins, outs):
 
 def test_form_round_trips_a_shipped_tool():
     from sajha.studio.llm_tool_builder import build_config, form_from_config
-    cfg = json.loads((ROOT / 'config/tools/llm_markets_assistant.json').read_text())
+    cfg = json.loads(tool_file('llm_markets_assistant').read_text())
     again = build_config(form_from_config(cfg))
     assert again['llm']['mode'] == 'answer' and again['llm']['tools'] == cfg['llm']['tools']
     assert again['llm']['limits'] == cfg['llm']['limits'] and again['llm']['memory']['mode'] == 'conversation'
@@ -190,7 +191,7 @@ def test_deploy_edit_and_ownership(env):
     name = PREFIX + 'triage'
     r = c.post('/admin/studio/llm/deploy', json={'form': _form(name)}, headers=heads['dev'])
     assert r.status_code == 200, r.text
-    cfg = json.loads((ROOT / 'config/tools' / f'{name}.json').read_text())
+    cfg = json.loads(tool_file(name).read_text())
     assert cfg['metadata']['created_by'] == users['dev'] and cfg['metadata']['studio_creator'] == 'llm'
     assert name in tools_registry.tools
     r = c.post('/admin/studio/llm/deploy', json={'form': _form(name)}, headers=heads['dev'])
@@ -205,7 +206,7 @@ def test_deploy_edit_and_ownership(env):
     r = c.post('/admin/studio/llm/deploy', json={'form': _form(name, labels=['sales', 'support']), 'edit': True},
                headers=heads['dev'])
     assert r.status_code == 200, r.text
-    cfg = json.loads((ROOT / 'config/tools' / f'{name}.json').read_text())
+    cfg = json.loads(tool_file(name).read_text())
     assert cfg['outputSchema']['properties']['label']['enum'] == ['sales', 'support']
     assert cfg['metadata']['created_by'] == users['dev']
     # shipped LLM tools record no creator: only administrators may change them
@@ -244,7 +245,7 @@ def test_permission_helpers():
     ctx._studio_grants_cache = [('llm', {'use'}), ('re*', {'read'})]
     assert can_use_creator(ctx, 'llm') and not can_use_creator(ctx, 'rest') and not can_use_creator(ctx, 'planner')
     ctx._studio_grants_cache = [('*', {'*'})]
-    assert set(studio_creators(ctx)) == set(STUDIO_CREATORS) - {'planner'}
+    assert set(studio_creators(ctx)) == set(STUDIO_CREATORS) - {'planner', 'json'}     # admin-only creators
     assert not studio_creators(AuthContext(authenticated=True, auth_type='apikey', _db=SimpleNamespace()))
 
 
@@ -259,7 +260,9 @@ def test_describe_proposes_tests_and_deploys_an_llm_tool(env):
     d = r.json()
     assert d['success'] and d['proposal']['kind'] == 'llm' and not d['errors'], d
     assert d['proposal']['implementation']['mode'] == 'classify'
-    assert [f['path'] for f in d['files']] == [f"config/tools/{d['proposal']['name']}.json"]
+    from sajha.tools.tool_files import slug_folder
+    folder = slug_folder(d['proposal']['category'])           # Describe files a tool under its category
+    assert [f['path'] for f in d['files']] == [f"config/tools/{folder + '/' if folder else ''}{d['proposal']['name']}.json"]
     p = dict(d['proposal'], name=PREFIX + 'described')
     d = c.post('/admin/studio/describe/revise', json={'draft_id': d['id'], 'proposal': p}, headers=heads['dev']).json()
     assert not d['errors'], d['errors']
@@ -268,7 +271,7 @@ def test_describe_proposes_tests_and_deploys_an_llm_tool(env):
     r = c.post('/admin/studio/describe/deploy', json={'draft_id': d['id'], 'hash': d['hash'], 'approve': True},
                headers=heads['dev'])
     assert r.status_code == 200, r.text
-    cfg = json.loads((ROOT / 'config/tools' / f'{PREFIX}described.json').read_text())
+    cfg = json.loads(tool_file(f'{PREFIX}described').read_text())
     assert cfg['implementation'] == 'sajha.ai.llm_tools.LLMTool' and cfg['metadata']['created_by'] == users['dev']
     assert PREFIX + 'described' in tools_registry.tools
     assert c.post('/admin/studio/delete', json={'tool_name': PREFIX + 'described'}, headers=heads['dev']).status_code == 200

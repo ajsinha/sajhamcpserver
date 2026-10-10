@@ -1143,7 +1143,7 @@ def _make_request(self, endpoint: str, params: Dict = None) -> List:
 ```python
 from sajha.tools.impl.world_bank_tool import WBGetCountryDataTool
 
-# Create instance (config is optional; the server builds tools from config/tools/*.json)
+# Create instance (config is optional; the server builds tools from config/tools/worldbank/*.json)
 tool = WBGetCountryDataTool()
 
 # Execute

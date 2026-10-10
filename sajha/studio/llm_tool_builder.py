@@ -8,7 +8,7 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
                            matching, the effective limits within the ai.llm_tools.* ceilings
     test_run(cfg, args)    one run against the mock model (ai.planners.dry_run_model); tools that
                            are not read-only are not run
-    deploy(cfg, auth)      writes config/tools/<name>.json (a new tool, or an edit of one the
+    deploy(cfg, auth)      writes the tool's config, a new tool into the tool folder ``llm`` (or an edit of one the
                            caller may change) and loads it into the live registry
 
 The config is an ordinary LLM tool (docs/architecture/LLM Tools.md §5); nothing here is a
@@ -484,8 +484,8 @@ def _taken(name: str, registry=None) -> bool:
     reg = registry if registry is not None else _registry()
     if reg is not None and (name in getattr(reg, 'tools', {}) or name in getattr(reg, 'tool_configs', {})):
         return True
-    from sajha.routes.studio_routes import CONFIG_DIR
-    return (Path(CONFIG_DIR) / f'{name}.json').exists()
+    from sajha.tools.tool_files import name_taken
+    return bool(name_taken(name))
 
 
 # ── test run ─────────────────────────────────────────────────────────
@@ -564,11 +564,12 @@ def existing(name: str, registry=None) -> Optional[Dict[str, Any]]:
     reg = registry if registry is not None else _registry()
     cfg = (getattr(reg, 'tool_configs', {}) or {}).get(name) if reg is not None else None
     if not cfg:
-        from sajha.routes.studio_routes import CONFIG_DIR
-        f = Path(CONFIG_DIR) / f'{name}.json'
-        if f.exists():
+        from sajha.core.storage import get_storage
+        from sajha.tools.tool_files import name_taken
+        rel = name_taken(name)
+        if rel:
             try:
-                cfg = json.loads(f.read_text(encoding='utf-8'))
+                cfg = get_storage().read_json(rel)
             except Exception:
                 cfg = None
     if isinstance(cfg, dict) and isinstance(cfg.get('llm'), dict):
@@ -593,12 +594,18 @@ def list_tools(auth: Any = None, registry=None) -> List[Dict[str, Any]]:
     return out
 
 
-def deploy(config: Dict[str, Any], auth: Any, edit: bool = False, registry=None) -> Dict[str, Any]:
+#: The tool folder new LLM tools go into unless the caller names another.
+DEFAULT_FOLDER = 'llm'
+
+
+def deploy(config: Dict[str, Any], auth: Any, edit: bool = False, registry=None,
+           folder: Optional[str] = None) -> Dict[str, Any]:
     """Write the config and load it. ``edit`` replaces an existing LLM tool the caller may change
-    (its creator is kept; the old file comes back if the new one does not load)."""
-    from pathlib import Path
+    (its creator is kept; the old file comes back if the new one does not load) in its current file.
+    A new tool goes into ``folder`` (default ``llm``; '' is the root)."""
     from sajha.core.storage import get_storage, write_tool_config
-    from sajha.routes.studio_routes import CONFIG_DIR, _hot_load, _unload
+    from sajha.routes.studio_routes import _hot_load, _unload
+    from sajha.tools.tool_files import clean_folder, delete_config, folder_problem, name_taken
     from sajha.studio.ownership import creator_of, refusal, stamp
     reg = registry if registry is not None else _registry()
     name = str(config.get('name') or '')
@@ -613,33 +620,32 @@ def deploy(config: Dict[str, Any], auth: Any, edit: bool = False, registry=None)
         for k in ('created_by', 'studio_creator', 'author', 'email', 'copyright'):
             if (previous.get('metadata') or {}).get(k) and not md.get(k):
                 md[k] = previous['metadata'][k]
+    folder = DEFAULT_FOLDER if folder is None else clean_folder(folder)
+    why = folder_problem(folder)
+    if why:
+        raise BuildError(why, 400)
     result = check(config, reg, editing=edit)
     if result['errors']:
         raise BuildError('the tool has errors; fix them first', 400, check=result)
     stamp(config, str(getattr(auth, 'user_id', '') or ''), 'llm')
     config.setdefault('metadata', {})['updated_by'] = str(getattr(auth, 'user_id', '') or '')
-    path = Path(CONFIG_DIR) / f'{name}.json'
+    current = name_taken(name)
     old_text = None
-    if edit and path.exists():
-        old_text = path.read_text(encoding='utf-8')
-    write_tool_config(path, json.dumps(config, indent=2) + '\n')
+    if edit and current:
+        old_text = get_storage().read_text(current)
+    path = write_tool_config(current or f'{name}.json', json.dumps(config, indent=2) + '\n', folder=folder)
     loaded, err = _hot_load(name)
     if not loaded:
         if old_text is not None:
             write_tool_config(path, old_text)
             _hot_load(name)
         else:
-            try:
-                get_storage().delete(f'config/tools/{name}.json')
-            except Exception:
-                pass
-            if path.exists():
-                path.unlink()
             _unload(name)
+            delete_config(name)
         raise BuildError(f'the tool was written but failed to load, so it was {"restored" if old_text else "removed"}: '
                          f'{err}', 500)
     _audit(auth, 'edit' if edit else 'deploy', {'name': name, 'mode': config['llm'].get('mode')})
-    return {'name': name, 'file': f'config/tools/{name}.json', 'edited': edit, 'check': result,
+    return {'name': name, 'file': path, 'edited': edit, 'check': result,
             'message': f'{"Saved" if edit else "Deployed"} {name}; it is callable now.'}
 
 

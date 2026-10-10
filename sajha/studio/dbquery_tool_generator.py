@@ -554,7 +554,7 @@ conn.close()'''
             logger.info(f"Saved tool implementation: {python_path}")
 
             from sajha.core.storage import write_tool_config
-            write_tool_config(json_path, json_content)
+            json_path = write_tool_config(json_path, json_content)
             logger.info(f"Saved tool config via storage backend: {json_path}")
             
             return (True, f"Tool '{definition.name}' saved successfully", str(json_path), str(python_path))

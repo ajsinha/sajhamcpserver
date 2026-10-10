@@ -7,7 +7,7 @@ alone. The SAJHA Net guide owns the rationale, the console, storage and configur
 owns the bytes on the wire. Where the two disagree, report it: neither is automatically right.
 
 **SAJHA's implementation** (target S), the agent (A) and the library (L) implement every section
-except: the `visibility` feature (§10.5); relaying input requests and tasks on forwarded calls (§15.6);
+except: the `visibility` feature (§10.5); host-side tasks on forwarded calls (§15.6);
 forwarding on the 2025-11-25 era (§6.4: SAJHA always
 forwards on 2026-07-28); and, for the agent and sponsored participants, streamed forwarded calls
 (§15.10: they do not list `streaming`, so homes ask them for JSON answers only). The library provides the
@@ -338,8 +338,9 @@ nets MAY offer different features in each). Peers use a feature only when **both
 SAJHA (target S) lists, per net: `gossip` (with the `gossip` membership), `ca` (on the CA instance of a
 `builtin_ca` net), `catalog`, `blocks`, `key_directory` and `key_verification` (with key directories),
 `residency`, `token_exchange` (when its `user_identity` lists it) and `reexport` (when re-export is on for
-the net), and `streaming`, `progress` and `cancellation` (unless `sajhanet.streaming.enabled` is off). It
-does not list `visibility`, `mrtr`, `tasks` or `llm_tools`; its LLM tools carry `llm_tool: true` in their
+the net), and `streaming`, `progress`, `cancellation` and `mrtr` (unless `sajhanet.streaming.enabled` is
+off; a sponsored participant lists `mrtr` with its sponsor). It does not list `visibility`, `tasks` or
+`llm_tools`; its LLM tools carry `llm_tool: true` in their
 catalog metadata (§10.2) all the same.
 
 `user_identity` lists the identity resolvers the participant accepts as a host and can produce as a
@@ -1868,23 +1869,39 @@ request whose user the host resolves again; no session state rides on the hop.
   forwarded or proxied call at the host is cancelled in turn). There is no signed `notifications/cancelled`
   on a hop. A call answered with JSON is cancelled only by the home's deadline.
 - **Input requests** (`mrtr` on both sides). An `input_required` result from the host (`inputRequests`
-  and the host's `requestState`) is the final message of the call (§8.9), and the home relays the requests
-  to its caller. The caller's answer goes back to the host as a **new signed request**: the same tool and
-  arguments, with `inputResponses` and the host's `requestState` unchanged. The host binds `requestState`
-  to the net, the sending participant and the user it resolved (for example by signing
-  `<net>/<peer>/<user id>` into it), resolves the user again on the new request, and refuses a state
-  presented by another participant or for another user (`-32602`, as MCP refuses a state that does not
-  match). The home applies its residency rules to `inputResponses` as it does to arguments
-  (`residency_arguments`).
+  and the host's `requestState`) is the final message of the call (the JSON answer, or the final message
+  of a stream, §8.9), and the home relays the requests to its caller. The round trip:
+  1. The host's tool asks. The host answers `{"resultType": "input_required", "inputRequests": {...},
+     "requestState": "<opaque>"}`. It binds `requestState` to the method, the tool, a digest of the
+     arguments, the net, the sending participant and the user it resolved (SAJHA signs
+     `<net>/<peer>/<user id>` into an HMAC-protected state with an expiry), and carries in it the answers
+     gathered so far and the tool's own state.
+  2. The home keeps the host's `requestState` inside its own state for its caller (SAJHA: its own signed
+     `requestState`, under `sajha.net`), so the host's state never depends on the caller, and asks its
+     caller (2026-07-28: an `input_required` result; a caller that cannot answer, a 2025-11-25 session,
+     REST or A2A, gets a tool error asking it to call over 2026-07-28).
+  3. The caller's answer goes back to **the same host** (its qualified name) as a **new signed request**:
+     the same tool and arguments, `inputResponses` with the answers to this host's keys, and the host's
+     `requestState` unchanged. The home applies its residency rules to `inputResponses` as it does to
+     arguments (`residency_arguments`) before anything is sent.
+  4. The host verifies the request as any other (§15.4 steps 1-9; the user is resolved again), then the
+     state: a state that fails its integrity check, has expired, or was issued for another method, tool,
+     arguments, participant or user is refused before the tool runs with `-32602 state_invalid`
+     (`executed: false`), as MCP refuses a state that does not match. Otherwise the tool runs again with the
+     earlier answers and the new ones; it may ask again (another round) or answer.
+
+  An intermediary that relays a re-exported call (§16) does the same in both roles: the next host's
+  `input_required` becomes its own, with the next host's state inside its own `requestState`.
 - **Tasks** (`tasks` on both sides). A task created at the host is scoped to the resolved net user; the
   home relays `tasks/get`, `tasks/update` and `tasks/cancel` as signed requests with the same identity
   headers.
 - A destructive tool still needs confirmation at the home (design §9); the host may require its own
   approval (`-32011 approval_required`).
 
-SAJHA relays progress, log and cancellation. It does not list `mrtr` or `tasks`: a host's
-`InputRequired` reaches the home as a tool result with `isError: true` saying the call needs input it
-cannot relay yet, and host-side tasks are deferred (§22).
+SAJHA relays progress, log, cancellation and input requests. It does not list `tasks`: host-side tasks are
+deferred (§22 decision 42). A task-augmented call at the home wraps the forwarded call: the task runs it
+(streamed when the host lists `streaming`), and `tasks/cancel` at the home cancels the task's context,
+which closes the stream and so cancels the call at the host.
 
 ### 15.7 What the home's caller sees
 
@@ -2086,6 +2103,7 @@ already and never emits `-32002` on the modern path):
 | `-32014` | Peer refused | the 401 and 403 reasons of §7.4 that apply to authentication and revocation | host | 401 or 403 as in §7.4 |
 | `-32015` | Blocked | `instance`, `inbound`, `outbound`, `tool`, `user` | either | 200 |
 | `-32016` | Hop refused | `hop_limit`, `loop`, `hop_inconsistent`, `chain_limit` | host (home too, §16) | 200 |
+| `-32602` | Request state refused | `state_invalid` (the `requestState` of an answer to an input request is not this host's, has expired, or was issued for another tool, arguments, participant or user, §15.6) | host | 200 |
 | `-32017` | Version unsupported | `unsupported_version` | host | 400 |
 | `-32018` | Import refused | `import`, `contract_conflict` (the tool is quarantined, §10.7; `data` adds `conflict`) | home only; never sent between participants | — |
 | `-32019` | Instance unavailable | host: `draining`, `overloaded`, `rate_limited`; home: `unreachable`, `timeout`, `circuit_open`, `unavailable` (host `suspect`), `response_invalid`, `no_host` (no eligible host left after fallback, §15.8), `cancelled` (the home's caller cancelled the call, which is not tried elsewhere), and the stream refusals `event_invalid`, `event_order`, `stream_truncated`, `stream_limit`, `stream_idle` (§8.9, §15.10) | host (sent only before execution, §15.4) or home | host: 503, or 429 for `rate_limited`; home: — |
@@ -2370,7 +2388,7 @@ needs the target's insides). A sponsored participant is tested as target S, thro
 | CALL-13 | S A (`reexport`) | A re-exported call carries an assertion with `aud` = origin and `net` = the request's net, no raw key, hop 2 and the visited list; an expired or replayed assertion, or one whose `net` is another net → `-32013 assertion_invalid`. |
 | CALL-14 | S A | With `assertion` identity a call runs as the user the assertion names (key id only, no key); a bad signature, another audience, another trace, an issuer other than the sender on hop 1, or a host that does not list `assertion` on a direct call → `-32013 assertion_invalid`; a user with no account → `no_account`. |
 | CALL-15 | S A (`token_exchange`) | The token endpoint exchanges a valid assertion for a token that the next calls carry instead of a key; a token unknown to the host, expired or presented by another participant → `-32013 token_invalid`, after which the home exchanges again; an exchange for a user with no account → `no_account`. |
-| CALL-16 | S A (`mrtr`) | An `input_required` result from the host reaches the caller; the answer goes back as a new signed request carrying the host's `requestState`; the host resolves the user again; a state presented by another participant or for another user is refused. |
+| CALL-16 | S A (`mrtr`) | An `input_required` result from the host reaches the caller; the answer goes back as a new signed request carrying the host's `requestState`; the host resolves the user again; a state presented by another participant or for another user is refused (`state_invalid`, `executed: false`); the home's residency rules see `inputResponses`. |
 | FB-01 | S A | Every refusal of a forwarded `tools/call` before execution (each step 1 to 10 of §15.4, and `-32019` `draining`, `overloaded`, `rate_limited`) carries `executed: false`; `residency_result` carries `executed: true`; a host never sends `-32019` after the tool has started. |
 | FB-02 | S | A call by plain name whose first host refuses the connection, has its breaker open, is `suspect`, or answers `-32019` with `executed: false` is sent to the next host offering the same tool part, in resolution order, across nets (where the `contract_hash` must also match); `version` plays no part (§10.2); a host whose copy has another contract in another net, or a tool refused for `contract_conflict`, is never tried. |
 | FB-03 | S | After a timeout following the send, an unsigned proxy `502`/`503`/`504`, or a response that fails verification, the home falls back only for tools that are read-only, or idempotent with `destructiveHint: false`; a destructive tool is not tried again. |

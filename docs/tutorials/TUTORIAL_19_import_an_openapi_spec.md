@@ -96,7 +96,7 @@ Untick everything except `GET /pets`, `GET /pets/{petId}` and `DELETE /pets/{pet
 `petstore: 3 added, 0 updated, 0 removed`, with links to each tool. **Imported APIs** on the
 right now lists `petstore` with 3 tools loaded.
 
-Each tool is a JSON config in `config/tools/` (open one from the Tools page, **Config**):
+Each tool is a JSON config in `config/tools/<prefix>/`, the import's tool folder (open one from the Tools page, **Config**):
 its `inputSchema`, `outputSchema`, `annotations`, and an `api_import` block with the
 method, path, server and the credential reference. There is no generated code; every
 imported tool runs on one executor.

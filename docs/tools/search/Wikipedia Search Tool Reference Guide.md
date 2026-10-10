@@ -28,7 +28,7 @@ edition (`https://{language}.wikipedia.org/w/api.php`):
 | `wiki_get_page` | Full plain-text article with sections and categories | `action=query&prop=extracts\|info\|revisions\|categories\|pageimages` |
 
 Implementation: `sajha.tools.impl.wikipedia_tool`; tool configs:
-`config/tools/wiki_search.json`, `wiki_get_summary.json`, `wiki_get_page.json`.
+`config/tools/wikipedia/wiki_search.json`, `wiki_get_summary.json`, `wiki_get_page.json`.
 Only the Python standard library is used.
 
 ---

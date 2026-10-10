@@ -38,7 +38,7 @@ with the Python standard library (`urllib`, `html.parser`,
 | `get_page_info` | one page | Page statistics: heading/link/image counts, size |
 
 Implementation: `sajha.tools.impl.webcrawler_tool_refactored`; tool configs:
-`config/tools/check_robots_txt.json`, `crawl_sitemap.json`, `crawl_url.json`,
+`config/tools/webcrawler/check_robots_txt.json`, `crawl_sitemap.json`, `crawl_url.json`,
 `extract_links.json`, `extract_content.json`, `extract_metadata.json`,
 `get_page_info.json`.
 

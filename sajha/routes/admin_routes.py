@@ -64,6 +64,10 @@ async def admin_tools_page(request: Request, auth: AuthContext = Depends(require
         'tools': tools,
         'tool_errors': tool_errors,
         'metrics': metrics,
+        'tools_metrics': metrics,
+        # each tool's folder ('' the root, None: no config file), from the tool file index
+        'tool_folders': {m.get('name'): (tools_registry.tool_folder(m.get('name'))
+                                         if hasattr(tools_registry, 'tool_folder') else None) for m in metrics},
         'is_admin': True,
     })
 

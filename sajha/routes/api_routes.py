@@ -149,6 +149,9 @@ async def api_tools_list(request: Request, db: Session = Depends(get_db)):
     tools = tools_registry.get_all_tools() if tools_registry else []
     if not policy.unrestricted():
         tools = [t for t in tools if policy.can_see(t.get('name'))]
+    folder_of = getattr(tools_registry, 'tool_folder', None)
+    if callable(folder_of):         # additive: each tool's folder ('' the root, null: no config file)
+        tools = [dict(t, folder=folder_of(t.get('name'))) for t in tools]
     return JSONResponse({'tools': tools})
 
 

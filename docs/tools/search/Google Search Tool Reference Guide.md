@@ -23,7 +23,7 @@ search, site restriction, date restriction, SafeSearch and result language.
 |------|-------|
 | Tool | `google_search` |
 | Implementation | `sajha.tools.impl.google_search_tool_refactored.GoogleSearchTool` |
-| Tool config | `config/tools/google_search.json` |
+| Tool config | `config/tools/google/google_search.json` |
 | Credentials | Google API key and Programmable Search Engine ID |
 
 ---

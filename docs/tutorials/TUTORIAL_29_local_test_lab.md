@@ -296,7 +296,7 @@ outputs. Give `treasury-eu`'s copy of `calc_loan_amortization` an extra input, t
 ```bash
 python3 - <<'EOF'
 import json
-p = 'deployment/local-lab/run/treasury-eu/config/tools/calc_loan_amortization.json'
+p = 'deployment/local-lab/run/treasury-eu/config/tools/calc/calc_loan_amortization.json'
 t = json.load(open(p))
 t['inputSchema']['properties']['extra_payment'] = {'type': 'number', 'description': 'An extra payment each month'}
 json.dump(t, open(p, 'w'), indent=2)
@@ -320,7 +320,7 @@ Differs: inputSchema /properties/extra_payment (treasury-eu: {...}; others: (abs
 
 A call to it now answers "Tool not found", and **SAJHA Net > Remote tools** lists the conflict with
 every offer and its hash. Undo the change (delete the `extra_payment` property the same way, or copy
-`config/tools/calc_loan_amortization.json` back over it) and reload again: a notice "Tool
+`config/tools/calc/calc_loan_amortization.json` back over it) and reload again: a notice "Tool
 calc_loan_amortization active again in lab-net" appears and the tool answers.
 
 ### 12. Block an instance
