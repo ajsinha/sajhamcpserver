@@ -12,6 +12,21 @@ Newest first. The current version is `app.version` in `config/application.yml`.
   `stream_idle`), nothing after it reaches the caller, and the stream is closed (which cancels the
   host's tool). Cancellation from the caller closes the stream; limits `sajhanet.streaming.*`. Homes
   and hosts without the feature keep the single signed JSON answer.
+- Added (wave 6, phase 6.2): progress and cancellation on every MCP client transport. A `tools/call`
+  on 2025-11-25 Streamable HTTP with `_meta.progressToken` from a client that accepts SSE is answered as
+  an SSE stream (JSON otherwise, as before); HTTP+SSE (2024-11-05) sends progress on the session's
+  stream and takes `notifications/cancelled` on `/mcp?session=` and `/mcp/message`; WebSocket sends
+  progress on the socket and takes `notifications/cancelled`; 2025-11-25 stdio writes progress lines.
+  Local tools (`report_progress`) and remote SAJHA Net tools (their host's signed events) both reach the
+  client under its own token. REST and A2A stay buffered. New `TransportToolContext` and
+  `call_with_events` in `sajha/core/mcp_tool_context.py`. Conformance STR-06.
+- Added (wave 6, phase 6.2): residency on streamed events. A tool with result data classes, or one a
+  residency rule names, streams progress as numbers only and no log events: the host strips them before
+  signing (rule `residency_events`), the home again on arrival (`residency.on_event`). Input responses
+  sent back to a host (`inputResponses`) are checked like arguments. The SAJHA Net overview's recent
+  forwarded calls show whether each streamed and how many events. Conformance STR-07.
+- Fixed: a `tools/call` over WebSocket ran on the event loop, so a slow or remote tool blocked every
+  connection; it now runs in a worker thread as its own task (calls on one socket overlap).
 - Fixed: `pip install -r requirements.txt` failed (`mcp` needs `sse-starlette>=3`); the pin is now
   `sse-starlette>=3.0.0,<4.0.0`.
 
@@ -21,6 +36,9 @@ Newest first. The current version is `app.version` in `config/application.yml`.
   final binding; §15.6 for 2026-07-28 hops; new §15.10; stream refusals in §17, limits in §18, §19, the
   §21.4 test vector, decisions 38 to 42) and conformance ids SIG-14 (now S A L), STR-01 to STR-09 and
   CALL-16; CALL-11 and FB-07 now run.
+- MCP Protocol Guide: "Progress and cancellation per transport" (§4). SAJHA Net: streaming on a call
+  (§9), residency of streamed events (§12); §5.5 no longer lists STR-06 and STR-07. SAJHA Net Protocol
+  §15.10: SAJHA applies the residency rule to streamed events.
 
 ## v8.1.0 (October 2026) — sovereignty, the console and other MCP servers
 

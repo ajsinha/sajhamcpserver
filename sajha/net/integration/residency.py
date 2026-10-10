@@ -13,6 +13,9 @@ SAJHA Net residency inside SAJHA (design §12 and §13; protocol §15.4 step 12,
   (home, before the call leaves) and ``residency_result`` (host, before the answer leaves). A deny is the
   protocol's ``-32012`` refusal; ``redact: {data_classes: [...]}`` replaces those fields instead. The home
   checks a result again as it arrives (:func:`on_arrival`; destination ``here``).
+* **Streamed events** (progress, log) of a tool with result classes, or one a residency rule names, carry
+  numbers only: the host strips them before signing (``residency_events``), the home again as they arrive
+  (:func:`on_event`).
 * **Audit:** every decision on classified data (allow, redact or refuse) is one ``net.residency`` record
   with the net, the other instance, the tool, the flow, the classes, the rule and the fields redacted
   (never the values). Offer decisions show in the resolution order (``residency rule``) instead.
@@ -354,6 +357,66 @@ def decide(node, rule: str, s: Dict[str, Any], registry=None) -> plugins.Decisio
     if rule == 'residency_result':
         return _result_at_host(node, s, here, user, registry)
     return plugins.Decision(True, rule)
+
+
+# ── streamed events (design §3.3 of wave 6; protocol §15.10) ───────
+
+def events_restricted(tool=None, names: Iterable[str] = ()) -> bool:
+    """True when a tool's streamed events may carry only numbers: it has result data classes, or a
+    residency rule names it (by its own name, or a proxy's host name). Progress text and log data could
+    quote the very data the result rules protect, and they are not redacted field by field."""
+    if not load_settings().enabled:
+        return False
+    names = [n for n in names if n]
+    if tool is not None:
+        names.append(str(getattr(tool, 'name', '') or ''))
+        meta = getattr(tool, 'meta', None)
+        if isinstance(meta, dict) and meta.get('host_tool'):
+            names.append(str(meta['host_tool']))
+    names = [n for n in dict.fromkeys(names) if n]
+    c = classes_of_tool(tool) if tool is not None else classify(names)
+    if any(c.results.values()):
+        return True
+    eng = _engine()
+    if eng is None:
+        return False
+    for r in eng.rules():
+        m = r.match
+        if m.residency and m.tools and any(fnmatch.fnmatchcase(n, p) for n in names for p in m.tools):
+            return True
+    return False
+
+
+def restrict_event(event: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+    """An event of a restricted tool: progress as numbers only (``progress``, ``total``), log dropped."""
+    if not isinstance(event, dict) or event.get('method') != 'notifications/progress':
+        return None
+    p = event.get('params') if isinstance(event.get('params'), dict) else {}
+    keep = {k: p[k] for k in ('progressToken', 'progress', 'total') if k in p}
+    return dict(event, params=keep)
+
+
+def events_decision(s: Dict[str, Any], registry=None) -> plugins.Decision:
+    """``residency_events`` at the host: allow = the tool's events may go as they are; deny = numbers only."""
+    name = str(s.get('tool') or '')
+    tool = _local_tool(name, registry)
+    names = [name] + [str(n) for n in s.get('tool_names') or []]
+    return plugins.Decision(not events_restricted(tool, names), 'residency_events')
+
+
+def on_event(node, proxy, event: Dict[str, Any], user=None) -> Optional[Dict[str, Any]]:
+    """The home's own rule on an event as it arrives from the host (next to :func:`on_arrival`): a tool
+    with result data classes, or one a residency rule names, has its progress relayed as numbers only and
+    its log events dropped; ``None`` drops the event. Screening and the length cap on the text that is
+    relayed are applied by the relay (``catalogs.stream_hooks``)."""
+    if not isinstance(event, dict):
+        return None
+    try:
+        restricted = events_restricted(proxy) if proxy is not None else False
+    except Exception as e:
+        logger.warning(f'SAJHA Net residency on a streamed event: {e}; the event is reduced to numbers')
+        restricted = True
+    return restrict_event(event) if restricted else event
 
 
 def _local_tool(name: str, registry=None):

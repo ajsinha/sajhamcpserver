@@ -37,7 +37,7 @@ import json
 import logging
 import threading
 from dataclasses import dataclass, field
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Callable, Dict, List, Optional, Tuple
 
 from sajha.net import EXTENSION_ID, names, plugins
 from sajha.net.catalog import TRUST_LEVELS, CatalogBook, Limits
@@ -705,8 +705,17 @@ class NetCatalogs:
         from sajha.core import inner_calls
         hop_in, depth = inner_calls.outgoing()      # a call made while serving a forwarded one continues its chain
         out = self.router.call(name, arguments, user=user, traceparent=tp, hop_in=hop_in, depth=depth,
-                               **stream_hooks())
+                               **stream_hooks(self._event_rule(name, user)))
         return self._arrived(name, out, user)
+
+    def _event_rule(self, name: str, user: Dict[str, Any]):
+        """Residency on each streamed event as it arrives (``residency.on_event``), for the proxy ``name``."""
+        proxy = self._proxies.get(name)
+        if proxy is None:
+            return None
+        from sajha.net.integration.residency import on_event
+        node = next(iter(self.books.values())).node if self.books else None
+        return lambda ev: on_event(node, proxy, ev, user)
 
     def _arrived(self, name: str, out: Dict[str, Any], user: Dict[str, Any]) -> Dict[str, Any]:
         """Residency on a result as it arrives (design §12): this server's own rules, redaction and classes."""
@@ -988,7 +997,7 @@ class NetCatalogs:
             user.update(_bridge=True, net=str(src.get('net') or ''), authenticated=True)
         out = self.router.call(q, dict(arguments or {}), user=user, traceparent=ctx.traceparent,
                                hop_in=(ctx.hop, list(ctx.visited)), depth=ctx.depth, relay=relay,
-                               **stream_hooks())            # the next hop's events re-signed into this stream
+                               **stream_hooks(self._event_rule(q, user)))   # the next hop's events re-signed here
         meta = ((out or {}).get('_meta') or {}).get(EXTENSION_ID) or {}
         rf = meta.get('refusal')
         if (out or {}).get('isError') and isinstance(rf, dict) and rf.get('executed') is False \
@@ -1215,11 +1224,12 @@ class NetCatalogs:
         return {n: b.status() for n, b in self.books.items()}
 
 
-def stream_hooks() -> Dict[str, Any]:
+def stream_hooks(rule: Optional[Callable[[Dict[str, Any]], Optional[Dict[str, Any]]]] = None) -> Dict[str, Any]:
     """The streaming arguments of :meth:`Router.call` for the tool context running now (protocol §15.10): a
     verified event from the host is relayed into ``current_context()`` (progress under the caller's own
     token, log at the caller's level; text screened and capped), and the caller's cancellation closes the
-    stream. With no tool context the call still streams (heartbeats, cancellation) but relays nothing."""
+    stream. With no tool context the call still streams (heartbeats, cancellation) but relays nothing.
+    ``rule``: this server's residency on each event first (``residency.on_event``; None drops it)."""
     from sajha.core import mcp_tool_context as mtc
     ctx = mtc.current_context()
     hooks: Dict[str, Any] = {'cancelled': mtc.is_cancelled}
@@ -1228,6 +1238,10 @@ def stream_hooks() -> Dict[str, Any]:
 
     def on_event(ev: Dict[str, Any]) -> None:
         from sajha.federation.security import screen_text
+        if rule is not None:
+            ev = rule(ev)
+            if ev is None:
+                return
         p = ev.get('params') or {}
         if ev.get('method') == PROGRESS:
             prog, total = p.get('progress'), p.get('total')

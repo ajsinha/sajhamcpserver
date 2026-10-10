@@ -12,6 +12,9 @@ Supports:
   - Heartbeat via WebSocket ping/pong frames
   - Batch JSON-RPC requests
   - Server-initiated notifications (tools/list_changed, progress, log)
+  - tools/call runs off the event loop, one task per call: calls on one socket overlap, a tool's
+    progress (a remote SAJHA Net tool's too, with a _meta.progressToken) arrives before its response,
+    and notifications/cancelled stops the named call (sajha.core.mcp_cancellation)
 
 Usage:
   Client connects to ws://host:3002/mcp/ws?token=<jwt>
@@ -31,6 +34,7 @@ from datetime import datetime
 from typing import Dict, Optional
 
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect, Depends
+from starlette.concurrency import run_in_threadpool
 from sqlalchemy.orm import Session
 
 from sajha.db.engine import get_db_session
@@ -47,7 +51,7 @@ class WSSession:
 
     __slots__ = ('id', 'ws', 'user_id', 'auth_context', 'session_data',
                  'connected_at', 'last_activity', 'initialized',
-                 '_notification_queue')
+                 '_notification_queue', '_send_lock')
 
     def __init__(self, ws: WebSocket, session_id: str):
         self.id = session_id
@@ -59,10 +63,12 @@ class WSSession:
         self.last_activity = datetime.utcnow()
         self.initialized = False
         self._notification_queue: asyncio.Queue = asyncio.Queue()
+        self._send_lock = asyncio.Lock()
 
     async def send(self, message: Dict):
-        """Send a JSON-RPC message to the client."""
-        await self.ws.send_text(json.dumps(message, default=str))
+        """Send a JSON-RPC message to the client (one frame at a time: calls run concurrently)."""
+        async with self._send_lock:
+            await self.ws.send_text(json.dumps(message, default=str))
         self.last_activity = datetime.utcnow()
 
     async def send_notification(self, method: str, params: Dict = None):
@@ -166,6 +172,7 @@ async def mcp_websocket(ws: WebSocket):
     _ws_sessions[session_id] = session
     logger.info(f"WebSocket connected: {session_id} (user={session.user_id})")
     forwarder = asyncio.create_task(_forward_changes(session))
+    calls: set = set()          # tools/call tasks in flight on this socket
 
     try:
         while True:
@@ -185,20 +192,37 @@ async def mcp_websocket(ws: WebSocket):
 
             # ── Batch request ──
             if isinstance(data, list):
-                responses = mcp_handler.handle_batch_request(data, session.session_data)
+                responses = await run_in_threadpool(mcp_handler.handle_batch_request, data, session.session_data)
                 for resp in responses:
                     await session.send(resp)
+                continue
+            if not isinstance(data, dict):
+                await session.send({'jsonrpc': '2.0', 'id': None,
+                                    'error': {'code': -32600, 'message': 'Invalid Request'}})
                 continue
 
             # ── Single request ──
             method = data.get('method', '')
+
+            if method == 'notifications/cancelled' and 'id' not in data:
+                from sajha.core import mcp_cancellation      # stop the named in-flight call
+                cp = data.get('params') if isinstance(data.get('params'), dict) else {}
+                mcp_cancellation.cancel(session_id, cp.get('requestId'), cp.get('reason'))
+
+            if method == 'tools/call' and 'id' in data:
+                # off the event loop, as its own task: a slow (or remote) tool blocks neither the
+                # socket nor other connections, and its progress streams ahead of the response
+                task = asyncio.ensure_future(_tool_call(session, mcp_handler, data))
+                calls.add(task)
+                task.add_done_callback(calls.discard)
+                continue
 
             # Track initialization
             if method == 'initialize':
                 session.initialized = True
 
             # Handle via the same MCPHandler used by HTTP POST and SSE
-            response = mcp_handler.handle_request(data, session.session_data)
+            response = await run_in_threadpool(mcp_handler.handle_request, data, session.session_data)
 
             # Send response (skip for notifications — requests without 'id')
             if 'id' in data:
@@ -221,7 +245,28 @@ async def mcp_websocket(ws: WebSocket):
             pass
     finally:
         forwarder.cancel()
+        for task in list(calls):
+            task.cancel()           # the tools see is_cancelled()
         _ws_sessions.pop(session_id, None)
+
+
+async def _tool_call(session: 'WSSession', handler, data: Dict):
+    """One tools/call: run in a worker thread under a TransportToolContext (progress and log to this
+    socket) and mcp_cancellation.track(session, id); then the response."""
+    from sajha.core.mcp_tool_context import call_with_events
+    rid = data.get('id')
+    try:
+        response = await call_with_events(lambda: handler.handle_request(data, session.session_data),
+                                          data.get('params'), session.send, session.id, rid)
+    except asyncio.CancelledError:
+        raise
+    except Exception as e:
+        logger.error(f"WebSocket tools/call failed: {e}", exc_info=True)
+        response = {'jsonrpc': '2.0', 'id': rid, 'error': {'code': -32603, 'message': 'Internal server error'}}
+    try:
+        await session.send(response)
+    except Exception:
+        pass                        # socket gone; the receive loop cleans up
 
 
 async def _forward_changes(session: 'WSSession'):

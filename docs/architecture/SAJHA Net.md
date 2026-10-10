@@ -197,7 +197,6 @@ L17 for the streaming items, L16 for the rest):
 | Not built | Effect today | Protocol |
 |---|---|---|
 | Input requests (MRTR) and host-side tasks on forwarded calls | A host's request for input reaches the caller as an error result; the `mrtr` and `tasks` features are not listed | §15.6; CALL-16 |
-| Progress from forwarded calls on 2025-11-25 (HTTP and stdio), HTTP+SSE and WebSocket clients; the residency rule for streamed events | A forwarded call streams signed progress, log and cancellation (protocol §15.10), but only a 2026-07-28 client sees the progress; a host streams a tool's progress and log text even when the tool has result data classes | §15.10; STR-06, STR-07 |
 | Forwarding on the 2025-11-25 era | Forwarded calls always use 2026-07-28 (every SAJHA host speaks it) | §6.4; CALL-12 |
 | The `visibility` feature | A home cannot ask a host which tools a user may call there; it shows what its own rules allow, and the host decides again on every call | §10.5; CAT-05 |
 | Mutual TLS (`sajhanet.mtls`) | A value other than `off` only logs a warning; requests are checked by their signatures | — |
@@ -348,7 +347,8 @@ library cases against the core with the protocol's §21 vectors, and reports eac
 Usage is in [SAJHA Net Agent](../clients/SAJHA%20Net%20Agent.md) section 9.
 
 SAJHA's own suite covers every S case under `tests/net/` (and `tests/test_sajhanet_groundwork.py` for
-CAP-01 to CAP-03) except those of section 5.5: CAT-05, CALL-12, CALL-16, STR-06 and STR-07. CALL-06 (every
+CAP-01 to CAP-03) except those of section 5.5: CAT-05, CALL-12 and CALL-16 (STR-06 and STR-07, which
+need SAJHA's client transports, are covered at the top of `tests/`, named by the conformance runner). CALL-06 (every
 step of the host's processing order, in order) is covered step by step across the files rather than by
 one test. The wave exit `tests/net/test_net_mixed_conformance.py` puts a SAJHA instance, a server it
 sponsors and an agent-fronted server in one net and runs the suite on all three targets and the library.
@@ -790,6 +790,14 @@ as it is.
 - **Connected accounts.** A user's linked SaaS tokens never leave their home. A remote tool that needs
   the user's token runs only where the user has linked the account; elsewhere the host answers "connect
   your account here", as federation's token passthrough does.
+- **Streaming.** With a host that lists `streaming`, the answer is a signed event stream (protocol
+  §8.9, §15.10): the host's progress and log events are verified one by one and relayed at once to the
+  caller, under the caller's own progress token, on whichever MCP transport the caller used (2026-07-28
+  HTTP and stdio, 2025-11-25 HTTP with SSE and stdio, HTTP+SSE, WebSocket; the
+  [MCP Protocol Guide](../protocol/MCP%20Protocol%20Guide.md) lists what each carries). REST and A2A
+  callers receive the final result only. The caller's cancellation (a closed stream, or
+  `notifications/cancelled`) closes the hop's stream, which cancels the tool at the host. Residency
+  applies to the events too (section 12).
 
 ### 9.1 Waterfall fallback
 
@@ -1054,6 +1062,13 @@ Residency decides where classified data may flow between instances, in both dire
   field and is refused.
 - **On arrival** the home applies its own rules (`flow: results`, `destination: {here: true}`): it may
   redact or refuse (`residency_result`, side `home`); a check that fails withholds the result.
+- **Streamed events.** Progress text and log data could quote what the result rules protect, and they
+  are not redacted field by field. So when a tool has result data classes, or a residency rule names it
+  (`match.tools`), its events carry numbers only (`progress`, `total`) and its log events are dropped:
+  the host strips them before signing (rule `residency_events`), and the home again as they arrive
+  (`residency.on_event`, from its own knowledge of the proxy). Every relayed text is screened for
+  injected instructions and capped in length, as results are. Input responses a caller sends back to a
+  host (`inputResponses`) are checked like arguments (`residency_arguments`) before they leave.
 - **Residency-aware shortlists.** A remote tool whose host may not receive the classes every call sends
   (whole-tool argument classes and those of required fields) is not eligible there
   (`not_eligible: residency rule` in the resolution order and on the Remote tools page); a tool no host
@@ -1215,7 +1230,7 @@ chain, never by calling peers on page load (`sajha/net/integration/console.py`, 
 |---|---|---|---|
 | **Instances** | `/net/instances`, `/net/instances/{net}/{instance}`, `/net/instances/this` | every signed-in user | Every participant of this server's nets, this server first (a net of one when SAJHA Net is off or no one else has joined): net, name, vendor, kind, region, labels, state and last seen, and how many of its tools this user may use here; search and filters by net, state, kind, region and label. An instance's page lists the tools it offers this user (name, qualified name, alias, description, inputs and outputs, health and latency) with the Tools page's Try it form. JSON: `GET /api/sajhanet/instances` |
 | **Your net access** | `/net/access` | every signed-in user | Each remote tool by name, every host offering it in resolution order with its state and the host's member state, and whether this server lets the user call it there; this server's decision only, since the host decides again on every call. JSON: `GET /api/sajhanet/access` |
-| **Net overview** | `/admin/sajhanet/overview?net=` | administrators | A net selector; totals (membership and gossip health, instances by state, admission mode, remote tools by state, notices, quarantined and held tools, active blocks); the **topology map**; members, gossip details, seeds and runtime seeds; this net's notices, quarantined names, description warnings and held tools (Approve); blocks set here and published by others; the admission panel; refused tool names; from the newest `net.*` audit records, recent forwarded calls, call-chain refusals and residency decisions; the router's counters. JSON: `GET /api/sajhanet/overview` |
+| **Net overview** | `/admin/sajhanet/overview?net=` | administrators | A net selector; totals (membership and gossip health, instances by state, admission mode, remote tools by state, notices, quarantined and held tools, active blocks); the **topology map**; members, gossip details, seeds and runtime seeds; this net's notices, quarantined names, description warnings and held tools (Approve); blocks set here and published by others; the admission panel; refused tool names; from the newest `net.*` audit records, recent forwarded calls (with whether each streamed and how many events), call-chain refusals and residency decisions; the router's counters. JSON: `GET /api/sajhanet/overview` |
 | **Remote tools** | `/admin/sajhanet/tools` | administrators | The host and tool table with filters by net, host, state and trust; Approve and withdraw for tools held under `review`; the contract conflicts with every offer and hash |
 | **SAJHA Net admin** | `/admin/sajhanet` | administrators | Membership, add a peer by address, runtime seeds (Remove), the admission panel, blocks, remote users, links and role maps, the key directory |
 

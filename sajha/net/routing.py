@@ -643,7 +643,8 @@ class Router:
              relay: Optional[Dict[str, str]] = None,
              on_event: Optional[Callable[[Dict[str, Any]], None]] = None,
              cancelled: Optional[Callable[[], bool]] = None, progress: bool = False,
-             log_level: Optional[str] = None) -> Dict[str, Any]:
+             log_level: Optional[str] = None,
+             input_responses: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
         """Call ``name`` (qualified or plain) at its host(s); always returns a CallToolResult. ``hop_in``
         is the chain a call made while serving a forwarded call arrived on (hop count, visited list);
         ``depth`` the tools nested in one another so far on every instance passed (§16). ``relay``: the
@@ -654,7 +655,8 @@ class Router:
         each verified event goes to ``on_event`` (a ``notifications/progress`` or ``notifications/message``
         message) before the result. ``progress`` asks the host for progress, ``log_level`` for log
         messages at or above it. ``cancelled()`` is polled while the stream is read; True closes the stream,
-        which cancels the call at the host."""
+        which cancels the call at the host. ``input_responses``: the caller's answers to the host's input
+        requests (MRTR), sent as ``inputResponses`` and checked by residency like the arguments."""
         res = self.resolve(name, user)
         tp = traceparent if trace_of(traceparent) else new_traceparent()
         trace_id = trace_of(tp)
@@ -681,7 +683,8 @@ class Router:
         for i, c in enumerate(tries, start=1):
             if i > 1 and self.clock() >= deadline:
                 break
-            stream = {'on_event': on_event, 'cancelled': cancelled, 'progress': progress, 'log_level': log_level}
+            stream = {'on_event': on_event, 'cancelled': cancelled, 'progress': progress, 'log_level': log_level,
+                      'input_responses': input_responses}
             outcome = self._attempt(c, arguments, user, tp, trace_id, i, deadline, hop_in, depth, relay, stream)
             outcome['attempt'] = i
             st = outcome.get('stream') or {}
@@ -777,6 +780,23 @@ class Router:
             return home('residency_arguments')
         if isinstance(d.value, dict):
             arguments = d.value                              # fields of a class that may not go there, redacted
+        input_responses = stream.get('input_responses')
+        if isinstance(input_responses, dict) and input_responses:
+            # the caller's answers to input requests leave this server like arguments do (§15.10)
+            checked: Dict[str, Any] = {}
+            for key, answer in input_responses.items():
+                content = answer.get('content') if isinstance(answer, dict) else None
+                value = content if isinstance(content, dict) else answer
+                d = _decide(self.rules, 'residency_arguments', {'net': c.net, 'host': c.host, 'tool': c.host_tool,
+                                                                 'user': user, 'arguments': value,
+                                                                 'qualified_name': c.qualified_name,
+                                                                 'entry': c.row.get('entry'), 'trace_id': trace_id})
+                if not d.allow:
+                    return home('residency_arguments')
+                if isinstance(d.value, dict):
+                    value = d.value
+                checked[key] = dict(answer, content=value) if isinstance(content, dict) else value
+            input_responses = checked
         br = self.breaker(c.net, c.host)
         if not br.allow():
             return home('circuit_open')
@@ -837,6 +857,8 @@ class Router:
                 pmeta[LOG_LEVEL_KEY] = str(stream['log_level'])
         body = {'jsonrpc': '2.0', 'id': rid, 'method': 'tools/call',
                 'params': {'name': c.host_tool, 'arguments': arguments, '_meta': pmeta}}
+        if isinstance(input_responses, dict) and input_responses:
+            body['params']['inputResponses'] = input_responses
         raw = json.dumps(body, separators=(',', ':'), ensure_ascii=False).encode('utf-8')
         headers = {'content-type': 'application/json', 'accept': 'application/json, text/event-stream',
                    'mcp-protocol-version': MODERN, 'mcp-method': 'tools/call', 'mcp-name': c.host_tool,
@@ -1388,12 +1410,23 @@ class _HostStream:
         self.events = 0
         self.dropped = 0
         self.first_event_ms: Optional[int] = None
+        # residency of streamed content (§15.10): a tool with result data classes, or one a residency rule
+        # names, sends progress as numbers only and no log events (before anything is signed)
+        d = _decide(host.rules, 'residency_events', {'net': host.node.net, 'host': host.node.name, 'peer': ctx.peer,
+                                                     'tool': ctx.local_tool or ctx.tool, 'user': ctx.user,
+                                                     'tool_names': [ctx.tool], 'trace_id': ctx.trace_id})
+        self.numbers_only = not d.allow
         cv = contextvars.copy_context()
         threading.Thread(target=cv.run, args=(self._work, arguments), name='sajhanet-host-call', daemon=True).start()
 
     # ── the worker ───────────────────────────────────────────────────
 
     def _emit(self, message: Dict[str, Any]) -> None:
+        if self.numbers_only:
+            if message.get('method') != PROGRESS:
+                return
+            p = message.get('params') if isinstance(message.get('params'), dict) else {}
+            message = dict(message, params={k: p[k] for k in ('progressToken', 'progress', 'total') if k in p})
         if not self._closed.is_set():
             self.q.put(('event', message))
 

@@ -23,6 +23,12 @@ from their (thread-pool) ``execute`` via the module-level helpers::
 
     from sajha.core.mcp_tool_context import report_progress, report_log, is_cancelled
     report_progress(10, 100, "fetched page 1")
+
+The session-based transports (2025-11-25 Streamable HTTP, 2024-11-05 HTTP+SSE, WebSocket and
+2025-11-25 stdio) install a :class:`TransportToolContext` around ``tools/call``, so the same helpers
+reach their clients too (a remote SAJHA Net tool relays its host's events through it); REST and A2A
+are buffered and install none. Cancellation there is ``notifications/cancelled``
+(:mod:`sajha.core.mcp_cancellation`), which :func:`is_cancelled` also consults.
 """
 
 from __future__ import annotations
@@ -145,6 +151,78 @@ class ModernToolContext:
     @property
     def cancelled(self) -> bool:
         return self._cancelled.is_set()
+
+
+class TransportToolContext(ModernToolContext):
+    """The tool context of a session-based client transport (2025-11-25 HTTP SSE, 2024-11-05 HTTP+SSE,
+    WebSocket, 2025-11-25 stdio): progress under the request's ``_meta.progressToken``, log at its
+    ``_meta["io.modelcontextprotocol/logLevel"]`` when given (never otherwise), each message handed to
+    ``emit`` (scheduled on ``loop`` when called from a worker thread; called directly without a loop)."""
+
+    def __init__(self, progress_token: Any = None, log_level: Optional[str] = None,
+                 emit: Optional[Callable[[Dict[str, Any]], None]] = None,
+                 loop: Optional[asyncio.AbstractEventLoop] = None,
+                 client_capabilities: Optional[Mapping[str, Any]] = None):
+        super().__init__(client_capabilities=client_capabilities, progress_token=progress_token,
+                         log_level=log_level, emit=emit)
+        self._loop = loop
+
+    @classmethod
+    def for_request(cls, params: Any, emit: Optional[Callable[[Dict[str, Any]], None]],
+                    loop: Optional[asyncio.AbstractEventLoop] = None, **kw) -> "TransportToolContext":
+        meta = (params or {}).get('_meta') if isinstance(params, dict) else None
+        meta = meta if isinstance(meta, dict) else {}
+        token = meta.get('progressToken')
+        if not isinstance(token, (str, int)) or isinstance(token, bool):
+            token = None
+        level = meta.get('io.modelcontextprotocol/logLevel')
+        return cls(token, level if isinstance(level, str) else None, emit, loop, **kw)
+
+    @property
+    def wants_events(self) -> bool:
+        return self.progress_token is not None or self.log_level is not None
+
+
+async def call_with_events(fn: Callable[[], Any], params: Any, send: Callable[[Dict[str, Any]], Any],
+                           scope: Any = None, request_id: Any = None) -> Any:
+    """Run the blocking ``fn()`` (a ``tools/call``) in a worker thread under a :class:`TransportToolContext`
+    and ``mcp_cancellation.track(scope, request_id)``; its progress and log messages go to the async
+    ``send`` one after another, all of them before this returns ``fn``'s result. When the awaiting task is
+    cancelled (the client went away), the context is cancelled so the tool sees ``is_cancelled()``."""
+    from starlette.concurrency import run_in_threadpool
+    from sajha.core import mcp_cancellation
+    loop = asyncio.get_running_loop()
+    q: asyncio.Queue = asyncio.Queue()
+    ctx = TransportToolContext.for_request(params, q.put_nowait, loop)
+
+    async def drain():
+        while True:
+            m = await q.get()
+            if m is None:
+                return
+            try:
+                await send(m)
+            except Exception:
+                ctx.cancel()              # the client is gone: stop relaying, let the tool stop early
+
+    def work():
+        token = ctx.activate()
+        try:
+            with mcp_cancellation.track(scope, request_id):
+                return fn()
+        finally:
+            ModernToolContext.deactivate(token)
+
+    drainer = asyncio.ensure_future(drain())
+    try:
+        result = await run_in_threadpool(work)
+    except BaseException:
+        ctx.cancel()
+        drainer.cancel()
+        raise
+    q.put_nowait(None)                    # after every message the worker scheduled before it returned
+    await drainer
+    return result
 
 
 # ── helpers for regular (synchronous, thread-pool) SAJHA tools ──────

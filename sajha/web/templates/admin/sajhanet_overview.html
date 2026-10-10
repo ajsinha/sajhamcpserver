@@ -237,15 +237,16 @@
     </div>
     <div class="table-responsive">
     <table class="sn-table">
-      <thead><tr><th scope="col">When</th><th scope="col">Tool</th><th scope="col">Outcome</th><th scope="col" class="opt">Side</th><th scope="col" class="opt">Other instance</th><th scope="col" class="opt">User</th><th scope="col">Trace id</th></tr></thead>
+      <thead><tr><th scope="col">When</th><th scope="col">Tool</th><th scope="col">Outcome</th><th scope="col" class="opt">Side</th><th scope="col" class="opt">Other instance</th><th scope="col" class="opt">User</th><th scope="col" class="opt">Streamed</th><th scope="col">Trace id</th></tr></thead>
       <tbody>
       {% for c in act.calls %}
         <tr><td>{{ c.at }}</td><td><code>{{ c.tool }}</code>{% if c.attempt and c.attempt > 1 %} <span class="sn-meta">attempt {{ c.attempt }}</span>{% endif %}</td>
           <td><span class="st st-{{ 'answered' if c.outcome in ('answered', 'ok') else ('warn' if c.outcome == 'error' else 'refused') }}">{{ c.outcome or '—' }}</span>{% if c.executed is false %} <span class="sn-meta">not executed</span>{% endif %}</td>
           <td class="opt">{{ 'sent (home)' if c.side == 'home' else 'served (host)' }}</td><td class="opt">{{ c.other or '—' }}</td><td class="opt">{{ c.user or '—' }}</td>
+          <td class="opt">{% if c.streamed %}yes, {{ c.events or 0 }} event{{ '' if c.events == 1 else 's' }}{% else %}—{% endif %}</td>
           <td><code class="sn-hash">{{ c.trace_id or '—' }}</code></td></tr>
       {% else %}
-        <tr><td colspan="7" class="sn-meta">No forwarded call recorded yet.</td></tr>
+        <tr><td colspan="8" class="sn-meta">No forwarded call recorded yet.</td></tr>
       {% endfor %}
       </tbody>
     </table>

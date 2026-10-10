@@ -204,11 +204,12 @@ async def mcp_post(request: Request, db: Session = Depends(get_db)):
 
     # Notification: no id -> 202, no body
     if body.get('jsonrpc') == '2.0' and isinstance(body.get('method'), str) and 'id' not in body:
-        if body['method'] == 'notifications/cancelled' and mcp_session is not None:
+        scope = _cancel_scope(request, mcp_session)
+        if body['method'] == 'notifications/cancelled' and scope is not None:
             # stop the named in-flight call (federation passes it on upstream): mcp_cancellation
             from sajha.core import mcp_cancellation
             cp = body.get('params') if isinstance(body.get('params'), dict) else {}
-            mcp_cancellation.cancel(mcp_session.session_id, cp.get('requestId'), cp.get('reason'))
+            mcp_cancellation.cancel(scope, cp.get('requestId'), cp.get('reason'))
         await run_in_threadpool(mcp_handler.handle_request, body, session_data)
         if mcp_session and body['method'] in ('notifications/initialized', 'initialized'):
             mcp_session.initialized = True
@@ -216,6 +217,8 @@ async def mcp_post(request: Request, db: Session = Depends(get_db)):
 
     method = body.get('method')
     params = body.get('params') if isinstance(body.get('params'), dict) else {}
+    legacy_sid = request.query_params.get('session')
+    legacy_sid = legacy_sid if legacy_sid and _sse_relay.exists(legacy_sid) else None
 
     # Tools that interact with the client while running (conformance fixtures)
     if method == 'tools/call':
@@ -225,12 +228,20 @@ async def mcp_post(request: Request, db: Session = Depends(get_db)):
             return await _stream_tool_call(request, body, params, fixtures, mcp_session)
         # An LLM tool with llm.sampling prefer|require: its model call goes to the client as a
         # sampling/createMessage request on this call's SSE stream (docs/architecture/LLM Tools.md §12)
-        if (mcp_session is not None and mcp_session.supports('sampling')
-                and 'text/event-stream' in request.headers.get('accept', '')
-                and _samples(mcp_handler, params.get('name'))):
-            return await _stream_sampled_call(body, params, session_data, mcp_session, mcp_handler)
+        wants_sse = 'text/event-stream' in request.headers.get('accept', '')
+        sampled = (mcp_session is not None and mcp_session.supports('sampling') and wants_sse
+                   and _samples(mcp_handler, params.get('name')))
+        # A call with _meta.progressToken from a client that takes SSE: the tool's progress (a remote
+        # SAJHA Net tool's too) streams before the result; without either, JSON as before
+        if sampled or (wants_sse and _progress_token(params) is not None and not legacy_sid):
+            return await _stream_registry_call(body, params, session_data, mcp_session, mcp_handler, sampled)
 
-    if method == 'tools/call':
+    if method == 'tools/call' and legacy_sid:
+        # 2024-11-05 HTTP+SSE: progress goes over the client's SSE stream, ahead of the response
+        from sajha.core.mcp_tool_context import call_with_events
+        response = await call_with_events(lambda: mcp_handler.handle_request(body, session_data), params,
+                                          lambda m: _sse_relay.deliver(legacy_sid, m), legacy_sid, body.get('id'))
+    elif method == 'tools/call':
         from sajha.core import mcp_cancellation
         with mcp_cancellation.track(getattr(mcp_session, 'session_id', None), body.get('id')):
             response = await run_in_threadpool(mcp_handler.handle_request, body, session_data)
@@ -238,8 +249,7 @@ async def mcp_post(request: Request, db: Session = Depends(get_db)):
         response = await run_in_threadpool(mcp_handler.handle_request, body, session_data)
 
     # Legacy 2024-11-05 HTTP+SSE client: the response travels over its SSE stream
-    legacy_sid = request.query_params.get('session')
-    if legacy_sid and _sse_relay.exists(legacy_sid):
+    if legacy_sid:
         if method == 'initialize':
             response = with_push_capabilities(response)
         await _sse_relay.deliver(legacy_sid, response)
@@ -374,24 +384,51 @@ def _samples(handler, name) -> bool:
     return wants_sampling(tool)
 
 
-async def _stream_sampled_call(body: dict, params: dict, session_data: dict, mcp_session, handler):
-    """tools/call over SSE with the 2025-11-25 sampling channel bound: the tool runs in a worker
-    thread; its sampling/createMessage requests and the final response travel on this stream, and
-    the client's answers arrive as JSON-RPC responses on POST /mcp."""
+def _progress_token(params: dict):
+    meta = params.get('_meta') if isinstance(params.get('_meta'), dict) else {}
+    token = meta.get('progressToken')
+    return token if isinstance(token, (str, int)) and not isinstance(token, bool) else None
+
+
+def _cancel_scope(request: Request, mcp_session):
+    """The mcp_cancellation scope of a 2025-11-25 request: its MCP session, or its 2024-11-05 SSE session."""
+    if mcp_session is not None:
+        return mcp_session.session_id
+    sid = request.query_params.get('session')
+    return sid if sid and _sse_relay.exists(sid) else None
+
+
+async def _stream_registry_call(body: dict, params: dict, session_data: dict, mcp_session, handler,
+                                sampled: bool = False):
+    """tools/call of a registry tool over SSE (2025-11-25): the tool runs in a worker thread under a
+    TransportToolContext, so its progress (and log, when the request set a logLevel) travels on this
+    stream before the response; with ``sampled``, the 2025-11-25 sampling channel is bound too: the
+    tool's sampling/createMessage requests travel here and the client's answers arrive as JSON-RPC
+    responses on POST /mcp. A client notifications/cancelled reaches the tool (is_cancelled())."""
     from sajha.core.mcp_sessions import ToolCallContext
-    from sajha.ai.llm_tools.sampling import SessionSampler, bound
+    from sajha.core.mcp_tool_context import ModernToolContext, TransportToolContext
+    import contextlib
 
     queue: asyncio.Queue = asyncio.Queue()
-    meta = params.get('_meta') or {}
-    ctx = ToolCallContext(mcp_session, queue, meta.get('progressToken'))
-    sampler = SessionSampler(ctx, asyncio.get_running_loop())
+    loop = asyncio.get_running_loop()
+    tctx = TransportToolContext.for_request(params, queue.put_nowait, loop)
     name = params.get('name')
     stream_id = uuid.uuid4().hex[:12]
+    scope = getattr(mcp_session, 'session_id', None)
 
     def work():
         from sajha.core import mcp_cancellation
-        with bound(sampler, name), mcp_cancellation.track(mcp_session.session_id, body.get('id')):
-            return handler.handle_request(body, session_data)
+        token = tctx.activate()
+        try:
+            with contextlib.ExitStack() as stack:
+                if sampled:
+                    from sajha.ai.llm_tools.sampling import SessionSampler, bound
+                    ctx = ToolCallContext(mcp_session, queue, _progress_token(params))
+                    stack.enter_context(bound(SessionSampler(ctx, loop), name))
+                stack.enter_context(mcp_cancellation.track(scope, body.get('id')))
+                return handler.handle_request(body, session_data)
+        finally:
+            ModernToolContext.deactivate(token)
 
     async def events():
         counter = 0
@@ -417,6 +454,7 @@ async def _stream_sampled_call(body: dict, params: dict, session_data: dict, mcp
                 return
         finally:
             if not task.done():
+                tctx.cancel()                    # the client went away: the tool sees is_cancelled()
                 task.cancel()
 
     return EventSourceResponse(events())
@@ -558,7 +596,18 @@ async def mcp_message(request: Request, db: Session = Depends(get_db)):
 
     if not isinstance(body, dict):
         return _rpc_error(-32600, 'Invalid Request', 400)
-    response = await run_in_threadpool(mcp_handler.handle_request, body, session_data)
+    live = session_id if session_id and _sse_relay.exists(session_id) else None
+    params = body.get('params') if isinstance(body.get('params'), dict) else {}
+    if body.get('method') == 'notifications/cancelled' and live and 'id' not in body:
+        from sajha.core import mcp_cancellation      # stop the named in-flight call of this SSE session
+        mcp_cancellation.cancel(live, params.get('requestId'), params.get('reason'))
+    if body.get('method') == 'tools/call' and live:
+        # progress (a remote SAJHA Net tool's too) goes over the session's SSE stream
+        from sajha.core.mcp_tool_context import call_with_events
+        response = await call_with_events(lambda: mcp_handler.handle_request(body, session_data), params,
+                                          lambda m: _sse_relay.deliver(live, m), live, body.get('id'))
+    else:
+        response = await run_in_threadpool(mcp_handler.handle_request, body, session_data)
     # Tool enable/disable/reload reach the SSE stream as notifications/tools/list_changed
     # through the change bus (registry -> forward_changes), not from here.
     if body.get('method') == 'initialize' and session_id and _sse_relay.exists(session_id):

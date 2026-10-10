@@ -246,6 +246,30 @@ The legacy SSE and WebSocket streams receive the same change-bus notifications a
 `subscriptions/listen`, and therefore advertise `listChanged: true`. Streamable HTTP
 sessions have no push channel (`GET /mcp` is 405), so they advertise `false`.
 
+### Progress and cancellation per transport
+
+Every MCP transport runs a `tools/call` under a tool context
+(`sajha/core/mcp_tool_context.py`; `TransportToolContext` on the session-based ones), so a
+tool's `report_progress` and `report_log`, and the events a remote
+[SAJHA Net](../architecture/SAJHA%20Net.md#9-what-happens-on-a-call) tool's host streams,
+reach the client under the client's own `progressToken`, before the result. Log lines are
+sent only when the request's `_meta` carries `io.modelcontextprotocol/logLevel`.
+
+| Transport | Progress | Cancellation |
+|---|---|---|
+| 2026-07-28 Streamable HTTP | SSE answer when the call has `progressToken` or `logLevel` and accepts `text/event-stream` | closing the stream |
+| 2026-07-28 stdio | notification lines before the response line | `notifications/cancelled` |
+| 2025-11-25 Streamable HTTP | SSE answer when the call has `_meta.progressToken` and accepts `text/event-stream`; JSON otherwise | `notifications/cancelled` with the session header |
+| HTTP+SSE (2024-11-05) | on the session's SSE stream (`GET /mcp/sse`), ahead of the response | `notifications/cancelled` POSTed with `?session=` |
+| WebSocket | messages on the socket, ahead of the response | `notifications/cancelled` on the socket, or closing it |
+| 2025-11-25 stdio | notification lines before the response line | `notifications/cancelled` |
+| REST `POST /api/tools/execute`, A2A `tasks/send` | none: buffered, the final result only | none (the call's deadline bounds it) |
+
+On the WebSocket every `tools/call` runs in a worker thread as its own task, so calls on
+one socket overlap and a slow or remote tool never holds up the event loop. A tool sees
+cancellation through `is_cancelled()`; a remote tool's cancellation closes the hop to its
+host, which cancels it there.
+
 ### stdio
 
 `sajha/cli/stdio.py` serves MCP over a subprocess's stdin/stdout, following the spec's

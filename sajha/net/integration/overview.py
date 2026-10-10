@@ -98,6 +98,7 @@ def _activity(records: List[Dict[str, Any]], net: str, limit: int = 25) -> Dict[
         row = {'at': rec.get('ts'), 'event': ev, 'side': side, 'trace_id': d.get('trace_id') or '',
                'tool': d.get('qualified_name') or d.get('name') or d.get('tool') or '', 'other': other or '',
                'outcome': outcome, 'attempt': d.get('attempt'), 'executed': d.get('executed'),
+               'streamed': bool(d.get('streamed')), 'events': d.get('events'),
                'user': d.get('user') or ((rec.get('actor') or {}).get('user') if side == 'host' else '') or ''}
         if outcome in CHAIN_REASONS and len(chain) < limit:
             chain.append(row)

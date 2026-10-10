@@ -8,7 +8,7 @@ owns the bytes on the wire. Where the two disagree, report it: neither is automa
 
 **SAJHA's implementation** (target S), the agent (A) and the library (L) implement every section
 except: the `visibility` feature (§10.5); relaying input requests and tasks on forwarded calls (§15.6);
-the residency rule for streamed events (§15.10); forwarding on the 2025-11-25 era (§6.4: SAJHA always
+forwarding on the 2025-11-25 era (§6.4: SAJHA always
 forwards on 2026-07-28); and, for the agent and sponsored participants, streamed forwarded calls
 (§15.10: they do not list `streaming`, so homes ask them for JSON answers only). The library provides the
 event chain of §8.9. The conformance ids these leave uncovered, and what SAJHA advertises, are in
@@ -2000,7 +2000,10 @@ trusts the host it called, never a participant behind it, as it does for results
 **Residency.** A host applies its rule for the result's data classes (step 12) to what it streams: when
 the tool has result data classes, or a residency rule names it, it SHOULD send progress as numbers only
 (`progress`, `total`) and no log events. The home screens every relayed text for injected instructions
-and caps its length, as for results (§19).
+and caps its length, as for results (§19); it MAY apply its own rule for the tool (its result data
+classes, or a residency rule naming it) to the events as they arrive, the same way. Input responses the
+caller sends back (`inputResponses`, §15.6) leave the home under its rule for arguments
+(`residency_arguments`, §15.6), exactly as the arguments do.
 
 **Heartbeats and limits.** While it sends nothing else, the host writes a heartbeat comment at least every
 heartbeat interval (shorter than the home's idle timeout), and it MAY coalesce progress (keep the
@@ -2018,8 +2021,10 @@ not count. An event that fails verification never makes a call "not executed".
 transcript digest (§8.9), so one value settles a dispute about what was sent; the home also records a
 refused stream with its reason and the `seq` it stopped at.
 
-SAJHA as a host applies no residency rule to streamed events yet: it streams progress and log events as
-the tool reports them.
+SAJHA applies the residency rule on both sides: as a host before an event is signed, as a home again as
+it arrives; a home's caller receives the events on every MCP transport that can carry them (2026-07-28
+HTTP and stdio, 2025-11-25 HTTP with SSE and stdio, HTTP+SSE, WebSocket); REST and A2A callers receive
+the final result only.
 
 ## 16. Hops and loops
 

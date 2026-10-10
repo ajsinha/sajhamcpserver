@@ -446,9 +446,24 @@ class StdioServer:
                     return
 
             if method == 'tools/call' and is_request:
+                # a TransportToolContext: the tool's progress (a remote SAJHA Net tool's too) and log
+                # lines are written as they happen (send is thread-safe), ahead of the response
                 from sajha.core import mcp_cancellation
+                from sajha.core.mcp_tool_context import ModernToolContext, TransportToolContext
+                tctx = TransportToolContext.for_request(params, self.send)
+
+                def call():
+                    token = tctx.activate()
+                    try:
+                        return self.handler.handle_request(body, self.session_data)
+                    finally:
+                        ModernToolContext.deactivate(token)
                 with mcp_cancellation.track(self._cancel_scope, rid):
-                    response = await _run_in_thread(self.handler.handle_request, body, self.session_data)
+                    try:
+                        response = await _run_in_thread(call)
+                    except asyncio.CancelledError:
+                        tctx.cancel()
+                        raise
             else:
                 response = await _run_in_thread(self.handler.handle_request, body, self.session_data)
             if not is_request:

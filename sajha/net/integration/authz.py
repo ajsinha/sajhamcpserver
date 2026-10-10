@@ -785,6 +785,9 @@ class NetAuthz:
         if rule in ('residency_offer', 'residency_arguments', 'residency_result'):
             from sajha.net.integration.residency import decide as residency_decide
             return residency_decide(st.node, rule, s, registry=getattr(self.svc, 'tools_registry', None))               # design §12 (data classes, residency rules)
+        if rule == 'residency_events':                           # streamed events: as they are, or numbers only
+            from sajha.net.integration.residency import events_decision
+            return events_decision(s, registry=getattr(self.svc, 'tools_registry', None))
         return plugins.Decision(True, rule)
 
     # ── administration (local administrators only, design §11.3) ───
