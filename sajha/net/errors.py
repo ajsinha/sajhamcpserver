@@ -39,6 +39,13 @@ TITLES: Dict[str, str] = {
     'draining': 'Draining', 'assertion_invalid': 'User assertion invalid', 'token_invalid': 'Token invalid',
 }
 
+#: §17: home-side refusals of a streamed response (§8.9, §15.10); never an HTTP status (they are found while
+#: reading a stream), always ``side: home`` and ``executed`` null on the MCP endpoint (-32019)
+STREAM_REASONS = ('event_invalid', 'event_order', 'stream_truncated', 'stream_limit', 'stream_idle')
+TITLES.update({'event_invalid': 'Stream event invalid', 'event_order': 'Stream events out of order',
+               'stream_truncated': 'Stream truncated', 'stream_limit': 'Stream too large',
+               'stream_idle': 'Stream idle'})
+
 #: §17.1: JSON-RPC codes of net refusals on the MCP endpoint
 RPC_AUTHORIZATION = -32011
 RPC_RESIDENCY = -32012

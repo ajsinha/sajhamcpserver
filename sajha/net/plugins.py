@@ -35,7 +35,7 @@ import logging
 import os
 import tempfile
 from dataclasses import dataclass, field
-from typing import Any, Callable, Dict, List, Optional, Type
+from typing import Any, Callable, Dict, Iterator, List, Optional, Type
 
 logger = logging.getLogger(__name__)
 
@@ -76,9 +76,14 @@ class AdmissionProvider(Plugin):
 
 @dataclass
 class PeerResponse:
+    """A peer's answer. A streamed answer (protocol §8.9, an SSE body) has ``stream``, an iterator of
+    raw byte chunks, and ``close``, which ends it early (at a host: cancels the call); ``body`` is then
+    empty. A connector asked for a stream may still return a whole ``body`` (the peer answered JSON)."""
     status: int
     headers: Dict[str, str]
     body: bytes
+    stream: Optional[Iterator[bytes]] = None
+    close: Optional[Callable[[], None]] = None
 
 
 class PeerUnreachable(Exception):
@@ -95,7 +100,11 @@ class PeerConnector(Plugin):
     """How requests travel to a participant."""
     kind = 'connector'
 
-    def send(self, method: str, url: str, headers: Dict[str, str], body: bytes, timeout: float) -> PeerResponse:
+    def send(self, method: str, url: str, headers: Dict[str, str], body: bytes, timeout: float,
+             stream: bool = False) -> PeerResponse:
+        """``stream`` True: return as soon as the response headers arrive, the body as
+        :attr:`PeerResponse.stream` (a connector without streaming may ignore it and buffer; a caller
+        never passes it to a connector whose ``send`` lacks the parameter)."""
         raise NotImplementedError
 
 
@@ -406,16 +415,24 @@ class HttpConnector(PeerConnector):
                 self._clients[base] = c
             return c
 
-    def send(self, method, url, headers, body, timeout):
+    def send(self, method, url, headers, body, timeout, stream=False):
         import httpx
+        client = self._client(url)
+        content = body if method.upper() != 'GET' else None
         try:
-            r = self._client(url).request(method, url, headers=headers,
-                                          content=body if method.upper() != 'GET' else None, timeout=timeout)
+            if stream:
+                req = client.build_request(method, url, headers=headers, content=content, timeout=timeout)
+                r = client.send(req, stream=True)
+            else:
+                r = client.request(method, url, headers=headers, content=content, timeout=timeout)
         except (httpx.ConnectError, httpx.ConnectTimeout, httpx.PoolTimeout, httpx.UnsupportedProtocol) as e:
             raise PeerUnreachable(f'{e.__class__.__name__}: {e}', sent=False) from e
         except httpx.HTTPError as e:
             raise PeerUnreachable(f'{e.__class__.__name__}: {e}', sent=True) from e
-        return PeerResponse(r.status_code, {k.lower(): v for k, v in r.headers.items()}, r.content)
+        headers_out = {k.lower(): v for k, v in r.headers.items()}
+        if stream:
+            return PeerResponse(r.status_code, headers_out, b'', stream=r.iter_raw(), close=r.close)
+        return PeerResponse(r.status_code, headers_out, r.content)
 
 
 @register('connector')
@@ -430,7 +447,8 @@ class InProcessConnector(PeerConnector):
         self.down: set = set()
         self.hang: set = set()          # base URLs that accept a request and never answer (tests)
 
-    def send(self, method, url, headers, body, timeout):
+    def send(self, method, url, headers, body, timeout, stream=False):
+        """A handler's streamed answer (``PeerResponse.stream``) passes through as it is."""
         from urllib.parse import urlsplit
         p = urlsplit(url)
         base = f'{p.scheme}://{p.netloc}'

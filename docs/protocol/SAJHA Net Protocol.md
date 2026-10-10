@@ -7,9 +7,11 @@ alone. The SAJHA Net guide owns the rationale, the console, storage and configur
 owns the bytes on the wire. Where the two disagree, report it: neither is automatically right.
 
 **SAJHA's implementation** (target S), the agent (A) and the library (L) implement every section
-except: the `visibility` feature (§10.5), relaying progress, cancellation, input requests and tasks on
-forwarded calls (§15.6), and forwarding on the 2025-11-25 era (§6.4: SAJHA always forwards on
-2026-07-28). The conformance ids these leave uncovered, and what SAJHA advertises, are in
+except: the `visibility` feature (§10.5); relaying input requests and tasks on forwarded calls (§15.6);
+the residency rule for streamed events (§15.10); forwarding on the 2025-11-25 era (§6.4: SAJHA always
+forwards on 2026-07-28); and, for the agent and sponsored participants, streamed forwarded calls
+(§15.10: they do not list `streaming`, so homes ask them for JSON answers only). The library provides the
+event chain of §8.9. The conformance ids these leave uncovered, and what SAJHA advertises, are in
 [SAJHA Net](../architecture/SAJHA%20Net.md#55-what-is-built) §5.5 and §5.9.
 
 This document defines **SAJHA Net protocol version 1**.
@@ -324,8 +326,9 @@ nets MAY offer different features in each). Peers use a feature only when **both
 | `blocks` | Publishes its blocks (§12). |
 | `residency` | Honours `x-sajha-data-class` on arguments and results and the residency refusals of §17. |
 | `llm_tools` | Exports LLM tools (tools whose work is done by a model) and marks them `llm_tool: true`. |
-| `progress` | Relays progress notifications of forwarded calls. |
-| `cancellation` | Relays cancellation of forwarded calls. |
+| `streaming` | As a host, answers a forwarded call that asks for it with a signed event stream (§8.9, §15.10); as a home, asks for one and reads it. A home asks only a host that lists it. |
+| `progress` | Relays progress notifications of forwarded calls (on a hop, inside a stream: §15.6). |
+| `cancellation` | Relays cancellation of forwarded calls (on a hop, by closing the stream: §15.6). |
 | `mrtr` | Relays multi-round input requests (`input_required` results) of forwarded calls. |
 | `tasks` | Accepts task-augmented forwarded calls (the MCP tasks extension) for the resolved user. |
 | `reexport` | May offer into this net, and accepts calls to, tools it imported from other participants (§16). |
@@ -335,8 +338,9 @@ nets MAY offer different features in each). Peers use a feature only when **both
 SAJHA (target S) lists, per net: `gossip` (with the `gossip` membership), `ca` (on the CA instance of a
 `builtin_ca` net), `catalog`, `blocks`, `key_directory` and `key_verification` (with key directories),
 `residency`, `token_exchange` (when its `user_identity` lists it) and `reexport` (when re-export is on for
-the net). It does not list `visibility`, `progress`, `cancellation`, `mrtr`, `tasks` or `llm_tools`; its
-LLM tools carry `llm_tool: true` in their catalog metadata (§10.2) all the same.
+the net), and `streaming`, `progress` and `cancellation` (unless `sajhanet.streaming.enabled` is off). It
+does not list `visibility`, `mrtr`, `tasks` or `llm_tools`; its LLM tools carry `llm_tool: true` in their
+catalog metadata (§10.2) all the same.
 
 `user_identity` lists the identity resolvers the participant accepts as a host and can produce as a
 home: `api_key` (§15.3), `assertion` (§15.5), `token_exchange` (§15.9; RFC 8693 shaped, between two
@@ -359,8 +363,10 @@ absent.
 
 ### 6.4 Era for forwarded calls
 
-A home MUST forward on 2026-07-28 when the host lists it in `supportedVersions`, and otherwise on
-2025-11-25 with one MCP session per (net, home, host). A 2025-11-25 session created by a signed
+A home MUST forward on 2026-07-28 when the host lists it in `supportedVersions`, and otherwise MAY
+forward on 2025-11-25 with one MCP session per (net, home, host). Streaming, input requests and tasks on
+a hop (§15.6, §15.10) are defined for 2026-07-28 hops only; SAJHA forwards on 2026-07-28 only and does
+not use the 2025-11-25 form (§22). A 2025-11-25 session created by a signed
 request from participant X in net N MUST only be used by signed requests from X in N
 (`Mcp-Session-Id` is not an identity; every request is signed and its user resolved individually).
 
@@ -757,21 +763,79 @@ answer from the peer.
 
 ### 8.9 Streamed responses
 
-A forwarded MCP call may be answered with `text/event-stream`. Its HTTP response is signed as in §8.8
-without `content-digest`. Because the events are not covered by that signature, the **final**
-JSON-RPC response in the stream (the one with the request's `id`) MUST carry a message signature:
+A forwarded call may be answered with `text/event-stream` (when it may is §15.10). Its HTTP response
+is signed as in §8.8 **without** `content-digest` (`content-type` is covered and is
+`text/event-stream`); the response headers cannot cover events that are written after them, so every
+event carries its own signature, and each signature commits to the whole stream so far.
 
-- in `result._meta["io.sajha/net"].response_signature`, or for an error in
-  `error.data["io.sajha/net"].response_signature`;
-- the value is a `signature` object (§7.6) plus `"request_nonce"`, the nonce of the request;
-- the signing input is `sajha-net-v1:response:<request_nonce>:` followed by the JCS bytes (§8.10) of
-  the whole JSON-RPC response object with the `response_signature` member removed (the objects that
-  contained it stay, even when that leaves them empty, so signer and verifier hash the same bytes).
+**Framing.** Each SSE event carries one JSON-RPC message, as compact JSON on one `data:` line. SSE
+`event`, `id` and `retry` fields MAY be present and are ignored. A comment line (`: hb`) is a heartbeat:
+it carries nothing, is not signed and only resets the home's idle timer (§15.10). Signatures cover the
+JSON message, never the framing: a verifier parses the `data` and recomputes JCS (§8.10) itself.
 
-The home MUST verify it before using the result. Progress and log notifications in the stream are not
-signed; they are advisory and MUST NOT change what the home does with the result.
+**What a stream carries.** Zero or more **events**, each a JSON-RPC notification
+`notifications/progress` or `notifications/message` (no `id`, `params` an object), then exactly one
+**final message**: the JSON-RPC response with the request's `id` (a `result` or an `error`). Nothing
+follows the final message.
 
-A JSON (non-streamed) response MAY also carry `response_signature`; it is then checked the same way.
+**The event chain.** Let `R` be the raw bytes of the request's `sajhanet` signature (the value the
+response covers as `"signature";req`, §8.8). The host and the home each compute, with SHA-256:
+
+```
+c0  = SHA-256("sajha-net-v1:stream:" || R)
+c_i = SHA-256(c_(i-1) || uint32_be(i) || JCS(event_i without event_signature))      i = 1, 2, ...
+```
+
+`uint32_be(i)` is `i` as four bytes, big-endian. "Without `event_signature`" removes that one member and
+keeps the objects that contained it, even when that leaves them empty (as for `response_signature`
+below), so signer and verifier hash the same bytes.
+
+**Event signature.** Event `i` (counting from 1) carries, in
+`params._meta["io.sajha/net"].event_signature`:
+
+| Member | Value |
+|---|---|
+| `alg`, `keyid` | as in a `signature` object (§7.6); `keyid` MUST be the certificate the response headers verified with: one key for the whole stream |
+| `seq` | `i`, an integer |
+| `sig` | base64url of the signature, by that certificate's key, over the ASCII `sajha-net-v1:event:` followed by the 32 bytes of `c_i` |
+
+**The final message** is bound to the chain and signed:
+
+- its `io.sajha/net` object (`result._meta["io.sajha/net"]`, or for an error
+  `error.data["io.sajha/net"]`) carries `stream: {"seq": n, "chain": "<hex of c_(n-1)>"}`, where `n` is
+  the number of events plus one and the hex is lowercase;
+- and a message signature, `response_signature`, in the same object: a `signature` object (§7.6) plus
+  `"request_nonce"`, the nonce of the request. Its signing input is `sajha-net-v1:response:<request_nonce>:`
+  followed by the JCS bytes of the whole JSON-RPC response with the `response_signature` member removed
+  (the objects that contained it stay, even when empty). `stream` is inside the signed bytes, so the
+  final signature also closes the chain.
+
+The **transcript digest** of the stream is `c_n = SHA-256(c_(n-1) || uint32_be(n) || JCS(final message
+without response_signature))`. Host and home both record it (§15.10), so one value settles what was sent.
+
+**Verifying at the home.** After the headers verify as above, the home checks each event **before** it
+uses or relays it, and stops at the first failure with the reason shown (§17.1):
+
+1. The `data` is a JSON-RPC 2.0 notification `notifications/progress` or `notifications/message` with
+   object `params`, or the response with the request's `id`; anything else → `event_invalid`.
+2. `event_signature` is present and well formed → else `event_invalid`.
+3. `seq` is exactly the previous event's plus one (1 for the first) → else `event_order` (a reordered,
+   repeated or skipped event).
+4. `keyid` is the certificate of the response headers and `alg` matches its key → else `event_invalid`.
+5. `sig` verifies over `c_i` computed from the home's own previous `c_(i-1)` → else `event_invalid`. An
+   event signed for another request, or by another key, fails here.
+6. For the final message: `stream.seq` is the events' count plus one and `stream.chain` is the hex of the
+   home's own `c_(n-1)` → else `stream_truncated`; `response_signature` verifies with `request_nonce` equal
+   to the request's nonce, against the same certificate → else `response_invalid`.
+
+A stream that ends (or breaks) before a final message that passes step 6 is `stream_truncated`. On any
+failure the home closes the stream (which cancels the call at the host, §15.6), relays nothing more,
+audits the refusal, and treats the call as possibly executed (`executed` unknown, §15.8). The chain
+advances only on an event that verified, so nothing after a refused event can be accepted.
+
+A JSON (non-streamed) response MAY also carry `response_signature`; it is then checked the same way, and
+carries no `stream` member. A home MUST accept a JSON response to a request that asked for a stream
+(a host may always answer JSON).
 
 ### 8.10 Record signatures (JCS)
 
@@ -1786,16 +1850,41 @@ that it publishes in the net key directory (`key_id`), never a key of another pa
 
 ### 15.6 Progress, cancellation, input and tasks
 
-- With `progress` on both sides, the host's progress notifications are relayed to the caller; with
-  `cancellation`, the caller's cancellation is relayed to the host, by the mechanism of the MCP era in
-  use for that hop.
-- With `mrtr`, an `input_required` result from the host is relayed to the caller, and the caller's
-  answer is sent back to the host as a new signed request carrying the host's `requestState`; the host
-  resolves the user again on that request.
-- With `tasks`, a task created at the host is scoped to the resolved net user; the home relays
-  `tasks/get`, `tasks/update` and `tasks/cancel` as signed requests with the same identity headers.
+These are defined for a hop on the 2026-07-28 era (§6.4). On that era a request carries what it wants
+in its own `_meta`, and each request, including each round of an input request, is a separately signed
+request whose user the host resolves again; no session state rides on the hop.
+
+- **Progress** (`progress` on both sides, inside a stream, §15.10). When its own caller asked for
+  progress, the home sets `params._meta.progressToken` on the hop to a token of its own for that hop
+  (SAJHA: `<trace id>:<JSON-RPC id>`), never the caller's token. The host's `notifications/progress`
+  carry that token. The home relays each one, after it verified (§8.9), to its caller with the caller's
+  own token, as the caller's MCP era and transport do it.
+- **Log.** When its caller set a log level, the home forwards it
+  (`params._meta["io.modelcontextprotocol/logLevel"]`); the host sends `notifications/message` only at or
+  above that level, and the home relays them the same way.
+- **Cancellation** (`cancellation` on both sides). The home cancels a forwarded call by **closing the
+  response stream**, the 2026-07-28 mechanism. A host MUST treat a stream closed before its final message
+  as the cancellation of the call: it signals the running tool, which stops at its next check (a
+  forwarded or proxied call at the host is cancelled in turn). There is no signed `notifications/cancelled`
+  on a hop. A call answered with JSON is cancelled only by the home's deadline.
+- **Input requests** (`mrtr` on both sides). An `input_required` result from the host (`inputRequests`
+  and the host's `requestState`) is the final message of the call (§8.9), and the home relays the requests
+  to its caller. The caller's answer goes back to the host as a **new signed request**: the same tool and
+  arguments, with `inputResponses` and the host's `requestState` unchanged. The host binds `requestState`
+  to the net, the sending participant and the user it resolved (for example by signing
+  `<net>/<peer>/<user id>` into it), resolves the user again on the new request, and refuses a state
+  presented by another participant or for another user (`-32602`, as MCP refuses a state that does not
+  match). The home applies its residency rules to `inputResponses` as it does to arguments
+  (`residency_arguments`).
+- **Tasks** (`tasks` on both sides). A task created at the host is scoped to the resolved net user; the
+  home relays `tasks/get`, `tasks/update` and `tasks/cancel` as signed requests with the same identity
+  headers.
 - A destructive tool still needs confirmation at the home (design §9); the host may require its own
   approval (`-32011 approval_required`).
+
+SAJHA relays progress, log and cancellation. It does not list `mrtr` or `tasks`: a host's
+`InputRequired` reaches the home as a tool result with `isError: true` saying the call needs input it
+cannot relay yet, and host-side tasks are deferred (§22).
 
 ### 15.7 What the home's caller sees
 
@@ -1878,6 +1967,58 @@ each call in `Sajha-Net-User-Token` instead of a key or an assertion.
   than possession), the block on the user and the mapping on every call. A home that gets
   `token_invalid` from the host discards its token and MAY exchange again and retry the call once.
 - **Caching.** A home caches a token per host and key until shortly before `expires_in` runs out.
+
+### 15.10 Streaming a forwarded call
+
+A forwarded call is answered with one JSON response unless both of these hold:
+
+- **The home asked.** It sets `params._meta["io.sajha/net"].stream = 1` (the integer 1) in the signed
+  body, which `Content-Digest` covers; no header says it. A home sets it only on a call to a host whose
+  member record lists `streaming`, and sends `Accept: application/json, text/event-stream`.
+- **The host offers it.** It lists `streaming` in the net, the request asks as above, and `Accept` contains
+  `text/event-stream`. `Accept` alone never makes a stream: SAJHA homes have always sent it.
+
+Otherwise the host answers JSON exactly as before, and a home MUST accept a JSON answer to a request
+that asked for a stream. A host MAY answer any call with JSON.
+
+**When the stream starts.** Every refusal in steps 1 to 10 of §15.4 (and every `-32019` before execution)
+is one signed JSON response, never a stream, so `executed: false` stays one signed word (§15.8). The host
+switches to a stream only when it is about to execute (step 11): it sends the signed headers (§8.9), then
+the events as the tool produces them, then the final message, which is the result, an `input_required`
+result (§15.6), or an error raised during or after execution (for example `residency_result`, with
+`executed: true`).
+
+**What may stream.** Progress and log notifications only (§8.9), each signed into the event chain before
+it is sent. There is no partial-content message: an MCP `tools/call` result is whole, so partial work
+reaches the caller as progress `message` text and log `data`. Requests from the host to the caller
+(elicitation, sampling) do not travel as events; on a 2026-07-28 hop they are the final `input_required`
+result. A host that relays the events of a call it forwards on (a re-exported tool, §16) or of a proxied
+MCP server verifies them first where they are signed, then signs them into **its own** chain: the home
+trusts the host it called, never a participant behind it, as it does for results.
+
+**Residency.** A host applies its rule for the result's data classes (step 12) to what it streams: when
+the tool has result data classes, or a residency rule names it, it SHOULD send progress as numbers only
+(`progress`, `total`) and no log events. The home screens every relayed text for injected instructions
+and caps its length, as for results (§19).
+
+**Heartbeats and limits.** While it sends nothing else, the host writes a heartbeat comment at least every
+heartbeat interval (shorter than the home's idle timeout), and it MAY coalesce progress (keep the
+latest within an interval). The home enforces the limits of §18 on every stream: a stream over its
+event count, event size or byte size is `stream_limit`; a stream with no event and no heartbeat for the
+idle timeout is `stream_idle`; its overall deadline still applies (`timeout`). Each ends the stream,
+which cancels the call at the host (§15.6), and the call is possibly executed. A host that would break a
+limit drops the excess events rather than sending them, and still sends the final message.
+
+**Executed.** Once the home has verified any event of a stream, the call is possibly executed (§15.8:
+fallback only for read-only or idempotent, non-destructive tools); the signed response headers alone do
+not count. An event that fails verification never makes a call "not executed".
+
+**Audit.** Both sides record, for a streamed call, that it streamed, the number of events and the
+transcript digest (§8.9), so one value settles a dispute about what was sent; the home also records a
+refused stream with its reason and the `seq` it stopped at.
+
+SAJHA as a host applies no residency rule to streamed events yet: it streams progress and log events as
+the tool reports them.
 
 ## 16. Hops and loops
 

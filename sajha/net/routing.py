@@ -38,18 +38,22 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
 
 from __future__ import annotations
 
+import collections
+import contextvars
 import copy
+import inspect
 import json
 import logging
+import queue
 import secrets
 import threading
 import time
 from dataclasses import dataclass, field
 from typing import Any, Callable, Dict, List, Optional, Tuple
 
-from sajha.net import EXTENSION_ID, crypto, httpsig, names, sfv
+from sajha.net import EXTENSION_ID, crypto, httpsig, names, sfv, sse
 from sajha.net.catalog import CatalogBook, is_safe_to_repeat
-from sajha.net.errors import (NetError, RPC_AUTHORIZATION, RPC_BLOCKED, RPC_HOP, RPC_IDENTITY, RPC_IMPORT,
+from sajha.net.errors import (NetError, STREAM_REASONS, RPC_AUTHORIZATION, RPC_BLOCKED, RPC_HOP, RPC_IDENTITY, RPC_IMPORT,
                               RPC_PEER, RPC_RESIDENCY, RPC_UNAVAILABLE, RPC_VERSION)
 from sajha.net.plugins import (AllowAll, HostOption, IdentityResolver, LocalFirst, NoIdentity, PeerResponse,
                                PeerUnreachable, RoutingStrategy, RuleEvaluator)
@@ -61,7 +65,7 @@ MAX_HOPS_CAP = 8
 MAX_CHAIN_CAP = 32                 # hops plus nesting depth, end to end (§16)
 MAX_MCP_BODY = 8 * 1024 * 1024
 AVAILABILITY = ('unreachable', 'circuit_open', 'unavailable', 'rate_limited', 'draining', 'overloaded', 'no_host')
-RETRYABLE = ('timeout', 'unreachable', 'rate_limited', 'draining', 'overloaded')
+RETRYABLE = ('timeout', 'unreachable', 'rate_limited', 'draining', 'overloaded', 'stream_idle')
 
 #: reason -> JSON-RPC code (§17.1); contract_conflict is -32011 at a host and -32018 at a home
 CODES: Dict[str, int] = {}
@@ -75,7 +79,7 @@ for _c, _rs in ((RPC_AUTHORIZATION, ('export', 'access', 'policy', 'approval_req
                 (RPC_VERSION, ('unsupported_version',)),
                 (RPC_IMPORT, ('import',)),
                 (RPC_UNAVAILABLE, ('draining', 'overloaded', 'rate_limited', 'unreachable', 'timeout', 'circuit_open',
-                                   'unavailable', 'response_invalid', 'no_host'))):
+                                   'unavailable', 'response_invalid', 'no_host', 'cancelled') + STREAM_REASONS)):
     for _r in _rs:
         CODES[_r] = _c
 
@@ -97,7 +101,46 @@ SAFE_WORDS = {
     'residency_arguments': 'the arguments carry data that may not go to that server (data residency); '
                            'use a tool on a server where the data may go',
     'residency_result': 'the result carries data that may not come to this server (data residency)',
+    'event_invalid': 'an event of the server\'s streamed answer could not be verified',
+    'event_order': 'the events of the server\'s streamed answer arrived out of order',
+    'stream_truncated': 'the server\'s streamed answer ended before its result',
+    'stream_limit': 'the server\'s streamed answer exceeded the stream limits',
+    'stream_idle': 'the server\'s streamed answer went silent',
+    'cancelled': 'the call was cancelled',
 }
+
+PROGRESS = 'notifications/progress'
+LOG = 'notifications/message'
+LOG_LEVEL_KEY = 'io.modelcontextprotocol/logLevel'
+
+
+@dataclass
+class StreamSettings:
+    """``sajhanet.streaming.*`` (protocol §15.10, §18): streamed forwarded calls and their limits."""
+    enabled: bool = True
+    max_events: int = 1000                  # per stream, the final message excluded
+    max_event_bytes: int = 64 * 1024        # one event (a notification)
+    max_stream_bytes: int = 8 * 1024 * 1024
+    idle_timeout_seconds: float = 30.0      # home: no event or heartbeat for this long ends the stream
+    heartbeat_seconds: float = 10.0         # host: a comment this often while nothing else is sent
+    progress_min_interval_ms: int = 100     # host: progress coalesced to one event per interval (the last kept)
+
+
+def _takes_stream(connector) -> bool:
+    """True when the connector's ``send`` accepts ``stream`` (third-party connectors may predate it)."""
+    try:
+        ps = inspect.signature(connector.send).parameters
+    except (TypeError, ValueError):
+        return False
+    return 'stream' in ps or any(p.kind == p.VAR_KEYWORD for p in ps.values())
+
+
+def _close(r: PeerResponse) -> None:
+    if r.close is not None:
+        try:
+            r.close()
+        except Exception as e:
+            logger.debug(f'SAJHA Net: closing a stream: {e}')
 
 
 class HostRefusal(Exception):
@@ -319,8 +362,9 @@ class Router:
                  peer: Optional[PeerSettings] = None, clock: Callable[[], float] = time.time,
                  audit: Optional[Callable[[str, Dict[str, Any]], None]] = None,
                  screen_result: Optional[Callable[[Dict[str, Any]], Dict[str, Any]]] = None,
-                 max_hops: int = 1, max_chain: int = 8):
+                 max_hops: int = 1, max_chain: int = 8, streaming: Optional[StreamSettings] = None):
         self.books = list(books)
+        self.streaming = streaming or StreamSettings()
         self.local_tools = local_tools
         self.preferences = {str(k): [str(x) for x in (v or [])] for k, v in (preferences or {}).items()}
         self.routing = routing or LocalFirst()
@@ -596,12 +640,21 @@ class Router:
     def call(self, name: str, arguments: Dict[str, Any], *, user: Optional[Dict[str, Any]] = None,
              traceparent: Optional[str] = None, timeout: Optional[float] = None,
              hop_in: Optional[Tuple[int, List[str]]] = None, depth: int = 0,
-             relay: Optional[Dict[str, str]] = None) -> Dict[str, Any]:
+             relay: Optional[Dict[str, str]] = None,
+             on_event: Optional[Callable[[Dict[str, Any]], None]] = None,
+             cancelled: Optional[Callable[[], bool]] = None, progress: bool = False,
+             log_level: Optional[str] = None) -> Dict[str, Any]:
         """Call ``name`` (qualified or plain) at its host(s); always returns a CallToolResult. ``hop_in``
         is the chain a call made while serving a forwarded call arrived on (hop count, visited list);
         ``depth`` the tools nested in one another so far on every instance passed (§16). ``relay``: the
         identity headers to send instead of the resolver's (an intermediary relaying a re-exported call
-        forwards the caller's user assertion unchanged, §16)."""
+        forwards the caller's user assertion unchanged, §16).
+
+        Streaming (§15.10): with a host that lists ``streaming``, the call asks for a signed event stream;
+        each verified event goes to ``on_event`` (a ``notifications/progress`` or ``notifications/message``
+        message) before the result. ``progress`` asks the host for progress, ``log_level`` for log
+        messages at or above it. ``cancelled()`` is polled while the stream is read; True closes the stream,
+        which cancels the call at the host."""
         res = self.resolve(name, user)
         tp = traceparent if trace_of(traceparent) else new_traceparent()
         trace_id = trace_of(tp)
@@ -628,8 +681,10 @@ class Router:
         for i, c in enumerate(tries, start=1):
             if i > 1 and self.clock() >= deadline:
                 break
-            outcome = self._attempt(c, arguments, user, tp, trace_id, i, deadline, hop_in, depth, relay)
+            stream = {'on_event': on_event, 'cancelled': cancelled, 'progress': progress, 'log_level': log_level}
+            outcome = self._attempt(c, arguments, user, tp, trace_id, i, deadline, hop_in, depth, relay, stream)
             outcome['attempt'] = i
+            st = outcome.get('stream') or {}
             attempts.append({k: outcome[k] for k in ('attempt', 'net', 'host', 'qualified_name', 'outcome', 'executed')
                              if k in outcome})
             self._audit('net.call_attempt', {'name': name, 'trace_id': trace_id, 'attempt': i, 'net': c.net,
@@ -639,7 +694,10 @@ class Router:
                                              'identity': outcome.get('identity'),
                                              'origin': origin_of(c.row) or None,
                                              'relayed': bool(relay) or None,
-                                             'remote_usage': _remote_usage(outcome.get('result'))})
+                                             'remote_usage': _remote_usage(outcome.get('result')),
+                                             'streamed': True if st else None, 'events': st.get('events'),
+                                             'transcript': st.get('transcript'),
+                                             'first_event_ms': st.get('first_event_ms')})
             if outcome['outcome'] == 'answered':
                 self.count('calls', 'answered')
                 self.paths.add(c.net, c.book.node.name, c.host, c.host_tool)
@@ -656,8 +714,8 @@ class Router:
                 first_refusal = outcome.get('refusal')
             if i > 1:
                 self.count('fallbacks', outcome['outcome'])
-            if res.kind != 'plain':
-                break
+            if res.kind != 'plain' or outcome['outcome'] == 'cancelled':
+                break                                      # nobody waits for a cancelled call's answer
             availability = outcome['outcome'] in AVAILABILITY and outcome.get('executed') is False
             maybe = outcome.get('executed') is not False
             home_residency = outcome['outcome'] == 'residency_arguments' and \
@@ -682,8 +740,9 @@ class Router:
                 logger.debug(f'SAJHA Net audit {what}: {e}')
 
     def _attempt(self, c: Candidate, arguments, user, tp: str, trace_id: str, attempt: int, deadline: float,
-                 hop_in, depth: int = 0, relay: Optional[Dict[str, str]] = None) -> Dict[str, Any]:
-        out = self._attempt_once(c, arguments, user, tp, trace_id, attempt, deadline, hop_in, depth, relay)
+                 hop_in, depth: int = 0, relay: Optional[Dict[str, str]] = None,
+                 stream: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+        out = self._attempt_once(c, arguments, user, tp, trace_id, attempt, deadline, hop_in, depth, relay, stream)
         forget = getattr(self.identity, 'forget', None)
         if out.get('outcome') == 'token_invalid' and relay is None and callable(forget) and \
                 (out.get('refusal') or {}).get('side') == 'host' and self.clock() < deadline:
@@ -691,11 +750,13 @@ class Router:
                 forget(c.net, c.host, user)                 # a host-scoped token the host no longer knows
             except Exception as e:
                 logger.debug(f'SAJHA Net: forgetting the token for {c.host}: {e}')
-            out = self._attempt_once(c, arguments, user, tp, trace_id, attempt, deadline, hop_in, depth, relay)
+            out = self._attempt_once(c, arguments, user, tp, trace_id, attempt, deadline, hop_in, depth, relay, stream)
         return out
 
     def _attempt_once(self, c: Candidate, arguments, user, tp: str, trace_id: str, attempt: int, deadline: float,
-                      hop_in, depth: int = 0, relay: Optional[Dict[str, str]] = None) -> Dict[str, Any]:
+                      hop_in, depth: int = 0, relay: Optional[Dict[str, str]] = None,
+                      stream: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+        stream = stream or {}
         book = c.book
         node = book.node
         out: Dict[str, Any] = {'net': c.net, 'host': c.host, 'qualified_name': c.qualified_name}
@@ -763,10 +824,19 @@ class Router:
             meta['attempt'] = attempt
         if depth:
             meta['depth'] = depth
+        # a signed event stream only from a host that lists it, over a connector that can read one (§15.10)
+        want_stream = bool(self.streaming.enabled) and 'streaming' in ((m.get('record') or {}).get('features') or []) \
+            and _takes_stream(node.connector)
+        pmeta: Dict[str, Any] = {'io.modelcontextprotocol/protocolVersion': MODERN, 'traceparent': my_tp,
+                                 EXTENSION_ID: meta}
+        if want_stream:
+            meta['stream'] = 1
+            if stream.get('progress'):
+                pmeta['progressToken'] = f'{trace_id}:{rid}'      # one token per hop; the home maps it back
+            if stream.get('log_level'):
+                pmeta[LOG_LEVEL_KEY] = str(stream['log_level'])
         body = {'jsonrpc': '2.0', 'id': rid, 'method': 'tools/call',
-                'params': {'name': c.host_tool, 'arguments': arguments,
-                           '_meta': {'io.modelcontextprotocol/protocolVersion': MODERN, 'traceparent': my_tp,
-                                     EXTENSION_ID: meta}}}
+                'params': {'name': c.host_tool, 'arguments': arguments, '_meta': pmeta}}
         raw = json.dumps(body, separators=(',', ':'), ensure_ascii=False).encode('utf-8')
         headers = {'content-type': 'application/json', 'accept': 'application/json, text/event-stream',
                    'mcp-protocol-version': MODERN, 'mcp-method': 'tools/call', 'mcp-name': c.host_tool,
@@ -780,13 +850,28 @@ class Router:
         remaining = max(0.05, min(self.peer.timeout_seconds, deadline - self.clock()))
         t0 = time.perf_counter()
         try:
-            r = node.connector.send('POST', url + path, signed, raw, remaining)
+            if want_stream:
+                r = node.connector.send('POST', url + path, signed, raw, remaining, stream=True)
+            else:
+                r = node.connector.send('POST', url + path, signed, raw, remaining)
         except PeerUnreachable as e:
             br.failure()
             if getattr(e, 'sent', False):
                 return home('timeout', executed=None)
             return home('unreachable')
         self._observe_latency(c.net, c.host, (time.perf_counter() - t0) * 1000)
+        if r.stream is not None:
+            ctype = str(httpsig.lower_headers(r.headers).get('content-type') or '').lower()
+            if ctype.startswith(sse.CONTENT_TYPE) and 'signature' in {k.lower() for k in r.headers}:
+                return self._read_stream(c, r, req_sig, httpsig.request_nonce(signed), rid, br, out, home,
+                                         time.monotonic() + remaining, stream, trace_id)
+            try:                                             # a host may always answer JSON (§15.10)
+                r = PeerResponse(r.status, r.headers, _drain(r.stream, MAX_MCP_BODY))
+            except Exception:
+                br.failure()
+                return home('response_invalid', executed=None)
+            finally:
+                _close(r)
         if 'signature' not in {k.lower() for k in r.headers}:
             br.failure()
             return home('response_invalid' if r.status < 500 else 'unreachable', executed=None)
@@ -803,6 +888,12 @@ class Router:
             return home('response_invalid', executed=None)
         if not isinstance(msg, dict):
             return home('response_invalid', executed=None)
+        return self._final(c, msg, br, out, trace_id)
+
+    def _final(self, c: Candidate, msg: Dict[str, Any], br: PeerBreaker, out: Dict[str, Any], trace_id: str,
+               events: int = 0) -> Dict[str, Any]:
+        """The host's answer (a JSON body, or the final message of a verified stream after ``events``
+        verified events): a result, or a refusal with its ``executed``."""
         if isinstance(msg.get('result'), dict):
             br.success()
             result = msg['result']
@@ -822,14 +913,135 @@ class Router:
             return out
         reason = str(data.get('reason') or 'error')
         executed = data.get('executed') if isinstance(data.get('executed'), bool) else None
+        if executed is False and events:
+            executed = None                  # FB-07: a verified event means the tool may have run
         if reason in ('draining', 'overloaded', 'rate_limited'):
             br.failure() if reason != 'rate_limited' else None
         else:
             br.success()
         clean = {k: data[k] for k in ('reason', 'side', 'net', 'instance', 'tool', 'trace_id', 'executed', 'retryable',
                                       'conflict', 'refused_by') if k in data}
+        if events and 'executed' in clean:
+            clean['executed'] = executed
         out.update(outcome=reason, executed=executed, refusal=clean)
         return out
+
+    def _read_stream(self, c: Candidate, r: PeerResponse, req_sig: bytes, nonce: str, rid: int, br: PeerBreaker,
+                     out: Dict[str, Any], home: Callable[..., Dict[str, Any]], deadline: float,
+                     stream: Dict[str, Any], trace_id: str) -> Dict[str, Any]:
+        """Read a signed event stream (§8.9, §15.10): headers verified as a streamed response, then every
+        event verified against the stream's :class:`~sajha.net.httpsig.EventChain` before it is relayed,
+        the limits applied, ``cancelled()`` polled; the final message closes the chain and is handled like a
+        JSON answer. On the first failure the stream is closed (the host's call is cancelled), nothing more
+        is relayed, the refusal is audited and the attempt ends with ``executed`` null. ``deadline`` is on
+        :func:`time.monotonic`."""
+        node = c.book.node
+        st = self.streaming
+        on_event, cancelled = stream.get('on_event'), stream.get('cancelled')
+        info: Dict[str, Any] = {'events': 0}
+        out['stream'] = info
+        try:
+            v = httpsig.verify_response(node.trust, node.name, c.host, r.status, r.headers, b'', req_sig,
+                                        streamed=True, now=node.clock(), max_age=node.cfg.signature_max_age_seconds)
+        except NetError:
+            _close(r)
+            br.failure()
+            return home('response_invalid', executed=None)
+        cert = v.certificate
+        chain = httpsig.EventChain(req_sig)
+        parser = sse.Parser(max_event_bytes=st.max_stream_bytes, max_stream_bytes=st.max_stream_bytes)
+        q: 'queue.Queue[Tuple[str, Any]]' = queue.Queue()
+        source = r.stream
+
+        def pump():
+            try:
+                for chunk in source:
+                    if chunk:
+                        q.put(('chunk', bytes(chunk)))
+                q.put(('end', None))
+            except Exception as e:                       # a dropped connection, or the stream closed here
+                q.put(('error', e))
+        threading.Thread(target=pump, name='sajhanet-stream-read', daemon=True).start()
+        t0 = time.monotonic()
+        last = t0
+
+        def stop(reason: str, seq: Optional[int] = None) -> Dict[str, Any]:
+            _close(r)
+            info['transcript'] = chain.transcript
+            if reason != 'cancelled':
+                br.failure()
+            if reason in STREAM_REASONS or reason == 'response_invalid':
+                self._audit('net.stream_refused', {'net': c.net, 'host': c.host, 'qualified_name': c.qualified_name,
+                                                   'trace_id': trace_id, 'reason': reason,
+                                                   'seq': seq if seq is not None else chain.seq + 1,
+                                                   'events': info['events']})
+            return home(reason, executed=None)
+
+        while True:
+            now = time.monotonic()
+            if cancelled is not None:
+                try:
+                    if cancelled():
+                        return stop('cancelled')
+                except Exception as e:
+                    logger.debug(f'SAJHA Net: cancellation check: {e}')
+            if now >= deadline:
+                return stop('timeout')
+            if now - last >= st.idle_timeout_seconds:
+                return stop('stream_idle')
+            try:
+                kind, x = q.get(timeout=max(0.01, min(0.2, deadline - now, last + st.idle_timeout_seconds - now)))
+            except queue.Empty:
+                continue
+            if kind != 'chunk':
+                return stop('stream_truncated')          # ended (or broke) before the final message
+            try:
+                items = parser.feed(x)
+            except sse.StreamLimit:
+                return stop('stream_limit')
+            for typ, data in items:
+                last = time.monotonic()
+                if typ != 'event':
+                    continue                             # a heartbeat: only the idle timer moves
+                msg = sse.loads_event(data)
+                if msg is None or msg.get('jsonrpc') != '2.0':
+                    return stop('event_invalid')
+                if 'method' in msg:
+                    if msg.get('method') not in (PROGRESS, LOG) or 'id' in msg or not isinstance(msg.get('params'), dict):
+                        return stop('event_invalid')
+                    if len(data.encode('utf-8')) > st.max_event_bytes or chain.seq >= st.max_events:
+                        return stop('stream_limit')
+                    why = chain.check_event(cert, msg)
+                    if why is not None:
+                        return stop(why)
+                    info['events'] += 1
+                    if info['events'] == 1:
+                        info['first_event_ms'] = int((time.monotonic() - t0) * 1000)
+                    if on_event is not None:
+                        try:
+                            on_event(msg)
+                        except Exception as e:
+                            logger.debug(f'SAJHA Net: relaying an event: {e}')
+                    continue
+                if msg.get('id') != rid or not (isinstance(msg.get('result'), dict) or isinstance(msg.get('error'), dict)):
+                    return stop('event_invalid')
+                if not chain.verify_close(msg):
+                    return stop('stream_truncated')
+                if not httpsig.verify_message(msg, nonce, cert):
+                    return stop('response_invalid')
+                _close(r)
+                info['transcript'] = chain.transcript
+                return self._final(c, msg, br, out, trace_id, events=info['events'])
+
+
+def _drain(chunks, limit: int) -> bytes:
+    """A whole body read from a stream of chunks, at most ``limit`` bytes."""
+    buf = bytearray()
+    for chunk in chunks:
+        buf.extend(chunk)
+        if len(buf) > limit:
+            raise ValueError('the body is too large')
+    return bytes(buf)
 
 
 def _remote_usage(result: Any) -> Optional[Dict[str, Any]]:
@@ -873,8 +1085,10 @@ class HostServer:
                  identity: Optional[IdentityResolver] = None, rules: Optional[RuleEvaluator] = None,
                  max_hops: int = 1, own_identities: Callable[[], List[str]] = lambda: [], max_chain: int = 8,
                  other: Optional[Callable[[Dict[str, Any], Any], Dict[str, Any]]] = None,
-                 calls_per_minute: int = 600, audit: Optional[Callable[[str, Dict[str, Any]], None]] = None):
+                 calls_per_minute: int = 600, audit: Optional[Callable[[str, Dict[str, Any]], None]] = None,
+                 streaming: Optional[StreamSettings] = None):
         self.book = book
+        self.streaming = streaming or StreamSettings()
         self.node = book.node
         self.execute = execute
         self.identity = identity or NoIdentity()
@@ -970,9 +1184,10 @@ class HostServer:
         params = msg.get('params') if isinstance(msg.get('params'), dict) else {}
         tool = str(params.get('name') or '')
         arguments = params.get('arguments') if isinstance(params.get('arguments'), dict) else {}
-        tp = h.get('traceparent') or (params.get('_meta') or {}).get('traceparent') or ''
+        pmeta = params.get('_meta') if isinstance(params.get('_meta'), dict) else {}
+        tp = h.get('traceparent') or pmeta.get('traceparent') or ''
         trace_id = trace_of(tp) or ''
-        nmeta = ((params.get('_meta') or {}).get(EXTENSION_ID)) or {}
+        nmeta = pmeta.get(EXTENSION_ID) or {}
 
         def no(reason: str, status: int = 200, retry_after: Optional[int] = None, executed: bool = False, **extra):
             code = RPC_AUTHORIZATION if reason == 'contract_conflict' else CODES.get(reason, RPC_AUTHORIZATION)
@@ -1060,31 +1275,67 @@ class HostServer:
                           key_id=str((user or {}).get('key_id') or ''), depth=depth,
                           relay={'Sajha-Net-User-Assertion': h['sajha-net-user-assertion']}
                           if h.get('sajha-net-user-assertion') else {}, reexport=rx, local_tool=local_tool)
+        # 10-13: from here a call may stream (§15.10): only when the home asked (the signed body's
+        # _meta["io.sajha/net"].stream = 1) and accepts an event stream; every refusal above is one JSON answer
+        want = isinstance(nmeta, dict) and nmeta.get('stream') == 1 and not isinstance(nmeta.get('stream'), bool)
+        if want and self.streaming.enabled and sse.CONTENT_TYPE in h.get('accept', '').lower():
+            token = pmeta.get('progressToken')
+            if not isinstance(token, (str, int)) or isinstance(token, bool):
+                token = None
+            level = pmeta.get(LOG_LEVEL_KEY)
+            hs = _HostStream(self, ctx, arguments, rid, h, token, level if isinstance(level, str) else None)
+            out = httpsig.sign_response(self.node.signer, 200, {'content-type': sse.CONTENT_TYPE}, b'',
+                                        httpsig.request_signature_bytes(h), net, me, v.sender, streamed=True,
+                                        now=self.node.clock())
+            out['cache-control'] = 'no-store'
+            out['x-accel-buffering'] = 'no'
+            return PeerResponse(200, out, b'', stream=hs, close=hs.close)
+        from sajha.core.mcp_tool_context import ModernToolContext
+        tctx = ModernToolContext()               # a JSON answer carries no events; nothing leaks to another context
+        token = tctx.activate()
+        try:
+            msg, log = self._finish(ctx, arguments, rid)
+        finally:
+            ModernToolContext.deactivate(token)
+        self._log(*log)
+        return self._respond(200, msg, h, v.sender)
+
+    def _finish(self, ctx: CallContext, arguments: Dict[str, Any], rid: Any) -> Tuple[Dict[str, Any], tuple]:
+        """Steps 10-13 of §15.4: the host's own access, policy and approvals, execution, residency of the
+        result. Returns the JSON-RPC answer and the audit call (``_log`` arguments) for it."""
+        net, me, tool, trace_id = self.node.net, self.node.name, ctx.tool, ctx.trace_id
+
+        def no(reason: str, executed: bool = False, **extra):
+            code = RPC_AUTHORIZATION if reason == 'contract_conflict' else CODES.get(reason, RPC_AUTHORIZATION)
+            return ({'jsonrpc': '2.0', 'id': rid,
+                     'error': refusal(code, reason, 'host', net, me, tool, trace_id, executed=executed, **extra)},
+                    ('net.host_refused', ctx.peer, tool, trace_id, reason, executed))
         # 10, 11: the host's own access, policy and approvals; execution
         try:
             result = self.execute(ctx, arguments)
         except HostRefusal as e:
             return no(e.reason, executed=e.executed, **(getattr(e, 'extra', None) or {}))
         # 12: residency of the result
-        d = _decide(self.rules, 'residency_result', {'net': net, 'host': me, 'peer': v.sender, 'tool': tool,
-                                                      'user': user, 'result': result, 'trace_id': trace_id})
+        d = _decide(self.rules, 'residency_result', {'net': net, 'host': me, 'peer': ctx.peer, 'tool': tool,
+                                                      'user': ctx.user, 'result': result, 'trace_id': trace_id})
         if not d.allow:
             return no('residency_result', executed=True)
         result = dict(d.value if isinstance(d.value, dict) else (result or {}))
         rm = dict((result.get('_meta') or {}).get(EXTENSION_ID) or {})
         rm.setdefault('instance', me)
         result['_meta'] = dict(result.get('_meta') or {}, **{EXTENSION_ID: rm})
-        self._log('net.host_call', v.sender, tool, trace_id, 'error' if result.get('isError') else 'ok', True,
-                  ctx=ctx)
-        self.paths.add_chain(net, visited, me, tool)
-        return self._respond(200, {'jsonrpc': '2.0', 'id': rid, 'result': result}, h, v.sender)
+        self.paths.add_chain(net, ctx.visited, me, tool)
+        return ({'jsonrpc': '2.0', 'id': rid, 'result': result},
+                ('net.host_call', ctx.peer, tool, trace_id, 'error' if result.get('isError') else 'ok', True, ctx))
 
-    def _log(self, what: str, peer: str, tool: str, trace_id: str, outcome: str, executed: bool, ctx=None) -> None:
+    def _log(self, what: str, peer: str, tool: str, trace_id: str, outcome: str, executed: Optional[bool], ctx=None,
+             **extra: Any) -> None:
         if self.audit is None:
             return
         try:
             d = {'net': self.node.net, 'peer': peer, 'tool': tool, 'trace_id': trace_id, 'outcome': outcome,
                  'executed': executed}
+            d.update({k: val for k, val in extra.items() if val is not None})
             if ctx is not None:
                 d.update(home=ctx.home, qualified_name=ctx.qualified_name, attempt=ctx.attempt, key_id=ctx.key_id,
                          user=(ctx.user or {}).get('name') if ctx.user else None,
@@ -1099,3 +1350,146 @@ class HostServer:
             self.audit(what, d)
         except Exception as e:
             logger.debug(f'SAJHA Net audit {what}: {e}')
+
+
+class _HostStream:
+    """The body of a streamed forwarded call at the host (§8.9, §15.10): an iterator of SSE bytes.
+
+    A worker thread runs steps 10-13 (:meth:`HostServer._finish`) with a
+    :class:`~sajha.core.mcp_tool_context.ModernToolContext` active around ``execute``, so a registry tool's
+    ``report_progress``/``report_log``, a re-exported call's relay and a federated tool's upstream events all
+    arrive here. Iterating drains them: progress coalesced to one event per ``progress_min_interval_ms``
+    (the last kept), each event signed into the stream's :class:`~sajha.net.httpsig.EventChain`, a heartbeat
+    comment when nothing was written for ``heartbeat_seconds``, then the final message bound to the chain
+    and signed. :meth:`close` before the final (the home closed the stream) cancels the call: the tool sees
+    ``is_cancelled()``."""
+
+    def __init__(self, host: HostServer, ctx: CallContext, arguments: Dict[str, Any], rid: Any, h: Dict[str, str],
+                 progress_token: Any, log_level: Optional[str]):
+        from sajha.core.mcp_tool_context import ModernToolContext
+        self.host, self.ctx, self.rid = host, ctx, rid
+        self.settings = host.streaming
+        self.signer = host.node.signer
+        self.chain = httpsig.EventChain(httpsig.request_signature_bytes(h))
+        self.nonce = httpsig.request_nonce(h)
+        self.q: 'queue.Queue[Tuple[str, Any]]' = queue.Queue()
+        self.tctx = ModernToolContext(progress_token=progress_token, log_level=log_level, emit=self._emit)
+        self._out: 'collections.deque[bytes]' = collections.deque()
+        self._closed = threading.Event()
+        self._lock = threading.Lock()
+        self._done = False
+        self._pending: Optional[Dict[str, Any]] = None
+        self.t0 = time.monotonic()
+        self._last_write = self.t0
+        self._last_progress = 0.0
+        self.events = 0
+        self.dropped = 0
+        self.first_event_ms: Optional[int] = None
+        cv = contextvars.copy_context()
+        threading.Thread(target=cv.run, args=(self._work, arguments), name='sajhanet-host-call', daemon=True).start()
+
+    # ── the worker ───────────────────────────────────────────────────
+
+    def _emit(self, message: Dict[str, Any]) -> None:
+        if not self._closed.is_set():
+            self.q.put(('event', message))
+
+    def _work(self, arguments: Dict[str, Any]) -> None:
+        token = self.tctx.activate()
+        try:
+            msg, log = self.host._finish(self.ctx, arguments, self.rid)
+        except Exception as e:                           # _finish turns the tool's own failures into results
+            logger.warning(f'SAJHA Net: streamed call {self.ctx.tool}: {e}')
+            msg = {'jsonrpc': '2.0', 'id': self.rid, 'error': {'code': -32603, 'message': 'the host failed the call'}}
+            log = ('net.host_call', self.ctx.peer, self.ctx.tool, self.ctx.trace_id, 'error', None, self.ctx)
+        finally:
+            self.tctx.deactivate(token)
+        self.q.put(('final', (msg, log)))
+
+    # ── the body ─────────────────────────────────────────────────────
+
+    def __iter__(self):
+        return self
+
+    def __next__(self) -> bytes:
+        s = self.settings
+        hb = max(0.05, float(s.heartbeat_seconds))
+        gap = max(0.0, float(s.progress_min_interval_ms) / 1000.0)
+        while True:
+            if self._out:
+                return self._out.popleft()
+            if self._done or self._closed.is_set():
+                raise StopIteration
+            now = time.monotonic()
+            wait = self._last_write + hb - now
+            if self._pending is not None:
+                wait = min(wait, self._last_progress + gap - now)
+            try:
+                kind, x = self.q.get(timeout=max(0.0, min(wait, 0.25)))
+            except queue.Empty:
+                now = time.monotonic()
+                if self._pending is not None and now >= self._last_progress + gap:
+                    self._flush()
+                elif now - self._last_write >= hb:
+                    self._out.append(sse.HEARTBEAT)
+                    self._last_write = now
+                continue
+            if kind == 'event':
+                if x.get('method') == PROGRESS:
+                    self._pending = x
+                    if time.monotonic() >= self._last_progress + gap:
+                        self._flush()
+                else:
+                    self._flush()
+                    self._write(x)
+            elif kind == 'final':
+                self._flush()
+                self._final(*x)
+            else:
+                raise StopIteration
+
+    def _flush(self) -> None:
+        if self._pending is not None:
+            p, self._pending = self._pending, None
+            self._last_progress = time.monotonic()
+            self._write(p)
+
+    def _write(self, event: Dict[str, Any]) -> None:
+        s = self.settings
+        try:
+            size = len(json.dumps(event, separators=(',', ':'), ensure_ascii=False).encode('utf-8'))
+        except (TypeError, ValueError):
+            self.dropped += 1
+            return
+        if self.chain.seq >= s.max_events or size + 512 > s.max_event_bytes:
+            self.dropped += 1                            # over this stream's limits: dropped, never sent
+            return
+        signed = self.chain.sign_event(self.signer, event)
+        self.events += 1
+        if self.first_event_ms is None:
+            self.first_event_ms = int((time.monotonic() - self.t0) * 1000)
+        self._out.append(sse.encode(signed))
+        self._last_write = time.monotonic()
+
+    def _final(self, msg: Dict[str, Any], log: tuple) -> None:
+        with self._lock:
+            if self._closed.is_set():
+                return
+            self._done = True
+        final = httpsig.sign_message(self.signer, self.chain.close(msg), self.nonce)
+        self._out.append(sse.encode(final))
+        self._audit(log)
+
+    def _audit(self, log: tuple) -> None:
+        self.host._log(*log, streamed=True, events=self.events, transcript=self.chain.transcript,
+                       first_event_ms=self.first_event_ms, dropped=self.dropped or None)
+
+    def close(self) -> None:
+        """The home closed the stream (or the transport ended it): cancel the call if it still runs."""
+        with self._lock:
+            if self._done or self._closed.is_set():
+                return
+            self._closed.set()
+        self.tctx.cancel()
+        self.q.put(('close', None))
+        self._audit(('net.host_call', self.ctx.peer, self.ctx.tool, self.ctx.trace_id, 'cancelled', None, self.ctx))
