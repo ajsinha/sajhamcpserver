@@ -295,8 +295,14 @@ class ApiKeyIdentity(plugins.IdentityResolver):
         kh = keydir.key_hash(str(raw))
         # a key this host issued itself (owner decision, per-member keys: sajhanet.peer_keys on the home
         # holds a key the HOST issued; the host checks it as its own API key and the caller acts as
-        # that key's local owner here)
-        own = a.local_key_user(net, str(raw), sender)
+        # that key's local owner here). Only for a key no home published: a key in the net key
+        # directory is always judged as its home's key (expiry, revocation, sender), never as a local one.
+        own = None
+        st0 = a._state(net)
+        me = getattr(getattr(st0, 'node', None), 'name', None)
+        published = st0.store.find(net, kh)
+        if not published or all(r.get('home_instance') == me for r in published):
+            own = a.local_key_user(net, str(raw), sender)     # unknown to the net, or this host's own key
         del raw
         if own is not None:
             return own

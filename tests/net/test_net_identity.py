@@ -195,8 +195,10 @@ def test_call_02_03_04_05_identity_refusals(fab):
     assert reason(fab.b.headers(raw, authorization='Bearer x')) == 'ambiguous_credentials'  # CALL-05
     assert reason(fab.b.headers(raw), secure=False) == 'https_required'                    # CALL-04 (host)
     assert reason(fab.b.headers(raw, net='other-net')) == 'key_unknown'                    # NET-06
-    # expired
-    fab.n.clock.advance(2 * 86400)
+    # expired: the key's expiry is set from the real date, the net's clock is a fixed test clock, so
+    # move the net clock two days past the real now (a fixed advance broke once the calendar moved on)
+    import time as _time
+    fab.n.clock.advance(max(0.0, _time.time() - fab.b.authz._state(NET).now()) + 2 * 86400)
     assert reason(fab.b.headers(expiring)) == 'key_expired'
     # disabled at the home, then revoked
     db = fab.a.db()
