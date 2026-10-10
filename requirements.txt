@@ -54,11 +54,10 @@ duckdb>=1.0.0,<2.0.0
 yfinance>=0.2.36,<0.3.0
 
 # ── Financial Data: OpenBB Platform (70 openbb_* tools) ──────
-# Core SDK + data providers installed via extras.
-# Install all providers:
-#   pip install "openbb[all]"
-# Or pick specific ones:
-openbb[yfinance,fmp,fred,sec,ecb,imf,oecd,worldbank,alpha_vantage,benzinga,intrinio,polygon,tiingo,tradingeconomics,nasdaq]>=4.3.0,<5.0.0
+# OpenBB 4.6 ships most providers in its core install (yfinance, fmp, fred, sec, imf, oecd,
+# benzinga, intrinio, polygon, tiingo, tradingeconomics); only these remain extras.
+# Every provider: pip install "openbb[all]"
+openbb[alpha_vantage,ecb,nasdaq]>=4.3.0,<5.0.0
 
 # ── Testing ──────────────────────────────────────────────────
 pytest>=7.4.0,<9.0.0
