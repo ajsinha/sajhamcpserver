@@ -699,50 +699,42 @@ class WBSearchIndicatorsTool(WorldBankBaseTool):
             }
         }
     
+    CATALOGUE_PAGE = 20000            # the API's page size limit; the catalogue is about 30,000 indicators
+    CATALOGUE_TTL = 24 * 3600
+    _catalogue: Dict[Any, Any] = {}
+
+    def _all_indicators(self, topic_id=None) -> List[Dict]:
+        """Every indicator in the catalogue (or in one topic), all pages, cached per process for a day."""
+        import time as _time
+        key = topic_id or 'all'
+        hit = self._catalogue.get(key)
+        if hit and _time.monotonic() - hit[0] < self.CATALOGUE_TTL:
+            return hit[1]
+        endpoint = f"topic/{topic_id}/indicator" if topic_id else 'indicator'
+        rows: List[Dict] = []
+        page, pages = 1, 1
+        while page <= pages:
+            data = self._make_request(endpoint, {'per_page': self.CATALOGUE_PAGE, 'page': page})
+            if len(data) < 2 or not data[1]:
+                break
+            pages = int((data[0] or {}).get('pages') or 1)
+            rows.extend(data[1])
+            page += 1
+        self._catalogue[key] = (_time.monotonic(), rows)
+        return rows
+
     def execute(self, arguments: Dict[str, Any]) -> Dict:
         search_term = arguments['search_term'].lower()
         topic_id = arguments.get('topic_id')
-        per_page = arguments.get('per_page', 50)
-        page = arguments.get('page', 1)
-        
-        params = {
-            'per_page': per_page,
-            'page': page
-        }
-        
-        if topic_id:
-            params['topic'] = topic_id
-        
+        per_page = int(arguments.get('per_page', 50))
+        page = int(arguments.get('page', 1))
         try:
-            # Get all indicators
-            data = self._make_request('indicator', params)
-            
-            if len(data) < 2:
-                return {
-                    'search_term': search_term,
-                    'total_results': 0,
-                    'page': page,
-                    'per_page': per_page,
-                    'results': [],
-                    'last_updated': datetime.now().isoformat()
-                }
-            
-            indicators_data = data[1]
-            
-            # Filter by search term
             results = []
-            for ind in indicators_data:
-                name = ind.get('name', '').lower()
-                source_note = ind.get('sourceNote', '').lower()
-                
+            for ind in self._all_indicators(topic_id):
+                name = (ind.get('name') or '').lower()
+                source_note = (ind.get('sourceNote') or '').lower()
                 if search_term in name or search_term in source_note:
-                    # Calculate simple relevance score
-                    relevance = 0.0
-                    if search_term in name:
-                        relevance += 0.6
-                    if search_term in source_note:
-                        relevance += 0.4
-                    
+                    relevance = (0.6 if search_term in name else 0.0) + (0.4 if search_term in source_note else 0.0)
                     results.append({
                         'id': ind.get('id'),
                         'name': ind.get('name'),
@@ -751,19 +743,16 @@ class WBSearchIndicatorsTool(WorldBankBaseTool):
                         'topics': ind.get('topics', []),
                         'relevance_score': relevance
                     })
-            
-            # Sort by relevance
-            results.sort(key=lambda x: x['relevance_score'], reverse=True)
-            
+            results.sort(key=lambda x: (-x['relevance_score'], x['id'] or ''))
+            start = (page - 1) * per_page
             return {
                 'search_term': search_term,
                 'total_results': len(results),
                 'page': page,
                 'per_page': per_page,
-                'results': results[:per_page],
+                'results': results[start:start + per_page],
                 'last_updated': datetime.now().isoformat()
             }
-            
         except Exception as e:
             self.logger.error(f"Failed to search indicators: {e}", exc_info=True)
             raise
@@ -849,6 +838,7 @@ class WBCompareCountriesTool(WorldBankBaseTool):
         if not indicator_code:
             raise ValueError("Either 'indicator' or 'indicator_code' must be provided")
         
+        indicator_name = None
         try:
             countries_data = []
             
@@ -857,8 +847,10 @@ class WBCompareCountriesTool(WorldBankBaseTool):
                 endpoint = f"country/{country_code}/indicator/{indicator_code}"
                 
                 params = {'per_page': 100}
-                if start_year and end_year:
-                    params['date'] = f"{start_year}:{end_year}"
+                if most_recent:
+                    params['mrnev'] = 1          # the latest year that has a value, per country
+                elif start_year or end_year:
+                    params['date'] = f"{start_year or 1960}:{end_year or datetime.now().year}"
                 
                 try:
                     data = self._make_request(endpoint, params)
@@ -879,6 +871,7 @@ class WBCompareCountriesTool(WorldBankBaseTool):
                         continue
                     
                     results = data[1]
+                    indicator_name = indicator_name or (results[0].get('indicator') or {}).get('value')
                     
                     # Format data points
                     data_points = []
@@ -910,9 +903,9 @@ class WBCompareCountriesTool(WorldBankBaseTool):
                         'data': data_points,
                         'latest_value': latest['value'] if latest else None,
                         'latest_year': latest['year'] if latest else None,
-                        'average': round(avg, 2) if avg else None,
-                        'min': round(min_val, 2) if min_val else None,
-                        'max': round(max_val, 2) if max_val else None
+                        'average': round(avg, 2) if avg is not None else None,
+                        'min': round(min_val, 2) if min_val is not None else None,
+                        'max': round(max_val, 2) if max_val is not None else None
                     })
                     
                 except Exception as e:
@@ -952,17 +945,14 @@ class WBCompareCountriesTool(WorldBankBaseTool):
                     'average_across_countries': round(avg_val, 2)
                 }
             
-            indicator_name = countries_data[0]['data'][0] if countries_data and countries_data[0]['data'] else ''
             
             return {
                 'indicator': {
                     'id': indicator_code,
-                    'name': indicator_code  # Would need separate call to get full name
+                    'name': indicator_name or indicator_code
                 },
-                'year_range': {
-                    'start': start_year,
-                    'end': end_year
-                } if start_year else {},
+                'year_range': ({'most_recent': True} if most_recent else
+                               {'start': start_year, 'end': end_year} if (start_year or end_year) else {}),
                 'countries': countries_data,
                 'summary': summary,
                 'last_updated': datetime.now().isoformat()

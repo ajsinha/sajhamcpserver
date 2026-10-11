@@ -1,7 +1,8 @@
 {
   "name": "tavily_research_search",
   "implementation": "sajha.tools.impl.tavily_tool_refactored.TavilyResearchSearchTool",
-  "description": "In-depth research search through the Tavily search API (advanced depth, generated answer always included), optionally with each page's full content.\nReturns {query, search_depth, topic, results_count, results: [{title, url, content (extract), score, published_date, raw_content (when include_raw_content)}], answer}.\nInputs (* required): query* (string), topic (general | science | finance; default general; passed to Tavily as its topic), max_results (integer 5-20, default 10), include_raw_content (boolean, default false; adds full page text and makes the result much larger).\nSlower than tavily_web_search, which suits quick lookups.\nExample: {\"query\": \"impact of Basel III endgame on US bank capital\", \"topic\": \"finance\", \"max_results\": 10}\nNeeds a Tavily API key (env TAVILY_API_KEY, config tavily.api.key); without one the tool returns placeholder example.com results with a note saying demo mode.",
+  "description": "In-depth research search through the Tavily search API (advanced depth, generated answer always included), optionally with each page's full content.\nReturns {query, search_depth, topic, results_count, results: [{title, url, content (extract), score, published_date, raw_content (when include_raw_content)}], answer}.\nInputs (* required): query* (string), topic (general | science | finance; default general; passed to Tavily as its topic), max_results (integer 5-20, default 10), include_raw_content (boolean, default false; adds full page text and makes the result much larger).\nSlower than tavily_web_search, which suits quick lookups.\nExample: {\"query\": \"impact of Basel III endgame on US bank capital\", \"topic\": \"finance\", \"max_results\": 10}",
+  "annotations": {"readOnlyHint": true, "idempotentHint": true, "openWorldHint": true},
   "version": "2.9.8",
   "enabled": true,
   "api_key": "${tavily.api.key}",
@@ -31,7 +32,8 @@
         "default": false
       }
     },
-    "required": ["query"]
+    "required": ["query"],
+    "examples": [{"query": "impact of Basel III endgame on US bank capital", "topic": "finance", "max_results": 10}]
   },
   "outputSchema": {
     "type": "object",

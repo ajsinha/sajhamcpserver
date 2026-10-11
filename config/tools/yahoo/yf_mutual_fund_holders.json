@@ -1,7 +1,8 @@
 {
   "name": "yf_mutual_fund_holders",
   "implementation": "sajha.tools.impl.yfinance_tools.YFMutualFundHoldersTool",
-  "description": "Largest mutual fund holders of one stock from Yahoo Finance (yfinance mutualfund_holders), usually the top 10.\nReturns: {symbol, holders: [{Date Reported, Holder, pctHeld, Shares, Value, pctChange}]}.\nInputs (* required): symbol* (Yahoo ticker, e.g. AAPL, BRK-B, 7203.T).\nInstitutions: yf_institutional_holders; ownership percentages: yf_major_holders. No API key; data comes from Yahoo Finance through the yfinance library.\nExample: {\"symbol\": \"AAPL\"}",
+  "description": "Largest mutual fund holders of one stock from Yahoo Finance (yfinance mutualfund_holders), usually the top 10.\nReturns: {symbol, holders: [{Date Reported, Holder, pctHeld, Shares, Value, pctChange}]}.\nInputs (* required): symbol* (Yahoo ticker, e.g. AAPL, BRK-B, 7203.T).\nInstitutions: yf_institutional_holders; ownership percentages: yf_major_holders.\nExample: {\"symbol\": \"AAPL\"}",
+  "annotations": {"readOnlyHint": true, "idempotentHint": true, "openWorldHint": true},
   "version": "4.5.0",
   "enabled": true,
   "inputSchema": {
@@ -14,7 +15,8 @@
     },
     "required": [
       "symbol"
-    ]
+    ],
+    "examples": [{"symbol": "AAPL"}]
   },
   "outputSchema": {
     "type": "object",

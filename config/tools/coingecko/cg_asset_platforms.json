@@ -1,7 +1,8 @@
 {
   "name": "cg_asset_platforms",
   "implementation": "sajha.tools.impl.coingecko_tools.CGAssetPlatformsTool",
-  "description": "Blockchain networks (asset platforms) known to CoinGecko (asset_platforms), such as ethereum, solana or polygon-pos.\nReturns {platforms: [{id, chain_identifier, name, shortname, native_coin_id, ...}]}.\nInputs: none.\nPlatform ids appear in coin details (cg_coin_info platforms) and NFT entries (cg_nft_list).\nExample: {}\nNo API key is sent (CoinGecko public API, rate-limited by CoinGecko); a failed call returns {\"error\": ...}.",
+  "description": "Blockchain networks (asset platforms) known to CoinGecko (asset_platforms), such as ethereum, solana or polygon-pos.\nReturns {platforms: [{id, chain_identifier, name, shortname, native_coin_id, ...}]}.\nInputs: none.\nPlatform ids appear in coin details (cg_coin_info platforms) and NFT entries (cg_nft_list).\nExample: {}",
+  "annotations": {"readOnlyHint": true, "idempotentHint": true, "openWorldHint": true},
   "version": "4.5.0",
   "enabled": true,
   "inputSchema": {

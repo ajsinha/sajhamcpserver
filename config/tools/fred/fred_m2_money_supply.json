@@ -1,7 +1,8 @@
 {
   "name": "fred_m2_money_supply",
   "implementation": "sajha.tools.impl.fred_tools.FREDM2MoneySupplyTool",
-  "description": "The US M2 money stock from FRED, the St. Louis Fed's economic database: series M2SL (billions of dollars, monthly).\nReturns {\"series\": \"M2SL\", \"data\": <FRED observations response>}; data.observations = [{date (YYYY-MM-DD), value (a string, \".\" if missing), realtime_start, realtime_end}], newest first; data is {\"error\": ...} if the call fails.\nInputs (* required): limit (integer, number of newest observations; omitted: 60, although the schema default says 30).\nRelated: fred_fed_funds_rate, fred_cpi; for any other FRED series use fred_custom_series.\nExample: {\"limit\": 12}\nAPI key: env FRED_API_KEY (config fred.api.key); when unset the placeholder DEMO_KEY is sent.",
+  "description": "The US M2 money stock from FRED, the St. Louis Fed's economic database: series M2SL (billions of dollars, monthly).\nReturns {\"series\": \"M2SL\", \"data\": <FRED observations response>}; data.observations = [{date (YYYY-MM-DD), value (a string, \".\" if missing), realtime_start, realtime_end}], newest first; data is {\"error\": ...} if the call fails.\nInputs (* required): limit (integer, number of newest observations; default 30).\nRelated: fred_fed_funds_rate, fred_cpi.\nExample: {\"limit\": 12}",
+  "annotations": {"readOnlyHint": true, "idempotentHint": true, "openWorldHint": true},
   "version": "4.5.0",
   "enabled": true,
   "inputSchema": {

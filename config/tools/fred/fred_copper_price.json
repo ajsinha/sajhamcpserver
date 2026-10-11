@@ -1,14 +1,15 @@
 {
   "name": "fred_copper_price",
   "implementation": "sajha.tools.impl.fred_tools.FREDCustomSeriesTool",
-  "description": "The global price of copper from FRED, the St. Louis Fed's economic database: series PCOPPUSDM (US dollars per metric ton, monthly).\nReturns {\"series\": \"PCOPPUSDM\", \"data\": <FRED observations response>}; data.observations = [{date (YYYY-MM-DD), value (a string, \".\" if missing), realtime_start, realtime_end}], newest first; data is {\"error\": ...} if the call fails.\nInputs (* required): series_id (string; the schema default PCOPPUSDM is not filled in by the server, so it has to be sent), limit (integer, number of newest observations; omitted: 60, although the schema default says 20).\nRelated: fred_oil_price, fred_gold_price, fred_silver_price; fred_custom_series takes any series id.\nExample: {\"series_id\": \"PCOPPUSDM\", \"limit\": 20}\nAPI key: env FRED_API_KEY (config fred.api.key); when unset the placeholder DEMO_KEY is sent.",
+  "description": "The global price of copper from FRED, the St. Louis Fed's economic database: series PCOPPUSDM (US dollars per metric ton, monthly).\nReturns {\"series\": \"PCOPPUSDM\", \"data\": <FRED observations response>}; data.observations = [{date (YYYY-MM-DD), value (a string, \".\" if missing), realtime_start, realtime_end}], newest first; data is {\"error\": ...} if the call fails.\nInputs (* required): series_id (string; default PCOPPUSDM, this tool's series), limit (integer, number of newest observations; default 20).\nRelated: fred_oil_price.\nExample: {\"series_id\": \"PCOPPUSDM\", \"limit\": 20}",
+  "annotations": {"readOnlyHint": true, "idempotentHint": true, "openWorldHint": true},
   "version": "4.5.0",
   "enabled": true,
   "inputSchema": {
     "type": "object",
     "properties": {
       "series_id": {
-        "description": "FRED series id; the default is this tool's series, which the server does not fill in, so it has to be sent",
+        "description": "FRED series id; defaults to this tool's series",
         "type": "string",
         "default": "PCOPPUSDM"
       },

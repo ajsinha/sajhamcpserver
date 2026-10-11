@@ -1,7 +1,8 @@
 {
   "name": "openbb_index_price_historical",
   "implementation": "sajha.tools.impl.openbb_tools.OpenBBGenericTool",
-  "description": "Daily price history for one market index through the OpenBB Platform (obb.index.price.historical), in OpenBB's default date window.\nReturns: {tool, data_points (total rows), data: first 100 rows as OpenBB returns them} or {tool, error}.\nInputs (* required): symbol (not marked required in the schema, but OpenBB needs it; e.g. ^GSPC or SPX depending on provider); provider (fmp, intrinio, polygon or yfinance; schema default fmp; when omitted the tool sends yfinance, which needs no key).\nOther sources: yf_index_history; latest levels: yf_market_summary. Keys: fmp, benzinga, fred, intrinio, polygon and tiingo need credentials in OpenBB's settings (~/.openbb_platform/user_settings.json), not supplied by SAJHA; yfinance, oecd, federal_reserve, sec, imf and government_us need none.\nExample: {\"symbol\": \"^GSPC\", \"provider\": \"yfinance\"}",
+  "description": "Daily price history for one market index through the OpenBB Platform (obb.index.price.historical).\nReturns: {tool, provider, data_points (rows before the cap), truncated, data: rows with their dates, ignored_arguments when some did not apply} or {tool, error}.\nInputs (* required): symbol* (e.g. ^GSPC, ^IXIC); start_date and end_date (provider's default window when omitted); limit (rows returned, 1-1000; default 260; a dated series keeps its most recent rows); provider (fmp, intrinio, polygon, yfinance; default yfinance).\nOther source: yf_index_history; latest levels: yf_market_summary. Keys: yfinance needs none; fmp uses SAJHA's FMP_API_KEY; intrinio, polygon need a key in ~/.openbb_platform/user_settings.json.\nExample: {\"symbol\": \"^GSPC\", \"start_date\": \"2026-07-01\"}",
+  "annotations": {"readOnlyHint": true, "idempotentHint": true, "openWorldHint": true},
   "version": "4.5.0",
   "enabled": true,
   "inputSchema": {
@@ -9,21 +10,63 @@
     "properties": {
       "symbol": {
         "type": "string",
-        "description": "Stock ticker symbol"
+        "description": "Index symbol, e.g. ^GSPC (yfinance)"
+      },
+      "start_date": {
+        "type": "string",
+        "description": "Start date (YYYY-MM-DD)",
+        "format": "date"
+      },
+      "end_date": {
+        "type": "string",
+        "description": "End date (YYYY-MM-DD)",
+        "format": "date"
+      },
+      "limit": {
+        "type": "integer",
+        "minimum": 1,
+        "maximum": 1000,
+        "default": 260,
+        "description": "Most rows returned (1-1000); a dated series keeps its most recent rows"
       },
       "provider": {
         "type": "string",
-        "description": "OpenBB data provider",
-        "default": "fmp"
+        "enum": [
+          "fmp",
+          "intrinio",
+          "polygon",
+          "yfinance"
+        ],
+        "default": "yfinance",
+        "description": "OpenBB data provider"
       }
     },
-    "required": []
+    "required": [
+      "symbol"
+    ],
+    "examples": [{"symbol": "^GSPC", "start_date": "2026-07-01"}]
   },
   "outputSchema": {
     "type": "object",
     "properties": {
-      "result": {
-        "type": "object"
+      "tool": {
+        "type": "string"
+      },
+      "provider": {
+        "type": "string"
+      },
+      "data_points": {
+        "type": "integer",
+        "description": "Rows before the cap"
+      },
+      "truncated": {
+        "type": "boolean"
+      },
+      "data": {
+        "type": "array"
+      },
+      "error": {
+        "type": "string"
       }
     }
   },
@@ -36,6 +79,15 @@
       "openbb",
       "index",
       "price"
+    ],
+    "examples": [
+      {
+        "description": "Daily price history for one market index",
+        "input": {
+          "symbol": "^GSPC",
+          "start_date": "2026-07-01"
+        }
+      }
     ]
   }
 }

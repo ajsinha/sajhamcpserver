@@ -2,6 +2,7 @@
   "name": "un_get_sdg_targets",
   "implementation": "sajha.tools.impl.united_nations_tool_refactored.UNGetSDGTargetsTool",
   "description": "List the targets of one UN Sustainable Development Goal (e.g. 3.1, 3.2 under Goal 3), from the UN Statistics Division SDG API (no API key).\nReturns: sdg_code, sdg_title, targets (code, title, description, uri) and count; on failure an error and note instead.\nInputs (* required): sdg_code* (string \"1\" to \"17\").\nFor the measurable indicators under each target use un_get_sdg_indicators; for the goals themselves un_get_sdgs.\nExample: {\"sdg_code\": \"3\"}",
+  "annotations": {"readOnlyHint": true, "idempotentHint": true, "openWorldHint": true},
   "version": "2.9.8",
   "enabled": true,
   "inputSchema": {
@@ -13,7 +14,8 @@
         "enum": ["1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14", "15", "16", "17"]
       }
     },
-    "required": ["sdg_code"]
+    "required": ["sdg_code"],
+    "examples": [{"sdg_code": "3"}]
   },
   "outputSchema": {
     "type": "object",

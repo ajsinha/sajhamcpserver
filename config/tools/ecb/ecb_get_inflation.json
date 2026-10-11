@@ -1,7 +1,8 @@
 {
   "name": "ecb_get_inflation",
   "implementation": "sajha.tools.impl.european_central_bank_tool_refactored.ECBGetInflationTool",
-  "description": "Euro area HICP inflation, annual rate of change in percent, monthly: overall, core (excluding energy and food) or energy, from the ECB Data Portal API (data-api.ecb.europa.eu, no API key).\nReturns: flow, key, series_name, description, observation_count and observations (date, value) oldest first.\nInputs (* required): inflation_type* (overall, core, energy; schema default overall); start_date, end_date (YYYY-MM-DD); recent_periods (1-100; default 12): unless both dates are given only the last recent_periods observations are kept, and with no dates the look-back is recent_periods x 40 days.\nFor other series use ecb_get_series; for an overview ecb_get_common_indicators.\nExample: {\"inflation_type\": \"core\", \"recent_periods\": 24}",
+  "description": "Euro area HICP inflation, annual rate of change in percent, monthly: overall, core (excluding energy and food) or energy, from the ECB's HICP dataflow (HICP.M.U2.N.<item>.4D0.ANR; the ECB retired the older ICP dataflow in February 2026).\nReturns: flow, key, series_name (the ECB title), description, unit, unit_multiplier, frequency, source, observation_count and observations (date, value) oldest first; a note when the period has no observations.\nInputs (none required): inflation_type (overall, core, energy; default overall); start_date, end_date (YYYY-MM-DD, YYYY-MM or YYYY); recent_periods (1-100; default 12; the last N observations of the series whatever its frequency, used only when neither date is given).\nFor other series use ecb_get_series; for France bdf_get_french_indicator.\nExample: {\"inflation_type\": \"core\", \"recent_periods\": 24}",
+  "annotations": {"readOnlyHint": true, "idempotentHint": true, "openWorldHint": true},
   "version": "2.9.8",
   "enabled": true,
   "inputSchema": {
@@ -10,7 +11,11 @@
       "inflation_type": {
         "type": "string",
         "description": "Type of inflation measure",
-        "enum": ["overall", "core", "energy"],
+        "enum": [
+          "overall",
+          "core",
+          "energy"
+        ],
         "default": "overall"
       },
       "start_date": {
@@ -29,14 +34,14 @@
         "default": 12
       }
     },
-    "required": ["inflation_type"]
+    "required": []
   },
   "outputSchema": {
     "type": "object",
     "properties": {
       "flow": {
         "type": "string",
-        "description": "ECB data flow (ICP for inflation)"
+        "description": "ECB data flow (HICP for inflation)"
       },
       "key": {
         "type": "string",
@@ -65,7 +70,10 @@
               "description": "Date of inflation reading (YYYY-MM format for monthly)"
             },
             "value": {
-              "type": ["number", "null"],
+              "type": [
+                "number",
+                "null"
+              ],
               "description": "Annual inflation rate (%)"
             }
           }
@@ -76,7 +84,15 @@
   "metadata": {
     "author": "Ashutosh Sinha",
     "category": "Economic Data",
-    "tags": ["inflation", "hicp", "prices", "ecb", "eurozone", "consumer prices", "core inflation"],
+    "tags": [
+      "inflation",
+      "hicp",
+      "prices",
+      "ecb",
+      "eurozone",
+      "consumer prices",
+      "core inflation"
+    ],
     "rateLimit": 120,
     "cacheTTL": 3600,
     "note": "HICP (Harmonised Index of Consumer Prices) is the official inflation measure for the Euro Area. Core inflation excludes energy and food. ECB targets 2% inflation.",

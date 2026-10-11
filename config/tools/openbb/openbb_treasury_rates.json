@@ -1,7 +1,8 @@
 {
   "name": "openbb_treasury_rates",
   "implementation": "sajha.tools.impl.openbb_tools.OpenBBTreasuryRatesTool",
-  "description": "Meant to give the daily effective federal funds rate through OpenBB (obb.fixedincome.rate.dff).\nReturns: {data_points, start_date, end_date, rates} or {error}.\nInputs (* required): start_date (YYYY-MM-DD; default one year ago); end_date (default today); provider (default federal_reserve).\nOpenBB 4.x (4.6 checked) has no obb.fixedincome.rate.dff, so this tool currently returns an error object; alternatives: openbb_fixedincome_effr (provider federal_reserve), fred_fed_funds_rate or av_fed_funds_rate; Treasury yields: av_treasury_yield, fred_10yr_treasury.\nExample: {\"start_date\": \"2026-01-01\"}",
+  "description": "Daily US Treasury constant-maturity yields, one row per day with a column per maturity (month_1 to year_30), through the OpenBB Platform (obb.fixedincome.government.treasury_rates); rates are decimals (0.0417 = 4.17%).\nReturns: {provider, data_points, truncated, start_date, end_date, rates: [{date, month_1, month_3, ..., year_10, year_30}]} or {error}.\nInputs (* required): start_date (default one year ago); end_date (default today); limit (rows returned, 1-1000; default 260; a dated series keeps its most recent rows); provider (federal_reserve, fmp; default federal_reserve).\nOne date across maturities: openbb_yield_curve; Fed funds: openbb_fixedincome_effr. Keys: federal_reserve needs none; fmp uses SAJHA's FMP_API_KEY.\nExample: {\"start_date\": \"2026-09-01\"}",
+  "annotations": {"readOnlyHint": true, "idempotentHint": true, "openWorldHint": true},
   "version": "4.5.0",
   "enabled": true,
   "inputSchema": {
@@ -9,18 +10,29 @@
     "properties": {
       "start_date": {
         "type": "string",
-        "description": "Start date (YYYY-MM-DD)",
+        "description": "Start date; default one year ago (YYYY-MM-DD)",
         "format": "date"
       },
       "end_date": {
         "type": "string",
-        "description": "End date (YYYY-MM-DD)",
+        "description": "End date; default today (YYYY-MM-DD)",
         "format": "date"
+      },
+      "limit": {
+        "type": "integer",
+        "minimum": 1,
+        "maximum": 1000,
+        "default": 260,
+        "description": "Most rows returned (1-1000); a dated series keeps its most recent rows"
       },
       "provider": {
         "type": "string",
-        "description": "OpenBB data provider",
-        "default": "federal_reserve"
+        "enum": [
+          "federal_reserve",
+          "fmp"
+        ],
+        "default": "federal_reserve",
+        "description": "OpenBB data provider"
       }
     },
     "required": []
@@ -34,10 +46,7 @@
       "rates": {
         "type": "array"
       }
-    },
-    "required": [
-      "rates"
-    ]
+    }
   },
   "metadata": {
     "author": "Ashutosh Sinha",
@@ -53,9 +62,9 @@
     ],
     "examples": [
       {
-        "description": "Fed funds rate 1 year",
+        "description": "Daily US Treasury constant-maturity yields, one row per day with a column per ma",
         "input": {
-          "start_date": "2025-05-01"
+          "start_date": "2026-09-01"
         }
       }
     ]

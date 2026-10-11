@@ -1,7 +1,8 @@
 {
   "name": "fmp_market_losers",
   "implementation": "sajha.tools.impl.fmp_tools.FMPMarketLosersTool",
-  "description": "Today's largest percentage losers from Financial Modeling Prep (FMP, /stable/stock-market-losers): symbol, name, price, change and change %.\nReturns {losers}: the list of stocks (empty if FMP returns no list).\nInputs (* required): limit (integer, number of stocks; default 5).\nSiblings: fmp_market_gainers, fmp_most_active; sector moves: fmp_sector_performance.\nNeeds an FMP API key (config fmp.api.key, env FMP_API_KEY); without one it returns a demo placeholder naming the endpoint instead of data.\nExample: {\"limit\": 10}",
+  "description": "Today's largest percentage losers from Financial Modeling Prep (FMP, /stable/stock-market-losers): symbol, name, price, change and change %.\nReturns {losers}: the list of stocks (empty if FMP returns no list).\nInputs (* required): limit (integer, number of stocks; default 5).\nSiblings: fmp_market_gainers, fmp_most_active; sector moves: fmp_sector_performance.\nExample: {\"limit\": 10}",
+  "annotations": {"readOnlyHint": true, "idempotentHint": true, "openWorldHint": true},
   "version": "4.5.0",
   "enabled": true,
   "inputSchema": {

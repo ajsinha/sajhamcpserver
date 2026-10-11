@@ -1,19 +1,42 @@
 {
   "name": "yf_trending_tickers",
   "implementation": "sajha.tools.impl.yfinance_tools.YFTrendingTickersTool",
-  "description": "Most actively traded US stocks from Yahoo Finance's most_actives screen, through yfinance's Screener class. Takes no inputs.\nReturns: {trending: up to 20 Yahoo quote objects} or {error}.\nyfinance 0.2.66 (the version installed with SAJHA at the time of writing) no longer has yf.Screener, so this returns {error}; openbb_equity_discovery_active (provider yfinance) gives the same list. No API key; data comes from Yahoo Finance through the yfinance library.\nExample: {}",
+  "description": "Tickers trending on Yahoo Finance for a region (Yahoo's trending endpoint, which needs no cookie).\nReturns: {region, count, symbols: [\"ASML\", \"JPM\", ...]} in Yahoo's order, or {region, error}; symbols only, so quote them with yahoo_get_quote or yf_compare_stocks.\nInputs (* required): region (two letters, e.g. US, GB, IN; default US); limit (symbols, 1-50; default 20).\nMost traded rather than most viewed: yf_screener with most_actives.\nExample: {\"region\": \"US\", \"limit\": 10}",
+  "annotations": {"readOnlyHint": true, "idempotentHint": true, "openWorldHint": true},
   "version": "4.5.0",
   "enabled": true,
   "inputSchema": {
     "type": "object",
-    "properties": {},
+    "properties": {
+      "region": {
+        "type": "string",
+        "default": "US",
+        "description": "Two-letter Yahoo region, e.g. US, GB, IN, DE"
+      },
+      "limit": {
+        "type": "integer",
+        "minimum": 1,
+        "maximum": 50,
+        "default": 20,
+        "description": "Most symbols returned (1-50)"
+      }
+    },
     "required": []
   },
   "outputSchema": {
     "type": "object",
     "properties": {
-      "result": {
-        "type": "object"
+      "region": {
+        "type": "string"
+      },
+      "count": {
+        "type": "integer"
+      },
+      "symbols": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        }
       }
     }
   },
@@ -25,6 +48,15 @@
     "tags": [
       "yfinance",
       "trending"
+    ],
+    "examples": [
+      {
+        "description": "Tickers trending on Yahoo Finance for a region (Yahoo's trending endpoint, which",
+        "input": {
+          "region": "US",
+          "limit": 10
+        }
+      }
     ]
   }
 }

@@ -143,8 +143,9 @@ file. Put the bound back. The full list of rules (P001 to P071) is in the
 ### 5. Dry-run it on the mock model
 
 The dry run runs a planner against the mock model and returns the stages it took. Tools are
-offered as usual, but only tools marked read-only actually run; name the calculator in
-`run_tools` to let it run:
+offered as usual, but only tools marked read-only (`readOnlyHint: true`) actually run; `run_tools`
+names others to let them run too. The calculators are marked read-only, so naming one is not needed;
+it does no harm:
 
 ```bash
 curl -s -X POST http://localhost:3002/api/ai/planners/dry-run -H "Authorization: Bearer $TOKEN" \
@@ -157,9 +158,9 @@ The answer has `"path": ["shape", "compute", "done"]` and
 `"answer": "From 80 to 100 is a change of 25.0%."`, with no model call on the way. Ask
 `"What is the future value of 5000 at 7 percent for 20 years?"` with
 `"run_tools": ["calc_future_value"]`: the path is `shape → general → check → answer`, and
-`trace` shows ReAct's own stages inside the sub-run (`pct_desk>react/act`). Without `run_tools`
-the calculator is not run, the `call` stage ends `error`, and the path shows the fallback:
-`shape → compute → general → check → answer`.
+`trace` shows ReAct's own stages inside the sub-run (`pct_desk>react/act`). When a `call` stage's
+tool is not marked read-only and not named in `run_tools`, it is not run, the stage ends `error`, and
+the path shows the fallback: `shape → compute → general → check → answer`.
 
 (Use the port your server listens on; the token comes from `POST /api/auth/login`.
 `GET /api/ai/planners/pct_desk` shows the compiled stages.)

@@ -1,7 +1,8 @@
 {
   "name": "openbb_unemployment",
   "implementation": "sajha.tools.impl.openbb_tools.OpenBBUnemploymentTool",
-  "description": "Unemployment rate for a country from the OECD through the OpenBB Platform (obb.economy.unemployment).\nReturns: {country, data: [records with date, country and value (percent)]} or {error}.\nInputs (* required): country (lower case with underscores, e.g. united_states, france; default united_states); provider (oecd only in OpenBB 4.6; default oecd, no key).\nUS-only alternatives: av_unemployment, fred_unemployment. Keys: fmp, benzinga, fred, intrinio, polygon and tiingo need credentials in OpenBB's settings (~/.openbb_platform/user_settings.json), not supplied by SAJHA; yfinance, oecd, federal_reserve, sec, imf and government_us need none.\nExample: {\"country\": \"france\"}",
+  "description": "Unemployment rate (percent) for a country from the OECD through the OpenBB Platform (obb.economy.unemployment).\nReturns: {country, provider, data_points, truncated, data: [records with date, country, value]} or {country, error}.\nInputs (* required): country (e.g. united_states, france; default united_states); limit (rows returned, 1-1000; default 100; a dated series keeps its most recent rows); provider (oecd; default oecd).\nUS-only: av_unemployment, fred_unemployment. Keys: oecd needs none.\nExample: {\"country\": \"france\"}",
+  "annotations": {"readOnlyHint": true, "idempotentHint": true, "openWorldHint": true},
   "version": "4.5.0",
   "enabled": true,
   "inputSchema": {
@@ -9,13 +10,23 @@
     "properties": {
       "country": {
         "type": "string",
-        "description": "Country, lower case with underscores (e.g. united_states)",
+        "description": "Country, lower case with underscores, e.g. united_states, japan",
         "default": "united_states"
+      },
+      "limit": {
+        "type": "integer",
+        "minimum": 1,
+        "maximum": 1000,
+        "default": 100,
+        "description": "Most rows returned (1-1000); a dated series keeps its most recent rows"
       },
       "provider": {
         "type": "string",
-        "description": "OpenBB data provider",
-        "default": "oecd"
+        "enum": [
+          "oecd"
+        ],
+        "default": "oecd",
+        "description": "OpenBB data provider"
       }
     },
     "required": []
@@ -23,8 +34,21 @@
   "outputSchema": {
     "type": "object",
     "properties": {
-      "result": {
-        "type": "object"
+      "provider": {
+        "type": "string"
+      },
+      "data_points": {
+        "type": "integer",
+        "description": "Rows before the cap"
+      },
+      "truncated": {
+        "type": "boolean"
+      },
+      "data": {
+        "type": "array"
+      },
+      "error": {
+        "type": "string"
       }
     }
   },
@@ -39,6 +63,13 @@
       "jobs",
       "labor market"
     ],
-    "examples": []
+    "examples": [
+      {
+        "description": "Unemployment rate (percent) for a country from the OECD",
+        "input": {
+          "country": "france"
+        }
+      }
+    ]
   }
 }

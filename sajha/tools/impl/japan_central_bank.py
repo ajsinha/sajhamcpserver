@@ -1,760 +1,129 @@
 """
 Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.com
-Bank of Japan (BoJ) MCP Tool Implementation
+Bank of Japan (BoJ) MCP tools.
 
-Uses FRED (Federal Reserve Economic Data) API for Japanese economic indicators.
-FRED provides reliable access to Bank of Japan and Japanese economic data.
+Japanese series from FRED (needs FRED_API_KEY) and the IMF SDMX API (no key), through
+sajha/tools/impl/central_bank_series.py. Each series id was checked live. FRED's Japanese
+discount rate (ended 2017), M1/M2 (ended 2017), M3 (ended 2023), CPI (ended 2021), PPI and
+industrial production (ended 2024) are no longer published there, so they are not offered;
+CPI and broad money come from the IMF instead.
 """
 
-import json
-import logging
-import os
-import urllib.parse
-import urllib.request
-from typing import Dict, Any, List, Optional
-from datetime import datetime, timedelta
-from sajha.tools.base_mcp_tool import BaseMCPTool
-from sajha.tools.http_utils import safe_json_response, ENCODINGS_DEFAULT
+from typing import Any, Dict
 
-logger = logging.getLogger(__name__)
+from sajha.tools.impl.central_bank_series import (
+    CentralBankSeriesTool, LIST_OUTPUT, LIST_SCHEMA, Series)
+
+BOJ_SERIES: Dict[str, Series] = {
+    # rates
+    'jgb_10y': ('fred', 'IRLTLT01JPM156N', '10-year JGB yield, %, monthly (OECD series on FRED)'),
+    'jgb_3m': ('fred', 'IR3TIB01JPM156N', '3-month interbank rate, %, monthly (OECD series on FRED)'),
+    'call_money': ('fred', 'IRSTCI01JPM156N', 'Overnight call money rate, %, monthly (OECD series on FRED)'),
+    # fx
+    'usd_jpy': ('fred', 'DEXJPUS', 'Japanese yen per US dollar, daily (noon buying rate, New York)'),
+    'eur_jpy': ('fred', 'DEXJPUS*DEXUSEU', 'Japanese yen per euro, daily, derived as DEXJPUS x DEXUSEU'),
+    # money
+    'broad_money': ('imf', 'MFS_MA', 'JPN.BM_MAI.XDC.M', 'Broad money, yen, monthly (IMF MFS_MA)'),
+    # prices
+    'cpi': ('imf', 'CPI', 'JPN.CPI._T.IX.M', 'Consumer price index, all items (IMF CPI), monthly'),
+    'cpi_inflation': ('imf', 'CPI', 'JPN.CPI._T.YOY_PCH_PA_PT.M',
+                      'CPI inflation, % change on a year earlier (IMF CPI), monthly'),
+    # economy
+    'gdp': ('fred', 'JPNRGDPEXP', 'Real GDP, billions of chained 2015 yen, quarterly, seasonally adjusted'),
+    'unemployment': ('fred', 'LRUNTTTTJPM156S', 'Unemployment rate, %, monthly, seasonally adjusted (OECD)'),
+    'exports': ('fred', 'XTEXVA01JPM664S', 'Goods exports, yen, monthly, seasonally adjusted (OECD)'),
+    'imports': ('fred', 'XTIMVA01JPM664S', 'Goods imports, yen, monthly, seasonally adjusted (OECD)'),
+    'trade_balance': ('fred', 'XTNTVA01JPM664S', 'Goods trade balance (exports less imports), yen, monthly, seasonally adjusted (OECD)'),
+}
+
+CATEGORIES = {
+    'rates': ['jgb_10y', 'jgb_3m', 'call_money'],
+    'fx': ['usd_jpy', 'eur_jpy'],
+    'money': ['broad_money'],
+    'prices': ['cpi', 'cpi_inflation'],
+    'economy': ['gdp', 'unemployment', 'exports', 'imports', 'trade_balance'],
+}
 
 
-class BankOfJapanBaseTool(BaseMCPTool):
-    """
-    Base class for Bank of Japan tools with shared functionality.
-    
-    Uses FRED API to access Japanese economic data including:
-    - JGB (Japanese Government Bond) yields
-    - Policy rates
-    - Exchange rates
-    - Monetary aggregates
-    - Price indices
-    """
-    
-    def __init__(self, config: Dict = None):
-        """Initialize Bank of Japan base tool"""
-        super().__init__(config)
-        
-        # FRED API endpoint for Japanese data
-        self.api_url = "https://api.stlouisfed.org/fred/series/observations"
-        self.fred_api_key = None  # Will be loaded from config
-        
-        # FRED series codes for Japanese economic data
-        self.fred_series = {
-            # JGB Yields (Japanese Government Bonds)
-            'jgb_10y': 'IRLTLT01JPM156N',  # 10-Year JGB Yield
-            'jgb_3m': 'IR3TIB01JPM156N',  # 3-Month Treasury Bill Rate
-            
-            # Policy Rates
-            'policy_rate': 'IRSTCI01JPM156N',  # Immediate Rates: Call Money
-            'discount_rate': 'INTDSRJPM193N',  # Discount Rate
-            
-            # Exchange Rates
-            'usd_jpy': 'DEXJPUS',  # Japanese Yen to US Dollar
-            'eur_jpy': 'DEXJPUS*DEXUSEU',  # derived: JPY per USD x USD per EUR (FRED has no direct EUR/JPY)
-            
-            # Monetary Aggregates
-            'm1': 'MYAGM1JPM189S',  # M1 Money Stock
-            'm2': 'MYAGM2JPM189N',  # M2 Money Stock
-            'm3': 'MABMM301JPM189S',  # M3 Money Stock
-            
-            # Price Indices
-            'cpi': 'JPNCPIALLMINMEI',  # CPI All Items
-            'core_cpi': 'JPNCPICORMINMEI',  # CPI Less Food and Energy
-            'ppi': 'PIEAMP01JPM661N',  # Producer Price Index
-            
-            # Economic Indicators
-            'gdp': 'JPNRGDPEXP',  # Real GDP
-            'unemployment': 'LRUNTTTTJPM156S',  # Unemployment Rate
-            'industrial_production': 'JPNPROINDMISMEI',  # Industrial Production
-            'trade_balance': 'JPNXTEXVA01NCMLM',  # Trade Balance
-        }
-        
-        # Human-readable labels
-        self.series_labels = {
-            'jgb_10y': '10-Year Japanese Government Bond Yield',
-            'jgb_3m': '3-Month Treasury Bill Rate',
-            'policy_rate': 'Bank of Japan Call Money Rate',
-            'discount_rate': 'Bank of Japan Discount Rate',
-            'usd_jpy': 'USD/JPY Exchange Rate',
-            'eur_jpy': 'EUR/JPY Exchange Rate',
-            'm1': 'M1 Money Stock',
-            'm2': 'M2 Money Stock',
-            'm3': 'M3 Money Stock',
-            'cpi': 'Consumer Price Index (All Items)',
-            'core_cpi': 'Core CPI (Less Food and Energy)',
-            'ppi': 'Producer Price Index',
-            'gdp': 'Real GDP',
-            'unemployment': 'Unemployment Rate',
-            'industrial_production': 'Industrial Production Index',
-            'trade_balance': 'Trade Balance',
-        }
-    
-    def _get_api_key(self) -> str:
-        """Get the FRED API key.
+class BankOfJapanBaseTool(CentralBankSeriesTool):
+    SERIES = BOJ_SERIES
+    CATEGORIES = CATEGORIES
 
-        Resolution order: the tool config's ``api_key`` (configs carry
-        ``"api_key": "${fred.api.key}"``, which the registry resolves from
-        application.yml / the FRED_API_KEY env var), then the FRED_API_KEY
-        environment variable directly.
-        """
-        if self.fred_api_key:
-            return self.fred_api_key
-
-        for candidate in (self.config.get('api_key'), os.environ.get('FRED_API_KEY')):
-            # An unresolved placeholder (e.g. "${fred.api.key}") means "not configured"
-            if candidate and isinstance(candidate, str) and not candidate.startswith('${'):
-                self.fred_api_key = candidate
-                return candidate
-
-        raise ValueError(
-            "FRED API key not configured. Set the FRED_API_KEY environment variable "
-            "(application.yml: fred.api.key). "
-            "Get a free API key at https://fred.stlouisfed.org/docs/api/api_key.html"
-        )
-    
-    def _fetch_series(
-        self,
-        series_id: str,
-        start_date: Optional[str] = None,
-        end_date: Optional[str] = None,
-        recent_periods: Optional[int] = None
-    ) -> Dict:
-        """
-        Fetch time series data from FRED API
-        
-        Args:
-            series_id: FRED series ID or our shorthand name
-            start_date: Start date (YYYY-MM-DD)
-            end_date: End date (YYYY-MM-DD)
-            recent_periods: Number of recent periods
-            
-        Returns:
-            Time series data
-        """
-        # Get the FRED series code
-        fred_code = self.fred_series.get(series_id, series_id)
-        label = self.series_labels.get(series_id, series_id)
-        
-        # Build API request
-        api_key = self._get_api_key()
-        
-        params = {
-            'series_id': fred_code,
-            'api_key': api_key,
-            'file_type': 'json',
-            'sort_order': 'desc' if recent_periods else 'asc'
-        }
-        
-        # Set date range
-        if not start_date and not end_date and recent_periods:
-            # Get recent data - go back enough time to get the periods
-            end_date = datetime.now().strftime('%Y-%m-%d')
-            # Estimate start date (assume monthly data, add buffer)
-            start = datetime.now() - timedelta(days=recent_periods * 45)
-            start_date = start.strftime('%Y-%m-%d')
-        
-        if start_date:
-            params['observation_start'] = start_date
-        if end_date:
-            params['observation_end'] = end_date
-        if recent_periods:
-            params['limit'] = recent_periods
-        
-        url = f"{self.api_url}?{urllib.parse.urlencode(params)}"
-        
-        try:
-            headers = {
-                'User-Agent': 'SAJHA-MCP-Server/2.2.0',
-                'Accept': 'application/json'
-            }
-            
-            req = urllib.request.Request(url, headers=headers)
-            with urllib.request.urlopen(req, timeout=30) as response:
-                data = safe_json_response(response, ENCODINGS_DEFAULT)
-                
-                observations = []
-                if 'observations' in data:
-                    for obs in data['observations']:
-                        value = obs.get('value')
-                        # FRED uses '.' for missing values
-                        if value and value != '.':
-                            try:
-                                observations.append({
-                                    'date': obs.get('date'),
-                                    'value': float(value)
-                                })
-                            except ValueError as e:
-                                logger.debug(f"Handled: {e}")
-                                pass
-                    
-                    # Sort chronologically if we fetched in desc order
-                    if recent_periods:
-                        observations.reverse()
-                    
-                    return {
-                        'series_code': fred_code,
-                        'series_id': series_id,
-                        'label': label,
-                        'source': 'FRED (Federal Reserve Economic Data)',
-                        'frequency': data.get('frequency', 'Unknown'),
-                        'units': data.get('units', 'Unknown'),
-                        'observation_count': len(observations),
-                        'observations': observations
-                    }
-                else:
-                    raise ValueError(f"No observations found for series: {fred_code}")
-                
-        except urllib.error.HTTPError as e:
-            if e.code == 400:
-                raise ValueError(f"Invalid series or parameters: {fred_code}")
-            elif e.code == 404:
-                raise ValueError(f"Series not found: {fred_code}")
-            else:
-                raise ValueError(f"FRED API error: HTTP {e.code}")
-        except Exception as e:
-            raise ValueError(f"Failed to get series data: {str(e)}")
-    
-    def _list_available_series(self) -> List[Dict]:
-        """Return list of available series"""
-        series_list = []
-        for series_id, fred_code in self.fred_series.items():
-            series_list.append({
-                'id': series_id,
-                'fred_code': fred_code,
-                'label': self.series_labels.get(series_id, series_id)
-            })
-        return series_list
+    @property
+    def fred_series(self) -> Dict[str, str]:
+        return {k: v[1] for k, v in BOJ_SERIES.items() if v[0] == 'fred'}
 
 
 class BoJGetJGBYieldTool(BankOfJapanBaseTool):
-    """
-    Tool to retrieve Japanese Government Bond (JGB) yields
-    """
-    
-    def __init__(self, config: Dict = None):
-        default_config = {
-            'name': 'boj_get_jgb_yield',
-            'description': 'Retrieve Japanese Government Bond (JGB) yields',
-            'version': '2.9.8',
-            'enabled': True
-        }
-        if config:
-            default_config.update(config)
-        super().__init__(default_config)
-    
-    def get_input_schema(self) -> Dict:
-        return {
-            "type": "object",
-            "properties": {
-                "bond_term": {
-                    "type": "string",
-                    "description": "Bond term/maturity",
-                    "enum": ["10y", "3m"],
-                    "default": "10y"
-                },
-                "start_date": {
-                    "type": "string",
-                    "description": "Start date (YYYY-MM-DD)",
-                    "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
-                },
-                "end_date": {
-                    "type": "string",
-                    "description": "End date (YYYY-MM-DD)",
-                    "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
-                },
-                "recent_periods": {
-                    "type": "integer",
-                    "description": "Number of recent observations",
-                    "minimum": 1,
-                    "maximum": 500
-                }
-            }
-        }
-    
-    def get_output_schema(self) -> Dict:
-        return {
-            "type": "object",
-            "properties": {
-                "series_code": {"type": "string"},
-                "label": {"type": "string"},
-                "source": {"type": "string"},
-                "observations": {
-                    "type": "array",
-                    "items": {
-                        "type": "object",
-                        "properties": {
-                            "date": {"type": "string"},
-                            "value": {"type": "number"}
-                        }
-                    }
-                }
-            }
-        }
-    
+    """10-year JGB yield and 3-month interbank rate."""
+    CHOICE = ('bond_term', ('10y', '3m'), '10y')
+
     def execute(self, arguments: Dict[str, Any]) -> Dict:
-        """Execute JGB yield retrieval"""
-        bond_term = arguments.get('bond_term', '10y')
-        start_date = arguments.get('start_date')
-        end_date = arguments.get('end_date')
-        recent_periods = arguments.get('recent_periods')
-        
-        # Map bond term to series
-        term_mapping = {
-            '10y': 'jgb_10y',
-            '3m': 'jgb_3m'
-        }
-        
-        series_id = term_mapping.get(bond_term)
-        if not series_id:
-            return {"error": f"Unsupported bond term: {bond_term}. Supported: 10y, 3m"}
-        
-        return self._fetch_series(series_id, start_date, end_date, recent_periods)
+        term = arguments.get('bond_term') or '10y'
+        if term not in ('10y', '3m'):
+            raise ValueError(f"Unsupported bond_term: {term}. Use one of: 10y, 3m")
+        return self._fetch_series(f"jgb_{term}", arguments.get('start_date'), arguments.get('end_date'),
+                                  arguments.get('recent_periods'))
 
 
 class BoJGetPolicyRateTool(BankOfJapanBaseTool):
-    """
-    Tool to retrieve Bank of Japan policy rates
-    """
-    
-    def __init__(self, config: Dict = None):
-        default_config = {
-            'name': 'boj_get_policy_rate',
-            'description': 'Retrieve Bank of Japan policy interest rates',
-            'version': '2.9.8',
-            'enabled': True
-        }
-        if config:
-            default_config.update(config)
-        super().__init__(default_config)
-    
-    def get_input_schema(self) -> Dict:
-        return {
-            "type": "object",
-            "properties": {
-                "rate_type": {
-                    "type": "string",
-                    "description": "Type of policy rate",
-                    "enum": ["call_money", "discount"],
-                    "default": "call_money"
-                },
-                "start_date": {
-                    "type": "string",
-                    "description": "Start date (YYYY-MM-DD)"
-                },
-                "end_date": {
-                    "type": "string",
-                    "description": "End date (YYYY-MM-DD)"
-                },
-                "recent_periods": {
-                    "type": "integer",
-                    "description": "Number of recent observations",
-                    "minimum": 1,
-                    "maximum": 500
-                }
-            }
-        }
-    
-    def get_output_schema(self) -> Dict:
-        return {
-            "type": "object",
-            "properties": {
-                "series_code": {"type": "string"},
-                "label": {"type": "string"},
-                "observations": {"type": "array"}
-            }
-        }
-    
-    def execute(self, arguments: Dict[str, Any]) -> Dict:
-        """Execute policy rate retrieval"""
-        rate_type = arguments.get('rate_type', 'call_money')
-        start_date = arguments.get('start_date')
-        end_date = arguments.get('end_date')
-        recent_periods = arguments.get('recent_periods')
-        
-        type_mapping = {
-            'call_money': 'policy_rate',
-            'discount': 'discount_rate',
-            # aliases (older configs advertised the series ids directly)
-            'policy_rate': 'policy_rate',
-            'discount_rate': 'discount_rate',
-        }
-        
-        series_id = type_mapping.get(rate_type)
-        if not series_id:
-            return {"error": f"Unsupported rate type: {rate_type}"}
-        
-        return self._fetch_series(series_id, start_date, end_date, recent_periods)
+    """Overnight call money rate (the BoJ's operating target)."""
+    CHOICE = ('rate_type', ('call_money',), 'call_money')
 
 
 class BoJGetExchangeRateTool(BankOfJapanBaseTool):
-    """
-    Tool to retrieve JPY exchange rates
-    """
-    
-    def __init__(self, config: Dict = None):
-        default_config = {
-            'name': 'boj_get_exchange_rate',
-            'description': 'Retrieve Japanese Yen exchange rates',
-            'version': '2.9.8',
-            'enabled': True
-        }
-        if config:
-            default_config.update(config)
-        super().__init__(default_config)
-    
-    def get_input_schema(self) -> Dict:
-        return {
-            "type": "object",
-            "properties": {
-                "currency_pair": {
-                    "type": "string",
-                    "description": "Currency pair",
-                    "enum": ["usd_jpy", "eur_jpy"],
-                    "default": "usd_jpy"
-                },
-                "start_date": {
-                    "type": "string",
-                    "description": "Start date (YYYY-MM-DD)"
-                },
-                "end_date": {
-                    "type": "string",
-                    "description": "End date (YYYY-MM-DD)"
-                },
-                "recent_periods": {
-                    "type": "integer",
-                    "description": "Number of recent observations",
-                    "minimum": 1,
-                    "maximum": 500
-                }
-            }
-        }
-    
-    def get_output_schema(self) -> Dict:
-        return {
-            "type": "object",
-            "properties": {
-                "series_code": {"type": "string"},
-                "label": {"type": "string"},
-                "observations": {"type": "array"}
-            }
-        }
-    
+    """Yen per US dollar and yen per euro."""
+    CHOICE = ('currency_pair', ('usd_jpy', 'eur_jpy'), 'usd_jpy')
+
     def execute(self, arguments: Dict[str, Any]) -> Dict:
-        """Execute exchange rate retrieval"""
-        currency_pair = arguments.get('currency_pair', 'usd_jpy')
-        start_date = arguments.get('start_date')
-        end_date = arguments.get('end_date')
-        recent_periods = arguments.get('recent_periods')
-        
-        if currency_pair not in ['usd_jpy', 'eur_jpy']:
-            return {"error": f"Unsupported currency pair: {currency_pair}. Supported: usd_jpy, eur_jpy"}
-
-        if currency_pair == 'usd_jpy':
-            return self._fetch_series(currency_pair, start_date, end_date, recent_periods)
-
-        # EUR/JPY is not published on FRED: cross it from JPY per USD (DEXJPUS)
-        # and USD per EUR (DEXUSEU), matched on observation date.
-        usd_jpy = self._fetch_series('DEXJPUS', start_date, end_date, recent_periods)
-        usd_eur = self._fetch_series('DEXUSEU', start_date, end_date, recent_periods)
+        pair = arguments.get('currency_pair') or 'usd_jpy'
+        if pair not in ('usd_jpy', 'eur_jpy'):
+            raise ValueError(f"Unsupported currency_pair: {pair}. Use one of: usd_jpy, eur_jpy")
+        start, end, recent = arguments.get('start_date'), arguments.get('end_date'), arguments.get('recent_periods')
+        if pair == 'usd_jpy':
+            return self._fetch_series('usd_jpy', start, end, recent)
+        # EUR/JPY is not on FRED: cross JPY per USD (DEXJPUS) with USD per EUR (DEXUSEU) by date.
+        usd_jpy = self._fetch_series('DEXJPUS', start, end, recent)
+        usd_eur = self._fetch_series('DEXUSEU', start, end, recent)
         eur_by_date = {o['date']: o['value'] for o in usd_eur['observations']}
-        observations = [
-            {'date': o['date'], 'value': round(o['value'] * eur_by_date[o['date']], 4)}
-            for o in usd_jpy['observations'] if o['date'] in eur_by_date
-        ]
-        return {
-            'series_code': 'DEXJPUS*DEXUSEU',
-            'series_id': 'eur_jpy',
-            'label': self.series_labels['eur_jpy'],
-            'source': 'FRED (Federal Reserve Economic Data), derived cross rate',
-            'frequency': usd_jpy.get('frequency', 'Daily'),
-            'units': 'Japanese Yen per Euro',
-            'observation_count': len(observations),
-            'observations': observations,
-        }
+        observations = [{'date': o['date'], 'value': round(o['value'] * eur_by_date[o['date']], 4)}
+                        for o in usd_jpy['observations'] if o['date'] in eur_by_date]
+        return {'series_code': 'DEXJPUS*DEXUSEU', 'series_id': 'eur_jpy', 'label': BOJ_SERIES['eur_jpy'][2],
+                'source': 'FRED (Federal Reserve Bank of St. Louis), derived cross rate',
+                'units': 'Japanese yen per euro', 'observation_count': len(observations),
+                'observations': observations}
 
 
 class BoJGetMoneySupplyTool(BankOfJapanBaseTool):
-    """
-    Tool to retrieve Japanese money supply data
-    """
-    
-    def __init__(self, config: Dict = None):
-        default_config = {
-            'name': 'boj_get_money_supply',
-            'description': 'Retrieve Japanese money supply (M1, M2, M3)',
-            'version': '2.9.8',
-            'enabled': True
-        }
-        if config:
-            default_config.update(config)
-        super().__init__(default_config)
-    
-    def get_input_schema(self) -> Dict:
-        return {
-            "type": "object",
-            "properties": {
-                "aggregate": {
-                    "type": "string",
-                    "description": "Monetary aggregate",
-                    "enum": ["m1", "m2", "m3"],
-                    "default": "m2"
-                },
-                "start_date": {
-                    "type": "string",
-                    "description": "Start date (YYYY-MM-DD)"
-                },
-                "end_date": {
-                    "type": "string",
-                    "description": "End date (YYYY-MM-DD)"
-                },
-                "recent_periods": {
-                    "type": "integer",
-                    "description": "Number of recent observations",
-                    "minimum": 1,
-                    "maximum": 500
-                }
-            }
-        }
-    
-    def get_output_schema(self) -> Dict:
-        return {
-            "type": "object",
-            "properties": {
-                "series_code": {"type": "string"},
-                "label": {"type": "string"},
-                "observations": {"type": "array"}
-            }
-        }
-    
-    def execute(self, arguments: Dict[str, Any]) -> Dict:
-        """Execute money supply retrieval"""
-        aggregate = arguments.get('aggregate', 'm2')
-        start_date = arguments.get('start_date')
-        end_date = arguments.get('end_date')
-        recent_periods = arguments.get('recent_periods')
-        
-        if aggregate not in ['m1', 'm2', 'm3']:
-            return {"error": f"Unsupported aggregate: {aggregate}"}
-        
-        return self._fetch_series(aggregate, start_date, end_date, recent_periods)
+    """Broad money (IMF)."""
+    CHOICE = ('aggregate', ('broad_money',), 'broad_money')
 
 
 class BoJGetInflationTool(BankOfJapanBaseTool):
-    """
-    Tool to retrieve Japanese inflation data
-    """
-    
-    def __init__(self, config: Dict = None):
-        default_config = {
-            'name': 'boj_get_inflation',
-            'description': 'Retrieve Japanese inflation data (CPI, PPI)',
-            'version': '2.9.8',
-            'enabled': True
-        }
-        if config:
-            default_config.update(config)
-        super().__init__(default_config)
-    
-    def get_input_schema(self) -> Dict:
-        return {
-            "type": "object",
-            "properties": {
-                "index_type": {
-                    "type": "string",
-                    "description": "Inflation measure",
-                    "enum": ["cpi", "core_cpi", "ppi"],
-                    "default": "cpi"
-                },
-                "start_date": {
-                    "type": "string",
-                    "description": "Start date (YYYY-MM-DD)"
-                },
-                "end_date": {
-                    "type": "string",
-                    "description": "End date (YYYY-MM-DD)"
-                },
-                "recent_periods": {
-                    "type": "integer",
-                    "description": "Number of recent observations",
-                    "minimum": 1,
-                    "maximum": 500
-                }
-            }
-        }
-    
-    def get_output_schema(self) -> Dict:
-        return {
-            "type": "object",
-            "properties": {
-                "series_code": {"type": "string"},
-                "label": {"type": "string"},
-                "observations": {"type": "array"}
-            }
-        }
-    
-    def execute(self, arguments: Dict[str, Any]) -> Dict:
-        """Execute inflation data retrieval"""
-        # 'index_type' is the name the tool config advertises; 'measure' kept for compatibility
-        measure = arguments.get('index_type') or arguments.get('measure', 'cpi')
-        start_date = arguments.get('start_date')
-        end_date = arguments.get('end_date')
-        recent_periods = arguments.get('recent_periods')
-        
-        if measure not in ['cpi', 'core_cpi', 'ppi']:
-            return {"error": f"Unsupported measure: {measure}"}
-        
-        return self._fetch_series(measure, start_date, end_date, recent_periods)
+    """CPI level and inflation (IMF)."""
+    CHOICE = ('index_type', ('cpi', 'cpi_inflation'), 'cpi')
 
 
 class BoJGetEconomicIndicatorTool(BankOfJapanBaseTool):
-    """
-    Tool to retrieve various Japanese economic indicators
-    """
-    
-    def __init__(self, config: Dict = None):
-        default_config = {
-            'name': 'boj_get_economic_indicator',
-            'description': 'Retrieve Japanese economic indicators (GDP, unemployment, industrial production)',
-            'version': '2.9.8',
-            'enabled': True
-        }
-        if config:
-            default_config.update(config)
-        super().__init__(default_config)
-    
-    def get_input_schema(self) -> Dict:
-        return {
-            "type": "object",
-            "properties": {
-                "indicator": {
-                    "type": "string",
-                    "description": "Economic indicator",
-                    "enum": ["gdp", "unemployment", "industrial_production", "trade_balance"],
-                    "default": "gdp"
-                },
-                "start_date": {
-                    "type": "string",
-                    "description": "Start date (YYYY-MM-DD)"
-                },
-                "end_date": {
-                    "type": "string",
-                    "description": "End date (YYYY-MM-DD)"
-                },
-                "recent_periods": {
-                    "type": "integer",
-                    "description": "Number of recent observations",
-                    "minimum": 1,
-                    "maximum": 500
-                }
-            }
-        }
-    
-    def get_output_schema(self) -> Dict:
-        return {
-            "type": "object",
-            "properties": {
-                "series_code": {"type": "string"},
-                "label": {"type": "string"},
-                "observations": {"type": "array"}
-            }
-        }
-    
-    def execute(self, arguments: Dict[str, Any]) -> Dict:
-        """Execute economic indicator retrieval"""
-        indicator = arguments.get('indicator', 'gdp')
-        start_date = arguments.get('start_date')
-        end_date = arguments.get('end_date')
-        recent_periods = arguments.get('recent_periods')
-        
-        valid_indicators = ['gdp', 'unemployment', 'industrial_production', 'trade_balance']
-        if indicator not in valid_indicators:
-            return {"error": f"Unsupported indicator: {indicator}. Valid: {valid_indicators}"}
-        
-        return self._fetch_series(indicator, start_date, end_date, recent_periods)
+    """GDP, unemployment and goods trade."""
+    CHOICE = ('indicator', tuple(CATEGORIES['economy']), 'gdp')
 
 
 class BoJListSeriesTools(BankOfJapanBaseTool):
-    """
-    Tool to list available Japanese economic series
-    """
-    
-    def __init__(self, config: Dict = None):
-        default_config = {
-            'name': 'boj_list_series',
-            'description': 'List available Japanese economic data series',
-            'version': '2.9.8',
-            'enabled': True
-        }
-        if config:
-            default_config.update(config)
-        super().__init__(default_config)
-    
+    """The series the boj_ tools read; no network call."""
+
     def get_input_schema(self) -> Dict:
-        return {
-            "type": "object",
-            "properties": {
-                "category": {
-                    "type": "string",
-                    "description": "Category filter (optional)",
-                    "enum": ["rates", "fx", "money", "prices", "economy", "all"],
-                    "default": "all"
-                }
-            }
-        }
-    
+        return LIST_SCHEMA(CATEGORIES)
+
     def get_output_schema(self) -> Dict:
-        return {
-            "type": "object",
-            "properties": {
-                "series": {
-                    "type": "array",
-                    "items": {
-                        "type": "object",
-                        "properties": {
-                            "id": {"type": "string"},
-                            "fred_code": {"type": "string"},
-                            "label": {"type": "string"}
-                        }
-                    }
-                }
-            }
-        }
-    
+        return LIST_OUTPUT
+
     def execute(self, arguments: Dict[str, Any]) -> Dict:
-        """Execute series listing"""
-        category = arguments.get('category', 'all')
-        
-        category_mapping = {
-            'rates': ['jgb_10y', 'jgb_3m', 'policy_rate', 'discount_rate'],
-            'fx': ['usd_jpy', 'eur_jpy'],
-            'money': ['m1', 'm2', 'm3'],
-            'prices': ['cpi', 'core_cpi', 'ppi'],
-            'economy': ['gdp', 'unemployment', 'industrial_production', 'trade_balance'],
-            'all': list(self.fred_series.keys())
-        }
-        
-        series_ids = category_mapping.get(category, category_mapping['all'])
-        
-        series_list = []
-        for series_id in series_ids:
-            if series_id in self.fred_series:
-                series_list.append({
-                    'id': series_id,
-                    'fred_code': self.fred_series[series_id],
-                    'label': self.series_labels.get(series_id, series_id)
-                })
-        
-        return {
-            'category': category,
-            'count': len(series_list),
-            'source': 'FRED (Federal Reserve Economic Data)',
-            'series': series_list
-        }
+        return self._list(arguments.get('category') or 'all')
 
 
 # Tool registry
-JAPAN_CENTRAL_BANK_TOOLS = {
+BOJ_TOOLS = {
     'boj_get_jgb_yield': BoJGetJGBYieldTool,
     'boj_get_policy_rate': BoJGetPolicyRateTool,
     'boj_get_exchange_rate': BoJGetExchangeRateTool,

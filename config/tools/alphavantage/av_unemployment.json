@@ -1,7 +1,8 @@
 {
   "name": "av_unemployment",
   "implementation": "sajha.tools.impl.alphavantage_tools.AVUnemploymentTool",
-  "description": "Monthly US unemployment rate (percent) from Alpha Vantage (UNEMPLOYMENT). Takes no inputs.\nReturns: {name, interval, unit, data: [{date, value}]} with values as strings, newest first. Alpha Vantage's JSON comes back unchanged, including its \"Error Message\" or \"Information\" notes; a network failure gives {\"error\": ...}.\nOther sources: fred_unemployment, openbb_unemployment (other countries).\nKey: ALPHA_VANTAGE_API_KEY (alpha_vantage.api.key); when unset the 'demo' key is sent, which only serves Alpha Vantage's documentation examples. Free tier: 25 requests/day.\nExample: {}",
+  "description": "Monthly US unemployment rate (percent) from Alpha Vantage (UNEMPLOYMENT). Takes no inputs.\nReturns: {name, interval, unit, data: [{date, value}]} with values as strings, newest first.\nOther sources: fred_unemployment, openbb_unemployment (other countries).\nExample: {}",
+  "annotations": {"readOnlyHint": true, "idempotentHint": true, "openWorldHint": true},
   "version": "4.5.0",
   "enabled": true,
   "inputSchema": {

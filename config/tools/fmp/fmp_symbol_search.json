@@ -1,7 +1,8 @@
 {
   "name": "fmp_symbol_search",
   "implementation": "sajha.tools.impl.fmp_tools.FMPGenericTool",
-  "description": "Finds ticker symbols by company name or partial symbol with Financial Modeling Prep (FMP): symbol, name, currency and exchange of each match.\nReturns {tool, endpoint, data}: data is FMP's JSON from /stable/search-symbol as returned (usually a list of records).\nInputs (* required): query (company name or symbol fragment, e.g. apple; FMP needs it although the schema does not mark it required).\nFor full lists use fmp_stock_list or fmp_etf_list; for renamed tickers fmp_symbol_changes.\nNeeds an FMP API key (config fmp.api.key, env FMP_API_KEY); without one it returns a demo placeholder naming the endpoint instead of data.\nExample: {\"query\": \"apple\"}",
+  "description": "Finds ticker symbols by company name or partial symbol with Financial Modeling Prep (FMP): symbol, name, currency and exchange of each match.\nReturns {tool, endpoint, data}: data is FMP's JSON from /stable/search-symbol as returned (usually a list of records).\nInputs (* required): query (company name or symbol fragment, e.g. apple; FMP needs it although the schema does not mark it required).\nFor full lists use fmp_stock_list or fmp_etf_list; for renamed tickers fmp_symbol_changes.\nExample: {\"query\": \"apple\"}",
+  "annotations": {"readOnlyHint": true, "idempotentHint": true, "openWorldHint": true},
   "version": "4.5.0",
   "enabled": true,
   "inputSchema": {

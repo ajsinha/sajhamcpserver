@@ -29,7 +29,7 @@ _WORDS = re.compile(r"[A-Za-z][A-Za-z0-9]*")
 
 
 def _words(text: str) -> set:
-    from sajha.ai.llm.mock import _stem
+    from sajha.ai.llm.providers.mock import _stem
     return {_stem(w.lower()) for w in _WORDS.findall(text or "")}
 
 
@@ -57,7 +57,7 @@ def _default_of(ps: Dict[str, Any]) -> Any:
 
 
 def extract(user: str, schema: Dict[str, Any]) -> Dict[str, Any]:
-    from sajha.ai.llm.mock import fill_arguments
+    from sajha.ai.llm.providers.mock import fill_arguments
     props = (schema or {}).get("properties") or {}
     text = _body(user)
     out: Dict[str, Any] = {}

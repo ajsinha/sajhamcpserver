@@ -1,7 +1,8 @@
 {
   "name": "boc_get_latest",
   "implementation": "sajha.tools.impl.bank_of_canada_tool_refactored.BoCGetLatestTool",
-  "description": "The most recent observation of one Bank of Canada Valet series, by series name or shorthand, from the Bank of Canada Valet API (no API key).\nReturns: series_name, label, description, date and value; an error when the series has no data.\nInputs: series_name (e.g. FXUSDCAD, POLICY_RATE, V122539; wins over indicator) or indicator (usd_cad, eur_cad, gbp_cad, jpy_cad, cny_cad, policy_rate, overnight_rate, prime_rate, bond_2y/5y/10y/30y, cpi, core_cpi, gdp); one is needed.\nFor several headline values at once use boc_get_common_indicators; for history boc_get_series.\nExample: {\"indicator\": \"policy_rate\"}",
+  "description": "The most recent observation of one Bank of Canada Valet series, by series name or shorthand, from the Bank of Canada Valet API (no API key).\nReturns: series_name, label, description, date and value; an error when the series has no data.\nInputs: series_name (e.g. FXUSDCAD, V39079, BD.CDN.10YR.DQ.YLD; wins over indicator) or indicator (usd_cad, eur_cad, gbp_cad, jpy_cad, cny_cad, policy_rate, overnight_rate, prime_rate, bond_2y/5y/10y/30y (30y is the long-term benchmark), cpi, core_cpi (CPI-trim)); one is needed.\nFor several headline values at once use boc_get_common_indicators; for history boc_get_series.\nExample: {\"indicator\": \"policy_rate\"}",
+  "annotations": {"readOnlyHint": true, "idempotentHint": true, "openWorldHint": true},
   "version": "2.9.8",
   "enabled": true,
   "inputSchema": {
@@ -9,7 +10,7 @@
     "properties": {
       "series_name": {
         "type": "string",
-        "description": "Bank of Canada series name (e.g., 'FXUSDCAD', 'POLICY_RATE', 'V122539'). Use this for direct series access."
+        "description": "Bank of Canada series name (e.g., 'FXUSDCAD', 'V39079', 'BD.CDN.10YR.DQ.YLD'). Use this for direct series access."
       },
       "indicator": {
         "type": "string",
@@ -28,15 +29,15 @@
           "bond_10y",
           "bond_30y",
           "cpi",
-          "core_cpi",
-          "gdp"
+          "core_cpi"
         ]
       }
     },
     "oneOf": [
       {"required": ["series_name"]},
       {"required": ["indicator"]}
-    ]
+    ],
+    "examples": [{"indicator": "policy_rate"}]
   },
   "outputSchema": {
     "type": "object",
@@ -91,8 +92,8 @@
           "indicator": "policy_rate"
         },
         "expectedOutput": {
-          "series_name": "POLICY_RATE",
-          "label": "Bank of Canada policy interest rate",
+          "series_name": "V39079",
+          "label": "Target for the overnight rate (business daily)",
           "date": "2024-10-23",
           "value": 4.50
         }

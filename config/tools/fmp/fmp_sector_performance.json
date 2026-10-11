@@ -1,7 +1,8 @@
 {
   "name": "fmp_sector_performance",
   "implementation": "sajha.tools.impl.fmp_tools.FMPSectorPerformanceTool",
-  "description": "Sector performance snapshot from Financial Modeling Prep (FMP, /stable/sector-performance): percentage change by market sector (Technology, Healthcare, Financial Services and others).\nReturns {sectors}: FMP's list of sector records.\nInputs (* required): none.\nFor individual stocks use fmp_market_gainers, fmp_market_losers or fmp_most_active; for sector names fmp_available_sectors.\nNeeds an FMP API key (config fmp.api.key, env FMP_API_KEY); without one it returns a demo placeholder naming the endpoint instead of data.\nExample: {}",
+  "description": "Sector performance snapshot from Financial Modeling Prep (FMP, /stable/sector-performance): percentage change by market sector (Technology, Healthcare, Financial Services and others).\nReturns {sectors}: FMP's list of sector records.\nInputs (* required): none.\nFor individual stocks use fmp_market_gainers, fmp_market_losers or fmp_most_active; for sector names fmp_available_sectors.\nExample: {}",
+  "annotations": {"readOnlyHint": true, "idempotentHint": true, "openWorldHint": true},
   "version": "4.5.0",
   "enabled": true,
   "inputSchema": {

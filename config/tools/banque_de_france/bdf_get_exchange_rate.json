@@ -1,7 +1,8 @@
 {
   "name": "bdf_get_exchange_rate",
   "implementation": "sajha.tools.impl.france_central_bank.BdFGetExchangeRateTool",
-  "description": "Daily ECB euro reference rates: units of US dollar, pound sterling, Japanese yen or Chinese yuan per 1 EUR.\nReturns: series_code, label, unit, frequency (always reported as % and Daily), observation_count and observations (date, value).\nInputs (* required): currency_pair* (eur_usd, eur_gbp, eur_jpy, eur_cny; schema default eur_usd); start_date, end_date (YYYY-MM-DD); recent_periods (1-100; default 10; keeps the last N observations, only when no date is given).\necb_get_exchange_rate covers any currency the ECB quotes. Despite the bdf_ name, data comes from the legacy ECB statistical web service (sdw-wsrest.ecb.europa.eu), no API key; the ecb_ tools read the same ECB data from the current ECB Data Portal API.\nExample: {\"currency_pair\": \"eur_usd\", \"recent_periods\": 20}",
+  "description": "An ECB euro reference exchange rate, daily (business days): units of USD, GBP, JPY or CNY per one euro, series EXR.D.<currency>.EUR.SP00.A.\nReturns: series_code (ECB flow.key), series_id, label, unit, unit_multiplier, frequency, source, observation_count and observations (date, value) oldest first; a note when the period has no observations.\nInputs (none required): currency_pair (eur_usd, eur_gbp, eur_jpy, eur_cny; default eur_usd); start_date, end_date (YYYY-MM-DD, YYYY-MM or YYYY); recent_periods (1-100; default 10; the last N observations, used only when neither date is given).\necb_get_exchange_rate reads the same series and adds eur_chf.\nExample: {\"currency_pair\": \"eur_usd\", \"start_date\": \"2026-01-01\", \"end_date\": \"2026-03-31\"}",
+  "annotations": {"readOnlyHint": true, "idempotentHint": true, "openWorldHint": true},
   "version": "2.9.8",
   "enabled": true,
   "metadata": {

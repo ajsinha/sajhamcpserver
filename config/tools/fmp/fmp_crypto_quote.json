@@ -1,7 +1,8 @@
 {
   "name": "fmp_crypto_quote",
   "implementation": "sajha.tools.impl.fmp_tools.FMPGenericTool",
-  "description": "Latest quote for one cryptocurrency pair (BTC, ETH and others against a fiat currency) from Financial Modeling Prep (FMP).\nReturns {tool, endpoint, data}: data is FMP's JSON from /stable/cryptocurrency-quote as returned (usually a list of records).\nInputs (* required): symbol* (FMP crypto pair, e.g. BTCUSD).\nFor symbols use fmp_crypto_list; for history fmp_crypto_historical; the cg_* (CoinGecko) tools are an alternative source.\nNeeds an FMP API key (config fmp.api.key, env FMP_API_KEY); without one it returns a demo placeholder naming the endpoint instead of data.\nExample: {\"symbol\": \"BTCUSD\"}",
+  "description": "Latest quote for one cryptocurrency pair (BTC, ETH and others against a fiat currency) from Financial Modeling Prep (FMP).\nReturns {tool, endpoint, data}: data is FMP's JSON from /stable/cryptocurrency-quote as returned (usually a list of records).\nInputs (* required): symbol* (FMP crypto pair, e.g. BTCUSD).\nFor symbols use fmp_crypto_list; for history fmp_crypto_historical; the cg_* (CoinGecko) tools are an alternative source.\nExample: {\"symbol\": \"BTCUSD\"}",
+  "annotations": {"readOnlyHint": true, "idempotentHint": true, "openWorldHint": true},
   "version": "4.5.0",
   "enabled": true,
   "inputSchema": {
@@ -10,7 +11,7 @@
       "symbol": {
         "type": "string",
         "description": "Crypto pair symbol (e.g. BTCUSD)",
-        "default": "BTCUSD"
+        "examples": ["BTCUSD"]
       }
     },
     "required": [

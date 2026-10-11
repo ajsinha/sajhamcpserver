@@ -1,7 +1,8 @@
 {
   "name": "fmp_price_target",
   "implementation": "sajha.tools.impl.fmp_tools.FMPPriceTargetTool",
-  "description": "Individual analyst price targets for one stock from Financial Modeling Prep (FMP, /stable/price-target): target price, analyst, firm, publication date and price when posted.\nReturns {symbol, targets}: FMP's list of target records.\nInputs (* required): symbol* (ticker, e.g. AAPL; upper-cased), limit (integer, number of records; default 5).\nFor the consensus (average/high/low) use fmp_price_target_summary; per-analyst view: fmp_price_target_by_analyst; rating changes: fmp_upgrades_downgrades.\nNeeds an FMP API key (config fmp.api.key, env FMP_API_KEY); without one it returns a demo placeholder naming the endpoint instead of data.\nExample: {\"symbol\": \"AAPL\", \"limit\": 5}",
+  "description": "Individual analyst price targets for one stock from Financial Modeling Prep (FMP, /stable/price-target): target price, analyst, firm, publication date and price when posted.\nReturns {symbol, targets}: FMP's list of target records.\nInputs (* required): symbol* (ticker, e.g. AAPL; upper-cased), limit (integer, number of records; default 5).\nFor the consensus (average/high/low) use fmp_price_target_summary; per-analyst view: fmp_price_target_by_analyst; rating changes: fmp_upgrades_downgrades.\nExample: {\"symbol\": \"AAPL\", \"limit\": 5}",
+  "annotations": {"readOnlyHint": true, "idempotentHint": true, "openWorldHint": true},
   "version": "4.5.0",
   "enabled": true,
   "inputSchema": {
@@ -19,7 +20,8 @@
     },
     "required": [
       "symbol"
-    ]
+    ],
+    "examples": [{"symbol": "AAPL", "limit": 5}]
   },
   "outputSchema": {
     "type": "object",

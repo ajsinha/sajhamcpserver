@@ -890,43 +890,45 @@ def _example(product: str) -> Dict[str, Any]:
 
 
 def _unit_text(e) -> str:
-    """'coupon_pct* (percent, 3 = 3%)', 'frequency (annual/semi-annual/...; default semi-annual)'."""
+    """'coupon_pct*', 'frequency=semi-annual', 'option_type=call (call/put)', 'tenor_years (years)'.
+
+    Units are in the domain description (config/tools/qlrisk/domain.txt): a ``_pct`` field is in
+    percent, a ``_bp`` field in basis points and a maturity a tenor or a date, so the description does
+    not repeat them per field. Enumerations longer than three values are left to the schema."""
     s, f = e.schema, e.spec
-    bits = []
-    if f.unit == "percent":
-        bits.append("percent, 3 = 3%")
-    elif f.unit == "basis points":
-        bits.append("basis points, 25 = 0.25%")
-    elif f.unit:
-        bits.append(f.unit)
-    elif f.tenor:
-        bits.append("tenor like 3Y or date")
-    elif e.qname in ("notional", "base_notional"):
-        bits.append("amount")
-    if "enum" in s:
-        bits.append("/".join(str(v) for v in s["enum"]) if len(s["enum"]) <= 8 else "see the schema's list")
+    text = e.name + ("*" if e.required else "")
     if "default" in s:
         d = s["default"]
-        bits.append(f"default {str(d).lower() if isinstance(d, bool) else d}")
-    return e.name + ("*" if e.required else "") + (f" ({'; '.join(bits)})" if bits else "")
+        text += f"={str(d).lower() if isinstance(d, bool) else d}"
+    bits = []
+    if f.unit and f.unit not in ("percent", "basis points", "amount"):
+        bits.append(f.unit)
+    if "enum" in s and len(s["enum"]) <= 3:
+        bits.append("/".join(str(v) for v in s["enum"]))
+    return text + (f" ({'; '.join(bits)})" if bits else "")
+
+
+#: ``advanced`` fields every product tool has, named once in domain.txt (with market_data, reporting_currency, include_cash_flows)
+COMMON_ADVANCED = ("trade_id", "trade_date", "counterparty_id")
 
 
 def _describe(product: str, example: Dict[str, Any], result: Dict[str, Any]) -> str:
-    """Three lines: what it prices; the inputs with units; the worked example with its real result."""
+    """Three lines: what it prices; the inputs; the worked example with its real result. What every
+    product tool shares (units, the common ``advanced`` fields, the sample market, qlrisk_price_trades)
+    is said once in config/tools/qlrisk/domain.txt, which is served after this text."""
     from . import introspect as I
     from .jsonable import rounded
     from .tools.products import exposed_fields
     spec = I.product_spec(product)
     fields = exposed_fields(product)
     main = [_unit_text(e) for e in fields if not e.advanced]
-    adv = [e.name for e in fields if e.advanced] + ["market_data", "reporting_currency", "include_cash_flows"]
+    extra = [e.name for e in fields if e.advanced and e.name not in COMMON_ADVANCED]
     what = spec["description"].rstrip(".")
-    return (f"Price one {what} (qlrisk {product}): NPV, pricing components and Greeks where the pricer gives them.\n"
-            f"Inputs (* required): {', '.join(main) if main else 'none'}. Rates are in percent, spreads in basis "
-            f"points, maturities a tenor (3Y, 18M, 6W, 10D) or a date YYYY-MM-DD. Optional `advanced`: "
-            f"{', '.join(adv)}; market data defaults to qlrisk's sample snapshot valued today.\n"
-            f"Example: {json.dumps(example)} gives NPV {rounded(result['npv'])} {result['currency']} on the sample "
-            f"market valued {EXAMPLE_DATE}. For several trades at once use qlrisk_price_trades.")
+    more = f" In `advanced` also: {', '.join(extra)}." if extra else ""
+    return (f"Price one {what} (qlrisk {product}).\n"
+            f"Inputs (* required, name=default): {', '.join(main) if main else 'none'}.{more}\n"
+            f"Example: {json.dumps(example)} gives NPV {rounded(result['npv'])} {result['currency']} "
+            f"(sample market valued {EXAMPLE_DATE}).")
 
 
 def _priceable(product: str, example: Dict[str, Any]) -> Dict[str, Any]:

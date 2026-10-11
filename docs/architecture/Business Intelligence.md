@@ -1,6 +1,6 @@
 # SAJHA MCP Server — Business Intelligence
 
-> **Status: planned, not built.** Wave 8, phase 8.3 of the
+> **Status: planned, not built.** Wave 8, phase 8.4 (release 8.11.0) of the
 > [Implementation Plan](Implementation%20Plan.md#7b-wave-8-tool-health-open-data-business-intelligence-and-reports);
 > Roadmap items L40 to L44. Until it ships, nothing below exists in the code; the parts it builds
 > on (DuckDB, the OLAP semantic layer, SQL select, data connectors, workflows, MCP Apps) do, and
@@ -176,7 +176,10 @@ installed; otherwise those formats embed nothing and say so.
 ## 6. Blending tool results with internal data
 
 `bi_load_tool_result` turns any tool's output (FRED series, a World Bank indicator, an FMP
-statement, a qlrisk result) into a DuckDB table the caller can join with internal data:
+statement, a qlrisk result) into a DuckDB table the caller can join with internal data. The loader
+itself is built earlier, in phase 8.2, for the `data_analyst` planner
+([Quantitative Planners](Quantitative%20Planners.md) §3.4); this phase exposes it as a tool, and the
+rules below are the loader's:
 
 - the inner call runs **as the caller** through `execute_with_tracking` (RBAC, policy, cache,
   audit), exactly as Ask SAJHA's inner calls do;

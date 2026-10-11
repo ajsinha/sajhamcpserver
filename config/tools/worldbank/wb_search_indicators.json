@@ -1,7 +1,8 @@
 {
   "name": "wb_search_indicators",
   "implementation": "sajha.tools.impl.world_bank_tool.WBSearchIndicatorsTool",
-  "description": "Find World Bank indicators whose name or definition contains a keyword (World Bank Indicators API v2, no API key).\nReturns: search_term (lower-cased), total_results, page, per_page and results: id, name, source_note, source_organization, topics, relevance_score (0.6 for a name match plus 0.4 for a definition match), best first.\nInputs (* required): search_term* (2-100 characters, case-insensitive substring), topic_id (1-21, e.g. 3 Economy & Growth, 19 Climate Change), per_page (1-500; default 50), page (default 1). The keyword is matched only within the one page of the catalogue that page and per_page select, so a larger per_page or a topic_id finds more.\nPass a result id as indicator_code to wb_get_country_data, wb_get_indicator_data or wb_compare_countries. To browse without a keyword use wb_get_indicators or wb_get_topic_indicators.\nExample: {\"search_term\": \"carbon\", \"topic_id\": 19, \"per_page\": 200}",
+  "description": "Find World Bank indicators whose name or definition contains a keyword (World Bank Indicators API v2, no API key).\nReturns: search_term (lower-cased), total_results (all matches), page, per_page and results: id, name, source_note, source_organization, topics, relevance_score (0.6 for a name match plus 0.4 for a definition match), best first.\nInputs (* required): search_term* (2-100 characters, case-insensitive substring), topic_id (1-21, e.g. 3 Economy & Growth, 19 Climate Change), per_page (1-500; default 50), page (default 1). The keyword is matched against the whole indicator catalogue (or the topic's), fetched once and cached for a day; page and per_page page through the matches.\nPass a result id as indicator_code to wb_get_country_data, wb_get_indicator_data or wb_compare_countries. To browse without a keyword use wb_get_indicators or wb_get_topic_indicators.\nExample: {\"search_term\": \"carbon\", \"topic_id\": 19, \"per_page\": 200}",
+  "annotations": {"readOnlyHint": true, "idempotentHint": true, "openWorldHint": true},
   "version": "2.9.8",
   "enabled": true,
   "inputSchema": {
@@ -33,7 +34,8 @@
         "default": 1
       }
     },
-    "required": ["search_term"]
+    "required": ["search_term"],
+    "examples": [{"search_term": "carbon", "topic_id": 19, "per_page": 200}]
   },
   "outputSchema": {
     "type": "object",

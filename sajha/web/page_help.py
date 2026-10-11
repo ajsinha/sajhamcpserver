@@ -41,8 +41,9 @@ PAGE_HELP: dict = {
         'guide': 'TUTORIAL_01_getting_started.md'},
     'tools_domains': {
         'what': 'The tools you may use, by domain: one card per tool folder, proxied MCP server and Unfiled, with its '
-                'tool count; a card opens the Tools page filtered to that domain.',
-        'terms': ['Tool domain', 'Tool folder', 'Unfiled (tool)', 'Proxy tool'],
+                'tool count and, for a folder with one, its domain description; a card opens the Tools page '
+                'filtered to that domain.',
+        'terms': ['Tool domain', 'Tool folder', 'Domain description', 'Unfiled (tool)', 'Proxy tool'],
         'guide': 'Architecture.md'},
     'tool_execute_page': {
         'what': 'Run one tool with arguments you enter, and see the result exactly as an MCP client would.',

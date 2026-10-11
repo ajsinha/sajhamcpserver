@@ -1,7 +1,8 @@
 {
   "name": "fmp_earnings_transcript",
   "implementation": "sajha.tools.impl.fmp_tools.FMPGenericTool",
-  "description": "Earnings call transcript for one company and fiscal quarter from Financial Modeling Prep (FMP): the full text of the call.\nReturns {tool, endpoint, data}: data is FMP's JSON from /stable/earnings-call-transcript as returned (usually a list of records).\nInputs (* required): symbol* (ticker, sent as given, e.g. AAPL), quarter (integer 1-4), year (integer, e.g. 2025); quarter and year are sent only when given (the schema defaults 1 and 2025 are not applied).\nFor call dates and EPS surprises use fmp_earnings_calendar.\nNeeds an FMP API key (config fmp.api.key, env FMP_API_KEY); without one it returns a demo placeholder naming the endpoint instead of data.\nExample: {\"symbol\": \"AAPL\", \"quarter\": 2, \"year\": 2025}",
+  "description": "Earnings call transcript for one company and fiscal quarter from Financial Modeling Prep (FMP): the full text of the call.\nReturns {tool, endpoint, data}: data is FMP's JSON from /stable/earnings-call-transcript as returned (usually a list of records).\nInputs (* required): symbol* (ticker, sent as given, e.g. AAPL), quarter (integer 1-4), year (integer, e.g. 2025); quarter and year are sent only when given (no default: FMP then chooses the transcript).\nFor call dates and EPS surprises use fmp_earnings_calendar.\nExample: {\"symbol\": \"AAPL\", \"quarter\": 2, \"year\": 2025}",
+  "annotations": {"readOnlyHint": true, "idempotentHint": true, "openWorldHint": true},
   "version": "4.5.0",
   "enabled": true,
   "inputSchema": {
@@ -13,18 +14,17 @@
       },
       "quarter": {
         "type": "integer",
-        "description": "Fiscal quarter, 1-4 (sent only when given)",
-        "default": 1
+        "description": "Fiscal quarter, 1-4 (sent only when given)"
       },
       "year": {
         "type": "integer",
-        "description": "Fiscal year, e.g. 2025 (sent only when given)",
-        "default": 2025
+        "description": "Fiscal year, e.g. 2025 (sent only when given)"
       }
     },
     "required": [
       "symbol"
-    ]
+    ],
+    "examples": [{"symbol": "AAPL", "quarter": 2, "year": 2025}]
   },
   "outputSchema": {
     "type": "object",

@@ -1,9 +1,11 @@
 {
   "name": "fed_get_series",
   "implementation": "sajha.tools.impl.fed_reserve_tool_refactored.FedGetSeriesTool",
-  "description": "Observations of one FRED series (Federal Reserve Bank of St. Louis), by series id or shorthand.\nReturns: series_id, title, units, frequency, last_updated, observation_count and observations (date, value; null where FRED has none) oldest first.\nInputs: series_id (FRED id such as GDP, UNRATE, DGS10; wins over indicator) or indicator (gdp, unemployment, inflation (CPIAUCSL index), fed_rate, treasury_10y, treasury_2y, sp500, housing, retail, industrial, m2, pce); one is needed; start_date, end_date (YYYY-MM-DD); limit (1-1000; default 100; counted from the start, so set start_date for recent data).\nFind ids with fed_search_series; for one value use fed_get_latest. Key: the api_key field of this tool's config (a FRED key); the shipped config sets none, so the tool runs in demo mode and returns synthetic values with a note. fred_custom_series reads FRED_API_KEY and returns live data.\nExample: {\"indicator\": \"unemployment\", \"start_date\": \"2020-01-01\", \"end_date\": \"2024-12-31\"}",
+  "description": "Observations of one FRED series (Federal Reserve Bank of St. Louis), by series id or shorthand.\nReturns: series_id, title, units, frequency, last_updated, observation_count and observations (date, value; null where FRED has none) oldest first.\nInputs: series_id (FRED id such as GDP, UNRATE, DGS10; wins over indicator) or indicator (gdp, unemployment, inflation (CPIAUCSL index), fed_rate, treasury_10y, treasury_2y, sp500, housing, retail, industrial, m2, pce); one is needed; start_date, end_date (YYYY-MM-DD); limit (1-1000; default 100; counted from the start, so set start_date for recent data).\nFind ids with fed_search_series; for one value use fed_get_latest.\nExample: {\"indicator\": \"unemployment\", \"start_date\": \"2020-01-01\", \"end_date\": \"2024-12-31\"}",
+  "annotations": {"readOnlyHint": true, "idempotentHint": true, "openWorldHint": true},
   "version": "2.9.8",
   "enabled": true,
+  "api_key": "${fred.api.key}",
   "inputSchema": {
     "type": "object",
     "properties": {
@@ -35,7 +37,8 @@
     "oneOf": [
       {"required": ["series_id"]},
       {"required": ["indicator"]}
-    ]
+    ],
+    "examples": [{"indicator": "unemployment", "start_date": "2020-01-01", "end_date": "2024-12-31"}]
   },
   "outputSchema": {
     "type": "object",

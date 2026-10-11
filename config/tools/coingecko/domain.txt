@@ -1,0 +1,1 @@
+CoinGecko's public API (api.coingecko.com/api/v3): crypto prices, markets and coin data. No API key is sent; CoinGecko rate-limits keyless callers, and a failed call returns {"error": ...}.

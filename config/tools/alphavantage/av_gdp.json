@@ -1,7 +1,8 @@
 {
   "name": "av_gdp",
   "implementation": "sajha.tools.impl.alphavantage_tools.AVGDPTool",
-  "description": "US real GDP series from Alpha Vantage (REAL_GDP), in billions of chained dollars.\nReturns: {name, interval, unit, data: [{date, value}]} with values as strings, newest first. Alpha Vantage's JSON comes back unchanged, including its \"Error Message\" or \"Information\" notes; a network failure gives {\"error\": ...}.\nInputs (* required): interval (annual or quarterly; default annual).\nOther GDP sources: fred_gdp, fred_gdp_growth, openbb_economy_gdp (other countries).\nKey: ALPHA_VANTAGE_API_KEY (alpha_vantage.api.key); when unset the 'demo' key is sent, which only serves Alpha Vantage's documentation examples. Free tier: 25 requests/day.\nExample: {\"interval\": \"quarterly\"}",
+  "description": "US real GDP series from Alpha Vantage (REAL_GDP), in billions of chained dollars.\nReturns: {name, interval, unit, data: [{date, value}]} with values as strings, newest first.\nInputs (* required): interval (annual or quarterly; default annual).\nOther GDP sources: fred_gdp, fred_gdp_growth, openbb_economy_gdp (other countries).\nExample: {\"interval\": \"quarterly\"}",
+  "annotations": {"readOnlyHint": true, "idempotentHint": true, "openWorldHint": true},
   "version": "4.5.0",
   "enabled": true,
   "inputSchema": {

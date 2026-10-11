@@ -2,6 +2,7 @@
   "name": "duckdb_list_files",
   "implementation": "sajha.tools.impl.duckdb_olap_tools_refactored.DuckDbListFilesTool",
   "description": "Lists the data files in the DuckDB data folder (data.duckdb.dir, default data/duckdb) and whether each is loaded as a table. Files are CSV (.csv), TSV (.tsv), Parquet (.parquet, .pq) and JSON (.json, .jsonl).\nReturns {data_directory, files, total_files, summary}: each file has filename, file_type, file_path, file_size_bytes, file_size_human, modified_date, is_loaded and table_name when loaded; summary counts files per type and total_size_bytes.\nInputs: file_type (all, csv, parquet, json or tsv; default all), include_metadata (default true; false drops file_size_bytes, file_size_human and modified_date from each file).\nFor the loaded tables use duckdb_list_tables; to reload duckdb_refresh_views.\nExample: {\"file_type\": \"csv\"}",
+  "annotations": {"readOnlyHint": true, "idempotentHint": true, "openWorldHint": false},
   "version": "2.9.8",
   "enabled": true,
   "data_directory": "${data.duckdb.dir:./data/duckdb}",

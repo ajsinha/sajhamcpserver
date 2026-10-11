@@ -1,7 +1,8 @@
 {
   "name": "ecb_get_exchange_rate",
   "implementation": "sajha.tools.impl.european_central_bank_tool_refactored.ECBGetExchangeRateTool",
-  "description": "Daily ECB euro reference exchange rates: units of a currency per 1 EUR, from the ECB Data Portal API (data-api.ecb.europa.eu, no API key).\nReturns: flow, key, series_name, description, observation_count and observations (date, value) oldest first.\nInputs: currency_pair (EUR/XXX, e.g. EUR/USD; must start with EUR; any currency the ECB quotes) or indicator (eur_usd, eur_gbp, eur_jpy, eur_cny, eur_chf); one is needed; start_date, end_date (YYYY-MM-DD); recent_periods (1-100; default 10): unless both dates are given only the last recent_periods observations are kept, and with no dates the look-back is recent_periods x 40 days.\nFor a single latest rate use ecb_get_latest; for French-sourced euro rates bdf_get_exchange_rate.\nExample: {\"currency_pair\": \"EUR/USD\", \"recent_periods\": 20}",
+  "description": "Daily ECB euro reference exchange rates: units of a currency per 1 EUR (EXR.D.<currency>.EUR.SP00.A).\nReturns: flow, key, series_name (the ECB title), description, unit, unit_multiplier, frequency, source, observation_count and observations (date, value) oldest first; a note when the period has no observations.\nInputs: currency_pair (EUR/XXX, e.g. EUR/USD; must start with EUR; any currency the ECB quotes) or indicator (eur_usd, eur_gbp, eur_jpy, eur_cny, eur_chf); one is needed; start_date, end_date (YYYY-MM-DD, YYYY-MM or YYYY); recent_periods (1-100; default 10; the last N observations of the series whatever its frequency, used only when neither date is given).\nFor one latest rate use ecb_get_latest.\nExample: {\"currency_pair\": \"EUR/USD\", \"recent_periods\": 20}",
+  "annotations": {"readOnlyHint": true, "idempotentHint": true, "openWorldHint": true},
   "version": "2.9.8",
   "enabled": true,
   "inputSchema": {
@@ -35,7 +36,8 @@
     "oneOf": [
       {"required": ["currency_pair"]},
       {"required": ["indicator"]}
-    ]
+    ],
+    "examples": [{"currency_pair": "EUR/USD", "recent_periods": 20}]
   },
   "outputSchema": {
     "type": "object",

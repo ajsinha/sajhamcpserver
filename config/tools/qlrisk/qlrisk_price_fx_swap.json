@@ -3,7 +3,7 @@
   "implementation": "sajha.tools.impl.qlrisk.qlrisk_tools.QlriskPriceProductTool",
   "product": "FXSwap",
   "title": "Price a FXSwap",
-  "description": "Price one FX Swap - spot + forward transaction (qlrisk FXSwap): NPV, pricing components and Greeks where the pricer gives them.\nInputs (* required): base_notional* (amount), near_settlement* (tenor like 3Y or date), far_settlement* (tenor like 3Y or date), base_currency* (see the schema's list), quote_currency* (see the schema's list), near_rate*, far_rate*. Rates are in percent, spreads in basis points, maturities a tenor (3Y, 18M, 6W, 10D) or a date YYYY-MM-DD. Optional `advanced`: trade_id, trade_date, counterparty_id, buy_base_near, market_data, reporting_currency, include_cash_flows; market data defaults to qlrisk's sample snapshot valued today.\nExample: {\"base_notional\": 1000000, \"near_settlement\": \"3M\", \"far_settlement\": \"1Y\", \"base_currency\": \"EUR\", \"quote_currency\": \"USD\", \"near_rate\": 1.1, \"far_rate\": 1.11} gives NPV 5,000.00 USD on the sample market valued 2026-10-09. For several trades at once use qlrisk_price_trades.",
+  "description": "Price one FX Swap - spot + forward transaction (qlrisk FXSwap).\nInputs (* required, name=default): base_notional*, near_settlement*, far_settlement*, base_currency*, quote_currency*, near_rate*, far_rate*. In `advanced` also: buy_base_near.\nExample: {\"base_notional\": 1000000, \"near_settlement\": \"3M\", \"far_settlement\": \"1Y\", \"base_currency\": \"EUR\", \"quote_currency\": \"USD\", \"near_rate\": 1.1, \"far_rate\": 1.11} gives NPV 5,000.00 USD (sample market valued 2026-10-09).",
   "version": "1.0.0",
   "enabled": true,
   "requires": [

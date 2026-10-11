@@ -50,14 +50,16 @@ pyyaml>=6.0,<7.0
 # ── Analytics ────────────────────────────────────────────────
 duckdb>=1.1.0,<2.0.0                # 1.1+: duckdb.SQLExpression (sqlselect_count_rows where_clause)
 
-# ── Financial Data: Yahoo Finance (35 yfinance_* tools) ──────
-yfinance>=0.2.36,<0.3.0
+# ── Financial Data: Yahoo Finance (yf_* and yahoo_* tools) ──────
+# 0.2.54+: yf.screen with Yahoo's predefined screens (yf_screener)
+yfinance>=0.2.54,<0.3.0
 
-# ── Financial Data: OpenBB Platform (70 openbb_* tools) ──────
+# ── Financial Data: OpenBB Platform (openbb_* tools) ──────
+# Tool commands are checked against OpenBB 4.6 (tests/test_market_data_fixes.py).
 # OpenBB 4.6 ships most providers in its core install (yfinance, fmp, fred, sec, imf, oecd,
 # benzinga, intrinio, polygon, tiingo, tradingeconomics); only these remain extras.
 # Every provider: pip install "openbb[all]"
-openbb[alpha_vantage,ecb,nasdaq]>=4.3.0,<5.0.0
+openbb[alpha_vantage,ecb,nasdaq]>=4.6.0,<5.0.0
 
 # ── Testing ──────────────────────────────────────────────────
 pytest>=7.4.0,<9.0.0

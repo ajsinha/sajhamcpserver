@@ -2,6 +2,7 @@
   "name": "msdoc_get_excel_sheets",
   "implementation": "sajha.tools.impl.msdoc_tools_tool_refactored.MsDocGetExcelSheetsTool",
   "description": "Lists the worksheets of an Excel workbook (.xlsx/.xlsm) in order. Files are looked up by name in the docs folder (data/msdocs; msdoc_list_files shows it).\nReturns {filename, sheets, count}: each sheet is {index (0-based), name}.\nInputs (* required): filename*.\nThen read a sheet with msdoc_read_excel_sheet or msdoc_read_excel.\nExample: {\"filename\": \"sales.xlsx\"}",
+  "annotations": {"readOnlyHint": true, "idempotentHint": true, "openWorldHint": false},
   "version": "2.9.8",
   "enabled": true,
   "inputSchema": {
@@ -12,7 +13,8 @@
         "description": "Name of the Excel file"
       }
     },
-    "required": ["filename"]
+    "required": ["filename"],
+    "examples": [{"filename": "sales.xlsx"}]
   },
   "outputSchema": {
     "type": "object",

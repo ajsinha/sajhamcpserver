@@ -1,20 +1,28 @@
 {
   "name": "openbb_equity_discovery_active",
   "implementation": "sajha.tools.impl.openbb_tools.OpenBBGenericTool",
-  "description": "Most actively traded US stocks today through the OpenBB Platform (obb.equity.discovery.active).\nReturns: {tool, data_points (total rows), data: first 100 rows as OpenBB returns them} or {tool, error}.\nInputs (* required): symbol (accepted by the schema, ignored by this command); provider (fmp or yfinance; schema default fmp; when omitted the tool sends yfinance, which needs no key).\nCustom filters: openbb_equity_screener; other source: fmp_most_active. Keys: fmp, benzinga, fred, intrinio, polygon and tiingo need credentials in OpenBB's settings (~/.openbb_platform/user_settings.json), not supplied by SAJHA; yfinance, oecd, federal_reserve, sec, imf and government_us need none.\nExample: {\"provider\": \"yfinance\"}",
+  "description": "Most actively traded US stocks today through the OpenBB Platform (obb.equity.discovery.active).\nReturns: {tool, provider, data_points (rows before the cap), truncated, data: rows with their dates, ignored_arguments when some did not apply} or {tool, error}.\nInputs (* required): limit (rows returned, 1-1000; default 25; a dated series keeps its most recent rows); provider (fmp, yfinance; default yfinance).\nCustom filters: openbb_equity_screener; Yahoo screens: yf_screener; other source: fmp_most_active. Keys: yfinance needs none; fmp uses SAJHA's FMP_API_KEY.\nExample: {\"limit\": 10}",
+  "annotations": {"readOnlyHint": true, "idempotentHint": true, "openWorldHint": true},
   "version": "4.5.0",
   "enabled": true,
   "inputSchema": {
     "type": "object",
     "properties": {
-      "symbol": {
-        "type": "string",
-        "description": "Stock ticker symbol"
+      "limit": {
+        "type": "integer",
+        "minimum": 1,
+        "maximum": 1000,
+        "default": 25,
+        "description": "Most rows returned (1-1000); a dated series keeps its most recent rows"
       },
       "provider": {
         "type": "string",
-        "description": "OpenBB data provider",
-        "default": "fmp"
+        "enum": [
+          "fmp",
+          "yfinance"
+        ],
+        "default": "yfinance",
+        "description": "OpenBB data provider"
       }
     },
     "required": []
@@ -22,8 +30,24 @@
   "outputSchema": {
     "type": "object",
     "properties": {
-      "result": {
-        "type": "object"
+      "tool": {
+        "type": "string"
+      },
+      "provider": {
+        "type": "string"
+      },
+      "data_points": {
+        "type": "integer",
+        "description": "Rows before the cap"
+      },
+      "truncated": {
+        "type": "boolean"
+      },
+      "data": {
+        "type": "array"
+      },
+      "error": {
+        "type": "string"
       }
     }
   },
@@ -35,6 +59,14 @@
     "tags": [
       "openbb",
       "active"
+    ],
+    "examples": [
+      {
+        "description": "Most actively traded US stocks today",
+        "input": {
+          "limit": 10
+        }
+      }
     ]
   }
 }

@@ -69,7 +69,7 @@ SEC endpoints in use:
 
 | Endpoint | Used for |
 |----------|----------|
-| `https://www.sec.gov/files/company_tickers.json` (and the `data.sec.gov` mirror) | Company search, ticker to CIK |
+| `https://www.sec.gov/files/company_tickers_exchange.json` (`edgar_` tools) and `company_tickers.json` (`sec_` tools) | Company search, ticker to CIK, exchange |
 | `https://data.sec.gov/submissions/CIK{cik}.json` | Company profile and filing lists |
 | `https://data.sec.gov/api/xbrl/companyfacts/CIK{cik}.json` | All XBRL facts for a company |
 | `https://data.sec.gov/api/xbrl/companyconcept/CIK{cik}/{taxonomy}/{concept}.json` | One concept over time |
@@ -105,14 +105,14 @@ Lists companies listed on one exchange.
 
 | Parameter | Type | Required | Default | Notes |
 |-----------|------|----------|---------|-------|
-| `exchange` | string | yes | | `Nasdaq`, `NYSE`, `AMEX`, `BATS`, `OTC` |
+| `exchange` | string | yes | | `Nasdaq`, `NYSE`, `OTC`, `CBOE`, `TXSE` (the values the SEC file uses) |
 | `limit` | integer | no | 100 | 1 to 5000 |
 
 ```json
 {"exchange": "NYSE", "limit": 50}
 ```
 
-The tool filters the SEC company-tickers file on an `exchange` field. If that file has no exchange data, the result can be empty. In that case, filter `edgar_company_search` results instead.
+The tool filters the SEC's `company_tickers_exchange.json`, which lists each ticker with its exchange in market-capitalisation order. Before 8.8.0 it read `company_tickers.json`, which has no exchange, from a URL that no longer answers, so the result was always empty.
 
 #### edgar_companies_by_sic
 
@@ -122,12 +122,13 @@ Finds companies in one industry by SIC code.
 |-----------|------|----------|---------|-------|
 | `sic_code` | string | yes | | 4-digit SIC, e.g. `7372` (software), `3674` (semiconductors), `6022` (state commercial banks) |
 | `limit` | integer | no | 50 | 1 to 500 |
+| `max_scan` | integer | no | 200 | 1 to 2000: how many of the largest listed companies to check |
 
 ```json
-{"sic_code": "3674", "limit": 20}
+{"sic_code": "3674", "limit": 5, "max_scan": 100}
 ```
 
-This tool fetches the submissions record of each listed company until it has collected `limit` matches. At 110 ms per request it is slow, so keep `limit` small.
+This tool reads the submissions record of each company in the SEC tickers list, largest market capitalisation first, until it has `limit` matches or has checked `max_scan` companies (110 ms per request). Smaller companies beyond `max_scan` are not seen. The result reports `companies_scanned` and `errors` (companies whose record could not be read; each is logged and skipped).
 
 ### Company information
 
@@ -198,12 +199,14 @@ A ratio is left out when any of its inputs is missing.
 | Parameter | Type | Required | Default | Notes |
 |-----------|------|----------|---------|-------|
 | `cik` | string | yes | | |
-| `fiscal_year` | integer | no | | 2009 to 2030 |
+| `fiscal_year` | integer | no | latest reported | 2009 to 2030 |
 | `fiscal_period` | string | no | `FY` | `FY`, `Q1`, `Q2`, `Q3`, `Q4` |
 
 ```json
 {"cik": "0000320193", "fiscal_year": 2023, "fiscal_period": "FY"}
 ```
+
+Without `fiscal_year` the tool uses the latest fiscal year the company has reported for `fiscal_period`. A report tagged with a fiscal year also carries the prior-period comparatives under the same tags, so each input is the value for the period itself: the latest end date in the matching report (10-K, 20-F or 40-F for `FY`, 10-Q for quarters) and, for `FY`, a span of about a year.
 
 #### edgar_frame_data
 
@@ -216,14 +219,17 @@ Returns one concept for every reporting company in one period (an XBRL frame). U
 | `quarter` | string | no | `CY` | `Q1` to `Q4`, or `CY` for the full calendar year |
 | `taxonomy` | string | no | `us-gaap` | `us-gaap`, `ifrs-full`, `dei`, `srt` |
 | `unit` | string | no | `USD` | `USD`, `shares`, `pure` |
+| `period_type` | string | no | `auto` | `duration`, `instant` or `auto` |
 
 ```json
-{"concept": "Revenues", "year": 2023, "quarter": "CY"}
+{"concept": "Assets", "year": 2023, "quarter": "CY"}
 ```
+
+Income-statement concepts are durations (frame `CY2023`, `CY2023Q1`); balance-sheet concepts are instants (frame `CY2023Q4I`, `CY2023Q1I`; a year's instant is its last quarter end). With `auto` the tool asks for the duration frame and, when the concept has none, the instant frame, so both kinds work; the result's `frame` says which was used.
 
 #### edgar_xbrl_frames_multi_concept
 
-Same as `edgar_frame_data` for several concepts in one call. A concept that fails comes back with an `error` entry, and the other concepts are still returned.
+Same as `edgar_frame_data` for several concepts in one call, with the same `period_type` rule per concept, so income and balance-sheet concepts can be mixed. A concept that fails comes back with an `error` entry, and the other concepts are still returned.
 
 | Parameter | Type | Required | Default | Notes |
 |-----------|------|----------|---------|-------|
@@ -342,12 +348,12 @@ Lists Form 4 filings: trades by officers, directors and 10% owners.
 
 #### edgar_ownership_reports
 
-Lists beneficial-ownership reports (SC 13D/13G) for holders of 5% or more.
+Lists beneficial-ownership reports for holders of 5% or more. Since 18 December 2024 EDGAR files them as `SCHEDULE 13D` / `SCHEDULE 13G` (and `/A`); earlier ones are `SC 13D` / `SC 13G`. Either name finds both, here and in `edgar_filings_by_form`.
 
 | Parameter | Type | Required | Default | Notes |
 |-----------|------|----------|---------|-------|
 | `cik` | string | yes | | |
-| `form_type` | string | no | `SC 13D` | `SC 13D`, `SC 13D/A`, `SC 13G`, `SC 13G/A` |
+| `form_type` | string | no | `SC 13D` | `SC 13D`, `SC 13D/A`, `SC 13G`, `SC 13G/A`, or the `SCHEDULE 13D`/`13G` names |
 | `limit` | integer | no | 20 | 1 to 100 |
 
 ```json
@@ -451,7 +457,7 @@ Returns one metric with all its reported values grouped by unit. Without `fact_t
 {"ticker": "AAPL", "fact_type": "NetIncomeLoss"}
 ```
 
-Companies differ in which tag they report. Apple, for example, reports revenue as `RevenueFromContractWithCustomerExcludingAssessedTax`, not `Revenues`. If a metric comes back empty, call the tool without `fact_type` to list the available facts, or use `edgar_company_concept`, which accepts any tag.
+Each `fact_type` maps to the us-gaap tags that carry it, tried in order, and the result names the `tag` used: `Revenues` (Revenues, RevenueFromContractWithCustomerExcludingAssessedTax, SalesRevenueNet), `EarningsPerShare` (EarningsPerShareBasic, EarningsPerShareDiluted), `Cash` (CashAndCashEquivalentsAtCarryingValue, then the version including restricted cash), `OperatingIncome` (OperatingIncomeLoss), `CurrentAssets` (AssetsCurrent), `CurrentLiabilities` (LiabilitiesCurrent), `LongTermDebt` (LongTermDebt, LongTermDebtNoncurrent), `StockholdersEquity` (with the noncontrolling-interest variant second); the others are their own tag. When no tag matches, the result has a `note`; call the tool without `fact_type` to list the available facts, or use `edgar_company_concept`, which accepts any tag.
 
 #### sec_get_insider_trading
 
@@ -468,15 +474,15 @@ Lists recent Form 4 insider filings.
 
 #### sec_get_mutual_fund_holdings
 
-Despite its name, this tool lists an institutional manager's **Form 13F-HR** filings, the same data as `edgar_institutional_holdings`. Pass the manager's CIK. For N-PORT fund holdings, use `edgar_mutual_fund_holdings`.
+Lists a registered fund's monthly **Form NPORT-P** portfolio holdings filings (and `NPORT-P/A`). Pass the fund registrant's CIK. Before 8.8.0 it listed Form 13F-HR filings despite its name; for a manager's 13F-HR filings use `edgar_institutional_holdings`.
 
 | Parameter | Type | Required | Default | Notes |
 |-----------|------|----------|---------|-------|
-| `cik` / `ticker` | string | one of them | | Use the CIK; managers rarely have a ticker |
+| `cik` / `ticker` | string | one of them | | Use the fund registrant's CIK |
 | `limit` | integer | no | 5 | 1 to 20 |
 
 ```json
-{"cik": "0001067983", "limit": 4}
+{"cik": "0000036405", "limit": 3}
 ```
 
 ---
@@ -495,8 +501,8 @@ Despite its name, this tool lists an institutional manager's **Form 13F-HR** fil
 | Cross-company comparison | `edgar_frame_data`, `edgar_xbrl_frames_multi_concept` | |
 | Industry / exchange screening | `edgar_companies_by_sic`, `edgar_company_tickers_by_exchange` | |
 | Insider trades (Form 4) | `edgar_insider_transactions` | `sec_get_insider_trading` |
-| 13F holdings | `edgar_institutional_holdings` | `sec_get_mutual_fund_holdings` |
-| N-PORT fund holdings | `edgar_mutual_fund_holdings` | |
+| 13F holdings | `edgar_institutional_holdings` | |
+| N-PORT fund holdings | `edgar_mutual_fund_holdings` | `sec_get_mutual_fund_holdings` |
 | 13D/13G, proxies, registrations, 8-K, amendments, foreign issuers | the matching `edgar_*` tool | |
 
 Use the `sec_*` tools when you start from a ticker. Use the `edgar_*` tools for form-specific or cross-company work.
@@ -541,7 +547,7 @@ Use the `sec_*` tools when you start from a ticker. Use the `edgar_*` tools for 
 | `Either 'cik' or 'ticker' is required` | A `sec_*` call with neither argument | Pass one of them |
 | Empty `filings` list | No filings of that form in the SEC's recent-filings window, or a date range that excludes them | Widen the dates; very old filings are outside the recent window these tools read |
 | Empty frame data or ratios | The concept tag is not used by any filer, or not for that period or unit | Try alternate tags (`Revenues`, `RevenueFromContractWithCustomerExcludingAssessedTax`) or a different `unit` |
-| Slow `edgar_companies_by_sic` | One request per company scanned | Lower `limit` |
+| Slow `edgar_companies_by_sic` | One request per company scanned | Lower `max_scan` or `limit` |
 
 All errors come back as standard tool errors; see the [MCP Protocol Guide](../../protocol/MCP%20Protocol%20Guide.md) for the error envelope.
 

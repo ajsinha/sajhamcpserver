@@ -1,6 +1,6 @@
 {
     "name": "sharepoint_lists",
-    "description": "Lists and list items in the configured SharePoint site, via Microsoft Graph.\nReturns a per-operation object (e.g. {item_count, items: [{id, fields, url, modified}]}) with success and execution_time_ms, or {success: false, error}.\nInputs (* required): operation* (get_lists | get_list_items | get_item | create_item | update_item | delete_item | get_list_schema | query_items; default get_lists), list_name (title or id; needed by all but get_lists), item_id (get/update/delete_item), item_data (column values; create/update_item), filter (OData $filter on fields/<Column>; query_items only), select_fields, order_by (e.g. fields/Created desc), top (0-5000, default 100), skip (default 0).\nLibrary files: sharepoint_documents.\nExample: {\"operation\": \"query_items\", \"list_name\": \"Issues\", \"filter\": \"fields/Status eq 'Open'\", \"top\": 20}\nNeeds SHAREPOINT_SITE_URL, AZURE_TENANT_ID, SHAREPOINT_CLIENT_ID, SHAREPOINT_CLIENT_SECRET (Entra ID app); unset, it answers 'SharePoint is not configured'.",
+    "description": "Lists and list items in the configured SharePoint site, via Microsoft Graph.\nReturns a per-operation object (e.g. {item_count, items: [{id, fields, url, modified}]}) with success and execution_time_ms, or {success: false, error}.\nInputs (* required): operation* (get_lists | get_list_items | get_item | create_item | update_item | delete_item | get_list_schema | query_items), list_name (title or id; needed by all but get_lists), item_id (get/update/delete_item), item_data (column values; create/update_item), filter (OData $filter on fields/<Column>; query_items only), select_fields, order_by (e.g. fields/Created desc), top (0-5000, default 100), skip (default 0).\nLibrary files: sharepoint_documents.\nExample: {\"operation\": \"query_items\", \"list_name\": \"Issues\", \"filter\": \"fields/Status eq 'Open'\", \"top\": 20}",
     "category": "Document Management",
     "version": "2.9.8",
     "enabled": true,
@@ -28,7 +28,7 @@
                     "query_items"
                 ],
                 "description": "List operation to perform",
-                "default": "get_lists"
+                "examples": ["get_lists"]
             },
             "list_name": {
                 "type": "string",

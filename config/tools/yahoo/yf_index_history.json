@@ -1,7 +1,8 @@
 {
   "name": "yf_index_history",
   "implementation": "sajha.tools.impl.yfinance_tools.YFIndexHistoryTool",
-  "description": "Daily history for one market index from Yahoo Finance.\nReturns: {index, data_points (total days), prices: the first (oldest) 100 days, each {Date, Open, High, Low, Close, Volume, Dividends, Stock Splits}}; with the default 1y period the most recent months are cut off, so a shorter period gives the latest data.\nInputs (* required): index* (Yahoo index symbol, e.g. ^GSPC, ^DJI, ^IXIC, ^RUT; default ^GSPC); period (1mo, 3mo, 6mo, 1y, 5y, ytd, max, ...; default 1y).\nUp to 500 bars: yf_stock_history with the index symbol; latest levels: yf_market_summary. No API key; data comes from Yahoo Finance through the yfinance library.\nExample: {\"index\": \"^IXIC\", \"period\": \"3mo\"}",
+  "description": "Daily history for one market index from Yahoo Finance.\nReturns: {index, period, data_points (all days in the period), truncated, prices: the most recent limit days, oldest first, each {Date, Open, High, Low, Close, Volume, Dividends, Stock Splits}}.\nInputs (* required): index (Yahoo index symbol, e.g. ^GSPC, ^DJI, ^IXIC, ^RUT; default ^GSPC); period (1mo, 3mo, 6mo, 1y, 5y, ytd, max, ...; default 1y); limit (days, 1-1000; default 260, about one year).\nLatest levels: yf_market_summary; other source: openbb_index_price_historical.\nExample: {\"index\": \"^IXIC\", \"period\": \"3mo\"}",
+  "annotations": {"readOnlyHint": true, "idempotentHint": true, "openWorldHint": true},
   "version": "4.5.0",
   "enabled": true,
   "inputSchema": {
@@ -16,17 +17,31 @@
         "type": "string",
         "description": "yfinance period, e.g. 1mo, 3mo, 6mo, 1y, ytd, max",
         "default": "1y"
+      },
+      "limit": {
+        "type": "integer",
+        "minimum": 1,
+        "maximum": 1000,
+        "default": 260,
+        "description": "Most days returned (1-1000)"
       }
     },
-    "required": [
-      "index"
-    ]
+    "required": []
   },
   "outputSchema": {
     "type": "object",
     "properties": {
-      "result": {
-        "type": "object"
+      "index": {
+        "type": "string"
+      },
+      "data_points": {
+        "type": "integer"
+      },
+      "truncated": {
+        "type": "boolean"
+      },
+      "prices": {
+        "type": "array"
       }
     }
   },
@@ -38,6 +53,15 @@
     "tags": [
       "yfinance",
       "index"
+    ],
+    "examples": [
+      {
+        "description": "Daily history for one market index",
+        "input": {
+          "index": "^IXIC",
+          "period": "3mo"
+        }
+      }
     ]
   }
 }

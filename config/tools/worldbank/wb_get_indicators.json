@@ -2,6 +2,7 @@
   "name": "wb_get_indicators",
   "implementation": "sajha.tools.impl.world_bank_tool.WBGetIndicatorsTool",
   "description": "Browse the catalogue of World Bank development indicators, one page at a time (World Bank Indicators API v2, no API key).\nReturns: total_indicators, page, per_page, total_pages and indicators: id (code such as NY.GDP.MKTP.CD), name, source, source_note (definition), source_organization, topics.\nInputs (none required): topic_id (1-21, e.g. 3 Economy & Growth, 4 Education, 8 Health, 19 Climate Change; full list in the schema), source (data source id, 1-100), per_page (1-1000; default 100), page (default 1).\nTo find indicators by keyword use wb_search_indicators; for one topic with its name use wb_get_topic_indicators. Pass an id from here as indicator_code to wb_get_country_data or wb_get_indicator_data.\nExample: {\"topic_id\": 3, \"per_page\": 50, \"page\": 1}",
+  "annotations": {"readOnlyHint": true, "idempotentHint": true, "openWorldHint": true},
   "version": "2.9.8",
   "enabled": true,
   "inputSchema": {
@@ -46,7 +47,7 @@
         "description": "Current page number"
       },
       "per_page": {
-        "type": "integer",
+        "type": ["integer", "string"],
         "description": "Results per page"
       },
       "total_pages": {

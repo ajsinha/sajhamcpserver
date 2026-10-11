@@ -2,6 +2,7 @@
   "name": "calc_npv",
   "implementation": "sajha.tools.impl.calc_tools.CalcNPVTool",
   "description": "Net present value of a cash flow series: NPV = sum of CF_i / (1 + r)^i, where the first flow is at time 0 (not discounted) and each later flow one period further. Computed locally in Python; no API key or network.\nReturns {discount_rate, cash_flows, npv}, npv rounded to 2 decimals.\nInputs (* required): discount_rate* (percent per period), cash_flows* (array of numbers, usually a negative initial investment first).\nFor the rate at which NPV is zero use calc_irr; for one amount calc_present_value.\nExample: {\"discount_rate\": 8, \"cash_flows\": [-1000, 300, 400, 500]}",
+  "annotations": {"readOnlyHint": true, "idempotentHint": true, "openWorldHint": false},
   "version": "4.5.0",
   "enabled": true,
   "inputSchema": {
@@ -22,7 +23,8 @@
     "required": [
       "discount_rate",
       "cash_flows"
-    ]
+    ],
+    "examples": [{"discount_rate": 8, "cash_flows": [-1000, 300, 400, 500]}]
   },
   "outputSchema": {
     "type": "object",

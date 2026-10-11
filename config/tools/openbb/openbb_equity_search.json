@@ -1,7 +1,8 @@
 {
   "name": "openbb_equity_search",
   "implementation": "sajha.tools.impl.openbb_tools.OpenBBGenericTool",
-  "description": "Search listed companies by name or ticker through the OpenBB Platform (obb.equity.search).\nReturns: {tool, data_points (total rows), data: first 100 rows as OpenBB returns them} or {tool, error}.\nInputs (* required): query*; provider (OpenBB 4.6 accepts intrinio, nasdaq or sec; schema default fmp, but when omitted the tool sends yfinance, which this command rejects, so set it); sec needs no key.\nOther searches: yahoo_search_symbols, openbb_etf_search, edgar_company_search. Keys: fmp, benzinga, fred, intrinio, polygon and tiingo need credentials in OpenBB's settings (~/.openbb_platform/user_settings.json), not supplied by SAJHA; yfinance, oecd, federal_reserve, sec, imf and government_us need none.\nExample: {\"query\": \"semiconductor\", \"provider\": \"sec\"}",
+  "description": "Search listed companies by name or ticker through the OpenBB Platform (obb.equity.search).\nReturns: {tool, provider, data_points (rows before the cap), truncated, data: rows with their dates, ignored_arguments when some did not apply} or {tool, error}.\nInputs (* required): query*; limit (rows returned, 1-1000; default 100; a dated series keeps its most recent rows); provider (intrinio, nasdaq, sec; default sec).\nOther searches: yahoo_search_symbols, openbb_etf_search, edgar_company_search. Keys: nasdaq, sec need none; intrinio needs a key in ~/.openbb_platform/user_settings.json.\nExample: {\"query\": \"semiconductor\"}",
+  "annotations": {"readOnlyHint": true, "idempotentHint": true, "openWorldHint": true},
   "version": "4.5.0",
   "enabled": true,
   "inputSchema": {
@@ -9,23 +10,53 @@
     "properties": {
       "query": {
         "type": "string",
-        "description": "Search text"
+        "description": "Company name or ticker",
+        "minLength": 1
+      },
+      "limit": {
+        "type": "integer",
+        "minimum": 1,
+        "maximum": 1000,
+        "default": 100,
+        "description": "Most rows returned (1-1000); a dated series keeps its most recent rows"
       },
       "provider": {
         "type": "string",
-        "description": "OpenBB data provider",
-        "default": "fmp"
+        "enum": [
+          "intrinio",
+          "nasdaq",
+          "sec"
+        ],
+        "default": "sec",
+        "description": "OpenBB data provider"
       }
     },
     "required": [
       "query"
-    ]
+    ],
+    "examples": [{"query": "semiconductor"}]
   },
   "outputSchema": {
     "type": "object",
     "properties": {
-      "result": {
-        "type": "object"
+      "tool": {
+        "type": "string"
+      },
+      "provider": {
+        "type": "string"
+      },
+      "data_points": {
+        "type": "integer",
+        "description": "Rows before the cap"
+      },
+      "truncated": {
+        "type": "boolean"
+      },
+      "data": {
+        "type": "array"
+      },
+      "error": {
+        "type": "string"
       }
     }
   },
@@ -38,6 +69,14 @@
       "openbb",
       "search",
       "equity"
+    ],
+    "examples": [
+      {
+        "description": "Search listed companies by name or ticker",
+        "input": {
+          "query": "semiconductor"
+        }
+      }
     ]
   }
 }

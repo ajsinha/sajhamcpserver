@@ -2,6 +2,7 @@
   "name": "msdoc_extract_text",
   "implementation": "sajha.tools.impl.msdoc_tools_tool_refactored.MsDocExtractTextTool",
   "description": "Extracts plain text from a Word (.docx) or Excel (.xlsx/.xlsm) file. Word: paragraphs joined by newlines (tables left out). Excel: the active sheet only, first 10000 rows, one line per row with tab-separated cells. Files are looked up by name in the docs folder (data/msdocs; msdoc_list_files shows it). Word files need python-docx.\nReturns {filename, text, character_count}.\nInputs (* required): filename*.\nFor structure (tables, sheets, cells) use msdoc_read_word or msdoc_read_excel.\nExample: {\"filename\": \"report.docx\"}",
+  "annotations": {"readOnlyHint": true, "idempotentHint": true, "openWorldHint": false},
   "version": "2.9.8",
   "enabled": true,
   "inputSchema": {
@@ -12,7 +13,8 @@
         "description": "Name of the file to extract text from (Word or Excel)"
       }
     },
-    "required": ["filename"]
+    "required": ["filename"],
+    "examples": [{"filename": "report.docx"}]
   },
   "outputSchema": {
     "type": "object",

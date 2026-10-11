@@ -2,6 +2,7 @@
   "name": "ir_find_page",
   "implementation": "sajha.tools.impl.investor_relations_tool_refactored.IRFindPageTool",
   "description": "The investor relations web page URL of a supported company, from SAJHA's company database.\nReturns {ticker, ir_page_url, success}.\nInputs (* required): ticker* (string, stock symbol such as AAPL or MSFT; case-insensitive).\nOnly tickers in SAJHA's built-in company list work (ir_list_supported_companies); others fail with 'not supported'. For the documents on that site use ir_get_documents or ir_get_all_resources.\nExample: {\"ticker\": \"MSFT\"}",
+  "annotations": {"readOnlyHint": true, "idempotentHint": true, "openWorldHint": true},
   "version": "2.9.8",
   "enabled": true,
   "inputSchema": {
@@ -12,7 +13,8 @@
         "description": "Stock ticker symbol (e.g., TSLA, MSFT, JPM)"
       }
     },
-    "required": ["ticker"]
+    "required": ["ticker"],
+    "examples": [{"ticker": "MSFT"}]
   },
   "outputSchema": {
     "type": "object",

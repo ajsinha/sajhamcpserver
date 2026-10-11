@@ -1,7 +1,8 @@
 {
   "name": "openbb_derivatives_futures_curve",
   "implementation": "sajha.tools.impl.openbb_tools.OpenBBGenericTool",
-  "description": "Futures term structure (price by expiration month) for one commodity or financial future from Yahoo Finance through the OpenBB Platform (obb.derivatives.futures.curve).\nReturns: {tool, data_points (total rows), data: first 100 rows as OpenBB returns them} or {tool, error}.\nInputs (* required): symbol* (root symbol, e.g. CL for crude oil, GC for gold, ES for S&P 500 futures; default CL); provider (yfinance only; default yfinance, no key).\nPrice history of a contract: openbb_derivatives_futures_historical. Keys: fmp, benzinga, fred, intrinio, polygon and tiingo need credentials in OpenBB's settings (~/.openbb_platform/user_settings.json), not supplied by SAJHA; yfinance, oecd, federal_reserve, sec, imf and government_us need none.\nExample: {\"symbol\": \"CL\", \"provider\": \"yfinance\"}",
+  "description": "Futures term structure (price by expiration) for one commodity or financial future from Yahoo Finance through the OpenBB Platform (obb.derivatives.futures.curve).\nReturns: {tool, provider, data_points (rows before the cap), truncated, data: rows with their dates, ignored_arguments when some did not apply} or {tool, error}.\nInputs (* required): symbol (root, e.g. CL crude oil, GC gold, ES S&P 500; default CL); date (latest when omitted); limit (rows returned, 1-1000; default 100; a dated series keeps its most recent rows); provider (yfinance; default yfinance).\nPrice history of a contract: openbb_derivatives_futures_historical. Keys: yfinance needs none.\nExample: {\"symbol\": \"GC\"}",
+  "annotations": {"readOnlyHint": true, "idempotentHint": true, "openWorldHint": true},
   "version": "4.5.0",
   "enabled": true,
   "inputSchema": {
@@ -9,24 +10,53 @@
     "properties": {
       "symbol": {
         "type": "string",
-        "description": "Futures root symbol, e.g. CL, GC, ES",
-        "default": "CL"
+        "default": "CL",
+        "description": "Futures root, e.g. CL, GC, ES"
+      },
+      "date": {
+        "type": "string",
+        "description": "Curve as of this date; latest when omitted (YYYY-MM-DD)",
+        "format": "date"
+      },
+      "limit": {
+        "type": "integer",
+        "minimum": 1,
+        "maximum": 1000,
+        "default": 100,
+        "description": "Most rows returned (1-1000); a dated series keeps its most recent rows"
       },
       "provider": {
         "type": "string",
-        "description": "OpenBB data provider",
-        "default": "yfinance"
+        "enum": [
+          "yfinance"
+        ],
+        "default": "yfinance",
+        "description": "OpenBB data provider"
       }
     },
-    "required": [
-      "symbol"
-    ]
+    "required": []
   },
   "outputSchema": {
     "type": "object",
     "properties": {
-      "result": {
-        "type": "object"
+      "tool": {
+        "type": "string"
+      },
+      "provider": {
+        "type": "string"
+      },
+      "data_points": {
+        "type": "integer",
+        "description": "Rows before the cap"
+      },
+      "truncated": {
+        "type": "boolean"
+      },
+      "data": {
+        "type": "array"
+      },
+      "error": {
+        "type": "string"
       }
     }
   },
@@ -39,6 +69,14 @@
       "openbb",
       "futures",
       "curve"
+    ],
+    "examples": [
+      {
+        "description": "Futures term structure (price by expiration) for one commodity or financial futu",
+        "input": {
+          "symbol": "GC"
+        }
+      }
     ]
   }
 }

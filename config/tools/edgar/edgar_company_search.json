@@ -1,7 +1,8 @@
 {
   "name": "edgar_company_search",
   "implementation": "sajha.tools.impl.enhanced_edgar_tool.EDGARCompanySearchTool",
-  "description": "Find public companies and their CIK numbers in SEC EDGAR by ticker or by name, using the SEC company-tickers file.\nReturns {query, results_count, companies: [{cik (10 digits), ticker, title, exchange}]}; exact ticker matches first, then names starting with the query, then names containing it.\nInputs (* required): query* (string, ticker such as AAPL or part of a company name), search_type (name | ticker | auto; default auto = both), limit (integer 1-100, default 10).\nUse it first to get the CIK the other edgar_* tools need. sec_search_company is a simpler substring search over the same file.\nExample: {\"query\": \"Microsoft\", \"search_type\": \"name\", \"limit\": 5}\nNo API key needed (SEC data.sec.gov; 110 ms between requests).",
+  "description": "Find public companies and their CIKs by ticker or name, from the SEC's company_tickers_exchange.json (each ticker with its exchange).\nReturns {query, results_count, companies: [{cik (10 digits), ticker, title, exchange (Nasdaq, NYSE, OTC, CBOE, TXSE; empty when the SEC lists none)}]}; exact ticker matches first, then names starting with the query, then names containing it.\nInputs (* required): query* (ticker such as AAPL or part of a company name), search_type (name | ticker | auto; default auto = both), limit (1-100, default 10).\nUse it first to get the CIK the other edgar_* tools need. sec_search_company is a simpler substring search.\nExample: {\"query\": \"Microsoft\", \"search_type\": \"name\", \"limit\": 5}",
+  "annotations": {"readOnlyHint": true, "idempotentHint": true, "openWorldHint": true},
   "version": "2.9.8",
   "enabled": true,
   "inputSchema": {
@@ -14,7 +15,11 @@
       "search_type": {
         "type": "string",
         "description": "Type of search to perform: 'name' for company name search, 'ticker' for ticker symbol search, 'auto' to search both",
-        "enum": ["name", "ticker", "auto"],
+        "enum": [
+          "name",
+          "ticker",
+          "auto"
+        ],
         "default": "auto"
       },
       "limit": {
@@ -25,7 +30,10 @@
         "default": 10
       }
     },
-    "required": ["query"]
+    "required": [
+      "query"
+    ],
+    "examples": [{"query": "Microsoft", "search_type": "name", "limit": 5}]
   },
   "outputSchema": {
     "type": "object",
@@ -68,7 +76,15 @@
   "metadata": {
     "author": "Ashutosh Sinha",
     "category": "SEC EDGAR",
-    "tags": ["sec", "edgar", "company", "search", "cik", "ticker", "public companies"],
+    "tags": [
+      "sec",
+      "edgar",
+      "company",
+      "search",
+      "cik",
+      "ticker",
+      "public companies"
+    ],
     "rateLimit": 10,
     "cacheTTL": 3600,
     "note": "Search interface for SEC EDGAR company database. Returns CIK numbers needed for other EDGAR API calls. No API key required.",

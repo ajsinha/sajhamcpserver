@@ -2,6 +2,7 @@
   "name": "msdoc_read_excel",
   "implementation": "sajha.tools.impl.msdoc_tools_tool_refactored.MsDocReadExcelTool",
   "description": "Reads cell values from one worksheet of an Excel workbook (.xlsx/.xlsm, via openpyxl). Files are looked up by name in the docs folder (data/msdocs; msdoc_list_files shows it).\nReturns {filename, sheet_name, data, row_count, column_count}: data is a list of rows, each a list of cell values; with include_formulas also formulas, [{cell, formula}] per row.\nInputs (* required): filename*, sheet_name (wins over sheet_index), sheet_index (0-based), max_rows (1-10000; default 100), include_formulas (default false; when true data holds cell objects rather than values, so use the formulas list). Without a sheet the active sheet is read. Legacy .xls cannot be read.\nFor sheet names use msdoc_get_excel_sheets; msdoc_read_excel_sheet is the same read without the formula option.\nExample: {\"filename\": \"sales.xlsx\", \"sheet_name\": \"Q1\", \"max_rows\": 50}",
+  "annotations": {"readOnlyHint": true, "idempotentHint": true, "openWorldHint": false},
   "version": "2.9.8",
   "enabled": true,
   "inputSchema": {
@@ -33,7 +34,8 @@
         "default": false
       }
     },
-    "required": ["filename"]
+    "required": ["filename"],
+    "examples": [{"filename": "sales.xlsx", "sheet_name": "Q1", "max_rows": 50}]
   },
   "outputSchema": {
     "type": "object",

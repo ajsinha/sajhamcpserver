@@ -7,7 +7,7 @@ import json
 import urllib.parse
 import urllib.request
 from typing import Dict, Any, List, Optional
-from datetime import datetime
+from datetime import datetime, timezone
 from sajha.tools.base_mcp_tool import BaseMCPTool
 from sajha.tools.http_utils import safe_json_response, ENCODINGS_ALL
 
@@ -109,60 +109,47 @@ class YahooGetQuoteTool(YahooFinanceBaseTool):
         }
     
     def execute(self, arguments: Dict[str, Any]) -> Dict:
-        """Execute the get quote operation"""
+        """Execute the get quote operation through yfinance, which handles the cookie and crumb
+        that Yahoo's quoteSummary endpoint now requires (a plain request gets HTTP 401)."""
         symbol = arguments['symbol'].upper()
-        
-        # Build Yahoo Finance API URL for quote
-        url = f"{self.base_url}/v10/finance/quoteSummary/{urllib.parse.quote(symbol, safe='')}"
-        params = {
-            'modules': 'price,summaryDetail,defaultKeyStatistics'
-        }
-        url += '?' + urllib.parse.urlencode(params)
-        
         try:
-            data = self._make_request(url)
-            result = data.get('quoteSummary', {}).get('result', [])
-            
-            if not result:
-                raise ValueError(f"No data found for symbol: {symbol}")
-            
-            quote_data = result[0]
-            price_data = quote_data.get('price', {})
-            summary_data = quote_data.get('summaryDetail', {})
-            key_stats = quote_data.get('defaultKeyStatistics', {})
-            
-            # Extract values safely
-            def get_value(data_dict, key):
-                """Safely extract value from nested dict"""
-                val = data_dict.get(key, {})
-                if isinstance(val, dict):
-                    return val.get('raw')
-                return val
-            
-            return {
-                'symbol': symbol,
-                'name': price_data.get('longName') or price_data.get('shortName'),
-                'price': get_value(price_data, 'regularMarketPrice'),
-                'currency': price_data.get('currency', 'USD'),
-                'change': get_value(price_data, 'regularMarketChange'),
-                'change_percent': get_value(price_data, 'regularMarketChangePercent'),
-                'volume': get_value(price_data, 'regularMarketVolume'),
-                'avg_volume': get_value(summary_data, 'averageVolume'),
-                'market_cap': get_value(price_data, 'marketCap'),
-                'pe_ratio': get_value(summary_data, 'trailingPE'),
-                'dividend_yield': get_value(summary_data, 'dividendYield'),
-                'fifty_two_week_high': get_value(summary_data, 'fiftyTwoWeekHigh'),
-                'fifty_two_week_low': get_value(summary_data, 'fiftyTwoWeekLow'),
-                'day_high': get_value(price_data, 'regularMarketDayHigh'),
-                'day_low': get_value(price_data, 'regularMarketDayLow'),
-                'open': get_value(price_data, 'regularMarketOpen'),
-                'previous_close': get_value(price_data, 'regularMarketPreviousClose'),
-                'last_updated': datetime.now().isoformat()
-            }
-            
+            import yfinance as yf
+        except ImportError:
+            raise ValueError("yahoo_get_quote needs the yfinance package (pip install yfinance)")
+        try:
+            info = yf.Ticker(symbol).info or {}
         except Exception as e:
             self.logger.error(f"Failed to get quote for {symbol}: {e}", exc_info=True)
             raise ValueError(f"Failed to get quote for {symbol}: {str(e)}")
+        price = info.get('regularMarketPrice')
+        if price is None:
+            price = info.get('currentPrice')
+        if price is None:
+            raise ValueError(f"No quote found for symbol: {symbol}")
+        market_time = info.get('regularMarketTime')
+        return {
+            'symbol': symbol,
+            'name': info.get('longName') or info.get('shortName'),
+            'price': price,
+            'currency': info.get('currency'),
+            'change': info.get('regularMarketChange'),
+            'change_percent': info.get('regularMarketChangePercent'),
+            'volume': info.get('regularMarketVolume'),
+            'avg_volume': info.get('averageVolume'),
+            'market_cap': info.get('marketCap'),
+            'pe_ratio': info.get('trailingPE'),
+            'dividend_yield': info.get('dividendYield'),
+            'fifty_two_week_high': info.get('fiftyTwoWeekHigh'),
+            'fifty_two_week_low': info.get('fiftyTwoWeekLow'),
+            'day_high': info.get('regularMarketDayHigh'),
+            'day_low': info.get('regularMarketDayLow'),
+            'open': info.get('regularMarketOpen'),
+            'previous_close': info.get('regularMarketPreviousClose'),
+            'exchange': info.get('exchange'),
+            'market_time': datetime.fromtimestamp(market_time, tz=timezone.utc).isoformat()
+            if isinstance(market_time, (int, float)) else None,
+            'last_updated': datetime.now(timezone.utc).isoformat()
+        }
 
 
 class YahooGetHistoryTool(YahooFinanceBaseTool):
@@ -294,7 +281,8 @@ class YahooGetHistoryTool(YahooFinanceBaseTool):
             'period1': period1,
             'period2': period2,
             'interval': interval,
-            'events': 'div,split' if include_events else ''
+            'events': 'div,split' if include_events else '',
+            'includeAdjustedClose': 'true'
         }
         url += '?' + urllib.parse.urlencode(params)
         
@@ -309,6 +297,8 @@ class YahooGetHistoryTool(YahooFinanceBaseTool):
             stock_data = result[0]
             timestamps = stock_data.get('timestamp', [])
             quotes = stock_data.get('indicators', {}).get('quote', [{}])[0]
+            # adjusted closes come in their own block (includeAdjustedClose); null when Yahoo omits it
+            adjclose = ((stock_data.get('indicators', {}).get('adjclose') or [{}])[0] or {}).get('adjclose') or []
             
             # Build history array
             history = []
@@ -321,7 +311,7 @@ class YahooGetHistoryTool(YahooFinanceBaseTool):
                     'low': quotes.get('low', [])[i] if i < len(quotes.get('low', [])) else None,
                     'close': quotes.get('close', [])[i] if i < len(quotes.get('close', [])) else None,
                     'volume': int(quotes.get('volume', [])[i]) if i < len(quotes.get('volume', [])) and quotes.get('volume', [])[i] else None,
-                    'adjusted_close': quotes.get('close', [])[i] if i < len(quotes.get('close', [])) else None
+                    'adjusted_close': adjclose[i] if i < len(adjclose) else None
                 })
             
             # Extract events
@@ -362,6 +352,16 @@ class YahooGetHistoryTool(YahooFinanceBaseTool):
         except Exception as e:
             self.logger.error(f"Failed to get history for {symbol}: {e}", exc_info=True)
             raise ValueError(f"Failed to get history for {symbol}: {str(e)}")
+
+
+#: the exchange filter of yahoo_search_symbols -> the codes Yahoo reports in search results
+EXCHANGE_CODES = {
+    'NYSE': {'NYQ'},
+    'NASDAQ': {'NMS', 'NGM', 'NCM', 'NAS'},
+    'AMEX': {'ASE'},
+    'LSE': {'LSE', 'IOB'},
+    'TSX': {'TOR'},
+}
 
 
 class YahooSearchSymbolsTool(YahooFinanceBaseTool):
@@ -441,12 +441,13 @@ class YahooSearchSymbolsTool(YahooFinanceBaseTool):
         query = arguments['query']
         limit = arguments.get('limit', 10)
         exchange_filter = arguments.get('exchange', 'all')
-        
-        # Build search URL
+        codes = EXCHANGE_CODES.get(exchange_filter)       # None for 'all'
+
+        # Build search URL; with an exchange filter, ask for more so that the filter still fills limit
         url = f"{self.base_url}/v1/finance/search"
         params = {
             'q': query,
-            'quotesCount': limit,
+            'quotesCount': limit if not codes else min(max(limit * 4, 25), 100),
             'newsCount': 0,
             'enableFuzzyQuery': 'false'
         }
@@ -457,11 +458,12 @@ class YahooSearchSymbolsTool(YahooFinanceBaseTool):
             quotes = data.get('quotes', [])
             
             results = []
-            for quote in quotes[:limit]:
-                # Filter by exchange if specified
-                if exchange_filter != 'all':
-                    if quote.get('exchange') != exchange_filter:
-                        continue
+            for quote in quotes:
+                if len(results) >= limit:
+                    break
+                # Yahoo reports its own exchange codes (NMS, NYQ, ...), not NYSE or NASDAQ
+                if codes and quote.get('exchange') not in codes:
+                    continue
                 
                 results.append({
                     'symbol': quote.get('symbol'),
@@ -471,6 +473,7 @@ class YahooSearchSymbolsTool(YahooFinanceBaseTool):
                     'sector': quote.get('sector'),
                     'industry': quote.get('industry'),
                     'market_cap': quote.get('marketCap'),
+                    'exchange_name': quote.get('exchDisp'),
                     'description': None  # Not available in search results
                 })
             

@@ -1,7 +1,8 @@
 {
   "name": "yf_splits",
   "implementation": "sajha.tools.impl.yfinance_tools.YFSplitsTool",
-  "description": "Stock split history for one ticker from Yahoo Finance (yfinance splits).\nReturns: {symbol, splits: [{Date, Stock Splits (ratio as a number, e.g. 4.0 for 4-for-1)}]}, oldest first, at most 100 rows.\nInputs (* required): symbol* (Yahoo ticker, e.g. AAPL, BRK-B, 7203.T).\nDividends and splits together: yf_actions; dividends only: yf_dividends. No API key; data comes from Yahoo Finance through the yfinance library.\nExample: {\"symbol\": \"AAPL\"}",
+  "description": "Stock split history for one ticker from Yahoo Finance (yfinance splits).\nReturns: {symbol, data_points (all rows), truncated, splits: the most recent limit rows, oldest first, each {Date, Stock Splits (ratio as a number, e.g. 4.0 for 4-for-1)}}.\nInputs (* required): symbol* (Yahoo ticker, e.g. AAPL, BRK-B, 7203.T); limit (rows, 1-1000; default 100).\nDividends and splits together: yf_actions; dividends only: yf_dividends.\nExample: {\"symbol\": \"AAPL\", \"limit\": 20}",
+  "annotations": {"readOnlyHint": true, "idempotentHint": true, "openWorldHint": true},
   "version": "4.5.0",
   "enabled": true,
   "inputSchema": {
@@ -9,18 +10,36 @@
     "properties": {
       "symbol": {
         "type": "string",
-        "description": "Stock ticker symbol (e.g., AAPL, MSFT)"
+        "description": "Yahoo ticker, e.g. AAPL, BRK-B, 7203.T"
+      },
+      "limit": {
+        "type": "integer",
+        "minimum": 1,
+        "maximum": 1000,
+        "default": 100,
+        "description": "Most rows returned (1-1000)"
       }
     },
     "required": [
       "symbol"
-    ]
+    ],
+    "examples": [{"symbol": "AAPL", "limit": 20}]
   },
   "outputSchema": {
     "type": "object",
     "properties": {
-      "result": {
-        "type": "object"
+      "symbol": {
+        "type": "string"
+      },
+      "data_points": {
+        "type": "integer",
+        "description": "Rows before the cap"
+      },
+      "truncated": {
+        "type": "boolean"
+      },
+      "splits": {
+        "type": "array"
       }
     }
   },
@@ -32,6 +51,15 @@
     "tags": [
       "yfinance",
       "splits"
+    ],
+    "examples": [
+      {
+        "description": "Stock split history for one ticker",
+        "input": {
+          "symbol": "AAPL",
+          "limit": 20
+        }
+      }
     ]
   }
 }

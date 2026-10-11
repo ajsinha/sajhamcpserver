@@ -1,7 +1,8 @@
 {
   "name": "fmp_crypto_historical",
   "implementation": "sajha.tools.impl.fmp_tools.FMPGenericTool",
-  "description": "Daily end-of-day price history for one cryptocurrency pair from Financial Modeling Prep (FMP).\nReturns {tool, endpoint, data}: data is FMP's JSON from /stable/historical-price-eod/full as returned (usually a list of records).\nInputs (* required): symbol* (FMP crypto pair, e.g. BTCUSD).\nFor the latest quote use fmp_crypto_quote; for symbols fmp_crypto_list.\nNeeds an FMP API key (config fmp.api.key, env FMP_API_KEY); without one it returns a demo placeholder naming the endpoint instead of data.\nExample: {\"symbol\": \"ETHUSD\"}",
+  "description": "Daily end-of-day price history for one cryptocurrency pair from Financial Modeling Prep (FMP).\nReturns {tool, endpoint, data}: data is FMP's JSON from /stable/historical-price-eod/full as returned (usually a list of records).\nInputs (* required): symbol* (FMP crypto pair, e.g. BTCUSD).\nFor the latest quote use fmp_crypto_quote; for symbols fmp_crypto_list.\nExample: {\"symbol\": \"ETHUSD\"}",
+  "annotations": {"readOnlyHint": true, "idempotentHint": true, "openWorldHint": true},
   "version": "4.5.0",
   "enabled": true,
   "inputSchema": {
@@ -10,7 +11,7 @@
       "symbol": {
         "type": "string",
         "description": "Crypto pair symbol (e.g. BTCUSD)",
-        "default": "BTCUSD"
+        "examples": ["BTCUSD"]
       }
     },
     "required": [

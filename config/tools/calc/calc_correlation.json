@@ -2,6 +2,7 @@
   "name": "calc_correlation",
   "implementation": "sajha.tools.impl.calc_tools.CalcCorrelationTool",
   "description": "Pearson correlation of two numeric series (population formulas); the longer series is cut to the length of the shorter. Computed locally in Python; no API key or network.\nReturns {correlation, data_points}: correlation from -1 to 1 (6 decimals; 0 if either series is constant).\nInputs (* required): series_x*, series_y* (arrays of numbers, aligned by position).\nFor the sensitivity of a stock to the market use calc_beta.\nExample: {\"series_x\": [1, 2, 3, 4, 5], \"series_y\": [2, 4, 5, 4, 5]}",
+  "annotations": {"readOnlyHint": true, "idempotentHint": true, "openWorldHint": false},
   "version": "4.5.0",
   "enabled": true,
   "inputSchema": {
@@ -25,7 +26,8 @@
     "required": [
       "series_x",
       "series_y"
-    ]
+    ],
+    "examples": [{"series_x": [1, 2, 3, 4, 5], "series_y": [2, 4, 5, 4, 5]}]
   },
   "outputSchema": {
     "type": "object",

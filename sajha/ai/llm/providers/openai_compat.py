@@ -9,7 +9,7 @@ AzureOpenAIProvider       Azure OpenAI: the GA v1 path (default) or deployments 
                           tokens acquired and refreshed by sajha/ai/llm/cloud_auth.py)
 OpenAICompatibleProvider  any server with /chat/completions (vLLM, LM Studio, LiteLLM, ...)
   presets                 groq, together, fireworks, deepseek, xai, openrouter, perplexity,
-                          vllm, lmstudio — each just a base URL, key variable and catalogue
+                          huggingface, vllm, lmstudio — each just a base URL, key variable and catalogue
 
 The canonical format *is* this wire format, so the adapter is a pass-through. What differs per
 server is authentication, base URL and path, and a few declared spellings kept as provider
@@ -503,6 +503,11 @@ XAIProvider = _preset("xai", "https://api.x.ai/v1", ["XAI_API_KEY"])
 OpenRouterProvider = _preset("openrouter", "https://openrouter.ai/api/v1", ["OPENROUTER_API_KEY"])
 PerplexityProvider = _preset("perplexity", "https://api.perplexity.ai", ["PERPLEXITY_API_KEY", "PPLX_API_KEY"],
                              caps=ModelCapabilities(tools=False, structured_output=True, context_window=127_000))
+# Hugging Face Inference Providers: one token, many hosts; the router picks one per model (":fastest" by
+# default; append ":cheapest", ":preferred" or a provider name such as ":groq" to the model id). Chat only
+# on this endpoint. A self-hosted TGI or vLLM server is the generic openai_compatible provider instead.
+HuggingFaceProvider = _preset("huggingface", "https://router.huggingface.co/v1", ["HF_TOKEN", "HUGGING_FACE_HUB_TOKEN"],
+                              caps=ModelCapabilities(tools=True, structured_output=False, context_window=128_000))
 VLLMProvider = _preset("vllm", "http://localhost:8000/v1", ["VLLM_API_KEY"], requires_key=False,
                        caps=ModelCapabilities(tools=True, structured_output=True, context_window=32_000,
                                               tags=frozenset({"local"})), embeddings=True,

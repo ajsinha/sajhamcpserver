@@ -1,40 +1,38 @@
 {
   "name": "boj_get_policy_rate",
   "implementation": "sajha.tools.impl.japan_central_bank.BoJGetPolicyRateTool",
-  "description": "Bank of Japan short-term rates in percent from FRED (Federal Reserve Bank of St. Louis): call_money is the overnight call money rate (IRSTCI01JPM156N, monthly), discount the basic discount/loan rate (INTDSRJPM193N).\nReturns: series_code (FRED id), series_id, label, source, observation_count and observations (date, value) oldest first, missing values dropped.\nInputs (* required): rate_type* (call_money or discount; schema default call_money); start_date, end_date (YYYY-MM-DD); recent_periods (1-100; the last N observations, with no dates looking back N x 45 days; when omitted the whole history in the date range is returned).\nFor JGB yields use boj_get_jgb_yield; all series: boj_list_series. Needs a FRED API key (FRED_API_KEY, config fred.api.key); without one the call fails with a message saying so.\nExample: {\"rate_type\": \"call_money\", \"recent_periods\": 24}",
+  "description": "The Bank of Japan's operating-target rate: the uncollateralised overnight call money rate, in percent, monthly average, from FRED (IRSTCI01JPM156N, OECD series). FRED's Japanese discount-rate series ended in 2017, so it is not offered.\nReturns: series_code (FRED id, or IMF flow.key), series_id, label, source, observation_count and observations (date, value) oldest first, missing values dropped.\nInputs (none required): rate_type (call_money; default call_money); start_date, end_date (YYYY-MM-DD); recent_periods (1-500; default 10; the last N observations, used only when neither date is given).\nFor JGB yields use boj_get_jgb_yield. FRED series need FRED_API_KEY (config fred.api.key); without it they fail with a message saying so.\nExample: {\"rate_type\": \"call_money\", \"recent_periods\": 24}",
+  "annotations": {"readOnlyHint": true, "idempotentHint": true, "openWorldHint": true},
   "version": "2.9.8",
   "enabled": true,
+  "api_key": "${fred.api.key}",
   "inputSchema": {
     "type": "object",
     "properties": {
       "rate_type": {
         "type": "string",
-        "description": "Policy rate series: call_money (uncollateralized overnight call rate) or discount (basic discount/loan rate)",
         "enum": [
-          "call_money",
-          "discount"
+          "call_money"
         ],
-        "default": "call_money"
+        "default": "call_money",
+        "description": "call_money: overnight call money rate"
       },
       "start_date": {
         "type": "string",
-        "description": "Start date in YYYY-MM-DD format"
+        "description": "Start date (YYYY-MM-DD)"
       },
       "end_date": {
         "type": "string",
-        "description": "End date in YYYY-MM-DD format"
+        "description": "End date (YYYY-MM-DD)"
       },
       "recent_periods": {
         "type": "integer",
-        "description": "Number of recent observations (1-100)",
         "minimum": 1,
-        "maximum": 100,
-        "default": 10
+        "maximum": 500,
+        "default": 10,
+        "description": "The last N observations; used only when neither date is given"
       }
-    },
-    "required": [
-      "rate_type"
-    ]
+    }
   },
   "outputSchema": {
     "type": "object",
@@ -78,7 +76,15 @@
       "monetary policy"
     ],
     "rateLimit": 120,
-    "cacheTTL": 3600
-  },
-  "api_key": "${fred.api.key}"
+    "cacheTTL": 3600,
+    "examples": [
+      {
+        "description": "Example",
+        "input": {
+          "rate_type": "call_money",
+          "recent_periods": 24
+        }
+      }
+    ]
+  }
 }

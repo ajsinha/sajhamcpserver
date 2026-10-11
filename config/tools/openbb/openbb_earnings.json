@@ -1,7 +1,8 @@
 {
   "name": "openbb_earnings",
   "implementation": "sajha.tools.impl.openbb_tools.OpenBBEarningsTool",
-  "description": "Meant to give earnings history for one stock through OpenBB (obb.equity.fundamental.earnings).\nReturns: {symbol, earnings: [...]} or {symbol, error}.\nInputs (* required): symbol*; provider (default yfinance).\nOpenBB 4.x (4.6 checked) has no obb.equity.fundamental.earnings, so this tool currently returns an error object; alternatives: yf_earnings_history, yf_earnings_dates or av_earnings.\nExample: {\"symbol\": \"AAPL\"}",
+  "description": "Reported versus estimated EPS history for one company through the OpenBB Platform (obb.equity.fundamental.historical_eps).\nReturns: {symbol, provider, data_points, truncated, earnings: [records with date, period, eps_actual, eps_estimated, surprise]} or {symbol, error}.\nInputs (* required): symbol*; limit (periods; default 8); provider (alpha_vantage, fmp; default alpha_vantage).\nKeyless: yf_earnings_history, yf_earnings_dates; another source: av_earnings. Keys: alpha_vantage uses SAJHA's ALPHA_VANTAGE_API_KEY; fmp uses SAJHA's FMP_API_KEY.\nExample: {\"symbol\": \"AAPL\", \"limit\": 4}",
+  "annotations": {"readOnlyHint": true, "idempotentHint": true, "openWorldHint": true},
   "version": "4.5.0",
   "enabled": true,
   "inputSchema": {
@@ -9,23 +10,48 @@
     "properties": {
       "symbol": {
         "type": "string",
-        "description": "Stock ticker symbol (e.g., AAPL, MSFT)"
+        "description": "Ticker symbol, e.g. AAPL"
+      },
+      "limit": {
+        "type": "integer",
+        "minimum": 1,
+        "maximum": 1000,
+        "default": 8,
+        "description": "Number of reported periods (1-1000)"
       },
       "provider": {
         "type": "string",
-        "description": "Data provider",
-        "default": "yfinance"
+        "enum": [
+          "alpha_vantage",
+          "fmp"
+        ],
+        "default": "alpha_vantage",
+        "description": "OpenBB data provider"
       }
     },
     "required": [
       "symbol"
-    ]
+    ],
+    "examples": [{"symbol": "AAPL", "limit": 4}]
   },
   "outputSchema": {
     "type": "object",
     "properties": {
-      "result": {
-        "type": "object"
+      "provider": {
+        "type": "string"
+      },
+      "data_points": {
+        "type": "integer",
+        "description": "Rows before the cap"
+      },
+      "truncated": {
+        "type": "boolean"
+      },
+      "earnings": {
+        "type": "array"
+      },
+      "error": {
+        "type": "string"
       }
     }
   },
@@ -40,6 +66,14 @@
       "eps",
       "surprise"
     ],
-    "examples": []
+    "examples": [
+      {
+        "description": "Reported versus estimated EPS history for one company",
+        "input": {
+          "symbol": "AAPL",
+          "limit": 4
+        }
+      }
+    ]
   }
 }

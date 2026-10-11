@@ -1,7 +1,8 @@
 {
   "name": "fmp_sp500_constituents",
   "implementation": "sajha.tools.impl.fmp_tools.FMPGenericTool",
-  "description": "Current constituents of the S&P 500 index from Financial Modeling Prep (FMP): symbol, name, sector and related fields.\nReturns {tool, endpoint, data}: data is FMP's JSON from /stable/sp500-constituent as returned (usually a list of records).\nInputs (* required): none.\nOther indexes: fmp_nasdaq_constituents, fmp_dowjones_constituents; index level: fmp_index_quote.\nNeeds an FMP API key (config fmp.api.key, env FMP_API_KEY); without one it returns a demo placeholder naming the endpoint instead of data.\nExample: {}",
+  "description": "Current constituents of the S&P 500 index from Financial Modeling Prep (FMP): symbol, name, sector and related fields.\nReturns {tool, endpoint, data}: data is FMP's JSON from /stable/sp500-constituent as returned (usually a list of records).\nInputs (* required): none.\nOther indexes: fmp_nasdaq_constituents, fmp_dowjones_constituents; index level: fmp_index_quote.\nExample: {}",
+  "annotations": {"readOnlyHint": true, "idempotentHint": true, "openWorldHint": true},
   "version": "4.5.0",
   "enabled": true,
   "inputSchema": {

@@ -1,7 +1,8 @@
 {
   "name": "yf_actions",
   "implementation": "sajha.tools.impl.yfinance_tools.YFActionsTool",
-  "description": "Corporate actions (dividends and stock splits together) for one ticker from Yahoo Finance (yfinance actions).\nReturns: {symbol, actions: [{Date, Dividends, Stock Splits}]}, oldest first, at most the first 100 rows; a row has 0 in the column that does not apply.\nInputs (* required): symbol* (Yahoo ticker, e.g. AAPL, BRK-B, 7203.T).\nOne kind only: yf_dividends or yf_splits. No API key; data comes from Yahoo Finance through the yfinance library.\nExample: {\"symbol\": \"AAPL\"}",
+  "description": "Corporate actions (dividends and stock splits together) for one ticker from Yahoo Finance (yfinance actions).\nReturns: {symbol, data_points (all rows), truncated, actions: the most recent limit rows, oldest first, each {Date, Dividends, Stock Splits} (0 in the column that does not apply)}.\nInputs (* required): symbol* (Yahoo ticker, e.g. AAPL, BRK-B, 7203.T); limit (rows, 1-1000; default 100).\nOne kind only: yf_dividends or yf_splits.\nExample: {\"symbol\": \"AAPL\", \"limit\": 20}",
+  "annotations": {"readOnlyHint": true, "idempotentHint": true, "openWorldHint": true},
   "version": "4.5.0",
   "enabled": true,
   "inputSchema": {
@@ -9,18 +10,36 @@
     "properties": {
       "symbol": {
         "type": "string",
-        "description": "Stock ticker symbol (e.g., AAPL, MSFT)"
+        "description": "Yahoo ticker, e.g. AAPL, BRK-B, 7203.T"
+      },
+      "limit": {
+        "type": "integer",
+        "minimum": 1,
+        "maximum": 1000,
+        "default": 100,
+        "description": "Most rows returned (1-1000)"
       }
     },
     "required": [
       "symbol"
-    ]
+    ],
+    "examples": [{"symbol": "AAPL", "limit": 20}]
   },
   "outputSchema": {
     "type": "object",
     "properties": {
-      "result": {
-        "type": "object"
+      "symbol": {
+        "type": "string"
+      },
+      "data_points": {
+        "type": "integer",
+        "description": "Rows before the cap"
+      },
+      "truncated": {
+        "type": "boolean"
+      },
+      "actions": {
+        "type": "array"
       }
     }
   },
@@ -32,6 +51,15 @@
     "tags": [
       "yfinance",
       "actions"
+    ],
+    "examples": [
+      {
+        "description": "Corporate actions (dividends and stock splits together) for one ticker",
+        "input": {
+          "symbol": "AAPL",
+          "limit": 20
+        }
+      }
     ]
   }
 }

@@ -1,6 +1,6 @@
 # SAJHA MCP Server — Reports
 
-> **Status: planned, not built.** Wave 8, phase 8.4 of the
+> **Status: planned, not built.** Wave 8, phase 8.5 (release 8.12.0) of the
 > [Implementation Plan](Implementation%20Plan.md#7b-wave-8-tool-health-open-data-business-intelligence-and-reports);
 > Roadmap items L45 to L50. Until it ships, nothing below exists in the code. It builds on
 > [Business Intelligence](Business%20Intelligence.md) (metrics, tiles, charts),
@@ -13,7 +13,7 @@ numbers check, and is delivered to people. Terms are in the [Glossary](../../GLO
 
 Do not confuse this with the existing **Reports** console page (`/reports`). That page is a usage
 dashboard showing tool calls by tool and user over 24 hours, 7 days and 30 days
-(`sajha/routes/reporting_routes.py`). Section 9 proposes how to name the two apart.
+(`sajha/routes/reporting_routes.py`). Section 9 records how the two are named apart.
 
 ---
 
@@ -139,6 +139,9 @@ Some definition names are reserved because they would collide with the fixed too
 | DOCX | Headings, KPI tables, tables, charts as PNG | python-docx (already a requirement) |
 | Markdown | The report as Markdown tables and text; this is what `report_<name>` returns inline to a model | none |
 
+The owner accepted Playwright, openpyxl and python-pptx as optional `requires` (2026-10-11): a
+format whose dependency is missing is not offered, and nothing else is affected.
+
 PNG charts are made by rasterising the SVG in headless Chromium. Without Chromium, PPTX and DOCX
 show each chart's data table instead and say so. Every format carries the classification marking
 (section 8) and ends with the provenance appendix.
@@ -149,7 +152,9 @@ show each chart's data table instead and say so. Every format carries the classi
 
 `report_narrate` writes commentary over a run's data. It uses an [LLM tool](LLM%20Tools.md) in
 `narrate` mode, with a configurable model alias (`reports.narrate_model`). It then **validates**
-the text:
+the text with the numbers validator of the quantitative workspace
+([Quantitative Planners](Quantitative%20Planners.md) §2.4, built in phase 8.2), given the run's data
+and the comparisons the report computed as quantities:
 
 1. **Extract.** Every number in the text is extracted: integers, decimals, percentages, currency
    amounts, suffixed amounts such as `1.2bn` or `350k`, and basis points.
@@ -239,9 +244,9 @@ workflow.
 - **A report library page.**
   - It lists the definitions the user may run. From it the user can run a report with parameters,
     see history, compare two runs and download files.
-  - **Naming (decision needed).** The existing `/reports` page is a usage dashboard. The proposal:
-    rename that page's menu entry to "Usage", give the new page the name "Reports" under a new
-    path, and keep `/reports` working.
+  - **Naming (owner decision, 2026-10-11).** The existing `/reports` page is a usage dashboard. In
+    this phase its menu entry is renamed "Usage", the new page takes the name "Reports" under a new
+    path, and `/reports` keeps working.
 
 ---
 

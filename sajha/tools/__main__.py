@@ -4,6 +4,7 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
 
     python -m sajha.tools folders                         the folders, and root files grouped by prefix
     python -m sajha.tools move '<name-or-glob>' --to <folder> [--dry-run]
+    python -m sajha.tools guides [--folder NAME] [--check]  regenerate the Tool Reference Guide tables
 
 Moves go through the configured storage backend (config/application.yml ``storage.*``): a rename
 on local disk, write-then-delete on an object store. A move never copies: a tool name may exist in
@@ -28,7 +29,7 @@ SUGGESTED = {
     'cg': 'coingecko', 'check': 'webcrawler', 'connected': 'connected_accounts', 'crawl': 'webcrawler',
     'customer': 'olap', 'extract': 'webcrawler', 'fed': 'federal_reserve', 'get': 'webcrawler',
     'github': 'connected_accounts', 'ir': 'investor_relations', 'ms365': 'connected_accounts',
-    'pboc': 'peoples_bank_of_china', 'rbi': 'reserve_bank_of_india', 'sec': 'edgar',
+    'pboc': 'peoples_bank_of_china', 'sec': 'edgar',
     'slack': 'connected_accounts', 'un': 'united_nations', 'wb': 'worldbank', 'wiki': 'wikipedia',
     'yf': 'yahoo',
 }
@@ -117,18 +118,26 @@ def cmd_move(pattern: str, folder: str, dry_run: bool, out=sys.stdout) -> int:
 
 
 def main(argv: Optional[List[str]] = None) -> int:
-    ap = argparse.ArgumentParser(prog='python -m sajha.tools', description='Tool folders: list and move tool configs.')
+    ap = argparse.ArgumentParser(prog='python -m sajha.tools', description='Tool folders: list and move tool configs; generate the guide tables.')
     sub = ap.add_subparsers(dest='cmd', required=True)
     sub.add_parser('folders', help='list the folders, and root files grouped by prefix with a suggested folder')
     mv = sub.add_parser('move', help='move tools (a name or a glob) into a folder ("" for the root)')
     mv.add_argument('pattern', help='a tool name or a glob, e.g. "fmp_*"')
     mv.add_argument('--to', required=True, dest='folder', help='the folder ("" moves back to the root)')
     mv.add_argument('--dry-run', action='store_true', help='print what would move, move nothing')
+    gd = sub.add_parser('guides', help='regenerate the tool tables of docs/tools/**/*.md between '
+                                       '<!-- generated:tools folder=NAME --> and <!-- /generated:tools -->')
+    gd.add_argument('--folder', help='only the regions of this tool folder')
+    gd.add_argument('--check', action='store_true', help='write nothing; exit 1 when a region is stale')
     args = ap.parse_args(argv)
     logging.basicConfig(level=logging.WARNING)
     _init_storage()
     if args.cmd == 'folders':
         return cmd_folders()
+    if args.cmd == 'guides':
+        from sajha.tools.guides import main as guides_main
+        logging.getLogger().setLevel(logging.ERROR)     # tool classes built for their schemas log freely
+        return guides_main(check=args.check, folder=args.folder)
     return cmd_move(args.pattern, args.folder, args.dry_run)
 
 

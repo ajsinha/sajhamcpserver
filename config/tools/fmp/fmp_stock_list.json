@@ -1,7 +1,8 @@
 {
   "name": "fmp_stock_list",
   "implementation": "sajha.tools.impl.fmp_tools.FMPGenericTool",
-  "description": "Listed stocks covered by Financial Modeling Prep (FMP), with symbol and name.\nReturns {tool, endpoint, data}: data is FMP's JSON from /stable/stock-list as returned (usually a list of records).\nInputs (* required): limit (integer; sent only when given).\nTo find a ticker by company name use fmp_symbol_search; for filtered lists fmp_stock_screener.\nNeeds an FMP API key (config fmp.api.key, env FMP_API_KEY); without one it returns a demo placeholder naming the endpoint instead of data.\nExample: {\"limit\": 50}",
+  "description": "Listed stocks covered by Financial Modeling Prep (FMP), with symbol and name.\nReturns {tool, endpoint, data}: data is FMP's JSON from /stable/stock-list as returned (usually a list of records).\nInputs (* required): limit (integer; sent only when given).\nTo find a ticker by company name use fmp_symbol_search; for filtered lists fmp_stock_screener.\nExample: {\"limit\": 50}",
+  "annotations": {"readOnlyHint": true, "idempotentHint": true, "openWorldHint": true},
   "version": "4.5.0",
   "enabled": true,
   "inputSchema": {

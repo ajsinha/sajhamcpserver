@@ -116,6 +116,10 @@ CATALOG: Dict[str, List[Row]] = {
         ("sonar-pro",           "chat", 200_000, 8_000, 3.00, 15.00, "sv", "search"),
         ("sonar-reasoning-pro", "chat", 127_000, 8_000, 2.00, 8.00, "s", "search,reasoning"),
     ],
+    "huggingface": [         # the router's price is the serving provider's; GET /v1/models lists them
+        ("openai/gpt-oss-120b",     "chat", 131_072, 32_768, 0.0, 0.0, "t", ""),
+        ("deepseek-ai/DeepSeek-R1", "chat", 128_000, 32_768, 0.0, 0.0, "", "reasoning"),
+    ],
     "vllm": [],
     "lmstudio": [],
     "openai_compatible": [],
@@ -138,6 +142,7 @@ DEFAULT_MODELS: Dict[str, Tuple[str, str]] = {      # provider -> (chat, embeddi
     "xai": ("grok-4.3", ""),
     "openrouter": ("openai/gpt-6.1-sol", ""),
     "perplexity": ("sonar", ""),
+    "huggingface": ("openai/gpt-oss-120b", ""),
     "vllm": ("", ""),
     "lmstudio": ("", ""),
     "openai_compatible": ("", ""),

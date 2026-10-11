@@ -1,7 +1,8 @@
 {
   "name": "yf_calendar",
   "implementation": "sajha.tools.impl.yfinance_tools.YFCalendarTool",
-  "description": "Upcoming earnings and dividend events for one ticker from Yahoo Finance (yfinance calendar).\nReturns: {symbol, calendar} where calendar holds keys such as Dividend Date, Ex-Dividend Date, Earnings Date (list), Earnings High/Low/Average and Revenue High/Low/Average; empty when Yahoo has none.\nInputs (* required): symbol* (Yahoo ticker, e.g. AAPL, BRK-B, 7203.T).\nPast and future earnings dates with EPS: yf_earnings_dates; market-wide calendars: openbb_equity_calendar_earnings, openbb_equity_calendar_dividend. No API key; data comes from Yahoo Finance through the yfinance library.\nExample: {\"symbol\": \"MSFT\"}",
+  "description": "Upcoming earnings and dividend events for one ticker from Yahoo Finance (yfinance calendar).\nReturns: {symbol, calendar} where calendar holds keys such as Dividend Date, Ex-Dividend Date, Earnings Date (list), Earnings High/Low/Average and Revenue High/Low/Average; empty when Yahoo has none.\nInputs (* required): symbol* (Yahoo ticker, e.g. AAPL, BRK-B, 7203.T).\nPast and future earnings dates with EPS: yf_earnings_dates; market-wide calendars: openbb_equity_calendar_earnings, openbb_equity_calendar_dividend.\nExample: {\"symbol\": \"MSFT\"}",
+  "annotations": {"readOnlyHint": true, "idempotentHint": true, "openWorldHint": true},
   "version": "4.5.0",
   "enabled": true,
   "inputSchema": {
@@ -14,7 +15,8 @@
     },
     "required": [
       "symbol"
-    ]
+    ],
+    "examples": [{"symbol": "MSFT"}]
   },
   "outputSchema": {
     "type": "object",

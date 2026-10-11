@@ -1,0 +1,1 @@
+Data comes from Yahoo Finance (most tools through the yfinance library); no API key.

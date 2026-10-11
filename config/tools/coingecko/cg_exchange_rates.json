@@ -1,7 +1,8 @@
 {
   "name": "cg_exchange_rates",
   "implementation": "sajha.tools.impl.coingecko_tools.CGExchangeRatesTool",
-  "description": "Bitcoin exchange rates against fiat currencies, other crypto assets and commodities, from CoinGecko (exchange_rates).\nReturns {rates: {code: {name, unit, value (units per 1 BTC), type (fiat | crypto | commodity)}}}.\nInputs: none.\nFor a coin's price in a given currency use cg_coin_price.\nExample: {}\nNo API key is sent (CoinGecko public API, rate-limited by CoinGecko); a failed call returns {\"error\": ...}.",
+  "description": "Bitcoin exchange rates against fiat currencies, other crypto assets and commodities, from CoinGecko (exchange_rates).\nReturns {rates: {code: {name, unit, value (units per 1 BTC), type (fiat | crypto | commodity)}}}.\nInputs: none.\nFor a coin's price in a given currency use cg_coin_price.\nExample: {}",
+  "annotations": {"readOnlyHint": true, "idempotentHint": true, "openWorldHint": true},
   "version": "4.5.0",
   "enabled": true,
   "inputSchema": {

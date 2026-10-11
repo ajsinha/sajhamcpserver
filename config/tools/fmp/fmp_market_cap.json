@@ -1,7 +1,8 @@
 {
   "name": "fmp_market_cap",
   "implementation": "sajha.tools.impl.fmp_tools.FMPGenericTool",
-  "description": "Current market capitalisation of one company from Financial Modeling Prep (FMP).\nReturns {tool, endpoint, data}: data is FMP's JSON from /stable/market-capitalization as returned (usually a list of records).\nInputs (* required): symbol* (ticker, sent as given, e.g. AAPL).\nFor history use fmp_historical_market_cap; for EV fmp_enterprise_value.\nNeeds an FMP API key (config fmp.api.key, env FMP_API_KEY); without one it returns a demo placeholder naming the endpoint instead of data.\nExample: {\"symbol\": \"MSFT\"}",
+  "description": "Current market capitalisation of one company from Financial Modeling Prep (FMP).\nReturns {tool, endpoint, data}: data is FMP's JSON from /stable/market-capitalization as returned (usually a list of records).\nInputs (* required): symbol* (ticker, sent as given, e.g. AAPL).\nFor history use fmp_historical_market_cap; for EV fmp_enterprise_value.\nExample: {\"symbol\": \"MSFT\"}",
+  "annotations": {"readOnlyHint": true, "idempotentHint": true, "openWorldHint": true},
   "version": "4.5.0",
   "enabled": true,
   "inputSchema": {
@@ -14,7 +15,8 @@
     },
     "required": [
       "symbol"
-    ]
+    ],
+    "examples": [{"symbol": "MSFT"}]
   },
   "outputSchema": {
     "type": "object",

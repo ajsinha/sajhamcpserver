@@ -11,7 +11,6 @@ Example client for UN tools:
 - un_get_sdg_targets: Get SDG targets
 - un_get_sdg_indicators: Get SDG indicators
 - un_get_sdg_data: Get SDG data
-- un_get_sdg_progress: Get country progress on SDGs
 - un_get_trade_data: Get UN Comtrade data
 - un_get_country_trade: Get country trade summary
 - un_get_trade_balance: Get trade balance
@@ -70,19 +69,6 @@ class UNClient(SajhaClient):
         if year:
             args['year'] = year
         return self.execute_tool('un_get_sdg_data', args)
-    
-    def get_sdg_progress(self, country: str, goal: int = None) -> dict:
-        """
-        Get country's SDG progress.
-        
-        Args:
-            country: Country code
-            goal: Specific SDG (optional, all if not specified)
-        """
-        args = {'country': country}
-        if goal:
-            args['goal'] = goal
-        return self.execute_tool('un_get_sdg_progress', args)
     
     def get_trade_data(self,
                        reporter: str,
@@ -173,16 +159,6 @@ def example_sdg_targets():
 
 
 @run_example
-def example_sdg_progress():
-    """Example: Get country SDG progress"""
-    client = UNClient()
-    
-    print("\n📊 Getting US SDG progress...")
-    progress = client.get_sdg_progress('US')
-    pretty_print(progress, "US SDG Progress")
-
-
-@run_example
 def example_country_trade():
     """Example: Get country trade data"""
     client = UNClient()
@@ -238,7 +214,6 @@ if __name__ == '__main__':
     
     example_list_sdgs()
     example_sdg_targets()
-    example_sdg_progress()
     example_country_trade()
     example_trade_balance()
     example_compare_trade()

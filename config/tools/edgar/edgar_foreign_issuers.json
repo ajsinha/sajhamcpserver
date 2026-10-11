@@ -1,1 +1,75 @@
-{"name":"edgar_foreign_issuers","implementation":"sajha.tools.impl.enhanced_edgar_tool.EDGARForeignIssuersTool","description":"Foreign private issuer filings (20-F annual report, 6-K current report, 40-F Canadian annual report) for one company, from SEC EDGAR (data.sec.gov submissions).\nReturns {cik, company_name, form_type, form_description, filings_count, filings: [{accessionNumber, filingDate, reportDate, form, primaryDocument, primaryDocDescription, document_url}]}, newest first; document_url is an SEC viewer link.\nInputs (* required): cik* (string, SEC Central Index Key, up to 10 digits; from edgar_company_search), form_type* (20-F | 6-K | 40-F; schema default 20-F), limit (integer 1-100, default 20).\nOnly the recent-filings block of the EDGAR submissions file is searched. US domestic filers use 10-K/10-Q/8-K instead (edgar_filings_by_form).\nExample: {\"cik\": \"0001046179\", \"form_type\": \"20-F\", \"limit\": 5}\nNo API key needed (SEC data.sec.gov; 110 ms between requests).","version":"2.9.8","enabled":true,"inputSchema":{"type":"object","properties":{"cik":{"description": "Central Index Key (CIK), up to 10 digits","type":"string"},"form_type":{"description": "Foreign issuer form: 20-F annual report, 6-K current report, 40-F Canadian annual report","type":"string","enum":["20-F","6-K","40-F"],"default":"20-F"},"limit":{"description": "Maximum filings to return (1-100)","type":"integer","minimum":1,"maximum":100,"default":20}},"required":["cik","form_type"]},"outputSchema":{"type":"object","properties":{"cik":{"type":"string"},"company_name":{"type":"string"},"form_type":{"type":"string"},"form_description":{"type":"string"},"filings_count":{"type":"integer"},"filings":{"type":"array"}}},"metadata":{"author":"Ashutosh Sinha","category":"SEC EDGAR","tags":["sec","edgar","foreign","20-F","6-K","40-F"],"rateLimit":10,"cacheTTL":1800}}
+{
+  "name": "edgar_foreign_issuers",
+  "implementation": "sajha.tools.impl.enhanced_edgar_tool.EDGARForeignIssuersTool",
+  "description": "Foreign private issuer filings (20-F annual report, 6-K current report, 40-F Canadian annual report) for one company, from the EDGAR submissions file.\nReturns {cik, company_name, form_type, form_description, filings_count, filings: [{accessionNumber, filingDate, reportDate, form, primaryDocument, primaryDocDescription, document_url}]}, newest first; document_url is an SEC viewer link.\nInputs (* required): cik*, form_type (20-F | 6-K | 40-F; default 20-F), limit (1-100, default 20).\nSearches only the recent-filings block of the submissions file. US domestic filers use 10-K/10-Q/8-K instead (edgar_filings_by_form).\nExample: {\"cik\": \"0001046179\", \"form_type\": \"20-F\", \"limit\": 5}",
+  "annotations": {"readOnlyHint": true, "idempotentHint": true, "openWorldHint": true},
+  "version": "2.9.8",
+  "enabled": true,
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "cik": {
+        "description": "Central Index Key (CIK), up to 10 digits",
+        "type": "string"
+      },
+      "form_type": {
+        "description": "Foreign issuer form: 20-F annual report, 6-K current report, 40-F Canadian annual report",
+        "type": "string",
+        "enum": [
+          "20-F",
+          "6-K",
+          "40-F"
+        ],
+        "default": "20-F"
+      },
+      "limit": {
+        "description": "Maximum filings to return (1-100)",
+        "type": "integer",
+        "minimum": 1,
+        "maximum": 100,
+        "default": 20
+      }
+    },
+    "required": [
+      "cik"
+    ],
+    "examples": [{"cik": "0001046179", "form_type": "20-F", "limit": 5}]
+  },
+  "outputSchema": {
+    "type": "object",
+    "properties": {
+      "cik": {
+        "type": "string"
+      },
+      "company_name": {
+        "type": "string"
+      },
+      "form_type": {
+        "type": "string"
+      },
+      "form_description": {
+        "type": "string"
+      },
+      "filings_count": {
+        "type": "integer"
+      },
+      "filings": {
+        "type": "array"
+      }
+    }
+  },
+  "metadata": {
+    "author": "Ashutosh Sinha",
+    "category": "SEC EDGAR",
+    "tags": [
+      "sec",
+      "edgar",
+      "foreign",
+      "20-F",
+      "6-K",
+      "40-F"
+    ],
+    "rateLimit": 10,
+    "cacheTTL": 1800
+  }
+}

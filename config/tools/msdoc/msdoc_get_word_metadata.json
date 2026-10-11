@@ -2,6 +2,7 @@
   "name": "msdoc_get_word_metadata",
   "implementation": "sajha.tools.impl.msdoc_tools_tool_refactored.MsDocGetWordMetadataTool",
   "description": "Core document properties of a Word file (.docx). Files are looked up by name in the docs folder (data/msdocs; msdoc_list_files shows it). Needs the python-docx package (optional in requirements.txt).\nReturns {filename, metadata}: metadata has author, title, subject, created and modified (empty strings when unset).\nInputs (* required): filename*.\nFor content use msdoc_read_word; for Excel files msdoc_get_excel_metadata.\nExample: {\"filename\": \"report.docx\"}",
+  "annotations": {"readOnlyHint": true, "idempotentHint": true, "openWorldHint": false},
   "version": "2.9.8",
   "enabled": true,
   "inputSchema": {
@@ -12,7 +13,8 @@
         "description": "Name of the Word file"
       }
     },
-    "required": ["filename"]
+    "required": ["filename"],
+    "examples": [{"filename": "report.docx"}]
   },
   "outputSchema": {
     "type": "object",

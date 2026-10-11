@@ -3,7 +3,7 @@
   "implementation": "sajha.tools.impl.qlrisk.qlrisk_tools.QlriskPriceProductTool",
   "product": "FXOption",
   "title": "Price a FXOption",
-  "description": "Price one FX Vanilla Option (qlrisk FXOption): NPV, pricing components and Greeks where the pricer gives them.\nInputs (* required): maturity* (tenor like 3Y or date), notional (amount; default 1000000), option_type (call/put; default call), digital (default false), payout, strike, pair, currency (see the schema's list; default USD). Rates are in percent, spreads in basis points, maturities a tenor (3Y, 18M, 6W, 10D) or a date YYYY-MM-DD. Optional `advanced`: trade_id, trade_date, effective_date, counterparty_id, spot, domestic_curve, foreign_curve, foreign_rate_pct, position, market_data, reporting_currency, include_cash_flows; market data defaults to qlrisk's sample snapshot valued today.\nExample: {\"maturity\": \"1Y\", \"notional\": 1000000} gives NPV 38,930.25 USD on the sample market valued 2026-10-09. For several trades at once use qlrisk_price_trades.",
+  "description": "Price one FX Vanilla Option (qlrisk FXOption).\nInputs (* required, name=default): maturity*, notional=1000000, option_type=call (call/put), digital=false, payout, strike, pair, currency=USD. In `advanced` also: effective_date, spot, domestic_curve, foreign_curve, foreign_rate_pct, position.\nExample: {\"maturity\": \"1Y\", \"notional\": 1000000} gives NPV 38,930.25 USD (sample market valued 2026-10-09).",
   "version": "1.0.0",
   "enabled": true,
   "requires": [

@@ -2,6 +2,7 @@
   "name": "calc_present_value",
   "implementation": "sajha.tools.impl.calc_tools.CalcPresentValueTool",
   "description": "Present value of a single future amount with annual compounding: PV = FV / (1 + r)^t. Computed locally in Python; no API key or network.\nReturns {future_value, rate, years, present_value}, present_value rounded to 2 decimals.\nInputs (* required): future_value* (amount), rate* (annual discount rate in percent), years* (may be fractional).\nFor a series of cash flows use calc_npv; the inverse is calc_future_value.\nExample: {\"future_value\": 50000, \"rate\": 6, \"years\": 8}",
+  "annotations": {"readOnlyHint": true, "idempotentHint": true, "openWorldHint": false},
   "version": "4.5.0",
   "enabled": true,
   "inputSchema": {
@@ -24,7 +25,8 @@
       "future_value",
       "rate",
       "years"
-    ]
+    ],
+    "examples": [{"future_value": 50000, "rate": 6, "years": 8}]
   },
   "outputSchema": {
     "type": "object",

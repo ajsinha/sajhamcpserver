@@ -3,7 +3,12 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
 Alpha Vantage MCP Tools — Stock, Forex, Crypto, Technical Indicators, Economic Data
 
 API: https://www.alphavantage.co/documentation/
-Free tier: 25 requests/day. Set ALPHA_VANTAGE_API_KEY in application.yml.
+Key: alpha_vantage.api.key (from ALPHA_VANTAGE_API_KEY). Without one the tools answer with a
+configuration error; they never fall back to Alpha Vantage's 'demo' key. Free tier: 25 requests/day.
+
+Alpha Vantage answers HTTP 200 for its own errors, with a body of "Error Message" (bad symbol or
+parameter), "Information" (premium endpoint, daily limit) or "Note" (rate limit); those become
+{"error": ...}. Code defaults here equal the schema defaults in config/tools/alphavantage.
 """
 
 import json, urllib.request, urllib.parse, logging
@@ -13,23 +18,39 @@ from sajha.tools.http_utils import safe_json_response, ENCODINGS_ALL
 
 logger = logging.getLogger(__name__)
 AV_BASE = "https://www.alphavantage.co/query"
+AV_NOTES = ('Error Message', 'Information', 'Note')
 
 class AVBaseTool(BaseMCPTool):
     def __init__(self, config=None):
         super().__init__(config)
-        self.api_key = config.get('api_key', '') if config else ''
+        key = str((config or {}).get('api_key') or '').strip()
+        self.api_key = '' if key.startswith('${') else key
     def _av_get(self, function, **params):
+        if not self.api_key:
+            return {"error": "Alpha Vantage API key not configured: set ALPHA_VANTAGE_API_KEY "
+                             "(alpha_vantage.api.key). A free key is at https://www.alphavantage.co/support/#api-key"}
         params['function'] = function
-        params['apikey'] = self.api_key or 'demo'
+        params['apikey'] = self.api_key
         url = f"{AV_BASE}?{urllib.parse.urlencode(params)}"
         try:
             req = urllib.request.Request(url, headers={'Accept': 'application/json'})
             with urllib.request.urlopen(req, timeout=30) as resp:
-                return safe_json_response(resp, ENCODINGS_ALL)
+                data = safe_json_response(resp, ENCODINGS_ALL)
         except Exception as e:
             return {"error": str(e)}
+        return _av_error(data) or data
     def get_input_schema(self): return self._input_schema
     def get_output_schema(self): return self._output_schema
+
+
+def _av_error(data):
+    """{"error": ...} when Alpha Vantage's body is only one of its notes (it answers HTTP 200)."""
+    if isinstance(data, dict) and data and set(data) <= set(AV_NOTES):
+        key = next(k for k in AV_NOTES if k in data)
+        return {"error": f"Alpha Vantage: {data[key]}", "av_note": key}
+    if isinstance(data, dict) and not data:
+        return {"error": "Alpha Vantage returned an empty answer (unknown symbol or parameter)"}
+    return None
 
 # Stock Data (5)
 class AVStockQuoteTool(AVBaseTool):

@@ -1,7 +1,8 @@
 {
   "name": "boc_get_series",
   "implementation": "sajha.tools.impl.bank_of_canada_tool_refactored.BoCGetSeriesTool",
-  "description": "Observations of any Bank of Canada Valet series, by series name or shorthand indicator, from the Bank of Canada Valet API (no API key).\nReturns: series_name, label, description, dimension, observation_count and observations (date, value) oldest first.\nInputs: series_name (Valet name such as FXUSDCAD, POLICY_RATE, CORRA or V122539; wins over indicator) or indicator (usd_cad, eur_cad, gbp_cad, jpy_cad, cny_cad, policy_rate, overnight_rate, prime_rate, bond_2y/5y/10y/30y, cpi, core_cpi, gdp); one is needed; start_date, end_date (YYYY-MM-DD; either or both); recent_periods (1-100; default 10; the last N observations, used only when no date is given).\nFind names and shorthands with boc_search_series; for one value use boc_get_latest; topic tools: boc_get_exchange_rate, boc_get_interest_rate, boc_get_bond_yield.\nExample: {\"series_name\": \"FXUSDCAD\", \"start_date\": \"2024-01-01\", \"end_date\": \"2024-03-31\"}",
+  "description": "Observations of any Bank of Canada Valet series, by series name or shorthand indicator, from the Bank of Canada Valet API (no API key).\nReturns: series_name, label, description, dimension, observation_count and observations (date, value) oldest first.\nInputs: series_name (Valet name such as FXUSDCAD, V39079 for the policy rate, AVG.INTWO for CORRA or BD.CDN.10YR.DQ.YLD; wins over indicator) or indicator (usd_cad, eur_cad, gbp_cad, jpy_cad, cny_cad, policy_rate, overnight_rate, prime_rate, bond_2y/5y/10y/30y (30y is the long-term benchmark), cpi, core_cpi (CPI-trim)); one is needed; start_date, end_date (YYYY-MM-DD; either or both); recent_periods (1-100; default 10; the last N observations, used only when no date is given).\nFind names and shorthands with boc_search_series; for one value use boc_get_latest; topic tools: boc_get_exchange_rate, boc_get_interest_rate, boc_get_bond_yield.\nExample: {\"series_name\": \"FXUSDCAD\", \"start_date\": \"2024-01-01\", \"end_date\": \"2024-03-31\"}",
+  "annotations": {"readOnlyHint": true, "idempotentHint": true, "openWorldHint": true},
   "version": "2.9.8",
   "enabled": true,
   "inputSchema": {
@@ -9,7 +10,7 @@
     "properties": {
       "series_name": {
         "type": "string",
-        "description": "Bank of Canada series name (e.g., 'FXUSDCAD', 'POLICY_RATE'). Use this for direct series access."
+        "description": "Bank of Canada series name (e.g., 'FXUSDCAD', 'V39079'). Use this for direct series access."
       },
       "indicator": {
         "type": "string",
@@ -18,7 +19,7 @@
           "usd_cad", "eur_cad", "gbp_cad", "jpy_cad", "cny_cad",
           "policy_rate", "overnight_rate", "prime_rate",
           "bond_2y", "bond_5y", "bond_10y", "bond_30y",
-          "cpi", "core_cpi", "gdp"
+          "cpi", "core_cpi"
         ]
       },
       "start_date": {
@@ -40,7 +41,8 @@
     "oneOf": [
       {"required": ["series_name"]},
       {"required": ["indicator"]}
-    ]
+    ],
+    "examples": [{"series_name": "FXUSDCAD", "start_date": "2024-01-01", "end_date": "2024-03-31"}]
   },
   "outputSchema": {
     "type": "object",
@@ -101,7 +103,7 @@
       {
         "description": "Get policy rate for date range",
         "input": {
-          "series_name": "POLICY_RATE",
+          "series_name": "V39079",
           "start_date": "2024-01-01",
           "end_date": "2024-12-31"
         }

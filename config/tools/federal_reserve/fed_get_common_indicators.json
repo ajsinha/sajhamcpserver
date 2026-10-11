@@ -1,9 +1,11 @@
 {
   "name": "fed_get_common_indicators",
   "implementation": "sajha.tools.impl.fed_reserve_tool_refactored.FedGetCommonIndicatorsTool",
-  "description": "Latest values of headline US indicators from FRED (Federal Reserve Bank of St. Louis), one lookup per indicator.\nReturns: indicators keyed by name (series_id, title, value, date, units, or an error) and last_updated.\nInputs (none required): indicators (array of gdp, unemployment, inflation (CPIAUCSL index), fed_rate, treasury_10y, treasury_2y, sp500, housing, retail, industrial, m2, pce; default all twelve).\nFor history use fed_get_series; for any other series fed_get_latest. Key: the api_key field of this tool's config (a FRED key); the shipped config sets none, so the tool runs in demo mode and returns synthetic values with a note. fred_custom_series reads FRED_API_KEY and returns live data.\nExample: {\"indicators\": [\"fed_rate\", \"treasury_10y\", \"unemployment\", \"inflation\"]}",
+  "description": "Latest values of headline US indicators from FRED (Federal Reserve Bank of St. Louis), one lookup per indicator.\nReturns: indicators keyed by name (series_id, title, value, date, units, or an error) and last_updated.\nInputs (none required): indicators (array of gdp, unemployment, inflation (CPIAUCSL index), fed_rate, treasury_10y, treasury_2y, sp500, housing, retail, industrial, m2, pce; default all twelve).\nFor history use fed_get_series; for any other series fed_get_latest.\nExample: {\"indicators\": [\"fed_rate\", \"treasury_10y\", \"unemployment\", \"inflation\"]}",
+  "annotations": {"readOnlyHint": true, "idempotentHint": true, "openWorldHint": true},
   "version": "2.9.8",
   "enabled": true,
+  "api_key": "${fred.api.key}",
   "inputSchema": {
     "type": "object",
     "properties": {

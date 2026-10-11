@@ -3,7 +3,7 @@
   "implementation": "sajha.tools.impl.qlrisk.qlrisk_tools.QlriskPriceProductTool",
   "product": "ForwardRateAgreement",
   "title": "Price a ForwardRateAgreement",
-  "description": "Price one Forward Rate Agreement - OTC forward on interest rate (qlrisk ForwardRateAgreement): NPV, pricing components and Greeks where the pricer gives them.\nInputs (* required): maturity* (tenor like 3Y or date), notional (amount; default 1000000), fixing* (tenor like 3Y or date), settlement* (tenor like 3Y or date), fra_rate_pct* (percent, 3 = 3%), pay_fixed (default true), currency (see the schema's list; default USD). Rates are in percent, spreads in basis points, maturities a tenor (3Y, 18M, 6W, 10D) or a date YYYY-MM-DD. Optional `advanced`: trade_id, trade_date, counterparty_id, day_count, market_data, reporting_currency, include_cash_flows; market data defaults to qlrisk's sample snapshot valued today.\nExample: {\"maturity\": \"18M\", \"notional\": 1000000, \"fixing\": \"1Y\", \"settlement\": \"1Y\", \"fra_rate_pct\": 4} gives NPV 1,210.03 USD on the sample market valued 2026-10-09. For several trades at once use qlrisk_price_trades.",
+  "description": "Price one Forward Rate Agreement - OTC forward on interest rate (qlrisk ForwardRateAgreement).\nInputs (* required, name=default): maturity*, notional=1000000, fixing*, settlement*, fra_rate_pct*, pay_fixed=true, currency=USD. In `advanced` also: day_count.\nExample: {\"maturity\": \"18M\", \"notional\": 1000000, \"fixing\": \"1Y\", \"settlement\": \"1Y\", \"fra_rate_pct\": 4} gives NPV 1,210.03 USD (sample market valued 2026-10-09).",
   "version": "1.0.0",
   "enabled": true,
   "requires": [

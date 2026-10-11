@@ -1,7 +1,8 @@
 {
   "name": "fred_pmi",
   "implementation": "sajha.tools.impl.fred_tools.FREDPMITool",
-  "description": "The US manufacturing employment (all employees, manufacturing; a stand-in for a PMI, not the ISM PMI itself) from FRED, the St. Louis Fed's economic database: series MANEMP (thousands of persons, monthly).\nReturns {\"series\": \"MANEMP\", \"data\": <FRED observations response>}; data.observations = [{date (YYYY-MM-DD), value (a string, \".\" if missing), realtime_start, realtime_end}], newest first; data is {\"error\": ...} if the call fails.\nInputs (* required): limit (integer, number of newest observations; omitted: 60, although the schema default says 30).\nRelated: fred_industrial_production, fred_durable_goods, fred_nonfarm_payrolls; for any other FRED series use fred_custom_series.\nExample: {\"limit\": 12}\nAPI key: env FRED_API_KEY (config fred.api.key); when unset the placeholder DEMO_KEY is sent.",
+  "description": "The US manufacturing employment (all employees, manufacturing; a stand-in for a PMI, not the ISM PMI itself) from FRED, the St. Louis Fed's economic database: series MANEMP (thousands of persons, monthly).\nReturns {\"series\": \"MANEMP\", \"data\": <FRED observations response>}; data.observations = [{date (YYYY-MM-DD), value (a string, \".\" if missing), realtime_start, realtime_end}], newest first; data is {\"error\": ...} if the call fails.\nInputs (* required): limit (integer, number of newest observations; default 30).\nRelated: fred_industrial_production, fred_durable_goods, fred_nonfarm_payrolls.\nExample: {\"limit\": 12}",
+  "annotations": {"readOnlyHint": true, "idempotentHint": true, "openWorldHint": true},
   "version": "4.5.0",
   "enabled": true,
   "inputSchema": {

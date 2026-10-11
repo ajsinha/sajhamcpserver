@@ -1,7 +1,8 @@
 {
   "name": "ecb_get_series",
   "implementation": "sajha.tools.impl.european_central_bank_tool_refactored.ECBGetSeriesTool",
-  "description": "Time series for any ECB statistical series, by dataflow and series key or by a shorthand indicator, from the ECB Data Portal API (data-api.ecb.europa.eu, no API key).\nReturns: flow, key, series_name, description, observation_count and observations (date, value) oldest first.\nInputs: flow and key together (e.g. flow EXR, key D.USD.EUR.SP00.A) or indicator (shorthand such as eur_usd, ester, bond_10y, hicp_overall, gdp, m3; list in the schema); one form is needed; start_date, end_date (YYYY-MM-DD); recent_periods (1-100; default 10): unless both dates are given only the last recent_periods observations are kept, and with no dates the look-back is recent_periods x 40 days.\nFind flows, keys and shorthands with ecb_search_series; for one value use ecb_get_latest; topic tools: ecb_get_exchange_rate, ecb_get_interest_rate, ecb_get_bond_yield, ecb_get_inflation.\nExample: {\"indicator\": \"hicp_core\", \"start_date\": \"2023-01-01\", \"end_date\": \"2024-12-31\"}",
+  "description": "Time series for any ECB statistical series, by dataflow and series key or by a shorthand indicator.\nReturns: flow, key, series_name (the ECB title), description, unit, unit_multiplier, frequency, source, observation_count and observations (date, value) oldest first; a note when the period has no observations.\nInputs: flow and key together (e.g. flow EXR, key D.USD.EUR.SP00.A; other flows: HICP, MNA, BSI, LFSI) or indicator (shorthand such as eur_usd, ester, bond_10y, hicp_overall, gdp, m3; list in the schema); one form is needed; start_date, end_date (YYYY-MM-DD, YYYY-MM or YYYY); recent_periods (1-100; default 10; the last N observations of the series whatever its frequency, used only when neither date is given).\nShorthands and their keys: ecb_search_series; one value: ecb_get_latest.\nExample: {\"indicator\": \"hicp_core\", \"start_date\": \"2023-01-01\", \"end_date\": \"2024-12-31\"}",
+  "annotations": {"readOnlyHint": true, "idempotentHint": true, "openWorldHint": true},
   "version": "2.9.8",
   "enabled": true,
   "inputSchema": {
@@ -9,7 +10,7 @@
     "properties": {
       "flow": {
         "type": "string",
-        "description": "ECB data flow identifier (e.g., 'EXR' for exchange rates, 'FM' for financial markets, 'ICP' for inflation)"
+        "description": "ECB data flow identifier (e.g., 'EXR' for exchange rates, 'FM' for financial markets, 'HICP' for inflation)"
       },
       "key": {
         "type": "string",
@@ -20,7 +21,7 @@
         "description": "Common indicator shorthand name for convenience",
         "enum": [
           "eur_usd", "eur_gbp", "eur_jpy", "eur_cny", "eur_chf",
-          "main_refinancing_rate", "deposit_facility_rate", "marginal_lending_rate", "eonia", "ester",
+          "main_refinancing_rate", "deposit_facility_rate", "marginal_lending_rate", "ester",
           "bond_2y", "bond_5y", "bond_10y",
           "hicp_overall", "hicp_core", "hicp_energy",
           "gdp", "m1", "m2", "m3", "unemployment_rate"
@@ -45,7 +46,8 @@
     "oneOf": [
       {"required": ["flow", "key"]},
       {"required": ["indicator"]}
-    ]
+    ],
+    "examples": [{"indicator": "hicp_core", "start_date": "2023-01-01", "end_date": "2024-12-31"}]
   },
   "outputSchema": {
     "type": "object",

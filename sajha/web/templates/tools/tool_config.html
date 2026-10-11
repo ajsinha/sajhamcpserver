@@ -138,6 +138,12 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
                     <small class="form-text text-muted mt-2">
                         Provide a clear description of what this tool does and how to use it.
                     </small>
+                    {% if domain_description %}
+                    <div class="mt-3" id="toolDomainDescription">
+                        <label class="form-label small fw-semibold mb-1" for="toolDomainText">Domain description of folder <code>{{ tool_folder }}</code> (read-only, from its domain.txt; served after this description, never saved into the tool)</label>
+                        <textarea class="form-control" id="toolDomainText" rows="3" readonly>{{ domain_description }}</textarea>
+                    </div>
+                    {% endif %}
                 </div>
             </div>
         </div>

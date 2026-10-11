@@ -1,14 +1,15 @@
 {
   "name": "fred_yield_spread",
   "implementation": "sajha.tools.impl.fred_tools.FREDCustomSeriesTool",
-  "description": "The 10-year minus 2-year Treasury yield spread (negative values are a common recession signal) from FRED, the St. Louis Fed's economic database: series T10Y2Y (percentage points, daily).\nReturns {\"series\": \"T10Y2Y\", \"data\": <FRED observations response>}; data.observations = [{date (YYYY-MM-DD), value (a string, \".\" if missing), realtime_start, realtime_end}], newest first; data is {\"error\": ...} if the call fails.\nInputs (* required): series_id (string; the schema default T10Y2Y is not filled in by the server, so it has to be sent), limit (integer, number of newest observations; omitted: 60, although the schema default says 20).\nRelated: fred_2yr_treasury, fred_10yr_treasury; fred_custom_series takes any series id.\nExample: {\"series_id\": \"T10Y2Y\", \"limit\": 20}\nAPI key: env FRED_API_KEY (config fred.api.key); when unset the placeholder DEMO_KEY is sent.",
+  "description": "The 10-year minus 2-year Treasury yield spread (negative values are a common recession signal) from FRED, the St. Louis Fed's economic database: series T10Y2Y (percentage points, daily).\nReturns {\"series\": \"T10Y2Y\", \"data\": <FRED observations response>}; data.observations = [{date (YYYY-MM-DD), value (a string, \".\" if missing), realtime_start, realtime_end}], newest first; data is {\"error\": ...} if the call fails.\nInputs (* required): series_id (string; default T10Y2Y, this tool's series), limit (integer, number of newest observations; default 20).\nRelated: fred_2yr_treasury, fred_10yr_treasury.\nExample: {\"series_id\": \"T10Y2Y\", \"limit\": 20}",
+  "annotations": {"readOnlyHint": true, "idempotentHint": true, "openWorldHint": true},
   "version": "4.5.0",
   "enabled": true,
   "inputSchema": {
     "type": "object",
     "properties": {
       "series_id": {
-        "description": "FRED series id; the default is this tool's series, which the server does not fill in, so it has to be sent",
+        "description": "FRED series id; defaults to this tool's series",
         "type": "string",
         "default": "T10Y2Y"
       },

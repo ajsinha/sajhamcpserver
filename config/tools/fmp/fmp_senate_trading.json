@@ -1,7 +1,8 @@
 {
   "name": "fmp_senate_trading",
   "implementation": "sajha.tools.impl.fmp_tools.FMPSenateTradingTool",
-  "description": "US Senate members' stock trading disclosures from Financial Modeling Prep (FMP, /stable/senate-trading): senator, asset, transaction type, amount range, transaction and disclosure dates.\nReturns {trades}: FMP's list of disclosure records.\nInputs (* required): symbol (ticker filter, optional; upper-cased), limit (integer; default 5).\nFor company insiders use fmp_insider_trading.\nNeeds an FMP API key (config fmp.api.key, env FMP_API_KEY); without one it returns a demo placeholder naming the endpoint instead of data.\nExample: {\"symbol\": \"NVDA\", \"limit\": 10}",
+  "description": "US Senate members' stock trading disclosures from Financial Modeling Prep (FMP, /stable/senate-trading): senator, asset, transaction type, amount range, transaction and disclosure dates.\nReturns {trades}: FMP's list of disclosure records.\nInputs (* required): symbol (ticker filter, optional; upper-cased), limit (integer; default 5).\nFor company insiders use fmp_insider_trading.\nExample: {\"symbol\": \"NVDA\", \"limit\": 10}",
+  "annotations": {"readOnlyHint": true, "idempotentHint": true, "openWorldHint": true},
   "version": "4.5.0",
   "enabled": true,
   "inputSchema": {

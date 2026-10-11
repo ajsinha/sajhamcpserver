@@ -120,6 +120,11 @@ def lint_tool(name: str, config: Dict[str, Any], input_schema: Any = None, outpu
                     f'properties/{pname}')
         if not problem:
             _lint_examples(schema, add, 'input')
+            _lint_defaults(schema, add)
+            from sajha.quality.check import derive_arguments
+            if derive_arguments(schema, cases)[0] is None:
+                add('warning', 'missing-example', 'the live tool check cannot call this tool: give the inputSchema '
+                                                  'an examples entry, or examples on every required property')
 
     if output_schema is None:
         output_schema = cfg.get('outputSchema')
@@ -180,6 +185,44 @@ def _lint_examples(schema: Dict[str, Any], add, which: str) -> None:
                 add('warning', 'default', f'{which} {where}: default does not validate: {msg}', where)
 
 
+_BRANCHES = ('oneOf', 'anyOf', 'allOf', 'if', 'then', 'else', 'not', 'items', 'prefixItems', 'additionalProperties',
+             'patternProperties', '$defs', 'definitions', 'dependentSchemas', 'contains')
+
+
+def _lint_defaults(schema: Dict[str, Any], add) -> None:
+    """Defaults the call path cannot apply (sajha/tools/schema_defaults.py; Tool Quality §12.1):
+    ``required-default`` (a required property with a default: never filled) and ``unapplied-default``
+    (a default under a branch, ``items`` or ``$defs``, which the helper never reads)."""
+    def walk(node: Any, where: str, applied: bool) -> None:
+        if not isinstance(node, dict):
+            return
+        props = node.get('properties') if isinstance(node.get('properties'), dict) else {}
+        required = set(node.get('required') or []) if isinstance(node.get('required'), list) else set()
+        for name, sub in props.items():
+            if not isinstance(sub, dict):
+                continue
+            loc = f'{where}/properties/{name}' if where else f'properties/{name}'
+            if 'default' in sub:
+                if not applied:
+                    add('info', 'unapplied-default', f'input {loc}: this default is never filled in before a call '
+                                                     f'(it sits under a branch, items or $defs)', loc)
+                elif name in required:
+                    add('warning', 'required-default', f'input {loc}: {name!r} is required and has a default; '
+                                                       f'a required property is never filled in: drop one', loc)
+            walk(sub, loc, applied)
+        for key in _BRANCHES:
+            val = node.get(key)
+            subs = val if isinstance(val, list) else list(val.values()) if key in (
+                'patternProperties', '$defs', 'definitions', 'dependentSchemas') and isinstance(val, dict) else [val]
+            for i, sub in enumerate(subs):
+                if isinstance(sub, dict):
+                    if 'default' in sub and key != 'additionalProperties':
+                        add('info', 'unapplied-default', f'input {where or "(root)"}/{key}: a default here is never '
+                                                         f'filled in before a call', f'{where}/{key}')
+                    walk(sub, f'{where}/{key}/{i}' if isinstance(val, list) else f'{where}/{key}', False)
+    walk(schema, '', True)
+
+
 def lint_registry(registry: Any, tool_glob: str = '', suite: Any = None) -> List[Finding]:
     findings: List[Finding] = []
     tools = getattr(registry, 'tools', {}) or {}
@@ -199,6 +242,7 @@ def lint_registry(registry: Any, tool_glob: str = '', suite: Any = None) -> List
             outs = cfg.get('outputSchema')
         cases = suite.for_tool(name) if suite is not None else []
         findings.extend(lint_tool(name, cfg, ins, outs, cases))
+        findings.extend(_lint_description_length(name, tool))
         if isinstance(cfg.get('llm'), dict):
             findings.extend(_lint_llm(name, cfg, registry, getattr(tool, 'declared_annotations', None)))
     # LLM tools whose llm block the loader refused are not in the catalog: report why
@@ -212,6 +256,27 @@ def lint_registry(registry: Any, tool_glob: str = '', suite: Any = None) -> List
     if not tool_glob or any(fnmatch.fnmatchcase('planner:x', g.strip()) for g in tool_glob.split(',')):
         findings.extend(_lint_planners())
     return findings
+
+
+def _lint_description_length(name: str, tool: Any) -> List[Finding]:
+    """``description-length``: the tool's own description plus its folder's domain description is longer
+    than SAJHA Net's catalog limit, so catalogs get the own description only (Architecture §5)."""
+    try:
+        from sajha.tools.domain_text import domain_description_of, compose
+        domain = domain_description_of(tool)
+        if not domain:
+            return []
+        from sajha.net.integration.catalogs import _description_limit
+        limit = _description_limit()
+        total = len(compose(getattr(tool, 'description', '') or '', domain))
+    except Exception:
+        return []
+    if total <= limit:
+        return []
+    return [Finding(name, 'warning', 'description-length',
+                    f'description plus the folder\'s domain description is {total} characters, over SAJHA Net\'s '
+                    f'{limit}: SAJHA Net catalogs get the tool\'s own description without the domain text; '
+                    f'shorten the description (the domain description already says what the folder shares)')]
 
 
 def _lint_planners() -> List[Finding]:

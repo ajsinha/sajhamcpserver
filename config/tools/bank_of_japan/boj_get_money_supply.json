@@ -1,41 +1,38 @@
 {
   "name": "boj_get_money_supply",
   "implementation": "sajha.tools.impl.japan_central_bank.BoJGetMoneySupplyTool",
-  "description": "Japanese money stock (M1, M2 or M3, monthly, national currency) from FRED (Federal Reserve Bank of St. Louis, IMF and OECD series).\nReturns: series_code (FRED id), series_id, label, source, observation_count and observations (date, value) oldest first, missing values dropped.\nInputs (* required): aggregate* (m1, m2, m3; schema default m2); start_date, end_date (YYYY-MM-DD); recent_periods (1-100; the last N observations, with no dates looking back N x 45 days; when omitted the whole history in the date range is returned).\nFor prices use boj_get_inflation; all series: boj_list_series. Needs a FRED API key (FRED_API_KEY, config fred.api.key); without one the call fails with a message saying so.\nExample: {\"aggregate\": \"m2\", \"start_date\": \"2020-01-01\", \"end_date\": \"2024-12-31\"}",
+  "description": "Japanese broad money in yen, monthly, from the IMF's monetary statistics (MFS_MA, JPN.BM_MAI.XDC.M), read through SAJHA's shared SDMX client. FRED's Japanese M1 and M2 ended in 2017 and M3 in 2023, so they are not offered.\nReturns: series_code (FRED id, or IMF flow.key), series_id, label, source, observation_count and observations (date, value) oldest first, missing values dropped.\nInputs (none required): aggregate (broad_money; default broad_money); start_date, end_date (YYYY-MM-DD); recent_periods (1-500; default 10; the last N observations, used only when neither date is given).\nFor prices use boj_get_inflation. IMF series need no key.\nExample: {\"aggregate\": \"broad_money\", \"recent_periods\": 12}",
+  "annotations": {"readOnlyHint": true, "idempotentHint": true, "openWorldHint": true},
   "version": "2.9.8",
   "enabled": true,
+  "api_key": "${fred.api.key}",
   "inputSchema": {
     "type": "object",
     "properties": {
       "aggregate": {
         "type": "string",
-        "description": "Money stock aggregate",
         "enum": [
-          "m1",
-          "m2",
-          "m3"
+          "broad_money"
         ],
-        "default": "m2"
+        "default": "broad_money",
+        "description": "broad_money: broad money, yen"
       },
       "start_date": {
         "type": "string",
-        "description": "Start date in YYYY-MM-DD format"
+        "description": "Start date (YYYY-MM-DD)"
       },
       "end_date": {
         "type": "string",
-        "description": "End date in YYYY-MM-DD format"
+        "description": "End date (YYYY-MM-DD)"
       },
       "recent_periods": {
         "type": "integer",
-        "description": "Number of recent observations (1-100)",
         "minimum": 1,
-        "maximum": 100,
-        "default": 10
+        "maximum": 500,
+        "default": 10,
+        "description": "The last N observations; used only when neither date is given"
       }
-    },
-    "required": [
-      "aggregate"
-    ]
+    }
   },
   "outputSchema": {
     "type": "object",
@@ -83,7 +80,15 @@
       "monetary aggregates"
     ],
     "rateLimit": 120,
-    "cacheTTL": 3600
-  },
-  "api_key": "${fred.api.key}"
+    "cacheTTL": 3600,
+    "examples": [
+      {
+        "description": "Example",
+        "input": {
+          "aggregate": "broad_money",
+          "recent_periods": 12
+        }
+      }
+    ]
+  }
 }

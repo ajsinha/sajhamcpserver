@@ -106,8 +106,11 @@ def run_case(tool: Any, case: TestCase, mode: str = 'auto', cassette_root: Optio
     t0 = time.perf_counter()
     with cassette.use():
         try:
-            target.validate_arguments(dict(case.arguments))
-            result = target.execute(dict(case.arguments))
+            # inputSchema defaults as on every call path (sajha/tools/schema_defaults.py)
+            from sajha.tools.schema_defaults import apply_for_tool as _apply_defaults
+            args, _ = _apply_defaults(target, dict(case.arguments))
+            target.validate_arguments(dict(args))
+            result = target.execute(dict(args))
         except BaseException as e:      # noqa: BLE001 - a tool may raise anything; KeyboardInterrupt re-raised below
             if isinstance(e, KeyboardInterrupt):
                 raise

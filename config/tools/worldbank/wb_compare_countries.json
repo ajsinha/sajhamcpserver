@@ -1,7 +1,8 @@
 {
   "name": "wb_compare_countries",
   "implementation": "sajha.tools.impl.world_bank_tool.WBCompareCountriesTool",
-  "description": "Compare 2 to 10 countries on one World Bank indicator (World Bank Indicators API v2, no API key).\nReturns: indicator {id}, year_range, countries (country {id, name}, data of year and value oldest first, latest_value, latest_year, average, min, max; empty if a country fails) and summary (highest_country, lowest_country, average_across_countries over latest values).\nInputs (* required): country_codes* (array of 2-10 ISO2 or ISO3 codes); indicator (shorthand such as gdp, gdp_growth, inflation, unemployment, population, life_expectancy; list in the schema) or indicator_code (World Bank code such as NY.GDP.MKTP.CD; wins over indicator), one of the two needed; start_year and end_year (1960-2030; applied only when both are given). most_recent_year is accepted but ignored.\nFor one country use wb_get_country_data; for all countries use wb_get_indicator_data.\nExample: {\"country_codes\": [\"US\", \"CN\", \"IN\", \"DE\"], \"indicator\": \"gdp_per_capita\", \"start_year\": 2015, \"end_year\": 2023}",
+  "description": "Compare 2 to 10 countries on one World Bank indicator (World Bank API v2, no key).\nReturns: indicator {id, name}, year_range, countries (country {id, name}, data of year and value oldest first, latest_value, latest_year, average, min, max, empty on failure) and summary (highest_country, lowest_country, average_across_countries over latest values).\nInputs (* required): country_codes* (2-10 ISO2 or ISO3 codes); indicator (shorthand such as gdp, gdp_growth, inflation, unemployment, population, life_expectancy; list in the schema) or indicator_code (World Bank code such as NY.GDP.MKTP.CD; wins over indicator), one of the two needed; start_year, end_year (1960-2030; either alone is fine); most_recent_year (default false; true: only each country's latest year with a value, years ignored).\nOne country: wb_get_country_data; all countries: wb_get_indicator_data.\nExample: {\"country_codes\": [\"US\", \"CN\", \"IN\", \"DE\"], \"indicator\": \"gdp_per_capita\", \"start_year\": 2015, \"end_year\": 2023}",
+  "annotations": {"readOnlyHint": true, "idempotentHint": true, "openWorldHint": true},
   "version": "2.9.8",
   "enabled": true,
   "inputSchema": {
@@ -52,7 +53,7 @@
       },
       "most_recent_year": {
         "type": "boolean",
-        "description": "Compare only the most recent available year for each country",
+        "description": "Only each country's most recent year that has a value (start_year and end_year are then ignored)",
         "default": false
       }
     },
@@ -60,7 +61,8 @@
     "oneOf": [
       {"required": ["country_codes", "indicator"]},
       {"required": ["country_codes", "indicator_code"]}
-    ]
+    ],
+    "examples": [{"country_codes": ["US", "CN", "IN", "DE"], "indicator": "gdp_per_capita", "start_year": 2015, "end_year": 2023}]
   },
   "outputSchema": {
     "type": "object",
@@ -110,7 +112,7 @@
               "description": "Most recent available value"
             },
             "latest_year": {
-              "type": "integer",
+              "type": ["integer", "null"],
               "description": "Year of most recent value"
             },
             "average": {

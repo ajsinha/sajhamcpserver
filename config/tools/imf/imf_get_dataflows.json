@@ -1,7 +1,8 @@
 {
   "name": "imf_get_dataflows",
   "implementation": "sajha.tools.impl.imf_tool_refactored.IMFGetDataflowsTool",
-  "description": "List the dataflows the IMF publishes for one database code, from the IMF SDMX JSON data service (dataservices.imf.org, no API key).\nReturns: database, dataflows (id, name) and count; on failure an error and note instead.\nInputs (* required): database* (IFS, DOT, BOP, GFSR, FSI, WEO, GFSMAB, CDIS, CPIS, WHDREO; the schema's default is IFS).\nDiscover database codes with imf_get_databases; fetch values with imf_get_data.\nExample: {\"database\": \"IFS\"}",
+  "description": "The key structure of one IMF database (dataflow): its dimensions in key order and, for each, the codes it accepts (id and name), from the IMF's structure metadata. Build an imf_get_data key by joining one code per dimension with dots; leave a position empty to take every code, or join codes with + to take several.\nReturns: database, flow (agency,id), name, key_template, dimensions (position, id, code_count, codes (id, name), truncated), source.\nInputs (* required): database* (dataflow id such as WEO, CPI, BOP, ER, MFS_IR, PCPS); dimension (one dimension id only, e.g. INDICATOR); search (text matched against code ids and names); limit (codes per dimension, 1-500; default 50).\nExample: {\"database\": \"WEO\", \"dimension\": \"INDICATOR\", \"search\": \"debt\"}",
+  "annotations": {"readOnlyHint": true, "idempotentHint": true, "openWorldHint": true},
   "version": "2.9.8",
   "enabled": true,
   "inputSchema": {
@@ -9,48 +10,71 @@
     "properties": {
       "database": {
         "type": "string",
-        "description": "IMF database code",
-        "enum": ["IFS", "DOT", "BOP", "GFSR", "FSI", "WEO", "GFSMAB", "CDIS", "CPIS", "WHDREO"],
-        "default": "IFS"
+        "description": "IMF dataflow id (see imf_get_databases), e.g. WEO, CPI, BOP"
+      },
+      "dimension": {
+        "type": "string",
+        "description": "Only this dimension (e.g. INDICATOR)"
+      },
+      "search": {
+        "type": "string",
+        "description": "Text to match in code ids and names"
+      },
+      "limit": {
+        "type": "integer",
+        "minimum": 1,
+        "maximum": 500,
+        "default": 50,
+        "description": "Codes returned per dimension"
       }
     },
-    "required": ["database"]
+    "required": [
+      "database"
+    ],
+    "examples": [{"database": "WEO", "dimension": "INDICATOR", "search": "debt"}]
   },
   "outputSchema": {
     "type": "object",
     "properties": {
-      "database": {"type": "string"},
-      "dataflows": {
-        "type": "array",
-        "items": {
-          "type": "object",
-          "properties": {
-            "id": {"type": "string"},
-            "name": {"type": "string"}
-          }
-        }
+      "database": {
+        "type": "string"
       },
-      "count": {"type": "integer"}
+      "flow": {
+        "type": "string"
+      },
+      "name": {
+        "type": "string"
+      },
+      "key_template": {
+        "type": "string"
+      },
+      "dimensions": {
+        "type": "array"
+      },
+      "source": {
+        "type": "string"
+      }
     }
   },
   "metadata": {
     "author": "Ashutosh Sinha",
     "category": "Economic Data",
-    "tags": ["imf", "dataflows", "indicators", "discovery"],
+    "tags": [
+      "imf",
+      "dataflows",
+      "indicators",
+      "discovery"
+    ],
     "rateLimit": 60,
     "cacheTTL": 7200,
     "note": "Explore available indicators and dataflows within IMF databases.",
     "examples": [
       {
-        "description": "Get IFS dataflows",
+        "description": "WEO debt indicators",
         "input": {
-          "database": "IFS"
-        }
-      },
-      {
-        "description": "Get WEO dataflows",
-        "input": {
-          "database": "WEO"
+          "database": "WEO",
+          "dimension": "INDICATOR",
+          "search": "debt"
         }
       }
     ],

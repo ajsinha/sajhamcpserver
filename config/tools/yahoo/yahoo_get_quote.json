@@ -1,7 +1,8 @@
 {
   "name": "yahoo_get_quote",
   "implementation": "sajha.tools.impl.yahoo_finance_tool.YahooGetQuoteTool",
-  "description": "Current quote for one Yahoo Finance symbol (stock, index, ETF, crypto pair, currency pair), from Yahoo's quoteSummary endpoint.\nReturns: {symbol, name, price, currency, change, change_percent, volume, avg_volume, market_cap, pe_ratio, dividend_yield, fifty_two_week_high, fifty_two_week_low, day_high, day_low, open, previous_close, last_updated}.\nInputs (* required): symbol* (1-20 characters of letters, digits and ^ . = -, e.g. AAPL, ^GSPC, BTC-USD, EURUSD=X, 7203.T; upper-cased).\nYahoo may answer this endpoint with HTTP 401 when no browser session cookie is sent; yf_fast_info and yf_stock_info (yfinance library) are alternatives. History: yahoo_get_history; find a ticker: yahoo_search_symbols.\nNo API key.\nExample: {\"symbol\": \"AAPL\"}",
+  "description": "Current quote for one Yahoo Finance symbol (stock, index, ETF, crypto pair, currency pair), through the yfinance library (which handles the cookie and crumb Yahoo now requires).\nReturns: {symbol, name, price, currency, change, change_percent, volume, avg_volume, market_cap, pe_ratio, dividend_yield (percent, as Yahoo gives it), fifty_two_week_high, fifty_two_week_low, day_high, day_low, open, previous_close, exchange, market_time (UTC), last_updated}; fields Yahoo lacks for the instrument (e.g. pe_ratio for a currency) are null; an unknown symbol is an error.\nInputs (* required): symbol* (1-20 characters of letters, digits and ^ . = -, e.g. AAPL, ^GSPC, BTC-USD, EURUSD=X, 7203.T; upper-cased).\nFull Yahoo field set: yf_stock_info; a few fields, faster: yf_fast_info. History: yahoo_get_history; find a ticker: yahoo_search_symbols.\nExample: {\"symbol\": \"AAPL\"}",
+  "annotations": {"readOnlyHint": true, "idempotentHint": true, "openWorldHint": true},
   "version": "2.9.8",
   "enabled": true,
   "inputSchema": {
@@ -14,7 +15,10 @@
         "x-mcp-header": "Symbol"
       }
     },
-    "required": ["symbol"]
+    "required": [
+      "symbol"
+    ],
+    "examples": [{"symbol": "AAPL"}]
   },
   "outputSchema": {
     "type": "object",
@@ -28,7 +32,10 @@
         "description": "Company or security name"
       },
       "price": {
-        "type": ["number", "null"],
+        "type": [
+          "number",
+          "null"
+        ],
         "description": "Current/latest price"
       },
       "currency": {
@@ -36,74 +43,136 @@
         "description": "Currency of the price (e.g., USD, EUR)"
       },
       "change": {
-        "type": ["number", "null"],
+        "type": [
+          "number",
+          "null"
+        ],
         "description": "Price change from previous close"
       },
       "change_percent": {
-        "type": ["number", "null"],
+        "type": [
+          "number",
+          "null"
+        ],
         "description": "Percentage change from previous close"
       },
       "volume": {
-        "type": ["integer", "null"],
+        "type": [
+          "integer",
+          "null"
+        ],
         "description": "Trading volume"
       },
       "avg_volume": {
-        "type": ["integer", "null"],
+        "type": [
+          "integer",
+          "null"
+        ],
         "description": "Average trading volume"
       },
       "market_cap": {
-        "type": ["number", "null"],
+        "type": [
+          "number",
+          "null"
+        ],
         "description": "Market capitalization"
       },
       "pe_ratio": {
-        "type": ["number", "null"],
+        "type": [
+          "number",
+          "null"
+        ],
         "description": "Price-to-earnings ratio"
       },
       "dividend_yield": {
-        "type": ["number", "null"],
+        "type": [
+          "number",
+          "null"
+        ],
         "description": "Dividend yield percentage"
       },
       "fifty_two_week_high": {
-        "type": ["number", "null"],
+        "type": [
+          "number",
+          "null"
+        ],
         "description": "52-week high price"
       },
       "fifty_two_week_low": {
-        "type": ["number", "null"],
+        "type": [
+          "number",
+          "null"
+        ],
         "description": "52-week low price"
       },
       "day_high": {
-        "type": ["number", "null"],
+        "type": [
+          "number",
+          "null"
+        ],
         "description": "Today's high price"
       },
       "day_low": {
-        "type": ["number", "null"],
+        "type": [
+          "number",
+          "null"
+        ],
         "description": "Today's low price"
       },
       "open": {
-        "type": ["number", "null"],
+        "type": [
+          "number",
+          "null"
+        ],
         "description": "Opening price"
       },
       "previous_close": {
-        "type": ["number", "null"],
+        "type": [
+          "number",
+          "null"
+        ],
         "description": "Previous closing price"
       },
       "last_updated": {
         "type": "string",
         "description": "Timestamp of last update (ISO format)"
+      },
+      "exchange": {
+        "type": [
+          "string",
+          "null"
+        ],
+        "description": "Yahoo exchange code, e.g. NMS"
+      },
+      "market_time": {
+        "type": [
+          "string",
+          "null"
+        ],
+        "description": "Time of the regular-market price (UTC, ISO 8601)"
       }
     },
-    "required": ["symbol", "price"]
+    "required": [
+      "symbol",
+      "price"
+    ]
   },
   "metadata": {
     "author": "Ashutosh Sinha",
     "category": "Financial Data",
-    "tags": ["finance", "stocks", "quotes", "real-time", "market data"],
+    "tags": [
+      "finance",
+      "stocks",
+      "quotes",
+      "real-time",
+      "market data"
+    ],
     "rateLimit": 60,
     "cacheTTL": 60,
     "note": "Real-time stock quotes from Yahoo Finance. Includes comprehensive market statistics and metrics.",
     "examples": [
       {
-        "description": "Get Apple stock quote",
+        "description": "Current quote for one Yahoo Finance symbol (stock, index, ETF, crypto pair, curr",
         "input": {
           "symbol": "AAPL"
         }

@@ -2,6 +2,7 @@
   "name": "msdoc_read_excel_sheet",
   "implementation": "sajha.tools.impl.msdoc_tools_tool_refactored.MsDocReadExcelSheetTool",
   "description": "Reads cell values (computed, not formulas) from one worksheet of an Excel workbook (.xlsx/.xlsm), chosen by name or index. Files are looked up by name in the docs folder (data/msdocs; msdoc_list_files shows it).\nReturns {filename, sheet_name, data, row_count, column_count}: data is a list of rows of cell values.\nInputs (* required): filename*, sheet_name (wins over sheet_index), sheet_index (0-based), max_rows (1-10000; default 100). Without either the active sheet is read.\nFor formulas use msdoc_read_excel; for sheet names msdoc_get_excel_sheets.\nExample: {\"filename\": \"sales.xlsx\", \"sheet_index\": 1, \"max_rows\": 200}",
+  "annotations": {"readOnlyHint": true, "idempotentHint": true, "openWorldHint": false},
   "version": "2.9.8",
   "enabled": true,
   "inputSchema": {
@@ -32,7 +33,8 @@
     "oneOf": [
       {"required": ["sheet_name"]},
       {"required": ["sheet_index"]}
-    ]
+    ],
+    "examples": [{"filename": "sales.xlsx", "sheet_index": 1, "max_rows": 200}]
   },
   "outputSchema": {
     "type": "object",

@@ -2,6 +2,7 @@
   "name": "calc_currency_converter",
   "implementation": "sajha.tools.impl.calc_tools.CalcCurrencyConverterTool",
   "description": "Converts an amount between currencies at the latest rate from the open ExchangeRate-API endpoint (open.er-api.com); needs network access, no API key.\nReturns {from, to, amount, rate, converted} (converted to 4 decimals), or {error} if the rate service fails or a currency code is unknown.\nInputs: from (ISO 4217 code; default USD), to (ISO code; default EUR), amount (number; default 1).\nFor FX quotes and history use fmp_forex_quote or fmp_forex_historical.\nExample: {\"from\": \"USD\", \"to\": \"JPY\", \"amount\": 250}",
+  "annotations": {"readOnlyHint": true, "idempotentHint": true, "openWorldHint": true},
   "version": "4.5.0",
   "enabled": true,
   "inputSchema": {

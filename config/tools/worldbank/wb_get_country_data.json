@@ -2,6 +2,7 @@
   "name": "wb_get_country_data",
   "implementation": "sajha.tools.impl.world_bank_tool.WBGetCountryDataTool",
   "description": "Annual time series of one World Bank indicator for one country (World Bank Indicators API v2, no API key).\nReturns: country {id, name}, indicator {id, name}, data_points and data: one row per year that has a value (year, value, decimal), oldest first.\nInputs (* required): country_code* (ISO2 or ISO3, e.g. IN or IND); indicator (shorthand such as gdp, gdp_growth, inflation, unemployment, population, life_expectancy; list in the schema) or indicator_code (World Bank code such as NY.GDP.MKTP.CD; wins over indicator), one of the two needed; start_year and end_year (1960-2030; applied only when both are given); per_page (1-1000; default 100).\nFor several countries side by side use wb_compare_countries; for every country in one year use wb_get_indicator_data.\nExample: {\"country_code\": \"IN\", \"indicator\": \"gdp_growth\", \"start_year\": 2010, \"end_year\": 2023}",
+  "annotations": {"readOnlyHint": true, "idempotentHint": true, "openWorldHint": true},
   "version": "2.9.8",
   "enabled": true,
   "inputSchema": {
@@ -57,7 +58,8 @@
     "oneOf": [
       {"required": ["country_code", "indicator"]},
       {"required": ["country_code", "indicator_code"]}
-    ]
+    ],
+    "examples": [{"country_code": "IN", "indicator": "gdp_growth", "start_year": 2010, "end_year": 2023}]
   },
   "outputSchema": {
     "type": "object",

@@ -1,7 +1,8 @@
 {
   "name": "edgar_company_tickers_by_exchange",
   "implementation": "sajha.tools.impl.enhanced_edgar_tool.EDGARCompanyTickersByExchangeTool",
-  "description": "Companies listed on one stock exchange, filtered from the SEC company-tickers file.\nReturns {exchange, companies_count, companies: [{cik, ticker, title}]}.\nInputs (* required): exchange* (Nasdaq | NYSE | AMEX | BATS | OTC), limit (integer 1-5000, default 100).\nThe filter needs an exchange field in that file; when the file has none, the result is empty and edgar_company_search is the alternative.\nExample: {\"exchange\": \"NYSE\", \"limit\": 50}\nNo API key needed (SEC data.sec.gov; 110 ms between requests).",
+  "description": "Companies listed on one stock exchange, from the SEC's company_tickers_exchange.json file (one row per ticker, in the SEC's market-capitalisation order).\nReturns {exchange, companies_count, companies: [{cik, ticker, title}]}.\nInputs (* required): exchange* (Nasdaq | NYSE | OTC | CBOE | TXSE, the values the SEC file uses), limit (integer 1-5000, default 100).\nFor one company use edgar_company_search.\nExample: {\"exchange\": \"NYSE\", \"limit\": 50}",
+  "annotations": {"readOnlyHint": true, "idempotentHint": true, "openWorldHint": true},
   "version": "2.9.8",
   "enabled": true,
   "inputSchema": {
@@ -10,7 +11,13 @@
       "exchange": {
         "type": "string",
         "description": "Stock exchange code",
-        "enum": ["Nasdaq", "NYSE", "AMEX", "BATS", "OTC"]
+        "enum": [
+          "Nasdaq",
+          "NYSE",
+          "OTC",
+          "CBOE",
+          "TXSE"
+        ]
       },
       "limit": {
         "type": "integer",
@@ -20,7 +27,10 @@
         "default": 100
       }
     },
-    "required": ["exchange"]
+    "required": [
+      "exchange"
+    ],
+    "examples": [{"exchange": "NYSE", "limit": 50}]
   },
   "outputSchema": {
     "type": "object",
@@ -39,9 +49,15 @@
         "items": {
           "type": "object",
           "properties": {
-            "cik": {"type": "string"},
-            "ticker": {"type": "string"},
-            "title": {"type": "string"}
+            "cik": {
+              "type": "string"
+            },
+            "ticker": {
+              "type": "string"
+            },
+            "title": {
+              "type": "string"
+            }
           }
         }
       }
@@ -50,19 +66,35 @@
   "metadata": {
     "author": "Ashutosh Sinha",
     "category": "SEC EDGAR",
-    "tags": ["sec", "edgar", "exchange", "nyse", "nasdaq", "listings"],
+    "tags": [
+      "sec",
+      "edgar",
+      "exchange",
+      "nyse",
+      "nasdaq",
+      "listings"
+    ],
     "rateLimit": 10,
     "cacheTTL": 7200,
     "examples": [
       {
         "description": "Get all NYSE companies",
-        "input": {"exchange": "NYSE", "limit": 500}
+        "input": {
+          "exchange": "NYSE",
+          "limit": 500
+        }
       },
       {
         "description": "Get NASDAQ listings",
-        "input": {"exchange": "Nasdaq"}
+        "input": {
+          "exchange": "Nasdaq"
+        }
       }
     ],
-    "useCases": ["Exchange-specific company screening", "Market analysis by exchange", "Building exchange indices"]
+    "useCases": [
+      "Exchange-specific company screening",
+      "Market analysis by exchange",
+      "Building exchange indices"
+    ]
   }
 }

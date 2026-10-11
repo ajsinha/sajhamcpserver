@@ -1,7 +1,8 @@
 {
   "name": "fmp_insider_trading",
   "implementation": "sajha.tools.impl.fmp_tools.FMPInsiderTradingTool",
-  "description": "Insider transactions for one company from Financial Modeling Prep (FMP, /stable/insider-trading): purchases, sales and option exercises by officers, directors and major holders, with dates, shares and prices.\nReturns {symbol, transactions_count, transactions}.\nInputs (* required): symbol* (ticker, e.g. AAPL; upper-cased), limit (integer, number of transactions; default 20).\nFor fund ownership use fmp_institutional_holders or fmp_mutual_fund_holders; for US Senate trades fmp_senate_trading.\nNeeds an FMP API key (config fmp.api.key, env FMP_API_KEY); without one it returns a demo placeholder naming the endpoint instead of data.\nExample: {\"symbol\": \"AAPL\", \"limit\": 10}",
+  "description": "Insider transactions for one company from Financial Modeling Prep (FMP, /stable/insider-trading): purchases, sales and option exercises by officers, directors and major holders, with dates, shares and prices.\nReturns {symbol, transactions_count, transactions}.\nInputs (* required): symbol* (ticker, e.g. AAPL; upper-cased), limit (integer, number of transactions; default 20).\nFor fund ownership use fmp_institutional_holders or fmp_mutual_fund_holders; for US Senate trades fmp_senate_trading.\nExample: {\"symbol\": \"AAPL\", \"limit\": 10}",
+  "annotations": {"readOnlyHint": true, "idempotentHint": true, "openWorldHint": true},
   "version": "4.5.0",
   "enabled": true,
   "inputSchema": {
@@ -19,7 +20,8 @@
     },
     "required": [
       "symbol"
-    ]
+    ],
+    "examples": [{"symbol": "AAPL", "limit": 10}]
   },
   "outputSchema": {
     "type": "object",

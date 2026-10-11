@@ -1,7 +1,8 @@
 {
   "name": "fbi_search_agencies",
   "implementation": "sajha.tools.impl.fbi_tool_refactored.FBISearchAgenciesTool",
-  "description": "List or search the law enforcement agencies in one US state to find their ORI codes, from the FBI Crime Data Explorer agency directory.\nReturns: state, search_query, total_results (all matches) and agencies sorted by name (ori, agency_name, agency_type, county, state_name, is_nibrs, nibrs_start_date, latitude, longitude), cut to limit.\nInputs (* required): state* (two-letter USPS code); agency_name (case-insensitive substring, e.g. police, sheriff; omit to list all); county (case-insensitive substring); agency_type (city, county, state, university, tribal, other or all; default all; state = State Police and Other State Agency); limit (1-500; default 20).\nThe ORI feeds fbi_get_agency_statistics, fbi_get_agency_details and fbi_get_crime_trend. Key: api.data.gov key in FBI_API_KEY, else the rate-limited DEMO_KEY.\nExample: {\"state\": \"VT\", \"agency_name\": \"police\", \"limit\": 10}",
+  "description": "List or search the law enforcement agencies in one US state to find their ORI codes, from the FBI Crime Data Explorer agency directory.\nReturns: state, search_query, total_results (all matches) and agencies sorted by name (ori, agency_name, agency_type, county, state_name, is_nibrs, nibrs_start_date, latitude, longitude), cut to limit.\nInputs (* required): state* (two-letter USPS code); agency_name (case-insensitive substring, e.g. police, sheriff; omit to list all); county (case-insensitive substring); agency_type (city, county, state, university, tribal, other or all; default all; state = State Police and Other State Agency); limit (1-500; default 20).\nThe ORI feeds fbi_get_agency_statistics, fbi_get_agency_details and fbi_get_crime_trend.\nExample: {\"state\": \"VT\", \"agency_name\": \"police\", \"limit\": 10}",
+  "annotations": {"readOnlyHint": true, "idempotentHint": true, "openWorldHint": true},
   "version": "3.0.0",
   "enabled": true,
   "inputSchema": {
@@ -44,7 +45,8 @@
     },
     "required": [
       "state"
-    ]
+    ],
+    "examples": [{"state": "VT", "agency_name": "police", "limit": 10}]
   },
   "outputSchema": {
     "type": "object",

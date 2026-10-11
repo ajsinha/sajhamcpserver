@@ -104,7 +104,6 @@ The tool operates through **external API calls to UN data services**:
 │  • un_get_sdg_indicators     • un_get_country_trade      │
 │  • un_get_sdg_data           • un_get_trade_balance      │
 │  • un_get_sdg_targets        • un_compare_trade          │
-│  • un_get_sdg_progress                                   │
 │                                                           │
 └──────────────────────────────────────────────────────────┘
                          │
@@ -128,7 +127,6 @@ BaseMCPTool (Abstract Base)
             ├── UNGetSDGIndicatorsTool
             ├── UNGetSDGDataTool
             ├── UNGetSDGTargetsTool
-            ├── UNGetSDGProgressTool
             ├── UNGetTradeDataTool
             ├── UNGetCountryTradeTool
             ├── UNGetTradeBalanceTool
@@ -261,7 +259,7 @@ headers = {
 
 ### Comtrade Tools - Authentication Required
 
-**UN Comtrade API requires registration:**
+**UN Comtrade: keyless preview, or the full API with a key:**
 
 **How to Get Access:**
 1. Visit https://comtradeapi.un.org
@@ -278,11 +276,11 @@ headers = {
 }
 ```
 
-**Note:** SAJHA does not send a Comtrade key: there is no config key or environment variable for it, and the trade tools are placeholders that make no Comtrade call.
+**Note:** without a key the trade tools call the keyless public preview API (at most 500 records per call, rate limited). With the `COMTRADE_API_KEY` environment variable, or a `comtrade_api_key` field in a tool config, they call the full data API and send the key as `Ocp-Apim-Subscription-Key`.
 
 ### Configuration
 
-No SAJHA configuration is needed for the `un_` tools: the shipped configs carry no `api_key`, and there is no UN or Comtrade entry in `config/application.yml`. See the [Configuration Reference](../../getting-started/Configuration%20Reference.md) for how tool configs and API keys are resolved generally.
+No SAJHA configuration is needed for the `un_` tools. The optional Comtrade key is read from `COMTRADE_API_KEY` (or a tool config's `comtrade_api_key`); there is no UN or Comtrade entry in `config/application.yml`. See the [Configuration Reference](../../getting-started/Configuration%20Reference.md) for how tool configs and API keys are resolved generally.
 
 ---
 
@@ -392,69 +390,41 @@ for indicator in result['indicators']:
 
 ### 3. un_get_sdg_data
 
-**Purpose:** Retrieve historical time series data for a specific SDG indicator
+**Purpose:** Time series of one SDG indicator for one country or area, or for all, from the UN SDG API (`Indicator/Data`).
 
 **Input Schema:**
 ```json
 {
-  "indicator_code": "string (required, e.g., '1.1.1')",
-  "country_code": "string (optional; sent to the SDG API as areaCode)",
+  "indicator_code": "string (required, e.g. '3.2.1')",
+  "country_code": "string (optional; ISO alpha-3 such as IND, alpha-2 such as IN, or a UN M49 number such as 356; 1 = World)",
   "start_year": "integer (optional, 2000-2030)",
-  "end_year": "integer (optional, 2000-2030)"
+  "end_year": "integer (optional, 2000-2030; either year alone is fine)",
+  "max_records": "integer (optional, 1-5000, default 500)"
 }
 ```
+
+The SDG API identifies areas by UN M49 number and ignores an ISO code it does not know (before 8.8.0 an ISO3 code silently returned every area). The tool converts ISO alpha-3 and alpha-2 to M49 (`sajha/tools/impl/country_codes.py`, from the UN Statistics Division's M49 table) and rejects an unknown code. Years are sent as `timePeriod` values; the API's pages are read until `max_records`.
 
 **Output Schema:**
 ```json
 {
-  "indicator_code": "1.1.1",
-  "indicator_description": "Poverty headcount ratio",
+  "indicator_code": "3.2.1",
+  "indicator_description": "Infant mortality rate (deaths per 1,000 live births)",
   "country_code": "IND",
+  "area_code": "356",
   "country_name": "India",
   "data": [
-    {
-      "year": 2015,
-      "value": 21.9,
-      "unit": "%"
-    },
-    {
-      "year": 2020,
-      "value": 16.4,
-      "unit": "%"
-    }
+    {"year": 2015, "value": 36.33, "unit": "PER_1000_LIVE_BIRTHS", "series": "SH_DYN_IMRT",
+     "series_description": "Infant mortality rate (deaths per 1,000 live births)",
+     "dimensions": {"Age": "<1Y", "Sex": "BOTHSEX", "Reporting Type": "G"}}
   ],
-  "count": 2
+  "count": 1,
+  "total_available": 1,
+  "truncated": false
 }
 ```
 
-**Data Availability:**
-- Most indicators updated annually
-- Data typically 1-2 years behind current year
-- Coverage varies by country and indicator
-- Some indicators updated less frequently
-
-**Use Cases:**
-- Track country progress on specific indicators
-- Compare historical trends
-- Generate data visualizations
-- Research and policy analysis
-- Report generation
-- Academic studies
-
-**Example:**
-```python
-# Get poverty data for India from 2015-2023
-result = tool.execute({
-    'indicator_code': '1.1.1',
-    'country_code': 'IND',
-    'start_year': 2015,
-    'end_year': 2023
-})
-
-# Plot trend
-for point in result['data']:
-    print(f"{point['year']}: {point['value']}{point['unit']}")
-```
+One indicator usually has several series (rates and counts) and breakdowns (sex, age, location), each a separate row; filter on `series` and `dimensions`. A non-numeric value (`<0.1`, `>95`) is `value: null` with `value_text`. Without `country_code`, each row also has `area_code` and `area_name`. No rows gives a `note`.
 
 ---
 
@@ -515,79 +485,11 @@ for target in result['targets']:
 
 ---
 
-### 5. un_get_sdg_progress
+### Trade Tools (UN Comtrade)
 
-**Purpose:** Track a country's progress towards SDGs with latest indicator values
+These tools call UN Comtrade (the keyless public preview API, or the full data API with `COMTRADE_API_KEY`); see the [Overview](#overview). The year defaults to the current year minus 2.
 
-**Input Schema:**
-```json
-{
-  "country_code": "string (required, ISO3 code)",
-  "sdg_code": "string (optional, 1-17)"
-}
-```
-
-**Output Schema:**
-```json
-{
-  "country_code": "IND",
-  "country_name": "India",
-  "sdg_code": "1",
-  "sdg_title": "No Poverty",
-  "indicators": [
-    {
-      "indicator_code": "1.1.1",
-      "description": "Poverty headcount ratio",
-      "latest_data": {
-        "year": 2020,
-        "value": 16.4,
-        "unit": "%"
-      },
-      "trend": "improving"
-    }
-  ],
-  "overall_progress": "on track"
-}
-```
-
-**Progress Assessment:**
-- **improving**: Values moving toward target
-- **declining**: Values moving away from target
-- **stable**: Little change over time
-- **insufficient_data**: Not enough data to assess
-
-**Use Cases:**
-- National development monitoring
-- Policy impact assessment
-- International development reporting
-- Funding allocation decisions
-- Comparative country analysis
-- Academic research
-- Progress dashboards
-
-**Example:**
-```python
-# Track India's progress on SDG 1 (No Poverty)
-result = tool.execute({
-    'country_code': 'IND',
-    'sdg_code': '1'
-})
-
-print(f"Progress on {result['sdg_title']}:")
-for indicator in result['indicators']:
-    latest = indicator['latest_data']
-    print(f"\n{indicator['description']}")
-    print(f"  Latest: {latest['value']}{latest['unit']} ({latest['year']})")
-    print(f"  Trend: {indicator['trend']}")
-```
-
----
-
-### Trade Tools (Comtrade, placeholder implementation)
-
-These tools accept the arguments below but currently return placeholder results with empty data (see the [Overview](#overview)).
-
-### 6. un_get_trade_data
+### 5. un_get_trade_data
 
 **Purpose:** Retrieve bilateral trade data from UN Comtrade database
 
@@ -657,7 +559,7 @@ result = tool.execute({
 
 ---
 
-### 7. un_get_country_trade
+### 6. un_get_country_trade
 
 **Purpose:** Retrieve comprehensive trade summary (imports and exports) for a country
 
@@ -665,7 +567,7 @@ result = tool.execute({
 ```json
 {
   "country_code": "string (required, ISO3 code)",
-  "year": "integer (optional, defaults to previous year)"
+  "year": "integer (optional, defaults to the current year minus 2)"
 }
 ```
 
@@ -719,7 +621,7 @@ print(f"Balance: ${result['trade_balance']:,.0f}")
 
 ---
 
-### 8. un_get_trade_balance
+### 7. un_get_trade_balance
 
 **Purpose:** Calculate trade balance (exports minus imports) for a country
 
@@ -728,7 +630,7 @@ print(f"Balance: ${result['trade_balance']:,.0f}")
 {
   "country_code": "string (required, ISO3 code)",
   "partner_code": "string (optional, default: 'all')",
-  "year": "integer (optional, defaults to previous year)"
+  "year": "integer (optional, defaults to the current year minus 2)"
 }
 ```
 
@@ -779,7 +681,7 @@ else:
 
 ---
 
-### 9. un_compare_trade
+### 8. un_compare_trade
 
 **Purpose:** Compare trade statistics across multiple countries
 
@@ -915,7 +817,7 @@ client = SajhaClient(SajhaConfig(base_url="http://localhost:3002", api_key="sja_
 result = client.execute_tool("un_get_sdg_data", indicator_code="1.1.1", country_code="356", start_year=2015, end_year=2023)
 ```
 
-`country_code` is passed to the SDG API unchanged as `areaCode`. The UN SDG API identifies areas by UN M49 numeric code (for example `356` for India, `840` for the United States); ISO3 codes such as `IND` may return no data.
+`country_code` may be ISO alpha-3, alpha-2 or a UN M49 number; the tool sends the M49 number the SDG API expects (`IND` becomes `356`).
 
 The Python examples below instantiate the tool classes directly, which is useful in tests and notebooks; through the server, use one of the forms above.
 
@@ -942,31 +844,7 @@ for sdg in result['sdgs']:
         print(f"Description: {sdg['description'][:100]}...")
 ```
 
-### Example 2: Track Country's SDG Progress
-
-```python
-from sajha.tools.impl.united_nations_tool_refactored import UNGetSDGProgressTool
-
-tool = UNGetSDGProgressTool({})
-
-# Get India's progress on SDG 3 (Health)
-result = tool.execute({
-    'country_code': 'IND',
-    'sdg_code': '3'
-})
-
-print(f"{result['country_code']} - {result['sdg_title']}")
-print(f"Found {len(result['indicators'])} indicators")
-
-for indicator in result['indicators']:
-    print(f"\n{indicator['indicator_code']}: {indicator['description']}")
-    latest = indicator.get('latest_data', {})
-    if latest:
-        print(f"  Latest: {latest.get('value')} ({latest.get('year')})")
-        print(f"  Trend: {indicator.get('trend', 'unknown')}")
-```
-
-### Example 3: Get SDG Indicator Time Series
+### Example 2: Get SDG Indicator Time Series
 
 ```python
 from sajha.tools.impl.united_nations_tool_refactored import UNGetSDGDataTool
@@ -989,7 +867,7 @@ for point in result['data']:
     print(f"  {point['year']}: {point['value']}{point['unit']}")
 ```
 
-### Example 4: Get SDG Targets
+### Example 3: Get SDG Targets
 
 ```python
 from sajha.tools.impl.united_nations_tool_refactored import UNGetSDGTargetsTool
@@ -1009,7 +887,7 @@ for target in result['targets']:
     print(f"  {target['description']}\n")
 ```
 
-### Example 5: Compare Trade Across Countries
+### Example 4: Compare Trade Across Countries
 
 ```python
 from sajha.tools.impl.united_nations_tool_refactored import UNCompareCountryTradeTool
@@ -1034,7 +912,7 @@ for country in result['countries']:
         print(f"{country['country_code']}: {country.get('note', 'N/A')}")
 ```
 
-### Example 6: Calculate Bilateral Trade Balance
+### Example 5: Calculate Bilateral Trade Balance
 
 ```python
 from sajha.tools.impl.united_nations_tool_refactored import UNGetTradeBalanceTool
@@ -1139,8 +1017,8 @@ Common country codes used in tools:
    - No registration needed
 
 2. **Comtrade Tools**
-   - Current implementation: placeholder only (no Comtrade call, empty data)
-   - Real Comtrade access would need a subscription key, which SAJHA does not support yet
+   - Without a key: the keyless public preview API (500 records per call, rate limited)
+   - With `COMTRADE_API_KEY`: the full data API
 
 ### Data Quality
 
@@ -1255,7 +1133,7 @@ result = tool.execute({
 **Solution:**
 1. Register at https://comtradeapi.un.org
 2. Obtain API subscription key
-3. Note that SAJHA cannot use the key yet: the trade tools are placeholders
+3. Set it as `COMTRADE_API_KEY`; the trade tools then use the full data API
 
 #### Issue 5: Year Out of Range
 
@@ -1311,10 +1189,9 @@ result = tool.execute({'indicator_code': '1.1.1'})
 ┌──────────────────────▼──────────────────────────────────────┐
 │            United Nations MCP Tools                          │
 │  ┌──────────────────────────────────────────────────────┐   │
-│  │              SDG Tools (6)                           │   │
+│  │              SDG Tools (4)                           │   │
 │  │  • get_sdgs          • get_sdg_data                  │   │
 │  │  • get_indicators    • get_targets                   │   │
-│  │  • get_progress                                      │   │
 │  └──────────────────────────────────────────────────────┘   │
 │  ┌──────────────────────────────────────────────────────┐   │
 │  │           Trade Tools (3)                            │   │
@@ -1473,14 +1350,14 @@ sdgs = get_sdgs_cached()
 # ✓ Good: Process multiple countries efficiently
 import time
 
-def get_progress_for_countries(country_codes, sdg_code):
-    tool = UNGetSDGProgressTool({})
+def get_sdg_data_for_countries(country_codes, indicator_code):
+    tool = UNGetSDGDataTool({})
     results = []
     
     for country_code in country_codes:
         result = tool.execute({
             'country_code': country_code,
-            'sdg_code': sdg_code
+            'indicator_code': indicator_code
         })
         results.append(result)
         time.sleep(0.1)  # Rate limiting
@@ -1550,7 +1427,6 @@ UNITED_NATIONS_TOOLS = {
     'un_get_sdg_indicators': UNGetSDGIndicatorsTool,
     'un_get_sdg_data': UNGetSDGDataTool,
     'un_get_sdg_targets': UNGetSDGTargetsTool,
-    'un_get_sdg_progress': UNGetSDGProgressTool,
     'un_get_trade_data': UNGetTradeDataTool,
     'un_get_country_trade': UNGetCountryTradeTool,
     'un_get_trade_balance': UNGetTradeBalanceTool,

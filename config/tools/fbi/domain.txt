@@ -1,0 +1,1 @@
+Key: an api.data.gov key in FBI_API_KEY, else the rate-limited DEMO_KEY.

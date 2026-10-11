@@ -1,7 +1,8 @@
 {
   "name": "av_fed_funds_rate",
   "implementation": "sajha.tools.impl.alphavantage_tools.AVFedFundsRateTool",
-  "description": "US effective federal funds rate (percent) from Alpha Vantage (FEDERAL_FUNDS_RATE).\nReturns: {name, interval, unit, data: [{date, value}]} with values as strings, newest first. Alpha Vantage's JSON comes back unchanged, including its \"Error Message\" or \"Information\" notes; a network failure gives {\"error\": ...}.\nInputs (* required): interval (daily, weekly or monthly; default monthly).\nTreasury yields: av_treasury_yield. Other sources: fred_fed_funds_rate, openbb_fixedincome_effr.\nKey: ALPHA_VANTAGE_API_KEY (alpha_vantage.api.key); when unset the 'demo' key is sent, which only serves Alpha Vantage's documentation examples. Free tier: 25 requests/day.\nExample: {\"interval\": \"daily\"}",
+  "description": "US effective federal funds rate (percent) from Alpha Vantage (FEDERAL_FUNDS_RATE).\nReturns: {name, interval, unit, data: [{date, value}]} with values as strings, newest first.\nInputs (* required): interval (daily, weekly or monthly; default monthly).\nTreasury yields: av_treasury_yield. Other sources: fred_fed_funds_rate, openbb_fixedincome_effr.\nExample: {\"interval\": \"daily\"}",
+  "annotations": {"readOnlyHint": true, "idempotentHint": true, "openWorldHint": true},
   "version": "4.5.0",
   "enabled": true,
   "inputSchema": {
@@ -10,7 +11,12 @@
       "interval": {
         "type": "string",
         "description": "daily, weekly or monthly",
-        "default": "monthly"
+        "default": "monthly",
+        "enum": [
+          "daily",
+          "weekly",
+          "monthly"
+        ]
       }
     },
     "required": []

@@ -1,37 +1,56 @@
 {
   "name": "openbb_equity_screener",
   "implementation": "sajha.tools.impl.openbb_tools.OpenBBEquityScreenerTool",
-  "description": "Stock screener through the OpenBB Platform (obb.equity.screener).\nReturns: {results_count, results: [records with symbol, name, market cap, sector, price and provider extras]} or {error}.\nInputs (* required): sector; country (e.g. US); limit (integer; sent only when given); market_cap_min and market_cap_max (integers, sent under those names, but OpenBB 4.6 calls them mktcap_min and mktcap_max, so they may have no effect); provider (fmp, nasdaq or yfinance; default fmp).\nReady-made lists: openbb_equity_discovery_gainers, openbb_equity_discovery_losers, openbb_equity_discovery_active; another screener: fmp_stock_screener. Keys: fmp, benzinga, fred, intrinio, polygon and tiingo need credentials in OpenBB's settings (~/.openbb_platform/user_settings.json), not supplied by SAJHA; yfinance, oecd, federal_reserve, sec, imf and government_us need none.\nExample: {\"sector\": \"technology\", \"country\": \"US\", \"limit\": 20, \"provider\": \"yfinance\"}",
+  "description": "Stock screener through the OpenBB Platform (obb.equity.screener).\nReturns: {provider, results_count, truncated, results: [records with symbol, name, price, change, volume, market cap]} or {error}.\nInputs (* required): sector (yfinance sectors, e.g. technology, healthcare); market_cap_min, market_cap_max (USD; yfinance's own minimum is 500 million when omitted); limit (rows returned, 1-1000; default 25; a dated series keeps its most recent rows); provider (fmp, nasdaq, yfinance; default yfinance).\nUS-listed stocks with yfinance (its country filter returns nothing at present); by country: fmp_stock_screener. Ready-made lists: openbb_equity_discovery_gainers, _losers, _active. Keys: nasdaq, yfinance need none; fmp uses SAJHA's FMP_API_KEY.\nExample: {\"sector\": \"technology\", \"market_cap_min\": 10000000000, \"limit\": 20}",
+  "annotations": {"readOnlyHint": true, "idempotentHint": true, "openWorldHint": true},
   "version": "4.5.0",
   "enabled": true,
   "inputSchema": {
     "type": "object",
     "properties": {
-      "provider": {
+      "sector": {
         "type": "string",
-        "description": "OpenBB data provider",
-        "default": "fmp"
+        "description": "Sector (yfinance names)",
+        "enum": [
+          "basic_materials",
+          "communication_services",
+          "consumer_cyclical",
+          "consumer_defensive",
+          "energy",
+          "financial_services",
+          "healthcare",
+          "industrials",
+          "real_estate",
+          "technology",
+          "utilities"
+        ]
       },
       "market_cap_min": {
         "type": "integer",
-        "description": "Min market cap"
+        "minimum": 0,
+        "description": "Minimum market cap in USD (sent as mktcap_min)"
       },
       "market_cap_max": {
         "type": "integer",
-        "description": "Max market cap"
-      },
-      "sector": {
-        "type": "string",
-        "description": "Sector filter"
-      },
-      "country": {
-        "type": "string",
-        "description": "Country filter"
+        "minimum": 0,
+        "description": "Maximum market cap in USD (sent as mktcap_max)"
       },
       "limit": {
         "type": "integer",
-        "description": "Number of records",
-        "default": 5
+        "minimum": 1,
+        "maximum": 1000,
+        "default": 25,
+        "description": "Most rows returned (1-1000); a dated series keeps its most recent rows"
+      },
+      "provider": {
+        "type": "string",
+        "enum": [
+          "fmp",
+          "nasdaq",
+          "yfinance"
+        ],
+        "default": "yfinance",
+        "description": "OpenBB data provider"
       }
     },
     "required": []
@@ -39,8 +58,20 @@
   "outputSchema": {
     "type": "object",
     "properties": {
-      "result": {
-        "type": "object"
+      "provider": {
+        "type": "string"
+      },
+      "truncated": {
+        "type": "boolean"
+      },
+      "results": {
+        "type": "array"
+      },
+      "error": {
+        "type": "string"
+      },
+      "results_count": {
+        "type": "integer"
       }
     }
   },
@@ -55,6 +86,15 @@
       "filter",
       "scan"
     ],
-    "examples": []
+    "examples": [
+      {
+        "description": "Stock screener",
+        "input": {
+          "sector": "technology",
+          "market_cap_min": 10000000000,
+          "limit": 20
+        }
+      }
+    ]
   }
 }

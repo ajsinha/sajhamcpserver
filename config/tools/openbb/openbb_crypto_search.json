@@ -1,7 +1,8 @@
 {
   "name": "openbb_crypto_search",
   "implementation": "sajha.tools.impl.openbb_tools.OpenBBGenericTool",
-  "description": "Search cryptocurrency symbols by name or ticker through the OpenBB Platform (obb.crypto.search).\nReturns: {tool, data_points (total rows), data: first 100 rows as OpenBB returns them} or {tool, error}.\nInputs (* required): query*; provider (OpenBB 4.6 accepts fmp only; schema default fmp, but when omitted the tool sends yfinance, which this command rejects, so set it).\nKeyless alternative: cg_search; prices: openbb_crypto_price. Keys: fmp, benzinga, fred, intrinio, polygon and tiingo need credentials in OpenBB's settings (~/.openbb_platform/user_settings.json), not supplied by SAJHA; yfinance, oecd, federal_reserve, sec, imf and government_us need none.\nExample: {\"query\": \"ethereum\", \"provider\": \"fmp\"}",
+  "description": "Search cryptocurrency symbols by name or ticker through the OpenBB Platform (obb.crypto.search).\nReturns: {tool, provider, data_points (rows before the cap), truncated, data: rows with their dates, ignored_arguments when some did not apply} or {tool, error}.\nInputs (* required): query*; limit (rows returned, 1-1000; default 100; a dated series keeps its most recent rows); provider (fmp; default fmp).\nKeyless alternative: cg_search; prices: openbb_crypto_price. Keys: fmp uses SAJHA's FMP_API_KEY.\nExample: {\"query\": \"ethereum\"}",
+  "annotations": {"readOnlyHint": true, "idempotentHint": true, "openWorldHint": true},
   "version": "4.5.0",
   "enabled": true,
   "inputSchema": {
@@ -9,23 +10,51 @@
     "properties": {
       "query": {
         "type": "string",
-        "description": "Name or ticker to search"
+        "description": "Name or ticker, e.g. ethereum",
+        "minLength": 1
+      },
+      "limit": {
+        "type": "integer",
+        "minimum": 1,
+        "maximum": 1000,
+        "default": 100,
+        "description": "Most rows returned (1-1000); a dated series keeps its most recent rows"
       },
       "provider": {
         "type": "string",
-        "description": "OpenBB data provider",
-        "default": "fmp"
+        "enum": [
+          "fmp"
+        ],
+        "default": "fmp",
+        "description": "OpenBB data provider"
       }
     },
     "required": [
       "query"
-    ]
+    ],
+    "examples": [{"query": "ethereum"}]
   },
   "outputSchema": {
     "type": "object",
     "properties": {
-      "result": {
-        "type": "object"
+      "tool": {
+        "type": "string"
+      },
+      "provider": {
+        "type": "string"
+      },
+      "data_points": {
+        "type": "integer",
+        "description": "Rows before the cap"
+      },
+      "truncated": {
+        "type": "boolean"
+      },
+      "data": {
+        "type": "array"
+      },
+      "error": {
+        "type": "string"
       }
     }
   },
@@ -38,6 +67,14 @@
       "openbb",
       "crypto",
       "search"
+    ],
+    "examples": [
+      {
+        "description": "Search cryptocurrency symbols by name or ticker",
+        "input": {
+          "query": "ethereum"
+        }
+      }
     ]
   }
 }

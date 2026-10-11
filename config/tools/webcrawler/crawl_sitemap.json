@@ -1,7 +1,8 @@
 {
   "name": "crawl_sitemap",
   "implementation": "sajha.tools.impl.webcrawler_tool_refactored.CrawlSitemapTool",
-  "description": "The URLs listed in a website's XML sitemap.\nReturns {sitemap_url, status_code, url_count, urls: [...], retrieved_at} for the first sitemap found, or {error: 'No sitemap found', attempted_urls, base_url}. Every <loc> entry is returned as found, so a sitemap index yields the child sitemap URLs, which are not fetched.\nInputs (* required): url* (string, the site's base URL or a direct URL ending in sitemap.xml; tried in order: that URL, /sitemap.xml, /sitemap_index.xml, /sitemap1.xml).\nTo discover pages by following links use crawl_url; check_robots_txt shows crawl rules.\nExample: {\"url\": \"https://example.com\"}\nFetches go through SAJHA's outbound fetch guard (loopback and cloud-metadata addresses refused; private networks too when tools.outbound.block_private_networks is on). No API key.",
+  "description": "The URLs listed in a website's XML sitemap.\nReturns {sitemap_url, status_code, url_count, urls: [...], retrieved_at} for the first sitemap found, or {error: 'No sitemap found', attempted_urls, base_url}. Every <loc> entry is returned as found, so a sitemap index yields the child sitemap URLs, which are not fetched.\nInputs (* required): url* (string, the site's base URL or a direct URL ending in sitemap.xml; tried in order: that URL, /sitemap.xml, /sitemap_index.xml, /sitemap1.xml).\nTo discover pages by following links use crawl_url; check_robots_txt shows crawl rules.\nExample: {\"url\": \"https://docs.python.org\"}",
+  "annotations": {"readOnlyHint": true, "idempotentHint": true, "openWorldHint": true},
   "version": "2.9.8",
   "enabled": true,
   "inputSchema": {
@@ -12,7 +13,8 @@
         "description": "Base website URL or direct sitemap URL. Examples: 'https://example.com' or 'https://example.com/sitemap.xml'"
       }
     },
-    "required": ["url"]
+    "required": ["url"],
+    "examples": [{"url": "https://docs.python.org"}]
   },
   "outputSchema": {
     "type": "object",

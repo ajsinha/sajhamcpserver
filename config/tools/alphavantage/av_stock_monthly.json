@@ -1,7 +1,8 @@
 {
   "name": "av_stock_monthly",
   "implementation": "sajha.tools.impl.alphavantage_tools.AVStockMonthlyTool",
-  "description": "Monthly OHLCV price history for one stock from Alpha Vantage (TIME_SERIES_MONTHLY), covering 20+ years.\nReturns: {\"Meta Data\", \"Monthly Time Series\"} keyed by month-end date, each with \"1. open\" to \"5. volume\". Alpha Vantage's JSON comes back unchanged, including its \"Error Message\" or \"Information\" notes; a network failure gives {\"error\": ...}.\nInputs (* required): symbol* (ticker).\nFiner bars: av_stock_weekly, av_stock_daily.\nKey: ALPHA_VANTAGE_API_KEY (alpha_vantage.api.key); when unset the 'demo' key is sent, which only serves Alpha Vantage's documentation examples. Free tier: 25 requests/day.\nExample: {\"symbol\": \"MSFT\"}",
+  "description": "Monthly OHLCV price history for one stock from Alpha Vantage (TIME_SERIES_MONTHLY), covering 20+ years.\nReturns: {\"Meta Data\", \"Monthly Time Series\"} keyed by month-end date, each with \"1. open\" to \"5. volume\".\nInputs (* required): symbol* (ticker).\nFiner bars: av_stock_weekly, av_stock_daily.\nExample: {\"symbol\": \"MSFT\"}",
+  "annotations": {"readOnlyHint": true, "idempotentHint": true, "openWorldHint": true},
   "version": "4.5.0",
   "enabled": true,
   "inputSchema": {
@@ -14,7 +15,8 @@
     },
     "required": [
       "symbol"
-    ]
+    ],
+    "examples": [{"symbol": "MSFT"}]
   },
   "outputSchema": {
     "type": "object",

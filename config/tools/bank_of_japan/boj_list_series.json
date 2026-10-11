@@ -1,9 +1,29 @@
 {
   "name": "boj_list_series",
   "implementation": "sajha.tools.impl.japan_central_bank.BoJListSeriesTools",
-  "description": "List the Japanese series the boj_ tools read, with their shorthand id, FRED series code and label. A built-in list; no network call and no API key.\nReturns: category, count, source and series (id, fred_code, label).\nInputs (none required): category (rates, fx, money, prices, economy or all; default all).\nFetch a series with the matching tool: boj_get_jgb_yield, boj_get_policy_rate, boj_get_exchange_rate, boj_get_money_supply, boj_get_inflation, boj_get_economic_indicator.\nExample: {\"category\": \"rates\"}",
+  "description": "List the Japanese series the boj_ tools read, with their shorthand id, source (FRED or IMF), code and label. A built-in list; no network call and no API key.\nReturns: category, count, source and series (id, code, fred_code for FRED series, source, label).\nInputs (none required): category (rates, fx, money, prices, economy or all; default all).\nFetch a series with the matching tool: boj_get_jgb_yield, boj_get_policy_rate, boj_get_exchange_rate, boj_get_money_supply, boj_get_inflation, boj_get_economic_indicator.\nExample: {\"category\": \"rates\"}",
+  "annotations": {"readOnlyHint": true, "idempotentHint": true, "openWorldHint": true},
   "version": "2.9.8",
   "enabled": true,
+  "api_key": "${fred.api.key}",
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "category": {
+        "type": "string",
+        "enum": [
+          "rates",
+          "fx",
+          "money",
+          "prices",
+          "economy",
+          "all"
+        ],
+        "default": "all",
+        "description": "Category filter"
+      }
+    }
+  },
   "metadata": {
     "author": "Ashutosh Sinha",
     "category": "Central Bank",
@@ -15,7 +35,14 @@
       "catalog"
     ],
     "rateLimit": 120,
-    "cacheTTL": 86400
-  },
-  "api_key": "${fred.api.key}"
+    "cacheTTL": 86400,
+    "examples": [
+      {
+        "description": "Example",
+        "input": {
+          "category": "rates"
+        }
+      }
+    ]
+  }
 }

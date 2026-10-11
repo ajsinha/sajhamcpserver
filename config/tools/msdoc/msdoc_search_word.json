@@ -2,6 +2,7 @@
   "name": "msdoc_search_word",
   "implementation": "sajha.tools.impl.msdoc_tools_tool_refactored.MsDocSearchWordTool",
   "description": "Searches the paragraphs of a Word document (.docx) for a case-insensitive substring; tables are not searched. Files are looked up by name in the docs folder (data/msdocs; msdoc_list_files shows it). Needs the python-docx package (optional in requirements.txt).\nReturns {filename, search_term, matches, match_count}: each match is {paragraph_index, text}.\nInputs (* required): filename*, search_term*.\nFor the whole document use msdoc_read_word; for spreadsheets msdoc_search_excel.\nExample: {\"filename\": \"report.docx\", \"search_term\": \"revenue\"}",
+  "annotations": {"readOnlyHint": true, "idempotentHint": true, "openWorldHint": false},
   "version": "2.9.8",
   "enabled": true,
   "inputSchema": {
@@ -16,7 +17,8 @@
         "description": "Text to search for (case-insensitive)"
       }
     },
-    "required": ["filename", "search_term"]
+    "required": ["filename", "search_term"],
+    "examples": [{"filename": "report.docx", "search_term": "revenue"}]
   },
   "outputSchema": {
     "type": "object",

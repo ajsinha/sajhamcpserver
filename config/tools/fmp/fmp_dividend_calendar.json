@@ -1,7 +1,8 @@
 {
   "name": "fmp_dividend_calendar",
   "implementation": "sajha.tools.impl.fmp_tools.FMPDividendCalendarTool",
-  "description": "Dividend calendar from Financial Modeling Prep (FMP, /stable/dividend-calendar): ex-dividend, record and payment dates, dividend amount and yield per company.\nReturns {dividends}: FMP's list of dividend events.\nInputs (* required): from_date (YYYY-MM-DD), to_date (YYYY-MM-DD); both optional, FMP's default window applies without them.\nOther calendars: fmp_earnings_calendar, fmp_ipo_calendar, fmp_stock_split_calendar, fmp_economic_calendar.\nNeeds an FMP API key (config fmp.api.key, env FMP_API_KEY); without one it returns a demo placeholder naming the endpoint instead of data.\nExample: {\"from_date\": \"2025-06-01\", \"to_date\": \"2025-06-30\"}",
+  "description": "Dividend calendar from Financial Modeling Prep (FMP, /stable/dividend-calendar): ex-dividend, record and payment dates, dividend amount and yield per company.\nReturns {dividends}: FMP's list of dividend events.\nInputs (* required): from_date (YYYY-MM-DD), to_date (YYYY-MM-DD); both optional, FMP's default window applies without them.\nOther calendars: fmp_earnings_calendar, fmp_ipo_calendar, fmp_stock_split_calendar, fmp_economic_calendar.\nExample: {\"from_date\": \"2025-06-01\", \"to_date\": \"2025-06-30\"}",
+  "annotations": {"readOnlyHint": true, "idempotentHint": true, "openWorldHint": true},
   "version": "4.5.0",
   "enabled": true,
   "inputSchema": {

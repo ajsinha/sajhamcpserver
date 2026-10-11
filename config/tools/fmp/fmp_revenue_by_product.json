@@ -1,7 +1,8 @@
 {
   "name": "fmp_revenue_by_product",
   "implementation": "sajha.tools.impl.fmp_tools.FMPGenericTool",
-  "description": "Revenue split by product or business segment for one company by period from Financial Modeling Prep (FMP).\nReturns {tool, endpoint, data}: data is FMP's JSON from /stable/revenue-product-segmentation as returned (usually a list of records).\nInputs (* required): symbol* (ticker, sent as given, e.g. AAPL).\nFor the split by region use fmp_revenue_by_geography.\nNeeds an FMP API key (config fmp.api.key, env FMP_API_KEY); without one it returns a demo placeholder naming the endpoint instead of data.\nExample: {\"symbol\": \"AAPL\"}",
+  "description": "Revenue split by product or business segment for one company by period from Financial Modeling Prep (FMP).\nReturns {tool, endpoint, data}: data is FMP's JSON from /stable/revenue-product-segmentation as returned (usually a list of records).\nInputs (* required): symbol* (ticker, sent as given, e.g. AAPL).\nFor the split by region use fmp_revenue_by_geography.\nExample: {\"symbol\": \"AAPL\"}",
+  "annotations": {"readOnlyHint": true, "idempotentHint": true, "openWorldHint": true},
   "version": "4.5.0",
   "enabled": true,
   "inputSchema": {
@@ -14,7 +15,8 @@
     },
     "required": [
       "symbol"
-    ]
+    ],
+    "examples": [{"symbol": "AAPL"}]
   },
   "outputSchema": {
     "type": "object",

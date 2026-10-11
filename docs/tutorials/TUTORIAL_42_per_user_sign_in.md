@@ -175,6 +175,6 @@ all users** (`/admin/server-connections`); disabling a user, on the console or i
 
 - How proxied servers work, and every `auth` key: [Federation](../architecture/Federation.md#per-user-oauth-sign-in-oauth_user)
 - The security rules: [Security Model](../security/Security%20Model.md#per-user-tokens-for-proxied-servers)
-- This is the last tutorial; the [documentation index](../README.md) lists every guide
+- Next tutorial: [Tutorial 43: Connect and Configure LLM Providers](TUTORIAL_43_llm_providers.md)
 
 Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.com

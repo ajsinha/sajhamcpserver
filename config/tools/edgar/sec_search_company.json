@@ -1,7 +1,8 @@
 {
   "name": "sec_search_company",
   "implementation": "sajha.tools.impl.sec_edgar_tool_refactored.SECSearchCompanyTool",
-  "description": "Search SEC EDGAR's company-tickers file for companies whose name or ticker contains the search term (case-insensitive substring).\nReturns {search_term, result_count, companies: [{cik (10 digits), name, ticker, exchange}]} in file order, not ranked.\nInputs (* required): search_term* (string, e.g. Apple or AAPL), limit (integer 1-100, default 10).\nedgar_company_search ranks exact ticker matches first and can search names or tickers only. The other sec_* tools take a ticker directly.\nExample: {\"search_term\": \"Apple\", \"limit\": 5}\nNo API key; SEC data.sec.gov (requests are not throttled; the SEC allows 10 per second).",
+  "description": "Search SEC EDGAR's company-tickers file for companies whose name or ticker contains the search term (case-insensitive substring).\nReturns {search_term, result_count, companies: [{cik (10 digits), name, ticker, exchange}]} in file order, not ranked.\nInputs (* required): search_term* (string, e.g. Apple or AAPL), limit (integer 1-100, default 10).\nedgar_company_search ranks exact ticker matches first and can search names or tickers only. The other sec_* tools take a ticker directly.\nExample: {\"search_term\": \"Apple\", \"limit\": 5}",
+  "annotations": {"readOnlyHint": true, "idempotentHint": true, "openWorldHint": true},
   "version": "2.9.8",
   "enabled": true,
   "inputSchema": {
@@ -19,7 +20,8 @@
         "maximum": 100
       }
     },
-    "required": ["search_term"]
+    "required": ["search_term"],
+    "examples": [{"search_term": "Apple", "limit": 5}]
   },
   "outputSchema": {
     "type": "object",

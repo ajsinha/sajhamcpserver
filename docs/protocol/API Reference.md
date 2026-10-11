@@ -753,6 +753,7 @@ state changes. Behaviour: [Tool Quality](../architecture/Tool%20Quality.md).
 | POST | `/admin/tool-health/tests/run` | admin (form, CSRF) | Run the test harness: `tool` (glob), `mode` (`replay`, `auto`, `live`); saves the run. |
 | GET | `/api/quality/probes` | admin | `{enabled, probes: [...]}`: every probe with its schedule, last result and history. |
 | POST | `/api/quality/probes/{tool}/run` | admin (CSRF) | Run one probe now; 404 when the tool has none. |
+| GET | `/api/quality/check` | admin | `{cron, results}`: the live tool check's latest outcome per tool (`results[tool]`: folder, outcome, message, arguments and where they came from, duration, error class, `at`). Run the check with `python -m sajha.quality check`. |
 | GET | `/api/quality/lint` | admin | `{summary, findings}` (`?tool=` glob). |
 | POST | `/api/quality/tests/run` | admin (CSRF) | `{"tool", "mode"}` → `{id, summary, results}`. |
 | GET | `/api/quality/runs` | admin | Saved runs (`?kind=test|eval`). |

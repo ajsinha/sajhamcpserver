@@ -2,6 +2,7 @@
   "name": "calc_loan_amortization",
   "implementation": "sajha.tools.impl.calc_tools.CalcLoanAmortizationTool",
   "description": "Fixed-payment loan schedule: monthly payment from the annual rate (rate/12 per month), total paid, total interest and a per-year split of principal and interest. Computed locally in Python; no API key or network.\nReturns {principal, monthly_payment, total_paid, total_interest, months, yearly_schedule}: yearly_schedule is [{year, principal, interest, balance}] (empty above 1200 months). An MCP Apps view charts the schedule in clients that support it.\nInputs (* required): principal* (loan amount), annual_rate* (percent; 0 gives straight-line repayment), months* (integer term).\nFor growth of savings use calc_compound_interest.\nExample: {\"principal\": 300000, \"annual_rate\": 6.5, \"months\": 360}",
+  "annotations": {"readOnlyHint": true, "idempotentHint": true, "openWorldHint": false},
   "version": "4.5.0",
   "enabled": true,
   "inputSchema": {
@@ -24,7 +25,8 @@
       "principal",
       "annual_rate",
       "months"
-    ]
+    ],
+    "examples": [{"principal": 300000, "annual_rate": 6.5, "months": 360}]
   },
   "outputSchema": {
     "type": "object",

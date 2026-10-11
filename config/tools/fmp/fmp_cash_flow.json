@@ -1,7 +1,8 @@
 {
   "name": "fmp_cash_flow",
   "implementation": "sajha.tools.impl.fmp_tools.FMPCashFlowTool",
-  "description": "Cash flow statements for one company from Financial Modeling Prep (FMP, /stable/cash-flow-statement): operating, investing and financing cash flows, free cash flow, capex, dividends paid, one record per period.\nReturns {symbol, period, statements}: statements is the list of FMP period records.\nInputs (* required): symbol* (ticker, e.g. AAPL; upper-cased), period (annual or quarter; default annual), limit (integer 1-100, number of periods; default 5).\nSibling statements: fmp_income_statement and fmp_balance_sheet; owner earnings: fmp_owner_earnings.\nNeeds an FMP API key (config fmp.api.key, env FMP_API_KEY); without one it returns a demo placeholder naming the endpoint instead of data.\nExample: {\"symbol\": \"GOOGL\", \"period\": \"annual\", \"limit\": 5}",
+  "description": "Cash flow statements for one company from Financial Modeling Prep (FMP, /stable/cash-flow-statement): operating, investing and financing cash flows, free cash flow, capex, dividends paid, one record per period.\nReturns {symbol, period, statements}: statements is the list of FMP period records.\nInputs (* required): symbol* (ticker, e.g. AAPL; upper-cased), period (annual or quarter; default annual), limit (integer 1-100, number of periods; default 5).\nSibling statements: fmp_income_statement and fmp_balance_sheet; owner earnings: fmp_owner_earnings.\nExample: {\"symbol\": \"GOOGL\", \"period\": \"annual\", \"limit\": 5}",
+  "annotations": {"readOnlyHint": true, "idempotentHint": true, "openWorldHint": true},
   "version": "4.5.0",
   "enabled": true,
   "inputSchema": {
@@ -30,7 +31,8 @@
     },
     "required": [
       "symbol"
-    ]
+    ],
+    "examples": [{"symbol": "GOOGL", "period": "annual", "limit": 5}]
   },
   "outputSchema": {
     "type": "object",

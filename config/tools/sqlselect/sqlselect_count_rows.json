@@ -2,6 +2,7 @@
   "name": "sqlselect_count_rows",
   "implementation": "sajha.tools.impl.sqlselect_tool_refactored.SqlSelectCountRowsTool",
   "description": "Counts the rows of one configured data source, optionally filtered by a SQL condition. Data sources are the named files configured in this tool's data_sources (CSV, Parquet or JSON in data.sqlselect.dir, default data/sqlselect), each loaded into a DuckDB table named after the source when the tool starts, with file and URL access then switched off; a source whose file is missing is listed but cannot be queried.\nReturns {success, source_name, row_count, where_clause, timestamp}; on failure {success: false, error, timestamp}.\nInputs (* required): source_name*, where_clause (one SQL condition without the WHERE keyword; no ';' or comments, e.g. \"region = 'West'\").\nFor grouped counts use sqlselect_execute_query.\nExample: {\"source_name\": \"orders\", \"where_clause\": \"quantity > 5\"}",
+  "annotations": {"readOnlyHint": true, "idempotentHint": true, "openWorldHint": false},
   "version": "2.9.8",
   "enabled": true,
   "data_directory": "${data.sqlselect.dir:./data/sqlselect}",
@@ -39,7 +40,8 @@
         "description": "Optional WHERE clause for filtering (without 'WHERE' keyword)"
       }
     },
-    "required": ["source_name"]
+    "required": ["source_name"],
+    "examples": [{"source_name": "orders", "where_clause": "quantity > 5"}]
   },
   "outputSchema": {
     "type": "object",

@@ -255,12 +255,18 @@ class NativeCatalog(CatalogSource):
     def _own(self, reg) -> List[Dict[str, Any]]:
         out = []
         external = frozenset(x.upstream for x in self.external_servers())
+        limit = _description_limit()
         for tool in _own_tools(reg, external):
             try:
                 d = tool.to_mcp_format()
             except Exception as e:
                 logger.debug(f'SAJHA Net catalog: {getattr(tool, "name", "?")}: {e}')
                 continue
+            if isinstance(d.get('description'), str) and len(d['description']) > limit:
+                # own words plus the folder's domain text past the limit: the domain text is left out,
+                # so a catalog never cuts the tool's own description (Architecture §5)
+                from sajha.tools.domain_text import export_description
+                d = dict(d, description=export_description(tool, d['description'], limit))
             cfg = getattr(tool, 'config', None) or {}
             meta_cat = str(((cfg.get('metadata') or {}).get('category')) or '')
             extra: Dict[str, Any] = {'version': str(getattr(tool, 'version', '') or cfg.get('version') or '')}
@@ -278,6 +284,14 @@ class NativeCatalog(CatalogSource):
         return out
 
 
+def _description_limit() -> int:
+    """``sajhanet.limits.max_description_chars``: the length a member's catalog accepts uncut."""
+    try:
+        return int(load_settings().limits.max_description_chars)
+    except Exception:
+        return 1024
+
+
 # ── proxy tools ─────────────────────────────────────────────────────
 
 def _caller_user(net_hint: str = '') -> Dict[str, Any]:
@@ -292,6 +306,7 @@ def _caller_user(net_hint: str = '') -> Dict[str, Any]:
 class NetProxyTool(BaseMCPTool):
     """A remote tool in this server's registry (see the module docstring)."""
     passthrough_result = True
+    apply_schema_defaults = False   # the other server applies its own schema's defaults
     namespaced_name = True          # <net>__<instance>__<tool> and published aliases (sajha/tools/naming.py)
 
     def __init__(self, catalogs: 'NetCatalogs', name: str, definition: Dict[str, Any], meta: Dict[str, Any],

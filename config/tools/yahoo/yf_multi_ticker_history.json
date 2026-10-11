@@ -1,7 +1,8 @@
 {
   "name": "yf_multi_ticker_history",
   "implementation": "sajha.tools.impl.yfinance_tools.YFMultiTickerHistoryTool",
-  "description": "Price history for several tickers in one call from Yahoo Finance (yfinance download).\nReturns: {symbols: [...], data: {SYMBOL: up to the first (oldest) 30 daily rows of {Date, Open, High, Low, Close, Volume}}}; prices are adjusted. With the default 1mo period all rows fit; longer periods are cut to their first 30 days.\nInputs (* required): symbols* (space-separated, e.g. \"AAPL MSFT GOOGL\"; commas are not split); period (1d, 5d, 1mo, 3mo, ...; default 1mo). The tool sets no ticker limit.\nOne ticker with up to 500 bars: yf_stock_history; fundamentals side by side: yf_compare_stocks. No API key; data comes from Yahoo Finance through the yfinance library.\nExample: {\"symbols\": \"AAPL MSFT GOOGL\", \"period\": \"5d\"}",
+  "description": "Daily price history for several tickers in one call from Yahoo Finance (yfinance download).\nReturns: {symbols, period, data_points: {SYMBOL: days in the period}, truncated, data: {SYMBOL: the most recent limit rows, oldest first, of {Date, Open, High, Low, Close, Adj Close, Volume}}}; Close is split-adjusted, Adj Close also for dividends; at most 10 tickers, more is an error.\nInputs (* required): symbols* (up to 10, separated by spaces or commas); period (1d, 5d, 1mo, 3mo, ...; default 1mo); limit (rows per ticker, 1-500; default 30).\nOne ticker with up to 1000 bars: yf_stock_history; fundamentals side by side: yf_compare_stocks.\nExample: {\"symbols\": \"AAPL, MSFT, GOOGL\", \"period\": \"3mo\", \"limit\": 10}",
+  "annotations": {"readOnlyHint": true, "idempotentHint": true, "openWorldHint": true},
   "version": "4.5.0",
   "enabled": true,
   "inputSchema": {
@@ -9,22 +10,39 @@
     "properties": {
       "symbols": {
         "type": "string",
-        "description": "Space-separated symbols (e.g., 'AAPL MSFT GOOGL')"
+        "description": "Up to 10 tickers separated by spaces or commas, e.g. \"AAPL MSFT GOOGL\""
       },
       "period": {
         "type": "string",
         "description": "yfinance period, e.g. 5d, 1mo, 3mo",
         "default": "1mo"
+      },
+      "limit": {
+        "type": "integer",
+        "minimum": 1,
+        "maximum": 500,
+        "default": 30,
+        "description": "Most rows per ticker returned (1-500)"
       }
     },
     "required": [
       "symbols"
-    ]
+    ],
+    "examples": [{"symbols": "AAPL, MSFT, GOOGL", "period": "3mo", "limit": 10}]
   },
   "outputSchema": {
     "type": "object",
     "properties": {
-      "result": {
+      "symbols": {
+        "type": "array"
+      },
+      "data_points": {
+        "type": "object"
+      },
+      "truncated": {
+        "type": "boolean"
+      },
+      "data": {
         "type": "object"
       }
     }
@@ -38,6 +56,16 @@
       "yfinance",
       "multi",
       "compare"
+    ],
+    "examples": [
+      {
+        "description": "Daily price history for several tickers in one call",
+        "input": {
+          "symbols": "AAPL, MSFT, GOOGL",
+          "period": "3mo",
+          "limit": 10
+        }
+      }
     ]
   }
 }

@@ -2,6 +2,7 @@
   "name": "calc_max_drawdown",
   "implementation": "sajha.tools.impl.calc_tools.CalcMaxDrawdownTool",
   "description": "Maximum drawdown of a value series: the largest fall from a running peak to a later value. Computed locally in Python; no API key or network.\nReturns {max_drawdown}: percent of the peak, positive, 4 decimals.\nInputs (* required): portfolio_values* (array of positive numbers in time order, e.g. prices or NAVs).\nFor risk-adjusted return use calc_sharpe_ratio or calc_sortino_ratio.\nExample: {\"portfolio_values\": [100, 110, 95, 120, 90, 130]}",
+  "annotations": {"readOnlyHint": true, "idempotentHint": true, "openWorldHint": false},
   "version": "4.5.0",
   "enabled": true,
   "inputSchema": {
@@ -17,7 +18,8 @@
     },
     "required": [
       "portfolio_values"
-    ]
+    ],
+    "examples": [{"portfolio_values": [100, 110, 95, 120, 90, 130]}]
   },
   "outputSchema": {
     "type": "object",

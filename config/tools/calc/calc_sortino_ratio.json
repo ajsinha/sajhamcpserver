@@ -2,6 +2,7 @@
   "name": "calc_sortino_ratio",
   "implementation": "sajha.tools.impl.calc_tools.CalcSortinoRatioTool",
   "description": "Sortino ratio: (portfolio return - risk-free rate) / downside deviation. Computed locally in Python; no API key or network.\nReturns {sortino_ratio}, 4 decimals; 0 when downside deviation is 0.\nInputs (* required): portfolio_return*, risk_free_rate*, downside_deviation* (all percent over the same period).\nFor total volatility use calc_sharpe_ratio.\nExample: {\"portfolio_return\": 12, \"risk_free_rate\": 4, \"downside_deviation\": 9}",
+  "annotations": {"readOnlyHint": true, "idempotentHint": true, "openWorldHint": false},
   "version": "4.5.0",
   "enabled": true,
   "inputSchema": {
@@ -24,7 +25,8 @@
       "portfolio_return",
       "risk_free_rate",
       "downside_deviation"
-    ]
+    ],
+    "examples": [{"portfolio_return": 12, "risk_free_rate": 4, "downside_deviation": 9}]
   },
   "outputSchema": {
     "type": "object",

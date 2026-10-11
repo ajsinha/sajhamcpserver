@@ -1,7 +1,8 @@
 {
   "name": "boc_get_bond_yield",
   "implementation": "sajha.tools.impl.bank_of_canada_tool_refactored.BoCGetBondYieldTool",
-  "description": "Government of Canada benchmark bond yields in percent for a 2, 5, 10 or 30 year maturity, from the Bank of Canada Valet API (no API key).\nReturns: series_name, label, description, dimension, observation_count and observations (date, value) oldest first.\nInputs (* required): bond_term* (2y, 5y, 10y, 30y; schema default 10y); start_date, end_date (YYYY-MM-DD; either or both); recent_periods (1-100; default 10; the last N observations, used only when no date is given).\nFor policy and overnight rates use boc_get_interest_rate; for US Treasuries fed_get_series with treasury_10y or treasury_2y.\nExample: {\"bond_term\": \"5y\", \"start_date\": \"2024-01-01\", \"end_date\": \"2024-06-30\"}",
+  "description": "Government of Canada benchmark bond yields in percent for the 2, 5 and 10 year maturities or the long-term benchmark bond, from the Bank of Canada Valet API (no API key).\nReturns: series_name, label, description, dimension, observation_count and observations (date, value) oldest first.\nInputs (none required): bond_term (2y, 5y, 10y, or 30y for the long-term benchmark bond; default 10y); start_date, end_date (YYYY-MM-DD; either or both); recent_periods (1-100; default 10; the last N observations, used only when no date is given).\nFor policy and overnight rates use boc_get_interest_rate; for US Treasuries fed_get_series with treasury_10y or treasury_2y.\nExample: {\"bond_term\": \"5y\", \"start_date\": \"2024-01-01\", \"end_date\": \"2024-06-30\"}",
+  "annotations": {"readOnlyHint": true, "idempotentHint": true, "openWorldHint": true},
   "version": "2.9.8",
   "enabled": true,
   "inputSchema": {
@@ -9,8 +10,13 @@
     "properties": {
       "bond_term": {
         "type": "string",
-        "description": "Bond maturity term",
-        "enum": ["2y", "5y", "10y", "30y"],
+        "description": "Bond maturity term (30y is the Government of Canada long-term benchmark bond)",
+        "enum": [
+          "2y",
+          "5y",
+          "10y",
+          "30y"
+        ],
         "default": "10y"
       },
       "start_date": {
@@ -29,18 +35,18 @@
         "default": 10
       }
     },
-    "required": ["bond_term"]
+    "required": []
   },
   "outputSchema": {
     "type": "object",
     "properties": {
       "series_name": {
         "type": "string",
-        "description": "Bond yield series identifier (e.g., 'V122539' for 10-year)"
+        "description": "Bond yield series identifier (e.g., 'BD.CDN.10YR.DQ.YLD' for 10-year)"
       },
       "label": {
         "type": "string",
-        "description": "Bond description (e.g., '10-Year Government of Canada Bond Yield')"
+        "description": "Bond description (e.g., 'Benchmark bond yield, 10-year')"
       },
       "description": {
         "type": "string",
@@ -75,20 +81,37 @@
               "description": "Date of yield observation (YYYY-MM-DD format)"
             },
             "value": {
-              "type": ["number", "null"],
+              "type": [
+                "number",
+                "null"
+              ],
               "description": "Bond yield percentage (null if not available)"
             }
           },
-          "required": ["date", "value"]
+          "required": [
+            "date",
+            "value"
+          ]
         }
       }
     },
-    "required": ["series_name", "label", "observations"]
+    "required": [
+      "series_name",
+      "label",
+      "observations"
+    ]
   },
   "metadata": {
     "author": "Ashutosh Sinha",
     "category": "Economic Data",
-    "tags": ["bonds", "yields", "government bonds", "canada", "fixed income", "treasuries"],
+    "tags": [
+      "bonds",
+      "yields",
+      "government bonds",
+      "canada",
+      "fixed income",
+      "treasuries"
+    ],
     "rateLimit": 120,
     "cacheTTL": 3600,
     "note": "Government of Canada benchmark bond yields across the yield curve. Useful for fixed income analysis and monetary policy assessment.",
@@ -109,7 +132,7 @@
         }
       },
       {
-        "description": "Compare recent 2-year vs 30-year yields (call twice)",
+        "description": "Compare recent 2-year vs long-term (30y) yields (call twice)",
         "input": {
           "bond_term": "2y",
           "recent_periods": 30

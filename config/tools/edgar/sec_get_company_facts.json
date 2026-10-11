@@ -1,7 +1,8 @@
 {
   "name": "sec_get_company_facts",
   "implementation": "sajha.tools.impl.sec_edgar_tool_refactored.SECGetCompanyFactsTool",
-  "description": "Every XBRL financial fact a company has reported, from the EDGAR companyfacts API, by CIK or ticker.\nReturns {cik, entity_name, facts: {taxonomy: {concept: {label, description, units: {unit: [{end, val, fy, fp, form, filed, accn, ...}]}}}}}. The response is large.\nInputs (* required): cik or ticker (one of them is needed; cik, 10 digits or shorter, wins when both are given; a ticker is resolved through the SEC company-tickers file).\nFor one metric use sec_get_financial_data or edgar_company_concept; edgar_company_facts is the CIK-only variant with counts.\nExample: {\"ticker\": \"AAPL\"}\nNo API key; SEC data.sec.gov (requests are not throttled; the SEC allows 10 per second).",
+  "description": "Every XBRL financial fact a company has reported, from the EDGAR companyfacts API, by CIK or ticker.\nReturns {cik, entity_name, facts: {taxonomy: {concept: {label, description, units: {unit: [{end, val, fy, fp, form, filed, accn, ...}]}}}}}. The response is large.\nInputs (* required): cik or ticker (one of them is needed; cik, 10 digits or shorter, wins when both are given; a ticker is resolved through the SEC company-tickers file).\nFor one metric use sec_get_financial_data or edgar_company_concept; edgar_company_facts is the CIK-only variant with counts.\nExample: {\"ticker\": \"AAPL\"}",
+  "annotations": {"readOnlyHint": true, "idempotentHint": true, "openWorldHint": true},
   "version": "2.9.8",
   "enabled": true,
   "inputSchema": {
@@ -19,7 +20,8 @@
     "oneOf": [
       {"required": ["cik"]},
       {"required": ["ticker"]}
-    ]
+    ],
+    "examples": [{"ticker": "AAPL"}]
   },
   "outputSchema": {
     "type": "object",

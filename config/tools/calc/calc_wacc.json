@@ -2,6 +2,7 @@
   "name": "calc_wacc",
   "implementation": "sajha.tools.impl.calc_tools.CalcWACCTool",
   "description": "Weighted average cost of capital: E/V * cost of equity + D/V * cost of debt * (1 - tax rate). Computed locally in Python; no API key or network.\nReturns {wacc, equity_weight, debt_weight}: wacc in percent (4 decimals), weights as fractions.\nInputs (* required): equity_value*, debt_value* (same currency, usually market values), cost_of_equity* (percent), cost_of_debt* (pre-tax percent), tax_rate* (percent).\nFor the cost of equity use calc_capm; use the result as the wacc of calc_dcf_model.\nExample: {\"equity_value\": 800, \"debt_value\": 200, \"cost_of_equity\": 10, \"cost_of_debt\": 5, \"tax_rate\": 25}",
+  "annotations": {"readOnlyHint": true, "idempotentHint": true, "openWorldHint": false},
   "version": "4.5.0",
   "enabled": true,
   "inputSchema": {
@@ -34,7 +35,8 @@
       "cost_of_equity",
       "cost_of_debt",
       "tax_rate"
-    ]
+    ],
+    "examples": [{"equity_value": 800, "debt_value": 200, "cost_of_equity": 10, "cost_of_debt": 5, "tax_rate": 25}]
   },
   "outputSchema": {
     "type": "object",

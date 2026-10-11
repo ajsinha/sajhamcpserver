@@ -669,6 +669,24 @@ class SECGetCompanyFactsTool(SECEdgarBaseTool):
 
 
 class SECGetFinancialDataTool(SECEdgarBaseTool):
+    #: friendly fact_type -> us-gaap tags, in order of preference
+    FACT_TAGS = {
+        'Assets': ['Assets'],
+        'Liabilities': ['Liabilities'],
+        'StockholdersEquity': ['StockholdersEquity',
+                               'StockholdersEquityIncludingPortionAttributableToNoncontrollingInterest'],
+        'Revenues': ['Revenues', 'RevenueFromContractWithCustomerExcludingAssessedTax', 'SalesRevenueNet'],
+        'NetIncomeLoss': ['NetIncomeLoss'],
+        'EarningsPerShare': ['EarningsPerShareBasic', 'EarningsPerShareDiluted'],
+        'Cash': ['CashAndCashEquivalentsAtCarryingValue',
+                 'CashCashEquivalentsRestrictedCashAndRestrictedCashEquivalents'],
+        'OperatingIncome': ['OperatingIncomeLoss'],
+        'GrossProfit': ['GrossProfit'],
+        'CurrentAssets': ['AssetsCurrent'],
+        'CurrentLiabilities': ['LiabilitiesCurrent'],
+        'LongTermDebt': ['LongTermDebt', 'LongTermDebtNoncurrent'],
+    }
+
     """
     Tool to retrieve specific financial metrics from company XBRL data
     """
@@ -807,16 +825,25 @@ class SECGetFinancialDataTool(SECEdgarBaseTool):
                     'data': []
                 }
                 
-                for taxonomy, taxonomy_facts in facts.items():
-                    if fact_type in taxonomy_facts:
-                        fact_data = taxonomy_facts[fact_type]
-                        result['data'].append({
-                            'taxonomy': taxonomy,
-                            'label': fact_data.get('label'),
-                            'description': fact_data.get('description'),
-                            'units': fact_data.get('units', {})
-                        })
-                
+                # A friendly name maps to the us-gaap tags that carry it (first one present wins);
+                # any other value is looked up as an exact tag in every taxonomy.
+                candidates = self.FACT_TAGS.get(fact_type, [fact_type])
+                for tag in candidates:
+                    for taxonomy, taxonomy_facts in facts.items():
+                        if tag in taxonomy_facts:
+                            fact_data = taxonomy_facts[tag]
+                            result['data'].append({
+                                'taxonomy': taxonomy,
+                                'tag': tag,
+                                'label': fact_data.get('label'),
+                                'description': fact_data.get('description'),
+                                'units': fact_data.get('units', {})
+                            })
+                    if result['data']:
+                        break
+                if not result['data']:
+                    result['note'] = (f"No XBRL facts for {fact_type} (tags tried: {', '.join(candidates)}); "
+                                      f"call without fact_type to list the company's tags")
                 return result
                 
         except urllib.error.HTTPError as e:
@@ -984,13 +1011,13 @@ class SECGetInsiderTradingTool(SECEdgarBaseTool):
 
 class SECGetMutualFundHoldingsTool(SECEdgarBaseTool):
     """
-    Tool to retrieve institutional investment manager holdings (Form 13F)
+    Tool to retrieve a registered fund's portfolio holdings reports (Form NPORT-P)
     """
     
     def __init__(self, config: Dict = None):
         default_config = {
             'name': 'sec_get_mutual_fund_holdings',
-            'description': 'Retrieve institutional investment manager holdings reports (Form 13F-HR)',
+            'description': 'Retrieve a registered fund\'s monthly portfolio holdings reports (Form NPORT-P)',
             'version': '1.0.0',
             'enabled': True
         }
@@ -1013,7 +1040,7 @@ class SECGetMutualFundHoldingsTool(SECEdgarBaseTool):
                 },
                 "limit": {
                     "type": "integer",
-                    "description": "Maximum number of Form 13F filings to return",
+                    "description": "Maximum number of Form NPORT-P filings to return",
                     "default": 5,
                     "minimum": 1,
                     "maximum": 20
@@ -1040,11 +1067,11 @@ class SECGetMutualFundHoldingsTool(SECEdgarBaseTool):
                 },
                 "filing_count": {
                     "type": "integer",
-                    "description": "Number of Form 13F filings returned"
+                    "description": "Number of NPORT-P filings returned"
                 },
                 "filings": {
                     "type": "array",
-                    "description": "List of Form 13F holdings reports",
+                    "description": "List of NPORT-P holdings reports",
                     "items": {
                         "type": "object",
                         "properties": {
@@ -1062,7 +1089,7 @@ class SECGetMutualFundHoldingsTool(SECEdgarBaseTool):
                             },
                             "form": {
                                 "type": "string",
-                                "description": "Form type (will be '13F-HR')"
+                                "description": "Form type (NPORT-P or NPORT-P/A)"
                             },
                             "primary_document": {
                                 "type": "string",
@@ -1107,17 +1134,17 @@ class SECGetMutualFundHoldingsTool(SECEdgarBaseTool):
                 forms = filings.get('form', [])
                 primary_docs = filings.get('primaryDocument', [])
                 
-                # Build Form 13F filing list
+                # Form NPORT-P (monthly portfolio holdings of a registered fund), newest first
                 filing_list = []
                 for i in range(len(accession_numbers)):
-                    if i < len(forms) and forms[i] == '13F-HR':
+                    if i < len(forms) and forms[i] in ('NPORT-P', 'NPORT-P/A'):
                         filing_list.append({
                             'accession_number': accession_numbers[i],
                             'filing_date': filing_dates[i] if i < len(filing_dates) else None,
                             'report_date': report_dates[i] if i < len(report_dates) else None,
                             'form': forms[i],
                             'primary_document': primary_docs[i] if i < len(primary_docs) else None,
-                            'description': 'Institutional Investment Manager Holdings'
+                            'description': 'Monthly portfolio investments report (Form N-PORT)'
                         })
                     
                     if len(filing_list) >= limit:

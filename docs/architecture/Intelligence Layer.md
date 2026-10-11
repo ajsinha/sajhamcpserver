@@ -98,8 +98,8 @@ v = llm_factory().model("embedding").embeddings_create(input=["a", "b"]).vectors
 | `sajha/ai/llm/catalog.py` | curated model ids, context windows and list prices (data only) |
 | `sajha/ai/llm/secrets.py` | `SecretStore` (`env:`, `file:`, `db:` references) and redaction |
 | `sajha/ai/llm/http.py` | httpx client construction (sync and async), error mapping, SSE and NDJSON parsing |
-| `sajha/ai/llm/providers/` | the native providers |
-| `sajha/ai/llm/mock.py` | `MockProvider` and its models |
+| `sajha/ai/llm/providers/` | every built-in provider, one module each, the mock included; importing the package registers them. Import safe: vendor libraries (boto3, google-auth, PyJWT) are imported only on use, and each provider module loads on its own, so one that cannot be imported is logged, listed in `providers.FAILED` and skipped while the rest register (`tests/ai/test_llm_import_safety.py`) |
+| `sajha/ai/llm/providers/mock.py` | `MockProvider` and its models (with `mock_llm_tools.py` and `mock_toolsmith.py`); built from configuration by the factory like any other provider |
 | `sajha/ai/llm/legacy.py` | internal: the pre-6.x provider interface (`LegacyLLMProvider`, `register_provider_class`) and `LegacyProviderAdapter`, which serves it |
 | `sajha/ai/intelligence.py` | `IntelligenceService`, `AskResult`, `AskStep`, the event stream |
 | `sajha/ai/planners.py` | the Python `Planner` protocol (`PlanState`, `CallTools`, `Answer`, `Emit`, on canonical types), its registry, and the Python classes of `react`, `plan_execute`, `recipes` and `router` |
@@ -203,7 +203,8 @@ request (`request_headers()`), from cached token sources that refresh before exp
 | `cohere` | v2 Chat / Embed | yes | `json_object` + schema | SSE | yes | `COHERE_API_KEY` |
 | `ollama` | native chat and embed endpoints | yes | `format` (JSON Schema) | NDJSON | yes | none (`OLLAMA_HOST`) |
 | `groq`, `together`, `fireworks`, `deepseek`, `xai`, `openrouter`, `perplexity` | OpenAI-compatible presets | per model | per model | SSE | where offered | the vendor's `*_API_KEY` |
-| `vllm`, `lmstudio`, `openai_compatible` | any `/chat/completions` server via `base_url` | yes | per server | SSE | yes | optional |
+| `huggingface` | Hugging Face Inference Providers, OpenAI-compatible router at `https://router.huggingface.co/v1`; the router picks the serving host per model (`:fastest` by default; a model id may end `:cheapest`, `:preferred` or a host name such as `:groq`) | per model | per model | SSE | — (chat only) | `HF_TOKEN`, `HUGGING_FACE_HUB_TOKEN` |
+| `vllm`, `lmstudio`, `openai_compatible` | any `/chat/completions` server via `base_url` (a self-hosted Hugging Face TGI server is `openai_compatible`, not `huggingface`) | yes | per server | SSE | yes | optional |
 | `mock` | in process | yes | yes | yes | `mock-embed` | none |
 
 Each provider is an adapter: it translates the canonical format to its vendor's API and back,

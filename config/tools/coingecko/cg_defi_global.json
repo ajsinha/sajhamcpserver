@@ -1,7 +1,8 @@
 {
   "name": "cg_defi_global",
   "implementation": "sajha.tools.impl.coingecko_tools.CGDefiGlobalTool",
-  "description": "Decentralised-finance market statistics from CoinGecko (global/decentralized_finance_defi).\nReturns {data: {defi_market_cap, eth_market_cap, defi_to_eth_ratio, trading_volume_24h, defi_dominance, top_coin_name, top_coin_defi_dominance}}; values are strings as CoinGecko sends them.\nInputs: none.\nFor the whole crypto market use cg_market_global.\nExample: {}\nNo API key is sent (CoinGecko public API, rate-limited by CoinGecko); a failed call returns {\"error\": ...}.",
+  "description": "Decentralised-finance market statistics from CoinGecko (global/decentralized_finance_defi).\nReturns {data: {defi_market_cap, eth_market_cap, defi_to_eth_ratio, trading_volume_24h, defi_dominance, top_coin_name, top_coin_defi_dominance}}; values are strings as CoinGecko sends them.\nInputs: none.\nFor the whole crypto market use cg_market_global.\nExample: {}",
+  "annotations": {"readOnlyHint": true, "idempotentHint": true, "openWorldHint": true},
   "version": "4.5.0",
   "enabled": true,
   "inputSchema": {

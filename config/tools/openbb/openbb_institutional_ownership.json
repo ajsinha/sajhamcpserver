@@ -1,7 +1,8 @@
 {
   "name": "openbb_institutional_ownership",
   "implementation": "sajha.tools.impl.openbb_tools.OpenBBInstitutionalOwnershipTool",
-  "description": "Institutional ownership summary for one stock from SEC 13F data through the OpenBB Platform (obb.equity.ownership.institutional).\nReturns: {symbol, holders: [records per filing date with investor counts, shares held, ownership percent and changes]} or {symbol, error}.\nInputs (* required): symbol*; provider (fmp only in OpenBB 4.6, which needs a key; default fmp).\nTop named holders without a key: yf_institutional_holders, yf_mutual_fund_holders. Keys: fmp, benzinga, fred, intrinio, polygon and tiingo need credentials in OpenBB's settings (~/.openbb_platform/user_settings.json), not supplied by SAJHA; yfinance, oecd, federal_reserve, sec, imf and government_us need none.\nExample: {\"symbol\": \"AAPL\"}",
+  "description": "Institutional ownership summary for one stock from 13F data through the OpenBB Platform (obb.equity.ownership.institutional).\nReturns: {symbol, provider, data_points, truncated, holders: [records per filing date with investor counts, shares, ownership percent]} or {symbol, error}.\nInputs (* required): symbol*; limit (rows returned, 1-1000; default 100; a dated series keeps its most recent rows); provider (fmp; default fmp).\nNamed holders without a key: yf_institutional_holders, yf_mutual_fund_holders. Keys: fmp uses SAJHA's FMP_API_KEY.\nExample: {\"symbol\": \"AAPL\"}",
+  "annotations": {"readOnlyHint": true, "idempotentHint": true, "openWorldHint": true},
   "version": "4.5.0",
   "enabled": true,
   "inputSchema": {
@@ -9,23 +10,47 @@
     "properties": {
       "symbol": {
         "type": "string",
-        "description": "Stock ticker symbol (e.g., AAPL, MSFT)"
+        "description": "Ticker symbol, e.g. AAPL"
+      },
+      "limit": {
+        "type": "integer",
+        "minimum": 1,
+        "maximum": 1000,
+        "default": 100,
+        "description": "Most rows returned (1-1000); a dated series keeps its most recent rows"
       },
       "provider": {
         "type": "string",
-        "description": "OpenBB data provider",
-        "default": "fmp"
+        "enum": [
+          "fmp"
+        ],
+        "default": "fmp",
+        "description": "OpenBB data provider"
       }
     },
     "required": [
       "symbol"
-    ]
+    ],
+    "examples": [{"symbol": "AAPL"}]
   },
   "outputSchema": {
     "type": "object",
     "properties": {
-      "result": {
-        "type": "object"
+      "provider": {
+        "type": "string"
+      },
+      "data_points": {
+        "type": "integer",
+        "description": "Rows before the cap"
+      },
+      "truncated": {
+        "type": "boolean"
+      },
+      "holders": {
+        "type": "array"
+      },
+      "error": {
+        "type": "string"
       }
     }
   },
@@ -41,6 +66,13 @@
       "13f",
       "funds"
     ],
-    "examples": []
+    "examples": [
+      {
+        "description": "Institutional ownership summary for one stock from 13F data",
+        "input": {
+          "symbol": "AAPL"
+        }
+      }
+    ]
   }
 }

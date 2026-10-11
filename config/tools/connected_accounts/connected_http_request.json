@@ -68,7 +68,8 @@
     "required": [
       "path"
     ],
-    "additionalProperties": false
+    "additionalProperties": false,
+    "examples": [{"path": "/repos/octocat/hello-world/issues", "query": {"state": "open", "per_page": 20}}]
   },
   "outputSchema": {
     "type": "object",

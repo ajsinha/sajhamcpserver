@@ -1,9 +1,11 @@
 {
   "name": "fed_get_latest",
   "implementation": "sajha.tools.impl.fed_reserve_tool_refactored.FedGetLatestTool",
-  "description": "The newest observation that has a value for one FRED series (Federal Reserve Bank of St. Louis), by series id or shorthand.\nReturns: series_id, title, units, frequency, date, value and last_updated; an error if none of the last 10 observations has a value.\nInputs: series_id (e.g. DGS10, UNRATE; wins over indicator) or indicator (gdp, unemployment, inflation (CPIAUCSL index), fed_rate, treasury_10y, treasury_2y, sp500, housing, retail, industrial, m2, pce); one is needed.\nFor history use fed_get_series; for several at once fed_get_common_indicators. Key: the api_key field of this tool's config (a FRED key); the shipped config sets none, so the tool runs in demo mode and returns synthetic values with a note. fred_custom_series reads FRED_API_KEY and returns live data.\nExample: {\"series_id\": \"DGS10\"}",
+  "description": "The newest observation that has a value for one FRED series (Federal Reserve Bank of St. Louis), by series id or shorthand.\nReturns: series_id, title, units, frequency, date, value and last_updated; an error if none of the last 10 observations has a value.\nInputs: series_id (e.g. DGS10, UNRATE; wins over indicator) or indicator (gdp, unemployment, inflation (CPIAUCSL index), fed_rate, treasury_10y, treasury_2y, sp500, housing, retail, industrial, m2, pce); one is needed.\nFor history use fed_get_series; for several at once fed_get_common_indicators.\nExample: {\"series_id\": \"DGS10\"}",
+  "annotations": {"readOnlyHint": true, "idempotentHint": true, "openWorldHint": true},
   "version": "2.9.8",
   "enabled": true,
+  "api_key": "${fred.api.key}",
   "inputSchema": {
     "type": "object",
     "properties": {
@@ -20,7 +22,8 @@
     "oneOf": [
       {"required": ["series_id"]},
       {"required": ["indicator"]}
-    ]
+    ],
+    "examples": [{"series_id": "DGS10"}]
   },
   "outputSchema": {
     "type": "object",

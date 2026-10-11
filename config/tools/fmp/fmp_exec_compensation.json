@@ -1,7 +1,8 @@
 {
   "name": "fmp_exec_compensation",
   "implementation": "sajha.tools.impl.fmp_tools.FMPExecCompensationTool",
-  "description": "Executive compensation for one company from Financial Modeling Prep (FMP, /stable/executive-compensation): salary, bonus, stock and option awards and total pay per named officer and year, from proxy filings.\nReturns {symbol, executives}: FMP's list of compensation records.\nInputs (* required): symbol* (ticker, e.g. AAPL; upper-cased).\nFor the current management list use fmp_key_executives.\nNeeds an FMP API key (config fmp.api.key, env FMP_API_KEY); without one it returns a demo placeholder naming the endpoint instead of data.\nExample: {\"symbol\": \"AAPL\"}",
+  "description": "Executive compensation for one company from Financial Modeling Prep (FMP, /stable/executive-compensation): salary, bonus, stock and option awards and total pay per named officer and year, from proxy filings.\nReturns {symbol, executives}: FMP's list of compensation records.\nInputs (* required): symbol* (ticker, e.g. AAPL; upper-cased).\nFor the current management list use fmp_key_executives.\nExample: {\"symbol\": \"AAPL\"}",
+  "annotations": {"readOnlyHint": true, "idempotentHint": true, "openWorldHint": true},
   "version": "4.5.0",
   "enabled": true,
   "inputSchema": {
@@ -14,7 +15,8 @@
     },
     "required": [
       "symbol"
-    ]
+    ],
+    "examples": [{"symbol": "AAPL"}]
   },
   "outputSchema": {
     "type": "object",

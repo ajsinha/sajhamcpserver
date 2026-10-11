@@ -1,7 +1,8 @@
 {
   "name": "openbb_economy_gdp",
   "implementation": "sajha.tools.impl.openbb_tools.OpenBBEconomyGDPTool",
-  "description": "Nominal GDP for a country through the OpenBB Platform (obb.economy.gdp.nominal).\nReturns: {country, data_points, gdp_data: [records with date, country and value]} or {country, error}.\nInputs (* required): country (OECD-style name in lower case with underscores, e.g. united_states, germany, japan; default united_states); provider (oecd or econdb; default oecd, no key).\nUS real GDP: av_gdp, fred_gdp; growth: fred_gdp_growth. Keys: fmp, benzinga, fred, intrinio, polygon and tiingo need credentials in OpenBB's settings (~/.openbb_platform/user_settings.json), not supplied by SAJHA; yfinance, oecd, federal_reserve, sec, imf and government_us need none.\nExample: {\"country\": \"germany\", \"provider\": \"oecd\"}",
+  "description": "Nominal GDP for a country through the OpenBB Platform (obb.economy.gdp.nominal).\nReturns: {country, provider, data_points, truncated, gdp_data: [records with date, country, value]} or {country, error}.\nInputs (* required): country (e.g. united_states, germany; default united_states); limit (rows returned, 1-1000; default 100; a dated series keeps its most recent rows); provider (econdb, oecd; default oecd).\nUS real GDP: av_gdp, fred_gdp; growth: fred_gdp_growth. Keys: econdb, oecd need none.\nExample: {\"country\": \"germany\"}",
+  "annotations": {"readOnlyHint": true, "idempotentHint": true, "openWorldHint": true},
   "version": "4.5.0",
   "enabled": true,
   "inputSchema": {
@@ -9,13 +10,24 @@
     "properties": {
       "country": {
         "type": "string",
-        "description": "Country name or code (e.g., united_states, germany, japan)",
+        "description": "Country, lower case with underscores, e.g. united_states, japan",
         "default": "united_states"
+      },
+      "limit": {
+        "type": "integer",
+        "minimum": 1,
+        "maximum": 1000,
+        "default": 100,
+        "description": "Most rows returned (1-1000); a dated series keeps its most recent rows"
       },
       "provider": {
         "type": "string",
-        "description": "OpenBB data provider (oecd or econdb)",
-        "default": "oecd"
+        "enum": [
+          "econdb",
+          "oecd"
+        ],
+        "default": "oecd",
+        "description": "OpenBB data provider"
       }
     },
     "required": []
@@ -52,15 +64,9 @@
     ],
     "examples": [
       {
-        "description": "US GDP data",
+        "description": "Nominal GDP for a country",
         "input": {
-          "country": "united_states"
-        }
-      },
-      {
-        "description": "Japan GDP",
-        "input": {
-          "country": "japan"
+          "country": "germany"
         }
       }
     ]

@@ -1,7 +1,8 @@
 {
   "name": "yf_compare_stocks",
   "implementation": "sajha.tools.impl.yfinance_tools.YFCompareStocksTool",
-  "description": "Side-by-side valuation snapshot for up to 10 tickers from Yahoo Finance (yfinance Ticker.info per symbol).\nReturns: {comparison: [{symbol, name, market_cap, pe_ratio (trailing), dividend_yield, 52w_high, 52w_low}]}; a symbol that fails is left out.\nInputs (* required): symbols* (comma-separated, e.g. \"AAPL,MSFT,GOOGL\"; only the first 10 are used).\nPrice history for several tickers: yf_multi_ticker_history; full detail: yf_stock_info; peers: openbb_equity_compare_peers. No API key; data comes from Yahoo Finance through the yfinance library.\nExample: {\"symbols\": \"AAPL,MSFT,GOOGL\"}",
+  "description": "Side-by-side valuation snapshot for up to 10 tickers from Yahoo Finance (yfinance Ticker.info per symbol).\nReturns: {comparison: [{symbol, name, market_cap, pe_ratio (trailing), dividend_yield, 52w_high, 52w_low}]}; a symbol that fails is left out.\nInputs (* required): symbols* (comma-separated, e.g. \"AAPL,MSFT,GOOGL\"; only the first 10 are used).\nPrice history for several tickers: yf_multi_ticker_history; full detail: yf_stock_info; peers: openbb_equity_compare_peers.\nExample: {\"symbols\": \"AAPL,MSFT,GOOGL\"}",
+  "annotations": {"readOnlyHint": true, "idempotentHint": true, "openWorldHint": true},
   "version": "4.5.0",
   "enabled": true,
   "inputSchema": {
@@ -14,7 +15,8 @@
     },
     "required": [
       "symbols"
-    ]
+    ],
+    "examples": [{"symbols": "AAPL,MSFT,GOOGL"}]
   },
   "outputSchema": {
     "type": "object",

@@ -1,7 +1,8 @@
 {
   "name": "edgar_company_concept",
   "implementation": "sajha.tools.impl.enhanced_edgar_tool.EDGARCompanyConceptTool",
-  "description": "The full reported history of one XBRL concept (e.g. Revenues, Assets, EarningsPerShareBasic) for one company, from the EDGAR companyconcept API.\nReturns {cik, taxonomy, tag, label, description, entityName, units_count, units: {unit (USD, shares, USD/shares...): [{end, val, accn, fy, fp, form, filed}]}}.\nInputs (* required): cik* (string, SEC Central Index Key, up to 10 digits; from edgar_company_search), concept* (string, exact XBRL tag, case-sensitive, e.g. NetIncomeLoss, OperatingIncomeLoss), taxonomy (us-gaap | ifrs-full | dei | srt; default us-gaap).\nAn unknown tag gives a 'Resource not found' error; edgar_company_facts lists the tags a company uses. For one concept across all companies use edgar_frame_data.\nExample: {\"cik\": \"0000320193\", \"concept\": \"Revenues\", \"taxonomy\": \"us-gaap\"}\nNo API key needed (SEC data.sec.gov; 110 ms between requests).",
+  "description": "The full reported history of one XBRL concept (e.g. Revenues, Assets, EarningsPerShareBasic) for one company (EDGAR companyconcept API).\nReturns {cik, taxonomy, tag, label, description, entityName, units_count, units: {unit (USD, shares, USD/shares...): [{end, val, accn, fy, fp, form, filed}]}}.\nInputs (* required): cik*, concept* (exact XBRL tag, case-sensitive, e.g. NetIncomeLoss, OperatingIncomeLoss), taxonomy (us-gaap | ifrs-full | dei | srt; default us-gaap).\nAn unknown tag gives a 'Resource not found' error; edgar_company_facts lists the tags a company uses. For one concept across all companies use edgar_frame_data.\nExample: {\"cik\": \"0000320193\", \"concept\": \"Revenues\", \"taxonomy\": \"us-gaap\"}",
+  "annotations": {"readOnlyHint": true, "idempotentHint": true, "openWorldHint": true},
   "version": "2.9.8",
   "enabled": true,
   "inputSchema": {
@@ -22,7 +23,8 @@
         "description": "XBRL concept tag (e.g., 'Revenue', 'Assets', 'Liabilities', 'EarningsPerShareBasic', 'OperatingIncomeLoss')"
       }
     },
-    "required": ["cik", "concept"]
+    "required": ["cik", "concept"],
+    "examples": [{"cik": "0000320193", "concept": "Revenues", "taxonomy": "us-gaap"}]
   },
   "outputSchema": {
     "type": "object",

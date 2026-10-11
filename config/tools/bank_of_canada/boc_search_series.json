@@ -2,6 +2,7 @@
   "name": "boc_search_series",
   "implementation": "sajha.tools.impl.bank_of_canada_tool_refactored.BoCSearchSeriesTool",
   "description": "List the Bank of Canada series these tools have shorthands for, grouped by category, with their Valet series names. A built-in catalogue; no network call.\nReturns: categories (category name to a list of indicator, series_name, description) and total_series.\nInputs (none required): category (Exchange Rates, Interest Rates, Bond Yields, Economic Indicators or all; default all).\nPass an indicator or series_name to boc_get_series or boc_get_latest.\nExample: {\"category\": \"Bond Yields\"}",
+  "annotations": {"readOnlyHint": true, "idempotentHint": true, "openWorldHint": true},
   "version": "2.9.8",
   "enabled": true,
   "inputSchema": {
@@ -39,7 +40,7 @@
               },
               "series_name": {
                 "type": "string",
-                "description": "Official Bank of Canada series identifier (e.g., 'FXUSDCAD', 'POLICY_RATE')"
+                "description": "Official Bank of Canada series identifier (e.g., 'FXUSDCAD', 'V39079')"
               },
               "description": {
                 "type": "string",
@@ -81,7 +82,7 @@
             "Bond Yields": ["..."],
             "Economic Indicators": ["..."]
           },
-          "total_series": 15
+          "total_series": 14
         }
       },
       {
@@ -161,8 +162,8 @@
       },
       "Economic Indicators": {
         "description": "Key Canadian economic indicators",
-        "seriesCount": 3,
-        "indicators": ["cpi", "core_cpi", "gdp"]
+        "seriesCount": 2,
+        "indicators": ["cpi", "core_cpi"]
       }
     }
   }

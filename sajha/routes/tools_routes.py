@@ -121,11 +121,16 @@ async def tool_config_page(tool_name: str, request: Request, auth: AuthContext =
     from sajha.app import tools_registry
     tool = tools_registry.get_tool(tool_name) if tools_registry else None
     config = tools_registry.tool_configs.get(tool_name, {}) if tools_registry else {}
+    folder = tools_registry.tool_folder(tool_name) if hasattr(tools_registry, 'tool_folder') else None
     return render(request, 'tools/tool_config.html', {
         'user': {'user_id': auth.user_id, 'user_name': auth.user_name, 'roles': auth.roles},
         'tool_name': tool_name,
         'tool_config': config,
         'tool_config_json': json.dumps(config, indent=2),
         'tool_file': tools_registry.tool_path(tool_name) if hasattr(tools_registry, 'tool_path') else None,
+        # the folder's domain.txt, shown beside the tool's own description, read-only (never saved into it)
+        'tool_folder': folder,
+        'domain_description': tools_registry.domain_description(folder)
+        if folder and hasattr(tools_registry, 'domain_description') else '',
         'is_admin': auth.is_admin,
     })

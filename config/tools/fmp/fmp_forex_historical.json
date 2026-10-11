@@ -1,7 +1,8 @@
 {
   "name": "fmp_forex_historical",
   "implementation": "sajha.tools.impl.fmp_tools.FMPGenericTool",
-  "description": "Daily end-of-day rate history (open, high, low, close) for one currency pair from Financial Modeling Prep (FMP).\nReturns {tool, endpoint, data}: data is FMP's JSON from /stable/historical-price-eod/full as returned (usually a list of records).\nInputs (* required): symbol* (pair, e.g. EURUSD), from_date (YYYY-MM-DD), to_date (YYYY-MM-DD).\nFor the latest quote use fmp_forex_quote; for pairs fmp_forex_list.\nNeeds an FMP API key (config fmp.api.key, env FMP_API_KEY); without one it returns a demo placeholder naming the endpoint instead of data.\nExample: {\"symbol\": \"EURUSD\", \"from_date\": \"2025-01-01\", \"to_date\": \"2025-03-31\"}",
+  "description": "Daily end-of-day rate history (open, high, low, close) for one currency pair from Financial Modeling Prep (FMP).\nReturns {tool, endpoint, data}: data is FMP's JSON from /stable/historical-price-eod/full as returned (usually a list of records).\nInputs (* required): symbol* (pair, e.g. EURUSD), from_date (YYYY-MM-DD), to_date (YYYY-MM-DD).\nFor the latest quote use fmp_forex_quote; for pairs fmp_forex_list.\nExample: {\"symbol\": \"EURUSD\", \"from_date\": \"2025-01-01\", \"to_date\": \"2025-03-31\"}",
+  "annotations": {"readOnlyHint": true, "idempotentHint": true, "openWorldHint": true},
   "version": "4.5.0",
   "enabled": true,
   "inputSchema": {
@@ -10,7 +11,7 @@
       "symbol": {
         "type": "string",
         "description": "Currency pair (e.g. EURUSD)",
-        "default": "EURUSD"
+        "examples": ["EURUSD"]
       },
       "from_date": {
         "type": "string",

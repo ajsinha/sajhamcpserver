@@ -2,6 +2,7 @@
   "name": "msdoc_search_excel",
   "implementation": "sajha.tools.impl.msdoc_tools_tool_refactored.MsDocSearchExcelTool",
   "description": "Searches one worksheet of an Excel workbook (.xlsx/.xlsm) for cells containing a case-insensitive substring, over its first 10000 rows. Files are looked up by name in the docs folder (data/msdocs; msdoc_list_files shows it).\nReturns {filename, sheet_name, search_term, matches, match_count}: each match is {row_index, column_index (both 0-based), value}.\nInputs (* required): filename*, search_term*, sheet_name (default: the active sheet).\nFor Word files use msdoc_search_word; to read the rows msdoc_read_excel_sheet.\nExample: {\"filename\": \"sales.xlsx\", \"search_term\": \"acme\", \"sheet_name\": \"Customers\"}",
+  "annotations": {"readOnlyHint": true, "idempotentHint": true, "openWorldHint": false},
   "version": "2.9.8",
   "enabled": true,
   "inputSchema": {
@@ -20,7 +21,8 @@
         "description": "Name of the sheet to search (optional, searches active sheet if not specified)"
       }
     },
-    "required": ["filename", "search_term"]
+    "required": ["filename", "search_term"],
+    "examples": [{"filename": "sales.xlsx", "search_term": "acme", "sheet_name": "Customers"}]
   },
   "outputSchema": {
     "type": "object",

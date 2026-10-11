@@ -1,6 +1,9 @@
 """
 SAJHA MCP Server — scheduled health probes: one test case per tool, run live on a schedule.
 
+The same scheduler runs the live tool check on ``quality.check.cron`` when that is set
+(sajha/quality/check.py; no second scheduler).
+
 Opt-in twice: ``quality.probes.enabled`` starts the scheduler (a daemon thread per worker) and
 only tools whose test file (or config) has a ``probe:`` block are probed. A slot fires once
 across workers: the worker that wins ``state_store.add('quality:probe:fire:<tool>:<slot>')``
@@ -120,9 +123,10 @@ def _worker() -> str:
 class ProbeScheduler:
     """Wakes every ``tick`` seconds; runs each probe whose slot has come, if this worker claims it."""
 
-    def __init__(self, registry: Any, tick: Optional[float] = None, suite_loader=None):
+    def __init__(self, registry: Any, tick: Optional[float] = None, suite_loader=None, run_probes: bool = True):
         from sajha.quality import setting_int
         self.registry = registry
+        self.run_probes = run_probes
         self.tick = float(tick if tick is not None else setting_int('probes.tick_seconds', 15))
         self._suite_loader = suite_loader or (lambda: load_suite(registry=registry))
         self._suite: Optional[Suite] = None
@@ -155,7 +159,10 @@ class ProbeScheduler:
 
     def run_once(self, now: Optional[float] = None) -> List[Dict[str, Any]]:
         now = time.time() if now is None else now
+        self.run_check_if_due(now)
         ran = []
+        if not self.run_probes:
+            return ran             # started only for the live check's schedule
         suite = self.suite()
         for spec, slot in self.due(now):
             try:
@@ -167,6 +174,30 @@ class ProbeScheduler:
                 continue
             ran.append(run_probe(self.registry, spec, suite))
         return ran
+
+    def run_check_if_due(self, now: float) -> bool:
+        """The live tool check's optional schedule (``quality.check.cron``; sajha/quality/check.py):
+        the same single-fire claim as a probe slot, so one worker runs each slot."""
+        from sajha.quality import check as _check
+        expr = _check.cron()
+        if not expr:
+            return False
+        spec = ProbeSpec(tool='(live check)', case='', cron=expr, timezone=_check._setting('timezone', ''))
+        key = f'check:{expr}'
+        when = self._due.get(key)
+        if when is None:
+            self._due[key] = next_slot(spec, now)
+            return False
+        if now < when:
+            return False
+        self._due[key] = next_slot(spec, now)
+        try:
+            if not _store().add(f'quality:check:fire:{int(when)}', _worker(), ttl=6 * 3600):
+                return False          # another worker runs this slot
+        except Exception as e:
+            logger.debug(f'live check claim failed: {e}')
+            return False
+        return _check.scheduled_run(self.registry)
 
     def _loop(self) -> None:
         while not self._stop.wait(self.tick):
@@ -197,9 +228,10 @@ def enabled() -> bool:
 def start(registry: Any) -> bool:
     """Start-up: start the scheduler when ``quality.probes.enabled``."""
     global _scheduler
-    if not enabled():
+    from sajha.quality.check import cron as _check_cron
+    if not enabled() and not _check_cron():
         return False
-    _scheduler = ProbeScheduler(registry)
+    _scheduler = ProbeScheduler(registry, run_probes=enabled())
     _scheduler.start()
     return True
 

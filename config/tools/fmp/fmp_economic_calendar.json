@@ -1,7 +1,8 @@
 {
   "name": "fmp_economic_calendar",
   "implementation": "sajha.tools.impl.fmp_tools.FMPEconomicCalendarTool",
-  "description": "Macroeconomic release calendar from Financial Modeling Prep (FMP, /stable/economic-calendar): GDP, jobs, CPI, central bank meetings, PMI and other events by country, with previous, estimate and actual values.\nReturns {events}: FMP's list of economic events.\nInputs (* required): from_date (YYYY-MM-DD), to_date (YYYY-MM-DD); both optional.\nFor company events use fmp_earnings_calendar; for US yields fmp_treasury_rates.\nNeeds an FMP API key (config fmp.api.key, env FMP_API_KEY); without one it returns a demo placeholder naming the endpoint instead of data.\nExample: {\"from_date\": \"2025-10-01\", \"to_date\": \"2025-10-07\"}",
+  "description": "Macroeconomic release calendar from Financial Modeling Prep (FMP, /stable/economic-calendar): GDP, jobs, CPI, central bank meetings, PMI and other events by country, with previous, estimate and actual values.\nReturns {events}: FMP's list of economic events.\nInputs (* required): from_date (YYYY-MM-DD), to_date (YYYY-MM-DD); both optional.\nFor company events use fmp_earnings_calendar; for US yields fmp_treasury_rates.\nExample: {\"from_date\": \"2025-10-01\", \"to_date\": \"2025-10-07\"}",
+  "annotations": {"readOnlyHint": true, "idempotentHint": true, "openWorldHint": true},
   "version": "4.5.0",
   "enabled": true,
   "inputSchema": {

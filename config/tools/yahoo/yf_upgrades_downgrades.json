@@ -1,7 +1,8 @@
 {
   "name": "yf_upgrades_downgrades",
   "implementation": "sajha.tools.impl.yfinance_tools.YFUpgradesDowngradesTool",
-  "description": "Analyst rating changes for one stock from Yahoo Finance (yfinance upgrades_downgrades), the 30 most recent.\nReturns: {symbol, upgrades_downgrades: [{GradeDate, Firm, ToGrade, FromGrade, Action (up, down, main, init, reit), priceTargetAction, currentPriceTarget, priorPriceTarget}]}.\nInputs (* required): symbol* (Yahoo ticker, e.g. AAPL, BRK-B, 7203.T).\nAggregate counts: yf_recommendations; target summary: yf_analyst_price_targets. No API key; data comes from Yahoo Finance through the yfinance library.\nExample: {\"symbol\": \"AAPL\"}",
+  "description": "Analyst rating changes for one stock from Yahoo Finance (yfinance upgrades_downgrades), newest first.\nReturns: {symbol, data_points (all changes), truncated, upgrades_downgrades: the limit most recent, each {GradeDate, Firm, ToGrade, FromGrade, Action (up, down, main, init, reit), priceTargetAction, currentPriceTarget, priorPriceTarget}}.\nInputs (* required): symbol* (Yahoo ticker, e.g. AAPL, BRK-B, 7203.T); limit (rows, 1-500; default 30).\nAggregate counts: yf_recommendations; target summary: yf_analyst_price_targets.\nExample: {\"symbol\": \"AAPL\", \"limit\": 10}",
+  "annotations": {"readOnlyHint": true, "idempotentHint": true, "openWorldHint": true},
   "version": "4.5.0",
   "enabled": true,
   "inputSchema": {
@@ -9,18 +10,36 @@
     "properties": {
       "symbol": {
         "type": "string",
-        "description": "Stock ticker symbol (e.g., AAPL, MSFT)"
+        "description": "Yahoo ticker, e.g. AAPL, BRK-B, 7203.T"
+      },
+      "limit": {
+        "type": "integer",
+        "minimum": 1,
+        "maximum": 500,
+        "default": 30,
+        "description": "Most rows returned (1-500)"
       }
     },
     "required": [
       "symbol"
-    ]
+    ],
+    "examples": [{"symbol": "AAPL", "limit": 10}]
   },
   "outputSchema": {
     "type": "object",
     "properties": {
-      "result": {
-        "type": "object"
+      "symbol": {
+        "type": "string"
+      },
+      "data_points": {
+        "type": "integer",
+        "description": "Rows before the cap"
+      },
+      "truncated": {
+        "type": "boolean"
+      },
+      "upgrades_downgrades": {
+        "type": "array"
       }
     }
   },
@@ -33,6 +52,15 @@
       "yfinance",
       "upgrades",
       "downgrades"
+    ],
+    "examples": [
+      {
+        "description": "Analyst rating changes for one stock",
+        "input": {
+          "symbol": "AAPL",
+          "limit": 10
+        }
+      }
     ]
   }
 }

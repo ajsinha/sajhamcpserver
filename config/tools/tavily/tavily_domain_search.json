@@ -1,7 +1,8 @@
 {
   "name": "tavily_domain_search",
   "implementation": "sajha.tools.impl.tavily_tool_refactored.TavilyDomainSearchTool",
-  "description": "Web search through the Tavily search API restricted to, or excluding, given domains.\nReturns {query, search_depth, topic, results_count, results: [{title, url, content (extract), score, published_date}], answer (when include_answer), included_domains, excluded_domains}.\nInputs (* required): query* (string), include_domains (array of domains such as sec.gov), exclude_domains (array of domains), max_results (integer 1-20, default 5), include_answer (boolean, default true). At least one of include_domains or exclude_domains is needed, otherwise the call fails.\nWithout a domain filter use tavily_web_search; google_search has a single-site filter (site).\nExample: {\"query\": \"climate risk disclosure rule\", \"include_domains\": [\"sec.gov\", \"federalreserve.gov\"]}\nNeeds a Tavily API key (env TAVILY_API_KEY, config tavily.api.key); without one the tool returns placeholder example.com results with a note saying demo mode.",
+  "description": "Web search through the Tavily search API restricted to, or excluding, given domains.\nReturns {query, search_depth, topic, results_count, results: [{title, url, content (extract), score, published_date}], answer (when include_answer), included_domains, excluded_domains}.\nInputs (* required): query* (string), include_domains (array of domains such as sec.gov), exclude_domains (array of domains), max_results (integer 1-20, default 5), include_answer (boolean, default true). At least one of include_domains or exclude_domains is needed, otherwise the call fails.\nWithout a domain filter use tavily_web_search; google_search has a single-site filter (site).\nExample: {\"query\": \"climate risk disclosure rule\", \"include_domains\": [\"sec.gov\", \"federalreserve.gov\"]}",
+  "annotations": {"readOnlyHint": true, "idempotentHint": true, "openWorldHint": true},
   "version": "2.9.8",
   "enabled": true,
   "api_key": "${tavily.api.key}",
@@ -47,7 +48,8 @@
       {
         "required": ["exclude_domains"]
       }
-    ]
+    ],
+    "examples": [{"query": "climate risk disclosure rule", "include_domains": ["sec.gov", "federalreserve.gov"]}]
   },
   "outputSchema": {
     "type": "object",

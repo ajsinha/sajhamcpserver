@@ -1,7 +1,8 @@
 {
   "name": "fmp_etf_holdings",
   "implementation": "sajha.tools.impl.fmp_tools.FMPETFHoldingsTool",
-  "description": "Holdings of one ETF from Financial Modeling Prep (FMP, /stable/etf-holder): constituent securities with weight and shares held.\nReturns {symbol, holdings}: FMP's list of holding records.\nInputs (* required): symbol* (ETF ticker, e.g. SPY, QQQ; upper-cased).\nFor the ETF's sector or country mix use fmp_etf_sector_weights or fmp_etf_country_weights; for which ETFs hold a stock fmp_etf_stock_exposure.\nNeeds an FMP API key (config fmp.api.key, env FMP_API_KEY); without one it returns a demo placeholder naming the endpoint instead of data.\nExample: {\"symbol\": \"SPY\"}",
+  "description": "Holdings of one ETF from Financial Modeling Prep (FMP, /stable/etf-holder): constituent securities with weight and shares held.\nReturns {symbol, holdings}: FMP's list of holding records.\nInputs (* required): symbol* (ETF ticker, e.g. SPY, QQQ; upper-cased).\nFor the ETF's sector or country mix use fmp_etf_sector_weights or fmp_etf_country_weights; for which ETFs hold a stock fmp_etf_stock_exposure.\nExample: {\"symbol\": \"SPY\"}",
+  "annotations": {"readOnlyHint": true, "idempotentHint": true, "openWorldHint": true},
   "version": "4.5.0",
   "enabled": true,
   "inputSchema": {
@@ -14,7 +15,8 @@
     },
     "required": [
       "symbol"
-    ]
+    ],
+    "examples": [{"symbol": "SPY"}]
   },
   "outputSchema": {
     "type": "object",

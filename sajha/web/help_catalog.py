@@ -197,6 +197,10 @@ CATALOG: List[dict] = [
             _g('Tool Quality', 'Tool Quality.md', 'bi-heart-pulse',
                'Test cases with recorded HTTP cassettes and JUnit output, the schema linter, health probes, '
                'evals for Ask SAJHA, and tool versions with canary routing, rollback and sunset dates.'),
+            _g('Quantitative Planners', 'Quantitative Planners.md', 'bi-calculator',
+               'Planned: planners whose answers are computed figures with units and lineage: a computation graph '
+               'SAJHA runs, scenario grids, SQL over loaded results, sandboxed code, a solver, a numbers check.',
+               badge='Planned'),
             _g('Open Data Tools', 'Open Data Tools.md', 'bi-globe2',
                'Planned: public data sources verified for use as tools (licence, key, rate limits), the sources '
                'dropped and why, the tool folder and tools for each, by priority.', badge='Planned'),
@@ -297,7 +301,7 @@ CATALOG: List[dict] = [
             ('Market data', ['Alpha Vantage', 'CoinGecko', 'FMP', 'FRED', 'OpenBB', 'Yahoo Finance']),
             ('Central banks', ['Bank of Canada', 'Bank of Japan', 'Banque de France',
                                'European Central Bank', 'Federal Reserve',
-                               'Peoples Bank of China', 'Reserve Bank of India']),
+                               'Peoples Bank of China']),
             ('Public data', ['FBI', 'IMF', 'United Nations', 'World Bank']),
             ('Filings', ['SEC EDGAR', 'Investor Relations']),
             ('Search', ['Google Search', 'MSDOC Search', 'Tavily Search', 'Web Crawler',
@@ -313,7 +317,7 @@ CATALOG: List[dict] = [
                'registry, so it is never out of date.'),
             _b('Tool domains', 'tools_domains', 'bi-grid-1x2',
                'One card per tool domain (tool folder, proxied server, Unfiled) with the tools you can see '
-               'in it; a card opens the Tools page filtered to that domain.'),
+               'in it and the folder\'s domain description; a card opens the Tools page filtered to that domain.'),
             _tool('Alpha Vantage', 'bi-graph-up', 'Stock quotes and time series, fundamentals, technical indicators, forex and crypto.'),
             _tool('CoinGecko', 'bi-currency-bitcoin', 'Coin prices and charts, exchanges, categories, DeFi, derivatives and NFTs.'),
             _tool('FMP', 'bi-building', 'Financial Modeling Prep: statements, valuation, market data and screens.'),
@@ -326,7 +330,6 @@ CATALOG: List[dict] = [
             _tool('European Central Bank', 'bi-bank2', 'ECB rates, exchange rates and series.'),
             _tool('Federal Reserve', 'bi-bank2', 'Federal Reserve rates and series.'),
             _tool('Peoples Bank of China', 'bi-bank2', "People's Bank of China rates and series."),
-            _tool('Reserve Bank of India', 'bi-bank2', 'Reserve Bank of India rates and series.'),
             _tool('FBI', 'bi-shield', 'FBI crime data.'),
             _tool('IMF', 'bi-globe', 'International Monetary Fund datasets.'),
             _tool('United Nations', 'bi-globe2', 'United Nations statistics.'),
@@ -472,6 +475,12 @@ CATALOG: List[dict] = [
             _g('42. Per-user sign-in for proxied servers', 'TUTORIAL_42_per_user_sign_in.md', 'bi-person-lock',
                'Call a proxied MCP server as each user: personal tokens (GitHub), then OAuth sign-in against an '
                'offline fake authorization server with refresh, write scopes and revocation.'),
+            _g('43. Connect and configure LLM providers', 'TUTORIAL_43_llm_providers.md', 'bi-cpu',
+               'Each built-in provider with its YAML, environment and a check; aliases and fallback; Hugging Face '
+               'and other OpenAI-compatible vendors without code; a provider class of your own.'),
+            _g('44. Tool health and domain descriptions', 'TUTORIAL_44_tool_health.md', 'bi-heart-pulse',
+               'Schema defaults and their switch, a folder\'s domain.txt, read-only annotations, the live tool '
+               'check with its notices and Tool Health page, and the generated guide tables.'),
         ],
     },
     {

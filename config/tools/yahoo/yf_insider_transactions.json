@@ -1,7 +1,8 @@
 {
   "name": "yf_insider_transactions",
   "implementation": "sajha.tools.impl.yfinance_tools.YFInsiderTransactionsTool",
-  "description": "Recent insider (officer and director) transactions in one stock from Yahoo Finance (yfinance insider_transactions).\nReturns: {symbol, transactions: [{Shares, Value, URL, Text, Insider, Position, Transaction, Start Date, Ownership}]}, at most 100 rows.\nInputs (* required): symbol* (Yahoo ticker, e.g. AAPL, BRK-B, 7203.T).\nSix-month buy/sell summary: yf_insider_purchases; Form 4 data from other sources: openbb_insider_trading, edgar_insider_transactions. No API key; data comes from Yahoo Finance through the yfinance library.\nExample: {\"symbol\": \"TSLA\"}",
+  "description": "Recent insider (officer and director) transactions in one stock from Yahoo Finance (yfinance insider_transactions).\nReturns: {symbol, transactions: [{Shares, Value, URL, Text, Insider, Position, Transaction, Start Date, Ownership}]}, at most 100 rows.\nInputs (* required): symbol* (Yahoo ticker, e.g. AAPL, BRK-B, 7203.T).\nSix-month buy/sell summary: yf_insider_purchases; Form 4 data from other sources: openbb_insider_trading, edgar_insider_transactions.\nExample: {\"symbol\": \"TSLA\"}",
+  "annotations": {"readOnlyHint": true, "idempotentHint": true, "openWorldHint": true},
   "version": "4.5.0",
   "enabled": true,
   "inputSchema": {
@@ -14,7 +15,8 @@
     },
     "required": [
       "symbol"
-    ]
+    ],
+    "examples": [{"symbol": "TSLA"}]
   },
   "outputSchema": {
     "type": "object",

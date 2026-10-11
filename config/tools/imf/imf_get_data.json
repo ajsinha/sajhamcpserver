@@ -1,7 +1,8 @@
 {
   "name": "imf_get_data",
   "implementation": "sajha.tools.impl.imf_tool_refactored.IMFGetDataTool",
-  "description": "Generic access to one IMF series: a database, a country and an indicator code, from the IMF SDMX JSON data service (dataservices.imf.org, no API key).\nReturns: database, country_code, indicator_code, frequency, data (period, value) and count; a note when the series is empty.\nInputs (* required): database* (IFS, DOT, BOP, GFSR, FSI, WEO, GFSMAB, CDIS, CPIS, WHDREO); country_code* (ISO 2-letter, e.g. US, JP); indicator_code* (the database's own code, e.g. PCPI_IX in IFS or NGDP_RPCH in WEO); start_year and end_year (1950-2030; omit both for the full history); frequency (A annual, Q quarterly, M monthly; default A).\nFor named indicators without codes use imf_get_ifs_data or imf_get_weo_data; for balance of payments imf_get_bop_data.\nExample: {\"database\": \"IFS\", \"country_code\": \"JP\", \"indicator_code\": \"PCPI_IX\", \"start_year\": 2015, \"end_year\": 2024, \"frequency\": \"Q\"}",
+  "description": "Any IMF series: a database (dataflow id) and an SDMX key, or, for databases keyed COUNTRY.INDICATOR.FREQUENCY (WEO, MFS_IR), a country, an indicator code and a frequency. Keys use ISO alpha-3 countries; + joins codes, an empty position takes all (PCPS key G001.PGOLD.USD.M: gold, USD per troy ounce, monthly).\nReturns: database, key, series (key, dimensions, name, data (period, value) oldest first), count, source; a note when nothing matched.\nInputs (* required): database* (WEO, CPI, ER, MFS_IR, IL, BOP, PCPS, ...; imf_get_databases lists them); key (full SDMX key; imf_get_dataflows shows its dimensions) or country_code with indicator_code; frequency (A, Q, M; default A; used only without key); start_year, end_year.\nFor curated indicators use imf_get_weo_data, imf_get_ifs_data, imf_get_bop_data.\nExample: {\"database\": \"PCPS\", \"key\": \"G001.PGOLD.USD.M\", \"start_year\": 2025}",
+  "annotations": {"readOnlyHint": true, "idempotentHint": true, "openWorldHint": true},
   "version": "2.9.8",
   "enabled": true,
   "inputSchema": {
@@ -9,74 +10,134 @@
     "properties": {
       "database": {
         "type": "string",
-        "description": "IMF database code",
-        "enum": ["IFS", "DOT", "BOP", "GFSR", "FSI", "WEO", "GFSMAB", "CDIS", "CPIS", "WHDREO"]
+        "description": "IMF dataflow id, e.g. WEO, CPI, PCPS"
+      },
+      "key": {
+        "type": "string",
+        "description": "Full SDMX key, dimensions joined by dots"
       },
       "country_code": {
         "type": "string",
-        "description": "ISO 2-letter country code (e.g., 'US', 'CN', 'JP')"
+        "description": "Country: ISO alpha-3 (USA) or alpha-2 (US); IMF group codes such as G001 (world) pass through"
       },
       "indicator_code": {
         "type": "string",
-        "description": "IMF indicator code"
-      },
-      "start_year": {
-        "type": "integer",
-        "description": "First year, YYYY; if only end_year is given this defaults to 1950",
-        "minimum": 1950,
-        "maximum": 2030
-      },
-      "end_year": {
-        "type": "integer",
-        "description": "Last year, YYYY; if only start_year is given this defaults to the current year; omit both for the full history",
-        "minimum": 1950,
-        "maximum": 2030
+        "description": "Indicator code, with country_code, for COUNTRY.INDICATOR.FREQUENCY databases"
       },
       "frequency": {
         "type": "string",
-        "enum": ["A", "Q", "M"],
+        "enum": [
+          "A",
+          "Q",
+          "M"
+        ],
         "default": "A",
-        "description": "A=Annual, Q=Quarterly, M=Monthly"
+        "description": "A annual, Q quarterly, M monthly (only without key)"
+      },
+      "start_year": {
+        "type": "integer",
+        "minimum": 1950,
+        "maximum": 2035,
+        "description": "First year (optional)"
+      },
+      "end_year": {
+        "type": "integer",
+        "minimum": 1950,
+        "maximum": 2035,
+        "description": "Last year (optional)"
       }
     },
-    "required": ["database", "country_code", "indicator_code"]
+    "required": [
+      "database"
+    ],
+    "examples": [{"database": "PCPS", "key": "G001.PGOLD.USD.M", "start_year": 2025}]
   },
   "outputSchema": {
     "type": "object",
     "properties": {
-      "database": {"type": "string"},
-      "country_code": {"type": "string"},
-      "indicator_code": {"type": "string"},
-      "frequency": {"type": "string"},
-      "data": {
+      "database": {
+        "type": "string"
+      },
+      "key": {
+        "type": "string"
+      },
+      "series": {
         "type": "array",
         "items": {
           "type": "object",
           "properties": {
-            "period": {"type": "string"},
-            "value": {"type": ["number", "null"]}
+            "key": {
+              "type": "string"
+            },
+            "dimensions": {
+              "type": "object"
+            },
+            "name": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "data": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "period": {
+                    "type": "string"
+                  },
+                  "value": {
+                    "type": [
+                      "number",
+                      "null"
+                    ]
+                  }
+                }
+              }
+            }
           }
         }
       },
-      "count": {"type": "integer"}
+      "count": {
+        "type": "integer"
+      },
+      "source": {
+        "type": "string"
+      },
+      "note": {
+        "type": "string"
+      }
     }
   },
   "metadata": {
     "author": "Ashutosh Sinha",
     "category": "Economic Data",
-    "tags": ["imf", "data retrieval", "international", "economics"],
+    "tags": [
+      "imf",
+      "data retrieval",
+      "international",
+      "economics"
+    ],
     "rateLimit": 120,
     "cacheTTL": 3600,
     "note": "Generic tool for accessing any IMF database. Use specialized tools like imf_get_ifs_data or imf_get_weo_data for easier access to common indicators.",
     "examples": [
       {
-        "description": "Get US GDP from WEO",
+        "description": "Gold price, USD per troy ounce, monthly",
         "input": {
-          "database": "WEO",
-          "country_code": "US",
-          "indicator_code": "NGDP_RPCH",
-          "start_year": 2020,
-          "end_year": 2024
+          "database": "PCPS",
+          "key": "G001.PGOLD.USD.M",
+          "start_year": 2025
+        }
+      },
+      {
+        "description": "Brazil policy-related interest rate",
+        "input": {
+          "database": "MFS_IR",
+          "country_code": "BRA",
+          "indicator_code": "MFS166_RT_PT_A_PT",
+          "frequency": "M",
+          "start_year": 2025
         }
       }
     ],

@@ -1,7 +1,8 @@
 {
   "name": "openbb_index_constituents",
   "implementation": "sajha.tools.impl.openbb_tools.OpenBBIndexConstituentsTool",
-  "description": "Meant to list the members of a stock index (S&P 500, NASDAQ, Dow Jones) through OpenBB.\nReturns: {index, constituents: [...]} or {index, error}.\nInputs (* required): index* (sp500, nasdaq or dowjones; default sp500); provider (code default fmp; the schema says yfinance).\nOpenBB 4.6 has no obb.index.sp500, and obb.index.constituents takes symbol rather than index, so this tool currently returns an error object; use fmp_sp500_constituents, fmp_nasdaq_constituents or fmp_dowjones_constituents instead.\nExample: {\"index\": \"sp500\"}",
+  "description": "Members of the S&P 500, Nasdaq-100 or Dow Jones through the OpenBB Platform (obb.index.constituents, symbol sp500, nasdaq or dowjones).\nReturns: {index, provider, count, constituents: [records with symbol, name, sector, sub-industry, date added]} or {index, error}.\nInputs (* required): index (sp500, nasdaq or dowjones; default sp500); provider (fmp; default fmp).\nSame lists from FMP directly: fmp_sp500_constituents, fmp_nasdaq_constituents, fmp_dowjones_constituents. Keys: fmp uses SAJHA's FMP_API_KEY.\nExample: {\"index\": \"dowjones\"}",
+  "annotations": {"readOnlyHint": true, "idempotentHint": true, "openWorldHint": true},
   "version": "4.5.0",
   "enabled": true,
   "inputSchema": {
@@ -9,24 +10,36 @@
     "properties": {
       "index": {
         "type": "string",
-        "description": "Index name (sp500, nasdaq, dowjones)",
-        "default": "sp500"
+        "enum": [
+          "sp500",
+          "nasdaq",
+          "dowjones"
+        ],
+        "default": "sp500",
+        "description": "sp500, nasdaq (Nasdaq-100) or dowjones"
       },
       "provider": {
         "type": "string",
-        "description": "Data provider",
-        "default": "yfinance"
+        "enum": [
+          "fmp"
+        ],
+        "default": "fmp",
+        "description": "OpenBB data provider"
       }
     },
-    "required": [
-      "index"
-    ]
+    "required": []
   },
   "outputSchema": {
     "type": "object",
     "properties": {
-      "result": {
-        "type": "object"
+      "index": {
+        "type": "string"
+      },
+      "count": {
+        "type": "integer"
+      },
+      "constituents": {
+        "type": "array"
       }
     }
   },
@@ -42,6 +55,13 @@
       "nasdaq",
       "constituents"
     ],
-    "examples": []
+    "examples": [
+      {
+        "description": "Members of the S&P 500, Nasdaq-100 or Dow Jones",
+        "input": {
+          "index": "dowjones"
+        }
+      }
+    ]
   }
 }

@@ -79,6 +79,7 @@ alone. Definitions live in the root [GLOSSARY](../GLOSSARY.md); release history 
 - [Google Integration](architecture/Google%20Integration.md): Google's Workspace MCP servers (Gmail, Drive, Calendar) proxied per user with OAuth sign-in (configurable, not verified against Google's live servers), and other public MCP servers worth the same
 - [Adversarial QA Plan](architecture/Adversarial%20QA%20Plan.md): how to attack SAJHA on purpose — every surface, what to try, the safe behaviour expected, priorities, automation and existing coverage
 - [Tool Quality](architecture/Tool%20Quality.md): test cases with recorded HTTP cassettes and JUnit output, the schema linter, health probes, evals for Ask SAJHA, tool versions with canary routing, rollback and sunset dates
+- [Quantitative Planners](architecture/Quantitative%20Planners.md) (planned, wave 8): planners whose answers are computed figures: a shared workspace of quantities with units, as-of and source, a tested operation library and a numbers validator; `calc_graph`, `estimate_then_compute`, `scenario`, `data_analyst`, `code_act`, `optimize`, a numbers check for every planner, `research_writer` and `reconcile`
 - [Open Data Tools](architecture/Open%20Data%20Tools.md) (planned, wave 8): public data sources verified for use as tools (terms, keys, limits), the sources dropped and why, the tool folder and tools for each, by priority
 - [Business Intelligence](architecture/Business%20Intelligence.md) (planned, wave 8): a metrics layer compiled to safe SQL through the sources' own guards; compare, explain a change, anomalies, forecasts, charts, blending tool results, data quality, dashboards
 - [Reports](architecture/Reports.md) (planned, wave 8): report definitions published as tools, formats, narration under a numbers check, governed delivery, scheduling, flagship reports
@@ -122,8 +123,7 @@ These guides document each provider's tools, parameters and API keys.
   [Banque de France](tools/central-banks/Banque%20de%20France%20Tool%20Reference%20Guide.md) ·
   [European Central Bank](tools/central-banks/European%20Central%20Bank%20Tool%20Reference%20Guide.md) ·
   [Federal Reserve](tools/central-banks/Federal%20Reserve%20Tool%20Reference%20Guide.md) ·
-  [People's Bank of China](tools/central-banks/Peoples%20Bank%20of%20China%20Tool%20Reference%20Guide.md) ·
-  [Reserve Bank of India](tools/central-banks/Reserve%20Bank%20of%20India%20Tool%20Reference%20Guide.md)
+  [People's Bank of China](tools/central-banks/Peoples%20Bank%20of%20China%20Tool%20Reference%20Guide.md)
 - **Public data:** [FBI](tools/public-data/FBI%20Tool%20Reference%20Guide.md) ·
   [IMF](tools/public-data/IMF%20Tool%20Reference%20Guide.md) ·
   [United Nations](tools/public-data/United%20Nations%20Tool%20Reference%20Guide.md) ·
@@ -187,6 +187,8 @@ These guides document each provider's tools, parameters and API keys.
 40. [Tutorial 40: Stream a Call Across the Net](tutorials/TUTORIAL_40_stream_a_net_call.md)
 41. [Tutorial 41: qlrisk Risk Tools](tutorials/TUTORIAL_41_qlrisk_risk_tools.md)
 42. [Tutorial 42: Per-User Sign-In for Proxied Servers](tutorials/TUTORIAL_42_per_user_sign_in.md)
+43. [Tutorial 43: Connect and Configure LLM Providers](tutorials/TUTORIAL_43_llm_providers.md)
+44. [Tutorial 44: Tool Health and Domain Descriptions](tutorials/TUTORIAL_44_tool_health.md)
 
 ## Clients and security
 

@@ -181,6 +181,21 @@ class WikiSearchTool(WikipediaBaseTool):
 
 
 class WikiGetPageTool(WikipediaBaseTool):
+    LINK_LIMIT = 500
+
+    def _links(self, page_id: int, language: str) -> Dict[str, Any]:
+        """Up to LINK_LIMIT article links (namespace 0) and external links of one page."""
+        data = self._make_request({'action': 'query', 'pageids': page_id, 'prop': 'links|extlinks',
+                                   'plnamespace': 0, 'pllimit': self.LINK_LIMIT,
+                                   'ellimit': self.LINK_LIMIT}, language)
+        page = next(iter((data.get('query') or {}).get('pages', {}).values()), {}) or {}
+        cont = data.get('continue') or {}
+        return {
+            'internal': [l.get('title') for l in page.get('links', []) if l.get('title')],
+            'external': [l.get('*') or l.get('url') for l in page.get('extlinks', []) if (l.get('*') or l.get('url'))],
+            'truncated': bool(cont.get('plcontinue') or cont.get('eccontinue') or cont.get('elcontinue')),
+        }
+
     """
     Tool to retrieve complete Wikipedia article content
     """
@@ -230,13 +245,8 @@ class WikiGetPageTool(WikipediaBaseTool):
                 },
                 "include_links": {
                     "type": "boolean",
-                    "description": "Include internal and external links",
+                    "description": "Include up to 500 article links and 500 external links (one extra request)",
                     "default": True
-                },
-                "include_references": {
-                    "type": "boolean",
-                    "description": "Include article references",
-                    "default": False
                 }
             }
         }
@@ -251,12 +261,10 @@ class WikiGetPageTool(WikipediaBaseTool):
                 "url": {"type": "string"},
                 "language": {"type": "string"},
                 "content": {"type": "string"},
-                "html_content": {"type": "string"},
                 "summary": {"type": "string"},
                 "sections": {"type": "array"},
                 "images": {"type": "array"},
                 "links": {"type": "object"},
-                "references": {"type": "array"},
                 "categories": {"type": "array"},
                 "last_modified": {"type": "string"},
                 "last_modified_by": {"type": "string"},
@@ -275,7 +283,6 @@ class WikiGetPageTool(WikipediaBaseTool):
         redirect = arguments.get('redirect', True)
         include_images = arguments.get('include_images', True)
         include_links = arguments.get('include_links', True)
-        include_references = arguments.get('include_references', False)
         
         # Build page identifier
         if page_id:
@@ -294,10 +301,11 @@ class WikiGetPageTool(WikipediaBaseTool):
             'inprop': 'url',
             'rvprop': 'timestamp|user|ids',
             'rvlimit': 1,
-            'redirects': 1 if redirect else 0,
             'pithumbsize': 500,
             **page_identifier
         }
+        if redirect:
+            params['redirects'] = 1         # MediaWiki follows redirects whenever the key is present
         
         try:
             data = self._make_request(params, language)
@@ -342,11 +350,10 @@ class WikiGetPageTool(WikipediaBaseTool):
                         'description': None
                     })
             
-            # Get links
-            links = {'internal': [], 'external': []}
+            # Links: one bounded request (article links in the main namespace and external links)
+            links = None
             if include_links:
-                # Would need additional API calls to get links
-                pass
+                links = self._links(page_id, language)
             
             # Get categories
             categories = []
@@ -363,12 +370,10 @@ class WikiGetPageTool(WikipediaBaseTool):
                 'url': page_data.get('fullurl', f"https://{language}.wikipedia.org/wiki/{urllib.parse.quote(title.replace(' ', '_'))}"),
                 'language': language,
                 'content': content,
-                'html_content': '',  # Would need separate API call
                 'summary': summary,
                 'sections': sections,
                 'images': images,
-                'links': links,
-                'references': [],  # Would need HTML parsing
+                **({'links': links} if links is not None else {}),
                 'categories': categories,
                 'last_modified': last_revision.get('timestamp'),
                 'last_modified_by': last_revision.get('user'),
@@ -451,7 +456,6 @@ class WikiGetSummaryTool(WikipediaBaseTool):
                 "language": {"type": "string"},
                 "summary": {"type": "string"},
                 "extract": {"type": "string"},
-                "extract_html": {"type": "string"},
                 "thumbnail": {"type": ["object", "null"]},
                 "original_image": {"type": ["object", "null"]},
                 "coordinates": {"type": ["object", "null"]},
@@ -488,10 +492,12 @@ class WikiGetSummaryTool(WikipediaBaseTool):
             'explaintext': True,
             'exsentences': sentences,
             'inprop': 'url',
-            'redirects': 1 if redirect else 0,
+            'piprop': 'thumbnail|original',
             'pithumbsize': 500,
             **page_identifier
         }
+        if redirect:
+            params['redirects'] = 1         # MediaWiki follows redirects whenever the key is present
         
         try:
             data = self._make_request(params, language)
@@ -544,7 +550,6 @@ class WikiGetSummaryTool(WikipediaBaseTool):
                 'language': language,
                 'summary': extract,
                 'extract': extract,
-                'extract_html': '',  # Would need separate API call
                 'thumbnail': thumbnail,
                 'original_image': original_image,
                 'coordinates': coordinates,

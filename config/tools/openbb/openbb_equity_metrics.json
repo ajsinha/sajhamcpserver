@@ -1,7 +1,8 @@
 {
   "name": "openbb_equity_metrics",
   "implementation": "sajha.tools.impl.openbb_tools.OpenBBEquityMetricsTool",
-  "description": "Key valuation and profitability metrics for one stock through the OpenBB Platform (obb.equity.fundamental.metrics): P/E, P/B, EV/EBITDA, ROE, ROA, margins, growth, dividend yield.\nReturns: {symbol, period, metrics: [records, one per period for fmp, a single current record for yfinance]}.\nInputs (* required): symbol*; period (annual or quarter; default annual; used by fmp); limit (1-100 periods; default 5; used by fmp); provider (fmp, intrinio or yfinance; default fmp).\nRatios table: openbb_equity_fundamental_ratios; other source: av_company_overview. Keys: fmp, benzinga, fred, intrinio, polygon and tiingo need credentials in OpenBB's settings (~/.openbb_platform/user_settings.json), not supplied by SAJHA; yfinance, oecd, federal_reserve, sec, imf and government_us need none.\nExample: {\"symbol\": \"AAPL\", \"provider\": \"yfinance\"}",
+  "description": "Key valuation and profitability metrics for one stock (P/E, P/B, EV/EBITDA, ROE, margins, growth, dividend yield) through the OpenBB Platform (obb.equity.fundamental.metrics).\nReturns: {symbol, provider, period, metrics: [one current record for yfinance, one per period for fmp]} or {symbol, error}.\nInputs (* required): symbol*; period (annual or quarter; fmp only); limit (periods; fmp only); provider (fmp, intrinio, yfinance; default yfinance).\nRatios table: openbb_equity_fundamental_ratios; another source: av_company_overview. Keys: yfinance needs none; fmp uses SAJHA's FMP_API_KEY; intrinio needs a key in ~/.openbb_platform/user_settings.json.\nExample: {\"symbol\": \"AAPL\"}",
+  "annotations": {"readOnlyHint": true, "idempotentHint": true, "openWorldHint": true},
   "version": "4.5.0",
   "enabled": true,
   "inputSchema": {
@@ -9,33 +10,37 @@
     "properties": {
       "symbol": {
         "type": "string",
-        "description": "Stock ticker symbol (e.g., AAPL, MSFT, GOOGL)"
+        "description": "Ticker symbol, e.g. AAPL"
       },
       "period": {
         "type": "string",
-        "description": "Reporting period",
         "enum": [
           "annual",
           "quarter"
         ],
-        "default": "annual"
-      },
-      "provider": {
-        "type": "string",
-        "description": "OpenBB data provider",
-        "default": "fmp"
+        "description": "annual or quarter (fmp only)"
       },
       "limit": {
         "type": "integer",
-        "description": "Number of records to return",
-        "default": 5,
         "minimum": 1,
-        "maximum": 100
+        "maximum": 100,
+        "description": "Number of periods (fmp only)"
+      },
+      "provider": {
+        "type": "string",
+        "enum": [
+          "fmp",
+          "intrinio",
+          "yfinance"
+        ],
+        "default": "yfinance",
+        "description": "OpenBB data provider"
       }
     },
     "required": [
       "symbol"
-    ]
+    ],
+    "examples": [{"symbol": "AAPL"}]
   },
   "outputSchema": {
     "type": "object",
@@ -69,10 +74,9 @@
     ],
     "examples": [
       {
-        "description": "Apple fundamental metrics",
+        "description": "Key valuation and profitability metrics for one stock (P/E, P/B, EV/EBITDA, ROE,",
         "input": {
-          "symbol": "AAPL",
-          "period": "annual"
+          "symbol": "AAPL"
         }
       }
     ]

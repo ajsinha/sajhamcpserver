@@ -66,7 +66,7 @@ streams, what each phase waits for, and its status.
 | 5 | 8.1.0 | Sovereignty, console, other MCP servers | Residency, locality-aware planners, re-export, the full SAJHA Net console, sponsored servers, the agent and library, the extension's conformance suite | 4 | done (8.1.0) |
 | 6 | 8.2.0 | Protocol uniformity between servers, and its security | Server to server on the same streaming MCP as client to server: progress, partial results, cancellation and input requests relayed to the client on its own transport, tasks at the home wrapping forwarded calls (Roadmap L17a; host-side tasks are L19), with security per event: signing, replay protection, residency on partial results (L17b) | 5 | done (8.2.0) |
 | 7 | 8.4.0 | Per-user sign-in, access to prompts and resources, a hardened test suite | Roadmap X3 (prompts and data resources under the same allow/deny rules as tools), the Adversarial QA Plan's first automation (suite integrity and P0 attacks), Roadmap L18 (proxied MCP servers acting as each user: personal tokens, then OAuth; per-user sessions; the SAJHA Net connect relay), with GitHub and Atlassian as the first integrations | 6 | done (8.4.0) |
-| 8 | 8.8.0–8.11.0 | Tool health, open data, business intelligence and reports | Schema defaults applied, broken tools fixed or removed, a live tool check, domain descriptions, generated guide tables (8.8.0); verified open data sources in their tool folders (8.9.0); a metrics layer and BI tools (8.10.0); report definitions, formats, narration under a numbers check, governed delivery (8.11.0). Roadmap L21–L50 | 7 | planned |
+| 8 | 8.8.0–8.12.0 | Tool health, quantitative planners, open data, business intelligence and reports | Schema defaults applied, broken tools fixed or removed, a live tool check, domain descriptions, generated guide tables (8.8.0); a quantitative workspace and planners that compute figures with units and lineage (8.9.0); verified open data sources in their tool folders (8.10.0); a metrics layer and BI tools (8.11.0); report definitions, formats, narration under a numbers check, governed delivery (8.12.0). Roadmap L21–L59 | 7 | in progress: phase 8.1 done (8.8.0) |
 Wave 4 is a major version because it adds a new table (`sajhanet_api_keys`), new columns on
 `api_keys` and a new signed protocol surface; operators must apply schema changes on PostgreSQL by
 hand, as for every schema change.
@@ -254,23 +254,26 @@ Owner decision, 2026-10-10, after release 8.3.0. Design for the main item:
 ## 7b. Wave 8: tool health, open data, business intelligence and reports
 
 Owner decision, 2026-10-11, after release 8.6.0. The owner asked for the tools to be built, placed
-in existing tool folders where they fit and in new ones where they do not. Wave 8 is four phases,
-and each phase is a release. The designs are:
+in existing tool folders where they fit and in new ones where they do not. The same day the owner
+approved quantitative planners ("add to the roadmap and build at the first opportunity"), placed as
+phase 8.2, ahead of open data. Wave 8 is five phases, and each phase is a release. The designs are:
 
-- [Tool Quality §12](Tool%20Quality.md#12-planned-tool-health-wave-8-phase-81) (tool health);
-- [Architecture §5](Architecture.md#domain-descriptions-planned) (domain descriptions);
+- [Tool Quality §12](Tool%20Quality.md#12-tool-health-wave-8-phase-81) (tool health);
+- [Architecture §5](Architecture.md#domain-descriptions) (domain descriptions);
+- [Quantitative Planners](Quantitative%20Planners.md);
 - [Open Data Tools](Open%20Data%20Tools.md);
 - [Business Intelligence](Business%20Intelligence.md);
 - [Reports](Reports.md).
 
-The Roadmap rows are L21–L50.
+The Roadmap rows are L21–L59.
 
 | Phase | Streams, in parallel | Depends on | Release | Status |
 |---|---|---|---|---|
-| 8.1 | A schema defaults applied on every call path, with the per-tool decisions and their compatibility list (L21) ‖ B broken tools fixed or removed, with the shared SDMX client (L22) ‖ C the live tool check, its notice source and the `missing-example` lint, with structured examples added to every shipped tool (L23) ‖ D domain descriptions (L24) and the generator for Tool Reference Guide tables with `--check` (L25) | 8.6.0 | 8.8.0 | planned |
-| 8.2 | P1 sources: A calendars and GLEIF (L26, L27) ‖ B BIS and US Treasury (L28, L29) ‖ C sanctions (L30) ‖ D FDIC (L31). Then P2: CFTC, Eurostat and OECD, the three statistics offices, BLS, BEA and EIA (L32–L35). Then P3: hazards, research, GDELT, spending (L36–L39). P2 and P3 may slip to a later release by the owner's decision; P1 may not | 8.1 (shared SDMX client, defaults, live check) | 8.9.0 | planned |
-| 8.3 | A metrics layer and `bi_query_metric` (L40) ‖ B analysis tools on the OLAP engines (L41), started once A's compiler is merged ‖ C charts and loading tool results into DuckDB (L42) ‖ D catalogue, profiling and data-quality suites, then dashboards (L43, L44) | 8.2 (open data tools to blend and chart) | 8.10.0 | planned |
-| 8.4 | A report definitions, engine, tools and history (L45) ‖ B formats (L46) ‖ C narration with the numbers check (L47) ‖ D delivery, approval, scheduling and audit (L48). Then the Studio Report creator and the library page (L49) and the flagship reports (L50) | 8.3 (metric tiles and charts) | 8.11.0 | planned |
+| 8.1 | A schema defaults applied on every call path, with the per-tool decisions and their compatibility list (L21) ‖ B broken tools fixed or removed, with the shared SDMX client (L22) ‖ C the live tool check, its notice source and the `missing-example` lint, with structured examples added to every shipped tool (L23) ‖ D domain descriptions (L24) and the generator for Tool Reference Guide tables with `--check` (L25) | 8.6.0 | 8.8.0 | done (8.8.0) |
+| 8.2 | Quantitative planners: A the quantitative workspace (quantities with units, as-of and source), the operation library, the numbers validator and the `numbers_check` setting (L51, L57) ‖ then, on A: B `calc_graph` and `estimate_then_compute` (L52) ‖ C `scenario`, and `data_analyst` with the tool-result loader (L53, L54) ‖ D `code_act` and `optimize` (L55, L56). Then `research_writer` and `reconcile` (L58), router and `auto` candidates and the quantitative eval sets (L59) | 8.1 | 8.9.0 | planned |
+| 8.3 | P1 sources: A calendars and GLEIF (L26, L27) ‖ B BIS and US Treasury (L28, L29) ‖ C sanctions (L30) ‖ D FDIC (L31). Then P2: CFTC, Eurostat and OECD, the three statistics offices, BLS, BEA and EIA (L32–L35). Then P3: hazards, research, GDELT, spending (L36–L39). P2 and P3 may slip to a later release by the owner's decision; P1 may not | 8.1 (shared SDMX client, defaults, live check) | 8.10.0 | planned |
+| 8.4 | A metrics layer and `bi_query_metric` (L40) ‖ B analysis tools on the OLAP engines (L41), started once A's compiler is merged ‖ C charts, and `bi_load_tool_result` over the loader built in 8.2 (L42) ‖ D catalogue, profiling and data-quality suites, then dashboards (L43, L44) | 8.3 (open data tools to blend and chart), 8.2 (the tool-result loader) | 8.11.0 | planned |
+| 8.5 | A report definitions, engine, tools and history (L45) ‖ B formats (L46) ‖ C narration with the numbers check (L47) ‖ D delivery, approval, scheduling and audit (L48). Then the Studio Report creator and the library page (L49) and the flagship reports (L50) | 8.4 (metric tiles and charts), 8.2 (the numbers validator) | 8.12.0 | planned |
 
 Each phase ends the way every phase does. It turns its guide sections from planned to as-built and
 adds a tutorial, glossary terms and help cards. Then the combined gate runs (section 9), and the
@@ -285,15 +288,22 @@ phase releases and drills (commit, merge to `main`, tag). At most four streams r
   - `python -m sajha.tools guides --check` is clean.
   - Lint reports no `required-default` and no `openbb-command`.
 - **8.2**
+  - The quantitative eval sets pass on the mock provider in CI, including the scripted wrong graphs
+    and wrong units, which must be refused and re-planned.
+  - Every figure in a quantitative planner's answer has lineage back to tool calls, and the
+    numbers validator rejects an invented figure under `numbers_check: enforce`.
+  - `code_act` is never offered to a role outside `ai.quant.code_act.roles`; `optimize` never
+    answers with a solution that fails its feasibility check.
+- **8.3**
   - Each source's licence, key and rate-limit facts in [Open Data Tools](Open%20Data%20Tools.md)
     are re-checked live in the week of the release.
   - Every new tool has a probe case and a cassette, so CI never calls the live service.
   - Attribution lines appear in tool output where the licence asks for them.
-- **8.3**
+- **8.4**
   - Compilation tests prove that no caller value reaches SQL text.
   - A metric cannot read a table its connector denies.
   - Loaded tool results are invisible to other users.
-- **8.4**
+- **8.5**
   - The narration validator's rejection tests pass: an invented figure is never delivered.
   - External delivery waits for approval.
   - Every flagship report renders in every format whose dependency is installed.

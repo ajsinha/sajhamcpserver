@@ -1,7 +1,8 @@
 {
   "name": "fmp_most_active",
   "implementation": "sajha.tools.impl.fmp_tools.FMPMostActiveTool",
-  "description": "Today's most actively traded stocks by volume from Financial Modeling Prep (FMP, /stable/stock-market-most-active): symbol, name, price, change and change %.\nReturns {most_active}: the list of stocks (empty if FMP returns no list).\nInputs (* required): limit (integer, number of stocks; default 5).\nSiblings: fmp_market_gainers, fmp_market_losers; sector moves: fmp_sector_performance.\nNeeds an FMP API key (config fmp.api.key, env FMP_API_KEY); without one it returns a demo placeholder naming the endpoint instead of data.\nExample: {\"limit\": 10}",
+  "description": "Today's most actively traded stocks by volume from Financial Modeling Prep (FMP, /stable/stock-market-most-active): symbol, name, price, change and change %.\nReturns {most_active}: the list of stocks (empty if FMP returns no list).\nInputs (* required): limit (integer, number of stocks; default 5).\nSiblings: fmp_market_gainers, fmp_market_losers; sector moves: fmp_sector_performance.\nExample: {\"limit\": 10}",
+  "annotations": {"readOnlyHint": true, "idempotentHint": true, "openWorldHint": true},
   "version": "4.5.0",
   "enabled": true,
   "inputSchema": {

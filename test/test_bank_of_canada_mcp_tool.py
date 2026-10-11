@@ -173,11 +173,11 @@ class TestBoCGetInterestRateTool(unittest.TestCase):
         """Test getting overnight rate (CORRA)"""
         rate_type = 'overnight_rate'
         series_mapping = {
-            'policy_rate': 'POLICY_RATE',
-            'overnight_rate': 'CORRA',
-            'prime_rate': 'V122530'
+            'policy_rate': 'V39079',
+            'overnight_rate': 'AVG.INTWO',
+            'prime_rate': 'V80691311'
         }
-        self.assertEqual(series_mapping[rate_type], 'CORRA')
+        self.assertEqual(series_mapping[rate_type], 'AVG.INTWO')
     
     def test_get_prime_rate(self):
         """Test getting prime business rate"""
@@ -214,12 +214,12 @@ class TestBoCGetBondYieldTool(unittest.TestCase):
         """Test getting 2-year bond yield"""
         bond_term = '2y'
         bond_series = {
-            '2y': 'V122531',
-            '5y': 'V122533',
-            '10y': 'V122539',
-            '30y': 'V122546'
+            '2y': 'BD.CDN.2YR.DQ.YLD',
+            '5y': 'BD.CDN.5YR.DQ.YLD',
+            '10y': 'BD.CDN.10YR.DQ.YLD',
+            '30y': 'BD.CDN.LONG.DQ.YLD'
         }
-        self.assertEqual(bond_series[bond_term], 'V122531')
+        self.assertEqual(bond_series[bond_term], 'BD.CDN.2YR.DQ.YLD')
     
     def test_get_10y_bond_yield(self):
         """Test getting 10-year bond yield (most common benchmark)"""
@@ -340,8 +340,8 @@ class TestBoCSearchSeriesTool(unittest.TestCase):
     def test_search_economic_indicators(self):
         """Test searching economic indicator series"""
         category = 'Economic Indicators'
-        indicators = ['cpi', 'core_cpi', 'gdp']
-        self.assertEqual(len(indicators), 3)
+        indicators = ['cpi', 'core_cpi']
+        self.assertEqual(len(indicators), 2)
     
     def test_response_structure(self):
         """Test response structure"""

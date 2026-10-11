@@ -74,6 +74,10 @@ class BaseMCPTool(ABC):
     """
     Abstract base class for all MCP tools
     """
+
+    #: fill absent arguments from inputSchema defaults before a call (sajha/tools/schema_defaults.py);
+    #: False on proxies of other servers, which apply their own contract
+    apply_schema_defaults = True
     
     def __init__(self, config: Optional[Dict] = None):
         """
@@ -102,8 +106,15 @@ class BaseMCPTool(ABC):
     
     @property
     def description(self) -> str:
-        """Get tool description"""
+        """Get tool description (the tool's own, as in its config)"""
         return self._description
+
+    @property
+    def served_description(self) -> str:
+        """The description every surface serves: the tool's own, then its folder's domain
+        description (sajha/tools/domain_text.py). Never written back into a config."""
+        from sajha.tools.domain_text import served_description
+        return served_description(self)
     
     @property
     def version(self) -> str:
@@ -226,6 +237,11 @@ class BaseMCPTool(ABC):
         routed = _versions.route_call(self, arguments)
         if routed is not _versions.NOT_ROUTED:
             return routed
+        # inputSchema defaults for absent keys (sajha/tools/schema_defaults.py; Tool Quality §12.1):
+        # applied once here, so policy, validation, the cache, the tool and the audit record all
+        # see the same arguments
+        from sajha.tools.schema_defaults import apply_for_tool as _apply_defaults
+        arguments, defaults_applied = _apply_defaults(self, arguments)
         import time as _time
         from sajha.core.mcp_mrtr import InputRequired
         from sajha.observability import metrics as _metrics, tracing as _tracing
@@ -238,6 +254,8 @@ class BaseMCPTool(ABC):
                                                  'sajha.tool.group': _metrics.tool_group(self.name),
                                                  'enduser.id': _caller().user_id},
                             ensure_trace=True) as span:
+            if defaults_applied:
+                _tracing.set_attrs(span, **{'sajha.tool.defaults_applied': ','.join(defaults_applied)})
             try:
                 # Connected accounts: a tool whose config declares auth.connected_account runs with
                 # the caller's token bound (sajha/accounts/injection.py); a no-op for every other tool
@@ -270,7 +288,8 @@ class BaseMCPTool(ABC):
                 _metrics.record_tool(self.name, outcome['v'], _elapsed, error)
                 # every call is a tool.call record in the audit chain (sajha/audit/tool_calls.py)
                 from sajha.audit.tool_calls import record_call as _audit_call
-                _audit_call(self, arguments, outcome['v'], _elapsed, error)
+                _audit_call(self, arguments, outcome['v'], _elapsed, error,
+                            defaults_applied=defaults_applied)
 
     def _execute_tracked(self, arguments: Dict[str, Any], outcome: Dict[str, str]) -> Any:
         """The body of :meth:`execute_with_tracking`; sets ``outcome['v']`` for a cache hit
@@ -393,7 +412,7 @@ class BaseMCPTool(ABC):
         """
         tool = {
             "name": self.name,
-            "description": self.description,
+            "description": self.served_description,
             "inputSchema": self.input_schema
         }
         config = self.config or {}

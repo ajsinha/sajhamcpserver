@@ -1,7 +1,8 @@
 {
   "name": "openbb_dividends",
   "implementation": "sajha.tools.impl.openbb_tools.OpenBBDividendsTool",
-  "description": "Dividend history for one stock through the OpenBB Platform (obb.equity.fundamental.dividends).\nReturns: {symbol, dividends: [records with ex_dividend_date, amount and, depending on the provider, record, payment and declaration dates]}.\nInputs (* required): symbol*; provider (fmp, intrinio, nasdaq or yfinance; default yfinance, no key).\nOther sources: yf_dividends; upcoming market-wide: openbb_equity_calendar_dividend. Keys: fmp, benzinga, fred, intrinio, polygon and tiingo need credentials in OpenBB's settings (~/.openbb_platform/user_settings.json), not supplied by SAJHA; yfinance, oecd, federal_reserve, sec, imf and government_us need none.\nExample: {\"symbol\": \"KO\", \"provider\": \"yfinance\"}",
+  "description": "Dividend history for one stock through the OpenBB Platform (obb.equity.fundamental.dividends).\nReturns: {symbol, provider, data_points, truncated, dividends: [records with ex_dividend_date, amount and, by provider, record and payment dates]} or {symbol, error}.\nInputs (* required): symbol*; start_date; end_date; limit (rows returned, 1-1000; default 100; a dated series keeps its most recent rows); provider (fmp, intrinio, nasdaq, yfinance; default yfinance).\nOther source: yf_dividends; upcoming market-wide: openbb_equity_calendar_dividend. Keys: nasdaq, yfinance need none; fmp uses SAJHA's FMP_API_KEY; intrinio needs a key in ~/.openbb_platform/user_settings.json.\nExample: {\"symbol\": \"KO\"}",
+  "annotations": {"readOnlyHint": true, "idempotentHint": true, "openWorldHint": true},
   "version": "4.5.0",
   "enabled": true,
   "inputSchema": {
@@ -9,23 +10,60 @@
     "properties": {
       "symbol": {
         "type": "string",
-        "description": "Stock ticker symbol (e.g., AAPL, MSFT)"
+        "description": "Ticker symbol, e.g. AAPL"
+      },
+      "start_date": {
+        "type": "string",
+        "description": "Start date (YYYY-MM-DD)",
+        "format": "date"
+      },
+      "end_date": {
+        "type": "string",
+        "description": "End date (YYYY-MM-DD)",
+        "format": "date"
+      },
+      "limit": {
+        "type": "integer",
+        "minimum": 1,
+        "maximum": 1000,
+        "default": 100,
+        "description": "Most rows returned (1-1000); a dated series keeps its most recent rows"
       },
       "provider": {
         "type": "string",
-        "description": "Data provider",
-        "default": "yfinance"
+        "enum": [
+          "fmp",
+          "intrinio",
+          "nasdaq",
+          "yfinance"
+        ],
+        "default": "yfinance",
+        "description": "OpenBB data provider"
       }
     },
     "required": [
       "symbol"
-    ]
+    ],
+    "examples": [{"symbol": "KO"}]
   },
   "outputSchema": {
     "type": "object",
     "properties": {
-      "result": {
-        "type": "object"
+      "provider": {
+        "type": "string"
+      },
+      "data_points": {
+        "type": "integer",
+        "description": "Rows before the cap"
+      },
+      "truncated": {
+        "type": "boolean"
+      },
+      "dividends": {
+        "type": "array"
+      },
+      "error": {
+        "type": "string"
       }
     }
   },
@@ -40,6 +78,13 @@
       "yield",
       "income"
     ],
-    "examples": []
+    "examples": [
+      {
+        "description": "Dividend history for one stock",
+        "input": {
+          "symbol": "KO"
+        }
+      }
+    ]
   }
 }

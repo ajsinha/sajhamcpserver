@@ -46,14 +46,14 @@ class EDGARBaseTool(BaseMCPTool):
         # SEC EDGAR API endpoints
         self.base_url = "https://data.sec.gov"
         self.submissions_url = f"{self.base_url}/submissions"
-        self.company_tickers_url = f"{self.base_url}/files/company_tickers.json"
+        # company_tickers_exchange.json carries the exchange (company_tickers.json does not)
+        self.company_tickers_url = "https://www.sec.gov/files/company_tickers_exchange.json"
         
         # Required headers for SEC API (User-Agent is MANDATORY per SEC requirements)
         self.headers = {
             'User-Agent': 'Enhanced EDGAR Tool ashutosh.sinha@research.com',
             'Accept-Encoding': 'gzip, deflate',
-            'Host': 'data.sec.gov'
-        }
+        }                       # no fixed Host: the tickers file is on www.sec.gov, the APIs on data.sec.gov
         
         # Rate limiting: SEC allows 10 requests per second
         self.rate_limit_delay = 0.11  # 110ms between requests
@@ -155,6 +155,48 @@ class EDGARBaseTool(BaseMCPTool):
         """
         return str(cik).strip().zfill(10)
     
+    #: Since 18 December 2024 EDGAR files beneficial-ownership reports as SCHEDULE 13D/13G
+    #: (structured XML); earlier ones are SC 13D/13G. Either name finds both.
+    FORM_ALIASES = {
+        'SC 13D': ('SC 13D', 'SCHEDULE 13D'),
+        'SC 13D/A': ('SC 13D/A', 'SCHEDULE 13D/A'),
+        'SC 13G': ('SC 13G', 'SCHEDULE 13G'),
+        'SC 13G/A': ('SC 13G/A', 'SCHEDULE 13G/A'),
+    }
+
+    def _form_aliases(self, form_type: str) -> set:
+        form_type = (form_type or '').upper()
+        for names in self.FORM_ALIASES.values():
+            if form_type in names:
+                return set(names)
+        return {form_type}
+
+    @staticmethod
+    def _frame_id(year, quarter: str, instant: bool) -> str:
+        """CY2023 / CY2023Q1 for durations; CY2023Q4I / CY2023Q1I for instants (a year's
+        instant is its last quarter end)."""
+        if instant:
+            return f"CY{year}{'Q4' if quarter == 'CY' else quarter}I"
+        return f"CY{year}" if quarter == 'CY' else f"CY{year}{quarter}"
+
+    def _fetch_frame(self, taxonomy: str, concept: str, unit: str, year, quarter: str,
+                     period_type: str = 'auto'):
+        """One frames call. period_type duration (income-statement concepts), instant
+        (balance-sheet concepts) or auto: the duration frame, then the instant frame when the
+        concept has no duration frame for that period."""
+        kinds = {'duration': [False], 'instant': [True]}.get(period_type, [False, True])
+        last_error = None
+        for instant in kinds:
+            frame = self._frame_id(year, quarter, instant)
+            try:
+                return frame, self._make_request(
+                    f"{self.base_url}/api/xbrl/frames/{taxonomy}/{concept}/{unit}/{frame}.json")
+            except ValueError as e:
+                last_error = e
+                if 'not found' not in str(e).lower():
+                    raise
+        raise ValueError(f"No {concept} frame for {year} {quarter} ({period_type}): {last_error}")
+
     def _get_company_tickers(self, use_cache: bool = True) -> Dict:
         """
         Get company tickers database with caching
@@ -172,8 +214,18 @@ class EDGARBaseTool(BaseMCPTool):
             (current_time - self._tickers_cache_time) < self._cache_ttl):
             return self._tickers_cache
         
-        # Fetch fresh data
-        self._tickers_cache = self._make_request(self.company_tickers_url)
+        # Fetch fresh data: {"fields": [cik, name, ticker, exchange], "data": [[...], ...]}, one row
+        # per ticker in market-capitalisation order; kept in company_tickers.json's dict shape.
+        raw = self._make_request(self.company_tickers_url)
+        if isinstance(raw, dict) and 'fields' in raw:
+            fields = raw.get('fields') or []
+            rows = {}
+            for i, row in enumerate(raw.get('data') or []):
+                rec = dict(zip(fields, row))
+                rows[str(i)] = {'cik_str': rec.get('cik'), 'ticker': rec.get('ticker') or '',
+                                'title': rec.get('name') or '', 'exchange': rec.get('exchange') or ''}
+            raw = rows
+        self._tickers_cache = raw
         self._tickers_cache_time = current_time
         
         return self._tickers_cache
@@ -866,8 +918,9 @@ class EDGARFilingsByFormTool(EDGARBaseTool):
         filtered_filings = []
         if recent:
             forms = recent.get('form', [])
+            wanted = self._form_aliases(form_type)
             for i, form in enumerate(forms):
-                if form.upper() == form_type:
+                if form.upper() in wanted:
                     filing_date = recent.get('filingDate', [])[i]
                     
                     # Apply date filters
@@ -1366,15 +1419,8 @@ class EDGARFrameDataTool(EDGARBaseTool):
         if not concept or not year:
             raise ValueError("Concept and year parameters are required")
         
-        # Construct frame identifier
-        if quarter == 'CY':
-            frame = f"CY{year}"
-        else:
-            frame = f"CY{year}{quarter}"
-        
-        # Fetch frame data
-        url = f"{self.base_url}/api/xbrl/frames/{taxonomy}/{concept}/{unit}/{frame}.json"
-        data = self._make_request(url)
+        frame, data = self._fetch_frame(taxonomy, concept, unit, year, quarter,
+                                        arguments.get('period_type', 'auto'))
         
         # Extract data points
         data_points = data.get('data', [])
@@ -1544,37 +1590,44 @@ class EDGARCompaniesBySICTool(EDGARBaseTool):
         if not sic_code:
             raise ValueError("SIC code is required")
         
-        # Get tickers to find CIKs
+        max_scan = int(arguments.get('max_scan') or 200)
+        # The tickers file is in market-capitalisation order: read the submissions of the largest
+        # max_scan companies (one request each, rate limited) and keep those with this SIC code.
         tickers_data = self._get_company_tickers()
-        
         companies = []
+        seen = set()
+        scanned = 0
+        errors = 0
         for key, company in tickers_data.items():
-            if isinstance(company, dict):
-                cik = self._format_cik(company.get('cik_str', ''))
-                
-                # Fetch company details to get SIC
-                try:
-                    url = f"{self.submissions_url}/CIK{cik}.json"
-                    data = self._make_request(url)
-                    
-                    if data.get('sic', '') == sic_code:
-                        companies.append({
-                            'cik': cik,
-                            'name': data.get('name', ''),
-                            'sic': data.get('sic', ''),
-                            'sicDescription': data.get('sicDescription', ''),
-                            'fiscalYearEnd': data.get('fiscalYearEnd', '')
-                        })
-                        
-                        if len(companies) >= limit:
-                            break
-                except Exception as e:
-                    logger.error(f"Unexpected error: {e}", exc_info=True)
-                    continue
-        
+            if not isinstance(company, dict):
+                continue
+            cik = self._format_cik(company.get('cik_str', ''))
+            if cik in seen:
+                continue
+            seen.add(cik)
+            if scanned >= max_scan or len(companies) >= limit:
+                break
+            scanned += 1
+            try:
+                data = self._make_request(f"{self.submissions_url}/CIK{cik}.json")
+            except Exception as e:
+                errors += 1
+                self.logger.warning(f"edgar_companies_by_sic: skipped CIK {cik}: {e}")
+                continue
+            if str(data.get('sic', '')) == sic_code:
+                companies.append({
+                    'cik': cik,
+                    'name': data.get('name', ''),
+                    'sic': data.get('sic', ''),
+                    'sicDescription': data.get('sicDescription', ''),
+                    'fiscalYearEnd': data.get('fiscalYearEnd', '')
+                })
+
         return {
             'sic_code': sic_code,
             'companies_count': len(companies),
+            'companies_scanned': scanned,
+            'errors': errors,
             'companies': companies
         }
 
@@ -2214,21 +2267,44 @@ class EDGARFinancialRatiosTool(EDGARBaseTool):
         
         entity_name = data.get('entityName', '')
         facts = data.get('facts', {}).get('us-gaap', {})
-        
-        # Helper function to get concept value
-        def get_value(concept, year=fiscal_year, period=fiscal_period):
-            if concept not in facts:
+        annual_forms = ('10-K', '10-K/A', '10-KT', '20-F', '20-F/A', '40-F', '40-F/A')
+        quarter_forms = ('10-Q', '10-Q/A')
+        forms = annual_forms if fiscal_period == 'FY' else quarter_forms
+
+        def usd(concept):
+            return (facts.get(concept) or {}).get('units', {}).get('USD', [])
+
+        if not fiscal_year:
+            # The latest fiscal year the company has filed this period for (its newest report)
+            years = [i.get('fy') for c in ('Assets', 'NetIncomeLoss') for i in usd(c)
+                     if i.get('fp') == fiscal_period and i.get('form') in forms and i.get('fy')]
+            if not years:
+                raise ValueError(f"No {fiscal_period} us-gaap facts for CIK {cik}")
+            fiscal_year = max(years)
+
+        def _days(item):
+            try:
+                return (datetime.strptime(item['end'], '%Y-%m-%d') - datetime.strptime(item['start'], '%Y-%m-%d')).days
+            except (KeyError, TypeError, ValueError):
                 return None
-            units = facts[concept].get('units', {})
-            usd_values = units.get('USD', [])
-            
-            for item in usd_values:
-                if item.get('fy') == year and item.get('fp') == period:
-                    return item.get('val')
-            return None
-        
+
+        # A report tagged fy/fp also carries prior-period comparatives under the same tags, so the
+        # value for the period itself is the one with the latest end date; for a full year, a
+        # flow (income) concept must also span about a year, not a quarter.
+        def get_value(concept, year=None, period=None):
+            year = fiscal_year if year is None else year
+            period = fiscal_period if period is None else period
+            items = [i for i in usd(concept)
+                     if i.get('fy') == year and i.get('fp') == period and i.get('form') in forms]
+            if period == 'FY':
+                items = [i for i in items if _days(i) is None or _days(i) > 300]
+            if not items:
+                return None
+            return max(items, key=lambda i: (i.get('end') or '', i.get('filed') or '')).get('val')
+
         # Calculate ratios
-        revenue = get_value('Revenues') or get_value('RevenueFromContractWithCustomerExcludingAssessedTax')
+        revenue = (get_value('Revenues') or get_value('RevenueFromContractWithCustomerExcludingAssessedTax')
+                   or get_value('SalesRevenueNet'))
         gross_profit = get_value('GrossProfit')
         operating_income = get_value('OperatingIncomeLoss')
         net_income = get_value('NetIncomeLoss')
@@ -2481,17 +2557,16 @@ class EDGARXBRLFramesMultiConceptTool(EDGARBaseTool):
         if not concepts:
             raise ValueError("At least one concept is required")
         
-        # Construct frame identifier
-        frame = f"CY{year}{quarter}" if quarter != 'CY' else f"CY{year}"
-        
+        period_type = arguments.get('period_type', 'auto')
+        frames = set()
         # Fetch data for each concept
         data_by_concept = {}
         for concept in concepts:
             try:
-                url = f"{self.base_url}/api/xbrl/frames/{taxonomy}/{concept}/{unit}/{frame}.json"
-                data = self._make_request(url)
-                
+                frame, data = self._fetch_frame(taxonomy, concept, unit, year, quarter, period_type)
+                frames.add(frame)
                 data_by_concept[concept] = {
+                    'frame': frame,
                     'tag': data.get('tag', ''),
                     'label': data.get('label', ''),
                     'units_count': len(data.get('data', [])),
@@ -2504,7 +2579,7 @@ class EDGARXBRLFramesMultiConceptTool(EDGARBaseTool):
                 }
         
         return {
-            'frame': frame,
+            'frame': ', '.join(sorted(frames)) or None,
             'concepts_retrieved': len([c for c in data_by_concept.values() if 'error' not in c]),
             'data_by_concept': data_by_concept
         }

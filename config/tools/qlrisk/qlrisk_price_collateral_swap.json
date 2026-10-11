@@ -3,7 +3,7 @@
   "implementation": "sajha.tools.impl.qlrisk.qlrisk_tools.QlriskPriceProductTool",
   "product": "CollateralSwap",
   "title": "Price a CollateralSwap",
-  "description": "Price one Collateral Swap Transaction (qlrisk CollateralSwap): NPV, pricing components and Greeks where the pricer gives them.\nInputs (* required): maturity* (tenor like 3Y or date), notional (amount; default 1000000), receive_leg, deliver_leg, fee_rate_bp (basis points, 25 = 0.25%; default 0), fee_payment_frequency (annual/semi-annual/quarterly/monthly/weekly/daily/at maturity; default quarterly), initial_margin_pct (percent, 3 = 3%; default 2), variation_margin (default true), currency (see the schema's list; default USD). Rates are in percent, spreads in basis points, maturities a tenor (3Y, 18M, 6W, 10D) or a date YYYY-MM-DD. Optional `advanced`: trade_id, trade_date, effective_date, counterparty_id, day_count, market_data, reporting_currency, include_cash_flows; market data defaults to qlrisk's sample snapshot valued today.\nExample: {\"maturity\": \"5Y\", \"notional\": 1000000} gives NPV 60,000.00 USD on the sample market valued 2026-10-09. For several trades at once use qlrisk_price_trades.",
+  "description": "Price one Collateral Swap Transaction (qlrisk CollateralSwap).\nInputs (* required, name=default): maturity*, notional=1000000, receive_leg, deliver_leg, fee_rate_bp=0, fee_payment_frequency=quarterly, initial_margin_pct=2, variation_margin=true, currency=USD. In `advanced` also: effective_date, day_count.\nExample: {\"maturity\": \"5Y\", \"notional\": 1000000} gives NPV 60,000.00 USD (sample market valued 2026-10-09).",
   "version": "1.0.0",
   "enabled": true,
   "requires": [

@@ -668,7 +668,13 @@ def test_dry_run_returns_the_stage_path(monkeypatch):
 def test_dry_run_runs_only_read_only_tools_and_those_named(monkeypatch):
     from sajha.ai.planners_engine.dryrun import read_only
     assert read_only(FakeTool("x", "y")) is False
+    from sajha.ai.planners_engine import dryrun
     c = _client(monkeypatch)
+    # the calculators are marked read-only (readOnlyHint), so the dry run runs them unasked
+    body = c.post("/api/ai/planners/dry-run", json={"planner": "react", "question": PCT}).json()
+    assert body["tool_calls"] == [{"name": "calc_percentage_change", "ok": True, "run": True}]
+    # a tool that is not marked read-only is offered but runs only when named
+    monkeypatch.setattr(dryrun, "read_only", lambda tool: False)
     body = c.post("/api/ai/planners/dry-run", json={"planner": "react", "question": PCT}).json()
     assert body["tool_calls"] == [{"name": "calc_percentage_change", "ok": False, "run": False}]
     body = c.post("/api/ai/planners/dry-run", json={"planner": "react", "question": PCT,
@@ -703,7 +709,7 @@ def test_p036_planner_tools_must_be_allowed_by_the_tool(llm_settings):
     assert not [p for p in catalog_problems(t.spec, t.name, t.registry) if "P036" in p]
 
 
-def test_tutorial_27_planner_loads_and_takes_the_paths_it_shows(tmp_path):
+def test_tutorial_27_planner_loads_and_takes_the_paths_it_shows(tmp_path, monkeypatch):
     """docs/tutorials/TUTORIAL_27_write_a_planner.md: the file it writes, and the paths it promises."""
     import re
     import shutil
@@ -726,6 +732,10 @@ def test_tutorial_27_planner_loads_and_takes_the_paths_it_shows(tmp_path):
     out = dry_run(service(), "pct_desk", "What is the future value of 5000 at 7 percent for 20 years?", admin,
                   run_tools=["calc_future_value"])
     assert out["path"] == ["shape", "general", "check", "answer"] and "pct_desk>react/act" in out["trace"]
+    out = dry_run(service(), "pct_desk", "What is the percent change from 80 to 100?", admin)
+    assert out["path"] == ["shape", "compute", "done"]          # the calculator is read-only: it runs
+    from sajha.ai.planners_engine import dryrun
+    monkeypatch.setattr(dryrun, "read_only", lambda tool: False)
     out = dry_run(service(), "pct_desk", "What is the percent change from 80 to 100?", admin)
     assert out["path"] == ["shape", "compute", "general", "check", "answer"]
     broken = yaml.safe_load(body)

@@ -1,5 +1,7 @@
 # Reserve Bank of India Tool Reference Guide
 
+> Archived; not maintained. The `rbi_*` tools were removed in 8.8.0: their undocumented RBI endpoint answered HTTP 418. Indian exchange rates, CPI and reserves are in `imf_get_ifs_data` (country IND); see the CHANGELOG.
+
 ## Table of Contents
 1. [Overview](#overview)
 2. [Architecture](#architecture)

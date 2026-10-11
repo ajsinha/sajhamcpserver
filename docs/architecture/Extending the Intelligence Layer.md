@@ -643,7 +643,7 @@ load by class path or entry point. Use it like any model: `SAJHA_AI_ALIASES_DEFA
 The planner is a strategy chosen by `ai.ask.planner` (section 4.5). The default, `react`, is
 the loop described here: the planner is whichever `ChatModel` the `ai.ask.model` alias
 (default `default`) resolves to, called once per step in `IntelligenceService.stream_ask`. `mock-planner` is such a model (`PlannerModel` in
-`sajha/ai/llm/mock.py`): it scores the offered `ToolSpec`s against the question's keywords,
+`sajha/ai/llm/providers/mock.py`): it scores the offered `ToolSpec`s against the question's keywords,
 fills arguments from numbers and ticker symbols in the question, and answers from the tool
 results. It plans only from the question, never from tool output. Replacing it means
 replacing the model; the loop around it stays the same.

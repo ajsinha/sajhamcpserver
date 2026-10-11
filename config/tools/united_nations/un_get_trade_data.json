@@ -2,6 +2,7 @@
   "name": "un_get_trade_data",
   "implementation": "sajha.tools.impl.united_nations_tool_refactored.UNGetTradeDataTool",
   "description": "Annual goods trade (HS, USD) reported by one country with a partner or the world, by flow and commodity group, from UN Comtrade.\nReturns: the query (with reporter_comtrade_code), total_value, record_count and data (partner, commodity, trade_value, quantity, quantity_unit, net_weight_kg).\nInputs (* required): reporter_code* (ISO3 such as USA, or a numeric Comtrade code); partner_code (same, or all for the world; default all); trade_flow (export, import, re_export, re_import; default export); commodity_code (all or an HS chapter group such as machinery, vehicles; list in the schema; default all); year (1962-2030; default the current year minus 2).\nBoth flows and top partners: un_get_country_trade; balance: un_get_trade_balance. Key: optional COMTRADE_API_KEY for the full Comtrade API; without it the keyless preview API (500 rows, rate limited).\nExample: {\"reporter_code\": \"DEU\", \"partner_code\": \"CHN\", \"trade_flow\": \"export\", \"commodity_code\": \"vehicles\", \"year\": 2022}",
+  "annotations": {"readOnlyHint": true, "idempotentHint": true, "openWorldHint": true},
   "version": "2.9.8",
   "enabled": true,
   "inputSchema": {
@@ -54,7 +55,8 @@
     },
     "required": [
       "reporter_code"
-    ]
+    ],
+    "examples": [{"reporter_code": "DEU", "partner_code": "CHN", "trade_flow": "export", "commodity_code": "vehicles", "year": 2022}]
   },
   "outputSchema": {
     "type": "object",

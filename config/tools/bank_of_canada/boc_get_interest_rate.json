@@ -1,7 +1,8 @@
 {
   "name": "boc_get_interest_rate",
   "implementation": "sajha.tools.impl.bank_of_canada_tool_refactored.BoCGetInterestRateTool",
-  "description": "Canadian interest rates in percent: the Bank of Canada policy rate (target for the overnight rate), CORRA (Canadian Overnight Repo Rate Average) or the prime rate, from the Bank of Canada Valet API (no API key).\nReturns: series_name, label, description, dimension, observation_count and observations (date, value) oldest first.\nInputs (* required): rate_type* (policy_rate, overnight_rate for CORRA, prime_rate; schema default policy_rate); start_date, end_date (YYYY-MM-DD; either or both); recent_periods (1-100; default 10; the last N observations, used only when no date is given).\nFor bond yields use boc_get_bond_yield; for a snapshot boc_get_common_indicators.\nExample: {\"rate_type\": \"policy_rate\", \"start_date\": \"2022-01-01\"}",
+  "description": "Canadian interest rates in percent: the Bank of Canada policy rate (target for the overnight rate), CORRA (Canadian Overnight Repo Rate Average) or the prime rate, from the Bank of Canada Valet API (no API key).\nReturns: series_name, label, description, dimension, observation_count and observations (date, value) oldest first.\nInputs (none required): rate_type (policy_rate, overnight_rate for CORRA, prime_rate; default policy_rate); start_date, end_date (YYYY-MM-DD; either or both); recent_periods (1-100; default 10; the last N observations, used only when no date is given).\nFor bond yields use boc_get_bond_yield; for a snapshot boc_get_common_indicators.\nExample: {\"rate_type\": \"policy_rate\", \"start_date\": \"2022-01-01\"}",
+  "annotations": {"readOnlyHint": true, "idempotentHint": true, "openWorldHint": true},
   "version": "2.9.8",
   "enabled": true,
   "inputSchema": {
@@ -10,7 +11,11 @@
       "rate_type": {
         "type": "string",
         "description": "Type of interest rate to retrieve",
-        "enum": ["policy_rate", "overnight_rate", "prime_rate"],
+        "enum": [
+          "policy_rate",
+          "overnight_rate",
+          "prime_rate"
+        ],
         "default": "policy_rate"
       },
       "start_date": {
@@ -29,7 +34,7 @@
         "default": 10
       }
     },
-    "required": ["rate_type"]
+    "required": []
   },
   "outputSchema": {
     "type": "object",
@@ -65,7 +70,10 @@
               "description": "Effective date of the rate"
             },
             "value": {
-              "type": ["number", "null"],
+              "type": [
+                "number",
+                "null"
+              ],
               "description": "Interest rate percentage"
             }
           }
@@ -76,7 +84,13 @@
   "metadata": {
     "author": "Ashutosh Sinha",
     "category": "Economic Data",
-    "tags": ["interest rates", "monetary policy", "bank of canada", "canada", "CORRA"],
+    "tags": [
+      "interest rates",
+      "monetary policy",
+      "bank of canada",
+      "canada",
+      "CORRA"
+    ],
     "rateLimit": 120,
     "cacheTTL": 3600,
     "examples": [

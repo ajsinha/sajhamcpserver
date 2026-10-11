@@ -1,7 +1,8 @@
 {
   "name": "sec_get_insider_trading",
   "implementation": "sajha.tools.impl.sec_edgar_tool_refactored.SECGetInsiderTradingTool",
-  "description": "A company's recent Form 4 insider trading filings from SEC EDGAR, by CIK or ticker.\nReturns {cik, name, filing_count, filings: [{accession_number, filing_date, report_date, form, primary_document, description}]}, newest first; filings only, not parsed trade amounts.\nInputs (* required): cik or ticker (one of them is needed; cik, 10 digits or shorter, wins when both are given; a ticker is resolved through the SEC company-tickers file), limit (integer 1-100, default 10).\nOnly the recent-filings block of the EDGAR submissions file is searched. edgar_insider_transactions is the CIK-based variant with document URLs.\nExample: {\"ticker\": \"TSLA\", \"limit\": 10}\nNo API key; SEC data.sec.gov (requests are not throttled; the SEC allows 10 per second).",
+  "description": "A company's recent Form 4 insider trading filings from SEC EDGAR, by CIK or ticker.\nReturns {cik, name, filing_count, filings: [{accession_number, filing_date, report_date, form, primary_document, description}]}, newest first; filings only, not parsed trade amounts.\nInputs (* required): cik or ticker (one of them is needed; cik, 10 digits or shorter, wins when both are given; a ticker is resolved through the SEC company-tickers file), limit (integer 1-100, default 10).\nOnly the recent-filings block of the EDGAR submissions file is searched. edgar_insider_transactions is the CIK-based variant with document URLs.\nExample: {\"ticker\": \"TSLA\", \"limit\": 10}",
+  "annotations": {"readOnlyHint": true, "idempotentHint": true, "openWorldHint": true},
   "version": "2.9.8",
   "enabled": true,
   "inputSchema": {
@@ -26,7 +27,8 @@
     "oneOf": [
       {"required": ["cik"]},
       {"required": ["ticker"]}
-    ]
+    ],
+    "examples": [{"ticker": "TSLA", "limit": 10}]
   },
   "outputSchema": {
     "type": "object",

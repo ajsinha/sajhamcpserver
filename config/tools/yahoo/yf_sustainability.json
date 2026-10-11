@@ -1,7 +1,8 @@
 {
   "name": "yf_sustainability",
   "implementation": "sajha.tools.impl.yfinance_tools.YFSustainabilityTool",
-  "description": "ESG (environmental, social, governance) risk scores for one company from Yahoo Finance (yfinance sustainability, Sustainalytics data).\nReturns: {symbol, sustainability: [rows with \"index\" = metric name (e.g. totalEsg, environmentScore, socialScore, governanceScore) and its value]}; an empty list when Yahoo has no ESG data for the ticker, which is common.\nInputs (* required): symbol* (Yahoo ticker, e.g. AAPL, BRK-B, 7203.T).\nAnother ESG source: fmp_esg_rating. No API key; data comes from Yahoo Finance through the yfinance library.\nExample: {\"symbol\": \"MSFT\"}",
+  "description": "ESG (environmental, social, governance) risk scores for one company from Yahoo Finance (yfinance sustainability, Sustainalytics data).\nReturns: {symbol, sustainability: [rows with \"index\" = metric name (e.g. totalEsg, environmentScore, socialScore, governanceScore) and its value]}; an empty list when Yahoo has no ESG data for the ticker, which is common.\nInputs (* required): symbol* (Yahoo ticker, e.g. AAPL, BRK-B, 7203.T).\nAnother ESG source: fmp_esg_rating.\nExample: {\"symbol\": \"MSFT\"}",
+  "annotations": {"readOnlyHint": true, "idempotentHint": true, "openWorldHint": true},
   "version": "4.5.0",
   "enabled": true,
   "inputSchema": {
@@ -14,7 +15,8 @@
     },
     "required": [
       "symbol"
-    ]
+    ],
+    "examples": [{"symbol": "MSFT"}]
   },
   "outputSchema": {
     "type": "object",

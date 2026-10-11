@@ -1,16 +1,63 @@
 {
   "name": "openbb_fixedincome_ice_bofa",
   "implementation": "sajha.tools.impl.openbb_tools.OpenBBGenericTool",
-  "description": "Meant to give ICE BofA corporate bond index yields through OpenBB (obb.fixedincome.corporate.ice_bofa).\nReturns: {tool, data_points (total rows), data: first 100 rows as OpenBB returns them} or {tool, error}.\nInputs (* required): provider (schema default fred; when omitted the tool sends yfinance).\nOpenBB 4.x (4.6 checked) has no obb.fixedincome.corporate.ice_bofa, so this tool currently returns an error object; alternatives: fred_high_yield_spread or fred_credit_spread.\nExample: {\"provider\": \"fred\"}",
+  "description": "ICE BofA bond index series (yield, yield to worst, total return or option-adjusted spread) from FRED through the OpenBB Platform (obb.fixedincome.bond_indices).\nReturns: {tool, provider, data_points (rows before the cap), truncated, data: rows with their dates, ignored_arguments when some did not apply} or {tool, error}.\nInputs (* required): category (us, high_yield or emerging_markets; default us); index (default corporate); index_type (yield, yield_to_worst, total_return or oas; default yield); start_date; end_date; limit (rows returned, 1-1000; default 100; a dated series keeps its most recent rows); provider (fred; default fred).\nSpreads: fred_high_yield_spread, fred_credit_spread; Moody's Aaa and Baa yields: fred_custom_series (AAA, BAA). Keys: fred uses SAJHA's FRED_API_KEY.\nExample: {\"category\": \"high_yield\", \"index_type\": \"oas\", \"start_date\": \"2026-01-01\"}",
+  "annotations": {"readOnlyHint": true, "idempotentHint": true, "openWorldHint": true},
   "version": "4.5.0",
   "enabled": true,
   "inputSchema": {
     "type": "object",
     "properties": {
+      "category": {
+        "type": "string",
+        "enum": [
+          "us",
+          "high_yield",
+          "emerging_markets"
+        ],
+        "default": "us",
+        "description": "Index family"
+      },
+      "index": {
+        "type": "string",
+        "default": "corporate",
+        "description": "Index within the family, e.g. corporate, seasoned_corporate, yield_curve, high_yield, crossover, public_sector, private_sector"
+      },
+      "index_type": {
+        "type": "string",
+        "enum": [
+          "yield",
+          "yield_to_worst",
+          "total_return",
+          "oas"
+        ],
+        "default": "yield",
+        "description": "yield, yield_to_worst, total_return or oas"
+      },
+      "start_date": {
+        "type": "string",
+        "description": "Start date (YYYY-MM-DD)",
+        "format": "date"
+      },
+      "end_date": {
+        "type": "string",
+        "description": "End date (YYYY-MM-DD)",
+        "format": "date"
+      },
+      "limit": {
+        "type": "integer",
+        "minimum": 1,
+        "maximum": 1000,
+        "default": 100,
+        "description": "Most rows returned (1-1000); a dated series keeps its most recent rows"
+      },
       "provider": {
         "type": "string",
-        "description": "OpenBB data provider",
-        "default": "fred"
+        "enum": [
+          "fred"
+        ],
+        "default": "fred",
+        "description": "OpenBB data provider"
       }
     },
     "required": []
@@ -18,8 +65,24 @@
   "outputSchema": {
     "type": "object",
     "properties": {
-      "result": {
-        "type": "object"
+      "tool": {
+        "type": "string"
+      },
+      "provider": {
+        "type": "string"
+      },
+      "data_points": {
+        "type": "integer",
+        "description": "Rows before the cap"
+      },
+      "truncated": {
+        "type": "boolean"
+      },
+      "data": {
+        "type": "array"
+      },
+      "error": {
+        "type": "string"
       }
     }
   },
@@ -32,6 +95,16 @@
       "openbb",
       "corporate bonds",
       "ice bofa"
+    ],
+    "examples": [
+      {
+        "description": "ICE BofA bond index series (yield, yield to worst, total return or option-adjust",
+        "input": {
+          "category": "high_yield",
+          "index_type": "oas",
+          "start_date": "2026-01-01"
+        }
+      }
     ]
   }
 }

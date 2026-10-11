@@ -32,6 +32,7 @@ class FederatedToolError(RuntimeError):
 
 class FederatedTool(BaseMCPTool):
     passthrough_result = True
+    apply_schema_defaults = False   # the other server applies its own schema's defaults
 
     namespaced_name = True          # <prefix>__<tool>: '__' is reserved for namespaced tools (sajha/tools/naming.py)
 

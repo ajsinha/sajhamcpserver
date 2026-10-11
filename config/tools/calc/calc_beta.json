@@ -2,6 +2,7 @@
   "name": "calc_beta",
   "implementation": "sajha.tools.impl.calc_tools.CalcBetaTool",
   "description": "Beta of a stock against the market: covariance of the two return series divided by the market's variance; the longer series is cut to the length of the shorter. Computed locally in Python; no API key or network.\nReturns {beta, data_points}: beta to 4 decimals (1 if market variance is 0).\nInputs (* required): stock_returns*, market_returns* (arrays of periodic returns in the same unit and order, e.g. daily percent).\nUse the beta in calc_capm; for plain co-movement use calc_correlation.\nExample: {\"stock_returns\": [1.2, -0.5, 0.8, 2.1, -1.0], \"market_returns\": [0.9, -0.3, 0.5, 1.5, -0.8]}",
+  "annotations": {"readOnlyHint": true, "idempotentHint": true, "openWorldHint": false},
   "version": "4.5.0",
   "enabled": true,
   "inputSchema": {
@@ -25,7 +26,8 @@
     "required": [
       "stock_returns",
       "market_returns"
-    ]
+    ],
+    "examples": [{"stock_returns": [1.2, -0.5, 0.8, 2.1, -1.0], "market_returns": [0.9, -0.3, 0.5, 1.5, -0.8]}]
   },
   "outputSchema": {
     "type": "object",

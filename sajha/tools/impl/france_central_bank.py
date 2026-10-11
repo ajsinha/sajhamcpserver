@@ -1,470 +1,130 @@
 """
 Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.com
-Banque de France / ECB MCP Tool Implementation
+Banque de France / ECB MCP tools.
+
+French and euro area series from the ECB Data Portal (data-api.ecb.europa.eu), read through
+the shared SDMX client (sajha/tools/impl/sdmx_client.py). Every series key below was checked
+live; a label with no openly published series is not offered (the ECB publishes one French
+government bond yield, the 10-year convergence yield, so bdf_get_oat_yield has one term).
 """
 
-import json
-import urllib.parse
-import urllib.request
-from typing import Dict, Any, List, Optional
-from datetime import datetime
+from typing import Any, Dict, Optional, Tuple
+
 from sajha.tools.base_mcp_tool import BaseMCPTool
-from sajha.tools.http_utils import safe_json_response, ENCODINGS_EUROPEAN
+from sajha.tools.impl import sdmx_client
+
+# shorthand: (ECB flow, series key)
+SERIES: Dict[str, Tuple[str, str]] = {
+    # ECB policy rates (business-day frequency; change only on decision dates)
+    'ecb_main_refi': ('FM', 'B.U2.EUR.4F.KR.MRR_FR.LEV'),
+    'ecb_deposit': ('FM', 'B.U2.EUR.4F.KR.DFR.LEV'),
+    'ecb_marginal_lending': ('FM', 'B.U2.EUR.4F.KR.MLFR.LEV'),
+    # France, long-term (10-year) government bond yield for convergence purposes, monthly
+    'oat_10y': ('IRS', 'M.FR.L.L40.CI.0000.EUR.N.Z'),
+    # ECB euro reference rates (units of the currency per euro), daily
+    'eur_usd': ('EXR', 'D.USD.EUR.SP00.A'),
+    'eur_gbp': ('EXR', 'D.GBP.EUR.SP00.A'),
+    'eur_jpy': ('EXR', 'D.JPY.EUR.SP00.A'),
+    'eur_cny': ('EXR', 'D.CNY.EUR.SP00.A'),
+    # France
+    'fr_cpi': ('HICP', 'M.FR.N.000000.4D0.ANR'),                       # HICP, annual rate of change
+    'fr_gdp': ('MNA', 'Q.Y.FR.W2.S1.S1.B.B1GQ._Z._Z._Z.EUR.V.N'),     # current prices, EUR millions
+    'fr_unemployment': ('LFSI', 'M.FR.S.UNEHRT.TOTAL0.15_74.T'),     # percent, seasonally adjusted
+    # Euro area
+    'ez_cpi': ('HICP', 'M.U2.N.000000.4D0.ANR'),
+    'ez_gdp': ('MNA', 'Q.Y.I10.W2.S1.S1.B.B1GQ._Z._Z._Z.EUR.V.N'),    # euro area 21, EUR millions
+    'm3': ('BSI', 'M.U2.Y.V.M30.X.I.U2.2300.Z01.A'),                  # M3, annual growth rate
+}
 
 
 class BanqueDeFranceBaseTool(BaseMCPTool):
-    """
-    Base class for Banque de France / ECB tools with shared functionality
-    """
-    
-    def __init__(self, config: Dict = None):
-        """Initialize Banque de France base tool"""
-        super().__init__(config)
-        
-        # Banque de France Webstat API endpoint
-        self.bdf_api_url = "https://webstat.banque-france.fr/ws/rest/data"
-        # ECB Statistical Data Warehouse API
-        self.ecb_api_url = "https://sdw-wsrest.ecb.europa.eu/service/data"
-        
-        # Common data series mapping
-        self.common_series = {
-            # ECB Policy Rates
-            'ecb_main_refi': 'FM.B.U2.EUR.4F.KR.MRR_FR.LEV',  # Main refinancing rate
-            'ecb_deposit': 'FM.B.U2.EUR.4F.KR.DFR.LEV',  # Deposit facility rate
-            'ecb_marginal_lending': 'FM.B.U2.EUR.4F.KR.MLFR.LEV',  # Marginal lending rate
-            
-            # French Government Bond Yields (OAT - Obligations Assimilables du Trésor)
-            'oat_2y': 'IRS.M.FR.L.L40.CI.0000.EUR.N.Z',
-            'oat_5y': 'IRS.M.FR.L.L40.CI.0000.EUR.N.Z',
-            'oat_10y': 'IRS.M.FR.L.L40.CI.0000.EUR.N.Z',
-            'oat_30y': 'IRS.M.FR.L.L40.CI.0000.EUR.N.Z',
-            
-            # Exchange Rates (EUR based)
-            'eur_usd': 'EXR.D.USD.EUR.SP00.A',
-            'eur_gbp': 'EXR.D.GBP.EUR.SP00.A',
-            'eur_jpy': 'EXR.D.JPY.EUR.SP00.A',
-            'eur_cny': 'EXR.D.CNY.EUR.SP00.A',
-            
-            # French Economic Indicators
-            'fr_cpi': 'ICP.M.FR.N.000000.4.ANR',  # France CPI
-            'fr_gdp': 'MNA.Q.Y.FR.W2.S1.S1.B.B1GQ._Z._Z._Z.EUR.V.N',
-            'fr_unemployment': 'LFSI.M.FR.S.UNEHRT.TOTAL0.15_74.T',
-            
-            # Eurozone Aggregates
-            'ez_cpi': 'ICP.M.U2.N.000000.4.ANR',
-            'ez_gdp': 'MNA.Q.Y.I8.W2.S1.S1.B.B1GQ._Z._Z._Z.EUR.V.N',
-            'm3': 'BSI.M.U2.N.A.A20.A.1.U2.2240.Z01.E',  # Eurozone M3
-        }
-    
-    def _fetch_series_ecb(
-        self,
-        series_code: str,
-        start_date: Optional[str] = None,
-        end_date: Optional[str] = None,
-        recent_periods: Optional[int] = None
-    ) -> Dict:
-        """
-        Fetch time series data from ECB API
-        
-        Args:
-            series_code: ECB series code
-            start_date: Start date (YYYY-MM-DD)
-            end_date: End date (YYYY-MM-DD)
-            recent_periods: Number of recent periods
-            
-        Returns:
-            Time series data
-        """
-        url = f"{self.ecb_api_url}/{series_code}"
-        params = {'format': 'jsondata'}
-        
-        if start_date:
-            params['startPeriod'] = start_date
-        if end_date:
-            params['endPeriod'] = end_date
-        
-        url += '?' + urllib.parse.urlencode(params)
-        
-        try:
-            headers = {
-                'User-Agent': 'Mozilla/5.0',
-                'Accept': 'application/json'
-            }
-            
-            req = urllib.request.Request(url, headers=headers)
-            with urllib.request.urlopen(req, timeout=30) as response:
-                data = safe_json_response(response, ENCODINGS_EUROPEAN)
-                
-                observations = []
-                if 'dataSets' in data and data['dataSets']:
-                    obs_data = data['dataSets'][0].get('series', {}).get('0:0:0:0:0:0:0:0:0', {}).get('observations', {})
-                    structure = data.get('structure', {})
-                    dimensions = structure.get('dimensions', {}).get('observation', [])
-                    time_values = next((d['values'] for d in dimensions if d.get('id') == 'TIME_PERIOD'), [])
-                    
-                    for idx, obs in obs_data.items():
-                        time_idx = int(idx)
-                        if time_idx < len(time_values):
-                            observations.append({
-                                'date': time_values[time_idx]['id'],
-                                'value': float(obs[0]) if obs and obs[0] else None
-                            })
-                
-                # Apply recent_periods filter if specified
-                if recent_periods and not start_date and not end_date:
-                    observations = observations[-recent_periods:]
-                
-                return {
-                    'series_code': series_code,
-                    'label': series_code,
-                    'description': '',
-                    'unit': '%',
-                    'frequency': 'Daily',
-                    'observation_count': len(observations),
-                    'observations': observations
-                }
-                
-        except urllib.error.HTTPError as e:
-            if e.code == 404:
-                raise ValueError(f"Series not found: {series_code}")
-            else:
-                raise ValueError(f"Failed to get series data: HTTP {e.code}")
-        except Exception as e:
-            raise ValueError(f"Failed to get series data: {str(e)}")
+    """Shared fetch for the bdf_ tools: one ECB series, recent_periods as lastNObservations."""
 
-    _fetch_series = _fetch_series_ecb  # Default to ECB API
+    #: (argument name, allowed shorthands, default) — set by each tool
+    choice: Tuple[str, Tuple[str, ...], str] = ('', (), '')
+    #: argument value -> SERIES shorthand, where they differ
+    aliases: Dict[str, str] = {}
+
+    def __init__(self, config: Dict = None):
+        super().__init__(config)
+        self.common_series = SERIES
+
+    def get_input_schema(self) -> Dict:
+        arg, values, default = self.choice
+        return {
+            "type": "object",
+            "properties": {
+                arg: {"type": "string", "enum": list(values), "default": default,
+                      "description": "Which series"},
+                "start_date": {"type": "string", "description": "Start date or period, YYYY-MM-DD (also YYYY-MM or YYYY)"},
+                "end_date": {"type": "string", "description": "End date or period, YYYY-MM-DD (also YYYY-MM or YYYY)"},
+                "recent_periods": {"type": "integer", "minimum": 1, "maximum": 100, "default": 10,
+                                   "description": "The last N observations; used only when neither date is given"},
+            },
+        }
+
+    def get_output_schema(self) -> Dict:
+        return {
+            "type": "object",
+            "properties": {
+                "series_code": {"type": "string"},
+                "label": {"type": "string"},
+                "unit": {"type": ["string", "null"]},
+                "frequency": {"type": ["string", "null"]},
+                "source": {"type": "string"},
+                "observation_count": {"type": "integer"},
+                "observations": {
+                    "type": "array",
+                    "items": {"type": "object", "properties": {
+                        "date": {"type": "string"}, "value": {"type": ["number", "null"]}}},
+                },
+            },
+        }
+
+    def _fetch_series(self, shorthand: str, start_date: Optional[str] = None,
+                      end_date: Optional[str] = None, recent_periods: Optional[int] = 10) -> Dict:
+        flow, key = self.common_series[shorthand]
+        last_n = None if (start_date or end_date) else (recent_periods or 10)
+        try:
+            out = sdmx_client.fetch_series('ecb', flow, key, start=start_date, end=end_date, last_n=last_n)
+        except sdmx_client.SdmxError as e:
+            raise ValueError(f"ECB Data Portal: {e}")
+        out['series_id'] = shorthand
+        return out
+
+    def execute(self, arguments: Dict[str, Any]) -> Dict:
+        arg, values, default = self.choice
+        value = arguments.get(arg) or default
+        if value not in values:
+            raise ValueError(f"Invalid {arg}: {value}. Use one of: {', '.join(values)}")
+        return self._fetch_series(self.aliases.get(value, value), arguments.get('start_date'),
+                                  arguments.get('end_date'), arguments.get('recent_periods', 10))
 
 
 class BdFGetOATYieldTool(BanqueDeFranceBaseTool):
-    """Tool to retrieve French Government Bond (OAT) yields"""
-    
-    def __init__(self, config: Dict = None):
-        default_config = {
-            'name': 'bdf_get_oat_yield',
-            'description': 'Retrieve French Government Bond (OAT) yields for various maturities',
-            'version': '1.0.0',
-            'enabled': True
-        }
-        if config:
-            default_config.update(config)
-        super().__init__(default_config)
-    
-    def get_input_schema(self) -> Dict:
-        return {
-            "type": "object",
-            "properties": {
-                "bond_term": {
-                    "type": "string",
-                    "description": "Maturity",
-                    "enum": ["2y", "5y", "10y", "30y"],
-                    "default": "10y"
-                },
-                "start_date": {"type": "string", "description": "Start date, YYYY-MM-DD"},
-                "end_date": {"type": "string", "description": "End date, YYYY-MM-DD"},
-                "recent_periods": {"type": "integer", "minimum": 1, "maximum": 100, "default": 10,
-                                   "description": "Keep the last N observations (used only when no date is given)"}
-            },
-            "required": ["bond_term"]
-        }
-    
-    def get_output_schema(self) -> Dict:
-        return {
-            "type": "object",
-            "properties": {
-                "series_code": {"type": "string"},
-                "label": {"type": "string"},
-                "observation_count": {"type": "integer"},
-                "observations": {
-                    "type": "array",
-                    "items": {
-                        "type": "object",
-                        "properties": {
-                            "date": {"type": "string"},
-                            "value": {"type": ["number", "null"]}
-                        }
-                    }
-                }
-            }
-        }
-    
-    def execute(self, arguments: Dict[str, Any]) -> Dict:
-        bond_term = arguments.get('bond_term', '10y')
-        term_mapping = {'2y': 'oat_2y', '5y': 'oat_5y', '10y': 'oat_10y', '30y': 'oat_30y'}
-        indicator = term_mapping.get(bond_term)
-        if not indicator:
-            raise ValueError(f"Invalid bond term: {bond_term}")
-        
-        series_code = self.common_series[indicator]
-        return self._fetch_series(
-            series_code,
-            arguments.get('start_date'),
-            arguments.get('end_date'),
-            arguments.get('recent_periods', 10)
-        )
+    """French 10-year government bond yield (ECB long-term interest rate for convergence purposes)."""
+    choice = ('bond_term', ('10y',), '10y')
+    aliases = {'10y': 'oat_10y'}
 
 
 class BdFGetECBPolicyRateTool(BanqueDeFranceBaseTool):
-    """Tool to retrieve ECB policy rates"""
-    
-    def __init__(self, config: Dict = None):
-        default_config = {
-            'name': 'bdf_get_ecb_policy_rate',
-            'description': 'Retrieve ECB policy rates including main refinancing, deposit, and marginal lending rates',
-            'version': '1.0.0',
-            'enabled': True
-        }
-        if config:
-            default_config.update(config)
-        super().__init__(default_config)
-    
-    def get_input_schema(self) -> Dict:
-        return {
-            "type": "object",
-            "properties": {
-                "rate_type": {
-                    "type": "string",
-                    "description": "Which rate",
-                    "enum": ["ecb_main_refi", "ecb_deposit", "ecb_marginal_lending"],
-                    "default": "ecb_main_refi"
-                },
-                "start_date": {"type": "string", "description": "Start date, YYYY-MM-DD"},
-                "end_date": {"type": "string", "description": "End date, YYYY-MM-DD"},
-                "recent_periods": {"type": "integer", "minimum": 1, "maximum": 100, "default": 10,
-                                   "description": "Keep the last N observations (used only when no date is given)"}
-            },
-            "required": ["rate_type"]
-        }
-    
-    def get_output_schema(self) -> Dict:
-        return {
-            "type": "object",
-            "properties": {
-                "series_code": {"type": "string"},
-                "label": {"type": "string"},
-                "observation_count": {"type": "integer"},
-                "observations": {
-                    "type": "array",
-                    "items": {
-                        "type": "object",
-                        "properties": {
-                            "date": {"type": "string"},
-                            "value": {"type": ["number", "null"]}
-                        }
-                    }
-                }
-            }
-        }
-    
-    def execute(self, arguments: Dict[str, Any]) -> Dict:
-        rate_type = arguments.get('rate_type', 'ecb_main_refi')
-        series_code = self.common_series.get(rate_type)
-        if not series_code:
-            raise ValueError(f"Invalid rate type: {rate_type}")
-        
-        return self._fetch_series(
-            series_code,
-            arguments.get('start_date'),
-            arguments.get('end_date'),
-            arguments.get('recent_periods', 10)
-        )
+    """ECB main refinancing, deposit facility and marginal lending rates."""
+    choice = ('rate_type', ('ecb_main_refi', 'ecb_deposit', 'ecb_marginal_lending'), 'ecb_main_refi')
 
 
 class BdFGetExchangeRateTool(BanqueDeFranceBaseTool):
-    """Tool to retrieve EUR exchange rates"""
-    
-    def __init__(self, config: Dict = None):
-        default_config = {
-            'name': 'bdf_get_exchange_rate',
-            'description': 'Retrieve Euro exchange rates against major currencies',
-            'version': '1.0.0',
-            'enabled': True
-        }
-        if config:
-            default_config.update(config)
-        super().__init__(default_config)
-    
-    def get_input_schema(self) -> Dict:
-        return {
-            "type": "object",
-            "properties": {
-                "currency_pair": {
-                    "type": "string",
-                    "description": "Currency pair",
-                    "enum": ["eur_usd", "eur_gbp", "eur_jpy", "eur_cny"],
-                    "default": "eur_usd"
-                },
-                "start_date": {"type": "string", "description": "Start date, YYYY-MM-DD"},
-                "end_date": {"type": "string", "description": "End date, YYYY-MM-DD"},
-                "recent_periods": {"type": "integer", "minimum": 1, "maximum": 100, "default": 10,
-                                   "description": "Keep the last N observations (used only when no date is given)"}
-            },
-            "required": ["currency_pair"]
-        }
-    
-    def get_output_schema(self) -> Dict:
-        return {
-            "type": "object",
-            "properties": {
-                "series_code": {"type": "string"},
-                "label": {"type": "string"},
-                "observation_count": {"type": "integer"},
-                "observations": {
-                    "type": "array",
-                    "items": {
-                        "type": "object",
-                        "properties": {
-                            "date": {"type": "string"},
-                            "value": {"type": ["number", "null"]}
-                        }
-                    }
-                }
-            }
-        }
-    
-    def execute(self, arguments: Dict[str, Any]) -> Dict:
-        currency_pair = arguments.get('currency_pair', 'eur_usd')
-        series_code = self.common_series.get(currency_pair)
-        if not series_code:
-            raise ValueError(f"Invalid currency pair: {currency_pair}")
-        
-        return self._fetch_series(
-            series_code,
-            arguments.get('start_date'),
-            arguments.get('end_date'),
-            arguments.get('recent_periods', 10)
-        )
+    """ECB euro reference rates."""
+    choice = ('currency_pair', ('eur_usd', 'eur_gbp', 'eur_jpy', 'eur_cny'), 'eur_usd')
 
 
 class BdFGetFrenchEconomicIndicatorTool(BanqueDeFranceBaseTool):
-    """Tool to retrieve French economic indicators"""
-    
-    def __init__(self, config: Dict = None):
-        default_config = {
-            'name': 'bdf_get_french_indicator',
-            'description': 'Retrieve French economic indicators including CPI, GDP, and unemployment',
-            'version': '1.0.0',
-            'enabled': True
-        }
-        if config:
-            default_config.update(config)
-        super().__init__(default_config)
-    
-    def get_input_schema(self) -> Dict:
-        return {
-            "type": "object",
-            "properties": {
-                "indicator": {
-                    "type": "string",
-                    "description": "Which indicator",
-                    "enum": ["fr_cpi", "fr_gdp", "fr_unemployment"],
-                    "default": "fr_cpi"
-                },
-                "start_date": {"type": "string", "description": "Start date, YYYY-MM-DD"},
-                "end_date": {"type": "string", "description": "End date, YYYY-MM-DD"},
-                "recent_periods": {"type": "integer", "minimum": 1, "maximum": 100, "default": 10,
-                                   "description": "Keep the last N observations (used only when no date is given)"}
-            },
-            "required": ["indicator"]
-        }
-    
-    def get_output_schema(self) -> Dict:
-        return {
-            "type": "object",
-            "properties": {
-                "series_code": {"type": "string"},
-                "label": {"type": "string"},
-                "observation_count": {"type": "integer"},
-                "observations": {
-                    "type": "array",
-                    "items": {
-                        "type": "object",
-                        "properties": {
-                            "date": {"type": "string"},
-                            "value": {"type": ["number", "null"]}
-                        }
-                    }
-                }
-            }
-        }
-    
-    def execute(self, arguments: Dict[str, Any]) -> Dict:
-        indicator = arguments.get('indicator', 'fr_cpi')
-        series_code = self.common_series.get(indicator)
-        if not series_code:
-            raise ValueError(f"Invalid indicator: {indicator}")
-        
-        return self._fetch_series(
-            series_code,
-            arguments.get('start_date'),
-            arguments.get('end_date'),
-            arguments.get('recent_periods', 10)
-        )
+    """French HICP inflation, GDP and unemployment."""
+    choice = ('indicator', ('fr_cpi', 'fr_gdp', 'fr_unemployment'), 'fr_cpi')
 
 
 class BdFGetEurozoneIndicatorTool(BanqueDeFranceBaseTool):
-    """Tool to retrieve Eurozone-wide economic indicators"""
-    
-    def __init__(self, config: Dict = None):
-        default_config = {
-            'name': 'bdf_get_eurozone_indicator',
-            'description': 'Retrieve Eurozone economic indicators including CPI, GDP, and M3',
-            'version': '1.0.0',
-            'enabled': True
-        }
-        if config:
-            default_config.update(config)
-        super().__init__(default_config)
-    
-    def get_input_schema(self) -> Dict:
-        return {
-            "type": "object",
-            "properties": {
-                "indicator": {
-                    "type": "string",
-                    "description": "Which indicator",
-                    "enum": ["ez_cpi", "ez_gdp", "m3"],
-                    "default": "ez_cpi"
-                },
-                "start_date": {"type": "string", "description": "Start date, YYYY-MM-DD"},
-                "end_date": {"type": "string", "description": "End date, YYYY-MM-DD"},
-                "recent_periods": {"type": "integer", "minimum": 1, "maximum": 100, "default": 10,
-                                   "description": "Keep the last N observations (used only when no date is given)"}
-            },
-            "required": ["indicator"]
-        }
-    
-    def get_output_schema(self) -> Dict:
-        return {
-            "type": "object",
-            "properties": {
-                "series_code": {"type": "string"},
-                "label": {"type": "string"},
-                "observation_count": {"type": "integer"},
-                "observations": {
-                    "type": "array",
-                    "items": {
-                        "type": "object",
-                        "properties": {
-                            "date": {"type": "string"},
-                            "value": {"type": ["number", "null"]}
-                        }
-                    }
-                }
-            }
-        }
-    
-    def execute(self, arguments: Dict[str, Any]) -> Dict:
-        indicator = arguments.get('indicator', 'ez_cpi')
-        series_code = self.common_series.get(indicator)
-        if not series_code:
-            raise ValueError(f"Invalid indicator: {indicator}")
-        
-        return self._fetch_series(
-            series_code,
-            arguments.get('start_date'),
-            arguments.get('end_date'),
-            arguments.get('recent_periods', 10)
-        )
+    """Euro area HICP inflation, GDP and M3 growth."""
+    choice = ('indicator', ('ez_cpi', 'ez_gdp', 'm3'), 'ez_cpi')
 
 
 # Tool registry
@@ -473,5 +133,5 @@ BANQUE_DE_FRANCE_TOOLS = {
     'bdf_get_ecb_policy_rate': BdFGetECBPolicyRateTool,
     'bdf_get_exchange_rate': BdFGetExchangeRateTool,
     'bdf_get_french_indicator': BdFGetFrenchEconomicIndicatorTool,
-    'bdf_get_eurozone_indicator': BdFGetEurozoneIndicatorTool
+    'bdf_get_eurozone_indicator': BdFGetEurozoneIndicatorTool,
 }

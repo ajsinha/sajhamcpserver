@@ -143,5 +143,4 @@ def ensure_builtins() -> None:
         if _builtins_loaded:
             return
         _builtins_loaded = True
-        importlib.import_module("sajha.ai.llm.mock")
         importlib.import_module("sajha.ai.llm.providers")

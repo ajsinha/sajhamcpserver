@@ -2,6 +2,7 @@
   "name": "ir_list_supported_companies",
   "implementation": "sajha.tools.impl.investor_relations_tool_refactored.IRListSupportedCompaniesTool",
   "description": "The companies the investor relations (ir_*) tools support, from SAJHA's built-in company database.\nReturns {total_supported, supported_tickers, companies_with_cik, platforms (count per IR site platform), scrapers: [{ticker, supported, company_name, scraper_class, ir_page_url, ir_platform, has_cik, sec_fallback_available}]}.\nInputs: none.\nUse it before the other ir_* tools to confirm a ticker is covered. No network call; no API key.\nExample: {}",
+  "annotations": {"readOnlyHint": true, "idempotentHint": true, "openWorldHint": true},
   "version": "2.9.8",
   "enabled": true,
   "inputSchema": {

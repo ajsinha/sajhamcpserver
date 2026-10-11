@@ -1,7 +1,8 @@
 {
   "name": "fmp_stock_peers_bulk",
   "implementation": "sajha.tools.impl.fmp_tools.FMPGenericTool",
-  "description": "Peer lists for all companies at once from Financial Modeling Prep (FMP), one record per symbol.\nReturns {tool, endpoint, data}: data is FMP's JSON from /stable/stock-peers-bulk as returned (usually a list of records).\nInputs (* required): none.\nFor one company use fmp_company_peers.\nNeeds an FMP API key (config fmp.api.key, env FMP_API_KEY); without one it returns a demo placeholder naming the endpoint instead of data.\nExample: {}",
+  "description": "Peer lists for all companies at once from Financial Modeling Prep (FMP), one record per symbol.\nReturns {tool, endpoint, data}: data is FMP's JSON from /stable/stock-peers-bulk as returned (usually a list of records).\nInputs (* required): none.\nFor one company use fmp_company_peers.\nExample: {}",
+  "annotations": {"readOnlyHint": true, "idempotentHint": true, "openWorldHint": true},
   "version": "4.5.0",
   "enabled": true,
   "inputSchema": {

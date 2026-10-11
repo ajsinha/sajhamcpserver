@@ -2,6 +2,7 @@
   "name": "calc_dcf_model",
   "implementation": "sajha.tools.impl.calc_tools.CalcDCFModelTool",
   "description": "Enterprise value by discounted cash flow: grows free cash flow at a constant rate for the projection years, discounts at WACC, and adds a Gordon-growth terminal value. Computed locally in Python; no API key or network.\nReturns {enterprise_value, pv_cash_flows, terminal_value_pv}, in the currency of the input.\nInputs (* required): free_cash_flow* (current annual FCF), growth_rate* (percent per year), wacc* (percent, must exceed terminal_growth), terminal_growth (percent; default 2), projection_years (integer; default 5).\nFor FMP's valuation of a listed company use fmp_dcf_valuation; for the discount rate calc_wacc.\nExample: {\"free_cash_flow\": 100, \"growth_rate\": 8, \"wacc\": 9, \"terminal_growth\": 2.5, \"projection_years\": 5}",
+  "annotations": {"readOnlyHint": true, "idempotentHint": true, "openWorldHint": false},
   "version": "4.5.0",
   "enabled": true,
   "inputSchema": {
@@ -34,7 +35,8 @@
       "free_cash_flow",
       "growth_rate",
       "wacc"
-    ]
+    ],
+    "examples": [{"free_cash_flow": 100, "growth_rate": 8, "wacc": 9, "terminal_growth": 2.5, "projection_years": 5}]
   },
   "outputSchema": {
     "type": "object",

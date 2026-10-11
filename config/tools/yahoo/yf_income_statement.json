@@ -1,7 +1,8 @@
 {
   "name": "yf_income_statement",
   "implementation": "sajha.tools.impl.yfinance_tools.YFIncomeStatementTool",
-  "description": "Income statements (revenue, gross profit, operating income, net income, EBITDA, EPS and more) for one company from Yahoo Finance (yfinance income_stmt).\nReturns: {symbol, statements: [one row per reporting period, newest first, with \"index\" = period end date and one key per line item]}; Yahoo usually has about 4 annual or 4-5 quarterly periods.\nInputs (* required): symbol*; quarterly (boolean; default false = annual).\nRelated: yf_balance_sheet, yf_cash_flow; other sources: av_income_statement, openbb_income_statement. No API key; data comes from Yahoo Finance through the yfinance library.\nExample: {\"symbol\": \"AAPL\", \"quarterly\": true}",
+  "description": "Income statements (revenue, gross profit, operating income, net income, EBITDA, EPS and more) for one company from Yahoo Finance (yfinance income_stmt).\nReturns: {symbol, statements: [one row per reporting period, newest first, with \"index\" = period end date and one key per line item]}; Yahoo usually has about 4 annual or 4-5 quarterly periods.\nInputs (* required): symbol*; quarterly (boolean; default false = annual).\nRelated: yf_balance_sheet, yf_cash_flow; other sources: av_income_statement, openbb_income_statement.\nExample: {\"symbol\": \"AAPL\", \"quarterly\": true}",
+  "annotations": {"readOnlyHint": true, "idempotentHint": true, "openWorldHint": true},
   "version": "4.5.0",
   "enabled": true,
   "inputSchema": {
@@ -19,7 +20,8 @@
     },
     "required": [
       "symbol"
-    ]
+    ],
+    "examples": [{"symbol": "AAPL", "quarterly": true}]
   },
   "outputSchema": {
     "type": "object",

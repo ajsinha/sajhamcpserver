@@ -24,7 +24,7 @@ SAJHA ships two families of Yahoo Finance tools. Neither needs an API key.
 
 | Family | Prefix | Implementation | How it gets data |
 |--------|--------|----------------|------------------|
-| Direct API tools | `yahoo_` | `sajha/tools/impl/yahoo_finance_tool.py` | Calls Yahoo Finance's public JSON endpoints with the Python standard library |
+| Direct API tools | `yahoo_` | `sajha/tools/impl/yahoo_finance_tool.py` | Calls Yahoo Finance's public chart and search endpoints with the Python standard library; `yahoo_get_quote` goes through `yfinance` |
 | yfinance tools | `yf_` | `sajha/tools/impl/yfinance_tools.py` | Uses the [`yfinance`](https://pypi.org/project/yfinance/) library |
 
 The `yahoo_` tools cover quotes, price history with corporate events, and symbol search; most of this guide (architecture, implementation, examples) describes them. The `yf_` tools add fundamentals, statements, holders, analyst data, options, screeners, ETFs, crypto, forex and indexes; they are listed in [yfinance Library Tools (yf_)](#yfinance-library-tools-yf_). The live catalog in the app (Tools page, or `tools/list`) is authoritative.
@@ -87,7 +87,7 @@ The `yahoo_` tools cover quotes, price history with corporate events, and symbol
               ┌────────────────────────────────┐
               │    Yahoo Finance API           │
               │  query2.finance.yahoo.com      │
-              │  - /v10/finance/quoteSummary   │
+              │  (quote: through yfinance)     │
               │  - /v8/finance/chart           │
               │  - /v1/finance/search          │
               └────────────────────────────────┘
@@ -180,11 +180,11 @@ BaseMCPTool (Abstract Base Class)
 ```
 Client → yahoo_get_quote(symbol="AAPL")
     ↓
-Build URL: query2.finance.yahoo.com/v10/finance/quoteSummary/AAPL
+yfinance.Ticker("AAPL").info   (yfinance fetches Yahoo's cookie and crumb;
+    ↓                           a plain quoteSummary request gets HTTP 401)
+Parse: regularMarketPrice, marketCap, trailingPE, etc.
     ↓
-Modules: price,summaryDetail,defaultKeyStatistics
-    ↓
-Parse: regularMarketPrice, marketCap, PE ratio, etc.
+Unknown symbol (no price) → error
     ↓
 Return: Complete quote data with statistics
 ```
@@ -222,7 +222,8 @@ Return: Search results with company info
 ### Python Dependencies
 
 ```python
-# Core Python libraries (stdlib only - no external dependencies)
+# yahoo_get_history and yahoo_search_symbols: standard library only
+# yahoo_get_quote and the yf_ tools: the yfinance package (requirements.txt)
 import json
 import urllib.parse
 import urllib.request
@@ -234,7 +235,7 @@ from datetime import datetime
 
 - **Python Version**: 3.7+
 - **Network**: Internet connectivity required
-- **Dependencies**: None (uses standard library only)
+- **Dependencies**: `yfinance` for `yahoo_get_quote` and the `yf_` tools; the other `yahoo_` tools use the standard library
 - **Platform**: Cross-platform (Windows, macOS, Linux)
 - **Market Hours**: Real-time data available during market hours; delayed otherwise
 
@@ -418,7 +419,7 @@ headers = {
 **Important Constraints**:
 - Intraday data (1m-1h) available for last 30 days only
 - Maximum data points vary by interval
-- `adjusted_close` is currently populated from the chart's `close` series, so it equals `close`
+- `close` is adjusted for splits only; `adjusted_close` is Yahoo's `adjclose` series (requested with `includeAdjustedClose=true`), which also adjusts for dividends; it is `null` where Yahoo sends none (intraday intervals)
 
 ---
 
@@ -449,7 +450,7 @@ headers = {
 - `TSX` - Toronto Stock Exchange
 - `all` - All exchanges
 
-> **Note**: the filter is an exact match against the `exchange` code Yahoo returns for each result (for example `NMS` or `NGM` for NASDAQ, `NYQ` for NYSE), so the names above often match nothing. Use `all` and filter on the returned `exchange` field if results come back empty. The filter is applied after Yahoo returns `limit` results, so it can only shrink the result set.
+> **Note**: Yahoo reports its own exchange codes, so the tool maps each name to them: `NYSE` = `NYQ`; `NASDAQ` = `NMS`, `NGM`, `NCM`, `NAS`; `AMEX` = `ASE`; `LSE` = `LSE`, `IOB`; `TSX` = `TOR`. With a filter the tool asks Yahoo for more matches (four times `limit`, at least 25, at most 100) and keeps up to `limit` of those on the exchange, so a broad query can still return fewer than `limit`. Each result carries the code (`exchange`) and Yahoo's display name (`exchange_name`).
 
 **Output Structure**:
 
@@ -487,143 +488,152 @@ headers = {
 
 ## yfinance Library Tools (yf_)
 
-These tools use the `yfinance` package (installed with SAJHA's requirements). Each one wraps a `yfinance.Ticker` property or a yfinance helper. Parameters marked *(required)* must be supplied; defaults shown are schema defaults (the implementation applies its own fallbacks when an argument is omitted).
+These tools use the `yfinance` package (installed with SAJHA's requirements). Each one wraps a `yfinance.Ticker` property or a yfinance helper. The tables are generated from the tool configs (`python -m sajha.tools guides`); defaults shown are schema defaults, which SAJHA fills in before the call.
+
+<!-- generated:tools folder=yahoo group=category include=yf_* -->
+<!-- Generated by `python -m sajha.tools guides` from the tool configs in `config/tools/yahoo/`; edit the configs, not this table. -->
 
 ### Analyst
 
-| Tool | Description | Parameters |
-|------|-------------|------------|
-| `yf_analyst_price_targets` | Get analyst price targets from Yahoo Finance — low, mean, median, high targets | `symbol` (required) |
-| `yf_recommendations` | Get analyst recommendations from Yahoo Finance — buy/hold/sell ratings over time | `symbol` (required) |
-| `yf_upgrades_downgrades` | Get analyst upgrades/downgrades from Yahoo Finance — rating changes by firm | `symbol` (required) |
+| Tool | Description | Required | Optional (schema default) | Annotations |
+|---|---|---|---|---|
+| `yf_analyst_price_targets` | Analyst 12-month price targets for one stock from Yahoo Finance (yfinance analyst_price_targets). | `symbol` | — | read-only, idempotent, open-world |
+| `yf_recommendations` | Analyst recommendation counts for one stock from Yahoo Finance (yfinance recommendations). | `symbol` | — | read-only, idempotent, open-world |
+| `yf_upgrades_downgrades` | Analyst rating changes for one stock from Yahoo Finance (yfinance upgrades_downgrades), newest first. | `symbol` | `limit` (`30`) | read-only, idempotent, open-world |
 
 ### Calendar
 
-| Tool | Description | Parameters |
-|------|-------------|------------|
-| `yf_calendar` | Get earnings/dividend calendar from Yahoo Finance — upcoming events and dates | `symbol` (required) |
-| `yf_earnings_dates` | Get earnings dates from Yahoo Finance — past and upcoming earnings announcement dates | `symbol` (required) |
+| Tool | Description | Required | Optional (schema default) | Annotations |
+|---|---|---|---|---|
+| `yf_calendar` | Upcoming earnings and dividend events for one ticker from Yahoo Finance (yfinance calendar). | `symbol` | — | read-only, idempotent, open-world |
+| `yf_earnings_dates` | Past and upcoming earnings announcement dates for one company from Yahoo Finance (yfinance earnings_dates). | `symbol` | `limit` (`12`) | read-only, idempotent, open-world |
 
 ### Company Data
 
-| Tool | Description | Parameters |
-|------|-------------|------------|
-| `yf_shares_outstanding` | Get shares outstanding history from Yahoo Finance — track share count changes over time | `symbol` (required) |
-| `yf_stock_info` | Get comprehensive stock info from Yahoo Finance — price, market cap, sector, PE, dividend, 52-week range, analyst targets | `symbol` (required) |
+| Tool | Description | Required | Optional (schema default) | Annotations |
+|---|---|---|---|---|
+| `yf_shares_outstanding` | Shares outstanding over time (about the last 18 months) for one ticker from Yahoo Finance (yfinance get_shares_full). | `symbol` | `limit` (`100`) | read-only, idempotent, open-world |
+| `yf_stock_info` | Full Yahoo Finance profile and statistics for one ticker (yfinance Ticker.info). | `symbol` | — | read-only, idempotent, open-world |
 
 ### Corporate Actions
 
-| Tool | Description | Parameters |
-|------|-------------|------------|
-| `yf_actions` | Get all corporate actions from Yahoo Finance — dividends and splits combined | `symbol` (required) |
-| `yf_splits` | Get stock split history from Yahoo Finance — all historical splits with dates and ratios | `symbol` (required) |
+| Tool | Description | Required | Optional (schema default) | Annotations |
+|---|---|---|---|---|
+| `yf_actions` | Corporate actions (dividends and stock splits together) for one ticker from Yahoo Finance (yfinance actions). | `symbol` | `limit` (`100`) | read-only, idempotent, open-world |
+| `yf_splits` | Stock split history for one ticker from Yahoo Finance (yfinance splits). | `symbol` | `limit` (`100`) | read-only, idempotent, open-world |
 
 ### Cryptocurrency
 
-| Tool | Description | Parameters |
-|------|-------------|------------|
-| `yf_crypto_info` | Get cryptocurrency info from Yahoo Finance — BTC, ETH, SOL price and market data | `symbol` (required), default `BTC-USD` |
+| Tool | Description | Required | Optional (schema default) | Annotations |
+|---|---|---|---|---|
+| `yf_crypto_info` | Profile and market statistics for one cryptocurrency pair from Yahoo Finance (yfinance Ticker.info). | — | `symbol` (`BTC-USD`) | read-only, idempotent, open-world |
 
 ### Derivatives
 
-| Tool | Description | Parameters |
-|------|-------------|------------|
-| `yf_options_chain` | Get options chain from Yahoo Finance — calls and puts with strike, bid, ask, volume, OI | `symbol` (required); `expiry` |
-| `yf_options_expiries` | Get available options expiry dates from Yahoo Finance for a stock | `symbol` (required) |
+| Tool | Description | Required | Optional (schema default) | Annotations |
+|---|---|---|---|---|
+| `yf_options_chain` | Option chain (calls and puts) for one underlying and expiry from Yahoo Finance (yfinance option_chain). | `symbol` | `expiry`, `limit` (`50`) | read-only, idempotent, open-world |
+| `yf_options_expiries` | Listed option expiration dates for one underlying from Yahoo Finance (yfinance options). | `symbol` | — | read-only, idempotent, open-world |
 
 ### Dividends
 
-| Tool | Description | Parameters |
-|------|-------------|------------|
-| `yf_dividends` | Get dividend history from Yahoo Finance — all historical dividend payments with dates and amounts | `symbol` (required) |
-
-### ESG
-
-| Tool | Description | Parameters |
-|------|-------------|------------|
-| `yf_sustainability` | Get ESG sustainability scores from Yahoo Finance — environmental, social, governance ratings | `symbol` (required) |
-
-### ETFs
-
-| Tool | Description | Parameters |
-|------|-------------|------------|
-| `yf_etf_info` | Get ETF info from Yahoo Finance — category, family, assets, yield, expense ratio, returns | `symbol` (required) |
+| Tool | Description | Required | Optional (schema default) | Annotations |
+|---|---|---|---|---|
+| `yf_dividends` | Dividend payment history for one ticker from Yahoo Finance (yfinance dividends). | `symbol` | `limit` (`100`) | read-only, idempotent, open-world |
 
 ### Earnings
 
-| Tool | Description | Parameters |
-|------|-------------|------------|
-| `yf_earnings_history` | Get earnings history from Yahoo Finance — EPS estimates vs actuals, surprise % | `symbol` (required) |
+| Tool | Description | Required | Optional (schema default) | Annotations |
+|---|---|---|---|---|
+| `yf_earnings_history` | Last four quarters of reported versus estimated EPS for one company from Yahoo Finance (yfinance earnings_history). | `symbol` | — | read-only, idempotent, open-world |
+
+### ESG
+
+| Tool | Description | Required | Optional (schema default) | Annotations |
+|---|---|---|---|---|
+| `yf_sustainability` | ESG (environmental, social, governance) risk scores for one company from Yahoo Finance (yfinance sustainability, Sustainalytics data). | `symbol` | — | read-only, idempotent, open-world |
+
+### ETFs
+
+| Tool | Description | Required | Optional (schema default) | Annotations |
+|---|---|---|---|---|
+| `yf_etf_info` | Key fund facts for one ETF or mutual fund from Yahoo Finance (a subset of yfinance Ticker.info). | `symbol` | — | read-only, idempotent, open-world |
 
 ### Financial Analysis
 
-| Tool | Description | Parameters |
-|------|-------------|------------|
-| `yf_compare_stocks` | Compare multiple stocks from Yahoo Finance — side-by-side market cap, PE, dividend, 52-week range | `symbols` (required) |
+| Tool | Description | Required | Optional (schema default) | Annotations |
+|---|---|---|---|---|
+| `yf_compare_stocks` | Side-by-side valuation snapshot for up to 10 tickers from Yahoo Finance (yfinance Ticker.info per symbol). | `symbols` | — | read-only, idempotent, open-world |
 
 ### Financial Statements
 
-| Tool | Description | Parameters |
-|------|-------------|------------|
-| `yf_balance_sheet` | Get balance sheet from Yahoo Finance — assets, liabilities, equity (annual or quarterly) | `symbol` (required); `quarterly`, default `False` |
-| `yf_cash_flow` | Get cash flow statement from Yahoo Finance — operating, investing, financing (annual or quarterly) | `symbol` (required); `quarterly`, default `False` |
-| `yf_income_statement` | Get income statement from Yahoo Finance — revenue, net income, EPS (annual or quarterly) | `symbol` (required); `quarterly`, default `False` |
+| Tool | Description | Required | Optional (schema default) | Annotations |
+|---|---|---|---|---|
+| `yf_balance_sheet` | Balance sheets (total assets, liabilities, equity, cash, debt and more) for one company from Yahoo Finance (yfinance balance_sheet). | `symbol` | `quarterly` (`false`) | read-only, idempotent, open-world |
+| `yf_cash_flow` | Cash flow statements (operating, investing and financing cash flow, free cash flow, capex and more) for one company from Yahoo Finance (yfinance cashflow). | `symbol` | `quarterly` (`false`) | read-only, idempotent, open-world |
+| `yf_income_statement` | Income statements (revenue, gross profit, operating income, net income, EBITDA, EPS and more) for one company from Yahoo Finance (yfinance income_stmt). | `symbol` | `quarterly` (`false`) | read-only, idempotent, open-world |
 
 ### Forex
 
-| Tool | Description | Parameters |
-|------|-------------|------------|
-| `yf_forex_history` | Get forex pair history from Yahoo Finance — EURUSD, GBPJPY, USDINR, etc. | `pair` (required), default `EURUSD=X`; `period`, default `3mo` |
+| Tool | Description | Required | Optional (schema default) | Annotations |
+|---|---|---|---|---|
+| `yf_forex_history` | Daily exchange-rate history for one currency pair from Yahoo Finance. | — | `pair` (`EURUSD=X`), `period` (`3mo`), `limit` (`100`) | read-only, idempotent, open-world |
 
 ### Indexes
 
-| Tool | Description | Parameters |
-|------|-------------|------------|
-| `yf_index_history` | Get market index history from Yahoo Finance — S&P 500, NASDAQ, Dow Jones, Russell | `index` (required), default `^GSPC`; `period`, default `1y` |
+| Tool | Description | Required | Optional (schema default) | Annotations |
+|---|---|---|---|---|
+| `yf_index_history` | Daily history for one market index from Yahoo Finance. | — | `index` (`^GSPC`), `period` (`1y`), `limit` (`260`) | read-only, idempotent, open-world |
 
 ### Market Data
 
-| Tool | Description | Parameters |
-|------|-------------|------------|
-| `yf_fast_info` | Get quick stock snapshot from Yahoo Finance — market cap, price, averages, 52-week range | `symbol` (required) |
-| `yf_market_summary` | Get market summary from Yahoo Finance — S&P 500, Dow, NASDAQ, VIX, Treasury yields at a glance | — |
-| `yf_multi_ticker_history` | Get price history for multiple stocks at once from Yahoo Finance — compare up to 10 tickers | `symbols` (required); `period`, default `1mo` |
-| `yf_stock_history` | Get historical stock price data from Yahoo Finance — OHLCV for any period (1d,5d,1mo,3mo,6mo,1y,2y,5y,10y,ytd,max) | `symbol` (required); `period`, default `1y`; `interval`: 1m / 5m / 15m / 1h / 1d / 1wk / 1mo, default `1d` |
+| Tool | Description | Required | Optional (schema default) | Annotations |
+|---|---|---|---|---|
+| `yf_fast_info` | Quick price snapshot for one ticker from Yahoo Finance (yfinance fast_info), lighter than yf_stock_info. | `symbol` | — | read-only, idempotent, open-world |
+| `yf_market_summary` | Latest levels of major US market gauges from Yahoo Finance: S&P 500 (^GSPC), Dow Jones (^DJI), NASDAQ (^IXIC), Russell 2000 (^RUT), VIX (^VIX) and the 10-year Treasury yield index (^TNX). | — | — | read-only, idempotent, open-world |
+| `yf_multi_ticker_history` | Daily price history for several tickers in one call from Yahoo Finance (yfinance download). | `symbols` | `period` (`1mo`), `limit` (`30`) | read-only, idempotent, open-world |
+| `yf_stock_history` | Historical OHLCV bars for one ticker from Yahoo Finance (yfinance Ticker.history, prices adjusted for splits and dividends). | `symbol` | `period` (`1y`), `interval` (`1d`), `limit` (`500`) | read-only, idempotent, open-world |
 
 ### Market Performance
 
-| Tool | Description | Parameters |
-|------|-------------|------------|
-| `yf_sector_performance` | Get sector ETF performance from Yahoo Finance — XLK, XLF, XLV, etc. | — |
-| `yf_trending_tickers` | Get trending/most active tickers from Yahoo Finance — what the market is watching today | — |
+| Tool | Description | Required | Optional (schema default) | Annotations |
+|---|---|---|---|---|
+| `yf_sector_performance` | Latest prices of the 11 SPDR sector ETFs from Yahoo Finance (XLK, XLF, XLV, XLY, XLP, XLE, XLI, XLB, XLU, XLRE, XLC). | — | — | read-only, idempotent, open-world |
+| `yf_trending_tickers` | Tickers trending on Yahoo Finance for a region (Yahoo's trending endpoint, which needs no cookie). | — | `region` (`US`), `limit` (`20`) | read-only, idempotent, open-world |
 
 ### News
 
-| Tool | Description | Parameters |
-|------|-------------|------------|
-| `yf_news` | Get latest news from Yahoo Finance for a specific stock — headlines, links, publisher | `symbol` (required); `limit`, default `10` |
+| Tool | Description | Required | Optional (schema default) | Annotations |
+|---|---|---|---|---|
+| `yf_news` | Recent news items about one ticker from Yahoo Finance (yfinance Ticker.news, falling back to Yahoo search news when that is empty). | `symbol` | `limit` (`10`) | read-only, idempotent, open-world |
 
 ### Ownership
 
-| Tool | Description | Parameters |
-|------|-------------|------------|
-| `yf_insider_purchases` | Get insider purchase summary from Yahoo Finance — aggregated insider buying activity | `symbol` (required) |
-| `yf_insider_transactions` | Get insider transactions from Yahoo Finance — officer/director buys and sells | `symbol` (required) |
-| `yf_institutional_holders` | Get institutional holders from Yahoo Finance — major fund/institution positions | `symbol` (required) |
-| `yf_major_holders` | Get major holders breakdown from Yahoo Finance — insider vs institutional ownership percentages | `symbol` (required) |
-| `yf_mutual_fund_holders` | Get mutual fund holders from Yahoo Finance — which mutual funds hold this stock | `symbol` (required) |
+| Tool | Description | Required | Optional (schema default) | Annotations |
+|---|---|---|---|---|
+| `yf_insider_purchases` | Six-month summary of insider buying and selling for one stock from Yahoo Finance (yfinance insider_purchases). | `symbol` | — | read-only, idempotent, open-world |
+| `yf_insider_transactions` | Recent insider (officer and director) transactions in one stock from Yahoo Finance (yfinance insider_transactions). | `symbol` | — | read-only, idempotent, open-world |
+| `yf_institutional_holders` | Largest institutional holders of one stock from Yahoo Finance (yfinance institutional_holders), usually the top 10. | `symbol` | — | read-only, idempotent, open-world |
+| `yf_major_holders` | Ownership breakdown for one stock from Yahoo Finance (yfinance major_holders). | `symbol` | — | read-only, idempotent, open-world |
+| `yf_mutual_fund_holders` | Largest mutual fund holders of one stock from Yahoo Finance (yfinance mutualfund_holders), usually the top 10. | `symbol` | — | read-only, idempotent, open-world |
 
 ### Stock Screening
 
-| Tool | Description | Parameters |
-|------|-------------|------------|
-| `yf_screener` | Screen stocks using Yahoo Finance — gainers, losers, most active, undervalued, growth | `screen_type`: day_gainers / day_losers / most_actives / undervalued_large_caps / aggressive_small_caps / growth_technology_stocks / undervalued_growth_stocks, default `day_gainers` |
+| Tool | Description | Required | Optional (schema default) | Annotations |
+|---|---|---|---|---|
+| `yf_screener` | Yahoo Finance predefined stock screens (day gainers, losers, most active, most shorted and others), through yfinance's screen function. | — | `screen_type` (`day_gainers`), `limit` (`25`) | read-only, idempotent, open-world |
+
+<!-- /generated:tools -->
 
 Notes:
 
-- `yf_compare_stocks` takes `symbols` as a comma-separated string (`"AAPL,MSFT,GOOGL"`, up to 10); `yf_multi_ticker_history` takes a space-separated string (`"AAPL MSFT GOOGL"`).
+- **Row limits.** Tools that return a time series (`yf_stock_history`, `yf_index_history`, `yf_forex_history`, `yf_multi_ticker_history`, `yf_dividends`, `yf_splits`, `yf_actions`, `yf_shares_outstanding`) take a `limit` and return the **most recent** `limit` rows, oldest first, with `data_points` (all rows in the period) and `truncated`. Lists Yahoo sends newest first (`yf_upgrades_downgrades`, `yf_earnings_dates`) keep their first `limit` rows. `yf_options_chain` caps each side at `limit` and reports `total_calls`, `total_puts` and `truncated`.
+- `yf_compare_stocks` takes `symbols` as a comma-separated string (`"AAPL,MSFT,GOOGL"`, up to 10); `yf_multi_ticker_history` takes up to 10 tickers separated by spaces or commas (more is an error).
 - `yf_options_chain` takes `expiry` as `YYYY-MM-DD`; list valid dates with `yf_options_expiries` first. When omitted, the nearest expiry is used.
-- `yf_forex_history` takes a Yahoo FX symbol such as `EURUSD=X`; `yf_index_history` takes an index symbol such as `^GSPC`.
+- `yf_forex_history` takes `EURUSD`, `EUR/USD` or `EURUSD=X` (`=X` is appended); `yf_index_history` takes an index symbol such as `^GSPC`.
+- `yf_crypto_info` appends `-USD` only to a symbol without a dash (`ETH` becomes `ETH-USD`; `ETH-EUR` is kept).
+- `yf_screener` uses `yfinance.screen` with Yahoo's predefined screens (yfinance 0.2.54 or later). `yf_trending_tickers` reads Yahoo's trending endpoint (`query1.finance.yahoo.com/v1/finance/trending/<region>`), which yfinance does not wrap, and returns symbols only.
+- `yf_news` falls back to Yahoo's search news when `Ticker.news` comes back empty, which it has done for long periods.
 
 ---
 
@@ -684,12 +694,12 @@ The Yahoo Finance MCP Tool suite uses **HTTP REST API calls** to Yahoo Finance's
 
 **Endpoint Details**:
 
-1. **Quote Summary**: `/v10/finance/quoteSummary/{symbol}`
-   - Modules: price, summaryDetail, defaultKeyStatistics
-   - Returns: Real-time quote data
+1. **Quote**: not called directly. Yahoo's `/v10/finance/quoteSummary` and `/v7/finance/quote`
+   answer HTTP 401 without a browser cookie and crumb, so `yahoo_get_quote` reads
+   `yfinance.Ticker(symbol).info`, which obtains them.
 
 2. **Chart Data**: `/v8/finance/chart/{symbol}`
-   - Parameters: period1, period2, interval, events
+   - Parameters: period1, period2, interval, events, includeAdjustedClose
    - Returns: Historical OHLCV data
 
 3. **Search**: `/v1/finance/search`
@@ -699,27 +709,13 @@ The Yahoo Finance MCP Tool suite uses **HTTP REST API calls** to Yahoo Finance's
 ### Request Flow
 
 ```python
-# 1. Build API endpoint
-url = f"{self.base_url}/v10/finance/quoteSummary/{symbol}"
-
-# 2. Prepare parameters
-params = {
-    'modules': 'price,summaryDetail,defaultKeyStatistics'
-}
-
-# 3. Encode URL
-full_url = url + '?' + urllib.parse.urlencode(params)
-
-# 4. Set headers
-headers = {
-    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
-}
-
-# 5. Make request
-request = urllib.request.Request(full_url, headers=headers)
+# yahoo_get_history (yahoo_search_symbols is the same with /v1/finance/search)
+url = f"{self.base_url}/v8/finance/chart/{symbol}"
+params = {'period1': start, 'period2': end, 'interval': '1d',
+          'events': 'div,split', 'includeAdjustedClose': 'true'}
+headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'}
+request = urllib.request.Request(url + '?' + urllib.parse.urlencode(params), headers=headers)
 response = urllib.request.urlopen(request, timeout=10)
-
-# 6. Parse JSON
 data = json.loads(response.read().decode('utf-8'))
 ```
 
@@ -728,26 +724,12 @@ data = json.loads(response.read().decode('utf-8'))
 #### 1. Get Quote (yahoo_get_quote)
 
 ```python
-url = f"{base_url}/v10/finance/quoteSummary/{symbol}"
-params = {
-    'modules': 'price,summaryDetail,defaultKeyStatistics'
-}
-
-# Response structure:
-{
-    "quoteSummary": {
-        "result": [{
-            "price": {
-                "regularMarketPrice": {"raw": 150.25},
-                "marketCap": {"raw": 2500000000000}
-            },
-            "summaryDetail": {
-                "trailingPE": {"raw": 28.5},
-                "dividendYield": {"raw": 0.0055}
-            }
-        }]
-    }
-}
+import yfinance as yf
+info = yf.Ticker(symbol).info      # yfinance handles Yahoo's cookie and crumb
+price = info.get('regularMarketPrice') or info.get('currentPrice')   # none: unknown symbol, an error
+# mapped to: name, price, currency, change, change_percent, volume, avg_volume, market_cap,
+# pe_ratio (trailingPE), dividend_yield (percent, as Yahoo gives it), 52-week high and low,
+# day high and low, open, previous_close, exchange, market_time (UTC)
 ```
 
 #### 2. Get History (yahoo_get_history)

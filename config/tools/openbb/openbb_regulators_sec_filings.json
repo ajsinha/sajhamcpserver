@@ -1,7 +1,8 @@
 {
   "name": "openbb_regulators_sec_filings",
   "implementation": "sajha.tools.impl.openbb_tools.OpenBBGenericTool",
-  "description": "Meant to list SEC filings (10-K, 10-Q, 8-K) for one company through OpenBB (obb.regulators.sec.filings).\nReturns: {tool, data_points (total rows), data: first 100 rows as OpenBB returns them} or {tool, error}.\nInputs (* required): symbol*; provider (schema default sec; when omitted the tool sends yfinance).\nOpenBB 4.x (4.6 checked) has no obb.regulators.sec.filings, so this tool currently returns an error object; alternatives: edgar_company_submissions, edgar_filings_by_form, sec_get_company_filings or fmp_sec_filings.\nExample: {\"symbol\": \"AAPL\", \"provider\": \"sec\"}",
+  "description": "SEC filings for one company (form, dates, report URL) through the OpenBB Platform (obb.equity.fundamental.filings).\nReturns: {tool, provider, data_points (rows before the cap), truncated, data: rows with their dates, ignored_arguments when some did not apply} or {tool, error}.\nInputs (* required): symbol*; form_type (e.g. 10-K, 8-K); limit (filings; default 20); provider (fmp, intrinio, nasdaq, sec; default sec).\nOther sources: edgar_company_submissions, edgar_filings_by_form, fmp_sec_filings. Keys: nasdaq, sec need none; fmp uses SAJHA's FMP_API_KEY; intrinio needs a key in ~/.openbb_platform/user_settings.json.\nExample: {\"symbol\": \"AAPL\", \"form_type\": \"10-K\", \"limit\": 5}",
+  "annotations": {"readOnlyHint": true, "idempotentHint": true, "openWorldHint": true},
   "version": "4.5.0",
   "enabled": true,
   "inputSchema": {
@@ -9,23 +10,57 @@
     "properties": {
       "symbol": {
         "type": "string",
-        "description": "Stock ticker symbol"
+        "description": "Ticker symbol, e.g. AAPL"
+      },
+      "form_type": {
+        "type": "string",
+        "description": "SEC form, e.g. 10-K, 10-Q, 8-K (sec)"
+      },
+      "limit": {
+        "type": "integer",
+        "minimum": 1,
+        "maximum": 1000,
+        "default": 20,
+        "description": "Number of filings (1-1000)"
       },
       "provider": {
         "type": "string",
-        "description": "OpenBB data provider",
-        "default": "sec"
+        "enum": [
+          "fmp",
+          "intrinio",
+          "nasdaq",
+          "sec"
+        ],
+        "default": "sec",
+        "description": "OpenBB data provider"
       }
     },
     "required": [
       "symbol"
-    ]
+    ],
+    "examples": [{"symbol": "AAPL", "form_type": "10-K", "limit": 5}]
   },
   "outputSchema": {
     "type": "object",
     "properties": {
-      "result": {
-        "type": "object"
+      "tool": {
+        "type": "string"
+      },
+      "provider": {
+        "type": "string"
+      },
+      "data_points": {
+        "type": "integer",
+        "description": "Rows before the cap"
+      },
+      "truncated": {
+        "type": "boolean"
+      },
+      "data": {
+        "type": "array"
+      },
+      "error": {
+        "type": "string"
       }
     }
   },
@@ -38,6 +73,16 @@
       "openbb",
       "sec",
       "filings"
+    ],
+    "examples": [
+      {
+        "description": "SEC filings for one company (form, dates, report URL)",
+        "input": {
+          "symbol": "AAPL",
+          "form_type": "10-K",
+          "limit": 5
+        }
+      }
     ]
   }
 }

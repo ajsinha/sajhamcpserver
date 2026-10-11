@@ -1,7 +1,8 @@
 {
   "name": "fmp_market_risk_premium",
   "implementation": "sajha.tools.impl.fmp_tools.FMPGenericTool",
-  "description": "Equity market risk premium by country from Financial Modeling Prep (FMP), with country risk premium, in percent.\nReturns {tool, endpoint, data}: data is FMP's JSON from /stable/market-risk-premium as returned (usually a list of records).\nInputs (* required): none.\nFeed a premium into calc_capm or calc_wacc.\nNeeds an FMP API key (config fmp.api.key, env FMP_API_KEY); without one it returns a demo placeholder naming the endpoint instead of data.\nExample: {}",
+  "description": "Equity market risk premium by country from Financial Modeling Prep (FMP), with country risk premium, in percent.\nReturns {tool, endpoint, data}: data is FMP's JSON from /stable/market-risk-premium as returned (usually a list of records).\nInputs (* required): none.\nFeed a premium into calc_capm or calc_wacc.\nExample: {}",
+  "annotations": {"readOnlyHint": true, "idempotentHint": true, "openWorldHint": true},
   "version": "4.5.0",
   "enabled": true,
   "inputSchema": {

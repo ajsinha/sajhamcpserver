@@ -1,0 +1,1 @@
+Data: ECB Data Portal (data-api.ecb.europa.eu) through SAJHA's shared SDMX client; no API key.

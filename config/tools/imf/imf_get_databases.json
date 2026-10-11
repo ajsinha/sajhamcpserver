@@ -1,12 +1,18 @@
 {
   "name": "imf_get_databases",
   "implementation": "sajha.tools.impl.imf_tool_refactored.IMFGetDatabasesTool",
-  "description": "List the IMF databases these tools know, with their names (IFS International Financial Statistics, WEO World Economic Outlook, BOP Balance of Payments, DOT Direction of Trade and others). A fixed list; no network call.\nReturns: databases (code, name) and count.\nInputs: none.\nUse a code as the database argument of imf_get_dataflows, imf_get_data or imf_compare_countries.\nExample: {}",
+  "description": "List the IMF's current dataflows (its databases) live from the IMF SDMX API, without the dated vintage copies: WEO World Economic Outlook, CPI, ER exchange rates, MFS_IR interest rates, IL international liquidity, BOP balance of payments, PCPS commodity prices and more. The IMF retired IFS; its series now sit in CPI, ER, MFS_IR, IL and MFS_MA.\nReturns: databases (code, agency, version, name), count, source.\nInputs (none required): search (text matched against code or name).\nNext: imf_get_dataflows shows a database's key dimensions and codes; imf_get_data reads a series.\nExample: {\"search\": \"price\"}",
+  "annotations": {"readOnlyHint": true, "idempotentHint": true, "openWorldHint": true},
   "version": "2.9.8",
   "enabled": true,
   "inputSchema": {
     "type": "object",
-    "properties": {}
+    "properties": {
+      "search": {
+        "type": "string",
+        "description": "Text to match in the dataflow code or name"
+      }
+    }
   },
   "outputSchema": {
     "type": "object",
@@ -16,25 +22,47 @@
         "items": {
           "type": "object",
           "properties": {
-            "code": {"type": "string"},
-            "name": {"type": "string"}
+            "code": {
+              "type": "string"
+            },
+            "agency": {
+              "type": "string"
+            },
+            "version": {
+              "type": "string"
+            },
+            "name": {
+              "type": "string"
+            }
           }
         }
       },
-      "count": {"type": "integer"}
+      "count": {
+        "type": "integer"
+      },
+      "source": {
+        "type": "string"
+      }
     }
   },
   "metadata": {
     "author": "Ashutosh Sinha",
     "category": "Economic Data",
-    "tags": ["imf", "databases", "discovery", "international"],
+    "tags": [
+      "imf",
+      "databases",
+      "discovery",
+      "international"
+    ],
     "rateLimit": 60,
     "cacheTTL": 86400,
     "note": "Discover IMF databases including IFS, WEO, BOP, FSI, and more.",
     "examples": [
       {
-        "description": "List all available IMF databases",
-        "input": {}
+        "description": "Price-related IMF databases",
+        "input": {
+          "search": "price"
+        }
       }
     ],
     "useCases": [

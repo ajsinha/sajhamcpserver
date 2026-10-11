@@ -1,16 +1,38 @@
 {
   "name": "openbb_fixedincome_sofr",
   "implementation": "sajha.tools.impl.openbb_tools.OpenBBGenericTool",
-  "description": "Secured Overnight Financing Rate (SOFR, percent) history through the OpenBB Platform (obb.fixedincome.rate.sofr), in OpenBB's default date window.\nReturns: {tool, data_points (total rows), data: first 100 rows as OpenBB returns them} or {tool, error}.\nInputs (* required): provider (OpenBB 4.6 accepts federal_reserve or fred; schema default federal_reserve, but when omitted the tool sends yfinance, which this command rejects, so set it); federal_reserve needs no key.\nOther overnight rates: openbb_fixedincome_effr, openbb_fixedincome_estr, openbb_fixedincome_iorb. Keys: fmp, benzinga, fred, intrinio, polygon and tiingo need credentials in OpenBB's settings (~/.openbb_platform/user_settings.json), not supplied by SAJHA; yfinance, oecd, federal_reserve, sec, imf and government_us need none.\nExample: {\"provider\": \"federal_reserve\"}",
+  "description": "Secured Overnight Financing Rate (SOFR) history with percentiles and volume through the OpenBB Platform (obb.fixedincome.rate.sofr); rates are decimals (0.0433 = 4.33%).\nReturns: {tool, provider, data_points (rows before the cap), truncated, data: rows with their dates, ignored_arguments when some did not apply} or {tool, error}.\nInputs (* required): start_date and end_date (provider's default window when omitted); limit (rows returned, 1-1000; default 100; a dated series keeps its most recent rows); provider (federal_reserve, fred; default federal_reserve).\nOther overnight rates: openbb_fixedincome_effr, openbb_fixedincome_estr, openbb_fixedincome_iorb. Keys: federal_reserve needs none; fred uses SAJHA's FRED_API_KEY.\nExample: {\"start_date\": \"2026-09-01\"}",
+  "annotations": {"readOnlyHint": true, "idempotentHint": true, "openWorldHint": true},
   "version": "4.5.0",
   "enabled": true,
   "inputSchema": {
     "type": "object",
     "properties": {
+      "start_date": {
+        "type": "string",
+        "description": "Start date (YYYY-MM-DD)",
+        "format": "date"
+      },
+      "end_date": {
+        "type": "string",
+        "description": "End date (YYYY-MM-DD)",
+        "format": "date"
+      },
+      "limit": {
+        "type": "integer",
+        "minimum": 1,
+        "maximum": 1000,
+        "default": 100,
+        "description": "Most rows returned (1-1000); a dated series keeps its most recent rows"
+      },
       "provider": {
         "type": "string",
-        "description": "OpenBB data provider",
-        "default": "federal_reserve"
+        "enum": [
+          "federal_reserve",
+          "fred"
+        ],
+        "default": "federal_reserve",
+        "description": "OpenBB data provider"
       }
     },
     "required": []
@@ -18,8 +40,24 @@
   "outputSchema": {
     "type": "object",
     "properties": {
-      "result": {
-        "type": "object"
+      "tool": {
+        "type": "string"
+      },
+      "provider": {
+        "type": "string"
+      },
+      "data_points": {
+        "type": "integer",
+        "description": "Rows before the cap"
+      },
+      "truncated": {
+        "type": "boolean"
+      },
+      "data": {
+        "type": "array"
+      },
+      "error": {
+        "type": "string"
       }
     }
   },
@@ -31,6 +69,14 @@
     "tags": [
       "openbb",
       "sofr"
+    ],
+    "examples": [
+      {
+        "description": "Secured Overnight Financing Rate (SOFR) history with percentiles and volume",
+        "input": {
+          "start_date": "2026-09-01"
+        }
+      }
     ]
   }
 }

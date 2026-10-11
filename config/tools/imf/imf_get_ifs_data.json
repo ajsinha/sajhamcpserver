@@ -1,7 +1,8 @@
 {
   "name": "imf_get_ifs_data",
   "implementation": "sajha.tools.impl.imf_tool_refactored.IMFGetIFSDataTool",
-  "description": "International Financial Statistics (IFS) series for one country by a friendly indicator name or an IFS code, from the IMF SDMX JSON data service (dataservices.imf.org, no API key).\nReturns: database, country_code, indicator_code, frequency, data (period, value) and count; a note when the series is empty.\nInputs (* required): country_code* (ISO 2-letter); indicator (e.g. exchange_rate, policy_rate, treasury_bill_rate, cpi, core_cpi, money_supply_m2, international_reserves, gdp_current, industrial_production, unemployment_rate; list in the schema) or indicator_code (IFS code, wins over indicator); one of the two is needed; start_year and end_year (1950-2030; omit both for the full history); frequency (A, Q or M; default M).\nFor forecasts and annual macro aggregates use imf_get_weo_data; other databases imf_get_data.\nExample: {\"country_code\": \"GB\", \"indicator\": \"policy_rate\", \"start_year\": 2020, \"end_year\": 2024}",
+  "description": "A monetary or price indicator of the IMF's retired International Financial Statistics, read from its successor dataflow: exchange_rate / exchange_rate_avg (national currency per USD, end of period / average; ER), policy_rate, treasury_bill_yield, deposit_rate, lending_rate, money_market_rate (% a year; MFS_IR), cpi (index) and cpi_inflation (% on a year earlier; CPI), international_reserves (USD, gold at market value; IL), broad_money (national currency; MFS_MA). Some countries report no MFS_IR or MFS_MA data.\nReturns: database, key, country_code, indicator or indicator_code, frequency, name, data (period, value) oldest first, count, source; a note when empty.\nInputs (* required): country_code* (ISO3 or ISO2); indicator* (one of the names above); frequency (A, Q, M; default M); start_year, end_year.\nExample: {\"country_code\": \"IND\", \"indicator\": \"cpi_inflation\", \"start_year\": 2025}",
+  "annotations": {"readOnlyHint": true, "idempotentHint": true, "openWorldHint": true},
   "version": "2.9.8",
   "enabled": true,
   "inputSchema": {
@@ -9,80 +10,131 @@
     "properties": {
       "country_code": {
         "type": "string",
-        "description": "ISO 2-letter country code"
+        "description": "Country: ISO alpha-3 (USA) or alpha-2 (US); IMF group codes such as G001 (world) pass through"
       },
       "indicator": {
         "type": "string",
-        "description": "Common IFS indicator name",
-        "enum": ["exchange_rate", "exchange_rate_avg", "policy_rate", "treasury_bill_rate", "deposit_rate", "lending_rate", "cpi", "core_cpi", "ppi", "money_supply_m1", "money_supply_m2", "money_supply_m3", "reserve_money", "international_reserves", "gold_reserves", "foreign_reserves", "gdp_current", "gdp_constant", "industrial_production", "exports", "imports", "unemployment_rate"]
-      },
-      "indicator_code": {
-        "type": "string",
-        "description": "IFS indicator code"
-      },
-      "start_year": {
-        "type": "integer",
-        "description": "First year, YYYY; if only end_year is given this defaults to 1950",
-        "minimum": 1950,
-        "maximum": 2030
-      },
-      "end_year": {
-        "type": "integer",
-        "description": "Last year, YYYY; if only start_year is given this defaults to the current year; omit both for the full history",
-        "minimum": 1950,
-        "maximum": 2030
+        "enum": [
+          "exchange_rate",
+          "exchange_rate_avg",
+          "policy_rate",
+          "treasury_bill_yield",
+          "deposit_rate",
+          "lending_rate",
+          "money_market_rate",
+          "cpi",
+          "cpi_inflation",
+          "international_reserves",
+          "broad_money"
+        ],
+        "description": "Indicator"
       },
       "frequency": {
         "type": "string",
-        "description": "Frequency: A annual, Q quarterly, M monthly",
-        "enum": ["A", "Q", "M"],
-        "default": "M"
+        "enum": [
+          "A",
+          "Q",
+          "M"
+        ],
+        "default": "M",
+        "description": "A annual, Q quarterly, M monthly"
+      },
+      "start_year": {
+        "type": "integer",
+        "minimum": 1950,
+        "maximum": 2035,
+        "description": "First year (optional)"
+      },
+      "end_year": {
+        "type": "integer",
+        "minimum": 1950,
+        "maximum": 2035,
+        "description": "Last year (optional)"
       }
     },
-    "required": ["country_code"]
+    "required": [
+      "country_code",
+      "indicator"
+    ],
+    "examples": [{"country_code": "IND", "indicator": "cpi_inflation", "start_year": 2025}]
   },
   "outputSchema": {
     "type": "object",
     "properties": {
-      "database": {"type": "string"},
-      "country_code": {"type": "string"},
-      "indicator_code": {"type": "string"},
-      "frequency": {"type": "string"},
+      "database": {
+        "type": "string"
+      },
+      "key": {
+        "type": "string"
+      },
+      "country_code": {
+        "type": "string"
+      },
+      "name": {
+        "type": [
+          "string",
+          "null"
+        ]
+      },
+      "latest_actual_year": {
+        "type": "string"
+      },
       "data": {
         "type": "array",
         "items": {
           "type": "object",
           "properties": {
-            "period": {"type": "string"},
-            "value": {"type": ["number", "null"]}
+            "period": {
+              "type": "string"
+            },
+            "value": {
+              "type": [
+                "number",
+                "null"
+              ]
+            }
           }
         }
       },
-      "count": {"type": "integer"}
+      "count": {
+        "type": "integer"
+      },
+      "source": {
+        "type": "string"
+      },
+      "note": {
+        "type": "string"
+      }
     }
   },
   "metadata": {
     "author": "Ashutosh Sinha",
     "category": "Economic Data",
-    "tags": ["imf", "ifs", "financial statistics", "exchange rates", "interest rates"],
+    "tags": [
+      "imf",
+      "ifs",
+      "financial statistics",
+      "exchange rates",
+      "interest rates"
+    ],
     "rateLimit": 120,
     "cacheTTL": 3600,
     "note": "International Financial Statistics provides comprehensive financial and monetary data.",
     "examples": [
       {
-        "description": "Get US exchange rate",
+        "description": "India CPI inflation",
         "input": {
-          "country_code": "US",
-          "indicator": "exchange_rate",
-          "start_year": 2024
+          "country_code": "IND",
+          "indicator": "cpi_inflation",
+          "start_year": 2025
         }
       },
       {
-        "description": "Get Japan CPI",
+        "description": "Brazil policy rate",
         "input": {
-          "country_code": "JP",
-          "indicator": "cpi",
-          "frequency": "M"
+          "country_code": "BR",
+          "indicator": "policy_rate",
+          "start_year": 2024
         }
       }
     ],

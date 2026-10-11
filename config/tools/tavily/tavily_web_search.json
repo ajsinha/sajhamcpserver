@@ -1,7 +1,8 @@
 {
   "name": "tavily_web_search",
   "implementation": "sajha.tools.impl.tavily_tool_refactored.TavilyWebSearchTool",
-  "description": "General web search through the Tavily search API.\nReturns {query, search_depth, topic, results_count, results: [{title, url, content (extract), score, published_date}], answer (Tavily's generated summary, when include_answer), images (when include_images)}.\nInputs (* required): query* (string), search_depth (basic | advanced; default basic, advanced is slower and more thorough), max_results (integer 1-20, default 5), include_answer (boolean, default true), include_images (boolean, default false).\nFor recent news use tavily_news_search; for in-depth research tavily_research_search; to limit or exclude sites tavily_domain_search; google_search is the Google alternative.\nExample: {\"query\": \"SOFR transition timeline\", \"max_results\": 5}\nNeeds a Tavily API key (env TAVILY_API_KEY, config tavily.api.key); without one the tool returns placeholder example.com results with a note saying demo mode.",
+  "description": "General web search through the Tavily search API.\nReturns {query, search_depth, topic, results_count, results: [{title, url, content (extract), score, published_date}], answer (Tavily's generated summary, when include_answer), images (when include_images)}.\nInputs (* required): query* (string), search_depth (basic | advanced; default basic, advanced is slower and more thorough), max_results (integer 1-20, default 5), include_answer (boolean, default true), include_images (boolean, default false).\nFor recent news use tavily_news_search; for in-depth research tavily_research_search; to limit or exclude sites tavily_domain_search; google_search is the Google alternative.\nExample: {\"query\": \"SOFR transition timeline\", \"max_results\": 5}",
+  "annotations": {"readOnlyHint": true, "idempotentHint": true, "openWorldHint": true},
   "version": "2.9.8",
   "enabled": true,
   "api_key": "${tavily.api.key}",
@@ -36,7 +37,8 @@
         "default": false
       }
     },
-    "required": ["query"]
+    "required": ["query"],
+    "examples": [{"query": "SOFR transition timeline", "max_results": 5}]
   },
   "outputSchema": {
     "type": "object",

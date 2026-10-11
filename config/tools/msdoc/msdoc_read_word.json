@@ -2,6 +2,7 @@
   "name": "msdoc_read_word",
   "implementation": "sajha.tools.impl.msdoc_tools_tool_refactored.MsDocReadWordTool",
   "description": "Reads a Word document (.docx) into its paragraphs and tables. Files are looked up by name in the docs folder (data/msdocs; msdoc_list_files shows it). Needs the python-docx package (optional in requirements.txt).\nReturns {filename, paragraphs, paragraph_count, tables, table_count}: paragraphs are the non-empty paragraph texts; each table is a list of rows of cell texts.\nInputs (* required): filename* (e.g. report.docx). Legacy .doc files cannot be read.\nTo find text use msdoc_search_word; for one plain-text string msdoc_extract_text; for author and dates msdoc_get_word_metadata.\nExample: {\"filename\": \"report.docx\"}",
+  "annotations": {"readOnlyHint": true, "idempotentHint": true, "openWorldHint": false},
   "version": "2.9.8",
   "enabled": true,
   "inputSchema": {
@@ -12,7 +13,8 @@
         "description": "Name of the Word file to read (.docx)"
       }
     },
-    "required": ["filename"]
+    "required": ["filename"],
+    "examples": [{"filename": "report.docx"}]
   },
   "outputSchema": {
     "type": "object",

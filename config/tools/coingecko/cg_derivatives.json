@@ -1,7 +1,8 @@
 {
   "name": "cg_derivatives",
   "implementation": "sajha.tools.impl.coingecko_tools.CGDerivativesTool",
-  "description": "Crypto derivative tickers (perpetuals and futures) across derivatives exchanges, from CoinGecko (derivatives).\nReturns {derivatives: [{market, symbol, index_id, price, price_percentage_change_24h, contract_type, index, basis, spread, funding_rate, open_interest, volume_24h, last_traded_at, expired_at}]}.\nInputs: none.\nFor the derivatives venues themselves use cg_derivatives_exchanges.\nExample: {}\nNo API key is sent (CoinGecko public API, rate-limited by CoinGecko); a failed call returns {\"error\": ...}.",
+  "description": "Crypto derivative tickers (perpetuals and futures) across derivatives exchanges, from CoinGecko (derivatives).\nReturns {derivatives: [{market, symbol, index_id, price, price_percentage_change_24h, contract_type, index, basis, spread, funding_rate, open_interest, volume_24h, last_traded_at, expired_at}]}.\nInputs: none.\nFor the derivatives venues themselves use cg_derivatives_exchanges.\nExample: {}",
+  "annotations": {"readOnlyHint": true, "idempotentHint": true, "openWorldHint": true},
   "version": "4.5.0",
   "enabled": true,
   "inputSchema": {

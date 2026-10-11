@@ -11,7 +11,8 @@
       "top_k": {"type": "integer", "minimum": 1, "maximum": 20, "default": 3, "description": "How many passages to return."},
       "source": {"type": "string", "description": "Only this source: sajha_docs, uploads, or a configured source's name."}
     },
-    "required": ["query"]
+    "required": ["query"],
+    "examples": [{"query": "configure the redis state backend", "top_k": 5}]
   },
   "outputSchema": {
     "type": "object",

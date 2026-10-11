@@ -1,7 +1,8 @@
 {
   "name": "yf_earnings_dates",
   "implementation": "sajha.tools.impl.yfinance_tools.YFEarningsDatesTool",
-  "description": "Past and upcoming earnings announcement dates for one company from Yahoo Finance (yfinance earnings_dates), about 25 rows.\nReturns: {symbol, dates: [{Earnings Date, EPS Estimate, Reported EPS, Surprise(%)}]}, upcoming dates first; Reported EPS is empty for future dates.\nInputs (* required): symbol* (Yahoo ticker, e.g. AAPL, BRK-B, 7203.T).\nSurprise detail for recent quarters: yf_earnings_history; the next event only: yf_calendar. No API key; data comes from Yahoo Finance through the yfinance library.\nExample: {\"symbol\": \"AAPL\"}",
+  "description": "Past and upcoming earnings announcement dates for one company from Yahoo Finance (yfinance earnings_dates).\nReturns: {symbol, data_points, truncated, dates: [{Earnings Date, EPS Estimate, Reported EPS, Surprise(%)}]}, upcoming dates first; Reported EPS is empty for future dates.\nInputs (* required): symbol* (Yahoo ticker, e.g. AAPL, BRK-B, 7203.T); limit (rows, 1-100; default 12, Yahoo sends at most about 25 by default).\nSurprise detail for recent quarters: yf_earnings_history; the next event only: yf_calendar.\nExample: {\"symbol\": \"AAPL\", \"limit\": 8}",
+  "annotations": {"readOnlyHint": true, "idempotentHint": true, "openWorldHint": true},
   "version": "4.5.0",
   "enabled": true,
   "inputSchema": {
@@ -9,18 +10,36 @@
     "properties": {
       "symbol": {
         "type": "string",
-        "description": "Stock ticker symbol (e.g., AAPL, MSFT)"
+        "description": "Yahoo ticker, e.g. AAPL, BRK-B, 7203.T"
+      },
+      "limit": {
+        "type": "integer",
+        "minimum": 1,
+        "maximum": 100,
+        "default": 12,
+        "description": "Most rows returned (1-100)"
       }
     },
     "required": [
       "symbol"
-    ]
+    ],
+    "examples": [{"symbol": "AAPL", "limit": 8}]
   },
   "outputSchema": {
     "type": "object",
     "properties": {
-      "result": {
-        "type": "object"
+      "symbol": {
+        "type": "string"
+      },
+      "data_points": {
+        "type": "integer",
+        "description": "Rows before the cap"
+      },
+      "truncated": {
+        "type": "boolean"
+      },
+      "dates": {
+        "type": "array"
       }
     }
   },
@@ -32,6 +51,15 @@
     "tags": [
       "yfinance",
       "earnings dates"
+    ],
+    "examples": [
+      {
+        "description": "Past and upcoming earnings announcement dates for one company",
+        "input": {
+          "symbol": "AAPL",
+          "limit": 8
+        }
+      }
     ]
   }
 }

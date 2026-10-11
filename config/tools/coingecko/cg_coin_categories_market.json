@@ -1,7 +1,8 @@
 {
   "name": "cg_coin_categories_market",
   "implementation": "sajha.tools.impl.coingecko_tools.CGCoinCategoriesMarketTool",
-  "description": "Coin categories with market data from CoinGecko (coins/categories), sorted by market cap.\nReturns {categories: [{id, name, market_cap, market_cap_change_24h (percent), volume_24h, top_3_coins (image URLs), content, updated_at}, ...]}.\nInputs: none.\nFor names and ids only use cg_coin_categories_list; for the whole market cg_market_global.\nExample: {}\nNo API key is sent (CoinGecko public API, rate-limited by CoinGecko); a failed call returns {\"error\": ...}.",
+  "description": "Coin categories with market data from CoinGecko (coins/categories), sorted by market cap.\nReturns {categories: [{id, name, market_cap, market_cap_change_24h (percent), volume_24h, top_3_coins (image URLs), content, updated_at}, ...]}.\nInputs: none.\nFor names and ids only use cg_coin_categories_list; for the whole market cg_market_global.\nExample: {}",
+  "annotations": {"readOnlyHint": true, "idempotentHint": true, "openWorldHint": true},
   "version": "4.5.0",
   "enabled": true,
   "inputSchema": {

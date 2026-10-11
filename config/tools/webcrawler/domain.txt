@@ -1,0 +1,1 @@
+No API key. Fetches go through SAJHA's outbound fetch guard (loopback and cloud-metadata addresses refused; private networks too when tools.outbound.block_private_networks is on).

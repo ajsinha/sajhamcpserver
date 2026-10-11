@@ -1,7 +1,8 @@
 {
   "name": "un_get_sdg_data",
   "implementation": "sajha.tools.impl.united_nations_tool_refactored.UNGetSDGDataTool",
-  "description": "Time series of one SDG indicator, for one area or all, from the UN Statistics Division SDG API (Indicator/Data, no API key).\nReturns: indicator_code, indicator_description (the series description), country_code, country_name, data (year, value, unit per observation) and count; on failure an error and note instead.\nInputs (* required): indicator_code* (SDG indicator code such as 1.1.1 or 3.2.1); country_code (area code passed to the API as areaCode; the schema suggests ISO3; omit for all areas); start_year and end_year (2000-2030; each optional).\nFind indicator codes with un_get_sdg_indicators. For World Bank development series use wb_get_country_data.\nExample: {\"indicator_code\": \"3.2.1\", \"country_code\": \"IND\", \"start_year\": 2015, \"end_year\": 2023}",
+  "description": "Time series of one SDG indicator from the UN Statistics Division SDG API (Indicator/Data, no API key), for one country or area or for all. The API keys areas by UN M49 number, so an ISO alpha-3 or alpha-2 country code is converted (IND -> 356).\nReturns: indicator_code, indicator_description, country_code, area_code (M49 used), country_name, data (year, value (null when not numeric, with value_text), unit, series, series_description, dimensions such as sex or age; plus area_code and area_name when no country is given), count, total_available, truncated; a note when empty.\nInputs (* required): indicator_code* (such as 1.1.1 or 3.2.1); country_code (ISO3, ISO2 or M49, e.g. 1 for World; omit for all areas); start_year, end_year (2000-2030; either alone is fine); max_records (1-5000; default 500).\nIndicator codes: un_get_sdg_indicators. For World Bank series use wb_get_country_data.\nExample: {\"indicator_code\": \"3.2.1\", \"country_code\": \"IND\", \"start_year\": 2015, \"end_year\": 2023}",
+  "annotations": {"readOnlyHint": true, "idempotentHint": true, "openWorldHint": true},
   "version": "2.9.8",
   "enabled": true,
   "inputSchema": {
@@ -13,7 +14,7 @@
       },
       "country_code": {
         "type": "string",
-        "description": "ISO3 country code (e.g., 'USA', 'CHN', 'IND'). Optional - omit for global/all countries data."
+        "description": "Country or area: ISO alpha-3 (IND), alpha-2 (IN) or UN M49 number (356; 1 = World). Omit for all areas."
       },
       "start_year": {
         "type": "integer",
@@ -26,9 +27,19 @@
         "description": "End year for data retrieval (e.g., 2024)",
         "minimum": 2000,
         "maximum": 2030
+      },
+      "max_records": {
+        "type": "integer",
+        "minimum": 1,
+        "maximum": 5000,
+        "default": 500,
+        "description": "Most observations returned (the API pages through results)"
       }
     },
-    "required": ["indicator_code"]
+    "required": [
+      "indicator_code"
+    ],
+    "examples": [{"indicator_code": "3.2.1", "country_code": "IND", "start_year": 2015, "end_year": 2023}]
   },
   "outputSchema": {
     "type": "object",
@@ -42,12 +53,16 @@
         "description": "Full description of the indicator"
       },
       "country_code": {
-        "type": "string",
-        "description": "Country code (if specified)"
+        "type": [
+          "string",
+          "null"
+        ]
       },
       "country_name": {
-        "type": "string",
-        "description": "Country name (if applicable)"
+        "type": [
+          "string",
+          "null"
+        ]
       },
       "data": {
         "type": "array",
@@ -56,32 +71,99 @@
           "type": "object",
           "properties": {
             "year": {
-              "type": "integer",
+              "type": [
+                "integer",
+                "null"
+              ],
               "description": "Year of observation"
             },
             "value": {
-              "type": ["number", "null"],
+              "type": [
+                "number",
+                "null"
+              ],
               "description": "Indicator value (null if not available)"
             },
             "unit": {
-              "type": "string",
-              "description": "Unit of measurement (e.g., '%', 'per 1,000 live births')"
+              "type": [
+                "string",
+                "null"
+              ],
+              "description": "Unit of measurement"
+            },
+            "series": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "series_description": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "dimensions": {
+              "type": "object"
+            },
+            "value_text": {
+              "type": "string"
+            },
+            "area_code": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "area_name": {
+              "type": [
+                "string",
+                "null"
+              ]
             }
           },
-          "required": ["year", "value"]
+          "required": [
+            "year",
+            "value"
+          ]
         }
       },
       "count": {
         "type": "integer",
         "description": "Number of data points returned"
+      },
+      "area_code": {
+        "type": [
+          "string",
+          "null"
+        ]
+      },
+      "total_available": {
+        "type": "integer"
+      },
+      "truncated": {
+        "type": "boolean"
+      },
+      "note": {
+        "type": "string"
       }
     },
-    "required": ["indicator_code", "data", "count"]
+    "required": [
+      "indicator_code",
+      "data",
+      "count"
+    ]
   },
   "metadata": {
     "author": "Ashutosh Sinha",
     "category": "Global Statistics",
-    "tags": ["un", "sdg", "time series", "historical data", "country data"],
+    "tags": [
+      "un",
+      "sdg",
+      "time series",
+      "historical data",
+      "country data"
+    ],
     "rateLimit": 60,
     "cacheTTL": 3600,
     "note": "Retrieves actual measurement data for SDG indicators. Data availability varies by country and indicator. Some indicators are updated annually, others less frequently.",

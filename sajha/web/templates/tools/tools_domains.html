@@ -1,7 +1,8 @@
 {% extends "common/base.html" %}
 {# Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.com #}
 {# Tools > Domains: one card per tool domain (GLOSSARY: Tool domain) with the tools the viewer may see in it.
-   Built by sajha/tools/domains.py::summarize from the live registry; a card opens /tools?domain=<name>. #}
+   Built by sajha/tools/domains.py::summarize from the live registry; a card opens /tools?domain=<name>.
+   A folder with a domain.txt shows its domain description: the first sentence, the rest behind "More". #}
 {% block title %}Tool Domains - SAJHA MCP Server{% endblock %}
 
 {% block extra_css %}
@@ -13,6 +14,10 @@
     .dom-count { font-size: 1.6rem; font-weight: 700; line-height: 1; color: var(--sajha-crimson); }
     .dom-label { font-weight: 600; }
     .dom-folder { font-size: 12px; color: var(--sajha-slate); overflow-wrap: anywhere; }
+    .dom-link { display: block; text-decoration: none; color: inherit; }
+    .dom-link:hover, .dom-link:focus-visible { color: inherit; }
+    .dom-desc { font-size: 13px; color: var(--sajha-slate); margin: .6rem 0 0; overflow-wrap: anywhere; }
+    .dom-desc summary { color: var(--sajha-crimson); cursor: pointer; font-size: 12px; }
 </style>
 {% endblock %}
 
@@ -26,7 +31,8 @@
     <div class="row g-3">
         {% for d in domains %}
         <div class="col-12 col-sm-6 col-lg-4 col-xxl-3">
-            <a class="dom-card" href="{{ d.href }}" aria-label="{{ d.label }}: {{ d.count }} tool{{ 's' if d.count != 1 }}">
+            <div class="dom-card">
+            <a class="dom-link" href="{{ d.href }}" aria-label="{{ d.label }}: {{ d.count }} tool{{ 's' if d.count != 1 }}">
                 <div class="d-flex justify-content-between align-items-start gap-2">
                     <div>
                         <div class="dom-label">{{ d.label }}</div>
@@ -39,6 +45,12 @@
                     <div class="text-end"><div class="dom-count">{{ d.count }}</div><small class="text-muted">tool{{ 's' if d.count != 1 }}</small></div>
                 </div>
             </a>
+            {% if d.description %}{# the folder's domain.txt (GLOSSARY: Domain description) #}
+            <div class="dom-desc"><span>{{ d.description_first }}</span>
+                {% if d.description_rest %}<details><summary>More</summary><span style="white-space: pre-line">{{ d.description_rest }}</span></details>{% endif %}
+            </div>
+            {% endif %}
+            </div>
         </div>
         {% endfor %}
     </div>

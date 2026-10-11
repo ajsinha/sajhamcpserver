@@ -72,10 +72,25 @@ class CGAssetPlatformsTool(CGBaseTool):
     def execute(self, a): return {"platforms": self._cg_get('asset_platforms')}
 class CGCoinMarketsTool(CGBaseTool):
     def execute(self, a): return {"coins": self._cg_get('coins/markets', vs_currency='usd', order=a.get('order','market_cap_desc'), per_page=a.get('limit',50))}
-class CGTopGainersTool(CGBaseTool):
-    def execute(self, a): return {"coins": self._cg_get('coins/markets', vs_currency='usd', order='percent_change_24h_desc', per_page=20)}
-class CGTopLosersTool(CGBaseTool):
-    def execute(self, a): return {"coins": self._cg_get('coins/markets', vs_currency='usd', order='percent_change_24h_asc', per_page=20)}
+class _CGMoversTool(CGBaseTool):
+    """24-hour movers among the 250 largest coins by market cap. CoinGecko documents no
+    price-change order for coins/markets, so SAJHA ranks the market-cap page itself."""
+    UNIVERSE = 250
+    descending = True
+
+    def execute(self, a):
+        limit = max(1, min(int(a.get('limit') or 20), 100))
+        coins = self._cg_get('coins/markets', vs_currency='usd', order='market_cap_desc', per_page=self.UNIVERSE)
+        if isinstance(coins, dict):                       # {"error": ...}
+            return coins
+        ranked = [c for c in coins or [] if isinstance(c, dict) and c.get('price_change_percentage_24h') is not None]
+        ranked.sort(key=lambda c: c['price_change_percentage_24h'], reverse=self.descending)
+        return {"coins": ranked[:limit], "universe": f"top {self.UNIVERSE} coins by market cap",
+                "ranked_by": "price_change_percentage_24h " + ("descending" if self.descending else "ascending")}
+class CGTopGainersTool(_CGMoversTool):
+    descending = True
+class CGTopLosersTool(_CGMoversTool):
+    descending = False
 class CGDerivativesTool(CGBaseTool):
     def execute(self, a): return {"derivatives": self._cg_get('derivatives')}
 class CGDerivativesExchangesTool(CGBaseTool):

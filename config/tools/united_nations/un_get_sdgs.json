@@ -2,6 +2,7 @@
   "name": "un_get_sdgs",
   "implementation": "sajha.tools.impl.united_nations_tool_refactored.UNGetSDGsTool",
   "description": "List the 17 UN Sustainable Development Goals, from the UN Statistics Division SDG API (no API key).\nReturns: sdgs (code, title, color hex, uri and, when asked, description) and count; on failure an error and note instead.\nInputs (none required): include_details (boolean; default false; adds each goal's description).\nNext steps: un_get_sdg_targets for a goal's targets, un_get_sdg_indicators for its indicators.\nExample: {\"include_details\": true}",
+  "annotations": {"readOnlyHint": true, "idempotentHint": true, "openWorldHint": true},
   "version": "2.9.8",
   "enabled": true,
   "inputSchema": {
@@ -36,7 +37,7 @@
               "description": "Detailed description (if requested)"
             },
             "color": {
-              "type": "string",
+              "type": ["string", "null"],
               "description": "SDG official color code"
             },
             "uri": {

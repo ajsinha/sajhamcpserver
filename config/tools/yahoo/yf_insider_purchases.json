@@ -1,7 +1,8 @@
 {
   "name": "yf_insider_purchases",
   "implementation": "sajha.tools.impl.yfinance_tools.YFInsiderPurchasesTool",
-  "description": "Six-month summary of insider buying and selling for one stock from Yahoo Finance (yfinance insider_purchases).\nReturns: {symbol, purchases: [{Insider Purchases Last 6m (row label such as Purchases, Sales, Net Shares Purchased (Sold), Total Insider Shares Held), Shares, Trans}]}.\nInputs (* required): symbol* (Yahoo ticker, e.g. AAPL, BRK-B, 7203.T).\nIndividual trades: yf_insider_transactions. No API key; data comes from Yahoo Finance through the yfinance library.\nExample: {\"symbol\": \"TSLA\"}",
+  "description": "Six-month summary of insider buying and selling for one stock from Yahoo Finance (yfinance insider_purchases).\nReturns: {symbol, purchases: [{Insider Purchases Last 6m (row label such as Purchases, Sales, Net Shares Purchased (Sold), Total Insider Shares Held), Shares, Trans}]}.\nInputs (* required): symbol* (Yahoo ticker, e.g. AAPL, BRK-B, 7203.T).\nIndividual trades: yf_insider_transactions.\nExample: {\"symbol\": \"TSLA\"}",
+  "annotations": {"readOnlyHint": true, "idempotentHint": true, "openWorldHint": true},
   "version": "4.5.0",
   "enabled": true,
   "inputSchema": {
@@ -14,7 +15,8 @@
     },
     "required": [
       "symbol"
-    ]
+    ],
+    "examples": [{"symbol": "TSLA"}]
   },
   "outputSchema": {
     "type": "object",

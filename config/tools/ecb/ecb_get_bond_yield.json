@@ -1,7 +1,8 @@
 {
   "name": "ecb_get_bond_yield",
   "implementation": "sajha.tools.impl.european_central_bank_tool_refactored.ECBGetBondYieldTool",
-  "description": "Euro area government bond yields in percent (ECB yield curve, all euro area issuers, spot rate) for a 2, 5 or 10 year maturity, business-daily, from the ECB Data Portal API (data-api.ecb.europa.eu, no API key).\nReturns: flow, key, series_name, description, observation_count and observations (date, value) oldest first.\nInputs (* required): bond_term* (2y, 5y, 10y); start_date, end_date (YYYY-MM-DD); recent_periods (1-100; default 10): unless both dates are given only the last recent_periods observations are kept, and with no dates the look-back is recent_periods x 40 days.\nFor French government bonds use bdf_get_oat_yield; for policy rates ecb_get_interest_rate.\nExample: {\"bond_term\": \"10y\", \"recent_periods\": 30}",
+  "description": "Euro area AAA-rated central government bond yields in percent (the ECB's AAA yield curve, spot rate, YC.B.U2.EUR.4F.G_N_A.SV_C_YM.SR_<n>Y) for a 2, 5 or 10 year maturity, business-daily.\nReturns: flow, key, series_name (the ECB title), description, unit, unit_multiplier, frequency, source, observation_count and observations (date, value) oldest first; a note when the period has no observations.\nInputs (* required): bond_term* (2y, 5y, 10y); start_date, end_date (YYYY-MM-DD, YYYY-MM or YYYY); recent_periods (1-100; default 10; the last N observations of the series whatever its frequency, used only when neither date is given).\nFor France's 10-year yield use bdf_get_oat_yield; for policy rates ecb_get_interest_rate.\nExample: {\"bond_term\": \"10y\", \"recent_periods\": 30}",
+  "annotations": {"readOnlyHint": true, "idempotentHint": true, "openWorldHint": true},
   "version": "2.9.8",
   "enabled": true,
   "inputSchema": {
@@ -28,7 +29,8 @@
         "default": 10
       }
     },
-    "required": ["bond_term"]
+    "required": ["bond_term"],
+    "examples": [{"bond_term": "10y", "recent_periods": 30}]
   },
   "outputSchema": {
     "type": "object",

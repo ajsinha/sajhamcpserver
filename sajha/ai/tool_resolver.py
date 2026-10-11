@@ -49,10 +49,13 @@ _INDEX_REL = 'data/tool_search_index.json'
 _INDEX_VERSION = 1
 
 
-def _embedding_text(name, cfg, schema):
+def _embedding_text(name, cfg, schema, tool=None):
     """Build the text representation of a tool that gets embedded.
-    Includes name + description + parameter names + tags + optional literature."""
-    desc = cfg.get('description', '') or ''
+    Includes name + description + parameter names + tags + optional literature. With ``tool``,
+    the description is the served one (its own, then its folder's domain description)."""
+    desc = getattr(tool, 'served_description', None) if tool is not None else None
+    if not isinstance(desc, str):
+        desc = cfg.get('description', '') or ''
     md = cfg.get('metadata') or {}
     tags = md.get('tags') or []
     literature = cfg.get('literature') or cfg.get('documentation') or ''
@@ -151,7 +154,7 @@ class ToolEmbeddingIndex:
                 schema = tool.get_input_schema() if hasattr(tool, 'get_input_schema') else {}
             except Exception:
                 schema = {}
-            text = _embedding_text(name, cfg, schema)
+            text = _embedding_text(name, cfg, schema, tool)
             h = hashlib.sha256(f"{embedder.name}\x00{text}".encode('utf-8')).hexdigest()
             md = cfg.get('metadata') or {}
             desired[name] = (text, h, {
@@ -331,7 +334,7 @@ class ToolResolver:
                 schema = tool.get_input_schema() if hasattr(tool, 'get_input_schema') else {}
             except Exception:
                 schema = {}
-            text = _embedding_text(name, cfg, schema)
+            text = _embedding_text(name, cfg, schema, tool)
             md = {'description': cfg.get('description', ''),
                   'category': (cfg.get('metadata') or {}).get('category', '')}
             items[name] = (text, md)

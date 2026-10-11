@@ -3,7 +3,7 @@
   "implementation": "sajha.tools.impl.qlrisk.qlrisk_tools.QlriskPriceProductTool",
   "product": "AgencyBond",
   "title": "Price a AgencyBond",
-  "description": "Price one Agency Bond (qlrisk AgencyBond): NPV, pricing components and Greeks where the pricer gives them.\nInputs (* required): maturity* (tenor like 3Y or date), face_value (amount; default 100), coupon_pct* (percent, 3 = 3%), frequency (annual/semi-annual/quarterly/monthly/at maturity; default semi-annual), currency (see the schema's list; default USD). Rates are in percent, spreads in basis points, maturities a tenor (3Y, 18M, 6W, 10D) or a date YYYY-MM-DD. Optional `advanced`: trade_id, trade_date, effective_date, counterparty_id, issuer, position, market_data, reporting_currency, include_cash_flows; market data defaults to qlrisk's sample snapshot valued today.\nExample: {\"maturity\": \"5Y\", \"face_value\": 100, \"coupon_pct\": 5} gives NPV 103.14 USD on the sample market valued 2026-10-09. For several trades at once use qlrisk_price_trades.",
+  "description": "Price one Agency Bond (qlrisk AgencyBond).\nInputs (* required, name=default): maturity*, face_value=100, coupon_pct*, frequency=semi-annual, currency=USD. In `advanced` also: effective_date, issuer, position.\nExample: {\"maturity\": \"5Y\", \"face_value\": 100, \"coupon_pct\": 5} gives NPV 103.14 USD (sample market valued 2026-10-09).",
   "version": "1.0.0",
   "enabled": true,
   "requires": [

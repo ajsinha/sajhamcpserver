@@ -1,7 +1,8 @@
 {
   "name": "wiki_get_page",
   "implementation": "sajha.tools.impl.wikipedia_tool.WikiGetPageTool",
-  "description": "The full plain-text content of one Wikipedia article, split into sections, with categories and last-revision details.\nReturns {title, page_id, url, language, content (full text), summary (first paragraph), sections: [{title, level, content}], categories, images (lead image only), last_modified, last_modified_by, revision_id, word_count, last_updated}; links, references and html_content are present but always empty.\nInputs (* required): query (string, exact title) or page_id (integer); one is needed, page_id wins. language (string, Wikipedia language code such as en, fr, de, zh; default en), redirect (boolean, default true), include_images (boolean, default true), include_links and include_references (accepted, no effect).\nLarge output; for an overview use wiki_get_summary.\nExample: {\"query\": \"Value at risk\"}\nNo API key. A title that does not exist gives 'Page not found'.",
+  "description": "The full plain-text content of one Wikipedia article, split into sections, with categories, links and revision details.\nReturns {title, page_id, url, language, content (full text), summary (first paragraph), sections: [{title, level, content}], categories, images (lead image only), links {internal (article titles), external (URLs), truncated} when include_links, last_modified, last_modified_by, revision_id, word_count, last_updated}.\nInputs (* required): query (string, exact title) or page_id (integer); one is needed, page_id wins. language (Wikipedia language code such as en, fr, de, zh; default en), redirect (boolean, default true; false returns the redirect page itself), include_images (boolean, default true), include_links (boolean, default true: up to 500 article and 500 external links, one extra request).\nLarge output; for an overview use wiki_get_summary.\nExample: {\"query\": \"Value at risk\", \"include_links\": false}\nNo API key. A title that does not exist gives 'Page not found'.",
+  "annotations": {"readOnlyHint": true, "idempotentHint": true, "openWorldHint": true},
   "version": "2.9.8",
   "enabled": true,
   "inputSchema": {
@@ -36,19 +37,23 @@
       },
       "include_links": {
         "type": "boolean",
-        "description": "Include internal and external links",
+        "description": "Include up to 500 article links (main namespace) and 500 external links; one extra request",
         "default": true
-      },
-      "include_references": {
-        "type": "boolean",
-        "description": "Include article references and citations",
-        "default": false
       }
     },
     "oneOf": [
-      {"required": ["query"]},
-      {"required": ["page_id"]}
-    ]
+      {
+        "required": [
+          "query"
+        ]
+      },
+      {
+        "required": [
+          "page_id"
+        ]
+      }
+    ],
+    "examples": [{"query": "Value at risk", "include_links": false}]
   },
   "outputSchema": {
     "type": "object",
@@ -73,10 +78,6 @@
         "type": "string",
         "description": "Full article content in plain text"
       },
-      "html_content": {
-        "type": "string",
-        "description": "Article content in HTML format"
-      },
       "summary": {
         "type": "string",
         "description": "Brief summary/lead section of the article"
@@ -87,9 +88,15 @@
         "items": {
           "type": "object",
           "properties": {
-            "title": {"type": "string"},
-            "level": {"type": "integer"},
-            "content": {"type": "string"}
+            "title": {
+              "type": "string"
+            },
+            "level": {
+              "type": "integer"
+            },
+            "content": {
+              "type": "string"
+            }
           }
         }
       },
@@ -99,42 +106,48 @@
         "items": {
           "type": "object",
           "properties": {
-            "url": {"type": "string"},
-            "title": {"type": "string"},
-            "description": {"type": ["string", "null"]}
+            "url": {
+              "type": "string"
+            },
+            "title": {
+              "type": "string"
+            },
+            "description": {
+              "type": [
+                "string",
+                "null"
+              ]
+            }
           }
         }
       },
       "links": {
         "type": "object",
-        "description": "Internal and external links",
+        "description": "internal (article titles), external (URLs), truncated (more links exist than were returned)",
         "properties": {
           "internal": {
             "type": "array",
-            "items": {"type": "string"}
+            "items": {
+              "type": "string"
+            }
           },
           "external": {
             "type": "array",
-            "items": {"type": "string"}
-          }
-        }
-      },
-      "references": {
-        "type": "array",
-        "description": "Article references and citations",
-        "items": {
-          "type": "object",
-          "properties": {
-            "number": {"type": "integer"},
-            "text": {"type": "string"},
-            "url": {"type": ["string", "null"]}
+            "items": {
+              "type": "string"
+            }
+          },
+          "truncated": {
+            "type": "boolean"
           }
         }
       },
       "categories": {
         "type": "array",
         "description": "Wikipedia categories for this article",
-        "items": {"type": "string"}
+        "items": {
+          "type": "string"
+        }
       },
       "last_modified": {
         "type": "string",
@@ -157,12 +170,24 @@
         "description": "Timestamp when data was retrieved (ISO format)"
       }
     },
-    "required": ["title", "page_id", "url", "content"]
+    "required": [
+      "title",
+      "page_id",
+      "url",
+      "content"
+    ]
   },
   "metadata": {
     "author": "Ashutosh Sinha",
     "category": "Information Retrieval",
-    "tags": ["wikipedia", "articles", "content", "knowledge", "encyclopedia", "full text"],
+    "tags": [
+      "wikipedia",
+      "articles",
+      "content",
+      "knowledge",
+      "encyclopedia",
+      "full text"
+    ],
     "rateLimit": 100,
     "cacheTTL": 3600,
     "note": "Retrieve complete Wikipedia article content including text, images, links, and metadata. Ideal for in-depth research and content analysis.",

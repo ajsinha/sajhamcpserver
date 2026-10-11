@@ -334,7 +334,7 @@ def _overview(F: dict[str, Any]) -> list[dict[str, Any]]:
                 "Out of the box the toolsmith alias points at an offline mock that knows a few shapes; real designs "
                 "need a real model. Generated Python tools always run sandboxed.",
             ],
-            "source": "docs/architecture/Tool Generation.md; sajha/studio/describe.py; sajha/ai/llm/mock_toolsmith.py. "
+            "source": "docs/architecture/Tool Generation.md; sajha/studio/describe.py; sajha/ai/llm/providers/mock_toolsmith.py. "
             "The example sentence is illustrative.",
         },
         {

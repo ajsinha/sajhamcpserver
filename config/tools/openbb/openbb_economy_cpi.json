@@ -1,7 +1,8 @@
 {
   "name": "openbb_economy_cpi",
   "implementation": "sajha.tools.impl.openbb_tools.OpenBBEconomyCPITool",
-  "description": "Consumer price index for a country through the OpenBB Platform (obb.economy.cpi).\nReturns: {country, data_points, cpi_data: [records with date, country and value]} or {country, error}.\nInputs (* required): country (lower case with underscores, e.g. united_states, japan; default united_states); provider (fred, imf or oecd; default fred, which needs a key; oecd and imf need none).\nUS-only alternatives: av_cpi, av_inflation, fred_cpi, fred_core_cpi. Keys: fmp, benzinga, fred, intrinio, polygon and tiingo need credentials in OpenBB's settings (~/.openbb_platform/user_settings.json), not supplied by SAJHA; yfinance, oecd, federal_reserve, sec, imf and government_us need none.\nExample: {\"country\": \"japan\", \"provider\": \"oecd\"}",
+  "description": "Consumer price inflation for a country (year-on-year percent, monthly) through the OpenBB Platform (obb.economy.cpi).\nReturns: {country, provider, data_points, truncated, cpi_data: [records with date, country, value]} or {country, error}.\nInputs (* required): country (e.g. united_states, japan; default united_states); limit (rows returned, 1-1000; default 100; a dated series keeps its most recent rows); provider (fred, imf, oecd; default oecd).\nUS-only alternatives: av_cpi, fred_cpi, fred_core_cpi. Keys: imf, oecd need none; fred uses SAJHA's FRED_API_KEY.\nExample: {\"country\": \"japan\"}",
+  "annotations": {"readOnlyHint": true, "idempotentHint": true, "openWorldHint": true},
   "version": "4.5.0",
   "enabled": true,
   "inputSchema": {
@@ -9,13 +10,25 @@
     "properties": {
       "country": {
         "type": "string",
-        "description": "Country",
+        "description": "Country, lower case with underscores, e.g. united_states, japan",
         "default": "united_states"
+      },
+      "limit": {
+        "type": "integer",
+        "minimum": 1,
+        "maximum": 1000,
+        "default": 100,
+        "description": "Most rows returned (1-1000); a dated series keeps its most recent rows"
       },
       "provider": {
         "type": "string",
-        "description": "OpenBB data provider (fred, imf or oecd)",
-        "default": "fred"
+        "enum": [
+          "fred",
+          "imf",
+          "oecd"
+        ],
+        "default": "oecd",
+        "description": "OpenBB data provider"
       }
     },
     "required": []
@@ -52,9 +65,9 @@
     ],
     "examples": [
       {
-        "description": "US CPI data",
+        "description": "Consumer price inflation for a country (year-on-year percent, monthly)",
         "input": {
-          "country": "united_states"
+          "country": "japan"
         }
       }
     ]

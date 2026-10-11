@@ -1,7 +1,8 @@
 {
   "name": "yf_forex_history",
   "implementation": "sajha.tools.impl.yfinance_tools.YFForexHistoryTool",
-  "description": "Daily exchange-rate history for one currency pair from Yahoo Finance.\nReturns: {pair, data_points (total days), rates: the first (oldest) 100 days, each {Date, Open, High, Low, Close, Volume, Dividends, Stock Splits}}; with periods longer than about 5 months the most recent days are cut off.\nInputs (* required): pair* (EURUSD, GBPJPY or EURUSD=X; \"=X\" is appended when missing; default EURUSD=X); period (1mo, 3mo, 6mo, 1y, ...; default 3mo).\nOther sources: openbb_forex_historical (date range), av_forex_daily; current rate: av_forex_rate. No API key; data comes from Yahoo Finance through the yfinance library.\nExample: {\"pair\": \"USDINR\", \"period\": \"1mo\"}",
+  "description": "Daily exchange-rate history for one currency pair from Yahoo Finance.\nReturns: {pair, period, data_points (all days in the period), truncated, rates: the most recent limit days, oldest first, each {Date, Open, High, Low, Close, Volume, Dividends, Stock Splits}}.\nInputs (* required): pair (EURUSD, EUR/USD or EURUSD=X; \"=X\" is appended when missing; default EURUSD=X); period (1mo, 3mo, 6mo, 1y, ...; default 3mo); limit (days, 1-1000; default 100).\nOther sources: openbb_forex_historical (date range), av_forex_daily; current rate: av_forex_rate.\nExample: {\"pair\": \"USDINR\", \"period\": \"1y\", \"limit\": 30}",
+  "annotations": {"readOnlyHint": true, "idempotentHint": true, "openWorldHint": true},
   "version": "4.5.0",
   "enabled": true,
   "inputSchema": {
@@ -16,17 +17,31 @@
         "type": "string",
         "description": "yfinance period, e.g. 1mo, 3mo, 6mo, 1y",
         "default": "3mo"
+      },
+      "limit": {
+        "type": "integer",
+        "minimum": 1,
+        "maximum": 1000,
+        "default": 100,
+        "description": "Most days returned (1-1000)"
       }
     },
-    "required": [
-      "pair"
-    ]
+    "required": []
   },
   "outputSchema": {
     "type": "object",
     "properties": {
-      "result": {
-        "type": "object"
+      "pair": {
+        "type": "string"
+      },
+      "data_points": {
+        "type": "integer"
+      },
+      "truncated": {
+        "type": "boolean"
+      },
+      "rates": {
+        "type": "array"
       }
     }
   },
@@ -38,6 +53,16 @@
     "tags": [
       "yfinance",
       "forex"
+    ],
+    "examples": [
+      {
+        "description": "Daily exchange-rate history for one currency pair",
+        "input": {
+          "pair": "USDINR",
+          "period": "1y",
+          "limit": 30
+        }
+      }
     ]
   }
 }

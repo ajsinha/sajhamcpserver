@@ -1,7 +1,8 @@
 {
   "name": "yahoo_get_history",
   "implementation": "sajha.tools.impl.yahoo_finance_tool.YahooGetHistoryTool",
-  "description": "Historical OHLCV bars for one Yahoo Finance symbol, from Yahoo's chart endpoint, with dividend and split events.\nReturns: {symbol, period, interval, data_points, history: [{date (ISO, server local time), open, high, low, close, volume, adjusted_close}], dividends: [{date, amount}], splits: [{date, ratio}], currency, last_updated}. adjusted_close repeats close (no adjustment is applied); every bar is returned.\nInputs (* required): symbol* (1-20 chars of letters, digits, ^ . = -); period (1d, 5d, 1mo, 3mo, 6mo, 1y, 2y, 5y, 10y, ytd, max; default 1mo); interval (1m, 2m, 5m, 15m, 30m, 60m, 90m, 1h, 1d, 5d, 1wk, 1mo, 3mo; default 1d; Yahoo serves minute bars only for recent days); include_events (boolean; default true).\nLibrary-based alternative: yf_stock_history. No API key.\nExample: {\"symbol\": \"MSFT\", \"period\": \"6mo\", \"interval\": \"1wk\"}",
+  "description": "Historical OHLCV bars for one Yahoo Finance symbol, from Yahoo's chart endpoint, with dividend and split events.\nReturns: {symbol, period, interval, data_points, history: [{date (ISO, server local time), open, high, low, close, volume, adjusted_close}], dividends: [{date, amount}], splits: [{date, ratio}], currency, last_updated}. close is split-adjusted only; adjusted_close also adjusts for dividends (Yahoo's adjclose; null where Yahoo gives none, e.g. intraday); every bar is returned.\nInputs (* required): symbol* (1-20 chars of letters, digits, ^ . = -); period (1d, 5d, 1mo, 3mo, 6mo, 1y, 2y, 5y, 10y, ytd, max; default 1mo); interval (1m, 2m, 5m, 15m, 30m, 60m, 90m, 1h, 1d, 5d, 1wk, 1mo, 3mo; default 1d; Yahoo serves minute bars only for recent days); include_events (boolean; default true).\nLibrary-based alternative: yf_stock_history.\nExample: {\"symbol\": \"MSFT\", \"period\": \"6mo\", \"interval\": \"1wk\"}",
+  "annotations": {"readOnlyHint": true, "idempotentHint": true, "openWorldHint": true},
   "version": "2.9.8",
   "enabled": true,
   "inputSchema": {
@@ -15,13 +16,39 @@
       "period": {
         "type": "string",
         "description": "Time period for historical data",
-        "enum": ["1d", "5d", "1mo", "3mo", "6mo", "1y", "2y", "5y", "10y", "ytd", "max"],
+        "enum": [
+          "1d",
+          "5d",
+          "1mo",
+          "3mo",
+          "6mo",
+          "1y",
+          "2y",
+          "5y",
+          "10y",
+          "ytd",
+          "max"
+        ],
         "default": "1mo"
       },
       "interval": {
         "type": "string",
         "description": "Data interval/granularity",
-        "enum": ["1m", "2m", "5m", "15m", "30m", "60m", "90m", "1h", "1d", "5d", "1wk", "1mo", "3mo"],
+        "enum": [
+          "1m",
+          "2m",
+          "5m",
+          "15m",
+          "30m",
+          "60m",
+          "90m",
+          "1h",
+          "1d",
+          "5d",
+          "1wk",
+          "1mo",
+          "3mo"
+        ],
         "default": "1d"
       },
       "include_events": {
@@ -30,7 +57,10 @@
         "default": true
       }
     },
-    "required": ["symbol"]
+    "required": [
+      "symbol"
+    ],
+    "examples": [{"symbol": "MSFT", "period": "6mo", "interval": "1wk"}]
   },
   "outputSchema": {
     "type": "object",
@@ -62,31 +92,52 @@
               "description": "Date or datetime (ISO format)"
             },
             "open": {
-              "type": ["number", "null"],
+              "type": [
+                "number",
+                "null"
+              ],
               "description": "Opening price"
             },
             "high": {
-              "type": ["number", "null"],
+              "type": [
+                "number",
+                "null"
+              ],
               "description": "High price"
             },
             "low": {
-              "type": ["number", "null"],
+              "type": [
+                "number",
+                "null"
+              ],
               "description": "Low price"
             },
             "close": {
-              "type": ["number", "null"],
+              "type": [
+                "number",
+                "null"
+              ],
               "description": "Closing price"
             },
             "volume": {
-              "type": ["integer", "null"],
+              "type": [
+                "integer",
+                "null"
+              ],
               "description": "Trading volume"
             },
             "adjusted_close": {
-              "type": ["number", "null"],
+              "type": [
+                "number",
+                "null"
+              ],
               "description": "Adjusted closing price (accounts for splits/dividends)"
             }
           },
-          "required": ["date", "close"]
+          "required": [
+            "date",
+            "close"
+          ]
         }
       },
       "dividends": {
@@ -132,16 +183,34 @@
         "description": "Timestamp when data was retrieved (ISO format)"
       }
     },
-    "required": ["symbol", "history"]
+    "required": [
+      "symbol",
+      "history"
+    ]
   },
   "metadata": {
     "author": "Ashutosh Sinha",
     "category": "Financial Data",
-    "tags": ["finance", "stocks", "historical", "prices", "OHLCV", "backtesting"],
+    "tags": [
+      "finance",
+      "stocks",
+      "historical",
+      "prices",
+      "OHLCV",
+      "backtesting"
+    ],
     "rateLimit": 60,
     "cacheTTL": 300,
     "note": "Historical OHLCV (Open, High, Low, Close, Volume) data from Yahoo Finance. Supports multiple time periods and intervals for technical analysis.",
     "examples": [
+      {
+        "description": "Historical OHLCV bars for one Yahoo Finance symbol,",
+        "input": {
+          "symbol": "MSFT",
+          "period": "6mo",
+          "interval": "1wk"
+        }
+      },
       {
         "description": "Get 1 year of daily Apple stock data",
         "input": {

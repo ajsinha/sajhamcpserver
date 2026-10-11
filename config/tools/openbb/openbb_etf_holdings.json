@@ -1,7 +1,8 @@
 {
   "name": "openbb_etf_holdings",
   "implementation": "sajha.tools.impl.openbb_tools.OpenBBETFHoldingsTool",
-  "description": "Holdings of one ETF through the OpenBB Platform (obb.etf.holdings).\nReturns: {symbol, holdings_count (all holdings), holdings: the first 50 records with symbol, name, weight, shares, value and provider extras}.\nInputs (* required): symbol* (ETF ticker, e.g. SPY, QQQ, VTI; default SPY); provider (fmp or intrinio, both need a key; default fmp).\nSector and country weights: openbb_etf_sectors, openbb_etf_countries; fund facts: yf_etf_info, openbb_etf_info. Keys: fmp, benzinga, fred, intrinio, polygon and tiingo need credentials in OpenBB's settings (~/.openbb_platform/user_settings.json), not supplied by SAJHA; yfinance, oecd, federal_reserve, sec, imf and government_us need none.\nExample: {\"symbol\": \"QQQ\", \"provider\": \"fmp\"}",
+  "description": "Holdings of one ETF through the OpenBB Platform (obb.etf.holdings).\nReturns: {symbol, provider, data_points (all holdings), truncated, holdings: records with symbol, name, weight, shares, value} or {symbol, error}.\nInputs (* required): symbol* (ETF ticker); limit (holdings returned; default 50); provider (fmp, intrinio; default fmp).\nWeights: openbb_etf_sectors, openbb_etf_countries; fund facts: openbb_etf_info. Keys: fmp uses SAJHA's FMP_API_KEY; intrinio needs a key in ~/.openbb_platform/user_settings.json.\nExample: {\"symbol\": \"QQQ\", \"limit\": 25}",
+  "annotations": {"readOnlyHint": true, "idempotentHint": true, "openWorldHint": true},
   "version": "4.5.0",
   "enabled": true,
   "inputSchema": {
@@ -9,18 +10,29 @@
     "properties": {
       "symbol": {
         "type": "string",
-        "description": "ETF ticker (e.g., SPY, QQQ, VTI, IWM)",
-        "default": "SPY"
+        "description": "ETF ticker, e.g. SPY, QQQ"
+      },
+      "limit": {
+        "type": "integer",
+        "minimum": 1,
+        "maximum": 1000,
+        "default": 50,
+        "description": "Most rows returned (1-1000); a dated series keeps its most recent rows"
       },
       "provider": {
         "type": "string",
-        "description": "OpenBB data provider",
-        "default": "fmp"
+        "enum": [
+          "fmp",
+          "intrinio"
+        ],
+        "default": "fmp",
+        "description": "OpenBB data provider"
       }
     },
     "required": [
       "symbol"
-    ]
+    ],
+    "examples": [{"symbol": "QQQ", "limit": 25}]
   },
   "outputSchema": {
     "type": "object",
@@ -28,17 +40,13 @@
       "symbol": {
         "type": "string"
       },
-      "holdings_count": {
+      "data_points": {
         "type": "integer"
       },
       "holdings": {
         "type": "array"
       }
-    },
-    "required": [
-      "symbol",
-      "holdings"
-    ]
+    }
   },
   "metadata": {
     "author": "Ashutosh Sinha",
@@ -54,15 +62,10 @@
     ],
     "examples": [
       {
-        "description": "SPY top holdings",
+        "description": "Holdings of one ETF",
         "input": {
-          "symbol": "SPY"
-        }
-      },
-      {
-        "description": "QQQ holdings",
-        "input": {
-          "symbol": "QQQ"
+          "symbol": "QQQ",
+          "limit": 25
         }
       }
     ]

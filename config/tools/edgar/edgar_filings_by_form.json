@@ -1,7 +1,8 @@
 {
   "name": "edgar_filings_by_form",
   "implementation": "sajha.tools.impl.enhanced_edgar_tool.EDGARFilingsByFormTool",
-  "description": "A company's SEC filings of one form type (10-K, 10-Q, 8-K, 4, DEF 14A, S-1, 20-F ...), optionally in a filing-date range, from SEC EDGAR.\nReturns {cik, company_name, form_type, form_description, filings_count, filings: [{accessionNumber, filingDate, reportDate, form, primaryDocument, primaryDocDescription, document_url}]}, newest first.\nInputs (* required): cik* (string, SEC Central Index Key, up to 10 digits; from edgar_company_search), form_type* (one of the schema's list), start_date and end_date (YYYY-MM-DD, filing date), limit (integer 1-500, default 50).\nOnly the recent-filings block of the EDGAR submissions file is searched. edgar_insider_transactions, edgar_proxy_statements, edgar_current_reports etc. fix the form; edgar_amendments lists /A forms.\nExample: {\"cik\": \"0000320193\", \"form_type\": \"10-K\", \"start_date\": \"2020-01-01\", \"limit\": 5}\nNo API key needed (SEC data.sec.gov; 110 ms between requests).",
+  "description": "A company's SEC filings of one form type, optionally in a filing-date range.\nReturns {cik, company_name, form_type, form_description, filings_count, filings: [{accessionNumber, filingDate, reportDate, form, primaryDocument, primaryDocDescription, document_url}]}, newest first.\nInputs (* required): cik*, form_type*, start_date and end_date (YYYY-MM-DD), limit (default 50).\nSearches only the recent-filings block. SC 13D/G and SCHEDULE 13D/G (names since Dec 2024) find each other. Form-specific tools: edgar_insider_transactions, edgar_proxy_statements, edgar_current_reports; /A forms: edgar_amendments.\nExample: {\"cik\": \"0000320193\", \"form_type\": \"10-K\", \"start_date\": \"2020-01-01\", \"limit\": 5}",
+  "annotations": {"readOnlyHint": true, "idempotentHint": true, "openWorldHint": true},
   "version": "2.9.8",
   "enabled": true,
   "inputSchema": {
@@ -14,7 +15,41 @@
       "form_type": {
         "type": "string",
         "description": "SEC form type to filter",
-        "enum": ["10-K", "10-Q", "8-K", "4", "3", "5", "S-1", "S-3", "S-4", "S-8", "DEF 14A", "13F-HR", "13F-NT", "20-F", "6-K", "40-F", "424B2", "424B3", "424B4", "424B5", "SC 13D", "SC 13G", "SC 13G/A", "144", "N-Q", "N-CSR", "N-PORT", "NPORT-P"]
+        "enum": [
+          "10-K",
+          "10-Q",
+          "8-K",
+          "4",
+          "3",
+          "5",
+          "S-1",
+          "S-3",
+          "S-4",
+          "S-8",
+          "DEF 14A",
+          "13F-HR",
+          "13F-NT",
+          "20-F",
+          "6-K",
+          "40-F",
+          "424B2",
+          "424B3",
+          "424B4",
+          "424B5",
+          "SC 13D",
+          "SC 13G",
+          "SC 13G/A",
+          "144",
+          "N-Q",
+          "N-CSR",
+          "N-PORT",
+          "NPORT-P",
+          "SC 13D/A",
+          "SCHEDULE 13D",
+          "SCHEDULE 13G",
+          "SCHEDULE 13D/A",
+          "SCHEDULE 13G/A"
+        ]
       },
       "start_date": {
         "type": "string",
@@ -32,7 +67,11 @@
         "default": 50
       }
     },
-    "required": ["cik", "form_type"]
+    "required": [
+      "cik",
+      "form_type"
+    ],
+    "examples": [{"cik": "0000320193", "form_type": "10-K", "start_date": "2020-01-01", "limit": 5}]
   },
   "outputSchema": {
     "type": "object",
@@ -99,7 +138,17 @@
   "metadata": {
     "author": "Ashutosh Sinha",
     "category": "SEC EDGAR",
-    "tags": ["sec", "edgar", "filings", "10-K", "10-Q", "8-K", "forms", "annual report", "quarterly report"],
+    "tags": [
+      "sec",
+      "edgar",
+      "filings",
+      "10-K",
+      "10-Q",
+      "8-K",
+      "forms",
+      "annual report",
+      "quarterly report"
+    ],
     "rateLimit": 10,
     "cacheTTL": 1800,
     "note": "Filtered view of company filings by form type. Useful for tracking specific disclosure types or regulatory requirements.",

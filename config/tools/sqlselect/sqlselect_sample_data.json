@@ -2,6 +2,7 @@
   "name": "sqlselect_sample_data",
   "implementation": "sajha.tools.impl.sqlselect_tool_refactored.SqlSelectSampleDataTool",
   "description": "First rows of one configured data source, for a quick preview. Data sources are the named files configured in this tool's data_sources (CSV, Parquet or JSON in data.sqlselect.dir, default data/sqlselect), each loaded into a DuckDB table named after the source when the tool starts, with file and URL access then switched off; a source whose file is missing is listed but cannot be queried.\nReturns {success, source_name, columns, rows, row_count, timestamp}: rows are objects keyed by column.\nInputs (* required): source_name*, limit (1-1000; default 10).\nFor filtered or aggregated results use sqlselect_execute_query.\nExample: {\"source_name\": \"products\", \"limit\": 5}",
+  "annotations": {"readOnlyHint": true, "idempotentHint": true, "openWorldHint": false},
   "version": "2.9.8",
   "enabled": true,
   "data_directory": "${data.sqlselect.dir:./data/sqlselect}",
@@ -42,7 +43,8 @@
         "maximum": 1000
       }
     },
-    "required": ["source_name"]
+    "required": ["source_name"],
+    "examples": [{"source_name": "products", "limit": 5}]
   },
   "outputSchema": {
     "type": "object",

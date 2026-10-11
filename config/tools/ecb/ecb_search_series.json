@@ -1,7 +1,8 @@
 {
   "name": "ecb_search_series",
   "implementation": "sajha.tools.impl.european_central_bank_tool_refactored.ECBSearchSeriesTool",
-  "description": "List the ECB series these tools have shorthands for, grouped by category, with their dataflow and series key. A built-in catalogue; no network call.\nReturns: categories (category name to a list of indicator, flow, key, description) and total_series.\nInputs (none required): category (Exchange Rates, Interest Rates, Bond Yields, Inflation (HICP), Economic Indicators, Money Supply or all; default all).\nPass an indicator, or a flow and key, to ecb_get_series or ecb_get_latest.\nExample: {\"category\": \"Interest Rates\"}",
+  "description": "List the ECB series these tools have shorthands for, grouped by category, with their dataflow and series key. A built-in catalogue; no network call.\nReturns: categories (category name to a list of indicator, flow, key, description) and total_series.\nInputs (none required): category (Exchange Rates, Interest Rates, Bond Yields, Inflation (HICP), Economic Indicators, Money Supply or all; default all).\nPass an indicator, or a flow and key, to ecb_get_series or ecb_get_latest; any other ECB series key works there too.\nExample: {\"category\": \"Interest Rates\"}",
+  "annotations": {"readOnlyHint": true, "idempotentHint": true, "openWorldHint": true},
   "version": "2.9.8",
   "enabled": true,
   "inputSchema": {
@@ -119,7 +120,7 @@
       "Inflation (HICP)": {
         "description": "Harmonised Index of Consumer Prices measures",
         "seriesCount": 3,
-        "flow": "ICP"
+        "flow": "HICP"
       },
       "Economic Indicators": {
         "description": "Key Euro Area economic indicators",

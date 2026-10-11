@@ -1525,7 +1525,7 @@ results, `sajha_ask`, eval sets) and `tests/ai/test_llm_tools_runtime.py` (the g
 a simulated resident memory, admission and the queue, spill and read-back, spool caps and the
 janitor, shedding under pressure, a run ended at its next step at the hard limit, and a soak test
 that drives concurrent calls through the soft and hard limits without a crash). The mock answers
-each mode offline (`sajha/ai/llm/mock_llm_tools.py`). Eval sets for the shipped tools are
+each mode offline (`sajha/ai/llm/providers/mock_llm_tools.py`). Eval sets for the shipped tools are
 `config/evals/llm_*.yaml`; an eval set names an LLM tool with `tool:`
 ([Tool Quality](Tool%20Quality.md) section 5).
 

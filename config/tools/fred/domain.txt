@@ -1,0 +1,1 @@
+FRED (Federal Reserve Economic Data), the St. Louis Fed's database at api.stlouisfed.org. Every tool here needs a free API key: env FRED_API_KEY (config fred.api.key); without one a call fails with a message saying how to set it, never with invented values. For a series no named tool covers, use fred_custom_series.

@@ -1,7 +1,8 @@
 {
   "name": "yf_crypto_info",
   "implementation": "sajha.tools.impl.yfinance_tools.YFCryptoInfoTool",
-  "description": "Profile and market statistics for one cryptocurrency against USD from Yahoo Finance (yfinance Ticker.info).\nReturns: {symbol, info} where info is Yahoo's dictionary (e.g. name, description, previousClose, dayHigh, dayLow, volume, marketCap, fiftyTwoWeekHigh, fiftyTwoWeekLow, allTimeHigh).\nInputs (* required): symbol* (BTC, ETH or BTC-USD; \"-USD\" is appended when the symbol does not already end with it, so only USD pairs work; default BTC-USD).\nPrice history: openbb_crypto_price, av_crypto_daily; broader crypto data: cg_coin_markets. No API key; data comes from Yahoo Finance through the yfinance library.\nExample: {\"symbol\": \"ETH\"}",
+  "description": "Profile and market statistics for one cryptocurrency pair from Yahoo Finance (yfinance Ticker.info).\nReturns: {symbol, info} where info is Yahoo's dictionary (e.g. name, description, previousClose, dayHigh, dayLow, volume, marketCap, fiftyTwoWeekHigh, fiftyTwoWeekLow).\nInputs (* required): symbol (BTC, ETH, BTC-USD or another pair such as ETH-EUR; upper-cased; \"-USD\" is appended only when the symbol has no dash; default BTC-USD).\nPrice history: openbb_crypto_price, av_crypto_daily; broader crypto data: cg_coin_markets.\nExample: {\"symbol\": \"ETH-EUR\"}",
+  "annotations": {"readOnlyHint": true, "idempotentHint": true, "openWorldHint": true},
   "version": "4.5.0",
   "enabled": true,
   "inputSchema": {
@@ -9,13 +10,11 @@
     "properties": {
       "symbol": {
         "type": "string",
-        "description": "Crypto symbol, e.g. BTC, ETH or BTC-USD (-USD is appended if missing)",
+        "description": "Crypto symbol, e.g. BTC, ETH (USD pair) or BTC-EUR; -USD is appended when there is no dash",
         "default": "BTC-USD"
       }
     },
-    "required": [
-      "symbol"
-    ]
+    "required": []
   },
   "outputSchema": {
     "type": "object",
@@ -33,6 +32,14 @@
     "tags": [
       "yfinance",
       "crypto"
+    ],
+    "examples": [
+      {
+        "description": "Profile and market statistics for one cryptocurrency pair",
+        "input": {
+          "symbol": "ETH-EUR"
+        }
+      }
     ]
   }
 }

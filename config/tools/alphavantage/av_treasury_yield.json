@@ -1,7 +1,8 @@
 {
   "name": "av_treasury_yield",
   "implementation": "sajha.tools.impl.alphavantage_tools.AVTreasuryYieldTool",
-  "description": "US Treasury constant-maturity yield (percent) for one maturity from Alpha Vantage (TREASURY_YIELD), sampled monthly.\nReturns: {name, interval, unit, data: [{date, value}]} with values as strings, newest first. Alpha Vantage's JSON comes back unchanged, including its \"Error Message\" or \"Information\" notes; a network failure gives {\"error\": ...}.\nInputs (* required): maturity (3month, 2year, 5year, 7year, 10year or 30year; default 10year). The tool always asks for the monthly interval.\nOther sources: fred_10yr_treasury, fred_2yr_treasury, fred_yield_spread; policy rate: av_fed_funds_rate.\nKey: ALPHA_VANTAGE_API_KEY (alpha_vantage.api.key); when unset the 'demo' key is sent, which only serves Alpha Vantage's documentation examples. Free tier: 25 requests/day.\nExample: {\"maturity\": \"2year\"}",
+  "description": "US Treasury constant-maturity yield (percent) for one maturity from Alpha Vantage (TREASURY_YIELD), daily, weekly or monthly.\nReturns: {name, interval, unit, data: [{date, value}]} with values as strings, newest first.\nInputs (* required): maturity (3month, 2year, 5year, 7year, 10year or 30year; default 10year); interval (daily, weekly or monthly; default monthly).\nOther sources: fred_10yr_treasury, fred_2yr_treasury, fred_yield_spread; policy rate: av_fed_funds_rate.\nExample: {\"maturity\": \"2year\"}",
+  "annotations": {"readOnlyHint": true, "idempotentHint": true, "openWorldHint": true},
   "version": "4.5.0",
   "enabled": true,
   "inputSchema": {
@@ -19,6 +20,16 @@
           "10year",
           "30year"
         ]
+      },
+      "interval": {
+        "type": "string",
+        "enum": [
+          "daily",
+          "weekly",
+          "monthly"
+        ],
+        "default": "monthly",
+        "description": "daily, weekly or monthly"
       }
     },
     "required": []

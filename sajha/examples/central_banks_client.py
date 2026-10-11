@@ -10,7 +10,6 @@ Example client for Central Bank tools:
 - Bank of Canada (BoC): boc_* tools
 - Bank of Japan (BoJ): boj_* tools
 - People's Bank of China (PBoC): pboc_* tools
-- Reserve Bank of India (RBI): rbi_* tools
 - Banque de France (BdF): bdf_* tools
 
 Usage:
@@ -75,38 +74,9 @@ class CentralBanksClient(SajhaClient):
         """Get Loan Prime Rate (LPR)."""
         return self.execute_tool('pboc_get_lpr', {})
     
-    def pboc_get_money_supply(self) -> dict:
-        """Get China money supply."""
-        return self.execute_tool('pboc_get_money_supply', {})
-    
     def pboc_get_forex_reserves(self) -> dict:
         """Get China forex reserves."""
         return self.execute_tool('pboc_get_forex_reserves', {})
-    
-    def pboc_get_cgb_yield(self, maturity: str = '10Y') -> dict:
-        """Get Chinese Government Bond yield."""
-        return self.execute_tool('pboc_get_cgb_yield', {'maturity': maturity})
-    
-    # ============= Reserve Bank of India =============
-    def rbi_get_exchange_rate(self, currency: str = 'USD') -> dict:
-        """Get INR exchange rate."""
-        return self.execute_tool('rbi_get_exchange_rate', {'currency': currency})
-    
-    def rbi_get_policy_rate(self) -> dict:
-        """Get RBI policy rate (repo rate)."""
-        return self.execute_tool('rbi_get_policy_rate', {})
-    
-    def rbi_get_inflation(self) -> dict:
-        """Get India inflation data (CPI)."""
-        return self.execute_tool('rbi_get_inflation', {})
-    
-    def rbi_get_forex_reserves(self) -> dict:
-        """Get India forex reserves."""
-        return self.execute_tool('rbi_get_forex_reserves', {})
-    
-    def rbi_get_gsec_yield(self, maturity: str = '10Y') -> dict:
-        """Get Indian Government Security yield."""
-        return self.execute_tool('rbi_get_gsec_yield', {'maturity': maturity})
     
     # ============= Banque de France =============
     def bdf_get_exchange_rate(self, currency: str = 'USD') -> dict:
@@ -117,9 +87,9 @@ class CentralBanksClient(SajhaClient):
         """Get ECB policy rate from BdF."""
         return self.execute_tool('bdf_get_ecb_policy_rate', {})
     
-    def bdf_get_oat_yield(self, maturity: str = '10Y') -> dict:
-        """Get French OAT bond yield."""
-        return self.execute_tool('bdf_get_oat_yield', {'maturity': maturity})
+    def bdf_get_oat_yield(self, maturity: str = '10y') -> dict:
+        """Get the French 10-year government bond (OAT) yield."""
+        return self.execute_tool('bdf_get_oat_yield', {'bond_term': maturity.lower()})
     
     def bdf_get_french_indicator(self, indicator: str) -> dict:
         """Get French economic indicator."""
@@ -188,30 +158,6 @@ def example_pboc_overview():
 
 
 @run_example
-def example_rbi_overview():
-    """Example: Reserve Bank of India overview"""
-    client = CentralBanksClient()
-    
-    print("\n🇮🇳 Reserve Bank of India Data")
-    print("-" * 40)
-    
-    # Exchange rate
-    print("\n💱 USD/INR Exchange Rate:")
-    rate = client.rbi_get_exchange_rate('USD')
-    print(f"   {rate}")
-    
-    # Policy rate
-    print("\n🏦 Repo Rate:")
-    repo = client.rbi_get_policy_rate()
-    print(f"   {repo}")
-    
-    # Inflation
-    print("\n📈 Inflation:")
-    inflation = client.rbi_get_inflation()
-    print(f"   {inflation}")
-
-
-@run_example
 def example_global_central_bank_dashboard():
     """Example: Global central bank dashboard"""
     client = CentralBanksClient()
@@ -223,7 +169,6 @@ def example_global_central_bank_dashboard():
         'Bank of Canada': ('boc_get_exchange_rate', 'CAD'),
         'Bank of Japan': ('boj_get_exchange_rate', 'JPY'),
         'PBoC': ('pboc_get_exchange_rate', 'CNY'),
-        'RBI': ('rbi_get_exchange_rate', 'INR'),
     }
     
     print("\n💱 Exchange Rates vs USD:")
@@ -239,7 +184,6 @@ def example_global_central_bank_dashboard():
         ('Bank of Canada', 'boc_get_interest_rate', {'rate_type': 'policy'}),
         ('Bank of Japan', 'boj_get_policy_rate', {}),
         ('PBoC (LPR)', 'pboc_get_lpr', {}),
-        ('RBI (Repo)', 'rbi_get_policy_rate', {}),
     ]
     
     for name, method, args in policy_methods:
@@ -261,8 +205,6 @@ def example_bond_yields_comparison():
     bonds = [
         ('Canada', 'boc_get_bond_yield'),
         ('Japan (JGB)', 'boj_get_jgb_yield'),
-        ('China (CGB)', 'pboc_get_cgb_yield'),
-        ('India (G-Sec)', 'rbi_get_gsec_yield'),
         ('France (OAT)', 'bdf_get_oat_yield'),
     ]
     
@@ -282,6 +224,5 @@ if __name__ == '__main__':
     example_boc_overview()
     example_boj_overview()
     example_pboc_overview()
-    example_rbi_overview()
     example_global_central_bank_dashboard()
     example_bond_yields_comparison()

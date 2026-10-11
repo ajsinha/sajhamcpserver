@@ -1,7 +1,8 @@
 {
   "name": "fbi_get_state_statistics",
   "implementation": "sajha.tools.impl.fbi_tool_refactored.FBIGetStateStatisticsTool",
-  "description": "Offense counts, rate per 100,000 and clearances for one US state and year, compared with the national rate, from the FBI Crime Data Explorer.\nReturns: state, state_name, offense_type, year, state_data (total_incidents, total_cleared, clearance_rate_pct, rate_per_100k, population, population_coverage_pct, months_reported), comparison (national_rate_per_100k, percent_of_national), optional monthly series and metadata.\nInputs (* required): state* (two-letter USPS code, e.g. CA, DC); offense_type* (a UCR category such as violent_crime, property_crime, homicide, robbery, burglary; list in the schema); year (1985 to the current year; default last year); include_monthly (boolean; default false).\nTo rank states use fbi_compare_states; for an agency fbi_get_agency_statistics; for several years fbi_get_crime_trend. Key: api.data.gov key in FBI_API_KEY, else the rate-limited DEMO_KEY.\nExample: {\"state\": \"TX\", \"offense_type\": \"burglary\", \"year\": 2022}",
+  "description": "Offense counts, rate per 100,000 and clearances for one US state and year, compared with the national rate, from the FBI Crime Data Explorer.\nReturns: state, state_name, offense_type, year, state_data (total_incidents, total_cleared, clearance_rate_pct, rate_per_100k, population, population_coverage_pct, months_reported), comparison (national_rate_per_100k, percent_of_national), optional monthly series and metadata.\nInputs (* required): state* (two-letter USPS code, e.g. CA, DC); offense_type* (a UCR category such as violent_crime, property_crime, homicide, robbery, burglary; list in the schema); year (1985 to the current year; default last year); include_monthly (boolean; default false).\nTo rank states use fbi_compare_states; for an agency fbi_get_agency_statistics; for several years fbi_get_crime_trend.\nExample: {\"state\": \"TX\", \"offense_type\": \"burglary\", \"year\": 2022}",
+  "annotations": {"readOnlyHint": true, "idempotentHint": true, "openWorldHint": true},
   "version": "3.0.0",
   "enabled": true,
   "inputSchema": {
@@ -30,9 +31,8 @@
       },
       "year": {
         "type": "integer",
-        "description": "Data year (defaults to last calendar year)",
-        "minimum": 1985,
-        "maximum": 2100
+        "description": "Data year (1985 to the current year; defaults to last calendar year)",
+        "minimum": 1985
       },
       "include_monthly": {
         "type": "boolean",
@@ -43,7 +43,8 @@
     "required": [
       "state",
       "offense_type"
-    ]
+    ],
+    "examples": [{"state": "TX", "offense_type": "burglary", "year": 2022}]
   },
   "outputSchema": {
     "type": "object",

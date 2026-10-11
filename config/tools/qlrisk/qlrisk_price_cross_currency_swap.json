@@ -3,7 +3,7 @@
   "implementation": "sajha.tools.impl.qlrisk.qlrisk_tools.QlriskPriceProductTool",
   "product": "CrossCurrencySwap",
   "title": "Price a CrossCurrencySwap",
-  "description": "Price one Cross-Currency Swap (qlrisk CrossCurrencySwap): NPV, pricing components and Greeks where the pricer gives them.\nInputs (* required): maturity* (tenor like 3Y or date), notional (amount; default 1000000), frequency (annual/semi-annual/quarterly/monthly/at maturity; default semi-annual), pair (default EURUSD), foreign_curve (default ESTR), domestic_coupon_pct (percent, 3 = 3%), foreign_coupon_pct (percent, 3 = 3%), foreign_notional, currency (see the schema's list; default USD). Rates are in percent, spreads in basis points, maturities a tenor (3Y, 18M, 6W, 10D) or a date YYYY-MM-DD. Optional `advanced`: trade_id, trade_date, effective_date, counterparty_id, position, market_data, reporting_currency, include_cash_flows; market data defaults to qlrisk's sample snapshot valued today.\nExample: {\"maturity\": \"5Y\", \"notional\": 1000000} gives NPV -1,006.80 USD on the sample market valued 2026-10-09. For several trades at once use qlrisk_price_trades.",
+  "description": "Price one Cross-Currency Swap (qlrisk CrossCurrencySwap).\nInputs (* required, name=default): maturity*, notional=1000000, frequency=semi-annual, pair=EURUSD, foreign_curve=ESTR, domestic_coupon_pct, foreign_coupon_pct, foreign_notional, currency=USD. In `advanced` also: effective_date, position.\nExample: {\"maturity\": \"5Y\", \"notional\": 1000000} gives NPV -1,006.80 USD (sample market valued 2026-10-09).",
   "version": "1.0.0",
   "enabled": true,
   "requires": [

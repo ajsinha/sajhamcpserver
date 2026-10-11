@@ -144,28 +144,24 @@ The tools communicate with the ECB Statistical Data Warehouse using standard RES
 # Base URL
 https://data-api.ecb.europa.eu/service/data
 
-# Request Format
-GET /{flow}/{key}?format=jsondata&detail=dataonly&startPeriod={date}&endPeriod={date}
+# Request Format (through the shared SDMX client, sajha/tools/impl/sdmx_client.py)
+GET /{flow}/{key}?format=csvdata&startPeriod={date}&endPeriod={date}
+GET /{flow}/{key}?format=csvdata&lastNObservations={recent_periods}     # when no date is given
 
 # Example
-GET /EXR/D.USD.EUR.SP00.A?format=jsondata&detail=dataonly&startPeriod=2024-01-01
+GET /EXR/D.USD.EUR.SP00.A?format=csvdata&lastNObservations=10
 ```
 
 ### HTTP Request Details
 
-**Headers**:
-```python
-{
-    'User-Agent': 'Mozilla/5.0',
-    'Accept': 'application/json'
-}
-```
+Every request goes through SAJHA's shared SDMX client, which sends it through the outbound fetch guard and the HTTP proxy (`tools.outbound.*`) and only to the ECB host ([Tool Quality §12.3](../../architecture/Tool%20Quality.md#123-a-shared-sdmx-client)).
 
 **Parameters**:
-- `format=jsondata`: JSON response format
-- `detail=dataonly`: Minimal metadata, focus on observations
-- `startPeriod`: Start date (YYYY-MM-DD)
-- `endPeriod`: End date (YYYY-MM-DD)
+- `format=csvdata`: SDMX-CSV, which carries the series title, unit and unit multiplier
+- `startPeriod`, `endPeriod`: the dates given (`YYYY-MM-DD`, `YYYY-MM` or `YYYY`)
+- `lastNObservations`: with no date, the last `recent_periods` observations of the series, whatever its frequency (before 8.8.0 the tools looked back `recent_periods` x 40 days, which left monthly and quarterly series empty)
+
+An empty selection (the ECB's 404 `NoRecordsFound`) is "no data", not an error.
 
 **Timeout**: 30 seconds per request
 
@@ -307,8 +303,7 @@ The `ecb_` tools do not rate-limit or cache on the server side. Caching is opt-i
 1. **main_refinancing_rate** - Primary ECB policy rate
 2. **deposit_facility_rate** - Floor for overnight rates
 3. **marginal_lending_rate** - Ceiling for overnight rates
-4. **eonia** - Euro OverNight Index Average (legacy)
-5. **ester** - Euro Short-Term Rate (€STR, replaced EONIA)
+4. **ester** - Euro Short-Term Rate (€STR, business-daily; dataflow `EST`)
 
 **Input Parameters**:
 ```json
@@ -320,7 +315,7 @@ The `ecb_` tools do not rate-limit or cache on the server side. Caching is opt-i
 }
 ```
 
-**Note**: €STR replaced EONIA as the official overnight reference rate in 2022.
+**Note**: €STR replaced EONIA, which ended in January 2022; EONIA is no longer offered (its series has no data).
 
 ---
 
@@ -393,7 +388,7 @@ The `ecb_` tools do not rate-limit or cache on the server side. Caching is opt-i
 
 **Optimization**: Minimal payload size (~200 bytes vs ~2KB for time series)
 
-> **Note:** the tool looks back about 40 days for the latest value, so monthly series published with a lag and quarterly series (for example `gdp`) can return "No data available". Use `ecb_get_series` with a `start_date` for those. `ecb_get_common_indicators` uses the same 40-day window.
+> **Note:** the tool asks the ECB for the series' last observation (`lastNObservations=1`), so daily, monthly and quarterly series all return their latest published value. `ecb_get_common_indicators` does the same, one request per indicator.
 
 **Input Parameters**:
 ```json
@@ -540,7 +535,8 @@ Understanding ECB data flows is essential for using the generic `ecb_get_series`
 | **EXR** | Exchange Rates | Foreign exchange rates, EUR vs other currencies |
 | **FM** | Financial Markets | Interest rates, money market rates, policy rates |
 | **YC** | Yield Curves | Government bond yields, various maturities |
-| **ICP** | HICP | Harmonised Index of Consumer Prices (inflation) |
+| **HICP** | HICP | Harmonised Index of Consumer Prices (inflation; replaced the ICP dataflow, which the ECB retired in February 2026) |
+| **EST** | Euro short-term rate | €STR |
 | **MNA** | National Accounts | GDP, economic output measures |
 | **BSI** | Balance Sheet Items | Monetary aggregates (M1, M2, M3) |
 | **LFSI** | Labour Force Survey | Unemployment, employment statistics |
@@ -773,7 +769,7 @@ for series in result['categories']['Exchange Rates']:
     "enum": [
       "eur_usd", "eur_gbp", "eur_jpy", "eur_cny", "eur_chf",
       "main_refinancing_rate", "deposit_facility_rate", "marginal_lending_rate",
-      "eonia", "ester",
+      "ester",
       "bond_2y", "bond_5y", "bond_10y",
       "hicp_overall", "hicp_core", "hicp_energy",
       "gdp", "unemployment_rate",
@@ -1044,31 +1040,30 @@ dashboard = tool.execute({
 | main_refinancing_rate | Main Refinancing Operations Rate | FM | B.U2.EUR.4F.KR.MRR_FR.LEV |
 | deposit_facility_rate | Deposit Facility Rate | FM | B.U2.EUR.4F.KR.DFR.LEV |
 | marginal_lending_rate | Marginal Lending Facility Rate | FM | B.U2.EUR.4F.KR.MLFR.LEV |
-| eonia | Euro OverNight Index Average | FM | D.U2.EUR.4F.KR.EON.LEV |
-| ester | Euro Short-Term Rate (€STR) | FM | D.U2.EUR.4F.KR.ESTER.LEV |
+| ester | Euro Short-Term Rate (€STR) | EST | B.EU000A2X2A25.WT |
 
 ### Bond Yields (YC Flow)
 
 | Indicator | Description | Flow | Key |
 |-----------|-------------|------|-----|
-| bond_2y | 2-Year Euro Area Government Bond Yield | YC | B.U2.EUR.4F.G_N_A.SV_C_YM.SR_2Y |
-| bond_5y | 5-Year Euro Area Government Bond Yield | YC | B.U2.EUR.4F.G_N_A.SV_C_YM.SR_5Y |
-| bond_10y | 10-Year Euro Area Government Bond Yield | YC | B.U2.EUR.4F.G_N_A.SV_C_YM.SR_10Y |
+| bond_2y | 2-year euro area AAA government bond yield (ECB AAA curve) | YC | B.U2.EUR.4F.G_N_A.SV_C_YM.SR_2Y |
+| bond_5y | 5-year euro area AAA government bond yield (ECB AAA curve) | YC | B.U2.EUR.4F.G_N_A.SV_C_YM.SR_5Y |
+| bond_10y | 10-year euro area AAA government bond yield (ECB AAA curve) | YC | B.U2.EUR.4F.G_N_A.SV_C_YM.SR_10Y |
 
-### Inflation (ICP Flow)
+### Inflation (HICP Flow)
 
 | Indicator | Description | Flow | Key |
 |-----------|-------------|------|-----|
-| hicp_overall | HICP - Overall Index | ICP | M.U2.N.000000.4.ANR |
-| hicp_core | HICP - All items excluding energy and food | ICP | M.U2.N.XEF000.4.ANR |
-| hicp_energy | HICP - Energy | ICP | M.U2.N.NRG000.4.ANR |
+| hicp_overall | HICP - Overall index, annual rate of change | HICP | M.U2.N.000000.4D0.ANR |
+| hicp_core | HICP - All items excluding energy and food, annual rate of change | HICP | M.U2.N.XEF000.4D0.ANR |
+| hicp_energy | HICP - Energy, annual rate of change | HICP | M.U2.N.NRGY00.4D0.ANR |
 
 ### Economic Indicators
 
 | Indicator | Description | Flow | Key |
 |-----------|-------------|------|-----|
-| gdp | GDP at market prices | MNA | Q.Y.I8.W2.S1.S1.B.B1GQ._Z._Z._Z.EUR.LR.N |
-| unemployment_rate | Unemployment Rate - Total | LFSI | M.U2.N.S.UNEH.RTT000.4.AV3 |
+| gdp | GDP at market prices, chain-linked volumes, EUR millions (euro area 21) | MNA | Q.Y.I10.W2.S1.S1.B.B1GQ._Z._Z._Z.EUR.LR.N |
+| unemployment_rate | Unemployment rate, ages 15-74, seasonally adjusted | LFSI | M.U2.S.UNEHRT.TOTAL0.15_74.T |
 
 ### Money Supply (BSI Flow)
 

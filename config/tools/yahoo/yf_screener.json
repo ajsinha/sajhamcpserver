@@ -1,7 +1,8 @@
 {
   "name": "yf_screener",
   "implementation": "sajha.tools.impl.yfinance_tools.YFScreenerTool",
-  "description": "Yahoo Finance predefined stock screens (day gainers, losers, most active and others), through yfinance's Screener class.\nReturns: {screen_type, count, results: up to 50 Yahoo quote objects} or {screen_type, error}.\nInputs (* required): screen_type (day_gainers, day_losers, most_actives, undervalued_large_caps, aggressive_small_caps, growth_technology_stocks, undervalued_growth_stocks; default day_gainers).\nyfinance 0.2.66 (the version installed with SAJHA at the time of writing) no longer has yf.Screener, so this returns the error form; openbb_equity_discovery_gainers, openbb_equity_discovery_losers and openbb_equity_discovery_active (provider yfinance) cover the same lists. No API key; data comes from Yahoo Finance through the yfinance library.\nExample: {\"screen_type\": \"most_actives\"}",
+  "description": "Yahoo Finance predefined stock screens (day gainers, losers, most active, most shorted and others), through yfinance's screen function.\nReturns: {screen_type, title, total (stocks matching the screen), count, results: [{symbol, shortName, exchange, currency, regularMarketPrice, regularMarketChange, regularMarketChangePercent, regularMarketVolume, marketCap, trailingPE, fiftyTwoWeekHigh, fiftyTwoWeekLow, ...}]} or {screen_type, error}.\nInputs (* required): screen_type (day_gainers, day_losers, most_actives, most_shorted_stocks, small_cap_gainers, undervalued_large_caps, aggressive_small_caps, growth_technology_stocks, undervalued_growth_stocks; default day_gainers); limit (stocks, 1-250; default 25).\nCustom filters: openbb_equity_screener; trending names: yf_trending_tickers.\nExample: {\"screen_type\": \"most_actives\", \"limit\": 10}",
+  "annotations": {"readOnlyHint": true, "idempotentHint": true, "openWorldHint": true},
   "version": "4.5.0",
   "enabled": true,
   "inputSchema": {
@@ -9,17 +10,26 @@
     "properties": {
       "screen_type": {
         "type": "string",
-        "description": "Yahoo predefined screen",
         "default": "day_gainers",
+        "description": "Yahoo predefined screen",
         "enum": [
           "day_gainers",
           "day_losers",
           "most_actives",
+          "most_shorted_stocks",
+          "small_cap_gainers",
           "undervalued_large_caps",
           "aggressive_small_caps",
           "growth_technology_stocks",
           "undervalued_growth_stocks"
         ]
+      },
+      "limit": {
+        "type": "integer",
+        "minimum": 1,
+        "maximum": 250,
+        "default": 25,
+        "description": "Most stocks returned (1-250)"
       }
     },
     "required": []
@@ -27,8 +37,26 @@
   "outputSchema": {
     "type": "object",
     "properties": {
-      "result": {
-        "type": "object"
+      "screen_type": {
+        "type": "string"
+      },
+      "title": {
+        "type": [
+          "string",
+          "null"
+        ]
+      },
+      "total": {
+        "type": [
+          "integer",
+          "null"
+        ]
+      },
+      "count": {
+        "type": "integer"
+      },
+      "results": {
+        "type": "array"
       }
     }
   },
@@ -40,6 +68,15 @@
     "tags": [
       "yfinance",
       "screener"
+    ],
+    "examples": [
+      {
+        "description": "Yahoo Finance predefined stock screens (day gainers, losers, most active, most s",
+        "input": {
+          "screen_type": "most_actives",
+          "limit": 10
+        }
+      }
     ]
   }
 }

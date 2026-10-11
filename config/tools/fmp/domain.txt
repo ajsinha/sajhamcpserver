@@ -1,0 +1,1 @@
+Financial Modeling Prep (FMP, financialmodelingprep.com/stable): company profiles, quotes, financial statements and market data. Every tool here needs an FMP API key: env FMP_API_KEY (config fmp.api.key); without one a call returns a demo placeholder naming the endpoint instead of data.

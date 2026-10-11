@@ -14,7 +14,7 @@ real provider is configured, so a fresh install can use the intelligence layer a
                      from the schema (defaults, numbers, symbols in the question), then
                      answers from the tool results
     mock-toolsmith   designs a tool from a description for Studio's "Describe a tool"
-                     (structured output only; sajha/ai/llm/mock_toolsmith.py)
+                     (structured output only; sajha/ai/llm/providers/mock_toolsmith.py)
     mock-embed       deterministic embeddings from hashed word n-grams (default 256 dims)
 
 The mock speaks the canonical Chat Completions format (chat_completions_create / _stream return
@@ -164,7 +164,7 @@ class MockProvider(ProviderBase):
                                            tags=frozenset({"deterministic"})),
         "mock-planner": ModelCapabilities(tools=True, structured_output=True, context_window=128_000,
                                           tags=frozenset({"deterministic", "fast", "cheap", "reasoning"})),
-        # Studio "Describe a tool": designs a tool from a description (sajha/ai/llm/mock_toolsmith.py)
+        # Studio "Describe a tool": designs a tool from a description (sajha/ai/llm/providers/mock_toolsmith.py)
         "mock-toolsmith": ModelCapabilities(tools=False, structured_output=True, context_window=128_000,
                                             tags=frozenset({"deterministic"})),
     }
@@ -256,7 +256,7 @@ class MockProvider(ProviderBase):
             from sajha.ai.llm.errors import UnsupportedFeature
             raise UnsupportedFeature(f"mock has no model '{model_id}'", provider=self.name, model=model_id)
         if base == "mock-toolsmith":
-            from sajha.ai.llm.mock_toolsmith import ToolsmithModel
+            from sajha.ai.llm.providers.mock_toolsmith import ToolsmithModel
             return ToolsmithModel(self, model_id, caps, **options)
         cls = {"mock-echo": EchoModel, "mock-scripted": ScriptedModel, "mock-planner": PlannerModel}[base]
         return cls(self, model_id, caps, **options)
@@ -380,8 +380,8 @@ class PlannerModel(_MockChat):
 
     def _create(self, request: ChatCompletionRequest) -> ChatCompletion:
         mode = (request.metadata or {}).get("sajha_llm_mode")
-        if mode:                                   # an LLM tool's call (sajha/ai/llm/mock_llm_tools.py)
-            from sajha.ai.llm import mock_llm_tools
+        if mode:                                   # an LLM tool's call (sajha/ai/llm/providers/mock_llm_tools.py)
+            from sajha.ai.llm.providers import mock_llm_tools
             text = mock_llm_tools.reply(mode, mock_llm_tools.last_user(request.messages), request.output_schema,
                                         mock_llm_tools.system_text(request.messages))
             if text is not None:

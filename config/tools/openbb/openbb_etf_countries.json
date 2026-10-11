@@ -1,7 +1,8 @@
 {
   "name": "openbb_etf_countries",
   "implementation": "sajha.tools.impl.openbb_tools.OpenBBGenericTool",
-  "description": "Country weights of one ETF through the OpenBB Platform (obb.etf.countries).\nReturns: {tool, data_points (total rows), data: first 100 rows as OpenBB returns them} or {tool, error}.\nInputs (* required): symbol*; provider (OpenBB 4.6 accepts fmp only; schema default fmp, but when omitted the tool sends yfinance, which this command rejects, so set it).\nSector weights: openbb_etf_sectors; another source: fmp_etf_country_weights. Keys: fmp, benzinga, fred, intrinio, polygon and tiingo need credentials in OpenBB's settings (~/.openbb_platform/user_settings.json), not supplied by SAJHA; yfinance, oecd, federal_reserve, sec, imf and government_us need none.\nExample: {\"symbol\": \"VEA\", \"provider\": \"fmp\"}",
+  "description": "Country weights of one ETF through the OpenBB Platform (obb.etf.countries).\nReturns: {tool, provider, data_points (rows before the cap), truncated, data: rows with their dates, ignored_arguments when some did not apply} or {tool, error}.\nInputs (* required): symbol*; limit (rows returned, 1-1000; default 100; a dated series keeps its most recent rows); provider (fmp; default fmp).\nSector weights: openbb_etf_sectors; another source: fmp_etf_country_weights. Keys: fmp uses SAJHA's FMP_API_KEY.\nExample: {\"symbol\": \"VEA\"}",
+  "annotations": {"readOnlyHint": true, "idempotentHint": true, "openWorldHint": true},
   "version": "4.5.0",
   "enabled": true,
   "inputSchema": {
@@ -9,23 +10,50 @@
     "properties": {
       "symbol": {
         "type": "string",
-        "description": "Stock ticker symbol"
+        "description": "Ticker symbol, e.g. AAPL"
+      },
+      "limit": {
+        "type": "integer",
+        "minimum": 1,
+        "maximum": 1000,
+        "default": 100,
+        "description": "Most rows returned (1-1000); a dated series keeps its most recent rows"
       },
       "provider": {
         "type": "string",
-        "description": "OpenBB data provider",
-        "default": "fmp"
+        "enum": [
+          "fmp"
+        ],
+        "default": "fmp",
+        "description": "OpenBB data provider"
       }
     },
     "required": [
       "symbol"
-    ]
+    ],
+    "examples": [{"symbol": "VEA"}]
   },
   "outputSchema": {
     "type": "object",
     "properties": {
-      "result": {
-        "type": "object"
+      "tool": {
+        "type": "string"
+      },
+      "provider": {
+        "type": "string"
+      },
+      "data_points": {
+        "type": "integer",
+        "description": "Rows before the cap"
+      },
+      "truncated": {
+        "type": "boolean"
+      },
+      "data": {
+        "type": "array"
+      },
+      "error": {
+        "type": "string"
       }
     }
   },
@@ -38,6 +66,14 @@
       "openbb",
       "etf",
       "countries"
+    ],
+    "examples": [
+      {
+        "description": "Country weights of one ETF",
+        "input": {
+          "symbol": "VEA"
+        }
+      }
     ]
   }
 }

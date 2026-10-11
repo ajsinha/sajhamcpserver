@@ -1,7 +1,8 @@
 {
   "name": "cg_search",
   "implementation": "sajha.tools.impl.coingecko_tools.CGSearchTool",
-  "description": "Search CoinGecko by keyword for coins, exchanges, categories and NFTs (search), mainly to find CoinGecko ids.\nReturns {coins: [{id, name, symbol, market_cap_rank, ...}], exchanges: [...], categories: [...], nfts: [...]}, ranked by CoinGecko.\nInputs (* required): query* (string, a name or symbol, e.g. solana or SOL).\nUse the returned coin id in cg_coin_price, cg_coin_info and the other coin tools; cg_coin_list returns every id at once.\nExample: {\"query\": \"chainlink\"}\nNo API key is sent (CoinGecko public API, rate-limited by CoinGecko); a failed call returns {\"error\": ...}.",
+  "description": "Search CoinGecko by keyword for coins, exchanges, categories and NFTs (search), mainly to find CoinGecko ids.\nReturns {coins: [{id, name, symbol, market_cap_rank, ...}], exchanges: [...], categories: [...], nfts: [...]}, ranked by CoinGecko.\nInputs (* required): query* (string, a name or symbol, e.g. solana or SOL).\nUse the returned coin id in cg_coin_price, cg_coin_info and the other coin tools; cg_coin_list returns every id at once.\nExample: {\"query\": \"chainlink\"}",
+  "annotations": {"readOnlyHint": true, "idempotentHint": true, "openWorldHint": true},
   "version": "4.5.0",
   "enabled": true,
   "inputSchema": {
@@ -14,7 +15,8 @@
     },
     "required": [
       "query"
-    ]
+    ],
+    "examples": [{"query": "chainlink"}]
   },
   "outputSchema": {
     "type": "object",

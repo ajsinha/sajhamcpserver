@@ -1,9 +1,40 @@
 {
   "name": "pboc_get_inflation",
   "implementation": "sajha.tools.impl.china_central_bank.PBoCGetInflationTool",
-  "description": "Chinese price indices, monthly, from FRED (Federal Reserve Bank of St. Louis, OECD series): cpi (all items), core_cpi (less food and energy) or ppi.\nReturns: series_code (FRED id), series_id, label, source, observation_count and observations (date, value) oldest first, missing values dropped.\nInputs (none required): measure (cpi, core_cpi, ppi; default cpi); start_date, end_date (YYYY-MM-DD); recent_periods (1-500; the last N observations; with no dates it looks back N x 45 days); omit all three for the full history.\nFor growth, trade and other indicators use pboc_get_economic_indicator. Needs a FRED API key (FRED_API_KEY, config fred.api.key); without one the call fails with a message saying so.\nExample: {\"measure\": \"cpi\", \"recent_periods\": 12}",
+  "description": "Chinese consumer prices, monthly, from the IMF CPI dataflow (all items): cpi is the index level (CHN.CPI._T.IX.M), cpi_inflation the percent change on a year earlier (CHN.CPI._T.YOY_PCH_PA_PT.M). FRED's Chinese CPI, core CPI and PPI series stopped updating, so core CPI and PPI are not offered.\nReturns: series_code (FRED id, or IMF flow.key), series_id, label, source, observation_count and observations (date, value) oldest first, missing values dropped.\nInputs (none required): measure (cpi, cpi_inflation; default cpi); start_date, end_date (YYYY-MM-DD); recent_periods (1-500; default 10; the last N observations, used only when neither date is given).\nFor growth and trade use pboc_get_economic_indicator. IMF series need no key.\nExample: {\"measure\": \"cpi_inflation\", \"recent_periods\": 12}",
+  "annotations": {"readOnlyHint": true, "idempotentHint": true, "openWorldHint": true},
   "version": "2.9.8",
   "enabled": true,
+  "api_key": "${fred.api.key}",
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "measure": {
+        "type": "string",
+        "enum": [
+          "cpi",
+          "cpi_inflation"
+        ],
+        "default": "cpi",
+        "description": "cpi: index level; cpi_inflation: % change on a year earlier"
+      },
+      "start_date": {
+        "type": "string",
+        "description": "Start date (YYYY-MM-DD)"
+      },
+      "end_date": {
+        "type": "string",
+        "description": "End date (YYYY-MM-DD)"
+      },
+      "recent_periods": {
+        "type": "integer",
+        "minimum": 1,
+        "maximum": 500,
+        "default": 10,
+        "description": "The last N observations; used only when neither date is given"
+      }
+    }
+  },
   "metadata": {
     "author": "Ashutosh Sinha",
     "category": "Economic Data",
@@ -13,7 +44,15 @@
       "economic data"
     ],
     "rateLimit": 120,
-    "cacheTTL": 3600
-  },
-  "api_key": "${fred.api.key}"
+    "cacheTTL": 3600,
+    "examples": [
+      {
+        "description": "Example",
+        "input": {
+          "measure": "cpi_inflation",
+          "recent_periods": 12
+        }
+      }
+    ]
+  }
 }

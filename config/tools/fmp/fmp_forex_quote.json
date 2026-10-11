@@ -1,7 +1,8 @@
 {
   "name": "fmp_forex_quote",
   "implementation": "sajha.tools.impl.fmp_tools.FMPGenericTool",
-  "description": "Latest quote for one currency pair from Financial Modeling Prep (FMP).\nReturns {tool, endpoint, data}: data is FMP's JSON from /stable/fx as returned (usually a list of records).\nInputs (* required): symbol* (pair as six letters, e.g. EURUSD).\nFor pairs use fmp_forex_list; for history fmp_forex_historical; to convert an amount calc_currency_converter.\nNeeds an FMP API key (config fmp.api.key, env FMP_API_KEY); without one it returns a demo placeholder naming the endpoint instead of data.\nExample: {\"symbol\": \"EURUSD\"}",
+  "description": "Latest quote for one currency pair from Financial Modeling Prep (FMP).\nReturns {tool, endpoint, data}: data is FMP's JSON from /stable/fx as returned (usually a list of records).\nInputs (* required): symbol* (pair as six letters, e.g. EURUSD).\nFor pairs use fmp_forex_list; for history fmp_forex_historical; to convert an amount calc_currency_converter.\nExample: {\"symbol\": \"EURUSD\"}",
+  "annotations": {"readOnlyHint": true, "idempotentHint": true, "openWorldHint": true},
   "version": "4.5.0",
   "enabled": true,
   "inputSchema": {
@@ -10,7 +11,7 @@
       "symbol": {
         "type": "string",
         "description": "Currency pair (e.g. EURUSD)",
-        "default": "EURUSD"
+        "examples": ["EURUSD"]
       }
     },
     "required": [

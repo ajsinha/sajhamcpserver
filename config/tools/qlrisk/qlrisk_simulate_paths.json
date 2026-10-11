@@ -2,7 +2,7 @@
   "name": "qlrisk_simulate_paths",
   "implementation": "sajha.tools.impl.qlrisk.qlrisk_tools.QlriskSimulatePathsTool",
   "title": "Monte Carlo path generation",
-  "description": "Simulate stochastic-process paths with qlrisk's Monte Carlo library: gbm, ou, cir, heston, vasicek, hull_white, merton_jump. Rate models (ou, cir, vasicek, hull_white) use initial_value as the starting rate and mean_reversion_speed / long_term_mean; heston adds vol_of_vol, correlation, initial_variance; merton_jump adds jump_intensity, jump_mean, jump_std. Returns summary statistics on up to 60 time points, the terminal distribution and a few sample paths (not the full path matrix). Inputs: process, initial_value, drift, volatility, maturity, num_paths; the rest (num_steps, mean_reversion_speed, long_term_mean, vol_of_vol, correlation, initial_variance, jump_intensity, jump_mean, jump_std, seed, percentiles, sample_paths) in the optional `advanced` object. Example: {\"process\": \"gbm\", \"initial_value\": 100, \"drift\": 0.05, \"volatility\": 0.2, \"maturity\": 1, \"num_paths\": 10000} gives 10000 gbm paths x 252 steps: terminal mean 105.157, std 21.382.",
+  "description": "Monte Carlo paths: gbm, ou, cir, heston, vasicek, hull_white, merton_jump. Returns statistics on up to 60 time points, the terminal distribution and a few sample paths. Inputs: process, initial_value, drift, volatility, maturity, num_paths; process parameters (mean reversion, Heston, jumps) in `advanced`. Example: {\"process\": \"gbm\", \"initial_value\": 100, \"drift\": 0.05, \"volatility\": 0.2, \"maturity\": 1, \"num_paths\": 10000} gives 10000 gbm paths x 252 steps: terminal mean 105.157, std 21.382.",
   "version": "1.0.0",
   "enabled": true,
   "requires": [

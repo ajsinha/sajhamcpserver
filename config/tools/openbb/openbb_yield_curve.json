@@ -1,7 +1,8 @@
 {
   "name": "openbb_yield_curve",
   "implementation": "sajha.tools.impl.openbb_tools.OpenBBYieldCurveTool",
-  "description": "Meant to give the US Treasury yield curve for a date through OpenBB (obb.fixedincome.government.us_yield_curve).\nReturns: {yield_curve: [...]} or {error}.\nInputs (* required): date (YYYY-MM-DD; latest if omitted); provider (default federal_reserve).\nOpenBB 4.x (4.6 checked) has no obb.fixedincome.government.us_yield_curve (4.6 has fixedincome.government.yield_curve), so this tool currently returns an error object; alternatives: av_treasury_yield per maturity, or fred_2yr_treasury, fred_5yr_treasury, fred_10yr_treasury, fred_30yr_treasury and fred_yield_spread.\nExample: {\"date\": \"2026-09-30\"}",
+  "description": "Treasury yield curve for one date (rate by maturity) through the OpenBB Platform (obb.fixedincome.government.yield_curve); rates are decimals.\nReturns: {provider, date, yield_curve: [{date, maturity, rate, maturity_years}]} or {error}.\nInputs (* required): date (latest when omitted); provider (ecb, econdb, federal_reserve, fmp, fred; default federal_reserve).\nDaily history per maturity: openbb_treasury_rates; euro area curve: provider ecb. Keys: ecb, econdb, federal_reserve need none; fmp uses SAJHA's FMP_API_KEY; fred uses SAJHA's FRED_API_KEY.\nExample: {\"date\": \"2026-09-30\"}",
+  "annotations": {"readOnlyHint": true, "idempotentHint": true, "openWorldHint": true},
   "version": "4.5.0",
   "enabled": true,
   "inputSchema": {
@@ -9,12 +10,20 @@
     "properties": {
       "date": {
         "type": "string",
-        "description": "Date for yield curve (YYYY-MM-DD, latest if omitted)"
+        "description": "Curve date; latest when omitted (YYYY-MM-DD)",
+        "format": "date"
       },
       "provider": {
         "type": "string",
-        "description": "OpenBB data provider",
-        "default": "federal_reserve"
+        "enum": [
+          "ecb",
+          "econdb",
+          "federal_reserve",
+          "fmp",
+          "fred"
+        ],
+        "default": "federal_reserve",
+        "description": "OpenBB data provider"
       }
     },
     "required": []
@@ -22,8 +31,14 @@
   "outputSchema": {
     "type": "object",
     "properties": {
-      "result": {
-        "type": "object"
+      "date": {
+        "type": [
+          "string",
+          "null"
+        ]
+      },
+      "yield_curve": {
+        "type": "array"
       }
     }
   },
@@ -38,6 +53,13 @@
       "treasury",
       "interest rates"
     ],
-    "examples": []
+    "examples": [
+      {
+        "description": "Treasury yield curve for one date (rate by maturity)",
+        "input": {
+          "date": "2026-09-30"
+        }
+      }
+    ]
   }
 }

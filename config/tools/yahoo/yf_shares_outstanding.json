@@ -1,7 +1,8 @@
 {
   "name": "yf_shares_outstanding",
   "implementation": "sajha.tools.impl.yfinance_tools.YFSharesOutstandingTool",
-  "description": "Shares outstanding over time for one company from Yahoo Finance (yfinance get_shares_full, about the last 18 months).\nReturns: {symbol, shares: [{index (date-time), 0 (share count)}]}, oldest first, at most 100 rows.\nInputs (* required): symbol* (Yahoo ticker, e.g. AAPL, BRK-B, 7203.T).\nCurrent count only: yf_fast_info (shares_outstanding); float and short interest: openbb_equity_share_statistics. No API key; data comes from Yahoo Finance through the yfinance library.\nExample: {\"symbol\": \"AAPL\"}",
+  "description": "Shares outstanding over time (about the last 18 months) for one ticker from Yahoo Finance (yfinance get_shares_full).\nReturns: {symbol, data_points (all rows), truncated, shares: the most recent limit rows, oldest first, each {index (date-time), 0 (share count)}}.\nInputs (* required): symbol* (Yahoo ticker, e.g. AAPL, BRK-B, 7203.T); limit (rows, 1-1000; default 100).\nCurrent count only: yf_fast_info; float and short interest: openbb_equity_share_statistics.\nExample: {\"symbol\": \"AAPL\", \"limit\": 20}",
+  "annotations": {"readOnlyHint": true, "idempotentHint": true, "openWorldHint": true},
   "version": "4.5.0",
   "enabled": true,
   "inputSchema": {
@@ -9,18 +10,36 @@
     "properties": {
       "symbol": {
         "type": "string",
-        "description": "Stock ticker symbol (e.g., AAPL, MSFT)"
+        "description": "Yahoo ticker, e.g. AAPL, BRK-B, 7203.T"
+      },
+      "limit": {
+        "type": "integer",
+        "minimum": 1,
+        "maximum": 1000,
+        "default": 100,
+        "description": "Most rows returned (1-1000)"
       }
     },
     "required": [
       "symbol"
-    ]
+    ],
+    "examples": [{"symbol": "AAPL", "limit": 20}]
   },
   "outputSchema": {
     "type": "object",
     "properties": {
-      "result": {
-        "type": "object"
+      "symbol": {
+        "type": "string"
+      },
+      "data_points": {
+        "type": "integer",
+        "description": "Rows before the cap"
+      },
+      "truncated": {
+        "type": "boolean"
+      },
+      "shares": {
+        "type": "array"
       }
     }
   },
@@ -32,6 +51,15 @@
     "tags": [
       "yfinance",
       "shares"
+    ],
+    "examples": [
+      {
+        "description": "Shares outstanding over time (about the last 18 months) for one ticker",
+        "input": {
+          "symbol": "AAPL",
+          "limit": 20
+        }
+      }
     ]
   }
 }

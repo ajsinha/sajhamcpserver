@@ -1,0 +1,1 @@
+Needs a Tavily API key (env TAVILY_API_KEY, config tavily.api.key); without one the tools return placeholder example.com results with a note saying demo mode.

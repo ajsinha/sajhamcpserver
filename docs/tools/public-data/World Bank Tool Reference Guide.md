@@ -810,9 +810,9 @@ Supply `indicator` or `indicator_code`. The year range is applied only when both
 | `country_codes` | array of string | Yes | — | List of country codes to compare (2-10 countries). 2–10 items. |
 | `indicator` | string | No | — | Common indicator shorthand. One of 39 values (see [Common Indicators Reference](#common-indicators-reference)). |
 | `indicator_code` | string | No | — | World Bank indicator code for direct access. |
-| `start_year` | integer | No | — | Start year for comparison. Range 1960–2030. |
+| `start_year` | integer | No | — | Start year for comparison. Range 1960–2030; either year alone is fine. |
 | `end_year` | integer | No | — | End year for comparison. Range 1960–2030. |
-| `most_recent_year` | boolean | No | `false` | Compare only the most recent available year for each country. |
+| `most_recent_year` | boolean | No | `false` | Only each country's most recent year that has a value (the API's `mrnev=1`); the years are then ignored and `year_range` is `{"most_recent": true}`. |
 
 **Output Schema:**
 ```json
@@ -899,7 +899,7 @@ result = tool.execute({
 
 **Purpose:** Search for indicators by keyword
 
-The search is a case-insensitive substring match on indicator name and source note, applied to the single page of the indicator catalog fetched with `page`/`per_page` (optionally narrowed by `topic_id`). To search more of the catalog, page through it.
+The search is a case-insensitive substring match on indicator name and source note over the whole indicator catalogue (about 30,000 indicators, or one topic's with `topic_id`), fetched once in pages of 20,000 and cached per process for a day. `total_results` counts every match; `page` and `per_page` page through the matches, best first.
 
 **Parameters**:
 

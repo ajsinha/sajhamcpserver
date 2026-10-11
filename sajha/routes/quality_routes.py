@@ -81,6 +81,23 @@ def _runs(kind: str, limit: int = 30) -> List[Dict[str, Any]]:
 
 # ── Tool Health ─────────────────────────────────────────────────────
 
+_CHECK_ORDER = {'error': 0, 'schema_mismatch': 1, 'empty': 2, 'not_configured': 3, 'not_checked': 4, 'ok': 5,
+                'skipped': 6}
+
+
+def _check_context() -> Dict[str, Any]:
+    """The live tool check's latest outcome per tool (sajha/quality/check.py), problems first."""
+    from sajha.quality import check as K
+    last = K.last_results()
+    rows = sorted(last.values(), key=lambda r: (_CHECK_ORDER.get(r.get('outcome'), 9), r.get('folder', ''),
+                                                r.get('tool', '')))
+    for r in rows:
+        r['when'] = _ts(r.get('at'))
+    counts = {o: sum(1 for r in rows if r.get('outcome') == o) for o in K.OUTCOMES}
+    shown = [r for r in rows if r.get('outcome') not in ('ok', 'skipped')]
+    return {'counts': counts, 'rows': shown[:500], 'total': len(rows), 'cron': K.cron()}
+
+
 def _health_context(lint: bool, level: str, run_id: str) -> Dict[str, Any]:
     from sajha.quality import cases as C, lint as L, probes as P
     reg = _registry()
@@ -94,7 +111,8 @@ def _health_context(lint: bool, level: str, run_id: str) -> Dict[str, Any]:
             h['when'] = _ts(h.get('at'))
     ctx: Dict[str, Any] = {'probes': probes, 'probes_enabled': P.enabled(), 'suite_errors': suite.errors,
                            'case_count': len(suite.cases), 'tool_count': len(suite.tools()),
-                           'test_runs': _runs('test', 20), 'lint': None, 'level': level, 'run': None}
+                           'test_runs': _runs('test', 20), 'lint': None, 'level': level, 'run': None,
+                           'check': _check_context()}
     if run_id:
         from sajha.quality.store import get_run_store
         try:
@@ -184,6 +202,13 @@ async def api_probe_run(tool: str, request: Request, auth: AuthContext = Depends
         return JSONResponse(await run_in_threadpool(_run_probe, tool, f'api:{auth.user_id}'))
     except LookupError as e:
         return JSONResponse({'error': str(e)}, 404)
+
+
+@router.get('/api/quality/check')
+async def api_check(auth: AuthContext = Depends(require_admin)):
+    """The live tool check's latest outcome per tool (run it with python -m sajha.quality check)."""
+    from sajha.quality import check as K
+    return JSONResponse({'cron': K.cron(), 'results': K.last_results()})
 
 
 @router.get('/api/quality/lint')

@@ -1,7 +1,8 @@
 {
   "name": "av_stoch",
   "implementation": "sajha.tools.impl.alphavantage_tools.AVStochTool",
-  "description": "Stochastic oscillator for one stock from Alpha Vantage (STOCH).\nReturns: {\"Meta Data\", \"Technical Analysis: STOCH\"} keyed by date or timestamp, each with SlowK, SlowD. Alpha Vantage's JSON comes back unchanged, including its \"Error Message\" or \"Information\" notes; a network failure gives {\"error\": ...}.\nInputs (* required): symbol* (ticker); interval (1min, 5min, 15min, 30min, 60min, daily, weekly or monthly; default daily); time_period (accepted by the schema but not sent to Alpha Vantage).\nUse it for momentum relative to the recent high-low range, with Alpha Vantage's default periods; av_rsi, av_williams_r. Raw prices: av_stock_daily.\nKey: ALPHA_VANTAGE_API_KEY (alpha_vantage.api.key); when unset the 'demo' key is sent, which only serves Alpha Vantage's documentation examples. Free tier: 25 requests/day.\nExample: {\"symbol\": \"IBM\", \"interval\": \"daily\"}",
+  "description": "Stochastic oscillator for one stock from Alpha Vantage (STOCH).\nReturns: {\"Meta Data\", \"Technical Analysis: STOCH\"} keyed by date or timestamp, each with SlowK, SlowD.\nInputs (* required): symbol* (ticker); interval (1min, 5min, 15min, 30min, 60min, daily, weekly or monthly; default daily).\nUse it for momentum relative to the recent high-low range, with Alpha Vantage's default periods; av_rsi, av_williams_r. Raw prices: av_stock_daily.\nExample: {\"symbol\": \"IBM\", \"interval\": \"daily\"}",
+  "annotations": {"readOnlyHint": true, "idempotentHint": true, "openWorldHint": true},
   "version": "4.5.0",
   "enabled": true,
   "inputSchema": {
@@ -14,17 +15,23 @@
       "interval": {
         "type": "string",
         "description": "Bar interval: 1min, 5min, 15min, 30min, 60min, daily, weekly or monthly",
-        "default": "daily"
-      },
-      "time_period": {
-        "type": "integer",
-        "description": "Not sent to Alpha Vantage by this tool; the indicator uses its default periods",
-        "default": 14
+        "default": "daily",
+        "enum": [
+          "1min",
+          "5min",
+          "15min",
+          "30min",
+          "60min",
+          "daily",
+          "weekly",
+          "monthly"
+        ]
       }
     },
     "required": [
       "symbol"
-    ]
+    ],
+    "examples": [{"symbol": "IBM", "interval": "daily"}]
   },
   "outputSchema": {
     "type": "object",

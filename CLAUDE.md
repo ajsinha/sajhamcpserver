@@ -49,6 +49,7 @@ the same thing, merge them and leave a link.
 | Open data sources as tools (verified terms, placement, priorities) | `docs/architecture/Open Data Tools.md` |
 | Business intelligence (metrics layer, analysis, charts, dashboards, data quality) | `docs/architecture/Business Intelligence.md` |
 | Reports (definitions, formats, narration, delivery) | `docs/architecture/Reports.md` |
+| Quantitative planners (workspace, operation library, numbers validator, quant planners) | `docs/architecture/Quantitative Planners.md` |
 | Federation (other MCP servers' tools) | `docs/architecture/Federation.md` |
 | Per-user sign-in for proxied servers (credential modes, `token_user`, `oauth_user`, Server connections; design and what is built) | `docs/architecture/Per-User Sign-In for Proxied Servers.md` (configuring it: `Federation.md`) |
 | GitHub, Atlassian, Google integrations (proxied per user) | `docs/architecture/GitHub Integration.md`, `Atlassian Integration.md`, `Google Integration.md` |

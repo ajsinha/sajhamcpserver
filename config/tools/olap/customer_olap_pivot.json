@@ -1,6 +1,7 @@
 {
     "name": "customer_olap_pivot",
     "description": "Customer analytics with DuckDB over customers.csv joined to orders.csv and products.csv in data.duckdb.dir: one row per combination of the chosen dimensions, with the chosen measures.\nReturns {success, columns, data, row_count, query, execution_time_ms, available_dimensions, available_measures}.\nInputs (* required): rows* (dimensions listed in the schema, plus order_date, signup_date, order_year, order_month, order_quarter), measures* (listed in the schema), columns (more dimensions; added to the grouping, the result stays one flat table), filters (object {dimension: value or [values]}), order_by (a selected dimension or measure, '-' prefix for descending; default first measure descending), limit (1-1000; default 100).\nFor semantic-layer datasets use olap_pivot_table or olap_time_series.\nExample: {\"rows\": [\"customer_segment\", \"region\"], \"measures\": [\"total_revenue\", \"order_count\"], \"filters\": {\"customer_tier\": [\"Gold\", \"Platinum\"]}, \"order_by\": \"-total_revenue\", \"limit\": 20}",
+    "annotations": {"readOnlyHint": true, "idempotentHint": true, "openWorldHint": false},
     "category": "OLAP Analytics",
     "version": "2.9.8",
     "enabled": true,

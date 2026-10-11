@@ -1,6 +1,7 @@
 {
     "name": "olap_pivot_table",
     "description": "Pivot table over a semantic-layer OLAP dataset in DuckDB: row dimensions, pivoted column dimensions, aggregated measures, optional totals. Datasets, dimensions and measures: config/olap (e.g. sales_analysis); sample data is generated on first use if no OLAP database exists.\nReturns {success, data, columns, row_count, row_dimensions, column_dimensions, measures, sql}; with include_totals a grand-totals row is appended to data.\nInputs (* required): dataset*, rows* (array of dimensions), values* (array of {measure, aggregation SUM|AVG|COUNT|MIN|MAX|MEDIAN}), columns (array of dimensions to pivot), filters (array of {dimension, operator (=, !=, >, <, >=, <=, IN, NOT IN, LIKE, BETWEEN), value}), include_totals (default true), include_subtotals (default false), limit (integer).\nFor trends use olap_time_series; for the customer CSVs customer_olap_pivot.\nExample: {\"dataset\": \"sales_analysis\", \"rows\": [\"region\"], \"columns\": [\"quarter\"], \"values\": [{\"measure\": \"revenue\", \"aggregation\": \"SUM\"}]}",
+    "annotations": {"readOnlyHint": true, "idempotentHint": true, "openWorldHint": false},
     "category": "OLAP Analytics",
     "version": "2.9.8",
     "enabled": true,

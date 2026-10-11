@@ -272,7 +272,11 @@ def _tool_definition(name: str, tool: Any) -> ToolDefinition:
         schema = {}
     if not isinstance(schema, dict) or not schema:
         schema = {"type": "object", "properties": {}}
-    return ToolDefinition.of(name, getattr(tool, "description", "") or "", schema)
+    # the served description: the tool's own, then its folder's domain description (sajha/tools/domain_text.py)
+    desc = getattr(tool, "served_description", None)
+    if not isinstance(desc, str):
+        desc = getattr(tool, "description", "") or ""
+    return ToolDefinition.of(name, desc, schema)
 
 
 class IntelligenceService:

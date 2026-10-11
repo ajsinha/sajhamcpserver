@@ -3,7 +3,7 @@
   "implementation": "sajha.tools.impl.qlrisk.qlrisk_tools.QlriskPriceProductTool",
   "product": "CarbonCredit",
   "title": "Price a CarbonCredit",
-  "description": "Price one Carbon Credit (qlrisk CarbonCredit): NPV, pricing components and Greeks where the pricer gives them.\nInputs (* required): position_value (amount; default 1000000), ticker, quantity, currency (see the schema's list; default USD). Rates are in percent, spreads in basis points, maturities a tenor (3Y, 18M, 6W, 10D) or a date YYYY-MM-DD. Optional `advanced`: maturity, trade_id, trade_date, effective_date, counterparty_id, position, market_data, reporting_currency, include_cash_flows; market data defaults to qlrisk's sample snapshot valued today.\nExample: {\"position_value\": 1000000, \"ticker\": \"AAPL\"} gives NPV 1,000,000.00 USD on the sample market valued 2026-10-09. For several trades at once use qlrisk_price_trades.",
+  "description": "Price one Carbon Credit (qlrisk CarbonCredit).\nInputs (* required, name=default): position_value=1000000, ticker, quantity, currency=USD. In `advanced` also: maturity, effective_date, position.\nExample: {\"position_value\": 1000000, \"ticker\": \"AAPL\"} gives NPV 1,000,000.00 USD (sample market valued 2026-10-09).",
   "version": "1.0.0",
   "enabled": true,
   "requires": [

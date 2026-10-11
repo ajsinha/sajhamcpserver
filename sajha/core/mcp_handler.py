@@ -612,7 +612,7 @@ class MCPHandler:
             raise ValueError(f"Tool not found: {tool_name}")
 
 
-        description = tool.description
+        description = getattr(tool, 'served_description', None) or tool.description
         version  =tool.version
         enabled = tool.enabled
         input_schema =  tool.input_schema

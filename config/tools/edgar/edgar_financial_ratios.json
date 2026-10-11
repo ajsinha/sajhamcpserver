@@ -1,7 +1,8 @@
 {
   "name": "edgar_financial_ratios",
   "implementation": "sajha.tools.impl.enhanced_edgar_tool.EDGARFinancialRatiosTool",
-  "description": "Financial ratios computed from a company's us-gaap XBRL facts (EDGAR companyfacts) for one fiscal period.\nReturns {cik, entityName, fiscal_year, fiscal_period, profitability_ratios {gross_margin, operating_margin, net_margin, return_on_assets, return_on_equity} in percent, liquidity_ratios {current_ratio, quick_ratio, cash_ratio}, solvency_ratios {debt_to_equity, debt_to_assets, equity_multiplier}}. A ratio is omitted when an input is missing; debt = total liabilities.\nInputs (* required): cik* (string, SEC Central Index Key, up to 10 digits; from edgar_company_search), fiscal_year (integer 2009-2030; optional in the schema, but without it every ratio group is empty), fiscal_period (FY | Q1 | Q2 | Q3 | Q4; default FY).\nValues are matched on the facts' fy/fp tags. Raw numbers: edgar_company_concept.\nExample: {\"cik\": \"0000320193\", \"fiscal_year\": 2023, \"fiscal_period\": \"FY\"}\nNo API key needed (SEC data.sec.gov; 110 ms between requests).",
+  "description": "Financial ratios for one fiscal period (default: latest reported fiscal year) from a company's us-gaap XBRL facts (EDGAR companyfacts): the period's own values, not prior-year comparatives.\nReturns {cik, entityName, fiscal_year, fiscal_period, profitability_ratios {gross_margin, operating_margin, net_margin, return_on_assets, return_on_equity} (%), liquidity_ratios {current_ratio, quick_ratio, cash_ratio}, solvency_ratios {debt_to_equity, debt_to_assets, equity_multiplier}}; ratios lacking an input are omitted; debt = total liabilities.\nInputs (* required): cik*, fiscal_year (2009-2030), fiscal_period (default FY).\nRaw numbers: edgar_company_concept.\nExample: {\"cik\": \"0000320193\", \"fiscal_year\": 2023}",
+  "annotations": {"readOnlyHint": true, "idempotentHint": true, "openWorldHint": true},
   "version": "2.9.8",
   "enabled": true,
   "inputSchema": {
@@ -20,43 +21,83 @@
       "fiscal_period": {
         "type": "string",
         "description": "Fiscal period (FY for full year, Q1-Q4 for quarters)",
-        "enum": ["FY", "Q1", "Q2", "Q3", "Q4"],
+        "enum": [
+          "FY",
+          "Q1",
+          "Q2",
+          "Q3",
+          "Q4"
+        ],
         "default": "FY"
       }
     },
-    "required": ["cik"]
+    "required": [
+      "cik"
+    ],
+    "examples": [{"cik": "0000320193", "fiscal_year": 2023}]
   },
   "outputSchema": {
     "type": "object",
     "properties": {
-      "cik": {"type": "string"},
-      "entityName": {"type": "string"},
-      "fiscal_year": {"type": "integer"},
-      "fiscal_period": {"type": "string"},
+      "cik": {
+        "type": "string"
+      },
+      "entityName": {
+        "type": "string"
+      },
+      "fiscal_year": {
+        "type": "integer"
+      },
+      "fiscal_period": {
+        "type": "string"
+      },
       "profitability_ratios": {
         "type": "object",
         "properties": {
-          "gross_margin": {"type": "number", "description": "Percentage"},
-          "operating_margin": {"type": "number"},
-          "net_margin": {"type": "number"},
-          "return_on_assets": {"type": "number"},
-          "return_on_equity": {"type": "number"}
+          "gross_margin": {
+            "type": "number",
+            "description": "Percentage"
+          },
+          "operating_margin": {
+            "type": "number"
+          },
+          "net_margin": {
+            "type": "number"
+          },
+          "return_on_assets": {
+            "type": "number"
+          },
+          "return_on_equity": {
+            "type": "number"
+          }
         }
       },
       "liquidity_ratios": {
         "type": "object",
         "properties": {
-          "current_ratio": {"type": "number"},
-          "quick_ratio": {"type": "number"},
-          "cash_ratio": {"type": "number"}
+          "current_ratio": {
+            "type": "number"
+          },
+          "quick_ratio": {
+            "type": "number"
+          },
+          "cash_ratio": {
+            "type": "number"
+          }
         }
       },
       "solvency_ratios": {
         "type": "object",
         "properties": {
-          "debt_to_equity": {"type": "number"},
-          "debt_to_assets": {"type": "number"},
-          "equity_multiplier": {"type": "number"}
+          "debt_to_equity": {
+            "type": "number"
+          },
+          "debt_to_assets": {
+            "type": "number"
+          },
+          "equity_multiplier": {
+            "type": "number"
+          }
         }
       }
     }
@@ -64,18 +105,34 @@
   "metadata": {
     "author": "Ashutosh Sinha",
     "category": "SEC EDGAR",
-    "tags": ["sec", "edgar", "financial ratios", "analysis", "profitability", "liquidity", "solvency"],
+    "tags": [
+      "sec",
+      "edgar",
+      "financial ratios",
+      "analysis",
+      "profitability",
+      "liquidity",
+      "solvency"
+    ],
     "rateLimit": 10,
     "cacheTTL": 3600,
     "note": "Automatically calculates key financial ratios from XBRL data. Saves time compared to manual calculation.",
     "examples": [
       {
         "description": "Get Apple's financial ratios for 2023",
-        "input": {"cik": "320193", "fiscal_year": 2023, "fiscal_period": "FY"}
+        "input": {
+          "cik": "320193",
+          "fiscal_year": 2023,
+          "fiscal_period": "FY"
+        }
       },
       {
         "description": "Analyze Microsoft's Q4 2023 ratios",
-        "input": {"cik": "789019", "fiscal_year": 2023, "fiscal_period": "Q4"}
+        "input": {
+          "cik": "789019",
+          "fiscal_year": 2023,
+          "fiscal_period": "Q4"
+        }
       }
     ],
     "useCases": [

@@ -2,7 +2,282 @@
 
 Newest first. The current version is `app.version` in `config/application.yml`.
 
-## Unreleased
+## v8.8.0 (October 2026) — tool health checks, domain descriptions, schema defaults, LLM providers import safe
+
+### Upgrading
+
+- **Schema defaults now win.** Where a tool's code default differed from its schema's, the schema's is
+  used (see Added). Set `tools.apply_schema_defaults: false` (or `SAJHA_TOOLS_APPLY_SCHEMA_DEFAULTS=false`)
+  to restore the old behaviour for this release only; the switch is removed in the next. Tools whose
+  behaviour changes when an argument is left out: `fred_*`: `limit` is the schema's 20 or 30 instead of the
+  code's 40 or 60 (fewer, newest observations), and the preset single-series tools on the custom-series
+  class (for example `fred_core_cpi`, `fred_yield_spread`; formerly also `fred_gold_price`) now work
+  without `series_id`; before, they failed unless it was sent. FMP tools that forward their arguments now
+  send the schema defaults: `fmp_technical_*` send `period` (14; 20 for `fmp_technical_sma`);
+  `fmp_cik_list`, `fmp_etf_list`, `fmp_stock_list`, `fmp_historical_market_cap`, `fmp_press_releases`,
+  `fmp_financial_growth` and `fmp_stock_screener` send `limit` 20 (`fmp_earnings_transcript` has no
+  `year` or `quarter` default, so FMP still chooses the transcript). LLM tools fill template placeholders from defaults (`llm_summarise`: "at most 2
+  sentences"). Unchanged: `av_sma`, `av_ema`, `av_bbands` and `av_cci`, whose schemas now say
+  `time_period` 20, as the code always sent; `sajha_search_docs`, whose schema no longer declares `top_k`
+  3, so `ai.rag.top_k` still applies; the qlrisk tools (their schema defaults are the library's), though
+  `qlrisk_inputs` now lists the defaulted values too.
+- **Removed OpenBB tools** (OpenBB 4.6 has no command for them) and what to use instead:
+  `openbb_commodity_lbma_gold` and `openbb_commodity_lbma_silver` → `openbb_derivatives_futures_historical`
+  (`GC=F`, `SI=F`) or `imf_get_data` (database `PCPS`, keys `G001.PGOLD.USD.M`, `G001.PSILVER.USD.M`);
+  `openbb_commodity_search` → `openbb_commodity_price` (its `commodity` enum) or `fmp_commodity_list`;
+  `openbb_index_search` → `openbb_index_available`; `openbb_equity_fundamental_overview` →
+  `openbb_equity_profile`, `openbb_equity_metrics`; `openbb_fixedincome_moody` → `fred_custom_series`
+  (`AAA`, `BAA`); `openbb_news_search` (its command had no search parameter) → `openbb_market_news`,
+  `openbb_company_news` or `tavily_news_search`.
+- **Removed open data tools** and what to use instead: `rbi_get_exchange_rate`, `rbi_get_inflation`,
+  `rbi_get_forex_reserves` → `imf_get_ifs_data` with country `IND` (`exchange_rate`, `cpi_inflation`,
+  `international_reserves`); `rbi_get_policy_rate`, `rbi_get_gsec_yield` → none (no open source); the
+  `reserve_bank_of_india` folder and guide (now in `docs/archive/`) are gone. `pboc_get_cgb_yield` →
+  `pboc_get_policy_rate` with `interbank_3m` (no Chinese bond yield is published openly);
+  `pboc_get_money_supply` → none. `un_get_sdg_progress` (a stub) → `un_get_sdg_data`.
+  `fred_gold_price`, `fred_silver_price` (series gone from FRED) → `imf_get_data` with database `PCPS`
+  and key `G001.PGOLD.USD.M` or `G001.PSILVER.USD.M`. Remove these and the OpenBB tools above from tool
+  groups, workflows and prompts that name them.
+- **Changed arguments**: `openbb_commodity_price` takes `commodity` instead of `symbol`;
+  `openbb_equity_screener` drops `country` (OpenBB's yfinance screener returns nothing with it;
+  `fmp_stock_screener` filters by country); `time_period` is gone from `av_macd`, `av_stoch`, `av_obv`,
+  `av_ad_line` and `av_vwap`, which never sent it; `bdf_get_oat_yield` `bond_term` is `10y` only;
+  `ecb_*` `eonia` is gone; `pboc_get_policy_rate` `rate_type` is `discount_rate` or `interbank_3m` (was
+  `lending`/`deposit`); `pboc_get_inflation` `measure` and `boj_get_inflation` `index_type` are `cpi` or
+  `cpi_inflation` (`core_cpi` and `ppi` are gone); `pboc_get_economic_indicator` drops `unemployment`,
+  `industrial_production`, `retail_sales` and `fdi`; `boj_get_policy_rate` drops `discount`;
+  `boj_get_money_supply` `aggregate` is `broad_money`; `boj_get_economic_indicator` drops
+  `industrial_production`; `imf_get_ifs_data` takes one of its listed `indicator`s (no `indicator_code`)
+  and `imf_get_data` a `key` for dataflows not keyed by country, indicator and frequency;
+  `edgar_company_tickers_by_exchange` drops `AMEX`/`BATS`; `wiki_get_page` drops `include_references`.
+- **Changed defaults**: OpenBB default providers changed, so an omitted `provider` now reaches a provider
+  the command offers: for example `openbb_equity_metrics`, `openbb_equity_estimates_consensus`,
+  `openbb_equity_management`, `openbb_equity_share_statistics`, `openbb_etf_info`, the discovery tools
+  and the screener default to yfinance; `openbb_equity_search`, `openbb_insider_trading` and
+  `openbb_regulators_sec_filings` to sec; `openbb_economy_cpi` to oecd; the calendars to nasdaq;
+  `openbb_company_news` and `openbb_market_news` to fmp (OpenBB's yfinance news returns nothing at
+  present). `boj_*` (among them `boj_get_policy_rate`, `boj_get_exchange_rate`, `boj_get_inflation`,
+  `boj_get_jgb_yield`, `boj_get_money_supply`) and `pboc_*` return the last `recent_periods` (10)
+  observations when no date is given (the whole history before); `fred_leading_index` reads
+  `USALOLITOAASTSAM` (USSLIND ended in 2020); `edgar_financial_ratios` without `fiscal_year` uses the
+  latest year (all ratio groups were empty).
+- **Keys**: Alpha Vantage tools need `ALPHA_VANTAGE_API_KEY`; without it they return a configuration error
+  instead of sending the `demo` key. `fed_*` configs now carry `"api_key": "${fred.api.key}"`; set
+  `FRED_API_KEY` for every FRED-backed tool (`fred_*` tools no longer send `DEMO_KEY`).
+- **Result shapes**: results of the generic OpenBB tools add `provider` and `truncated`;
+  `openbb_etf_holdings` reports `data_points` instead of `holdings_count`. Results of the ECB, Banque de
+  France, IMF and some PBoC/BoJ tools have new fields (`source`, `unit`, `label`, `latest_actual_year`),
+  and IMF results new shapes (see the [IMF guide](docs/tools/public-data/IMF%20Tool%20Reference%20Guide.md)).
+- **Requirements**: `requirements.txt` now asks for OpenBB 4.6 or later and yfinance 0.2.54 or later.
+- A configuration naming the mock LLM provider's old class path `sajha.ai.llm.mock:MockProvider` must use
+  `sajha.ai.llm.providers.mock:MockProvider` (the built-in name `mock` is unchanged).
+- The Bank of Canada `gdp` indicator is removed from `boc_get_series`, `boc_get_latest`,
+  `boc_get_common_indicators` and `boc_search_series`: its series did not exist and Valet has no ongoing
+  Canadian GDP series. Calls passing `indicator: gdp` now fail schema validation.
+- **The live tool check now covers the shipped data tools**: they declare `readOnlyHint: true`, so
+  `python -m sajha.quality check` and a configured `quality.check.cron` call each against its outside
+  service, paced per folder (`quality.check.pause_ms`). Keyless providers that rate-limit (CoinGecko)
+  may need a longer pause; tools that depend on local files (`msdoc_*`, `sqlselect_*`) fail where those
+  files are absent: list them in `quality.check.exclude`.
+  Planner dry runs (`POST /api/ai/planners/dry-run`) and the offline LLM-tool test in Describe a tool
+  run read-only tools unasked, so they now run these tools too (the calculators included) instead of
+  stubbing them unless named in `run_tools`.
+
+### Added
+
+- **Schema defaults applied before every call** (Roadmap L21; [Tool Quality §12.1](docs/architecture/Tool%20Quality.md#121-schema-defaults-applied-before-a-call)).
+  A tool's `inputSchema` `default` is filled in for an absent argument once, in
+  `BaseMCPTool.execute_with_tracking`, so MCP (both eras), the REST API, Ask SAJHA, LLM tools,
+  workflows, async tasks and SAJHA Net calls all see the same arguments; the composite step executor
+  and the quality harness do the same. Never a `required` property; nested objects only when the caller
+  sent them; nothing through `oneOf`/`anyOf`/`$ref`/`items`; a default that fails its own schema is
+  skipped. The audit record names the filled keys (`details.defaults_applied`). Proxied and SAJHA Net
+  tools forward arguments unchanged. New lint rules `required-default` and `unapplied-default`. What
+  this changes for existing tools is under Upgrading.
+- **Live tool check** (Roadmap L23; [Tool Quality §12.4](docs/architecture/Tool%20Quality.md#124-the-live-tool-check)):
+  `python -m sajha.quality check [--tool] [--folder] [--json] [--junit] [--save]` calls every read-only
+  tool once with arguments from its test case, its `inputSchema` `examples` or its required properties'
+  examples, one call at a time per folder, and reports `ok`, `empty`, `error`, `schema_mismatch`,
+  `not_configured`, `not_checked` or `skipped` with the reason. One `quality.check:<folder>` notice per
+  folder with broken tools; an optional schedule (`quality.check.cron`) on the probe scheduler; the
+  latest outcomes on the Tool Health page and `GET /api/quality/check`; lint rule `missing-example`.
+- **Domain descriptions** (Roadmap L24; [Architecture §5](docs/architecture/Architecture.md#domain-descriptions)).
+  An optional `<tools dir>/<folder>/domain.txt` says once what a tool folder as a whole is for; it is
+  appended, after a blank line, to the description of every tool in that folder wherever descriptions
+  are served (`tools/list` in both eras, the REST API, the Tools and execute pages, Ask SAJHA's tool
+  definitions and search index, the OpenAI-compatible model list, SAJHA Net catalogs) and is never
+  written into a tool's JSON. At most `tools.domain_description_max_chars` (600) characters: a longer
+  file is refused with the notice `tools.domain_description:<folder>`, never cut; a root `domain.txt` is
+  ignored with `tools.domain_description_root`. The file monitor reloads it and announces the catalog
+  change. Where own description plus domain text would pass SAJHA Net's 1024-character limit, the
+  catalog entry leaves the domain text out; lint rule `description-length` reports those tools. The
+  Domains page shows each folder's description, and a tool's configuration page shows it read-only.
+  Shipped for `fred`, `fmp`, `alphavantage`, `coingecko`, `edgar`, `qlrisk`, `yahoo`, `ecb`,
+  `banque_de_france`, `imf`, `federal_reserve`, `fbi`, `tavily`, `sharepoint` and `webcrawler`; the
+  sentences they say (source, key and its environment variable, rate limits, units, "no API key") were
+  removed from those tools' own descriptions, and the domain texts were checked against the code (FRED
+  sends no `DEMO_KEY`, Alpha Vantage no `demo` key, FMP without a key answers a demo placeholder, the
+  `edgar_*` tools pause 110 ms between requests and the `sec_*` tools do not). Every shipped tool's own
+  description plus its domain text now fits SAJHA Net's 1024 characters, so `description-length` is clean.
+- **Read-only annotations and structured examples on the shipped data tools.** Every tool that only reads
+  (market data, macro and central-bank data, filings, search, the web crawler's fetches, calculators, the
+  read-only DuckDB, SQL Select, OLAP and document tools) declares `readOnlyHint: true` and
+  `idempotentHint: true`, with `openWorldHint` true when it calls an outside service, so the live tool
+  check covers them. Tools that write, send, delete or act on a connected account are not marked; nor are
+  the SharePoint tools (they can check out, copy and delete files) or `duckdb_refresh_views`. Tools whose
+  arguments could not be derived from their schema got an `inputSchema` `examples` entry equal to their
+  description's `Example:`.
+- **Generated Tool Reference Guide tables** (Roadmap L25; [Tool Quality §12.5](docs/architecture/Tool%20Quality.md#125-tool-reference-guide-tables-generated)):
+  `python -m sajha.tools guides [--folder NAME] [--check]` rewrites the region between
+  `<!-- generated:tools folder=... -->` and `<!-- /generated:tools -->` in the guides under
+  `docs/tools/` from the tool configs: tool, title, the description's first sentence, required and
+  optional parameters with schema defaults, annotations and the key a tool needs. Every guide whose
+  table listed a folder's tools now has a marked region; `--check` runs in the test suite.
+- **Shared SDMX client** (`sajha/tools/impl/sdmx_client.py`): SDMX 2.1 REST data and structure queries,
+  SDMX-CSV and SDMX-JSON, host profiles (`ecb`, `imf`; `register_host` for the 8.2 sources), "no data"
+  for an empty selection, every fetch through the outbound guard and proxy to the profile's host only.
+  The ECB, Banque de France and IMF tools use it.
+- **Hugging Face Inference Providers** as an LLM provider preset, `huggingface`
+  (`https://router.huggingface.co/v1`, key `HF_TOKEN`; model ids may end `:fastest`, `:cheapest` or a
+  host name). A self-hosted TGI server stays `openai_compatible`.
+- [Tutorial 43: Connect and Configure LLM Providers](docs/tutorials/TUTORIAL_43_llm_providers.md).
+- [Tutorial 44: Tool Health and Domain Descriptions](docs/tutorials/TUTORIAL_44_tool_health.md): schema
+  defaults and the switch, a folder's `domain.txt`, read-only annotations, the live tool check with its
+  notices and the Tool Health page, and the generated guide tables.
+
+### Changed
+
+- The mock LLM provider moved into the providers package with the others (`sajha/ai/llm/providers/mock.py`,
+  with `mock_llm_tools.py` and `mock_toolsmith.py`); like every provider it is built by the factory from
+  configuration (the class path change is under Upgrading).
+- The generated `qlrisk_price_<product>` descriptions are shorter: units, the common `advanced` fields
+  and the sample market are said once in `config/tools/qlrisk/domain.txt`, inputs are listed as
+  `name=default`, and only the product's extra `advanced` fields are named
+  (`python -m sajha.tools.impl.qlrisk.generate`). The hand-written qlrisk risk tools' descriptions were
+  cut to what fits beside the domain text; `qlrisk_stress_test` and `qlrisk_frtb_sa_capital` have smaller
+  worked examples (one swap under a stylised "risk off" scenario; one corporate bond).
+- The LLM providers load one by one: a provider module that cannot be imported is logged and skipped and
+  the others still register, so SAJHA always starts; optional vendor libraries stay imported only on use.
+
+### Fixed
+
+Broken market data and open data tools fixed or removed (Roadmap L22,
+[Tool Quality §12.2–12.3](docs/architecture/Tool%20Quality.md#122-broken-tools-fix-or-remove)). Each
+changed tool's description now states what it does, in at most 1000 characters with an `Example:` that
+validates against its schema (`tests/test_open_data_fixes.py`). Every fixed tool was called live against
+its upstream (FMP, FRED and Alpha Vantage tools, and FRED-backed series, only up to the key check: no keys
+were available; their series ids were checked on fred.stlouisfed.org). Removals, changed arguments and
+defaults are under Upgrading.
+
+- **OpenBB** (`sajha/tools/impl/openbb_tools.py`, [OpenBB guide](docs/tools/market-data/OpenBB%20Tool%20Reference%20Guide.md#how-a-call-runs)).
+  Every tool names one OpenBB command (`TOOL_COMMANDS`), checked by a test against the installed
+  OpenBB 4.6. Commands that no longer existed now map to their successors: `openbb_treasury_rates`
+  (`fixedincome.government.treasury_rates`: daily yields per maturity, not the fed funds rate),
+  `openbb_yield_curve` (`fixedincome.government.yield_curve`), `openbb_earnings`
+  (`equity.fundamental.historical_eps`), `openbb_commodity_price` (`commodity.price.spot`: EIA energy
+  spot prices; argument `commodity` replaces `symbol`), `openbb_index_constituents`
+  (`index.constituents` with `symbol` sp500, nasdaq or dowjones), `openbb_fixedincome_ice_bofa`
+  (`fixedincome.bond_indices`), `openbb_regulators_sec_filings` (`equity.fundamental.filings`, with
+  `form_type`), `openbb_economy_interest_rate` (`economy.interest_rates`, with `duration`). Each tool's
+  `provider` is an enum of the providers OpenBB offers for its command, and the default is a keyless one
+  where the command has one (yfinance, federal_reserve, oecd, sec, nasdaq, econdb, government_us);
+  before, an omitted provider was sent as `yfinance`, which most commands refuse. Only arguments the
+  command accepts are sent (others are listed in `ignored_arguments`); `openbb_equity_screener` sends
+  `market_cap_min`/`max` as OpenBB's `mktcap_min`/`max`. Rows keep their dates (they were lost to the
+  DataFrame index), and `limit` (1-1000) caps rows with `data_points` and `truncated`, keeping the most
+  recent rows of a dated series. SAJHA's `fmp.api.key`, `fred.api.key` and `alpha_vantage.api.key` are
+  given to OpenBB for credentials its `user_settings.json` leaves empty. A command missing from the
+  installed OpenBB is an error naming it and the info notice `tools.openbb_command:<tool>`.
+- **Yahoo**: `yahoo_get_quote` goes through yfinance (Yahoo's quoteSummary answers 401 without a
+  cookie and crumb) and adds `exchange` and `market_time`; `yahoo_search_symbols` maps NYSE, NASDAQ,
+  AMEX, LSE and TSX to Yahoo's exchange codes and fetches enough matches to fill `limit`;
+  `yahoo_get_history`'s `adjusted_close` is Yahoo's dividend-adjusted series instead of a copy of
+  `close`; `yf_screener` uses `yf.screen` with two more screens and a `limit`; `yf_trending_tickers`
+  reads Yahoo's trending endpoint per `region` (symbols only); `yf_index_history`, `yf_forex_history`,
+  `yf_stock_history`, `yf_multi_ticker_history`, `yf_dividends`, `yf_splits`, `yf_actions` and
+  `yf_shares_outstanding` return the most recent `limit` rows (they returned the oldest) with
+  `data_points` and `truncated`; `yf_multi_ticker_history` takes up to 10 tickers separated by spaces or
+  commas; `yf_crypto_info` appends `-USD` only to a symbol without a pair (`BTC-EUR` was sent as
+  `BTC-EUR-USD`); `yf_news` falls back to Yahoo's search news when `Ticker.news` is empty;
+  `yf_options_chain`, `yf_upgrades_downgrades` and `yf_earnings_dates` take a `limit`.
+- **Alpha Vantage**: Alpha Vantage's `Error Message`, `Information` and `Note` answers become
+  `{"error": ...}`; `av_vwap` defaults to `15min` and accepts intraday intervals only; indicator
+  `interval`s are an enum; `av_crypto_daily` and `av_crypto_weekly` no longer require `symbol` (default
+  BTC); `av_treasury_yield` exposes `interval`.
+- **Banque de France** (`bdf_*`): the ECB Data Portal through the SDMX client instead of the retired
+  `sdw-wsrest.ecb.europa.eu`; every series parsed (the parser read one hard-coded key); `m3` is M3's
+  annual growth rate (it was a loans series); inflation reads the ECB's `HICP` dataflow (`ICP` was
+  retired in February 2026); `bdf_get_oat_yield` offers `10y` only, the one French yield the ECB
+  publishes (the four tenors were one series); `recent_periods` (default 10) is applied.
+- **ECB** (`ecb_*`): the SDMX client with `lastNObservations`, so `ecb_get_latest` and
+  `ecb_get_common_indicators` return monthly and quarterly series (a 40-day look-back left them empty);
+  HICP, €STR (`EST`), GDP (euro area 21) and unemployment on live keys; EONIA removed (no data since 2022).
+- **IMF** (`imf_*`): the IMF's current SDMX API (`api.imf.org`, no key) instead of the dead
+  `dataservices.imf.org`. `imf_get_databases` and `imf_get_dataflows` list live dataflows and key
+  structures; `imf_get_data` takes a full key; `imf_get_ifs_data` reads the retired IFS indicators from
+  their successor dataflows (CPI, ER, MFS_IR, IL, MFS_MA); WEO, BOP, comparisons (one request) and the
+  country profile report `latest_actual_year`. Countries accept ISO alpha-2 or alpha-3.
+- **Federal Reserve** (`fed_*`): no more synthetic "demo mode". The key comes from `FRED_API_KEY`
+  (`fred.api.key`) through one lookup shared by every FRED-backed tool (`sajha/tools/impl/fred_key.py`);
+  without it a call fails with a message saying how to set it.
+- **FRED**: the preset tools use their schema `limit` default in code too.
+- **PBoC and BoJ**: each label reads its own live series. `pboc_get_policy_rate` offers `discount_rate`
+  and `interbank_3m`; `pboc_get_inflation` and `boj_get_inflation` read IMF CPI (`cpi`, `cpi_inflation`);
+  `pboc_get_economic_indicator` offers GDP, GDP growth (IMF WEO), exports, imports, trade balance and
+  property prices; `boj_get_economic_indicator`'s `trade_balance` is the balance (it read exports), with
+  `exports` and `imports` added; `boj_get_money_supply` is IMF broad money; `currency_pair` says yen per
+  unit.
+- **UN** `un_get_sdg_data`: converts ISO codes to the M49 numbers the SDG API needs (an ISO code returned
+  every area), reads the paged answer (it was always empty), filters years with `timePeriod`, adds
+  `max_records`, `series` and `dimensions`.
+- **EDGAR**: `edgar_company_search` and `edgar_company_tickers_by_exchange` read
+  `company_tickers_exchange.json` (the tickers URL had moved and carried no exchange); exchanges are
+  Nasdaq, NYSE, OTC, CBOE, TXSE. `edgar_companies_by_sic` no longer raises `NameError`, and scans the
+  `max_scan` (200) largest companies. SC 13D/G and the SCHEDULE 13D/G names used since December 2024
+  find each other. Frames fall back to instant periods (`CY2023Q4I`) for balance-sheet concepts
+  (`period_type`). `edgar_financial_ratios` uses the period's own values, not prior-year comparatives.
+  `sec_get_financial_data` maps its friendly names to us-gaap tags (`CurrentAssets` → `AssetsCurrent`,
+  ...). `sec_get_mutual_fund_holdings` lists NPORT-P filings.
+- **CoinGecko**: `cg_top_gainers` / `cg_top_losers` rank the 250 largest coins by 24-hour change in SAJHA
+  (`limit`, default 20); `cg_coin_markets.order` is an enum of CoinGecko's documented sorts.
+- **Wikipedia**: `wiki_get_page` `include_links` returns up to 500 article and external links;
+  `redirect: false` works; `wiki_get_summary` returns `original_image`.
+- **World Bank**: `wb_search_indicators` searches the whole catalogue (cached a day); `most_recent_year`
+  in `wb_compare_countries` works. **FBI**: year schemas lost a fixed maximum of 2100 (the code allows
+  1985 to the current year).
+- **Bank of Canada**: the `boc_*` shorthands read the right Valet series (checked live): `policy_rate`
+  `V39079` (was the missing `POLICY_RATE`), `overnight_rate` `AVG.INTWO` (CORRA; was the missing `CORRA`),
+  `prime_rate` `V80691311` (was the Bank rate), `bond_2y`/`5y`/`10y` `BD.CDN.<N>YR.DQ.YLD` and `bond_30y`
+  the long-term benchmark `BD.CDN.LONG.DQ.YLD` (were T-bill, other-term or missing series), `core_cpi`
+  CPI-trim `CPI_TRIM` (was seasonally adjusted total CPI). Results with `recent_periods` now come oldest
+  first, as described (Valet answers newest first).
+- **Live tool check from the command line**: `python -m sajha.quality check --save` failed with "Database
+  not initialized", and its notices and latest results never reached a server using the database state
+  store. `python -m sajha.quality` now opens SAJHA's database when a command needs it (`check`, `runs`,
+  `compare`, `--save`, and `eval` unless `--no-save`).
+- **Output schemas that rejected real answers** (found by the live check): `extract_metadata` and
+  `get_page_info` (title and meta tags may be absent), `wb_get_indicators` and `wb_get_topic_indicators`
+  (the World Bank sends `per_page` as a string), `wb_compare_countries` (`latest_year` may be null),
+  `un_get_sdgs` (`color` may be null), `ir_get_latest_earnings` (null when nothing is found),
+  `edgar_frame_data` (`cik` is a number) and `sec_get_company_info` (address lines may be null). The web
+  crawler's `crawl_sitemap`, `extract_content` and `extract_links` examples now point at pages that exist.
+- **Required properties with a default** (lint `required-default`, which a required property contradicts:
+  it is never filled in): `symbol` of `fmp_commitment_of_traders`, `fmp_commodity_*`, `fmp_crypto_*`,
+  `fmp_forex_*` and `fmp_index_*`, and `operation` of `sharepoint_documents` and `sharepoint_lists`, now
+  carry the value as an `examples` entry instead; the property stays required, as it always was.
+
+### Planned
+
+- **Quantitative planners** placed as phase 8.2 (release 8.9.0), Roadmap L51–L59, design
+  [Quantitative Planners](docs/architecture/Quantitative%20Planners.md): a quantitative workspace
+  (quantities with units, as-of and source, a tested operation library, a numbers validator), the
+  planners `calc_graph`, `estimate_then_compute`, `scenario`, `data_analyst`, `code_act` and
+  `optimize`, a `numbers_check` setting for every planner, `research_writer` and `reconcile`. Open data,
+  business intelligence and reports move to phases 8.3, 8.4 and 8.5 (releases 8.10.0, 8.11.0, 8.12.0).
+- Owner decisions of 2026-10-11 recorded in the designs: the UN sanctions list and GDACS stay off until
+  legal approves, sanctions results are blocked from Ask SAJHA by policy, BIS ships with its citation,
+  no paid data options, P2 and P3 open data may slip, the usage page's menu entry becomes "Usage" in the
+  reports phase, and Playwright, openpyxl and python-pptx are acceptable as optional `requires`.
 
 ## v8.7.0 (October 2026) — full tool descriptions, safer document and SQL tools
 

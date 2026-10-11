@@ -1,20 +1,38 @@
 {
   "name": "openbb_equity_calendar_dividend",
   "implementation": "sajha.tools.impl.openbb_tools.OpenBBGenericTool",
-  "description": "Upcoming dividend events across the market through the OpenBB Platform (obb.equity.calendar.dividend), in OpenBB's default date window.\nReturns: {tool, data_points (total rows), data: first 100 rows as OpenBB returns them} or {tool, error}.\nInputs (* required): symbol (accepted by the schema, not a filter of this command); provider (OpenBB 4.6 accepts fmp or nasdaq; schema default fmp, but when omitted the tool sends yfinance, which this command rejects, so set it).\nOne company's history: openbb_dividends, yf_dividends. Keys: fmp, benzinga, fred, intrinio, polygon and tiingo need credentials in OpenBB's settings (~/.openbb_platform/user_settings.json), not supplied by SAJHA; yfinance, oecd, federal_reserve, sec, imf and government_us need none.\nExample: {\"provider\": \"nasdaq\"}",
+  "description": "Upcoming dividend events across the market through the OpenBB Platform (obb.equity.calendar.dividend).\nReturns: {tool, provider, data_points (rows before the cap), truncated, data: rows with their dates, ignored_arguments when some did not apply} or {tool, error}.\nInputs (* required): start_date and end_date (provider's default window when omitted); limit (rows returned, 1-1000; default 100; a dated series keeps its most recent rows); provider (fmp, nasdaq; default nasdaq).\nOne company: openbb_dividends, yf_dividends. Keys: nasdaq needs none; fmp uses SAJHA's FMP_API_KEY.\nExample: {\"start_date\": \"2026-10-12\", \"end_date\": \"2026-10-16\"}",
+  "annotations": {"readOnlyHint": true, "idempotentHint": true, "openWorldHint": true},
   "version": "4.5.0",
   "enabled": true,
   "inputSchema": {
     "type": "object",
     "properties": {
-      "symbol": {
+      "start_date": {
         "type": "string",
-        "description": "Stock ticker symbol"
+        "description": "Start date (YYYY-MM-DD)",
+        "format": "date"
+      },
+      "end_date": {
+        "type": "string",
+        "description": "End date (YYYY-MM-DD)",
+        "format": "date"
+      },
+      "limit": {
+        "type": "integer",
+        "minimum": 1,
+        "maximum": 1000,
+        "default": 100,
+        "description": "Most rows returned (1-1000); a dated series keeps its most recent rows"
       },
       "provider": {
         "type": "string",
-        "description": "OpenBB data provider",
-        "default": "fmp"
+        "enum": [
+          "fmp",
+          "nasdaq"
+        ],
+        "default": "nasdaq",
+        "description": "OpenBB data provider"
       }
     },
     "required": []
@@ -22,8 +40,24 @@
   "outputSchema": {
     "type": "object",
     "properties": {
-      "result": {
-        "type": "object"
+      "tool": {
+        "type": "string"
+      },
+      "provider": {
+        "type": "string"
+      },
+      "data_points": {
+        "type": "integer",
+        "description": "Rows before the cap"
+      },
+      "truncated": {
+        "type": "boolean"
+      },
+      "data": {
+        "type": "array"
+      },
+      "error": {
+        "type": "string"
       }
     }
   },
@@ -36,6 +70,15 @@
       "openbb",
       "dividend",
       "calendar"
+    ],
+    "examples": [
+      {
+        "description": "Upcoming dividend events across the market",
+        "input": {
+          "start_date": "2026-10-12",
+          "end_date": "2026-10-16"
+        }
+      }
     ]
   }
 }

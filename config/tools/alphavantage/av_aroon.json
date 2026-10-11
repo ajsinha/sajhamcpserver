@@ -1,7 +1,8 @@
 {
   "name": "av_aroon",
   "implementation": "sajha.tools.impl.alphavantage_tools.AVAroonTool",
-  "description": "Aroon indicator for one stock from Alpha Vantage (AROON).\nReturns: {\"Meta Data\", \"Technical Analysis: AROON\"} keyed by date or timestamp, each with Aroon Up, Aroon Down. Alpha Vantage's JSON comes back unchanged, including its \"Error Message\" or \"Information\" notes; a network failure gives {\"error\": ...}.\nInputs (* required): symbol* (ticker); interval (1min, 5min, 15min, 30min, 60min, daily, weekly or monthly; default daily); time_period (bars in the window; default 14 when omitted).\nUse it for whether a trend is starting or fading; av_adx for trend strength. Raw prices: av_stock_daily.\nKey: ALPHA_VANTAGE_API_KEY (alpha_vantage.api.key); when unset the 'demo' key is sent, which only serves Alpha Vantage's documentation examples. Free tier: 25 requests/day.\nExample: {\"symbol\": \"IBM\", \"interval\": \"daily\", \"time_period\": 14}",
+  "description": "Aroon indicator for one stock from Alpha Vantage (AROON).\nReturns: {\"Meta Data\", \"Technical Analysis: AROON\"} keyed by date or timestamp, each with Aroon Up, Aroon Down.\nInputs (* required): symbol* (ticker); interval (1min, 5min, 15min, 30min, 60min, daily, weekly or monthly; default daily); time_period (bars in the window, 2-500; default 14).\nUse it for whether a trend is starting or fading; av_adx for trend strength. Raw prices: av_stock_daily.\nExample: {\"symbol\": \"IBM\", \"interval\": \"daily\", \"time_period\": 14}",
+  "annotations": {"readOnlyHint": true, "idempotentHint": true, "openWorldHint": true},
   "version": "4.5.0",
   "enabled": true,
   "inputSchema": {
@@ -14,17 +15,30 @@
       "interval": {
         "type": "string",
         "description": "Bar interval: 1min, 5min, 15min, 30min, 60min, daily, weekly or monthly",
-        "default": "daily"
+        "default": "daily",
+        "enum": [
+          "1min",
+          "5min",
+          "15min",
+          "30min",
+          "60min",
+          "daily",
+          "weekly",
+          "monthly"
+        ]
       },
       "time_period": {
         "type": "integer",
         "description": "Number of bars in the indicator window",
-        "default": 14
+        "default": 14,
+        "minimum": 2,
+        "maximum": 500
       }
     },
     "required": [
       "symbol"
-    ]
+    ],
+    "examples": [{"symbol": "IBM", "interval": "daily", "time_period": 14}]
   },
   "outputSchema": {
     "type": "object",

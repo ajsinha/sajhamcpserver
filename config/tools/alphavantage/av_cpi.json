@@ -1,7 +1,8 @@
 {
   "name": "av_cpi",
   "implementation": "sajha.tools.impl.alphavantage_tools.AVCPITool",
-  "description": "US consumer price index for all urban consumers from Alpha Vantage (CPI), an index level (1982-1984 = 100).\nReturns: {name, interval, unit, data: [{date, value}]} with values as strings, newest first. Alpha Vantage's JSON comes back unchanged, including its \"Error Message\" or \"Information\" notes; a network failure gives {\"error\": ...}.\nInputs (* required): interval (monthly or semiannual; default monthly).\nAnnual percentage inflation: av_inflation. Other sources: fred_cpi, fred_core_cpi, openbb_economy_cpi.\nKey: ALPHA_VANTAGE_API_KEY (alpha_vantage.api.key); when unset the 'demo' key is sent, which only serves Alpha Vantage's documentation examples. Free tier: 25 requests/day.\nExample: {\"interval\": \"monthly\"}",
+  "description": "US consumer price index for all urban consumers from Alpha Vantage (CPI), an index level (1982-1984 = 100).\nReturns: {name, interval, unit, data: [{date, value}]} with values as strings, newest first.\nInputs (* required): interval (monthly or semiannual; default monthly).\nAnnual percentage inflation: av_inflation. Other sources: fred_cpi, fred_core_cpi, openbb_economy_cpi.\nExample: {\"interval\": \"monthly\"}",
+  "annotations": {"readOnlyHint": true, "idempotentHint": true, "openWorldHint": true},
   "version": "4.5.0",
   "enabled": true,
   "inputSchema": {
@@ -10,7 +11,11 @@
       "interval": {
         "type": "string",
         "description": "monthly or semiannual",
-        "default": "monthly"
+        "default": "monthly",
+        "enum": [
+          "monthly",
+          "semiannual"
+        ]
       }
     },
     "required": []

@@ -34,20 +34,19 @@ class BankOfCanadaBaseTool(BaseMCPTool):
             'cny_cad': 'FXCNYCAD',
             
             # Interest Rates
-            'policy_rate': 'POLICY_RATE',
-            'overnight_rate': 'CORRA',
-            'prime_rate': 'V122530',
+            'policy_rate': 'V39079',        # Target for the overnight rate
+            'overnight_rate': 'AVG.INTWO',  # CORRA
+            'prime_rate': 'V80691311',      # Prime rate
             
             # Bond Yields
-            'bond_2y': 'V122531',
-            'bond_5y': 'V122533',
-            'bond_10y': 'V122539',
-            'bond_30y': 'V122546',
+            'bond_2y': 'BD.CDN.2YR.DQ.YLD',
+            'bond_5y': 'BD.CDN.5YR.DQ.YLD',
+            'bond_10y': 'BD.CDN.10YR.DQ.YLD',
+            'bond_30y': 'BD.CDN.LONG.DQ.YLD',  # long-term benchmark bond
             
             # Economic Indicators
-            'cpi': 'V41690973',
-            'core_cpi': 'V41690914',
-            'gdp': 'V65201210',
+            'cpi': 'V41690973',             # Total CPI
+            'core_cpi': 'CPI_TRIM',         # CPI-trim (preferred core measure)
         }
     
     def _fetch_series(
@@ -102,7 +101,9 @@ class BankOfCanadaBaseTool(BaseMCPTool):
                         'date': obs.get('d'),
                         'value': float(value) if value else None
                     })
-                
+                # Valet answers ?recent=N newest first; the tools promise oldest first.
+                formatted_obs.sort(key=lambda o: o['date'] or '')
+
                 return {
                     'series_name': series_name,
                     'label': series_detail.get('label', series_name),
@@ -144,7 +145,7 @@ class BoCGetSeriesTool(BankOfCanadaBaseTool):
             "properties": {
                 "series_name": {
                     "type": "string",
-                    "description": "Bank of Canada series name (e.g., 'FXUSDCAD', 'POLICY_RATE'). Use this for direct series access."
+                    "description": "Bank of Canada series name (e.g., 'FXUSDCAD', 'V39079'). Use this for direct series access."
                 },
                 "indicator": {
                     "type": "string",
@@ -152,7 +153,7 @@ class BoCGetSeriesTool(BankOfCanadaBaseTool):
                     "enum": ["usd_cad", "eur_cad", "gbp_cad", "jpy_cad", "cny_cad", 
                             "policy_rate", "overnight_rate", "prime_rate",
                             "bond_2y", "bond_5y", "bond_10y", "bond_30y",
-                            "cpi", "core_cpi", "gdp"]
+                            "cpi", "core_cpi"]
                 },
                 "start_date": {
                     "type": "string",
@@ -490,7 +491,7 @@ class BoCGetBondYieldTool(BankOfCanadaBaseTool):
             "properties": {
                 "bond_term": {
                     "type": "string",
-                    "description": "Bond maturity term",
+                    "description": "Bond maturity term (30y is the Government of Canada long-term benchmark bond)",
                     "enum": ["2y", "5y", "10y", "30y"],
                     "default": "10y"
                 },
@@ -597,7 +598,7 @@ class BoCGetLatestTool(BankOfCanadaBaseTool):
             "properties": {
                 "series_name": {
                     "type": "string",
-                    "description": "Bank of Canada series name (e.g., 'FXUSDCAD', 'POLICY_RATE')"
+                    "description": "Bank of Canada series name (e.g., 'FXUSDCAD', 'V39079')"
                 },
                 "indicator": {
                     "type": "string",
@@ -605,7 +606,7 @@ class BoCGetLatestTool(BankOfCanadaBaseTool):
                     "enum": ["usd_cad", "eur_cad", "gbp_cad", "jpy_cad", "cny_cad",
                             "policy_rate", "overnight_rate", "prime_rate",
                             "bond_2y", "bond_5y", "bond_10y", "bond_30y",
-                            "cpi", "core_cpi", "gdp"]
+                            "cpi", "core_cpi"]
                 }
             },
             "oneOf": [
@@ -745,7 +746,7 @@ class BoCSearchSeriesTool(BankOfCanadaBaseTool):
             'Exchange Rates': ['usd_cad', 'eur_cad', 'gbp_cad', 'jpy_cad', 'cny_cad'],
             'Interest Rates': ['policy_rate', 'overnight_rate', 'prime_rate'],
             'Bond Yields': ['bond_2y', 'bond_5y', 'bond_10y', 'bond_30y'],
-            'Economic Indicators': ['cpi', 'core_cpi', 'gdp']
+            'Economic Indicators': ['cpi', 'core_cpi']
         }
         
         # Filter categories if requested
@@ -777,14 +778,13 @@ class BoCSearchSeriesTool(BankOfCanadaBaseTool):
             'cny_cad': 'Chinese Yuan to Canadian Dollar Exchange Rate',
             'policy_rate': 'Bank of Canada Policy Interest Rate',
             'overnight_rate': 'Canadian Overnight Repo Rate Average (CORRA)',
-            'prime_rate': 'Prime Business Rate',
+            'prime_rate': 'Prime Rate',
             'bond_2y': '2-Year Government of Canada Bond Yield',
             'bond_5y': '5-Year Government of Canada Bond Yield',
             'bond_10y': '10-Year Government of Canada Bond Yield',
-            'bond_30y': '30-Year Government of Canada Bond Yield',
+            'bond_30y': 'Long-term Government of Canada Benchmark Bond Yield',
             'cpi': 'Consumer Price Index',
-            'core_cpi': 'CPI Common (Core Inflation)',
-            'gdp': 'Gross Domestic Product'
+            'core_cpi': 'CPI-trim (Core Inflation)'
         }
         return descriptions.get(indicator, indicator)
 
@@ -815,9 +815,10 @@ class BoCGetCommonIndicatorsTool(BankOfCanadaBaseTool):
                     "description": "Specific indicators to retrieve (optional, defaults to key indicators)",
                     "items": {
                         "type": "string",
-                        "enum": ["usd_cad", "eur_cad", "policy_rate", "overnight_rate",
+                        "enum": ["usd_cad", "eur_cad", "gbp_cad", "jpy_cad", "cny_cad",
+                                "policy_rate", "overnight_rate", "prime_rate",
                                 "bond_2y", "bond_5y", "bond_10y", "bond_30y",
-                                "cpi", "core_cpi", "gdp"]
+                                "cpi", "core_cpi"]
                     }
                 }
             }
@@ -920,15 +921,18 @@ class BoCGetCommonIndicatorsTool(BankOfCanadaBaseTool):
         descriptions = {
             'usd_cad': 'US Dollar to Canadian Dollar Exchange Rate',
             'eur_cad': 'Euro to Canadian Dollar Exchange Rate',
+            'gbp_cad': 'British Pound to Canadian Dollar Exchange Rate',
+            'jpy_cad': 'Japanese Yen to Canadian Dollar Exchange Rate',
+            'cny_cad': 'Chinese Yuan to Canadian Dollar Exchange Rate',
             'policy_rate': 'Bank of Canada Policy Interest Rate',
             'overnight_rate': 'Canadian Overnight Repo Rate Average (CORRA)',
+            'prime_rate': 'Prime Rate',
             'bond_2y': '2-Year Government of Canada Bond Yield',
             'bond_5y': '5-Year Government of Canada Bond Yield',
             'bond_10y': '10-Year Government of Canada Bond Yield',
-            'bond_30y': '30-Year Government of Canada Bond Yield',
+            'bond_30y': 'Long-term Government of Canada Benchmark Bond Yield',
             'cpi': 'Consumer Price Index',
-            'core_cpi': 'CPI Common (Core Inflation)',
-            'gdp': 'Gross Domestic Product'
+            'core_cpi': 'CPI-trim (Core Inflation)'
         }
         return descriptions.get(indicator, indicator)
 

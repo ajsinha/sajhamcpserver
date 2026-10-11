@@ -1,7 +1,8 @@
 {
   "name": "sec_get_company_info",
   "implementation": "sajha.tools.impl.sec_edgar_tool_refactored.SECGetCompanyInfoTool",
-  "description": "A company's SEC registration profile from EDGAR (data.sec.gov submissions), by CIK or ticker.\nReturns {cik, name, tickers, exchanges, sic, sic_description, category, fiscal_year_end (MMDD), state_of_incorporation, business_address, mailing_address, ein, phone, website, investor_website}.\nInputs (* required): cik or ticker (one of them is needed; cik, 10 digits or shorter, wins when both are given; a ticker is resolved through the SEC company-tickers file).\nFor the filing list as well use edgar_company_submissions or sec_get_company_filings.\nExample: {\"ticker\": \"MSFT\"}\nNo API key; SEC data.sec.gov (requests are not throttled; the SEC allows 10 per second).",
+  "description": "A company's SEC registration profile from EDGAR (data.sec.gov submissions), by CIK or ticker.\nReturns {cik, name, tickers, exchanges, sic, sic_description, category, fiscal_year_end (MMDD), state_of_incorporation, business_address, mailing_address, ein, phone, website, investor_website}.\nInputs (* required): cik or ticker (one of them is needed; cik, 10 digits or shorter, wins when both are given; a ticker is resolved through the SEC company-tickers file).\nFor the filing list as well use edgar_company_submissions or sec_get_company_filings.\nExample: {\"ticker\": \"MSFT\"}",
+  "annotations": {"readOnlyHint": true, "idempotentHint": true, "openWorldHint": true},
   "version": "2.9.8",
   "enabled": true,
   "inputSchema": {
@@ -19,7 +20,8 @@
     "oneOf": [
       {"required": ["cik"]},
       {"required": ["ticker"]}
-    ]
+    ],
+    "examples": [{"ticker": "MSFT"}]
   },
   "outputSchema": {
     "type": "object",
@@ -61,11 +63,11 @@
         "type": "object",
         "description": "Business address",
         "properties": {
-          "street1": {"type": "string"},
-          "street2": {"type": "string"},
-          "city": {"type": "string"},
-          "stateOrCountry": {"type": "string"},
-          "zipCode": {"type": "string"}
+          "street1": {"type": ["string", "null"]},
+          "street2": {"type": ["string", "null"]},
+          "city": {"type": ["string", "null"]},
+          "stateOrCountry": {"type": ["string", "null"]},
+          "zipCode": {"type": ["string", "null"]}
         }
       },
       "mailing_address": {

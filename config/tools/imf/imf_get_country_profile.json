@@ -1,7 +1,8 @@
 {
   "name": "imf_get_country_profile",
   "implementation": "sajha.tools.impl.imf_tool_refactored.IMFGetCountryProfileTool",
-  "description": "Five-indicator macro snapshot of one country from the IMF World Economic Outlook: GDP growth, inflation, unemployment, current account (% of GDP) and general government gross debt (% of GDP), over the last five years, from the IMF SDMX JSON data service (dataservices.imf.org, no API key).\nReturns: country_code, country_name and indicators keyed by name, each with code, latest_value, latest_period and recent_data (up to the last three periods), or an error.\nInputs (* required): country_code* (ISO 2-letter, e.g. US, CN, DE).\nFor other indicators or a longer history use imf_get_weo_data; to compare countries imf_compare_countries.\nExample: {\"country_code\": \"BR\"}",
+  "description": "Macro snapshot of one country from the IMF World Economic Outlook in one request: GDP growth, inflation (average), unemployment, current account (% of GDP) and general government gross debt (% of GDP), for the last five years and this one. Values after latest_actual_year are IMF projections.\nReturns: country_code, country_name, indicators (per name: code, name, latest_value, latest_period, latest_actual_year, recent_data of the last three periods; or an error), source, note.\nInputs (* required): country_code* (ISO3 or ISO2).\nFor longer history use imf_get_weo_data.\nExample: {\"country_code\": \"BRA\"}",
+  "annotations": {"readOnlyHint": true, "idempotentHint": true, "openWorldHint": true},
   "version": "2.9.8",
   "enabled": true,
   "inputSchema": {
@@ -9,59 +10,51 @@
     "properties": {
       "country_code": {
         "type": "string",
-        "description": "ISO 2-letter country code (e.g., 'US', 'CN', 'JP', 'DE')"
+        "description": "Country: ISO alpha-3 (USA) or alpha-2 (US); IMF group codes such as G001 (world) pass through"
       }
     },
-    "required": ["country_code"]
+    "required": [
+      "country_code"
+    ],
+    "examples": [{"country_code": "BRA"}]
   },
   "outputSchema": {
     "type": "object",
     "properties": {
-      "country_code": {"type": "string"},
-      "country_name": {"type": "string"},
+      "country_code": {
+        "type": "string"
+      },
+      "country_name": {
+        "type": "string"
+      },
       "indicators": {
-        "type": "object",
-        "description": "Key economic indicators",
-        "additionalProperties": {
-          "type": "object",
-          "properties": {
-            "code": {"type": "string"},
-            "latest_value": {"type": ["number", "null"]},
-            "latest_period": {"type": "string"},
-            "recent_data": {
-              "type": "array",
-              "items": {
-                "type": "object",
-                "properties": {
-                  "period": {"type": "string"},
-                  "value": {"type": ["number", "null"]}
-                }
-              }
-            },
-            "error": {"type": "string"}
-          }
-        }
+        "type": "object"
+      },
+      "source": {
+        "type": "string"
+      },
+      "note": {
+        "type": "string"
       }
     }
   },
   "metadata": {
     "author": "Ashutosh Sinha",
     "category": "Economic Data",
-    "tags": ["imf", "country profile", "dashboard", "overview"],
+    "tags": [
+      "imf",
+      "country profile",
+      "dashboard",
+      "overview"
+    ],
     "rateLimit": 80,
     "cacheTTL": 7200,
     "note": "Get a comprehensive economic snapshot for any country with key macroeconomic indicators.",
     "examples": [
       {
-        "description": "Get US economic profile",
+        "description": "Brazil snapshot",
         "input": {
-          "country_code": "US"
-        }
-      },
-      {
-        "description": "Get China economic profile",
-        "input": {
-          "country_code": "CN"
+          "country_code": "BRA"
         }
       }
     ],

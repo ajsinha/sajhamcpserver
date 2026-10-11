@@ -9,7 +9,7 @@ import urllib.request
 from typing import Dict, Any, List, Optional
 from datetime import datetime, timedelta
 from sajha.tools.base_mcp_tool import BaseMCPTool
-from sajha.tools.http_utils import safe_json_response, ENCODINGS_EUROPEAN
+from sajha.tools.impl import sdmx_client
 
 
 class EuropeanCentralBankBaseTool(BaseMCPTool):
@@ -69,56 +69,51 @@ class EuropeanCentralBankBaseTool(BaseMCPTool):
                 'key': 'B.U2.EUR.4F.KR.MLFR.LEV',
                 'description': 'Marginal Lending Facility Rate'
             },
-            'eonia': {
-                'flow': 'FM',
-                'key': 'D.U2.EUR.4F.KR.EON.LEV',
-                'description': 'Euro OverNight Index Average (EONIA)'
-            },
             'ester': {
-                'flow': 'FM',
-                'key': 'D.U2.EUR.4F.KR.ESTER.LEV',
-                'description': 'Euro Short-Term Rate (€STR)'
+                'flow': 'EST',
+                'key': 'B.EU000A2X2A25.WT',
+                'description': 'Euro short-term rate (euro STR), volume-weighted trimmed mean rate'
             },
             
             # Bond Yields (YC - Yield Curves)
             'bond_2y': {
                 'flow': 'YC',
                 'key': 'B.U2.EUR.4F.G_N_A.SV_C_YM.SR_2Y',
-                'description': '2-Year Euro Area Government Bond Yield'
+                'description': '2-year euro area AAA government bond yield (ECB AAA curve)'
             },
             'bond_5y': {
                 'flow': 'YC',
                 'key': 'B.U2.EUR.4F.G_N_A.SV_C_YM.SR_5Y',
-                'description': '5-Year Euro Area Government Bond Yield'
+                'description': '5-year euro area AAA government bond yield (ECB AAA curve)'
             },
             'bond_10y': {
                 'flow': 'YC',
                 'key': 'B.U2.EUR.4F.G_N_A.SV_C_YM.SR_10Y',
-                'description': '10-Year Euro Area Government Bond Yield'
+                'description': '10-year euro area AAA government bond yield (ECB AAA curve)'
             },
             
-            # Inflation (ICP - HICP - Harmonised Index of Consumer Prices)
+            # Inflation (HICP; the ECB retired the ICP dataflow in February 2026)
             'hicp_overall': {
-                'flow': 'ICP',
-                'key': 'M.U2.N.000000.4.ANR',
-                'description': 'HICP - Overall Index'
+                'flow': 'HICP',
+                'key': 'M.U2.N.000000.4D0.ANR',
+                'description': 'HICP - Overall index, annual rate of change'
             },
             'hicp_core': {
-                'flow': 'ICP',
-                'key': 'M.U2.N.XEF000.4.ANR',
-                'description': 'HICP - All items excluding energy and food'
+                'flow': 'HICP',
+                'key': 'M.U2.N.XEF000.4D0.ANR',
+                'description': 'HICP - All items excluding energy and food, annual rate of change'
             },
             'hicp_energy': {
-                'flow': 'ICP',
-                'key': 'M.U2.N.NRG000.4.ANR',
-                'description': 'HICP - Energy'
+                'flow': 'HICP',
+                'key': 'M.U2.N.NRGY00.4D0.ANR',
+                'description': 'HICP - Energy, annual rate of change'
             },
             
-            # GDP (MNA - Quarterly National Accounts)
+            # GDP (MNA - Quarterly National Accounts; euro area 21, chain-linked volumes, EUR millions)
             'gdp': {
                 'flow': 'MNA',
-                'key': 'Q.Y.I8.W2.S1.S1.B.B1GQ._Z._Z._Z.EUR.LR.N',
-                'description': 'GDP at market prices'
+                'key': 'Q.Y.I10.W2.S1.S1.B.B1GQ._Z._Z._Z.EUR.LR.N',
+                'description': 'GDP at market prices, chain-linked volumes'
             },
             
             # Money Supply (BSI - Balance Sheet Items)
@@ -141,8 +136,8 @@ class EuropeanCentralBankBaseTool(BaseMCPTool):
             # Unemployment Rate (LFSI - Labour Force Survey Indicators)
             'unemployment_rate': {
                 'flow': 'LFSI',
-                'key': 'M.U2.N.S.UNEH.RTT000.4.AV3',
-                'description': 'Unemployment Rate - Total'
+                'key': 'M.U2.S.UNEHRT.TOTAL0.15_74.T',
+                'description': 'Unemployment rate, ages 15-74, seasonally adjusted'
             }
         }
     
@@ -154,124 +149,16 @@ class EuropeanCentralBankBaseTool(BaseMCPTool):
         end_date: Optional[str] = None,
         recent_periods: Optional[int] = 10
     ) -> Dict:
-        """
-        Fetch time series data from ECB API
-        
-        Args:
-            flow: ECB data flow identifier
-            key: Series key
-            start_date: Start date (YYYY-MM-DD)
-            end_date: End date (YYYY-MM-DD)
-            recent_periods: Number of recent periods
-            
-        Returns:
-            Time series data
-        """
-        url = f"{self.api_url}/{flow}/{key}"
-        
-        params = {
-            'format': 'jsondata',
-            'detail': 'dataonly'
-        }
-        
-        # Calculate date range
-        if end_date:
-            params['endPeriod'] = end_date
-        
-        if start_date:
-            params['startPeriod'] = start_date
-        elif not end_date and recent_periods:
-            # If no dates specified, get recent data
-            start = datetime.now() - timedelta(days=recent_periods * 40)
-            params['startPeriod'] = start.strftime('%Y-%m-%d')
-        
-        url += '?' + urllib.parse.urlencode(params)
-        
+        """One ECB series through the shared SDMX client. With no date, the last
+        ``recent_periods`` observations (lastNObservations), whatever the frequency."""
+        last_n = None if (start_date or end_date) else (recent_periods or 10)
         try:
-            headers = {
-                'User-Agent': 'Mozilla/5.0',
-                'Accept': 'application/json'
-            }
-            
-            req = urllib.request.Request(url, headers=headers)
-            with urllib.request.urlopen(req, timeout=30) as response:
-                data = safe_json_response(response, ENCODINGS_EUROPEAN)
-                
-                # Parse ECB JSON structure
-                if 'dataSets' not in data or not data['dataSets']:
-                    return {
-                        'flow': flow,
-                        'key': key,
-                        'observations': [],
-                        'observation_count': 0,
-                        'error': 'No data available'
-                    }
-                
-                dataset = data['dataSets'][0]
-                series_data = dataset.get('series', {})
-                
-                if not series_data:
-                    return {
-                        'flow': flow,
-                        'key': key,
-                        'observations': [],
-                        'observation_count': 0
-                    }
-                
-                # Get first (and usually only) series
-                series_key = list(series_data.keys())[0]
-                observations_dict = series_data[series_key].get('observations', {})
-                
-                # Get dimensions for time periods
-                structure = data.get('structure', {})
-                dimensions = structure.get('dimensions', {}).get('observation', [])
-                time_dimension = None
-                for dim in dimensions:
-                    if dim.get('id') == 'TIME_PERIOD':
-                        time_dimension = dim
-                        break
-                
-                # Format observations
-                formatted_obs = []
-                if time_dimension:
-                    time_values = time_dimension.get('values', [])
-                    for idx, obs_data in observations_dict.items():
-                        time_idx = int(idx)
-                        if time_idx < len(time_values):
-                            date = time_values[time_idx].get('id', time_values[time_idx].get('name', ''))
-                            value = obs_data[0] if obs_data and len(obs_data) > 0 else None
-                            formatted_obs.append({
-                                'date': date,
-                                'value': float(value) if value is not None else None
-                            })
-                
-                # Sort by date and limit to recent_periods if needed
-                formatted_obs.sort(key=lambda x: x['date'])
-                if not (start_date and end_date) and len(formatted_obs) > recent_periods:
-                    formatted_obs = formatted_obs[-recent_periods:]
-                
-                # Get series name/description
-                series_name = key
-                description = self._get_series_description(flow, key)
-                
-                return {
-                    'flow': flow,
-                    'key': key,
-                    'series_name': series_name,
-                    'description': description,
-                    'observation_count': len(formatted_obs),
-                    'observations': formatted_obs
-                }
-                
-        except urllib.error.HTTPError as e:
-            if e.code == 404:
-                raise ValueError(f"Series not found: {flow}/{key}")
-            else:
-                raise ValueError(f"Failed to get series data: HTTP {e.code}")
-        except urllib.error.URLError as e:
-            raise ValueError(f"Failed to connect to ECB API: {str(e)}")
-        except Exception as e:
-            raise ValueError(f"Failed to get series data: {str(e)}")
+            out = sdmx_client.fetch_series('ecb', flow, key, start=start_date, end=end_date, last_n=last_n)
+        except sdmx_client.SdmxError as e:
+            raise ValueError(f"ECB Data Portal: {e}")
+        out['series_name'] = out.get('label') or key
+        out['description'] = self._get_series_description(flow, key)
+        return out
     
     def _get_series_description(self, flow: str, key: str) -> str:
         """Get description for a series by matching common series"""
@@ -304,7 +191,7 @@ class ECBGetSeriesTool(EuropeanCentralBankBaseTool):
             "properties": {
                 "flow": {
                     "type": "string",
-                    "description": "ECB data flow identifier (e.g., 'EXR' for exchange rates, 'FM' for financial markets, 'ICP' for inflation)"
+                    "description": "ECB data flow identifier (e.g., 'EXR' for exchange rates, 'FM' for financial markets, 'HICP' for inflation)"
                 },
                 "key": {
                     "type": "string",
@@ -314,7 +201,7 @@ class ECBGetSeriesTool(EuropeanCentralBankBaseTool):
                     "type": "string",
                     "description": "Common indicator shorthand name for convenience",
                     "enum": ["eur_usd", "eur_gbp", "eur_jpy", "eur_cny", "eur_chf",
-                            "main_refinancing_rate", "deposit_facility_rate", "marginal_lending_rate", "eonia", "ester",
+                            "main_refinancing_rate", "deposit_facility_rate", "marginal_lending_rate", "ester",
                             "bond_2y", "bond_5y", "bond_10y",
                             "hicp_overall", "hicp_core", "hicp_energy",
                             "gdp", "m1", "m2", "m3", "unemployment_rate"]
@@ -564,7 +451,7 @@ class ECBGetInterestRateTool(EuropeanCentralBankBaseTool):
                 "rate_type": {
                     "type": "string",
                     "description": "Type of interest rate to retrieve",
-                    "enum": ["main_refinancing_rate", "deposit_facility_rate", "marginal_lending_rate", "eonia", "ester"]
+                    "enum": ["main_refinancing_rate", "deposit_facility_rate", "marginal_lending_rate", "ester"]
                 },
                 "start_date": {
                     "type": "string",
@@ -900,7 +787,7 @@ class ECBGetLatestTool(EuropeanCentralBankBaseTool):
                     "type": "string",
                     "description": "Common indicator shorthand",
                     "enum": ["eur_usd", "eur_gbp", "eur_jpy", "eur_cny", "eur_chf",
-                            "main_refinancing_rate", "deposit_facility_rate", "marginal_lending_rate", "eonia", "ester",
+                            "main_refinancing_rate", "deposit_facility_rate", "marginal_lending_rate", "ester",
                             "bond_2y", "bond_5y", "bond_10y",
                             "hicp_overall", "hicp_core", "hicp_energy",
                             "gdp", "m1", "m2", "m3", "unemployment_rate"]
@@ -1057,7 +944,7 @@ class ECBSearchSeriesTool(EuropeanCentralBankBaseTool):
             ],
             'Interest Rates': [
                 'main_refinancing_rate', 'deposit_facility_rate',
-                'marginal_lending_rate', 'eonia', 'ester'
+                'marginal_lending_rate', 'ester'
             ],
             'Bond Yields': ['bond_2y', 'bond_5y', 'bond_10y'],
             'Inflation (HICP)': ['hicp_overall', 'hicp_core', 'hicp_energy'],

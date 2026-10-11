@@ -1,7 +1,8 @@
 {
   "name": "yf_cash_flow",
   "implementation": "sajha.tools.impl.yfinance_tools.YFCashFlowTool",
-  "description": "Cash flow statements (operating, investing and financing cash flow, free cash flow, capex and more) for one company from Yahoo Finance (yfinance cashflow).\nReturns: {symbol, statements: [one row per reporting period, newest first, with \"index\" = period end date and one key per line item]}; Yahoo usually has about 4 annual or 4-5 quarterly periods.\nInputs (* required): symbol*; quarterly (boolean; default false = annual).\nRelated: yf_income_statement, yf_balance_sheet; other sources: av_cash_flow, openbb_cash_flow. No API key; data comes from Yahoo Finance through the yfinance library.\nExample: {\"symbol\": \"AAPL\", \"quarterly\": true}",
+  "description": "Cash flow statements (operating, investing and financing cash flow, free cash flow, capex and more) for one company from Yahoo Finance (yfinance cashflow).\nReturns: {symbol, statements: [one row per reporting period, newest first, with \"index\" = period end date and one key per line item]}; Yahoo usually has about 4 annual or 4-5 quarterly periods.\nInputs (* required): symbol*; quarterly (boolean; default false = annual).\nRelated: yf_income_statement, yf_balance_sheet; other sources: av_cash_flow, openbb_cash_flow.\nExample: {\"symbol\": \"AAPL\", \"quarterly\": true}",
+  "annotations": {"readOnlyHint": true, "idempotentHint": true, "openWorldHint": true},
   "version": "4.5.0",
   "enabled": true,
   "inputSchema": {
@@ -19,7 +20,8 @@
     },
     "required": [
       "symbol"
-    ]
+    ],
+    "examples": [{"symbol": "AAPL", "quarterly": true}]
   },
   "outputSchema": {
     "type": "object",

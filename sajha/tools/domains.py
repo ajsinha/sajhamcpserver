@@ -98,8 +98,8 @@ def query_key(value: Optional[str]) -> str:
 
 def summarize(registry, tools: List[dict], visible: Optional[Callable[[str], bool]] = None) -> List[dict]:
     """One entry per domain of ``tools`` (MCP-format dicts) that ``visible`` lets through: key, label,
-    count, folder (the tool folder, None for proxied or remote domains), kind and the /tools link;
-    biggest first."""
+    count, folder (the tool folder, None for proxied or remote domains), kind, the /tools link and the
+    folder's domain description ('' when none); biggest first."""
     out: Dict[str, dict] = {}
     for t in tools:
         name = str(t.get('name') or '')
@@ -115,4 +115,11 @@ def summarize(registry, tools: List[dict], visible: Optional[Callable[[str], boo
             'kind': 'unfiled' if key == UNFILED_KEY else ('folder' if d.get('folder') else 'proxied'),
             'href': '/tools?domain=' + ('unfiled' if key == UNFILED_KEY else key)})
         e['count'] += 1
+    describe = getattr(registry, 'domain_description', None)
+    for e in out.values():          # a folder's domain description (sajha/tools/domain_text.py), if any
+        text = describe(e['folder']) if e['kind'] == 'folder' and callable(describe) else ''
+        e['description'] = text if isinstance(text, str) else ''
+        if e['description']:
+            from sajha.tools.domain_text import first_sentence
+            e['description_first'], e['description_rest'] = first_sentence(e['description'])
     return sorted(out.values(), key=lambda e: (-e['count'], e['label'].lower()))

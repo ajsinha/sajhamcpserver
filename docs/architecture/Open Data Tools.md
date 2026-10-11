@@ -1,9 +1,9 @@
 # SAJHA MCP Server — Open Data Tools
 
-> **Status: planned, not built.** Wave 8, phase 8.2 of the
+> **Status: planned, not built.** Wave 8, phase 8.3 (release 8.10.0) of the
 > [Implementation Plan](Implementation%20Plan.md#7b-wave-8-tool-health-open-data-business-intelligence-and-reports);
 > Roadmap items L26 to L39. None of the tools below exist yet. Each source was checked live on
-> 2026-10-11 (endpoint, key, terms, limits). Terms change, so the 8.2 gate re-checks every source in
+> 2026-10-11 (endpoint, key, terms, limits). Terms change, so the 8.3 gate re-checks every source in
 > the week of release.
 
 This document owns one topic: **which public data sources SAJHA adds as tools, and on what
@@ -21,7 +21,7 @@ the [Glossary](../../GLOSSARY.md).
 - **Placement.** A tool goes in an existing tool folder when that folder's provider already serves
   the data. Otherwise it gets a new folder named after the provider or the topic
   ([Architecture §5](Architecture.md#tool-config-files-and-folders)). Each new folder ships a
-  domain description ([Architecture §5](Architecture.md#domain-descriptions-planned)) that carries
+  domain description ([Architecture §5](Architecture.md#domain-descriptions)) that carries
   its attribution line and its main conventions (codes, units, lag).
 - **Human units.** As in qlrisk, inputs are what a person would say:
   - dates as `YYYY-MM-DD`;
@@ -57,13 +57,13 @@ is published.
 | Source | Endpoint | Key | Terms (link) | Limits | Verdict |
 |---|---|---|---|---|---|
 | GLEIF LEI | `https://api.gleif.org/api/v1/` (JSON:API) | none | CC0 ([LEI Data Terms of Use](https://www.gleif.org/en/meta/lei-data-terms-of-use)); no endorsement or logo use | none published; plan 60/min and cache | **usable** |
-| BIS statistics | `https://stats.bis.org/api/v1/` (SDMX 2.1) and `https://stats.bis.org/api/v2/` (SDMX 3.0) | none | [Terms of permitted use of BIS statistics](https://data.bis.org/help/legal): cite the BIS; no extra charge to users in a commercial product; the BIS may throttle by IP | none published | **usable, caveat**: cite "Source: BIS" on every output; legal to confirm the no-charge clause |
+| BIS statistics | `https://stats.bis.org/api/v1/` (SDMX 2.1) and `https://stats.bis.org/api/v2/` (SDMX 3.0) | none | [Terms of permitted use of BIS statistics](https://data.bis.org/help/legal): cite the BIS; no extra charge to users in a commercial product; the BIS may throttle by IP | none published | **usable, caveat**: cite "Source: BIS" on every output; ships (section 6) |
 | US Treasury Fiscal Data | `https://api.fiscaldata.treasury.gov/services/api/fiscal_service/` | none | "free, without restriction" ([API documentation, License and Authorization](https://fiscaldata.treasury.gov/api-documentation/)) | none published | **usable** |
 | US Treasury par yield curve | `https://home.treasury.gov/resource-center/data-chart-center/interest-rates/` (XML and CSV feeds; a different host) | none | US government work | none published | **usable** |
 | OFAC sanctions lists | `https://sanctionslistservice.ofac.treas.gov/api/PublicationPreview/exports/{file}` (SDN and consolidated, XML and CSV; redirects to a one-hour signed URL); `/changes/latest` (the latest delta) | none | US government work | none published | **usable** |
 | EU consolidated sanctions | `https://webgate.ec.europa.eu/fsd/fsf/public/files/xmlFullSanctionsList_1_1/content?token=…` (the public token published in the feed); RSS at `/fsd/fsf/public/rss` | public token | EC reuse notice (Decision 2011/833/EU): reuse with acknowledgement; only the Official Journal is authentic | none published | **usable** |
 | UK sanctions list | `https://sanctionslist.fcdo.gov.uk/docs/UK-Sanctions-List.xml` (the OFSI Consolidated List closed on 28 January 2026) | none | [Open Government Licence v3.0](https://www.gov.uk/government/publications/the-uk-sanctions-list) | none published | **usable** |
-| UN Security Council consolidated list | `https://scsanctions.un.org/resources/xml/en/consolidated.xml` | none | [un.org Terms of Use](https://www.un.org/en/about-us/terms-of-use) read literally permit "personal, non-commercial use", although the list exists so that institutions can implement it | none published | **usable, caveat**: legal sign-off (decision needed) |
+| UN Security Council consolidated list | `https://scsanctions.un.org/resources/xml/en/consolidated.xml` | none | [un.org Terms of Use](https://www.un.org/en/about-us/terms-of-use) read literally permit "personal, non-commercial use", although the list exists so that institutions can implement it | none published | **usable, caveat**: off until legal signs off (section 6) |
 | FDIC BankFind | `https://api.fdic.gov/banks/` (the old host redirects) | none today; [docs](https://api.fdic.gov/banks/docs/) say that may change | US government work | `x-ratelimit-limit: 20`, window undocumented | **usable, caveat**: key optional in configuration; cache |
 | CFTC Commitments of Traders | `https://publicreporting.cftc.gov/resource/<id>.json` (Socrata; legacy `6dca-aqww`, disaggregated `72hh-3qpy`, TFF `gpe5-46if`; combined `jun7-fc8e`, `kh3c-gbw2`, `yw9f-hn96`) | none; free app token advised | US government work | without a token a shared per-IP pool ([Socrata app tokens](https://dev.socrata.com/docs/app-tokens)) | **usable** with an app token |
 | Eurostat | `https://ec.europa.eu/eurostat/api/dissemination/sdmx/2.1/` (also JSON-stat and SDMX 3.0) | none | [Eurostat copyright notice](https://ec.europa.eu/eurostat/help/copyright-notice): reuse with acknowledgement; some third-party data excluded | none published | **usable**; datasets get renamed (HICP moved from `prc_hicp_manr`, frozen, to `prc_hicp_minr`) |
@@ -75,7 +75,7 @@ is published.
 | US BEA | `https://apps.bea.gov/api/data` | free UserID | public domain, subject to the API terms accepted at sign-up | 100 requests, 100 MB and 30 errors a minute ([user guide](https://apps.bea.gov/api/_pdf/bea_web_service_api_user_guide.pdf)) | **usable, caveat**: answered 503 on every attempt on 2026-10-11; re-verify |
 | US EIA | `https://api.eia.gov/v2/` | free key (in the query string) | [public domain, reuse allowed](https://www.eia.gov/about/copyrights_reuse.php) | about 9,000 an hour, 5 a second; 5,000 rows a page ([FAQ](https://www.eia.gov/opendata/faqs.php)) | **usable** with a key |
 | USGS earthquakes | `https://earthquake.usgs.gov/fdsnws/event/1/` and the GeoJSON summary feeds | none | public domain; credit "U.S. Geological Survey" ([credits](https://www.usgs.gov/information-policies-and-instructions/copyrights-and-credits)) | 20,000 events a query | **usable** |
-| GDACS | `https://www.gdacs.org/gdacsapi/api/events/geteventlist/` (GeoJSON), RSS | none | [Terms of use](https://www.gdacs.org/documents/2025/GDACS_Terms_of_use_Mar_25.pdf): no stated licence; alerts are automatic and not for decisions without confirmation | none published | **usable, caveat**: show the disclaimer, credit GDACS, legal to confirm |
+| GDACS | `https://www.gdacs.org/gdacsapi/api/events/geteventlist/` (GeoJSON), RSS | none | [Terms of use](https://www.gdacs.org/documents/2025/GDACS_Terms_of_use_Mar_25.pdf): no stated licence; alerts are automatic and not for decisions without confirmation | none published | **usable, caveat**: show the disclaimer, credit GDACS; off until legal approves (section 6) |
 | NASA FIRMS | `https://firms.modaps.eosdis.nasa.gov/api/area/` | free MAP_KEY | NASA open data ([guidance](https://www.earthdata.nasa.gov/engage/open-data-services-software-policies/data-use-guidance)); no endorsement | 5,000 transactions per 10 minutes | **usable, caveat**: key; the country services are marked unavailable |
 | OpenAlex | `https://api.openalex.org/` | key advised: usage pricing (about $0.10 a day without a key, $1 a day with a free key; search costs ten times a filter) ([pricing](https://help.openalex.org/access/pricing/)) | CC0 | the daily budget | **usable, caveat**: a key and a budget; prefer filters to search |
 | Crossref | `https://api.crossref.org/` | none (send `mailto`) | [metadata usable for any purpose](https://www.crossref.org/documentation/retrieve-metadata/rest-api/) | live headers: 3 a second, 3 concurrent with `mailto` (lower than the documentation says); honour `x-rate-limit-*` | **usable** |
@@ -107,9 +107,11 @@ BIS, Eurostat, OECD, ECB and ABS all answered the same SDMX 2.1 REST pattern,
   - the `format=` parameter: `csvdata` (ECB), `csvfile` (OECD), `SDMX-CSV` (Eurostat);
   - the `Accept: application/vnd.sdmx.data+csv` header (BIS, ABS).
 
-The shared client is built in phase 8.1 for the ECB, IMF and Banque de France fixes
-([Tool Quality §12.3](Tool%20Quality.md#123-a-shared-sdmx-client)). The 8.2 sources are host
-profiles on that client, not new parsers.
+The shared client was built in phase 8.1 for the ECB, IMF and Banque de France fixes
+(`sajha/tools/impl/sdmx_client.py`, [Tool Quality §12.3](Tool%20Quality.md#123-a-shared-sdmx-client)).
+It ships the `ecb` and `imf` host profiles; the IMF (`api.imf.org/external/sdmx/2.1`, no key) uses
+`AGENCY,ID` flow references and the `Accept: application/vnd.sdmx.data+csv;version=1.0.0` header.
+The 8.3 sources are host profiles on that client (`register_host`), not new parsers.
 
 ---
 
@@ -118,7 +120,7 @@ profiles on that client, not new parsers.
 Every tool is read-only (`readOnlyHint: true`). "Complements" names the existing tools that the
 new tools sit beside; their descriptions point at each other.
 
-### P1 (release 8.9.0 cannot ship without these)
+### P1 (release 8.10.0 cannot ship without these)
 
 **`calendars` (new folder; L26).** Source: the `holidays` package, offline.
 
@@ -188,8 +190,9 @@ updates), so screening never sends a name to a third party.
 
 Fuzzy matching normalises names (transliteration, case, punctuation, word order, honorifics) and
 scores them with token-set similarity plus a phonetic key. Every result states that it is a
-**screening aid, not a determination**. Whether results may be shown to an LLM is a compliance
-decision (section 6).
+**screening aid, not a determination**. Screening results are not offered to Ask SAJHA or to a
+model: a shipped policy rule blocks `sanctions_*` there (owner decision, section 6). The UN list
+ships disabled until legal approves (section 6); `lists` refuses `un` until then.
 
 **`fdic` (new folder; L31).**
 
@@ -257,7 +260,7 @@ with the release vintage.
   - `hazards_earthquakes(region or point and radius_km, from, to, min_magnitude)` and
     `hazards_significant_earthquakes(window)` (USGS).
   - `hazards_disaster_alerts(types, alert_level, from, to)` (GDACS, with its disclaimer in every
-    result).
+    result). It ships disabled (`"enabled": false`) until legal approves GDACS (section 6).
   - `hazards_active_fires(region, days, source)` (NASA FIRMS, MAP_KEY).
   - Weather is not included (Open-Meteo dropped).
   - The folder serves operational-risk and physical-climate-risk questions.
@@ -307,18 +310,19 @@ the guide generator ([Tool Quality §12.5](Tool%20Quality.md#125-tool-reference-
 
 ---
 
-## 6. Decisions needed
+## 6. Decisions
 
-- **UN consolidated list:** the un.org terms, read literally, are non-commercial. Legal sign-off is
-  needed before the UN list is enabled; the other lists do not wait for it.
-- **Screening results and LLMs:** whether sanctions screening results may be shown to employees
-  through Ask SAJHA or passed to a model is a compliance-process question, not a licence one. The
-  proposal is that `sanctions_*` tools ship disabled for Ask SAJHA (a policy rule) until compliance
-  decides.
-- **BIS "no charge to users":** legal to confirm that internal, free use complies.
-- **GDACS:** no stated licence; legal to confirm.
-- **Paid options:** OpenAlex beyond its free daily budget, Open-Meteo (needs a plan), and a
-  Nager.Date sponsorship are spending decisions. The design works without them.
+Recorded by the owner on 2026-10-11:
+
+- **UN consolidated list:** off until legal approves. The un.org terms, read literally, are
+  non-commercial; the other lists do not wait for the sign-off.
+- **Screening results and LLMs:** sanctions screening results are blocked from Ask SAJHA by a
+  policy rule (`sanctions_*` is not offered there, nor to LLM tools); people use the tools directly.
+- **BIS:** ships, with "Source: BIS" cited on every output.
+- **GDACS:** off until legal approves (no stated licence).
+- **Paid options:** none. OpenAlex beyond its free daily budget, Open-Meteo (needs a plan) and a
+  Nager.Date sponsorship are not bought; the design works without them.
+- **Priorities:** P2 and P3 sources may slip to a later release; P1 may not.
 
 ---
 

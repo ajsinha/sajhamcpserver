@@ -1,7 +1,8 @@
 {
   "name": "yf_earnings_history",
   "implementation": "sajha.tools.impl.yfinance_tools.YFEarningsHistoryTool",
-  "description": "Last four quarters of reported versus estimated EPS for one company from Yahoo Finance (yfinance earnings_history).\nReturns: {symbol, earnings: [{quarter, epsActual, epsEstimate, epsDifference, surprisePercent}]}.\nInputs (* required): symbol* (Yahoo ticker, e.g. AAPL, BRK-B, 7203.T).\nLonger history with announcement dates: yf_earnings_dates or av_earnings; next date: yf_calendar. No API key; data comes from Yahoo Finance through the yfinance library.\nExample: {\"symbol\": \"AAPL\"}",
+  "description": "Last four quarters of reported versus estimated EPS for one company from Yahoo Finance (yfinance earnings_history).\nReturns: {symbol, earnings: [{quarter, epsActual, epsEstimate, epsDifference, surprisePercent}]}.\nInputs (* required): symbol* (Yahoo ticker, e.g. AAPL, BRK-B, 7203.T).\nLonger history with announcement dates: yf_earnings_dates or av_earnings; next date: yf_calendar.\nExample: {\"symbol\": \"AAPL\"}",
+  "annotations": {"readOnlyHint": true, "idempotentHint": true, "openWorldHint": true},
   "version": "4.5.0",
   "enabled": true,
   "inputSchema": {
@@ -14,7 +15,8 @@
     },
     "required": [
       "symbol"
-    ]
+    ],
+    "examples": [{"symbol": "AAPL"}]
   },
   "outputSchema": {
     "type": "object",

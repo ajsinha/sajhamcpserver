@@ -1,7 +1,8 @@
 {
   "name": "yf_news",
   "implementation": "sajha.tools.impl.yfinance_tools.YFNewsTool",
-  "description": "Recent news items about one ticker from Yahoo Finance (yfinance news).\nReturns: {symbol, articles: [Yahoo news items as provided by yfinance, typically with id and content holding title, summary, pubDate, provider and canonicalUrl]}; the list can be empty.\nInputs (* required): symbol*; limit (integer, maximum items; default 10).\nOther news sources: openbb_company_news, fmp_stock_news. No API key; data comes from Yahoo Finance through the yfinance library.\nExample: {\"symbol\": \"AAPL\", \"limit\": 5}",
+  "description": "Recent news items about one ticker from Yahoo Finance (yfinance Ticker.news, falling back to Yahoo search news when that is empty).\nReturns: {symbol, articles: [Yahoo news items as yfinance gives them, with title, publisher or provider, link or canonicalUrl and publish time]}; the list can be empty.\nInputs (* required): symbol*; limit (items, 1-50; default 10).\nOther news sources: openbb_company_news, fmp_stock_news.\nExample: {\"symbol\": \"AAPL\", \"limit\": 5}",
+  "annotations": {"readOnlyHint": true, "idempotentHint": true, "openWorldHint": true},
   "version": "4.5.0",
   "enabled": true,
   "inputSchema": {
@@ -13,13 +14,16 @@
       },
       "limit": {
         "type": "integer",
-        "description": "Maximum number of news items",
-        "default": 10
+        "minimum": 1,
+        "maximum": 50,
+        "default": 10,
+        "description": "Most news items returned (1-50)"
       }
     },
     "required": [
       "symbol"
-    ]
+    ],
+    "examples": [{"symbol": "AAPL", "limit": 5}]
   },
   "outputSchema": {
     "type": "object",
@@ -37,6 +41,15 @@
     "tags": [
       "yfinance",
       "news"
+    ],
+    "examples": [
+      {
+        "description": "Recent news items about one ticker",
+        "input": {
+          "symbol": "AAPL",
+          "limit": 5
+        }
+      }
     ]
   }
 }

@@ -3,7 +3,7 @@
   "implementation": "sajha.tools.impl.qlrisk.qlrisk_tools.QlriskPriceProductTool",
   "product": "FXBarrierOption",
   "title": "Price a FXBarrierOption",
-  "description": "Price one FX Barrier Option (qlrisk FXBarrierOption): NPV, pricing components and Greeks where the pricer gives them.\nInputs (* required): maturity* (tenor like 3Y or date), notional (amount; default 1000000), barrier_type (UpOut/UpIn/DownOut/DownIn; default UpOut), rebate (default 0), option_type (call/put; default call), strike, pair, currency (see the schema's list; default USD). Rates are in percent, spreads in basis points, maturities a tenor (3Y, 18M, 6W, 10D) or a date YYYY-MM-DD. Optional `advanced`: trade_id, trade_date, effective_date, counterparty_id, spot, domestic_curve, foreign_curve, foreign_rate_pct, position, market_data, reporting_currency, include_cash_flows; market data defaults to qlrisk's sample snapshot valued today.\nExample: {\"maturity\": \"1Y\", \"notional\": 1000000} gives NPV 1,945.41 USD on the sample market valued 2026-10-09. For several trades at once use qlrisk_price_trades.",
+  "description": "Price one FX Barrier Option (qlrisk FXBarrierOption).\nInputs (* required, name=default): maturity*, notional=1000000, barrier_type=UpOut, rebate=0, option_type=call (call/put), strike, pair, currency=USD. In `advanced` also: effective_date, spot, domestic_curve, foreign_curve, foreign_rate_pct, position.\nExample: {\"maturity\": \"1Y\", \"notional\": 1000000} gives NPV 1,945.41 USD (sample market valued 2026-10-09).",
   "version": "1.0.0",
   "enabled": true,
   "requires": [

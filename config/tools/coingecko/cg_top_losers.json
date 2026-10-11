@@ -1,12 +1,21 @@
 {
   "name": "cg_top_losers",
   "implementation": "sajha.tools.impl.coingecko_tools.CGTopLosersTool",
-  "description": "Intended to list the 24-hour top losing coins from CoinGecko: it calls coins/markets in USD, 20 coins, with order=percent_change_24h_asc.\nReturns {coins: [{id, symbol, name, current_price, market_cap, price_change_percentage_24h, ...}]}, the same shape as cg_coin_markets.\nInputs: none.\nThat order value is not among CoinGecko's documented coins/markets orders (market_cap, volume, id), so check price_change_percentage_24h in the result rather than relying on the order. cg_top_gainers is the counterpart.\nExample: {}\nNo API key is sent (CoinGecko public API, rate-limited by CoinGecko); a failed call returns {\"error\": ...}.",
+  "description": "The 24-hour top losing coins among the 250 largest by market cap, from CoinGecko: SAJHA fetches coins/markets in USD ordered by market cap (250 coins, one call) and ranks them itself by price_change_percentage_24h, lowest first (CoinGecko documents no price-change order). Coins outside the top 250 are not considered.\nReturns {coins: [{id, symbol, name, current_price, market_cap, market_cap_rank, price_change_percentage_24h, ...}], universe, ranked_by}; coins have the cg_coin_markets shape.\nInputs (none required): limit (1-100; default 20).\ncg_top_gainers is the counterpart; cg_trending_coins lists search trends.\nExample: {\"limit\": 10}",
+  "annotations": {"readOnlyHint": true, "idempotentHint": true, "openWorldHint": true},
   "version": "4.5.0",
   "enabled": true,
   "inputSchema": {
     "type": "object",
-    "properties": {},
+    "properties": {
+      "limit": {
+        "type": "integer",
+        "minimum": 1,
+        "maximum": 100,
+        "default": 20,
+        "description": "Number of coins returned"
+      }
+    },
     "required": []
   },
   "outputSchema": {

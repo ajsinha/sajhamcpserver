@@ -1,7 +1,8 @@
 {
   "name": "yahoo_search_symbols",
   "implementation": "sajha.tools.impl.yahoo_finance_tool.YahooSearchSymbolsTool",
-  "description": "Search Yahoo Finance for tickers by company name, ticker or keyword.\nReturns: {query, result_count, results: [{symbol, name, exchange, type (EQUITY, ETF, FUTURE, ...), sector, industry, market_cap, description (always null)}], last_updated}.\nInputs (* required): query* (1-100 chars); limit (1-50; default 10); exchange (NYSE, NASDAQ, AMEX, LSE, TSX or all; default all). The exchange filter compares with Yahoo's own exchange codes (such as NMS or NYQ), so a named exchange usually yields no results; it also applies after the limit.\nUse it to find the symbol for yahoo_get_quote, yahoo_get_history or the yf_* tools. Other searches: openbb_equity_search, fmp_symbol_search. No API key.\nExample: {\"query\": \"Apple\", \"limit\": 5}",
+  "description": "Search Yahoo Finance for tickers by company name, ticker or keyword.\nReturns: {query, result_count, results: [{symbol, name, exchange (Yahoo code, e.g. NMS, NYQ), exchange_name (e.g. NASDAQ), type (EQUITY, ETF, FUTURE, ...), sector, industry, market_cap, description (always null)}], last_updated}.\nInputs (* required): query* (1-100 chars); limit (1-50; default 10); exchange (NYSE, NASDAQ, AMEX, LSE, TSX or all; default all). The filter maps the name to Yahoo's codes (NYSE = NYQ; NASDAQ = NMS, NGM, NCM; AMEX = ASE; LSE = LSE, IOB; TSX = TOR) and asks Yahoo for more matches so that up to limit remain.\nUse it to find the symbol for yahoo_get_quote, yahoo_get_history or the yf_* tools. Other searches: openbb_equity_search, fmp_symbol_search.\nExample: {\"query\": \"bank\", \"exchange\": \"NYSE\", \"limit\": 5}",
+  "annotations": {"readOnlyHint": true, "idempotentHint": true, "openWorldHint": true},
   "version": "2.9.8",
   "enabled": true,
   "inputSchema": {
@@ -23,11 +24,21 @@
       "exchange": {
         "type": "string",
         "description": "Filter by exchange (optional)",
-        "enum": ["NYSE", "NASDAQ", "AMEX", "LSE", "TSX", "all"],
+        "enum": [
+          "NYSE",
+          "NASDAQ",
+          "AMEX",
+          "LSE",
+          "TSX",
+          "all"
+        ],
         "default": "all"
       }
     },
-    "required": ["query"]
+    "required": [
+      "query"
+    ],
+    "examples": [{"query": "bank", "exchange": "NYSE", "limit": 5}]
   },
   "outputSchema": {
     "type": "object",
@@ -61,26 +72,55 @@
             "type": {
               "type": "string",
               "description": "Security type",
-              "enum": ["EQUITY", "ETF", "INDEX", "MUTUALFUND", "CRYPTOCURRENCY", "FUTURE", "CURRENCY"]
+              "enum": [
+                "EQUITY",
+                "ETF",
+                "INDEX",
+                "MUTUALFUND",
+                "CRYPTOCURRENCY",
+                "FUTURE",
+                "CURRENCY"
+              ]
             },
             "sector": {
-              "type": ["string", "null"],
+              "type": [
+                "string",
+                "null"
+              ],
               "description": "Industry sector"
             },
             "industry": {
-              "type": ["string", "null"],
+              "type": [
+                "string",
+                "null"
+              ],
               "description": "Specific industry"
             },
             "market_cap": {
-              "type": ["number", "null"],
+              "type": [
+                "number",
+                "null"
+              ],
               "description": "Market capitalization"
             },
             "description": {
-              "type": ["string", "null"],
+              "type": [
+                "string",
+                "null"
+              ],
               "description": "Brief company description"
+            },
+            "exchange_name": {
+              "type": [
+                "string",
+                "null"
+              ]
             }
           },
-          "required": ["symbol", "name"]
+          "required": [
+            "symbol",
+            "name"
+          ]
         }
       },
       "last_updated": {
@@ -88,16 +128,34 @@
         "description": "Timestamp when search was performed (ISO format)"
       }
     },
-    "required": ["query", "results"]
+    "required": [
+      "query",
+      "results"
+    ]
   },
   "metadata": {
     "author": "Ashutosh Sinha",
     "category": "Financial Data",
-    "tags": ["finance", "stocks", "search", "symbols", "tickers", "discovery"],
+    "tags": [
+      "finance",
+      "stocks",
+      "search",
+      "symbols",
+      "tickers",
+      "discovery"
+    ],
     "rateLimit": 60,
     "cacheTTL": 3600,
     "note": "Search Yahoo Finance for stock symbols, ETFs, and other securities. Useful for discovering ticker symbols from company names.",
     "examples": [
+      {
+        "description": "Search Yahoo Finance for tickers by company name, ticker or keyword.",
+        "input": {
+          "query": "bank",
+          "exchange": "NYSE",
+          "limit": 5
+        }
+      },
       {
         "description": "Search for Apple stock",
         "input": {

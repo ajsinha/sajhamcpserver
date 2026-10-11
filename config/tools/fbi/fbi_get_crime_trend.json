@@ -1,7 +1,8 @@
 {
   "name": "fbi_get_crime_trend",
   "implementation": "sajha.tools.impl.fbi_tool_refactored.FBIGetCrimeTrendTool",
-  "description": "Year-by-year offense counts and rates with trend statistics for the nation, a state or an agency, from the FBI Crime Data Explorer.\nReturns: scope, metric, time_period, time_series (year, total_incidents, rate_per_100k, months_reported, percent_change), trend_analysis (overall_change and average_annual_change in %, direction (stable within +/-5%), peak_year, lowest_year, volatility).\nInputs (* required): offense_type* (a UCR category such as violent_crime, property_crime, homicide, robbery, burglary; list in the schema); start_year* and end_year* (1985 to the current year, start <= end); state (two-letter code) or ori (9 characters; wins over state); neither = national; per_capita (true: rate per 100,000, false: counts; default true).\nOne year: fbi_get_national_statistics, fbi_get_state_statistics, fbi_get_agency_statistics. Key: api.data.gov key in FBI_API_KEY, else the rate-limited DEMO_KEY.\nExample: {\"offense_type\": \"homicide\", \"start_year\": 2015, \"end_year\": 2023, \"state\": \"IL\"}",
+  "description": "Year-by-year offense counts and rates with trend statistics for the nation, a state or an agency, from the FBI Crime Data Explorer.\nReturns: scope, metric, time_period, time_series (year, total_incidents, rate_per_100k, months_reported, percent_change), trend_analysis (overall_change and average_annual_change in %, direction (stable within +/-5%), peak_year, lowest_year, volatility).\nInputs (* required): offense_type* (a UCR category such as violent_crime, property_crime, homicide, robbery, burglary; list in the schema); start_year* and end_year* (1985 to the current year, start <= end); state (two-letter code) or ori (9 characters; wins over state); neither = national; per_capita (true: rate per 100,000, false: counts; default true).\nOne year: fbi_get_national_statistics, fbi_get_state_statistics, fbi_get_agency_statistics.\nExample: {\"offense_type\": \"homicide\", \"start_year\": 2015, \"end_year\": 2023, \"state\": \"IL\"}",
+  "annotations": {"readOnlyHint": true, "idempotentHint": true, "openWorldHint": true},
   "version": "3.0.0",
   "enabled": true,
   "inputSchema": {
@@ -25,15 +26,13 @@
       },
       "start_year": {
         "type": "integer",
-        "description": "First year",
-        "minimum": 1985,
-        "maximum": 2100
+        "description": "First year (1985 to the current year)",
+        "minimum": 1985
       },
       "end_year": {
         "type": "integer",
-        "description": "Last year",
-        "minimum": 1985,
-        "maximum": 2100
+        "description": "Last year (1985 to the current year)",
+        "minimum": 1985
       },
       "state": {
         "type": "string",
@@ -55,7 +54,8 @@
       "offense_type",
       "start_year",
       "end_year"
-    ]
+    ],
+    "examples": [{"offense_type": "homicide", "start_year": 2015, "end_year": 2023, "state": "IL"}]
   },
   "outputSchema": {
     "type": "object",

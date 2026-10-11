@@ -1,16 +1,32 @@
 {
   "name": "openbb_economy_available_indicators",
   "implementation": "sajha.tools.impl.openbb_tools.OpenBBGenericTool",
-  "description": "Catalog of economic indicator codes and countries a provider offers, through the OpenBB Platform (obb.economy.available_indicators).\nReturns: {tool, data_points (total rows), data: first 100 rows as OpenBB returns them} or {tool, error}.\nInputs (* required): provider (OpenBB 4.6 accepts econdb or imf; schema default fred (also rejected), but when omitted the tool sends yfinance, which this command rejects, so set it); imf needs no key.\nFetch a series with openbb_economic_indicators using a code from this list. Keys: fmp, benzinga, fred, intrinio, polygon and tiingo need credentials in OpenBB's settings (~/.openbb_platform/user_settings.json), not supplied by SAJHA; yfinance, oecd, federal_reserve, sec, imf and government_us need none.\nExample: {\"provider\": \"imf\"}",
+  "description": "Catalogue of economic indicator codes and countries a provider offers, through the OpenBB Platform (obb.economy.available_indicators).\nReturns: {tool, provider, data_points (rows before the cap), truncated, data: rows with their dates, ignored_arguments when some did not apply} or {tool, error}.\nInputs (* required): query (keyword, imf only); limit (rows returned, 1-1000; default 100; a dated series keeps its most recent rows); provider (econdb, imf; default econdb).\nFetch a series with openbb_economic_indicators using a code from this list. Keys: econdb, imf need none.\nExample: {\"provider\": \"imf\", \"query\": \"inflation\"}",
+  "annotations": {"readOnlyHint": true, "idempotentHint": true, "openWorldHint": true},
   "version": "4.5.0",
   "enabled": true,
   "inputSchema": {
     "type": "object",
     "properties": {
+      "query": {
+        "type": "string",
+        "description": "Keyword filter (imf only)"
+      },
+      "limit": {
+        "type": "integer",
+        "minimum": 1,
+        "maximum": 1000,
+        "default": 100,
+        "description": "Most rows returned (1-1000); a dated series keeps its most recent rows"
+      },
       "provider": {
         "type": "string",
-        "description": "OpenBB data provider (econdb or imf)",
-        "default": "fred"
+        "enum": [
+          "econdb",
+          "imf"
+        ],
+        "default": "econdb",
+        "description": "OpenBB data provider"
       }
     },
     "required": []
@@ -18,8 +34,24 @@
   "outputSchema": {
     "type": "object",
     "properties": {
-      "result": {
-        "type": "object"
+      "tool": {
+        "type": "string"
+      },
+      "provider": {
+        "type": "string"
+      },
+      "data_points": {
+        "type": "integer",
+        "description": "Rows before the cap"
+      },
+      "truncated": {
+        "type": "boolean"
+      },
+      "data": {
+        "type": "array"
+      },
+      "error": {
+        "type": "string"
       }
     }
   },
@@ -32,6 +64,15 @@
       "openbb",
       "indicators",
       "available"
+    ],
+    "examples": [
+      {
+        "description": "Catalogue of economic indicator codes and countries a provider offers,",
+        "input": {
+          "provider": "imf",
+          "query": "inflation"
+        }
+      }
     ]
   }
 }

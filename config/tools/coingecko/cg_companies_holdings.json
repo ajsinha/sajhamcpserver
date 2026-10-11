@@ -1,7 +1,8 @@
 {
   "name": "cg_companies_holdings",
   "implementation": "sajha.tools.impl.coingecko_tools.CGCompaniesHoldingsTool",
-  "description": "Public companies' treasury holdings of bitcoin or ether, from CoinGecko (companies/public_treasury/{coin_id}).\nReturns {total_holdings, total_value_usd, market_cap_dominance, companies: [{name, symbol, country, total_holdings, total_entry_value_usd, total_current_value_usd, percentage_of_total_supply}]}.\nInputs (* required): coin_id (bitcoin | ethereum; default bitcoin).\nFor the coin's market data use cg_coin_info or cg_coin_price.\nExample: {\"coin_id\": \"ethereum\"}\nNo API key is sent (CoinGecko public API, rate-limited by CoinGecko); a failed call returns {\"error\": ...}.",
+  "description": "Public companies' treasury holdings of bitcoin or ether, from CoinGecko (companies/public_treasury/{coin_id}).\nReturns {total_holdings, total_value_usd, market_cap_dominance, companies: [{name, symbol, country, total_holdings, total_entry_value_usd, total_current_value_usd, percentage_of_total_supply}]}.\nInputs (* required): coin_id (bitcoin | ethereum; default bitcoin).\nFor the coin's market data use cg_coin_info or cg_coin_price.\nExample: {\"coin_id\": \"ethereum\"}",
+  "annotations": {"readOnlyHint": true, "idempotentHint": true, "openWorldHint": true},
   "version": "4.5.0",
   "enabled": true,
   "inputSchema": {

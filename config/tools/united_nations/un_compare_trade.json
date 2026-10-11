@@ -2,6 +2,7 @@
   "name": "un_compare_trade",
   "implementation": "sajha.tools.impl.united_nations_tool_refactored.UNCompareCountryTradeTool",
   "description": "Compare total goods exports or imports (USD) of 2 to 10 countries for one year, ranked, from UN Comtrade (one query per country, partner world).\nReturns: trade_flow, year and countries (country_code, total_value, rank by value; note or error when a country has no data) plus a source note.\nInputs (* required): country_codes* (array of 2-10 ISO3 or numeric Comtrade codes); trade_flow (export, import, re_export, re_import; default export); year (1962-2030; default the current year minus 2).\nFor one country's partners use un_get_country_trade. Key: optional COMTRADE_API_KEY for the full Comtrade API; without it the keyless preview API (500 rows, rate limited).\nExample: {\"country_codes\": [\"USA\", \"CHN\", \"DEU\", \"JPN\"], \"trade_flow\": \"export\", \"year\": 2022}",
+  "annotations": {"readOnlyHint": true, "idempotentHint": true, "openWorldHint": true},
   "version": "2.9.8",
   "enabled": true,
   "inputSchema": {
@@ -36,7 +37,8 @@
     },
     "required": [
       "country_codes"
-    ]
+    ],
+    "examples": [{"country_codes": ["USA", "CHN", "DEU", "JPN"], "trade_flow": "export", "year": 2022}]
   },
   "outputSchema": {
     "type": "object",

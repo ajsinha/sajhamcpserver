@@ -1,7 +1,8 @@
 {
   "name": "edgar_companies_by_sic",
   "implementation": "sajha.tools.impl.enhanced_edgar_tool.EDGARCompaniesBySICTool",
-  "description": "Companies in one industry, by 4-digit Standard Industrial Classification (SIC) code, from SEC EDGAR.\nReturns {sic_code, companies_count, companies: [{cik, name, sic, sicDescription, fiscalYearEnd}]}.\nInputs (* required): sic_code* (string, 4 digits, e.g. 7372 prepackaged software, 3674 semiconductors, 6022 state commercial banks), limit (integer 1-500, default 50).\nSlow: it reads each listed company's submissions file in turn (one request per company, 110 ms apart) until limit matches are found, so small limits return sooner. To read one company's SIC, edgar_company_submissions or sec_get_company_info is quicker.\nExample: {\"sic_code\": \"7372\", \"limit\": 10}\nNo API key needed (SEC data.sec.gov; 110 ms between requests).",
+  "description": "Companies in one industry by 4-digit SIC code, among the largest listed companies: reads the submissions file of each company in the SEC tickers list, largest market cap first, until limit matches or max_scan companies; smaller companies beyond max_scan are missed.\nReturns {sic_code, companies_count, companies_scanned, errors (files not read), companies: [{cik, name, sic, sicDescription, fiscalYearEnd}]}.\nInputs (* required): sic_code* (e.g. 7372 software, 3674 semiconductors, 6022 state banks), limit (default 50), max_scan (default 200; about 0.11 s each).\nFor one company's SIC, edgar_company_submissions is quicker.\nExample: {\"sic_code\": \"3674\", \"limit\": 5, \"max_scan\": 100}",
+  "annotations": {"readOnlyHint": true, "idempotentHint": true, "openWorldHint": true},
   "version": "2.9.8",
   "enabled": true,
   "inputSchema": {
@@ -17,9 +18,19 @@
         "minimum": 1,
         "maximum": 500,
         "default": 50
+      },
+      "max_scan": {
+        "type": "integer",
+        "minimum": 1,
+        "maximum": 2000,
+        "default": 200,
+        "description": "How many of the largest listed companies to check (one SEC request each)"
       }
     },
-    "required": ["sic_code"]
+    "required": [
+      "sic_code"
+    ],
+    "examples": [{"sic_code": "3674", "limit": 5, "max_scan": 100}]
   },
   "outputSchema": {
     "type": "object",
@@ -38,35 +49,66 @@
         "items": {
           "type": "object",
           "properties": {
-            "cik": {"type": "string"},
-            "name": {"type": "string"},
-            "sic": {"type": "string"},
-            "sicDescription": {"type": "string"},
-            "fiscalYearEnd": {"type": "string"}
+            "cik": {
+              "type": "string"
+            },
+            "name": {
+              "type": "string"
+            },
+            "sic": {
+              "type": "string"
+            },
+            "sicDescription": {
+              "type": "string"
+            },
+            "fiscalYearEnd": {
+              "type": "string"
+            }
           }
         }
+      },
+      "companies_scanned": {
+        "type": "integer"
+      },
+      "errors": {
+        "type": "integer"
       }
     }
   },
   "metadata": {
     "author": "Ashutosh Sinha",
     "category": "SEC EDGAR",
-    "tags": ["sec", "edgar", "sic", "industry", "sector", "classification"],
+    "tags": [
+      "sec",
+      "edgar",
+      "sic",
+      "industry",
+      "sector",
+      "classification"
+    ],
     "rateLimit": 10,
     "cacheTTL": 7200,
     "note": "SIC codes classify companies by industry. Useful for peer analysis and sector research.",
     "examples": [
       {
         "description": "Find all software companies",
-        "input": {"sic_code": "7372", "limit": 100}
+        "input": {
+          "sic_code": "7372",
+          "limit": 100
+        }
       },
       {
         "description": "Find semiconductor companies",
-        "input": {"sic_code": "3674"}
+        "input": {
+          "sic_code": "3674"
+        }
       },
       {
         "description": "Find commercial banks",
-        "input": {"sic_code": "6022", "limit": 50}
+        "input": {
+          "sic_code": "6022",
+          "limit": 50
+        }
       }
     ],
     "useCases": [

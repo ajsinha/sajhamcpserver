@@ -1,7 +1,8 @@
 {
   "name": "boc_get_common_indicators",
   "implementation": "sajha.tools.impl.bank_of_canada_tool_refactored.BoCGetCommonIndicatorsTool",
-  "description": "Latest values of several headline Canadian indicators in one call (one Valet request per indicator), from the Bank of Canada Valet API (no API key).\nReturns: indicators keyed by name (series_name, label, value, date, description, or an error) and last_updated.\nInputs (none required): indicators (array of 1-15 of usd_cad, eur_cad, gbp_cad, jpy_cad, cny_cad, policy_rate, overnight_rate, prime_rate, bond_2y/5y/10y/30y, cpi, core_cpi, gdp; default usd_cad, policy_rate, bond_10y, cpi).\nFor history use boc_get_series; for a single value boc_get_latest.\nExample: {\"indicators\": [\"usd_cad\", \"policy_rate\", \"bond_2y\", \"bond_10y\"]}",
+  "description": "Latest values of several headline Canadian indicators in one call (one Valet request per indicator), from the Bank of Canada Valet API (no API key).\nReturns: indicators keyed by name (series_name, label, value, date, description, or an error) and last_updated.\nInputs (none required): indicators (array of 1-14 of usd_cad, eur_cad, gbp_cad, jpy_cad, cny_cad, policy_rate, overnight_rate, prime_rate, bond_2y/5y/10y/30y (30y is the long-term benchmark), cpi, core_cpi (CPI-trim); default usd_cad, policy_rate, bond_10y, cpi).\nFor history use boc_get_series; for a single value boc_get_latest.\nExample: {\"indicators\": [\"usd_cad\", \"policy_rate\", \"bond_2y\", \"bond_10y\"]}",
+  "annotations": {"readOnlyHint": true, "idempotentHint": true, "openWorldHint": true},
   "version": "2.9.8",
   "enabled": true,
   "inputSchema": {
@@ -26,12 +27,11 @@
             "bond_10y",
             "bond_30y",
             "cpi",
-            "core_cpi",
-            "gdp"
+            "core_cpi"
           ]
         },
         "minItems": 1,
-        "maxItems": 15,
+        "maxItems": 14,
         "uniqueItems": true
       }
     }
@@ -103,22 +103,22 @@
               "description": "US Dollar to Canadian Dollar Exchange Rate"
             },
             "policy_rate": {
-              "series_name": "POLICY_RATE",
-              "label": "Bank of Canada policy interest rate",
+              "series_name": "V39079",
+              "label": "Target for the overnight rate (business daily)",
               "value": 4.50,
               "date": "2024-10-23",
               "description": "Bank of Canada Policy Interest Rate"
             },
             "bond_10y": {
-              "series_name": "V122539",
-              "label": "10-Year Government of Canada Bond Yield",
+              "series_name": "BD.CDN.10YR.DQ.YLD",
+              "label": "Benchmark bond yield, 10-year",
               "value": 3.25,
               "date": "2024-10-31",
               "description": "10-Year Government of Canada Bond Yield"
             },
             "cpi": {
               "series_name": "V41690973",
-              "label": "Consumer Price Index",
+              "label": "Total CPI",
               "value": 162.5,
               "date": "2024-09-30",
               "description": "Consumer Price Index"
@@ -153,7 +153,7 @@
             "policy_rate",
             "bond_10y",
             "cpi",
-            "gdp"
+            "core_cpi"
           ]
         }
       }

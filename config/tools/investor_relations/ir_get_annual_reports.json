@@ -2,6 +2,7 @@
   "name": "ir_get_annual_reports",
   "implementation": "sajha.tools.impl.investor_relations_tool_refactored.IRGetAnnualReportsTool",
   "description": "Annual reports of a supported company (from its investor relations site, or 10-K/20-F filings from SEC EDGAR as a fallback).\nReturns {ticker, count, annual_reports: [{title, url, type, year, quarter, date, description, ticker, is_pdf, context}], success}, most recent first.\nInputs (* required): ticker* (string, stock symbol such as AAPL or MSFT; case-insensitive), year (integer 2000-2030, optional filter), limit (integer 1-20, default 5).\nOnly tickers in SAJHA's built-in company list work (ir_list_supported_companies); others fail with 'not supported'. For 10-K filings of any SEC registrant use edgar_filings_by_form.\nExample: {\"ticker\": \"AAPL\", \"limit\": 3}",
+  "annotations": {"readOnlyHint": true, "idempotentHint": true, "openWorldHint": true},
   "version": "2.9.8",
   "enabled": true,
   "inputSchema": {
@@ -25,7 +26,8 @@
         "maximum": 20
       }
     },
-    "required": ["ticker"]
+    "required": ["ticker"],
+    "examples": [{"ticker": "AAPL", "limit": 3}]
   },
   "outputSchema": {
     "type": "object",

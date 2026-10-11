@@ -157,7 +157,7 @@ def test_claimed_routes_exist(web):
 
 
 def test_claimed_features_are_in_the_code():
-    from sajha.ai.llm.mock import MockProvider          # noqa: F401  (mock provider)
+    from sajha.ai.llm.providers.mock import MockProvider          # noqa: F401  (mock provider)
     from sajha.ai.llm.providers.ollama import OllamaProvider  # noqa: F401
     from sajha.auth.oauth import authorization_server, resource_server  # noqa: F401
     from sajha.core import mcp_apps, mcp_tasks           # noqa: F401

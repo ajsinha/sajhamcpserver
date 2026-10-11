@@ -2,6 +2,7 @@
   "name": "ir_get_all_resources",
   "implementation": "sajha.tools.impl.investor_relations_tool_refactored.IRGetAllResourcesTool",
   "description": "One-call overview of a supported company's investor relations material: IR page, recent annual reports, latest earnings and presentations.\nReturns {ticker, ir_page, annual_reports: {count, annual_reports (up to 3)}, latest_earnings: {latest_earnings, previous_earnings}, presentations: {count, presentations (up to 5)}, success}; documents have the shape {title, url, type, year, quarter, date, description, ticker, is_pdf, context}.\nInputs (* required): ticker* (string, stock symbol such as AAPL or MSFT; case-insensitive).\nScrapes the company's IR site; falls back to SEC EDGAR filings when that finds nothing and a CIK is known. Only tickers in SAJHA's built-in company list work (ir_list_supported_companies); others fail with 'not supported'. It scrapes several pages, so it is slower than the single-purpose ir_* tools.\nExample: {\"ticker\": \"AAPL\"}",
+  "annotations": {"readOnlyHint": true, "idempotentHint": true, "openWorldHint": true},
   "version": "2.9.8",
   "enabled": true,
   "inputSchema": {
@@ -12,7 +13,8 @@
         "description": "Stock ticker symbol"
       }
     },
-    "required": ["ticker"]
+    "required": ["ticker"],
+    "examples": [{"ticker": "AAPL"}]
   },
   "outputSchema": {
     "type": "object",

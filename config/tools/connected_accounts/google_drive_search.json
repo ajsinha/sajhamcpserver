@@ -41,7 +41,8 @@
     "required": [
       "query"
     ],
-    "additionalProperties": false
+    "additionalProperties": false,
+    "examples": [{"query": "quarterly budget", "mime_type": "application/vnd.google-apps.spreadsheet", "limit": 5}]
   },
   "outputSchema": {
     "type": "object",

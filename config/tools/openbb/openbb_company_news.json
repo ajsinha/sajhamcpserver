@@ -1,7 +1,8 @@
 {
   "name": "openbb_company_news",
   "implementation": "sajha.tools.impl.openbb_tools.OpenBBCompanyNewsTool",
-  "description": "Recent news articles about one company through the OpenBB Platform (obb.news.company).\nReturns: {symbol, articles: [records with date, title, text or summary, url, source and provider extras]}.\nInputs (* required): symbol* (one ticker or comma-separated tickers); limit (number of articles; when omitted the tool asks for 10, the schema says 5); provider (OpenBB 4.6 accepts benzinga, fmp, intrinio, polygon, tiingo, yfinance; default benzinga, which needs a key; yfinance needs none).\nMarket-wide news: openbb_market_news; other source: yf_news. Keys: fmp, benzinga, fred, intrinio, polygon and tiingo need credentials in OpenBB's settings (~/.openbb_platform/user_settings.json), not supplied by SAJHA; yfinance, oecd, federal_reserve, sec, imf and government_us need none.\nExample: {\"symbol\": \"AAPL\", \"limit\": 5, \"provider\": \"yfinance\"}",
+  "description": "Recent news articles about one company through the OpenBB Platform (obb.news.company).\nReturns: {symbol, provider, data_points, truncated, articles: [records with date, title, text or summary, url, source]} or {symbol, error}.\nInputs (* required): symbol* (one ticker or comma-separated tickers); limit (articles; default 10); provider (benzinga, fmp, intrinio, polygon, tiingo, yfinance; default fmp).\nMarket-wide news: openbb_market_news; keyless: yf_news. OpenBB's yfinance news returns nothing at present, so the default is fmp. Keys: yfinance needs none; fmp uses SAJHA's FMP_API_KEY; benzinga, intrinio, polygon, tiingo need a key in ~/.openbb_platform/user_settings.json.\nExample: {\"symbol\": \"AAPL\", \"limit\": 5}",
+  "annotations": {"readOnlyHint": true, "idempotentHint": true, "openWorldHint": true},
   "version": "4.5.0",
   "enabled": true,
   "inputSchema": {
@@ -9,28 +10,52 @@
     "properties": {
       "symbol": {
         "type": "string",
-        "description": "Stock ticker symbol (e.g., AAPL, MSFT)"
+        "description": "Ticker, or comma-separated tickers"
       },
       "limit": {
         "type": "integer",
-        "description": "Number of records",
-        "default": 5
+        "minimum": 1,
+        "maximum": 1000,
+        "default": 10,
+        "description": "Number of articles (1-1000)"
       },
       "provider": {
         "type": "string",
-        "description": "OpenBB news provider",
-        "default": "benzinga"
+        "enum": [
+          "benzinga",
+          "fmp",
+          "intrinio",
+          "polygon",
+          "tiingo",
+          "yfinance"
+        ],
+        "default": "fmp",
+        "description": "OpenBB data provider"
       }
     },
     "required": [
       "symbol"
-    ]
+    ],
+    "examples": [{"symbol": "AAPL", "limit": 5}]
   },
   "outputSchema": {
     "type": "object",
     "properties": {
-      "result": {
-        "type": "object"
+      "provider": {
+        "type": "string"
+      },
+      "data_points": {
+        "type": "integer",
+        "description": "Rows before the cap"
+      },
+      "truncated": {
+        "type": "boolean"
+      },
+      "articles": {
+        "type": "array"
+      },
+      "error": {
+        "type": "string"
       }
     }
   },
@@ -45,6 +70,14 @@
       "company",
       "stock"
     ],
-    "examples": []
+    "examples": [
+      {
+        "description": "Recent news articles about one company",
+        "input": {
+          "symbol": "AAPL",
+          "limit": 5
+        }
+      }
+    ]
   }
 }

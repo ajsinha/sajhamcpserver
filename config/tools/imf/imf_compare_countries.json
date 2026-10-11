@@ -1,7 +1,8 @@
 {
   "name": "imf_compare_countries",
   "implementation": "sajha.tools.impl.imf_tool_refactored.IMFCompareCountriesTool",
-  "description": "The same IMF indicator for two or more countries, one series each, from the IMF SDMX JSON data service (dataservices.imf.org, no API key).\nReturns: database, indicator_code, frequency and countries: per country the series (database, country_code, indicator_code, frequency, data (period, value) and count; a note when the series is empty) or country_code and error.\nInputs (* required): country_codes* (array of at least 2 ISO 2-letter codes); database (IFS, DOT, BOP, GFSR, FSI, WEO, GFSMAB, CDIS, CPIS, WHDREO; default IFS); indicator (a WEO name when database is WEO, else an IFS name; see imf_get_weo_data and imf_get_ifs_data) or indicator_code (wins); one of the two is needed; start_year and end_year (1950-2030; omit both for the full history); frequency (A, Q or M; default A).\nFor one country use imf_get_data, imf_get_ifs_data or imf_get_weo_data.\nExample: {\"country_codes\": [\"US\", \"DE\", \"JP\"], \"database\": \"WEO\", \"indicator\": \"public_debt\", \"start_year\": 2015, \"end_year\": 2025}",
+  "description": "One IMF indicator for two or more countries, fetched in one request: a WEO indicator (annual, with projections) or a former-IFS indicator from its successor dataflow.\nReturns: database, key, frequency and countries (country_code, country_name, name, data (period, value), count; a note for a country with no data), source.\nInputs (* required): country_codes* (2-20 ISO3 or ISO2 codes); database (WEO or IFS; default WEO); indicator (WEO: gdp_growth, gdp_usd, gdp_per_capita, inflation_avg, inflation_eop, unemployment, ...; IFS: names as in imf_get_ifs_data) or, for WEO, indicator_code; frequency (A, Q, M; IFS only; default A); start_year, end_year.\nExample: {\"country_codes\": [\"USA\", \"DEU\", \"JPN\"], \"indicator\": \"gdp_growth\", \"start_year\": 2022}",
+  "annotations": {"readOnlyHint": true, "idempotentHint": true, "openWorldHint": true},
   "version": "2.9.8",
   "enabled": true,
   "inputSchema": {
@@ -9,98 +10,139 @@
     "properties": {
       "country_codes": {
         "type": "array",
-        "description": "List of ISO 2-letter country codes (minimum 2)",
-        "items": {"type": "string"},
-        "minItems": 2
+        "items": {
+          "type": "string"
+        },
+        "minItems": 2,
+        "maxItems": 20,
+        "description": "ISO alpha-3 or alpha-2 country codes"
       },
       "database": {
         "type": "string",
-        "description": "IMF database to use",
-        "enum": ["IFS", "DOT", "BOP", "GFSR", "FSI", "WEO", "GFSMAB", "CDIS", "CPIS", "WHDREO"],
-        "default": "IFS"
+        "enum": [
+          "WEO",
+          "IFS"
+        ],
+        "default": "WEO",
+        "description": "WEO indicators or former IFS indicators"
       },
       "indicator": {
         "type": "string",
-        "description": "Common indicator name"
+        "enum": [
+          "gdp_growth",
+          "gdp_usd",
+          "gdp_per_capita",
+          "inflation_avg",
+          "inflation_eop",
+          "unemployment",
+          "current_account",
+          "fiscal_balance",
+          "public_debt",
+          "exports_volume",
+          "imports_volume",
+          "population",
+          "exchange_rate",
+          "exchange_rate_avg",
+          "policy_rate",
+          "treasury_bill_yield",
+          "deposit_rate",
+          "lending_rate",
+          "money_market_rate",
+          "cpi",
+          "cpi_inflation",
+          "international_reserves",
+          "broad_money"
+        ],
+        "description": "Friendly indicator name (WEO or IFS list)"
       },
       "indicator_code": {
         "type": "string",
-        "description": "Specific indicator code"
-      },
-      "start_year": {
-        "type": "integer",
-        "description": "First year, YYYY; if only end_year is given this defaults to 1950",
-        "minimum": 1950,
-        "maximum": 2030
-      },
-      "end_year": {
-        "type": "integer",
-        "description": "Last year, YYYY; if only start_year is given this defaults to the current year; omit both for the full history",
-        "minimum": 1950,
-        "maximum": 2030
+        "description": "WEO indicator code (WEO only)"
       },
       "frequency": {
         "type": "string",
-        "description": "Frequency: A annual, Q quarterly, M monthly",
-        "enum": ["A", "Q", "M"],
-        "default": "A"
+        "enum": [
+          "A",
+          "Q",
+          "M"
+        ],
+        "default": "A",
+        "description": "IFS only"
+      },
+      "start_year": {
+        "type": "integer",
+        "minimum": 1950,
+        "maximum": 2035,
+        "description": "First year (optional)"
+      },
+      "end_year": {
+        "type": "integer",
+        "minimum": 1950,
+        "maximum": 2035,
+        "description": "Last year (optional)"
       }
     },
-    "required": ["country_codes"]
+    "required": [
+      "country_codes"
+    ],
+    "examples": [{"country_codes": ["USA", "DEU", "JPN"], "indicator": "gdp_growth", "start_year": 2022}]
   },
   "outputSchema": {
     "type": "object",
     "properties": {
-      "database": {"type": "string"},
-      "indicator_code": {"type": "string"},
-      "frequency": {"type": "string"},
+      "database": {
+        "type": "string"
+      },
+      "key": {
+        "type": "string"
+      },
+      "frequency": {
+        "type": "string"
+      },
       "countries": {
-        "type": "array",
-        "description": "Data for each country",
-        "items": {
-          "type": "object",
-          "properties": {
-            "country_code": {"type": "string"},
-            "data": {
-              "type": "array",
-              "items": {
-                "type": "object",
-                "properties": {
-                  "period": {"type": "string"},
-                  "value": {"type": ["number", "null"]}
-                }
-              }
-            },
-            "error": {"type": "string"}
-          }
-        }
+        "type": "array"
+      },
+      "source": {
+        "type": "string"
       }
     }
   },
   "metadata": {
     "author": "Ashutosh Sinha",
     "category": "Economic Data",
-    "tags": ["imf", "comparison", "cross-country", "benchmarking"],
+    "tags": [
+      "imf",
+      "comparison",
+      "cross-country",
+      "benchmarking"
+    ],
     "rateLimit": 100,
     "cacheTTL": 3600,
     "note": "Compare economic indicators across countries for benchmarking and analysis.",
     "examples": [
       {
-        "description": "Compare GDP growth across G7",
+        "description": "GDP growth, three economies",
         "input": {
-          "country_codes": ["US", "CA", "GB", "FR", "DE", "IT", "JP"],
-          "database": "WEO",
+          "country_codes": [
+            "USA",
+            "DEU",
+            "JPN"
+          ],
           "indicator": "gdp_growth",
-          "start_year": 2020
+          "start_year": 2022
         }
       },
       {
-        "description": "Compare emerging markets inflation",
+        "description": "CPI inflation, monthly",
         "input": {
-          "country_codes": ["CN", "IN", "BR"],
-          "database": "WEO",
-          "indicator": "inflation_avg",
-          "start_year": 2023
+          "country_codes": [
+            "GBR",
+            "FRA"
+          ],
+          "database": "IFS",
+          "indicator": "cpi_inflation",
+          "frequency": "M",
+          "start_year": 2026
         }
       }
     ],

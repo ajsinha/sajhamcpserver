@@ -1,7 +1,8 @@
 {
   "name": "av_forex_weekly",
   "implementation": "sajha.tools.impl.alphavantage_tools.AVForexWeeklyTool",
-  "description": "Historical weekly exchange-rate bars for one currency pair from Alpha Vantage (FX_WEEKLY).\nReturns: {\"Meta Data\", \"Time Series FX (Weekly)\"} keyed by date, each with \"1. open\" to \"4. close\" (no volume). Alpha Vantage's JSON comes back unchanged, including its \"Error Message\" or \"Information\" notes; a network failure gives {\"error\": ...}.\nInputs (* required): from (ISO currency code; default EUR); to (ISO currency code; default USD).\nRelated: av_forex_daily for daily bars, av_forex_rate for the current rate; other sources: yf_forex_history, openbb_forex_historical.\nKey: ALPHA_VANTAGE_API_KEY (alpha_vantage.api.key); when unset the 'demo' key is sent, which only serves Alpha Vantage's documentation examples. Free tier: 25 requests/day.\nExample: {\"from\": \"EUR\", \"to\": \"USD\"}",
+  "description": "Historical weekly exchange-rate bars for one currency pair from Alpha Vantage (FX_WEEKLY).\nReturns: {\"Meta Data\", \"Time Series FX (Weekly)\"} keyed by date, each with \"1. open\" to \"4. close\" (no volume).\nInputs (* required): from (ISO currency code; default EUR); to (ISO currency code; default USD).\nRelated: av_forex_daily for daily bars, av_forex_rate for the current rate; other sources: yf_forex_history, openbb_forex_historical.\nExample: {\"from\": \"EUR\", \"to\": \"USD\"}",
+  "annotations": {"readOnlyHint": true, "idempotentHint": true, "openWorldHint": true},
   "version": "4.5.0",
   "enabled": true,
   "inputSchema": {

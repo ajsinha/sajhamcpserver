@@ -1,7 +1,8 @@
 {
   "name": "openbb_options_chains",
   "implementation": "sajha.tools.impl.openbb_tools.OpenBBOptionsChainsTool",
-  "description": "Full option chain for one underlying through the OpenBB Platform (obb.derivatives.options.chains).\nReturns: {symbol, contracts (total), chain: the first 100 contracts with expiration, strike, option_type, bid, ask, last price, volume, open interest, implied volatility and Greeks where the provider has them} or {symbol, error}.\nInputs (* required): symbol*; provider (OpenBB 4.6 accepts intrinio or yfinance; the schema default cboe is not available, so set yfinance).\nOne expiry with up to 50 calls and puts: yf_options_chain (dates from yf_options_expiries). Keys: fmp, benzinga, fred, intrinio, polygon and tiingo need credentials in OpenBB's settings (~/.openbb_platform/user_settings.json), not supplied by SAJHA; yfinance, oecd, federal_reserve, sec, imf and government_us need none.\nExample: {\"symbol\": \"SPY\", \"provider\": \"yfinance\"}",
+  "description": "Option chain for one underlying through the OpenBB Platform (obb.derivatives.options.chains).\nReturns: {symbol, provider, data_points (all contracts), truncated, chain: contracts with expiration, strike, option_type, bid, ask, volume, open interest, implied volatility}, nearest expiries first, or {symbol, error}.\nInputs (* required): symbol*; limit (contracts; default 100); provider (intrinio, yfinance; default yfinance).\nOne expiry: yf_options_chain (dates from yf_options_expiries). Keys: yfinance needs none; intrinio needs a key in ~/.openbb_platform/user_settings.json.\nExample: {\"symbol\": \"SPY\", \"limit\": 50}",
+  "annotations": {"readOnlyHint": true, "idempotentHint": true, "openWorldHint": true},
   "version": "4.5.0",
   "enabled": true,
   "inputSchema": {
@@ -9,23 +10,41 @@
     "properties": {
       "symbol": {
         "type": "string",
-        "description": "Stock ticker symbol (e.g., AAPL, MSFT)"
+        "description": "Underlying ticker"
+      },
+      "limit": {
+        "type": "integer",
+        "minimum": 1,
+        "maximum": 1000,
+        "default": 100,
+        "description": "Contracts returned (1-1000)"
       },
       "provider": {
         "type": "string",
-        "description": "OpenBB data provider",
-        "default": "cboe"
+        "enum": [
+          "intrinio",
+          "yfinance"
+        ],
+        "default": "yfinance",
+        "description": "OpenBB data provider"
       }
     },
     "required": [
       "symbol"
-    ]
+    ],
+    "examples": [{"symbol": "SPY", "limit": 50}]
   },
   "outputSchema": {
     "type": "object",
     "properties": {
-      "result": {
-        "type": "object"
+      "symbol": {
+        "type": "string"
+      },
+      "data_points": {
+        "type": "integer"
+      },
+      "chain": {
+        "type": "array"
       }
     }
   },
@@ -41,6 +60,14 @@
       "puts",
       "greeks"
     ],
-    "examples": []
+    "examples": [
+      {
+        "description": "Option chain for one underlying",
+        "input": {
+          "symbol": "SPY",
+          "limit": 50
+        }
+      }
+    ]
   }
 }

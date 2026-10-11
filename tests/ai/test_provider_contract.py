@@ -251,6 +251,7 @@ def test_secret_not_in_effective_config(h):
     ("groq", "api.groq.com"), ("together", "api.together.xyz"), ("fireworks", "api.fireworks.ai"),
     ("deepseek", "api.deepseek.com"), ("xai", "api.x.ai"), ("openrouter", "openrouter.ai"),
     ("perplexity", "api.perplexity.ai"), ("lmstudio", "localhost:1234"),
+    ("huggingface", "router.huggingface.co"),
 ])
 def test_openai_compatible_presets(name, host):
     fake = FakeVendor("openai")
@@ -259,6 +260,13 @@ def test_openai_compatible_presets(name, host):
     resp = p.chat_model(p.default_chat_model_id() or "some-model").generate(ChatRequest([Message.user("hi")]))
     assert resp.text == "Hello there"
     assert host in fake.last["url"] and fake.last["headers"]["authorization"] == "Bearer k"
+
+
+def test_hugging_face_reads_hf_token():
+    p = registry.provider_class("huggingface").from_settings("huggingface", {"enabled": True},
+                                                             environ={"HF_TOKEN": "hf_x"})
+    assert p.api_key == "hf_x" and p.sources["api_key"] == "env:HF_TOKEN"
+    assert p.base_url == "https://router.huggingface.co/v1" and p.default_chat_model_id() == "openai/gpt-oss-120b"
 
 
 def test_vendor_env_and_sajha_env_precedence():

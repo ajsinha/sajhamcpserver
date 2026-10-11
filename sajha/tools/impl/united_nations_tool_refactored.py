@@ -15,6 +15,7 @@ from typing import Dict, Any, List, Optional
 from datetime import datetime
 from sajha.tools.base_mcp_tool import BaseMCPTool
 from sajha.tools.http_utils import safe_json_response, ENCODINGS_ALL
+from sajha.tools.impl.country_codes import to_m49
 
 
 class UnitedNationsBaseTool(BaseMCPTool):
@@ -516,64 +517,83 @@ class UNGetSDGDataTool(UnitedNationsBaseTool):
             }
         }
     
+    SDG_PAGE_SIZE = 1000
+
     def execute(self, arguments: Dict[str, Any]) -> Dict:
-        """Execute get SDG data operation"""
+        """Execute get SDG data operation (Indicator/Data; areas are M49 codes on the wire)."""
         indicator_code = arguments.get('indicator_code')
+        if not indicator_code:
+            raise ValueError("indicator_code is required (e.g. 3.2.1; see un_get_sdg_indicators)")
         country_code = arguments.get('country_code')
         start_year = arguments.get('start_year')
         end_year = arguments.get('end_year')
-        
-        try:
-            # Build API endpoint
-            endpoint = f"Indicator/Data"
-            params = {'indicator': indicator_code}
-            
-            if country_code:
-                params['areaCode'] = country_code
-            if start_year:
-                params['startYear'] = start_year
-            if end_year:
-                params['endYear'] = end_year
-            
-            url = f"{self.sdg_url}/{endpoint}"
-            if params:
-                url += '?' + urllib.parse.urlencode(params)
-            
-            headers = {
-                'User-Agent': 'Mozilla/5.0',
-                'Accept': 'application/json'
+        max_records = int(arguments.get('max_records') or 500)
+        area = None
+        if country_code:
+            area = to_m49(country_code)
+            if area is None:
+                raise ValueError(f"Unknown country code: {country_code} (use ISO alpha-3 such as IND, "
+                                 f"alpha-2 such as IN, or a UN M49 number such as 356)")
+        params: List = [('indicator', indicator_code), ('pageSize', self.SDG_PAGE_SIZE)]
+        if area:
+            params.append(('areaCode', area))
+        if start_year or end_year:
+            first = int(start_year or 2000)
+            last = int(end_year or datetime.now().year)
+            params.extend(('timePeriod', y) for y in range(first, last + 1))
+        rows: List[Dict] = []
+        total = 0
+        page = 1
+        while True:
+            url = f"{self.sdg_url}/Indicator/Data?{urllib.parse.urlencode(params + [('page', page)])}"
+            body = self._http_get_json(url)
+            if not isinstance(body, dict):
+                raise ValueError("Unexpected answer from the UN SDG API")
+            total = int(body.get('totalElements') or 0)
+            rows.extend(r for r in (body.get('data') or []) if isinstance(r, dict))
+            if len(rows) >= max_records or page >= int(body.get('totalPages') or 1):
+                break
+            page += 1
+        truncated = total > max_records
+        rows = rows[:max_records]
+        data = []
+        for item in rows:
+            raw = item.get('value')
+            try:
+                value = float(raw)
+                if value != value:            # NaN
+                    value = None
+            except (TypeError, ValueError):
+                value = None
+            point = {
+                'year': int(item['timePeriodStart']) if item.get('timePeriodStart') is not None else None,
+                'value': value,
+                'unit': (item.get('attributes') or {}).get('Units'),
+                'series': item.get('series'),
+                'series_description': item.get('seriesDescription'),
+                'dimensions': item.get('dimensions') or {},
             }
-            
-            req = urllib.request.Request(url, headers=headers)
-            with urllib.request.urlopen(req, timeout=30) as response:
-                data = safe_json_response(response, ENCODINGS_ALL)
-                
-                formatted_data = []
-                for item in data:
-                    if isinstance(item, dict):
-                        formatted_data.append({
-                            'year': item.get('timePeriodStart'),
-                            'value': item.get('value'),
-                            'unit': item.get('units')
-                        })
-                
-                return {
-                    'indicator_code': indicator_code,
-                    'indicator_description': data[0].get('seriesDescription') if data else '',
-                    'country_code': country_code,
-                    'country_name': data[0].get('geoAreaName') if data and country_code else None,
-                    'data': formatted_data,
-                    'count': len(formatted_data)
-                }
-                
-        except Exception as e:
-            self.logger.error(f"Failed to get SDG data: {e}", exc_info=True)
-            return {
-                'indicator_code': indicator_code,
-                'country_code': country_code,
-                'error': str(e),
-                'note': 'Failed to retrieve SDG data from UN API'
-            }
+            if not country_code:
+                point['area_code'] = item.get('geoAreaCode')
+                point['area_name'] = item.get('geoAreaName')
+            if value is None and raw not in (None, '', 'NaN'):
+                point['value_text'] = str(raw)
+            data.append(point)
+        data.sort(key=lambda d: (d.get('series') or '', d.get('area_code') or '', d['year'] or 0))
+        result = {
+            'indicator_code': indicator_code,
+            'indicator_description': rows[0].get('seriesDescription') if rows else '',
+            'country_code': country_code,
+            'area_code': area,
+            'country_name': rows[0].get('geoAreaName') if rows and country_code else None,
+            'data': data,
+            'count': len(data),
+            'total_available': total,
+            'truncated': truncated,
+        }
+        if not data:
+            result['note'] = 'No observations for this indicator, area and period.'
+        return result
 
 
 class UNGetSDGTargetsTool(UnitedNationsBaseTool):
@@ -1121,97 +1141,6 @@ class UNCompareCountryTradeTool(UnitedNationsBaseTool):
         return comparison
 
 
-class UNGetSDGProgressTool(UnitedNationsBaseTool):
-    """Tool to retrieve SDG progress tracking for a country"""
-    
-    def __init__(self, config: Dict = None):
-        default_config = {
-            'name': 'un_get_sdg_progress',
-            'description': 'Track country progress towards Sustainable Development Goals',
-            'version': '1.0.0',
-            'enabled': True
-        }
-        if config:
-            default_config.update(config)
-        super().__init__(default_config)
-    
-    def get_input_schema(self) -> Dict:
-        """Get input schema"""
-        return {
-            "type": "object",
-            "properties": {
-                "country_code": {
-                    "type": "string",
-                    "description": "ISO3 country code (e.g., 'USA', 'BRA', 'IND')"
-                },
-                "sdg_code": {
-                    "type": "string",
-                    "description": "Specific SDG code (optional, omit for overview of all SDGs)",
-                    "enum": ["1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14", "15", "16", "17"]
-                }
-            },
-            "required": ["country_code"]
-        }
-    
-    def get_output_schema(self) -> Dict:
-        """Get output schema"""
-        return {
-            "type": "object",
-            "properties": {
-                "country_code": {
-                    "type": "string",
-                    "description": "Country code"
-                },
-                "sdg_code": {
-                    "type": "string",
-                    "description": "SDG code (if specific goal requested)"
-                },
-                "sdg_title": {
-                    "type": "string",
-                    "description": "SDG title (if specific goal requested)"
-                },
-                "indicators": {
-                    "type": "array",
-                    "description": "Progress indicators",
-                    "items": {
-                        "type": "object",
-                        "properties": {
-                            "indicator_code": {
-                                "type": "string"
-                            },
-                            "description": {
-                                "type": "string"
-                            },
-                            "latest_data": {
-                                "type": "object"
-                            }
-                        }
-                    }
-                }
-            }
-        }
-    
-    def execute(self, arguments: Dict[str, Any]) -> Dict:
-        """Execute SDG progress tracking"""
-        country_code = arguments.get('country_code')
-        sdg_code = arguments.get('sdg_code')
-        
-        if sdg_code:
-            return {
-                'country_code': country_code,
-                'sdg_code': sdg_code,
-                'sdg_title': self.sdgs.get(sdg_code),
-                'indicators': [],
-                'note': 'Detailed progress tracking requires multiple API calls'
-            }
-        else:
-            return {
-                'country_code': country_code,
-                'note': 'Specify sdg_code for detailed progress on a specific goal',
-                'available_sdgs': list(self.sdgs.keys())
-            }
-
-
 # Tool registry for easy access
 UNITED_NATIONS_TOOLS = {
     'un_get_sdgs': UNGetSDGsTool,
@@ -1221,6 +1150,5 @@ UNITED_NATIONS_TOOLS = {
     'un_get_trade_data': UNGetTradeDataTool,
     'un_get_country_trade': UNGetCountryTradeTool,
     'un_get_trade_balance': UNGetTradeBalanceTool,
-    'un_compare_trade': UNCompareCountryTradeTool,
-    'un_get_sdg_progress': UNGetSDGProgressTool
+    'un_compare_trade': UNCompareCountryTradeTool
 }

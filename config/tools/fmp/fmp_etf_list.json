@@ -1,7 +1,8 @@
 {
   "name": "fmp_etf_list",
   "implementation": "sajha.tools.impl.fmp_tools.FMPGenericTool",
-  "description": "ETFs covered by Financial Modeling Prep (FMP), with symbol and name.\nReturns {tool, endpoint, data}: data is FMP's JSON from /stable/etf-list as returned (usually a list of records).\nInputs (* required): limit (integer; sent only when given).\nFor stocks use fmp_stock_list; for one ETF's holdings fmp_etf_holdings.\nNeeds an FMP API key (config fmp.api.key, env FMP_API_KEY); without one it returns a demo placeholder naming the endpoint instead of data.\nExample: {\"limit\": 50}",
+  "description": "ETFs covered by Financial Modeling Prep (FMP), with symbol and name.\nReturns {tool, endpoint, data}: data is FMP's JSON from /stable/etf-list as returned (usually a list of records).\nInputs (* required): limit (integer; sent only when given).\nFor stocks use fmp_stock_list; for one ETF's holdings fmp_etf_holdings.\nExample: {\"limit\": 50}",
+  "annotations": {"readOnlyHint": true, "idempotentHint": true, "openWorldHint": true},
   "version": "4.5.0",
   "enabled": true,
   "inputSchema": {

@@ -303,6 +303,7 @@ class ToolsRegistry:
         self._report_layout(idx)
         dups = idx.duplicates()
         with self.bulk():
+            self._load_domain_texts()
             for rel, config in configs.items():
                 if config is None:
                     continue
@@ -310,6 +311,36 @@ class ToolsRegistry:
                 if name in dups:
                     continue
                 self.register_tool_from_dict(config, source=rel)
+
+    # ── domain descriptions (sajha/tools/domain_text.py) ─────────────
+    # <folder>/domain.txt is appended to the served description of the folder's tools. A change to one
+    # changes the served definitions, so it is announced like a tool change (list_changed).
+
+    def domain_texts(self):
+        from sajha.tools.domain_text import get_domain_texts
+        return get_domain_texts(self._config_prefix)
+
+    def domain_description(self, folder: str) -> str:
+        """The accepted domain description of a tool folder ('' when it has none or it is refused)."""
+        try:
+            return self.domain_texts().text(folder)
+        except Exception:
+            return ''
+
+    def _load_domain_texts(self) -> None:
+        try:
+            if self.domain_texts().load():
+                self._changed()
+        except Exception as e:
+            self.logger.warning(f"Domain descriptions not loaded: {e}")
+
+    def _scan_domain_texts(self) -> None:
+        try:
+            if self.domain_texts().scan():
+                self.logger.info("Domain descriptions changed")
+                self._changed()
+        except Exception as e:
+            self.logger.warning(f"Domain descriptions not rescanned: {e}")
 
     def _read_config(self, rel: str):
         """Read one config file (recording its time), or None with the error recorded."""
@@ -635,6 +666,11 @@ class ToolsRegistry:
         with self._tools_lock:
             previous = self.tools.get(tool.name)
             self.tools[tool.name] = tool
+            try:                        # the registry serving it: its folder's domain description (domain_text.py)
+                import weakref
+                tool._served_by = weakref.ref(self)
+            except Exception:
+                pass
             self.logger.info(f"Tool registered: {tool.name}")
         if previous is not None and _tool_fingerprint(previous) == _tool_fingerprint(tool):
             return                          # same definition re-registered: nothing to announce
@@ -930,6 +966,7 @@ class ToolsRegistry:
                 self.logger.info(f"Tool configuration deleted: {rel}")
             if changed or deleted:
                 self.rescan(changed, deleted)
+            self._scan_domain_texts()
             if sorted(deep) != idx.too_deep():
                 idx.refresh()
                 self._report_layout(idx)

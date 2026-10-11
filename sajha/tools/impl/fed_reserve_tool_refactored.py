@@ -7,8 +7,9 @@ import json
 import urllib.parse
 import urllib.request
 from typing import Dict, Any, List, Optional
-from datetime import datetime, timedelta
+from datetime import datetime
 from sajha.tools.base_mcp_tool import BaseMCPTool
+from sajha.tools.impl.fred_key import fred_api_key
 from sajha.tools.http_utils import safe_json_response, ENCODINGS_DEFAULT
 
 
@@ -24,8 +25,8 @@ class FedReserveBaseTool(BaseMCPTool):
         # FRED API endpoint
         self.api_url = "https://api.stlouisfed.org/fred"
         
-        # API key (optional for basic usage)
-        self.api_key = config.get('api_key', 'demo') if config else 'demo'
+        # FRED key: tool config api_key (${fred.api.key}) or FRED_API_KEY (sajha/tools/impl/fred_key.py)
+        self._config_for_key = config or {}
         
         # Common economic indicators
         self.common_series = {
@@ -65,16 +66,10 @@ class FedReserveBaseTool(BaseMCPTool):
         Returns:
             Time series data
         """
-        # For demo mode, return mock data
-        if self.api_key == 'demo':
-            demo = self._get_demo_series(series_id, start_date, end_date, limit)
-            if sort_order == 'desc':
-                demo['observations'].reverse()
-            return demo
-
+        api_key = self.api_key
         params = {
             'series_id': series_id,
-            'api_key': self.api_key,
+            'api_key': api_key,
             'file_type': 'json',
             'limit': limit,
             'sort_order': 'desc' if sort_order == 'desc' else 'asc'
@@ -102,7 +97,7 @@ class FedReserveBaseTool(BaseMCPTool):
                     })
                 
                 # Get series info
-                info_url = f"{self.api_url}/series?series_id={series_id}&api_key={self.api_key}&file_type=json"
+                info_url = f"{self.api_url}/series?{urllib.parse.urlencode({'series_id': series_id, 'api_key': api_key, 'file_type': 'json'})}"
                 with urllib.request.urlopen(info_url, timeout=30) as info_response:
                     info_data = safe_json_response(info_response, ENCODINGS_DEFAULT)
                     series_info = info_data.get('seriess', [{}])[0]
@@ -118,35 +113,17 @@ class FedReserveBaseTool(BaseMCPTool):
                 }
                 
         except Exception as e:
-            self.logger.error(f"FRED API error: {e}", exc_info=True)
+            self.logger.error(f"FRED API error: {e}")
             raise ValueError(f"Failed to get series data: {str(e)}")
     
-    def _get_demo_series(self, series_id: str, start_date: str, end_date: str, limit: int) -> Dict:
-        """Get demo series data"""
-        observations = []
-        base_value = 100.0
-        
-        for i in range(min(limit, 10)):
-            date = (datetime.now() - timedelta(days=i*30)).strftime('%Y-%m-%d')
-            value = base_value + (i * 0.5)
-            observations.append({
-                'date': date,
-                'value': round(value, 2)
-            })
-        
-        observations.reverse()
-        
-        return {
-            'series_id': series_id,
-            'title': f'Demo Series: {series_id}',
-            'units': 'Index',
-            'frequency': 'Monthly',
-            'last_updated': datetime.now().isoformat(),
-            'observation_count': len(observations),
-            'observations': observations,
-            'note': 'Demo mode - Configure API key for real FRED data'
-        }
+    @property
+    def api_key(self) -> str:
+        """The FRED key; a ValueError that names FRED_API_KEY when none is configured."""
+        return fred_api_key(self._config_for_key)
 
+    @api_key.setter
+    def api_key(self, value: str) -> None:
+        self._config_for_key = dict(self._config_for_key, api_key=value)
 
     #: Observations fetched (newest first) when looking for the latest value: FRED marks a
     #: missing value as '.', so the newest row can be empty.
@@ -478,10 +455,6 @@ class FedSearchSeriesTool(FedReserveBaseTool):
         
         limit = arguments.get('limit', 20)
         
-        # Demo mode
-        if self.api_key == 'demo':
-            return self._get_demo_search(query, limit)
-        
         params = {
             'search_text': query,
             'api_key': self.api_key,
@@ -519,36 +492,6 @@ class FedSearchSeriesTool(FedReserveBaseTool):
             self.logger.error(f"FRED search error: {e}", exc_info=True)
             raise ValueError(f"Search failed: {str(e)}")
     
-    def _get_demo_search(self, query: str, limit: int) -> Dict:
-        """Get demo search results"""
-        demo_results = [
-            {
-                'id': 'GDP',
-                'title': 'Gross Domestic Product',
-                'units': 'Billions of Dollars',
-                'frequency': 'Quarterly',
-                'popularity': 100,
-                'observation_start': '1947-01-01',
-                'observation_end': '2025-07-01'
-            },
-            {
-                'id': 'UNRATE',
-                'title': 'Unemployment Rate',
-                'units': 'Percent',
-                'frequency': 'Monthly',
-                'popularity': 95,
-                'observation_start': '1948-01-01',
-                'observation_end': '2025-09-01'
-            }
-        ]
-        
-        return {
-            'query': query,
-            'count': len(demo_results[:limit]),
-            'results': demo_results[:limit],
-            'note': 'Demo mode - Configure API key for real FRED search'
-        }
-
 
 class FedGetCommonIndicatorsTool(FedReserveBaseTool):
     """
@@ -624,6 +567,7 @@ class FedGetCommonIndicatorsTool(FedReserveBaseTool):
     def execute(self, arguments: Dict[str, Any]) -> Dict:
         """Execute the get common indicators operation"""
         requested_indicators = arguments.get('indicators', list(self.common_series.keys()))
+        self.api_key        # no key: one configuration error, not one per indicator
         
         indicators = {}
         

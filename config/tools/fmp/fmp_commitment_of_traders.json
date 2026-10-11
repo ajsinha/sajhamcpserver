@@ -1,7 +1,8 @@
 {
   "name": "fmp_commitment_of_traders",
   "implementation": "sajha.tools.impl.fmp_tools.FMPGenericTool",
-  "description": "CFTC Commitment of Traders (COT) report for one futures market from Financial Modeling Prep (FMP): positions of commercial and non-commercial traders by report date.\nReturns {tool, endpoint, data}: data is FMP's JSON from /stable/cot-report as returned (usually a list of records).\nInputs (* required): symbol* (COT market symbol, e.g. ES).\nFor commodity prices use fmp_commodity_quote.\nNeeds an FMP API key (config fmp.api.key, env FMP_API_KEY); without one it returns a demo placeholder naming the endpoint instead of data.\nExample: {\"symbol\": \"ES\"}",
+  "description": "CFTC Commitment of Traders (COT) report for one futures market from Financial Modeling Prep (FMP): positions of commercial and non-commercial traders by report date.\nReturns {tool, endpoint, data}: data is FMP's JSON from /stable/cot-report as returned (usually a list of records).\nInputs (* required): symbol* (COT market symbol, e.g. ES).\nFor commodity prices use fmp_commodity_quote.\nExample: {\"symbol\": \"ES\"}",
+  "annotations": {"readOnlyHint": true, "idempotentHint": true, "openWorldHint": true},
   "version": "4.5.0",
   "enabled": true,
   "inputSchema": {
@@ -10,7 +11,7 @@
       "symbol": {
         "type": "string",
         "description": "COT market symbol (e.g. ES)",
-        "default": "ES"
+        "examples": ["ES"]
       }
     },
     "required": [

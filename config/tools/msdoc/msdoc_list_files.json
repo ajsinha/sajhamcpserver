@@ -2,6 +2,7 @@
   "name": "msdoc_list_files",
   "implementation": "sajha.tools.impl.msdoc_tools_tool_refactored.MsDocListFilesTool",
   "description": "Lists the files in the configured docs folder (docs_directory, default data/msdocs) that the msdoc_* tools read, newest first.\nReturns {directory, file_type, count, files}: each file has filename, path, extension, size (bytes) and modified (Unix time).\nInputs: file_type (all, word or excel; default all). word matches .docx/.doc, excel .xlsx/.xls/.xlsm; all lists every file in the folder.\nNext: msdoc_read_word, msdoc_read_excel or msdoc_extract_text with a filename from the list.\nExample: {\"file_type\": \"excel\"}",
+  "annotations": {"readOnlyHint": true, "idempotentHint": true, "openWorldHint": false},
   "version": "2.9.8",
   "enabled": true,
   "docs_directory": "data/msdocs",

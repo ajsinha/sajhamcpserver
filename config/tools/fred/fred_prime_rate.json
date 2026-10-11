@@ -1,7 +1,8 @@
 {
   "name": "fred_prime_rate",
   "implementation": "sajha.tools.impl.fred_tools.FREDPrimeRateTool",
-  "description": "The US bank prime loan rate from FRED, the St. Louis Fed's economic database: series DPRIME (percent, daily).\nReturns {\"series\": \"DPRIME\", \"data\": <FRED observations response>}; data.observations = [{date (YYYY-MM-DD), value (a string, \".\" if missing), realtime_start, realtime_end}], newest first; data is {\"error\": ...} if the call fails.\nInputs (* required): limit (integer, number of newest observations; omitted: 60, although the schema default says 30).\nRelated: fred_fed_funds_rate, fred_30yr_mortgage; for any other FRED series use fred_custom_series.\nExample: {\"limit\": 12}\nAPI key: env FRED_API_KEY (config fred.api.key); when unset the placeholder DEMO_KEY is sent.",
+  "description": "The US bank prime loan rate from FRED, the St. Louis Fed's economic database: series DPRIME (percent, daily).\nReturns {\"series\": \"DPRIME\", \"data\": <FRED observations response>}; data.observations = [{date (YYYY-MM-DD), value (a string, \".\" if missing), realtime_start, realtime_end}], newest first; data is {\"error\": ...} if the call fails.\nInputs (* required): limit (integer, number of newest observations; default 30).\nRelated: fred_fed_funds_rate, fred_30yr_mortgage.\nExample: {\"limit\": 12}",
+  "annotations": {"readOnlyHint": true, "idempotentHint": true, "openWorldHint": true},
   "version": "4.5.0",
   "enabled": true,
   "inputSchema": {

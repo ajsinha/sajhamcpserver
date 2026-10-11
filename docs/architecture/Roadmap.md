@@ -40,9 +40,13 @@ judgement. They are collected in [section 5](#5-decisions-needed).
 
 ## 2. Now
 
-Every wave of the [Implementation Plan](Implementation%20Plan.md) through wave 7 has shipped. Wave 8
-(tool health, open data, business intelligence and reports) is placed and planned: its items are
-L21 to L50 in [section 4.3](#43-wave-8-placed).
+Every wave of the [Implementation Plan](Implementation%20Plan.md) through wave 7 has shipped, and so
+has phase 8.1 of wave 8 (tool health, L21 to L25: schema defaults, broken tools fixed or removed,
+the live tool check, domain descriptions and generated guide tables; the CHANGELOG has them). The rest
+of wave 8 (quantitative planners, open data, business intelligence and reports) is placed and
+planned: its items are L26 to L59 in [section 4.3](#43-wave-8-placed). One carry-over: the release
+after 8.8.0 removes the `tools.apply_schema_defaults` switch
+([Tool Quality §12.1](Tool%20Quality.md#121-schema-defaults-applied-before-a-call)).
 
 ---
 
@@ -100,64 +104,71 @@ L21 to L50 in [section 4.3](#43-wave-8-placed).
 
 ### 4.3 Wave 8 (placed)
 
-The owner approved these items on 2026-10-11 and placed them in wave 8 of the
+The owner approved these items on 2026-10-11 (L51–L59, quantitative planners, the same day: "add to
+the roadmap and build at the first opportunity") and placed them in wave 8 of the
 [Implementation Plan](Implementation%20Plan.md#7b-wave-8-tool-health-open-data-business-intelligence-and-reports):
 
 | Phase | Items | Release |
 |---|---|---|
-| 8.1 | L21–L25 | 8.8.0 |
-| 8.2 | L26–L39 | 8.9.0 |
-| 8.3 | L40–L44 | 8.10.0 |
-| 8.4 | L45–L50 | 8.11.0 |
+| 8.1 | L21–L25 (shipped; rows removed) | 8.8.0 |
+| 8.2 | L51–L59 (quantitative planners) | 8.9.0 |
+| 8.3 | L26–L39 | 8.10.0 |
+| 8.4 | L40–L44 | 8.11.0 |
+| 8.5 | L45–L50 | 8.12.0 |
 
 | ID | Item | Why it matters | Current state | Proposed approach | Size | Depends on |
 |---|---|---|---|---|---|---|
-| L21 | Schema defaults applied before every call (wave 8) | A client reads a tool's `default` and expects it; today the code's own default wins, and they disagree | Nothing applies `inputSchema` defaults; FRED, Alpha Vantage, Bank of Japan, Banque de France and OpenBB tools differ from their schemas ([Tool Quality §12](Tool%20Quality.md#12-planned-tool-health-wave-8-phase-81)) | One helper on every call path: absent keys only, never `required`, nested objects only when supplied; per-tool decisions listed in the CHANGELOG; a one-release switch | M | none |
-| L22 | Broken tools fixed or removed, and one SDMX client (wave 8) | Tools that cannot work erode trust in all of them | OpenBB commands absent in 4.6, Yahoo endpoints refused, Banque de France on a dead host, RBI's undocumented API, demo data without a key, stubs, misnamed series ([Tool Quality §12](Tool%20Quality.md#12-planned-tool-health-wave-8-phase-81).2) | Fix where a documented upstream exists, else remove; a shared SDMX client for ECB, IMF and Banque de France; descriptions rewritten with the fix | M | none |
-| L23 | Live tool check (wave 8) | A broken upstream is found by a user, not by SAJHA | Probes run only hand-written cases, and they raise no notice ([Tool Quality §12](Tool%20Quality.md#12-planned-tool-health-wave-8-phase-81).4) | Call every read-only tool once with its schema example, one call at a time per folder; outcomes on the Tool Health page and one notice per folder; structured examples added to every shipped tool | M | L21 |
-| L24 | Domain descriptions (wave 8) | A model needs what a whole folder is for (codes, units, attribution) without it being repeated in every tool | Folders only group tools ([Architecture §5](Architecture.md#domain-descriptions-planned)) | An optional `domain.txt` per folder appended to served descriptions, never written into tool files, hot-reloaded, shown on the Domains page, left out where it would push a description past SAJHA Net's limit | S | none |
-| L25 | Generated Tool Reference Guide tables (wave 8) | Five provider guides claim generated tables that nobody generates | No generator exists ([Tool Quality §12](Tool%20Quality.md#12-planned-tool-health-wave-8-phase-81).5) | `python -m sajha.tools guides` rewrites marked regions from tool configs; `--check` in the test suite | S | L21 |
 | L26 | Business calendars (`calendars`) (wave 8) | Settlement dates, business-day counts and holidays are in every finance question | Not built; Nager.Date dropped for its commercial terms ([Open Data Tools](Open%20Data%20Tools.md)) | Offline calendars from the MIT `holidays` package: holidays, business days, add business days, settlement and date adjustment | S | none |
 | L27 | Legal entities (`gleif`) (wave 8) | Counterparty hierarchy is the base of exposure reporting | Not built ([Open Data Tools](Open%20Data%20Tools.md)) | LEI lookup and search, direct and ultimate parents and children, ISINs; CC0 | S | none |
-| L28 | BIS statistics (`bis`) (wave 8) | One cross-country source for policy rates, credit gaps, property prices and effective exchange rates | Not built ([Open Data Tools](Open%20Data%20Tools.md)) | Host profile on the shared SDMX client; "Source: BIS" on every result | S | L22 |
+| L28 | BIS statistics (`bis`) (wave 8) | One cross-country source for policy rates, credit gaps, property prices and effective exchange rates | Not built ([Open Data Tools](Open%20Data%20Tools.md)) | Host profile on the shared SDMX client; "Source: BIS" on every result | S | none (the shared SDMX client shipped in 8.8.0) |
 | L29 | US Treasury (`us_treasury`) (wave 8) | The official yield curve, debt, auctions and daily statement | Not built ([Open Data Tools](Open%20Data%20Tools.md)) | Fiscal Data and the par yield curve feeds, tenors and percent as inputs | S | none |
-| L30 | Sanctions screening (`sanctions`) (wave 8) | Screening against official lists is a daily control | Not built; OpenSanctions dropped for its licence ([Open Data Tools](Open%20Data%20Tools.md)) | OFAC, EU, UK and (after legal sign-off) UN lists in a local index refreshed by a workflow; fuzzy screening, entries, changes | M | none |
+| L30 | Sanctions screening (`sanctions`) (wave 8) | Screening against official lists is a daily control | Not built; OpenSanctions dropped for its licence ([Open Data Tools](Open%20Data%20Tools.md)) | OFAC, EU, UK and (after legal sign-off; off until then) UN lists in a local index refreshed by a workflow; fuzzy screening, entries, changes; results blocked from Ask SAJHA by a policy rule | M | none |
 | L31 | FDIC BankFind (`fdic`) (wave 8) | US bank institutions, financials and failures | Not built ([Open Data Tools](Open%20Data%20Tools.md)) | Institutions, financials, failures, locations, history, deposits; optional key; cached | S | none |
 | L32 | CFTC Commitments of Traders (`cftc`) (wave 8) | Positioning by trader category | Not built ([Open Data Tools](Open%20Data%20Tools.md)) | Latest, history, markets and net positioning over the Socrata datasets, with an app token | S | none |
-| L33 | Eurostat and OECD (`eurostat`, `oecd`) (wave 8) | Monthly and quarterly European and OECD statistics | Not built ([Open Data Tools](Open%20Data%20Tools.md)) | Host profiles on the shared SDMX client; OECD under one shared hourly budget | M | L22 |
-| L34 | Statistics offices (`ons`, `statcan`, `abs`) (wave 8) | First-hand national statistics for the UK, Canada and Australia | Not built ([Open Data Tools](Open%20Data%20Tools.md)) | One folder per office; ABS on the SDMX client | M | L22 |
+| L33 | Eurostat and OECD (`eurostat`, `oecd`) (wave 8) | Monthly and quarterly European and OECD statistics | Not built ([Open Data Tools](Open%20Data%20Tools.md)) | Host profiles on the shared SDMX client; OECD under one shared hourly budget | M | none (the shared SDMX client shipped in 8.8.0) |
+| L34 | Statistics offices (`ons`, `statcan`, `abs`) (wave 8) | First-hand national statistics for the UK, Canada and Australia | Not built ([Open Data Tools](Open%20Data%20Tools.md)) | One folder per office; ABS on the SDMX client | M | none (the shared SDMX client shipped in 8.8.0) |
 | L35 | US BLS, BEA and EIA (`bls`, `bea`, `eia`) (wave 8) | First-hand US labour, national accounts and energy data | Not built; BEA answered 503 on the day it was checked ([Open Data Tools](Open%20Data%20Tools.md)) | Keys from the environment; BLS v2; curated and generic tools | M | none |
-| L36 | Hazards (`hazards`) (wave 8) | Operational and physical-climate risk questions | Not built; Open-Meteo dropped for its non-commercial free tier ([Open Data Tools](Open%20Data%20Tools.md)) | USGS earthquakes, GDACS alerts with their disclaimer, NASA FIRMS fires | S | none |
+| L36 | Hazards (`hazards`) (wave 8) | Operational and physical-climate risk questions | Not built; Open-Meteo dropped for its non-commercial free tier ([Open Data Tools](Open%20Data%20Tools.md)) | USGS earthquakes, NASA FIRMS fires, and GDACS alerts with their disclaimer once legal approves (off until then) | S | none |
 | L37 | Research and Wikidata (`research`, `wikipedia`) (wave 8) | Literature and entity facts behind an answer | Not built ([Open Data Tools](Open%20Data%20Tools.md)) | OpenAlex (key and budget), Crossref, arXiv (global throttle); Wikidata in the existing `wikipedia` folder | M | none |
 | L38 | News events (`gdelt`) (wave 8) | Coverage and tone of events over time | Not built; GEO 2.0 dropped ([Open Data Tools](Open%20Data%20Tools.md)) | DOC, TV and Context APIs, serialised at one call per 5 seconds, cached | S | none |
 | L39 | Public spending and catalogue (`us_spending`) (wave 8) | US federal awards and the data.gov catalogue | Not built; the CKAN API is gone ([Open Data Tools](Open%20Data%20Tools.md)) | USAspending search and recipients; the new data.gov catalogue API pinned by a contract test | S | none |
 | L40 | Metrics layer (`bi`) (wave 8) | Every caller re-invents "revenue" in SQL | OLAP measures are DuckDB expressions, not owned metrics ([Business Intelligence](Business%20Intelligence.md)) | Metric definitions with owner, grain and dimensions, compiled to safe SQL that runs through the source's own guard; list, describe, query | L | none |
 | L41 | BI analysis tools (wave 8) | People ask compared with when, why it changed and what next | The OLAP engines for cohorts and windows are not exposed ([Business Intelligence](Business%20Intelligence.md)) | Compare, top-N and Pareto, crosstab, cohort retention, contribution analysis, anomalies, forecasts | M | L40 |
-| L42 | Charts and blending tool results (wave 8) | Answers need pictures, and public data joined with internal data | No chart tool; tool output cannot be joined with tables ([Business Intelligence](Business%20Intelligence.md)) | `bi_chart` (spec, SVG, MCP Apps view); `bi_load_tool_result` into a private, expiring DuckDB table per user | M | L40 |
+| L42 | Charts and blending tool results (wave 8) | Answers need pictures, and public data joined with internal data | No chart tool; tool output cannot be joined with tables ([Business Intelligence](Business%20Intelligence.md)) | `bi_chart` (spec, SVG, MCP Apps view); `bi_load_tool_result` into a private, expiring DuckDB table per user, exposing the tool-result loader built with L54 | M | L40, L54 |
 | L43 | Dataset catalogue, profiling and data quality (wave 8) | Trust in a metric needs its data's freshness and checks | Not built ([Business Intelligence](Business%20Intelligence.md)) | A catalogue across OLAP, DuckDB and connectors; profiling; check suites scheduled as workflows with notices and alerts | M | L40 |
 | L44 | Dashboards (wave 8) | Teams look at the same metrics every day | Not built ([Business Intelligence](Business%20Intelligence.md)) | Dashboard files of tiles (the unit reports reuse), a BI console page | M | L41, L42 |
 | L45 | Report definitions and engine (`reports`) (wave 8) | Recurring documents built by hand from tool output | Not built ([Reports](Reports.md)) | Definitions in a reports directory published as `report_<name>` tools; run, list, describe, history | L | L44 |
 | L46 | Report formats (wave 8) | Recipients want PDF, Excel, PowerPoint or Word | Not built ([Reports](Reports.md)) | HTML, Markdown, DOCX; PDF through headless Chromium, XLSX and PPTX as optional dependencies; classification marking; provenance appendix | M | L45 |
-| L47 | Narration with a numbers check (wave 8) | Model commentary must not invent figures | Not built ([Reports](Reports.md)) | `report_narrate` over the run's data only; every number checked against the data; rejected text never delivered | M | L45 |
+| L47 | Narration with a numbers check (wave 8) | Model commentary must not invent figures | Not built ([Reports](Reports.md)) | `report_narrate` over the run's data only; every number checked against the data by the numbers validator of L51; rejected text never delivered | M | L45, L51 |
 | L48 | Report delivery and governance (wave 8) | Reports leave the building | Not built ([Reports](Reports.md)) | Email, Teams or Slack webhook, SharePoint, folder; approval for external targets; audit; scheduling through workflows | M | L45, L46 |
 | L49 | Studio Report creator and report library page (wave 8) | Authors need to build and run reports without YAML | Not built; `/reports` is today the usage dashboard ([Reports](Reports.md)) | A Studio creator with preview; a library page with run, history and compare | M | L45 |
 | L50 | Flagship reports (wave 8) | Each proves the design on a real need | Not built ([Reports](Reports.md)) | Daily risk, counterparty exposure, regulatory capital, morning brief, company tearsheet, country profile, central bank watch, metric pack, data quality, platform report, access review | M | L46–L48 |
+| L51 | Quantitative workspace (wave 8) | A model's arithmetic and units cannot be trusted, and a computed figure is in no tool result | The verify check `numbers_in_results` only finds figures that a result contains; nothing tracks units ([Quantitative Planners](Quantitative%20Planners.md)) | Quantities with unit, as-of and source; a tested operation library (percent change, CAGR, bp spread, annualise, NPV, weighted average, regression and more); a unit-aware numbers validator, shared later with report narration | M | none |
+| L52 | `calc_graph` and `estimate_then_compute` planners (wave 8) | Numeric answers need computed figures with lineage | Not built ([Quantitative Planners](Quantitative%20Planners.md)) | The model writes a computation graph of tool inputs and library operations; SAJHA validates it, runs it with unit checks and records each figure's lineage; a rough estimate first catches order-of-magnitude slips | M | L51 |
+| L53 | `scenario` planner (wave 8) | "What if" and sensitivity questions are a grid of runs | Not built ([Quantitative Planners](Quantitative%20Planners.md)) | A shock grid run as parallel tool calls (for example qlrisk) and tabulated by SAJHA as a sensitivity table | S | L51 |
+| L54 | `data_analyst` planner and the tool-result loader (wave 8) | Questions over many rows need a query, not a lookup | Not built ([Quantitative Planners](Quantitative%20Planners.md)) | Tool results loaded into the caller's private DuckDB scratch database (the loader BI's `bi_load_tool_result` exposes, L42); the model writes read-only SQL | M | L51 |
+| L55 | `code_act` planner (wave 8) | Some computations do not fit a fixed library | Not built ([Quantitative Planners](Quantitative%20Planners.md)) | Model-written Python in the existing sandbox, network off, typed quantities out, only for roles an administrator lists | M | L51 |
+| L56 | `optimize` planner (wave 8) | Allocation and sizing questions need a solver | Not built ([Quantitative Planners](Quantitative%20Planners.md)) | A restricted formulation solved with SciPy (optional), every constraint checked at the solution | M | L51 |
+| L57 | Numbers check for every planner (wave 8) | Any planner can cite a figure it did not get from a tool | Only planners whose files run `verify` check figures ([Quantitative Planners](Quantitative%20Planners.md)) | A reserved `numbers_check` setting (`off`, `warn`, `enforce`) every planner accepts, so an overlay turns it on | S | L51 |
+| L58 | `research_writer` and `reconcile` planners (wave 8) | Cited write-ups and source comparisons are common requests | Not built ([Quantitative Planners](Quantitative%20Planners.md)) | A per-section gather and cited draft from the existing stages; figures from several sources aligned on unit and date, differences listed with lineage | S | L51 |
+| L59 | Router and `auto` candidates, quantitative evals (wave 8) | The new planners must be chosen, and proven | Not built ([Quantitative Planners](Quantitative%20Planners.md)) | `auto` and `router` offer `calc_graph`, `scenario` and `data_analyst`; eval sets of quantitative questions with known answers run on the mock provider in CI | S | L52–L58 |
 
 ---
 
 ## 5. Decisions needed
 
-Open, from wave 8 (each is detailed in the owning design):
-
-- **UN sanctions list terms, and screening results shown to people and models** (L30):
-  [Open Data Tools §6](Open%20Data%20Tools.md#6-decisions-needed).
-- **Paid data options** (OpenAlex beyond its free budget, Open-Meteo, a Nager.Date sponsorship):
-  spending decisions; the design works without them.
-- **The name of the existing `/reports` usage page** once report definitions get their own page (L49):
-  [Reports §9](Reports.md#9-console-and-studio).
+None open.
 
 Recorded decisions:
 
+- **Wave 8 (2026-10-11):** schema defaults are applied by default, with `tools.apply_schema_defaults`
+  as a one-release off switch (L21); the UN sanctions list and GDACS stay off until legal approves;
+  sanctions screening results are blocked from Ask SAJHA by a policy rule; BIS ships with its
+  citation; no paid data options; P2 and P3 open data sources may slip to a later release
+  ([Open Data Tools §6](Open%20Data%20Tools.md#6-decisions)); the `/reports` usage page's menu entry
+  becomes "Usage" in the reports phase ([Reports §9](Reports.md#9-console-and-studio)); Playwright,
+  openpyxl and python-pptx are acceptable as optional `requires`; quantitative planners are added
+  and built at the first opportunity (L51–L59).
 - **Release 7.0.0** cut on the owner's decision (formerly N1).
 - **TypeScript client** stays deferred (X16).
 - **Deployment:** one-click templates only; no hosted service (L13).

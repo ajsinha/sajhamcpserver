@@ -1,7 +1,8 @@
 {
   "name": "edgar_insider_transactions",
   "implementation": "sajha.tools.impl.enhanced_edgar_tool.EDGARInsiderTransactionsTool",
-  "description": "Insider trading reports (Form 4: changes in beneficial ownership by officers, directors and 10% owners) for one company, from SEC EDGAR (data.sec.gov submissions).\nReturns {cik, company_name, transactions_count, transactions: [{accessionNumber, filingDate, reportDate, form, primaryDocument, primaryDocDescription, document_url}]}, newest first; document_url is an SEC viewer link.\nInputs (* required): cik* (string, SEC Central Index Key, up to 10 digits; from edgar_company_search), limit (integer 1-100, default 20).\nOnly the recent-filings block of the EDGAR submissions file is searched. The result lists the filings, not parsed trade amounts; open document_url for details. sec_get_insider_trading does the same by ticker.\nExample: {\"cik\": \"0000320193\", \"limit\": 10}\nNo API key needed (SEC data.sec.gov; 110 ms between requests).",
+  "description": "Insider trading reports (Form 4: changes in beneficial ownership by officers, directors and 10% owners) for one company, from SEC EDGAR (data.sec.gov submissions).\nReturns {cik, company_name, transactions_count, transactions: [{accessionNumber, filingDate, reportDate, form, primaryDocument, primaryDocDescription, document_url}]}, newest first; document_url is an SEC viewer link.\nInputs (* required): cik* (string, the CIK), limit (integer 1-100, default 20).\nOnly the recent-filings block of the EDGAR submissions file is searched. The result lists the filings, not parsed trade amounts; open document_url for details. sec_get_insider_trading does the same by ticker.\nExample: {\"cik\": \"0000320193\", \"limit\": 10}",
+  "annotations": {"readOnlyHint": true, "idempotentHint": true, "openWorldHint": true},
   "version": "2.9.8",
   "enabled": true,
   "inputSchema": {
@@ -19,7 +20,8 @@
         "default": 20
       }
     },
-    "required": ["cik"]
+    "required": ["cik"],
+    "examples": [{"cik": "0000320193", "limit": 10}]
   },
   "outputSchema": {
     "type": "object",

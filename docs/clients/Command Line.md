@@ -266,6 +266,7 @@ client SDK: it files tool configs into tool folders through the configured stora
 python -m sajha.tools folders                          # the folders, and root files grouped by prefix
 python -m sajha.tools move 'fmp_*' --to fmp --dry-run  # what would move
 python -m sajha.tools move 'fmp_*' --to fmp            # move them ("" moves back to the root)
+python -m sajha.tools guides [--folder fred] [--check]  # regenerate the Tool Reference Guide tables
 ```
 
 `folders` prints each folder with its tool count, the root files grouped by name prefix with a
@@ -276,6 +277,12 @@ the new object and then deletes the old one. It never copies: a name in two plac
 In a git checkout it prints the matching git commands (`git mv` for a dry run; after a move, the
 `git add -A -- <old> <new>` that records each as a rename). The running server picks the moves up on
 its next scan. Exit status: 0 done, 1 refused or nothing matched.
+
+`guides` rewrites the generated tool tables of the guides under `docs/tools/` (the regions between
+`<!-- generated:tools folder=... -->` and `<!-- /generated:tools -->`) from the tool configs, and
+prints one line per region. With `--check` it writes nothing and exits 1 when a region is stale; the
+test suite runs it. The marker attributes and columns are in
+[Tool Quality §12.5](../architecture/Tool%20Quality.md#125-tool-reference-guide-tables-generated).
 
 ---
 

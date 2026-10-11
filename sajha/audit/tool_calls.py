@@ -195,7 +195,8 @@ def _proxied_identity(tool, caller) -> Optional[Dict[str, Any]]:
     return out
 
 
-def record_call(tool, arguments: Any, outcome: str, duration_s: float, error: str = '') -> None:
+def record_call(tool, arguments: Any, outcome: str, duration_s: float, error: str = '',
+                defaults_applied: Optional[List[str]] = None) -> None:
     """Write the ``tool.call`` record for one finished call (or skip it, per the settings).
     Never raises: auditing must not break the call it records."""
     try:
@@ -226,6 +227,8 @@ def record_call(tool, arguments: Any, outcome: str, duration_s: float, error: st
             details['arguments_sha256'] = arguments_digest(arguments)
         elif s.arguments == 'redacted':
             details['arguments'] = redacted_arguments(arguments, s.max_argument_bytes)
+        if defaults_applied:
+            details['defaults_applied'] = list(defaults_applied)   # inputSchema defaults filled in
         if destructive:
             details['destructive'] = True
         identity = _proxied_identity(tool, c)

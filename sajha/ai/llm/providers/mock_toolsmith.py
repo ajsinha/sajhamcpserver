@@ -552,7 +552,7 @@ def design(user_text: str) -> Dict[str, Any]:
 # ── the model ────────────────────────────────────────────────────
 
 def _model_class():
-    from sajha.ai.llm.mock import _MockChat, _last_user_text
+    from sajha.ai.llm.providers.mock import _MockChat, _last_user_text
 
     class ToolsmithModel(_MockChat):
         """Structured output only: replies with the proposal JSON for the last user message."""

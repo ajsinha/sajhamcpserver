@@ -2,6 +2,7 @@
   "name": "un_get_sdg_indicators",
   "implementation": "sajha.tools.impl.united_nations_tool_refactored.UNGetSDGIndicatorsTool",
   "description": "List the indicators of one UN Sustainable Development Goal (codes like 3.2.1), from the UN Statistics Division SDG API (no API key).\nReturns: sdg_code, sdg_title, indicators (code, description, tier, uri) and count; on failure an error and note instead.\nInputs (* required): sdg_code* (string \"1\" to \"17\").\nPass an indicator code to un_get_sdg_data for its values; un_get_sdg_targets lists the targets the indicators measure.\nExample: {\"sdg_code\": \"1\"}",
+  "annotations": {"readOnlyHint": true, "idempotentHint": true, "openWorldHint": true},
   "version": "2.9.8",
   "enabled": true,
   "inputSchema": {
@@ -13,7 +14,8 @@
         "enum": ["1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14", "15", "16", "17"]
       }
     },
-    "required": ["sdg_code"]
+    "required": ["sdg_code"],
+    "examples": [{"sdg_code": "1"}]
   },
   "outputSchema": {
     "type": "object",

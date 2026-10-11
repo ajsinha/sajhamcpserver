@@ -18,8 +18,10 @@ INPUT_SCHEMA = {
     "type": "object",
     "properties": {
         "query": {"type": "string", "description": "What to look for, in plain words (a question works)."},
-        "top_k": {"type": "integer", "minimum": 1, "maximum": 20, "default": 3,
-                  "description": "How many passages to return."},
+        # no schema "default": the server's ai.rag.top_k applies when it is left out (a schema default
+        # would be filled in before the call and override the operator's setting)
+        "top_k": {"type": "integer", "minimum": 1, "maximum": 20,
+                  "description": "How many passages to return (default: the server's ai.rag.top_k, 5 unless changed)."},
         "source": {"type": "string",
                    "description": "Only this source: sajha_docs, uploads, or a configured source's name."},
     },

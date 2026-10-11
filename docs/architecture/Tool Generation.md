@@ -16,7 +16,7 @@ This document owns the topic. The page is **Studio → Describe a tool**
 [Configuration Reference](../getting-started/Configuration%20Reference.md#studio-describe-a-tool);
 the terms are in the [Glossary](../../GLOSSARY.md). The code is `sajha/studio/describe.py`
 (the service), `sajha/routes/describe_routes.py` (the page and endpoints) and
-`sajha/ai/llm/mock_toolsmith.py` (the offline model).
+`sajha/ai/llm/providers/mock_toolsmith.py` (the offline model).
 
 ---
 
@@ -63,7 +63,7 @@ SAJHA_AI_ALIASES_TOOLSMITH=anthropic,mock/mock-toolsmith
 The gateway applies its usual role policy, budgets, retries, fallback, cache and tracing to
 the call; nothing about generation bypasses it.
 
-**mock-toolsmith** (`sajha/ai/llm/mock_toolsmith.py`) is deterministic and reads only the
+**mock-toolsmith** (`sajha/ai/llm/providers/mock_toolsmith.py`) is deterministic and reads only the
 request, like every mock model. It recognises: a URL that looks like an OpenAPI or Swagger
 spec (kind `openapi`); any other URL (kind `rest`, path parameters from `{braces}`, the
 method from an upper-case `POST`/`PUT`/`PATCH`/`DELETE` in the text); a table the context

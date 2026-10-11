@@ -2,6 +2,7 @@
   "name": "sqlselect_execute_query",
   "implementation": "sajha.tools.impl.sqlselect_tool_refactored.SqlSelectExecuteQueryTool",
   "description": "Runs a SQL SELECT over the configured data sources with DuckDB. Data sources are the named files configured in this tool's data_sources (CSV, Parquet or JSON in data.sqlselect.dir, default data/sqlselect), each loaded into a DuckDB table named after the source when the tool starts, with file and URL access then switched off; a source whose file is missing is listed but cannot be queried.\nReturns {success, columns, rows, row_count, query, timestamp}: rows are objects keyed by column; on failure {success: false, error, timestamp}.\nInputs (* required): query* (must start with SELECT, so no WITH; one read-only statement; refused if it contains the word DROP, DELETE, UPDATE, INSERT, CREATE, ALTER or TRUNCATE (whole words only, so created_at is fine)), limit (1-10000; default 100; appended when the text has no LIMIT).\nFor the files in the DuckDB data folder use duckdb_query.\nExample: {\"query\": \"SELECT product_category, SUM(quantity) AS qty FROM orders GROUP BY product_category\", \"limit\": 50}",
+  "annotations": {"readOnlyHint": true, "idempotentHint": true, "openWorldHint": false},
   "version": "2.9.8",
   "enabled": true,
   "data_directory": "${data.sqlselect.dir:./data/sqlselect}",
@@ -42,7 +43,8 @@
         "maximum": 10000
       }
     },
-    "required": ["query"]
+    "required": ["query"],
+    "examples": [{"query": "SELECT product_category, SUM(quantity) AS qty FROM orders GROUP BY product_category", "limit": 50}]
   },
   "outputSchema": {
     "type": "object",

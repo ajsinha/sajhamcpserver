@@ -6,8 +6,10 @@ SAJHA MCP Server — the tool quality command line.
     python -m sajha.quality lint    [--tool GLOB] [--strict] [--info] [--junit FILE] [--json FILE]
     python -m sajha.quality eval    [SET ...] [--model M ...] [--planner P ...] [--json FILE] [--junit FILE] [--no-save]
     python -m sajha.quality compare RUN_A RUN_B      (saved run ids, or JSON files written by eval --json)
-    python -m sajha.quality runs    [--kind test|eval] [--limit N]
+    python -m sajha.quality runs    [--kind test|eval|check] [--limit N]
     python -m sajha.quality probe   TOOL             (run one tool's probe now, live)
+    python -m sajha.quality check   [--tool GLOB] [--folder NAME] [--json FILE] [--junit FILE] [--save]
+                                    [--all]          (the live tool check: every read-only tool once, live)
 
 Exit status: 0 success, 1 failures (or lint errors), 2 usage error.
 Docs: docs/architecture/Tool Quality.md
@@ -23,6 +25,18 @@ import logging
 import sys
 from pathlib import Path
 from typing import Any, List, Optional
+
+
+def _ensure_db() -> None:
+    """Open SAJHA's database when this process has not: run history (``--save``, ``runs``), notices and
+    the database state store need it. Best effort; a server process has already done it."""
+    try:
+        from sajha.db import engine
+        if engine._engine is None:
+            from sajha.core.config import get_settings
+            engine.init_db(get_settings())
+    except Exception as e:
+        print(f'database not available: {e}', file=sys.stderr)
 
 
 def _registry():
@@ -158,6 +172,8 @@ def cmd_runs(a) -> int:
         when = _dt.datetime.fromtimestamp(r['started_at']).strftime('%Y-%m-%d %H:%M')
         if r['kind'] == 'eval':
             stat = f'pass {s.get("passed", "?")}/{s.get("questions", "?")}'
+        elif r['kind'] == 'check':
+            stat = f'broken {s.get("broken", "?")}/{s.get("tools", "?")}'
         else:
             stat = f'pass {s.get("pass", "?")}/{s.get("total", "?")}'
         print(f'{r["id"]}  {when}  {r["kind"]:4}  {r["status"]:7}  {stat:14}  {r["name"]}')
@@ -175,6 +191,28 @@ def cmd_probe(a) -> int:
     entry = P.run_probe(reg, spec, suite, trigger='cli')
     print(f'{a.tool}: {entry["status"]} in {entry["duration_ms"]:.0f} ms {entry["message"]}')
     return 0 if entry['status'] == 'pass' else 1
+
+
+def cmd_check(a) -> int:
+    from sajha.quality import cases as C, check as K
+    reg = _registry()
+    suite = C.load_suite(registry=reg)
+    results = K.run_check(reg, a.tool or '', a.folder or '', suite)
+    print(K.render_text(results, show_skipped=a.all))
+    summary = K.summarise(results)
+    _write(a.junit, K.render_junit(results))
+    if a.json:
+        _write(a.json, json.dumps({'summary': summary, 'results': [r.to_dict() for r in results]}, indent=2,
+                                  default=str))
+    if a.save:
+        try:
+            from sajha.quality.store import get_run_store
+            rid = get_run_store().save('check', f'cli {a.tool or a.folder or "all"}', summary,
+                                       [r.to_dict() for r in results], created_by='cli')
+            print(f'saved run {rid}')
+        except Exception as e:
+            print(f'could not save the run: {e}', file=sys.stderr)
+    return 1 if summary['broken'] else 0
 
 
 def main(argv: Optional[List[str]] = None) -> int:
@@ -220,7 +258,7 @@ def main(argv: Optional[List[str]] = None) -> int:
     c.set_defaults(fn=cmd_compare)
 
     r = sub.add_parser('runs', help='list saved runs')
-    r.add_argument('--kind', choices=['test', 'eval'])
+    r.add_argument('--kind', choices=['test', 'eval', 'check'])
     r.add_argument('--limit', type=int, default=20)
     r.set_defaults(fn=cmd_runs)
 
@@ -228,10 +266,22 @@ def main(argv: Optional[List[str]] = None) -> int:
     pr.add_argument('tool')
     pr.set_defaults(fn=cmd_probe)
 
+    ck = sub.add_parser('check', help='the live tool check: call every read-only tool once (live)')
+    ck.add_argument('--tool', help='tool name glob(s), comma-separated')
+    ck.add_argument('--folder', help='only this tool folder')
+    ck.add_argument('--json', help='write the JSON report here')
+    ck.add_argument('--junit', help='write JUnit XML here')
+    ck.add_argument('--save', action='store_true', help='save the run (quality_runs) for the Tool Health page')
+    ck.add_argument('--all', action='store_true', help='list skipped tools too')
+    ck.set_defaults(fn=cmd_check)
+
     a = p.parse_args(argv)
     logging.basicConfig(level=logging.INFO if a.verbose else logging.ERROR, format='%(levelname)s %(name)s: %(message)s')
     if not a.verbose:
         logging.disable(logging.ERROR)      # a tool's own error logs; results carry the message
+    if a.cmd in ('check', 'runs', 'compare') or getattr(a, 'save', False) or \
+            (a.cmd == 'eval' and not getattr(a, 'no_save', False)):
+        _ensure_db()
     return a.fn(a)
 
 

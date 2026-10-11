@@ -28,7 +28,7 @@ The Federal Reserve MCP Tool Suite provides programmatic access to the Federal R
 - **12 Common Indicators**: Pre-configured shortcuts for key metrics
 - **Search Functionality**: Discover data series by keyword
 - **Dashboard Support**: Batch retrieval of multiple indicators
-- **Demo Mode**: Without an API key the tools return synthetic data (see [Authentication & API Keys](#authentication--api-keys))
+- **No invented data**: without a FRED API key a call fails with a message naming `FRED_API_KEY` (see [Authentication & API Keys](#authentication--api-keys))
 
 ### Data Categories
 
@@ -71,11 +71,10 @@ The Federal Reserve MCP Tool Suite provides programmatic access to the Federal R
 │      FedReserveBaseTool (Shared Functionality)           │
 ├──────────────────────────────────────────────────────────┤
 │  • API URL: api.stlouisfed.org/fred                     │
-│  • API Key Management (optional/demo mode)               │
+│  • FRED API key (FRED_API_KEY, shared with fred_ tools)  │
 │  • Common Series Definitions                             │
 │  • HTTP Client (urllib)                                  │
 │  • JSON Parser                                           │
-│  • Demo Data Generator                                   │
 └────────────────────┬────────────────────────────────────┘
                      │
                      │ REST API Calls
@@ -104,10 +103,9 @@ BaseMCPTool (Abstract Base)
 #### FedReserveBaseTool
 Base class providing:
 - FRED API endpoint configuration (`https://api.stlouisfed.org/fred`)
-- API key management with optional demo mode
+- One FRED key lookup shared with the fred_, pboc_ and boj_ tools (`sajha/tools/impl/fred_key.py`)
 - Common indicator shortcuts (12 pre-configured series)
 - Shared HTTP request handling via `_get_series_data()` method
-- Demo data generation for testing without API key
 - JSON response parsing
 - Error handling and logging
 
@@ -198,29 +196,13 @@ The FRED API returns data in JSON format:
 
 The tools parse this structure and format it consistently.
 
-### Demo Mode
-
-For testing without an API key, the tools include a demo mode that generates synthetic data:
-- Automatically activated when the tool config has no `api_key` (or it is `demo`)
-- Returns realistic mock time series data
-- Supports all tool operations
-- Includes disclaimer in responses
-
 ---
 
 ## Authentication & API Keys
 
-### API Key Required for Live Data
+### API Key Required
 
-The FRED API requires a free API key ([request one here](https://fred.stlouisfed.org/docs/api/api_key.html)). Without a key the tools run in **demo mode** and return synthetic data with a `note` field.
-
-The tool reads its key from the `api_key` field of its JSON config. **The shipped `config/tools/federal_reserve/fed_*.json` configs do not set `api_key`, so out of the box the `fed_` tools always run in demo mode.** To get live data, add the same reference the `fred_` tools use to each `fed_` config:
-
-```json
-"api_key": "${fred.api.key}"
-```
-
-`fred.api.key` is defined in `config/application.yml` and bound to the `FRED_API_KEY` environment variable:
+The FRED API requires a free API key ([request one here](https://fred.stlouisfed.org/docs/api/api_key.html)). Each `fed_` config carries `"api_key": "${fred.api.key}"`, and the tools fall back to the `FRED_API_KEY` environment variable; the lookup is the one every FRED-backed tool uses (`sajha/tools/impl/fred_key.py`). `fred.api.key` is defined in `config/application.yml`:
 
 ```yaml
 fred:
@@ -228,30 +210,11 @@ fred:
     key: ${FRED_API_KEY:}
 ```
 
-See the [Configuration Reference](../../getting-started/Configuration%20Reference.md) for how config keys and environment variables are resolved. For live FRED data with no config change, the [FRED tools](../market-data/FRED%20Tool%20Reference%20Guide.md) (`fred_` prefix) already reference `fred.api.key`.
-
-When instantiating a tool class directly (tests, notebooks), pass the key in the config:
-
-```python
-import os
-from sajha.tools.impl.fed_reserve_tool_refactored import FedGetSeriesTool
-
-tool = FedGetSeriesTool(config={'api_key': os.environ.get('FRED_API_KEY', 'demo')})
-```
+Without a key (unset, an unresolved `${...}` placeholder, `demo` or `DEMO_KEY`) every `fed_` call fails with "FRED API key not configured. Set the FRED_API_KEY environment variable ...". The tools never return synthetic values in place of data; before 8.8.0 they did ("demo mode"), and that mode is gone. See the [Configuration Reference](../../getting-started/Configuration%20Reference.md) for how config keys and environment variables are resolved.
 
 ### Rate Limits
 
 FRED enforces its own per-key limit (currently documented as 120 requests per minute). The `fed_` tools do not rate-limit or cache on the server side; caching is opt-in by adding `"cache_ttl": <seconds>` to a tool config (none of the shipped `fed_` configs set it).
-
-### Demo Mode Limitations
-
-Demo mode provides:
-- ✓ Testing tool functionality
-- ✓ Understanding response formats
-- ✓ Development without API key
-- ✗ Real economic data
-- ✗ Historical accuracy
-- ✗ Search functionality (limited results)
 
 ---
 
@@ -714,28 +677,6 @@ for i in range(12, len(observations), 12):
         print(f"{current['date']}: {yoy_change:.2f}% YoY")
 ```
 
-### Example 7: Demo Mode Testing
-
-```python
-from sajha.tools.impl.fed_reserve_tool_refactored import FedGetSeriesTool
-
-# No API key - uses demo mode
-tool = FedGetSeriesTool()
-
-# Still works, returns demo data
-result = tool.execute({
-    "indicator": "gdp",
-    "limit": 5
-})
-
-print("Demo Mode Example:")
-print(f"Series: {result['title']}")
-print(f"Observations: {len(result['observations'])}")
-
-if 'note' in result:
-    print(f"\nNote: {result['note']}")
-```
-
 ---
 
 ## Schema Reference
@@ -857,21 +798,6 @@ if 'note' in result:
 3. **Series Limits**:
    - FRED caps observations per request (100,000); the tools do not paginate
    - Some series have limited history
-
-### Demo Mode Limitations
-
-1. **Functionality**:
-   - ✓ All tools operational
-   - ✓ Correct response formats
-   - ✗ Real economic data
-   - ✗ Actual historical values
-   - ✗ Complete search results
-
-2. **Data Quality**:
-   - Synthetic/mock data
-   - Simplified patterns
-   - Not suitable for analysis
-   - Testing/development only
 
 ### Technical Limitations
 

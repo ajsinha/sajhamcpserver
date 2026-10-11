@@ -308,7 +308,9 @@ Reader: `sajha/core/config.py::_get`, read when the registry starts its retry th
 
 | Key | Default | Env | Purpose / reader |
 |-----|---------|-----|------------------|
+| `tools.domain_description_max_chars` | `600` | `SAJHA_TOOLS_DOMAIN_DESCRIPTION_MAX_CHARS` | The longest a tool folder's `domain.txt` may be, in characters after trimming; a longer file is refused with the notice `tools.domain_description:<folder>`, never cut (`sajha/tools/domain_text.py`; [Architecture §5](../architecture/Architecture.md#domain-descriptions)). |
 | `tools.retry_failed_seconds` | `300` | `SAJHA_TOOLS_RETRY_FAILED_SECONDS` | Retry of tools that failed to load, without a change to their file: first after this many seconds, then doubling up to 30 minutes; `0` turns it off. Duplicate names and deleted files are not retried. Per worker process (`ToolsRegistry.retry_failed` in `sajha/tools/tools_registry.py`; [Architecture](../architecture/Architecture.md#tool-config-files-and-folders)). The same rhythm re-checks tools skipped because a module their config `requires` is missing. |
+| `tools.apply_schema_defaults` | `true` | `SAJHA_TOOLS_APPLY_SCHEMA_DEFAULTS` | Fill absent arguments from each tool's `inputSchema` `default` before it runs, on every call path; never a `required` property, nested objects only when the caller supplied them, nothing through `oneOf`/`anyOf`/`$ref`/`items` (`sajha/tools/schema_defaults.py`, read on every call; [Tool Quality §12.1](../architecture/Tool%20Quality.md#121-schema-defaults-applied-before-a-call)). `false` restores the old behaviour, in which each tool applied its own code default. An escape hatch for release 8.8.0 only: removed in the release after. |
 | `tools.outbound.block_private_networks` | `false` | `SAJHA_TOOLS_OUTBOUND_BLOCK_PRIVATE_NETWORKS` | Outbound fetch guard for the web crawler tools and Studio REST tools: also refuse private ranges (10/8, 172.16/12, 192.168/16, fc00::/7, CGNAT 100.64/10). Cloud metadata, link-local, loopback, multicast and reserved addresses are refused whatever it says ([Security Model](../security/Security%20Model.md#other-features-that-need-care)). |
 | `tools.outbound.exempt_hosts` | `[]` | `SAJHA_TOOLS_OUTBOUND_EXEMPT_HOSTS` | Host patterns (fnmatch, for example `localhost` or `*.corp.example`) and CIDRs (`127.0.0.1/32`) the outbound fetch guard never refuses. Env: comma-separated or a JSON list. |
 | `tools.outbound.proxy` | `''` | `SAJHA_TOOLS_OUTBOUND_PROXY` | HTTP proxy (`http://host:port` or `https://host:port`) for the guarded fetches of the web crawler and Studio REST tools; empty means direct. Explicit only: `HTTP_PROXY` / `HTTPS_PROXY` are never read. It may carry credentials (`http://user:password@proxy:3128`), so set it in the environment, not the YAML; it is shown and logged only masked. Through the proxy the guard still refuses blocked names and addresses, leaves hosts that do not resolve locally to the proxy, and cannot pin the connection ([Security Model](../security/Security%20Model.md#other-features-that-need-care)). API Import never uses it. |
@@ -392,13 +394,13 @@ YAML placeholder.
 
 | Key | YAML value | Env | Used by |
 |-----|-----------|-----|---------|
-| `fmp.api.key` | `${FMP_API_KEY:}` | `FMP_API_KEY` | `config/tools/fmp/fmp_*.json` |
-| `fred.api.key` | `${FRED_API_KEY:}` | `FRED_API_KEY` | `config/tools/fred/fred_*.json`, and the Bank of Japan (`boj_*`) and People's Bank of China (`pboc_*`) configs |
+| `fmp.api.key` | `${FMP_API_KEY:}` | `FMP_API_KEY` | `config/tools/fmp/fmp_*.json`; also given to OpenBB as `fmp_api_key` ([OpenBB guide](../tools/market-data/OpenBB%20Tool%20Reference%20Guide.md#installation-and-keys)) |
+| `fred.api.key` | `${FRED_API_KEY:}` | `FRED_API_KEY` | `config/tools/fred/fred_*.json`, and the Bank of Japan (`boj_*`) and People's Bank of China (`pboc_*`) configs; also given to OpenBB as `fred_api_key` |
 | `fbi.api.key` | `${FBI_API_KEY:}` | `FBI_API_KEY` (the tool also falls back to `DATA_GOV_API_KEY`, then `DEMO_KEY`) | `config/tools/fbi/fbi_*.json` |
 | `google.api.key` | `${GOOGLE_API_KEY:}` | `GOOGLE_API_KEY` | `config/tools/google/google_search.json` |
 | `google.search.engine.id` | `${GOOGLE_SEARCH_ENGINE_ID:}` | `GOOGLE_SEARCH_ENGINE_ID` | `config/tools/google/google_search.json` |
 | `tavily.api.key` | `${TAVILY_API_KEY:}` | `TAVILY_API_KEY` | `config/tools/tavily/tavily_*.json` |
-| `alpha_vantage.api.key` | `${ALPHA_VANTAGE_API_KEY:}` | `ALPHA_VANTAGE_API_KEY` | `config/tools/alphavantage/av_*.json` |
+| `alpha_vantage.api.key` | `${ALPHA_VANTAGE_API_KEY:}` | `ALPHA_VANTAGE_API_KEY` | `config/tools/alphavantage/av_*.json` (without it they return a configuration error); also given to OpenBB as `alpha_vantage_api_key` |
 | `sharepoint.site.url` | `${SHAREPOINT_SITE_URL:}` | `SHAREPOINT_SITE_URL` | `config/tools/sharepoint/sharepoint_*.json` (the site, e.g. `https://contoso.sharepoint.com/sites/team`) |
 | `sharepoint.client.id` | `${SHAREPOINT_CLIENT_ID:}` | `SHAREPOINT_CLIENT_ID` | `config/tools/sharepoint/sharepoint_*.json` (the Entra ID app registration) |
 | `sharepoint.client.secret` | `${SHAREPOINT_CLIENT_SECRET:}` | `SHAREPOINT_CLIENT_SECRET` | `config/tools/sharepoint/sharepoint_*.json` |
@@ -459,7 +461,7 @@ fields below. Built-in providers not listed still exist, disabled.
 | `mistral` | the `openai` fields (`tool_choice_required: any`, `seed_param: random_seed`) | `MISTRAL_API_KEY` |
 | `cohere` | `tool_result_format`, `embedding_input_type` (used when a request names no purpose), `chat_path`, `embed_path` | `COHERE_API_KEY`, `CO_API_KEY` |
 | `ollama` | `keep_alive`, `num_ctx`, `think`, `options`, `detect_capabilities`, `live_models`, `health_ttl_s` | `OLLAMA_HOST`, `OLLAMA_BASE_URL` |
-| `groq`, `together`, `fireworks`, `deepseek`, `xai`, `openrouter`, `perplexity`, `vllm`, `lmstudio`, `openai_compatible` | the `openai` fields plus `live_models`, `models_path` | `GROQ_API_KEY`, `TOGETHER_API_KEY`, `FIREWORKS_API_KEY`, `DEEPSEEK_API_KEY`, `XAI_API_KEY`, `OPENROUTER_API_KEY`, `PERPLEXITY_API_KEY` |
+| `groq`, `together`, `fireworks`, `deepseek`, `xai`, `openrouter`, `perplexity`, `huggingface`, `vllm`, `lmstudio`, `openai_compatible` | the `openai` fields plus `live_models`, `models_path` | `GROQ_API_KEY`, `TOGETHER_API_KEY`, `FIREWORKS_API_KEY`, `DEEPSEEK_API_KEY`, `XAI_API_KEY`, `OPENROUTER_API_KEY`, `PERPLEXITY_API_KEY`, `HF_TOKEN` (or `HUGGING_FACE_HUB_TOKEN`) |
 | `mock` | `latency_ms` (`[0, 0]`), `fail_every` (`0`), `fail_with`, `retry_after_s`, `seed` (`42`), `scripts_dir` (`config/ai/mock_scripts`), `embed_dimensions` (`256`), `max_planner_tools` (`2`) | — |
 
 ### Gateway and ask sections
@@ -1080,6 +1082,13 @@ design: [Tool Quality](../architecture/Tool%20Quality.md).
 | `quality.probes.tick_seconds` | `15` | How often the probe scheduler looks for due probes. |
 | `quality.probes.default_every_seconds` | `300` | The interval of a probe that sets neither `every` nor `cron`. |
 | `quality.probes.history` | `20` | Results kept per tool in the state store. |
+| `quality.check.cron` | `''` | The live tool check on a schedule (5-field cron), run by the probe scheduler with its single-fire claim; empty: only `python -m sajha.quality check`. The scheduler starts for this alone even when `quality.probes.enabled` is false. |
+| `quality.check.timezone` | `''` | Time zone of `quality.check.cron`; empty is UTC. |
+| `quality.check.pause_ms` | `1000` | Pause between two calls to tools of the same folder (one provider). |
+| `quality.check.concurrency` | `4` | Folders checked at once; within a folder, one call at a time. |
+| `quality.check.timeout_seconds` | `60` | Per call; a call that does not answer is an `error` (`TimeoutError`). |
+| `quality.check.budget_seconds` | `1800` | The whole run; tools not reached in time are reported `skipped`. |
+| `quality.check.exclude` | `[]` | Tool-name globs the live check never calls (env: comma-separated or a JSON list). |
 | `quality.versions.enabled` | `true` | `false`: versions files are ignored and every call runs the registered tool. |
 | `quality.versions.reload_seconds` | `5` | Recheck the versions directory at most this often (on the next call). |
 

@@ -1,7 +1,8 @@
 {
   "name": "cg_exchange_info",
   "implementation": "sajha.tools.impl.coingecko_tools.CGExchangeInfoTool",
-  "description": "Details of one spot exchange from CoinGecko (exchanges/{id}): name, country, year established, URLs, trust score and rank, 24h BTC volume, and its top tickers.\nReturns CoinGecko's exchange object, including a tickers array.\nInputs (* required): id* (string, CoinGecko exchange id such as binance, gdax (Coinbase Exchange) or kraken; ids come from cg_exchanges_list; default binance).\nFor all trading pairs of the exchange use cg_exchange_tickers.\nExample: {\"id\": \"kraken\"}\nNo API key is sent (CoinGecko public API, rate-limited by CoinGecko); a failed call returns {\"error\": ...}.",
+  "description": "Details of one spot exchange from CoinGecko (exchanges/{id}): name, country, year established, URLs, trust score and rank, 24h BTC volume, and its top tickers.\nReturns CoinGecko's exchange object, including a tickers array.\nInputs (* required): id* (string, CoinGecko exchange id such as binance, gdax (Coinbase Exchange) or kraken; ids come from cg_exchanges_list).\nFor all trading pairs of the exchange use cg_exchange_tickers.\nExample: {\"id\": \"kraken\"}",
+  "annotations": {"readOnlyHint": true, "idempotentHint": true, "openWorldHint": true},
   "version": "4.5.0",
   "enabled": true,
   "inputSchema": {
@@ -9,13 +10,13 @@
     "properties": {
       "id": {
         "description": "CoinGecko exchange id (e.g. binance, kraken)",
-        "type": "string",
-        "default": "binance"
+        "type": "string"
       }
     },
     "required": [
       "id"
-    ]
+    ],
+    "examples": [{"id": "kraken"}]
   },
   "outputSchema": {
     "type": "object",

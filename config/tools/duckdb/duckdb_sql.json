@@ -1,6 +1,7 @@
 {
     "name": "duckdb_sql",
     "description": "Runs one read-only SQL statement with DuckDB over the customers, orders and products tables, loaded from customers.csv, orders.csv and products.csv in the DuckDB data folder (data.duckdb.dir) into a sandbox with no file or URL access. Files are read once, at start-up.\nReturns {success, columns, data, row_count, sql, execution_time_ms, tables_available}; floats are rounded to 2 decimals. On failure {success: false, error, sql}.\nInputs (* required): sql* (one SELECT, WITH, FROM or EXPLAIN statement), limit (1-1000; default 100; appended when the query has no LIMIT).\nFor every file in the folder, larger limits and automatic reload use duckdb_query.\nExample: {\"sql\": \"SELECT customer_segment, COUNT(*) AS n FROM customers GROUP BY customer_segment\"}",
+    "annotations": {"readOnlyHint": true, "idempotentHint": true, "openWorldHint": false},
     "category": "Data Analytics",
     "version": "2.9.8",
     "enabled": true,
@@ -22,7 +23,8 @@
                 "default": 100
             }
         },
-        "required": ["sql"]
+        "required": ["sql"],
+      "examples": [{"sql": "SELECT customer_segment, COUNT(*) AS n FROM customers GROUP BY customer_segment"}]
     },
     "outputSchema": {
         "type": "object",

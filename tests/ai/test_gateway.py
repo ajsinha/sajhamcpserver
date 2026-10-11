@@ -273,7 +273,7 @@ def test_db_table_is_lowest_precedence_source():
 
 def test_class_path_entry_and_bad_class_path():
     gw = make_gateway({"providers": [
-        {"name": "lab", "class": "sajha.ai.llm.mock:MockProvider", "config": {"enabled": True, "scripts_dir": ""}},
+        {"name": "lab", "class": "sajha.ai.llm.providers.mock:MockProvider", "config": {"enabled": True, "scripts_dir": ""}},
         {"name": "broken", "class": "no.such.module:Thing"}],
         "aliases": {"default": ["lab/mock-echo"]}})
     assert gw.chat(req("hi")).provider == "lab"
@@ -282,7 +282,7 @@ def test_class_path_entry_and_bad_class_path():
 
 def test_entry_point_plugins(monkeypatch):
     from sajha.ai.llm import registry
-    from sajha.ai.llm.mock import MockProvider
+    from sajha.ai.llm.providers.mock import MockProvider
 
     class PluginProvider(MockProvider):
         name = "plugged"

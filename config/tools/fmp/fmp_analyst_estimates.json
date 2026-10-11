@@ -1,7 +1,8 @@
 {
   "name": "fmp_analyst_estimates",
   "implementation": "sajha.tools.impl.fmp_tools.FMPAnalystEstimatesTool",
-  "description": "Analyst consensus estimates for one company from Financial Modeling Prep (FMP, /stable/analyst-estimates): estimated revenue, EPS, EBITDA, net income and SG&A (low/high/average) for coming periods.\nReturns {symbol, period, estimates}: estimates is the list of FMP period records.\nInputs (* required): symbol* (ticker, e.g. AAPL; upper-cased), period (annual or quarter; default annual), limit (integer 1-100, number of periods; default 5).\nFor reported figures use fmp_income_statement; for price targets fmp_price_target or fmp_price_target_summary; for rating changes fmp_upgrades_downgrades.\nNeeds an FMP API key (config fmp.api.key, env FMP_API_KEY); without one it returns a demo placeholder naming the endpoint instead of data.\nExample: {\"symbol\": \"NVDA\", \"period\": \"annual\", \"limit\": 3}",
+  "description": "Analyst consensus estimates for one company from Financial Modeling Prep (FMP, /stable/analyst-estimates): estimated revenue, EPS, EBITDA, net income and SG&A (low/high/average) for coming periods.\nReturns {symbol, period, estimates}: estimates is the list of FMP period records.\nInputs (* required): symbol* (ticker, e.g. AAPL; upper-cased), period (annual or quarter; default annual), limit (integer 1-100, number of periods; default 5).\nFor reported figures use fmp_income_statement; for price targets fmp_price_target or fmp_price_target_summary; for rating changes fmp_upgrades_downgrades.\nExample: {\"symbol\": \"NVDA\", \"period\": \"annual\", \"limit\": 3}",
+  "annotations": {"readOnlyHint": true, "idempotentHint": true, "openWorldHint": true},
   "version": "4.5.0",
   "enabled": true,
   "inputSchema": {
@@ -30,7 +31,8 @@
     },
     "required": [
       "symbol"
-    ]
+    ],
+    "examples": [{"symbol": "NVDA", "period": "annual", "limit": 3}]
   },
   "outputSchema": {
     "type": "object",

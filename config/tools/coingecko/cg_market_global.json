@@ -1,7 +1,8 @@
 {
   "name": "cg_market_global",
   "implementation": "sajha.tools.impl.coingecko_tools.CGMarketGlobalTool",
-  "description": "Whole-market cryptocurrency statistics from CoinGecko (global).\nReturns {data: {active_cryptocurrencies, markets, total_market_cap: {currency: value}, total_volume: {...}, market_cap_percentage: {btc, eth, ...} (dominance in percent), market_cap_change_percentage_24h_usd, updated_at}}.\nInputs: none.\nFor DeFi only use cg_defi_global; per category cg_coin_categories_market.\nExample: {}\nNo API key is sent (CoinGecko public API, rate-limited by CoinGecko); a failed call returns {\"error\": ...}.",
+  "description": "Whole-market cryptocurrency statistics from CoinGecko (global).\nReturns {data: {active_cryptocurrencies, markets, total_market_cap: {currency: value}, total_volume: {...}, market_cap_percentage: {btc, eth, ...} (dominance in percent), market_cap_change_percentage_24h_usd, updated_at}}.\nInputs: none.\nFor DeFi only use cg_defi_global; per category cg_coin_categories_market.\nExample: {}",
+  "annotations": {"readOnlyHint": true, "idempotentHint": true, "openWorldHint": true},
   "version": "4.5.0",
   "enabled": true,
   "inputSchema": {

@@ -1,0 +1,1 @@
+Key: FRED_API_KEY (config fred.api.key), shared with the fred_ tools; without it a call fails with a message saying how to set it, and never returns invented values.

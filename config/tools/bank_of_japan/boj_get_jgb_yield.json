@@ -1,40 +1,39 @@
 {
   "name": "boj_get_jgb_yield",
   "implementation": "sajha.tools.impl.japan_central_bank.BoJGetJGBYieldTool",
-  "description": "Japanese interest rates by term from FRED (Federal Reserve Bank of St. Louis, OECD monthly data), in percent: 10y is the 10-year JGB yield (IRLTLT01JPM156N), 3m the 3-month interbank rate (IR3TIB01JPM156N).\nReturns: series_code (FRED id), series_id, label, source, observation_count and observations (date, value) oldest first, missing values dropped.\nInputs (* required): bond_term* (10y or 3m; schema default 10y); start_date, end_date (YYYY-MM-DD); recent_periods (1-100; the last N observations, with no dates looking back N x 45 days; when omitted the whole history in the date range is returned).\nFor the call money and discount rates use boj_get_policy_rate. Needs a FRED API key (FRED_API_KEY, config fred.api.key); without one the call fails with a message saying so.\nExample: {\"bond_term\": \"10y\", \"start_date\": \"2022-01-01\"}",
+  "description": "Japanese interest rates by term, in percent, monthly, from FRED (OECD series): 10y is the 10-year JGB yield (IRLTLT01JPM156N), 3m the 3-month interbank rate (IR3TIB01JPM156N).\nReturns: series_code (FRED id, or IMF flow.key), series_id, label, source, observation_count and observations (date, value) oldest first, missing values dropped.\nInputs (none required): bond_term (10y or 3m; default 10y); start_date, end_date (YYYY-MM-DD); recent_periods (1-500; default 10; the last N observations, used only when neither date is given).\nFor the call money rate use boj_get_policy_rate. FRED series need FRED_API_KEY (config fred.api.key); without it they fail with a message saying so.\nExample: {\"bond_term\": \"10y\", \"start_date\": \"2024-01-01\"}",
+  "annotations": {"readOnlyHint": true, "idempotentHint": true, "openWorldHint": true},
   "version": "2.9.8",
   "enabled": true,
+  "api_key": "${fred.api.key}",
   "inputSchema": {
     "type": "object",
     "properties": {
       "bond_term": {
         "type": "string",
-        "description": "JGB maturity term (FRED publishes the 10-year JGB yield and the 3-month rate for Japan)",
         "enum": [
           "10y",
           "3m"
         ],
-        "default": "10y"
+        "default": "10y",
+        "description": "10y: 10-year JGB yield; 3m: 3-month interbank rate"
       },
       "start_date": {
         "type": "string",
-        "description": "Start date in YYYY-MM-DD format"
+        "description": "Start date (YYYY-MM-DD)"
       },
       "end_date": {
         "type": "string",
-        "description": "End date in YYYY-MM-DD format"
+        "description": "End date (YYYY-MM-DD)"
       },
       "recent_periods": {
         "type": "integer",
-        "description": "Number of recent observations (1-100)",
         "minimum": 1,
-        "maximum": 100,
-        "default": 10
+        "maximum": 500,
+        "default": 10,
+        "description": "The last N observations; used only when neither date is given"
       }
-    },
-    "required": [
-      "bond_term"
-    ]
+    }
   },
   "outputSchema": {
     "type": "object",
@@ -106,25 +105,10 @@
     "note": "Japanese Government Bond yields across the yield curve. Critical for understanding Japanese monetary policy and global fixed income markets.",
     "examples": [
       {
-        "description": "Get latest 10-year JGB yield",
+        "description": "Example",
         "input": {
           "bond_term": "10y",
-          "recent_periods": 1
-        }
-      },
-      {
-        "description": "Get 3-month JGB yield history for past year",
-        "input": {
-          "bond_term": "3m",
-          "start_date": "2023-11-01",
-          "end_date": "2024-10-31"
-        }
-      },
-      {
-        "description": "Compare recent 3-month vs 10-year JGB yields",
-        "input": {
-          "bond_term": "3m",
-          "recent_periods": 30
+          "start_date": "2024-01-01"
         }
       }
     ],
@@ -135,6 +119,5 @@
       "Fixed income portfolio management",
       "Global macro trading"
     ]
-  },
-  "api_key": "${fred.api.key}"
+  }
 }

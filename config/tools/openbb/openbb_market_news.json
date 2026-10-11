@@ -1,7 +1,8 @@
 {
   "name": "openbb_market_news",
   "implementation": "sajha.tools.impl.openbb_tools.OpenBBMarketNewsTool",
-  "description": "Latest general market and world news through the OpenBB Platform (obb.news.world).\nReturns: {articles_count, articles: [records with date, title, text, url and provider extras]} or {error}.\nInputs (* required): limit (1-50; default 10); provider (schema enum benzinga, fmp, biztoc; default benzinga). OpenBB 4.6 accepts benzinga, fmp, intrinio and tiingo, all of which need a key; biztoc is not available.\nNews about one company: openbb_company_news or yf_news. Keys: fmp, benzinga, fred, intrinio, polygon and tiingo need credentials in OpenBB's settings (~/.openbb_platform/user_settings.json), not supplied by SAJHA; yfinance, oecd, federal_reserve, sec, imf and government_us need none.\nExample: {\"limit\": 10, \"provider\": \"fmp\"}",
+  "description": "Latest general market and world news through the OpenBB Platform (obb.news.world).\nReturns: {provider, articles_count, articles: [records with date, title, text, url]} or {error}.\nInputs (* required): limit (articles; default 10); provider (benzinga, fmp, intrinio, tiingo; default fmp).\nNews about one company: openbb_company_news, yf_news; keyword news search: tavily_news_search. Keys: fmp uses SAJHA's FMP_API_KEY; benzinga, intrinio, tiingo need a key in ~/.openbb_platform/user_settings.json.\nExample: {\"limit\": 10}",
+  "annotations": {"readOnlyHint": true, "idempotentHint": true, "openWorldHint": true},
   "version": "4.5.0",
   "enabled": true,
   "inputSchema": {
@@ -9,20 +10,21 @@
     "properties": {
       "limit": {
         "type": "integer",
-        "description": "Number of articles",
-        "default": 10,
         "minimum": 1,
-        "maximum": 50
+        "maximum": 1000,
+        "default": 10,
+        "description": "Number of articles (1-1000)"
       },
       "provider": {
         "type": "string",
-        "description": "News provider",
         "enum": [
           "benzinga",
           "fmp",
-          "biztoc"
+          "intrinio",
+          "tiingo"
         ],
-        "default": "benzinga"
+        "default": "fmp",
+        "description": "OpenBB data provider"
       }
     },
     "required": []
@@ -56,7 +58,7 @@
     ],
     "examples": [
       {
-        "description": "Latest 10 market headlines",
+        "description": "Latest general market and world news",
         "input": {
           "limit": 10
         }

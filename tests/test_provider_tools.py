@@ -58,20 +58,26 @@ FRED_PAYLOAD = {'observations': [{'date': '2024-01-01', 'value': '1.5'},
                                  {'date': '2024-03-01', 'value': '1.7'}]}
 
 
+def _fred(req):
+    """FRED_PAYLOAD in the order the request asks for (newest first for sort_order=desc)."""
+    rows = FRED_PAYLOAD['observations']
+    return {'observations': rows[::-1] if _query(req).get('sort_order') == 'desc' else rows}
+
+
 # ── PBoC / BoJ (FRED) ────────────────────────────────────────────────────────
 
 @pytest.mark.parametrize('module, cls, args, series', [
-    ('china_central_bank', 'PBoCGetCGBYieldTool', {'bond_term': '10y'}, 'IRLTLT01CNM156N'),
+    ('china_central_bank', 'PBoCGetPolicyRateTool', {'rate_type': 'interbank_3m'}, 'IR3TIB01CNM156N'),
     ('japan_central_bank', 'BoJGetJGBYieldTool', {'bond_term': '10y'}, 'IRLTLT01JPM156N'),
-    ('japan_central_bank', 'BoJGetPolicyRateTool', {'rate_type': 'policy_rate'}, 'IRSTCI01JPM156N'),
-    ('japan_central_bank', 'BoJGetInflationTool', {'index_type': 'core_cpi'}, 'JPNCPICORMINMEI'),
+    ('japan_central_bank', 'BoJGetPolicyRateTool', {'rate_type': 'call_money'}, 'IRSTCI01JPM156N'),
+    ('japan_central_bank', 'BoJGetEconomicIndicatorTool', {'indicator': 'trade_balance'}, 'XTNTVA01JPM664S'),
 ])
 def test_fred_backed_central_bank_tools_use_configured_key(module, cls, args, series, monkeypatch):
     import importlib
     monkeypatch.delenv('FRED_API_KEY', raising=False)
     tool_cls = getattr(importlib.import_module(f'sajha.tools.impl.{module}'), cls)
     tool = tool_cls({'api_key': 'fred-test-key'})
-    rec = _Recorder(lambda req: FRED_PAYLOAD)
+    rec = _Recorder(_fred)
     with mock.patch('urllib.request.urlopen', rec):
         result = tool.execute(args)
     q = _query(rec.requests[0])
@@ -81,13 +87,13 @@ def test_fred_backed_central_bank_tools_use_configured_key(module, cls, args, se
 
 
 def test_fred_key_falls_back_to_env_and_rejects_unresolved_placeholder(monkeypatch):
-    from sajha.tools.impl.china_central_bank import PBoCGetMoneySupplyTool
+    from sajha.tools.impl.china_central_bank import PBoCGetExchangeRateTool
     monkeypatch.setenv('FRED_API_KEY', 'from-env')
-    tool = PBoCGetMoneySupplyTool({'api_key': '${fred.api.key}'})
+    tool = PBoCGetExchangeRateTool({'api_key': '${fred.api.key}'})
     assert tool._get_api_key() == 'from-env'
 
     monkeypatch.delenv('FRED_API_KEY')
-    tool = PBoCGetMoneySupplyTool({'api_key': '${fred.api.key}'})
+    tool = PBoCGetExchangeRateTool({'api_key': '${fred.api.key}'})
     with pytest.raises(ValueError, match='FRED API key not configured'):
         tool._get_api_key()
 
@@ -108,7 +114,8 @@ def test_boj_eur_jpy_is_a_cross_rate(monkeypatch):
 
 
 def test_boj_configs_match_implementation():
-    """Every enum value the BoJ configs advertise must be accepted by the implementation."""
+    """Every enum value the BoJ configs advertise must be accepted by the implementation
+    (FRED-backed values reach FRED; IMF-backed ones the shared SDMX client)."""
     from sajha.tools.impl import japan_central_bank as m
     cases = {
         'boj_get_jgb_yield': (m.BoJGetJGBYieldTool, 'bond_term'),
@@ -116,6 +123,7 @@ def test_boj_configs_match_implementation():
         'boj_get_exchange_rate': (m.BoJGetExchangeRateTool, 'currency_pair'),
         'boj_get_money_supply': (m.BoJGetMoneySupplyTool, 'aggregate'),
         'boj_get_inflation': (m.BoJGetInflationTool, 'index_type'),
+        'boj_get_economic_indicator': (m.BoJGetEconomicIndicatorTool, 'indicator'),
     }
     for name, (cls, param) in cases.items():
         cfg = _config(name)
@@ -123,10 +131,13 @@ def test_boj_configs_match_implementation():
         tool = cls(dict(cfg, api_key='k'))
         for value in cfg['inputSchema']['properties'][param]['enum']:
             rec = _Recorder(lambda req: FRED_PAYLOAD)
-            with mock.patch('urllib.request.urlopen', rec):
+            with mock.patch('urllib.request.urlopen', rec), \
+                    mock.patch('sajha.tools.impl.sdmx_client.fetch', return_value={'source': 'IMF', 'series': [
+                        {'key': 'k', 'dimensions': {}, 'attributes': {},
+                         'observations': [{'period': '2026-01', 'value': 1.0}]}]}) as imf:
                 result = tool.execute({param: value})
-            assert 'error' not in result, (name, value, result)
-            assert rec.requests, (name, value)
+            assert result['observations'], (name, value, result)
+            assert rec.requests or imf.called, (name, value)
 
 
 # ── FBI ── (tests/test_fbi_tools.py) ─────────────────────────────────────────

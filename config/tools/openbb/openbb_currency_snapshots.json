@@ -1,16 +1,33 @@
 {
   "name": "openbb_currency_snapshots",
   "implementation": "sajha.tools.impl.openbb_tools.OpenBBGenericTool",
-  "description": "Snapshot of current exchange rates against a base currency (USD by OpenBB's default) through the OpenBB Platform (obb.currency.snapshots).\nReturns: {tool, data_points (total rows), data: first 100 rows as OpenBB returns them} or {tool, error}.\nInputs (* required): provider (OpenBB 4.6 accepts fmp or polygon; schema default fmp, but when omitted the tool sends yfinance, which this command rejects, so set it).\nOne pair: av_forex_rate; history: openbb_forex_historical, yf_forex_history. Keys: fmp, benzinga, fred, intrinio, polygon and tiingo need credentials in OpenBB's settings (~/.openbb_platform/user_settings.json), not supplied by SAJHA; yfinance, oecd, federal_reserve, sec, imf and government_us need none.\nExample: {\"provider\": \"fmp\"}",
+  "description": "Snapshot of current exchange rates against a base currency through the OpenBB Platform (obb.currency.snapshots).\nReturns: {tool, provider, data_points (rows before the cap), truncated, data: rows with their dates, ignored_arguments when some did not apply} or {tool, error}.\nInputs (* required): base (default usd); limit (rows returned, 1-1000; default 100; a dated series keeps its most recent rows); provider (fmp, polygon; default fmp).\nOne pair: av_forex_rate; history: openbb_forex_historical, yf_forex_history. Keys: fmp uses SAJHA's FMP_API_KEY; polygon needs a key in ~/.openbb_platform/user_settings.json.\nExample: {\"base\": \"eur\"}",
+  "annotations": {"readOnlyHint": true, "idempotentHint": true, "openWorldHint": true},
   "version": "4.5.0",
   "enabled": true,
   "inputSchema": {
     "type": "object",
     "properties": {
+      "base": {
+        "type": "string",
+        "default": "usd",
+        "description": "Base currency, e.g. usd, eur"
+      },
+      "limit": {
+        "type": "integer",
+        "minimum": 1,
+        "maximum": 1000,
+        "default": 100,
+        "description": "Most rows returned (1-1000); a dated series keeps its most recent rows"
+      },
       "provider": {
         "type": "string",
-        "description": "OpenBB data provider",
-        "default": "fmp"
+        "enum": [
+          "fmp",
+          "polygon"
+        ],
+        "default": "fmp",
+        "description": "OpenBB data provider"
       }
     },
     "required": []
@@ -18,8 +35,24 @@
   "outputSchema": {
     "type": "object",
     "properties": {
-      "result": {
-        "type": "object"
+      "tool": {
+        "type": "string"
+      },
+      "provider": {
+        "type": "string"
+      },
+      "data_points": {
+        "type": "integer",
+        "description": "Rows before the cap"
+      },
+      "truncated": {
+        "type": "boolean"
+      },
+      "data": {
+        "type": "array"
+      },
+      "error": {
+        "type": "string"
       }
     }
   },
@@ -32,6 +65,14 @@
       "openbb",
       "currency",
       "snapshots"
+    ],
+    "examples": [
+      {
+        "description": "Snapshot of current exchange rates against a base currency",
+        "input": {
+          "base": "eur"
+        }
+      }
     ]
   }
 }

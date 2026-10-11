@@ -1,35 +1,72 @@
 {
   "name": "openbb_commodity_price",
   "implementation": "sajha.tools.impl.openbb_tools.OpenBBCommodityPriceTool",
-  "description": "Meant to give commodity futures price history (gold GC=F, oil CL=F, silver SI=F) through OpenBB (obb.commodity.price.historical).\nReturns: {symbol, data_points, prices} when the command exists.\nInputs (* required): symbol* (Yahoo futures symbol); start_date (YYYY-MM-DD; default 180 days ago); provider (default yfinance).\nOpenBB 4.x (4.6 checked) has no obb.commodity.price.historical, so the call fails with an error; use openbb_derivatives_futures_historical (provider yfinance), fmp_commodity_historical, fred_oil_price or fred_gold_price instead.\nExample: {\"symbol\": \"CL=F\", \"start_date\": \"2026-04-01\"}",
+  "description": "Energy spot prices (EIA series on FRED: crude oil, natural gas, fuels) through the OpenBB Platform (obb.commodity.price.spot).\nReturns: {commodity, provider, data_points, truncated, prices: [{date, symbol, commodity, price, unit}]} or {commodity, error}.\nInputs (* required): commodity (wti, brent, natural_gas, jet_fuel, propane, heating_oil, diesel_*, gasoline_*, rbob or all; default wti); start_date (default 180 days ago); end_date; limit (rows returned, 1-1000; default 100; a dated series keeps its most recent rows); provider (fred; default fred).\nGold and silver: openbb_derivatives_futures_historical (GC=F, SI=F) or imf_get_data (PCPS, G001.PGOLD.USD.M); futures curve: openbb_derivatives_futures_curve. Keys: fred uses SAJHA's FRED_API_KEY.\nExample: {\"commodity\": \"brent\", \"start_date\": \"2026-07-01\"}",
+  "annotations": {"readOnlyHint": true, "idempotentHint": true, "openWorldHint": true},
   "version": "4.5.0",
   "enabled": true,
   "inputSchema": {
     "type": "object",
     "properties": {
-      "symbol": {
+      "commodity": {
         "type": "string",
-        "description": "Commodity symbol (GC=F for gold, CL=F for oil, SI=F for silver)"
+        "default": "wti",
+        "description": "EIA spot commodity",
+        "enum": [
+          "wti",
+          "brent",
+          "natural_gas",
+          "jet_fuel",
+          "propane",
+          "heating_oil",
+          "diesel_gulf_coast",
+          "diesel_ny_harbor",
+          "diesel_la",
+          "gasoline_ny_harbor",
+          "gasoline_gulf_coast",
+          "rbob",
+          "all"
+        ]
       },
       "start_date": {
         "type": "string",
-        "description": "Start date (YYYY-MM-DD)"
+        "description": "Start date; default 180 days ago (YYYY-MM-DD)",
+        "format": "date"
+      },
+      "end_date": {
+        "type": "string",
+        "description": "End date; default today (YYYY-MM-DD)",
+        "format": "date"
+      },
+      "limit": {
+        "type": "integer",
+        "minimum": 1,
+        "maximum": 1000,
+        "default": 100,
+        "description": "Most rows returned (1-1000); a dated series keeps its most recent rows"
       },
       "provider": {
         "type": "string",
-        "description": "Data provider",
-        "default": "yfinance"
+        "enum": [
+          "fred"
+        ],
+        "default": "fred",
+        "description": "OpenBB data provider"
       }
     },
-    "required": [
-      "symbol"
-    ]
+    "required": []
   },
   "outputSchema": {
     "type": "object",
     "properties": {
-      "result": {
-        "type": "object"
+      "commodity": {
+        "type": "string"
+      },
+      "data_points": {
+        "type": "integer"
+      },
+      "prices": {
+        "type": "array"
       }
     }
   },
@@ -45,6 +82,14 @@
       "oil",
       "silver"
     ],
-    "examples": []
+    "examples": [
+      {
+        "description": "Energy spot prices (EIA series on FRED: crude oil, natural gas, fuels)",
+        "input": {
+          "commodity": "brent",
+          "start_date": "2026-07-01"
+        }
+      }
+    ]
   }
 }

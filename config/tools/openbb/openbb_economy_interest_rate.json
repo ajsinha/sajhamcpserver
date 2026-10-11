@@ -1,7 +1,8 @@
 {
   "name": "openbb_economy_interest_rate",
   "implementation": "sajha.tools.impl.openbb_tools.OpenBBGenericTool",
-  "description": "Meant to give short-term interest rates by country from the OECD through OpenBB (obb.economy.short_term_interest_rate).\nReturns: {tool, data_points (total rows), data: first 100 rows as OpenBB returns them} or {tool, error}.\nInputs (* required): country (default united_states); provider (schema default oecd; when omitted the tool sends yfinance).\nOpenBB 4.x (4.6 checked) has no obb.economy.short_term_interest_rate (4.6 has obb.economy.interest_rates), so this tool currently returns an error object; alternatives: fred_fed_funds_rate, openbb_fixedincome_sofr or the central bank tools.\nExample: {\"country\": \"japan\", \"provider\": \"oecd\"}",
+  "description": "Interest rates by country from the OECD (call money, 3-month or 10-year) through the OpenBB Platform (obb.economy.interest_rates).\nReturns: {tool, provider, data_points (rows before the cap), truncated, data: rows with their dates, ignored_arguments when some did not apply} or {tool, error}.\nInputs (* required): country (default united_states); duration (immediate, short or long; default short); start_date; end_date; limit (rows returned, 1-1000; default 100; a dated series keeps its most recent rows); provider (oecd; default oecd).\nUS overnight rates: openbb_fixedincome_effr, openbb_fixedincome_sofr; Treasury yields: openbb_treasury_rates. Keys: oecd needs none.\nExample: {\"country\": \"japan\", \"duration\": \"long\"}",
+  "annotations": {"readOnlyHint": true, "idempotentHint": true, "openWorldHint": true},
   "version": "4.5.0",
   "enabled": true,
   "inputSchema": {
@@ -9,13 +10,43 @@
     "properties": {
       "country": {
         "type": "string",
-        "description": "Country, lower case with underscores",
+        "description": "Country, lower case with underscores, e.g. united_states, japan",
         "default": "united_states"
+      },
+      "duration": {
+        "type": "string",
+        "enum": [
+          "immediate",
+          "short",
+          "long"
+        ],
+        "default": "short",
+        "description": "immediate (call money), short (3-month) or long (10-year)"
+      },
+      "start_date": {
+        "type": "string",
+        "description": "Start date (YYYY-MM-DD)",
+        "format": "date"
+      },
+      "end_date": {
+        "type": "string",
+        "description": "End date (YYYY-MM-DD)",
+        "format": "date"
+      },
+      "limit": {
+        "type": "integer",
+        "minimum": 1,
+        "maximum": 1000,
+        "default": 100,
+        "description": "Most rows returned (1-1000); a dated series keeps its most recent rows"
       },
       "provider": {
         "type": "string",
-        "description": "OpenBB data provider",
-        "default": "oecd"
+        "enum": [
+          "oecd"
+        ],
+        "default": "oecd",
+        "description": "OpenBB data provider"
       }
     },
     "required": []
@@ -23,8 +54,24 @@
   "outputSchema": {
     "type": "object",
     "properties": {
-      "result": {
-        "type": "object"
+      "tool": {
+        "type": "string"
+      },
+      "provider": {
+        "type": "string"
+      },
+      "data_points": {
+        "type": "integer",
+        "description": "Rows before the cap"
+      },
+      "truncated": {
+        "type": "boolean"
+      },
+      "data": {
+        "type": "array"
+      },
+      "error": {
+        "type": "string"
       }
     }
   },
@@ -37,6 +84,15 @@
       "openbb",
       "interest rate",
       "short term"
+    ],
+    "examples": [
+      {
+        "description": "Interest rates by country from the OECD (call money, 3-month or 10-year)",
+        "input": {
+          "country": "japan",
+          "duration": "long"
+        }
+      }
     ]
   }
 }

@@ -1,886 +1,293 @@
 """
 Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.com
-IMF (International Monetary Fund) MCP Tool Implementation - Refactored with Individual Tools
+IMF (International Monetary Fund) MCP tools.
+
+The IMF retired its legacy SDMX JSON service (dataservices.imf.org) and its International
+Financial Statistics database. These tools read the IMF's current SDMX 2.1 API
+(api.imf.org/external/sdmx/2.1, no key) through the shared SDMX client
+(sajha/tools/impl/sdmx_client.py). Former IFS indicators come from their successor dataflows
+(CPI, ER, MFS_IR, IL, MFS_MA); WEO and BOP keep their names. Countries are ISO alpha-3 on the
+wire; alpha-2 is accepted and converted (sajha/tools/impl/country_codes.py).
 """
 
-import json
-import urllib.parse
-import urllib.request
-from typing import Dict, Any, List, Optional
 from datetime import datetime
+from typing import Any, Dict, List, Optional, Tuple
+
 from sajha.tools.base_mcp_tool import BaseMCPTool
-from sajha.tools.http_utils import safe_json_response, ENCODINGS_ALL
+from sajha.tools.impl import country_codes, sdmx_client
+
+# Dataflow id -> owning agency, for the flows these tools name
+AGENCIES = {'WEO': 'IMF.RES', 'PCPS': 'IMF.RES', 'CTOT': 'IMF.RES'}
+
+# Friendly WEO names -> WEO indicator codes (verified in CL_WEO_INDICATOR)
+WEO_INDICATORS = {
+    'gdp_growth': 'NGDP_RPCH',
+    'gdp_usd': 'NGDPD',
+    'gdp_per_capita': 'NGDPDPC',
+    'inflation_avg': 'PCPIPCH',
+    'inflation_eop': 'PCPIEPCH',
+    'unemployment': 'LUR',
+    'current_account': 'BCA_NGDPD',
+    'fiscal_balance': 'GGXCNL_NGDP',
+    'public_debt': 'GGXWDG_NGDP',
+    'exports_volume': 'TXG_RPCH',
+    'imports_volume': 'TMG_RPCH',
+    'population': 'LP',
+}
+
+# Former IFS indicators -> (successor dataflow, key template); {c} country, {f} frequency
+IFS_INDICATORS: Dict[str, Tuple[str, str]] = {
+    'exchange_rate': ('ER', '{c}.XDC_USD.EOP_RT.{f}'),            # national currency per USD, end of period
+    'exchange_rate_avg': ('ER', '{c}.XDC_USD.PA_RT.{f}'),         # national currency per USD, period average
+    'policy_rate': ('MFS_IR', '{c}.MFS166_RT_PT_A_PT.{f}'),       # monetary policy-related rate, % p.a.
+    'treasury_bill_yield': ('MFS_IR', '{c}.GSTBILY_RT_PT_A_PT.{f}'),
+    'deposit_rate': ('MFS_IR', '{c}.MFS135_RT_PT_A_PT.{f}'),
+    'lending_rate': ('MFS_IR', '{c}.MFS162_RT_PT_A_PT.{f}'),
+    'money_market_rate': ('MFS_IR', '{c}.MMRT_RT_PT_A_PT.{f}'),
+    'cpi': ('CPI', '{c}.CPI._T.IX.{f}'),                          # index
+    'cpi_inflation': ('CPI', '{c}.CPI._T.YOY_PCH_PA_PT.{f}'),     # % change on a year earlier
+    'international_reserves': ('IL', '{c}.TRGMV_REVS.USD.{f}'),   # total reserves, gold at market value, USD
+    'broad_money': ('MFS_MA', '{c}.BM_MAI.XDC.{f}'),              # national currency
+}
+
+# BOP shorthands -> BOP_ACCOUNTING_ENTRY.INDICATOR
+BOP_INDICATORS = {
+    'current_account': 'NETCD_T.CAB',
+    'goods_and_services': 'NETCD_T.GS',
+    'capital_account': 'NETCD_T.KAB',
+    'financial_account': 'NNAFANIL_T.FAB',
+    'current_account_credit': 'CD_T.TCDCA',
+    'current_account_debit': 'DB_T.TDBCA',
+}
+
+PROFILE = {'GDP Growth': 'NGDP_RPCH', 'Inflation': 'PCPIPCH', 'Unemployment': 'LUR',
+           'Current Account': 'BCA_NGDPD', 'Public Debt': 'GGXWDG_NGDP'}
+
+
+def _country(code: Any) -> str:
+    """ISO alpha-3 for a country; anything else (an IMF group code such as G001) upper-cased."""
+    if not code or not str(code).strip():
+        raise ValueError("A country_code is required (ISO alpha-3 such as USA, or alpha-2 such as US)")
+    return country_codes.to_alpha3(code) or str(code).strip().upper()
 
 
 class IMFBaseTool(BaseMCPTool):
-    """
-    Base class for IMF tools with shared functionality
-    """
-    
-    def __init__(self, config: Dict = None):
-        """Initialize IMF base tool"""
-        super().__init__(config)
-        
-        # IMF Data API endpoint
-        self.api_url = "http://dataservices.imf.org/REST/SDMX_JSON.svc"
-        
-        # Major IMF Databases
-        self.databases = {
-            'IFS': 'International Financial Statistics',
-            'DOT': 'Direction of Trade Statistics',
-            'BOP': 'Balance of Payments',
-            'GFSR': 'Global Financial Stability Report',
-            'FSI': 'Financial Soundness Indicators',
-            'WEO': 'World Economic Outlook',
-            'GFSMAB': 'Government Finance Statistics',
-            'CDIS': 'Coordinated Direct Investment Survey',
-            'CPIS': 'Coordinated Portfolio Investment Survey',
-            'WHDREO': 'World Economic Outlook Historical'
-        }
-        
-        # Common IFS indicators
-        self.ifs_indicators = {
-            'exchange_rate': 'ENDA_XDC_USD_RATE',
-            'exchange_rate_avg': 'EREA_XDC_USD_RATE',
-            'policy_rate': 'FPOLM_PA',
-            'treasury_bill_rate': 'FITB_PA',
-            'deposit_rate': 'FDBR_PA',
-            'lending_rate': 'FILR_PA',
-            'cpi': 'PCPI_IX',
-            'core_cpi': 'PCCOR_IX',
-            'ppi': 'PPPI_IX',
-            'money_supply_m1': 'FM1_XDC',
-            'money_supply_m2': 'FM2_XDC',
-            'money_supply_m3': 'FM3_XDC',
-            'reserve_money': 'FMRM_XDC',
-            'international_reserves': 'RAXG_USD',
-            'gold_reserves': 'RAFZ_USD',
-            'foreign_reserves': 'RAER_USD',
-            'gdp_current': 'NGDP_XDC',
-            'gdp_constant': 'NGDP_R_XDC',
-            'industrial_production': 'PINDUST_IX',
-            'exports': 'BXG_FOB_USD',
-            'imports': 'BMG_BP6_USD',
-            'unemployment_rate': 'LUR_PT',
-        }
-        
-        # WEO indicators
-        self.weo_indicators = {
-            'gdp_growth': 'NGDP_RPCH',
-            'gdp_per_capita': 'NGDPDPC',
-            'inflation_avg': 'PCPIPCH',
-            'inflation_eop': 'PCPIEPCH',
-            'unemployment': 'LUR',
-            'current_account': 'BCA_NGDPD',
-            'fiscal_balance': 'GGXCNL_NGDP',
-            'public_debt': 'GGXWDG_NGDP',
-            'exports_volume': 'TXG_RPCH',
-            'imports_volume': 'TMG_RPCH',
-            'population': 'LP',
-        }
-        
-        # Country codes mapping
-        self.common_countries = {
-            'US': 'United States',
-            'CN': 'China',
-            'JP': 'Japan',
-            'DE': 'Germany',
-            'GB': 'United Kingdom',
-            'FR': 'France',
-            'IN': 'India',
-            'IT': 'Italy',
-            'BR': 'Brazil',
-            'CA': 'Canada'
-        }
-    
-    def _get_data(
-        self,
-        database: str,
-        country_code: str,
-        indicator_code: str,
-        start_year: Optional[int] = None,
-        end_year: Optional[int] = None,
-        frequency: str = 'A'
-    ) -> Dict:
-        """Get data from IMF database"""
+    """Shared IMF access through the SDMX client."""
+
+    def get_input_schema(self) -> Dict:
+        return {"type": "object", "properties": {}}
+
+    def get_output_schema(self) -> Dict:
+        return {"type": "object"}
+
+    def _names(self, flow: str) -> Dict[str, Dict[str, str]]:
+        """Code names per dimension of a flow, for readable series names (cached by the client)."""
         try:
-            dimension = f"{frequency}.{country_code}.{indicator_code}"
-            url = f"{self.api_url}/CompactData/{database}/{dimension}"
-            
-            if start_year or end_year:
-                start = start_year or 1950
-                end = end_year or datetime.now().year
-                url += f"?startPeriod={start}&endPeriod={end}"
-            
-            headers = {
-                'User-Agent': 'Mozilla/5.0',
-                'Accept': 'application/json'
-            }
-            
-            req = urllib.request.Request(url, headers=headers)
-            with urllib.request.urlopen(req, timeout=30) as response:
-                data = safe_json_response(response, ENCODINGS_ALL)
-                
-                compact_data = data.get('CompactData', {})
-                dataset = compact_data.get('DataSet', {})
-                series = dataset.get('Series', {})
-                
-                if not series:
-                    return {
-                        'database': database,
-                        'country_code': country_code,
-                        'indicator_code': indicator_code,
-                        'data': [],
-                        'count': 0,
-                        'note': 'No data available'
-                    }
-                
-                observations = series.get('Obs', [])
-                if not isinstance(observations, list):
-                    observations = [observations]
-                
-                formatted_data = []
-                for obs in observations:
-                    if isinstance(obs, dict):
-                        formatted_data.append({
-                            'period': obs.get('@TIME_PERIOD'),
-                            'value': float(obs.get('@OBS_VALUE')) if obs.get('@OBS_VALUE') else None
-                        })
-                
-                return {
-                    'database': database,
-                    'country_code': country_code,
-                    'indicator_code': indicator_code,
-                    'frequency': frequency,
-                    'data': formatted_data,
-                    'count': len(formatted_data)
-                }
-                
-        except urllib.error.HTTPError as e:
-            if e.code == 404:
-                raise ValueError(f"Data not found for {country_code}/{indicator_code} in {database}")
-            else:
-                raise ValueError(f"Failed to get data: HTTP {e.code}")
-        except Exception as e:
-            self.logger.error(f"Failed to get IMF data: {e}", exc_info=True)
-            raise ValueError(f"Failed to get IMF data: {str(e)}")
+            st = sdmx_client.flow_structure('imf', flow, agency=AGENCIES.get(flow))
+        except sdmx_client.SdmxError:
+            return {}
+        return {d['id']: {c['id']: c['name'] for c in d['codes']} for d in st['dimensions']}
+
+    def _query(self, flow: str, key: str, start_year: Optional[int] = None,
+               end_year: Optional[int] = None) -> List[Dict[str, Any]]:
+        try:
+            result = sdmx_client.fetch('imf', flow, key, agency=AGENCIES.get(flow),
+                                       start=str(start_year) if start_year else None,
+                                       end=str(end_year) if end_year else None, timeout=45)
+        except sdmx_client.SdmxError as e:
+            raise ValueError(f"IMF data portal: {e}")
+        names = None
+        out = []
+        for s in result['series']:
+            name = s['attributes'].get('SERIES_NAME')
+            if not name:
+                names = names if names is not None else self._names(flow)
+                name = ', '.join(names.get(d, {}).get(v, v) for d, v in s['dimensions'].items()
+                                 if d not in ('COUNTRY', 'FREQUENCY'))
+            out.append({'key': s['key'], 'dimensions': s['dimensions'], 'name': name,
+                        'latest_actual_year': s['attributes'].get('LATEST_ACTUAL_ANNUAL_DATA'),
+                        'data': [{'period': o['period'], 'value': o['value']} for o in s['observations']]})
+        return out
+
+    def _series(self, flow: str, key: str, start_year=None, end_year=None, **extra) -> Dict[str, Any]:
+        series = self._query(flow, key, start_year, end_year)
+        s = series[0] if series else {'name': None, 'data': []}
+        out = {'database': flow, 'key': key, **extra, 'name': s['name'], 'data': s['data'],
+               'count': len(s['data']), 'source': sdmx_client.host('imf').source}
+        if s.get('latest_actual_year'):
+            out['latest_actual_year'] = s['latest_actual_year']
+        if not s['data']:
+            out['note'] = 'No data: the IMF has no observations for this series and period.'
+        return out
 
 
 class IMFGetDatabasesTool(IMFBaseTool):
-    """Tool to list available IMF databases"""
-    
-    def __init__(self, config: Dict = None):
-        default_config = {
-            'name': 'imf_get_databases',
-            'description': 'List all available IMF databases and their descriptions',
-            'version': '1.0.0',
-            'enabled': True
-        }
-        if config:
-            default_config.update(config)
-        super().__init__(default_config)
-    
-    def get_input_schema(self) -> Dict:
-        return {
-            "type": "object",
-            "properties": {}
-        }
-    
-    def get_output_schema(self) -> Dict:
-        return {
-            "type": "object",
-            "properties": {
-                "databases": {
-                    "type": "array",
-                    "items": {
-                        "type": "object",
-                        "properties": {
-                            "code": {"type": "string"},
-                            "name": {"type": "string"}
-                        }
-                    }
-                },
-                "count": {"type": "integer"}
-            }
-        }
-    
+    """List the IMF's dataflows (databases)."""
+
     def execute(self, arguments: Dict[str, Any]) -> Dict:
-        databases_list = []
-        for code, name in self.databases.items():
-            databases_list.append({'code': code, 'name': name})
-        
-        return {
-            'databases': databases_list,
-            'count': len(databases_list)
-        }
+        search = (arguments.get('search') or '').strip().lower()
+        try:
+            flows = sdmx_client.dataflows('imf')
+        except sdmx_client.SdmxError as e:
+            raise ValueError(f"IMF data portal: {e}")
+        rows = [{'code': f['id'], 'agency': f['agency'], 'version': f['version'], 'name': f['name']}
+                for f in flows if not f['id'].endswith('_VINTAGE')
+                and (not search or search in f['id'].lower() or search in f['name'].lower())]
+        rows.sort(key=lambda r: r['code'])
+        return {'databases': rows, 'count': len(rows), 'source': sdmx_client.host('imf').source}
 
 
 class IMFGetDataflowsTool(IMFBaseTool):
-    """Tool to get dataflows for a specific IMF database"""
-    
-    def __init__(self, config: Dict = None):
-        default_config = {
-            'name': 'imf_get_dataflows',
-            'description': 'Get available dataflows and indicators for a specific IMF database',
-            'version': '1.0.0',
-            'enabled': True
-        }
-        if config:
-            default_config.update(config)
-        super().__init__(default_config)
-    
-    def get_input_schema(self) -> Dict:
-        return {
-            "type": "object",
-            "properties": {
-                "database": {
-                    "type": "string",
-                    "description": "IMF database code",
-                    "enum": list(self.databases.keys()),
-                    "default": "IFS"
-                }
-            },
-            "required": ["database"]
-        }
-    
-    def get_output_schema(self) -> Dict:
-        return {
-            "type": "object",
-            "properties": {
-                "database": {"type": "string"},
-                "dataflows": {
-                    "type": "array",
-                    "items": {
-                        "type": "object",
-                        "properties": {
-                            "id": {"type": "string"},
-                            "name": {"type": "string"}
-                        }
-                    }
-                },
-                "count": {"type": "integer"}
-            }
-        }
-    
+    """The key structure of one IMF dataflow: its dimensions and their codes."""
+
     def execute(self, arguments: Dict[str, Any]) -> Dict:
-        database = arguments.get('database', 'IFS')
-        
+        flow = str(arguments.get('database') or '').strip().upper()
+        if not flow:
+            raise ValueError("database is required (a dataflow id such as WEO, CPI, BOP; see imf_get_databases)")
+        only = (arguments.get('dimension') or '').strip().upper()
+        search = (arguments.get('search') or '').strip().lower()
+        limit = int(arguments.get('limit') or 50)
         try:
-            url = f"{self.api_url}/Dataflow/{database}"
-            headers = {
-                'User-Agent': 'Mozilla/5.0',
-                'Accept': 'application/json'
-            }
-            
-            req = urllib.request.Request(url, headers=headers)
-            with urllib.request.urlopen(req, timeout=30) as response:
-                data = safe_json_response(response, ENCODINGS_ALL)
-                
-                structure = data.get('Structure', {})
-                dataflows = structure.get('Dataflows', {}).get('Dataflow', [])
-                
-                formatted_dataflows = []
-                if isinstance(dataflows, list):
-                    for df in dataflows:
-                        formatted_dataflows.append({
-                            'id': df.get('@id'),
-                            'name': df.get('Name', {}).get('#text')
-                        })
-                elif isinstance(dataflows, dict):
-                    formatted_dataflows.append({
-                        'id': dataflows.get('@id'),
-                        'name': dataflows.get('Name', {}).get('#text')
-                    })
-                
-                return {
-                    'database': database,
-                    'dataflows': formatted_dataflows,
-                    'count': len(formatted_dataflows)
-                }
-        except Exception as e:
-            self.logger.error(f"Failed to get dataflows: {e}", exc_info=True)
-            return {
-                'database': database,
-                'error': str(e),
-                'note': 'Failed to retrieve dataflows'
-            }
+            st = sdmx_client.flow_structure('imf', flow, agency=AGENCIES.get(flow))
+        except sdmx_client.SdmxError as e:
+            raise ValueError(f"IMF data portal: {e}")
+        dims = []
+        for d in st['dimensions']:
+            if only and d['id'] != only:
+                continue
+            codes = [c for c in d['codes'] if not search or search in c['id'].lower() or search in c['name'].lower()]
+            dims.append({'position': len(dims) + 1 if not only else d['position'], 'id': d['id'],
+                         'code_count': len(codes), 'codes': codes[:limit], 'truncated': len(codes) > limit})
+        return {'database': flow, 'flow': st['flow'], 'name': st['name'],
+                'key_template': '.'.join(d['id'] for d in st['dimensions']),
+                'dimensions': dims, 'source': sdmx_client.host('imf').source}
 
 
 class IMFGetDataTool(IMFBaseTool):
-    """Tool to retrieve data from any IMF database"""
-    
-    def __init__(self, config: Dict = None):
-        default_config = {
-            'name': 'imf_get_data',
-            'description': 'Retrieve economic data from any IMF database for a specific country and indicator',
-            'version': '1.0.0',
-            'enabled': True
-        }
-        if config:
-            default_config.update(config)
-        super().__init__(default_config)
-    
-    def get_input_schema(self) -> Dict:
-        return {
-            "type": "object",
-            "properties": {
-                "database": {
-                    "type": "string",
-                    "description": "IMF database code",
-                    "enum": list(self.databases.keys())
-                },
-                "country_code": {
-                    "type": "string",
-                    "description": "ISO 2-letter country code"
-                },
-                "indicator_code": {
-                    "type": "string",
-                    "description": "IMF indicator code"
-                },
-                "start_year": {
-                    "type": "integer",
-                    "minimum": 1950,
-                    "maximum": 2030
-                },
-                "end_year": {
-                    "type": "integer",
-                    "minimum": 1950,
-                    "maximum": 2030
-                },
-                "frequency": {
-                    "type": "string",
-                    "enum": ["A", "Q", "M"],
-                    "default": "A",
-                    "description": "A=Annual, Q=Quarterly, M=Monthly"
-                }
-            },
-            "required": ["database", "country_code", "indicator_code"]
-        }
-    
-    def get_output_schema(self) -> Dict:
-        return {
-            "type": "object",
-            "properties": {
-                "database": {"type": "string"},
-                "country_code": {"type": "string"},
-                "indicator_code": {"type": "string"},
-                "frequency": {"type": "string"},
-                "data": {
-                    "type": "array",
-                    "items": {
-                        "type": "object",
-                        "properties": {
-                            "period": {"type": "string"},
-                            "value": {"type": ["number", "null"]}
-                        }
-                    }
-                },
-                "count": {"type": "integer"}
-            }
-        }
-    
+    """Any IMF series by dataflow and key (or country, indicator and frequency)."""
+
     def execute(self, arguments: Dict[str, Any]) -> Dict:
-        database = arguments.get('database')
-        country_code = arguments.get('country_code')
-        indicator_code = arguments.get('indicator_code')
-        start_year = arguments.get('start_year')
-        end_year = arguments.get('end_year')
+        flow = str(arguments.get('database') or '').strip().upper()
+        if not flow:
+            raise ValueError("database is required (a dataflow id such as WEO, CPI, BOP)")
+        key = (arguments.get('key') or '').strip()
         frequency = arguments.get('frequency', 'A')
-        
-        return self._get_data(database, country_code, indicator_code, start_year, end_year, frequency)
+        if not key:
+            indicator = arguments.get('indicator_code')
+            if not (arguments.get('country_code') and indicator):
+                raise ValueError("Give key, or country_code and indicator_code")
+            dims = [d['id'] for d in sdmx_client.flow_structure('imf', flow, agency=AGENCIES.get(flow))['dimensions']]
+            if dims != ['COUNTRY', 'INDICATOR', 'FREQUENCY']:
+                raise ValueError(f"{flow} keys have the dimensions {'.'.join(dims)}; pass the full key "
+                                 f"(imf_get_dataflows shows the codes)")
+            key = f"{_country(arguments['country_code'])}.{indicator}.{frequency}"
+        series = self._query(flow, key, arguments.get('start_year'), arguments.get('end_year'))
+        out = {'database': flow, 'key': key, 'series': series, 'count': len(series),
+               'source': sdmx_client.host('imf').source}
+        if not series:
+            out['note'] = 'No data: the IMF has no observations for this key and period.'
+        return out
 
 
 class IMFGetIFSDataTool(IMFBaseTool):
-    """Tool to retrieve International Financial Statistics data"""
-    
-    def __init__(self, config: Dict = None):
-        default_config = {
-            'name': 'imf_get_ifs_data',
-            'description': 'Retrieve International Financial Statistics (IFS) data including exchange rates, interest rates, prices, and monetary indicators',
-            'version': '1.0.0',
-            'enabled': True
-        }
-        if config:
-            default_config.update(config)
-        super().__init__(default_config)
-    
-    def get_input_schema(self) -> Dict:
-        return {
-            "type": "object",
-            "properties": {
-                "country_code": {
-                    "type": "string",
-                    "description": "ISO 2-letter country code"
-                },
-                "indicator": {
-                    "type": "string",
-                    "description": "Common IFS indicator name",
-                    "enum": list(self.ifs_indicators.keys())
-                },
-                "indicator_code": {
-                    "type": "string",
-                    "description": "IFS indicator code (use if specific code needed)"
-                },
-                "start_year": {
-                    "type": "integer",
-                    "minimum": 1950,
-                    "maximum": 2030
-                },
-                "end_year": {
-                    "type": "integer",
-                    "minimum": 1950,
-                    "maximum": 2030
-                },
-                "frequency": {
-                    "type": "string",
-                    "enum": ["A", "Q", "M"],
-                    "default": "M",
-                    "description": "A=Annual, Q=Quarterly, M=Monthly"
-                }
-            },
-            "required": ["country_code"],
-            "oneOf": [
-                {"required": ["indicator"]},
-                {"required": ["indicator_code"]}
-            ]
-        }
-    
-    def get_output_schema(self) -> Dict:
-        return {
-            "type": "object",
-            "properties": {
-                "database": {"type": "string"},
-                "country_code": {"type": "string"},
-                "indicator_code": {"type": "string"},
-                "frequency": {"type": "string"},
-                "data": {
-                    "type": "array",
-                    "items": {
-                        "type": "object",
-                        "properties": {
-                            "period": {"type": "string"},
-                            "value": {"type": ["number", "null"]}
-                        }
-                    }
-                },
-                "count": {"type": "integer"}
-            }
-        }
-    
+    """Former International Financial Statistics indicators, from their successor dataflows."""
+
     def execute(self, arguments: Dict[str, Any]) -> Dict:
-        country_code = arguments.get('country_code')
         indicator = arguments.get('indicator')
-        indicator_code = arguments.get('indicator_code')
-        
-        if indicator and not indicator_code:
-            indicator_code = self.ifs_indicators.get(indicator)
-        
-        if not indicator_code:
-            raise ValueError("Either 'indicator' or 'indicator_code' is required")
-        
-        start_year = arguments.get('start_year')
-        end_year = arguments.get('end_year')
+        if indicator not in IFS_INDICATORS:
+            raise ValueError(f"indicator must be one of: {', '.join(IFS_INDICATORS)}")
+        country = _country(arguments.get('country_code'))
         frequency = arguments.get('frequency', 'M')
-        
-        return self._get_data('IFS', country_code, indicator_code, start_year, end_year, frequency)
+        flow, template = IFS_INDICATORS[indicator]
+        key = template.format(c=country, f=frequency)
+        return self._series(flow, key, arguments.get('start_year'), arguments.get('end_year'),
+                            country_code=country, indicator=indicator, frequency=frequency)
 
 
 class IMFGetWEODataTool(IMFBaseTool):
-    """Tool to retrieve World Economic Outlook data"""
-    
-    def __init__(self, config: Dict = None):
-        default_config = {
-            'name': 'imf_get_weo_data',
-            'description': 'Retrieve World Economic Outlook (WEO) data including GDP growth, inflation, unemployment, and fiscal indicators',
-            'version': '1.0.0',
-            'enabled': True
-        }
-        if config:
-            default_config.update(config)
-        super().__init__(default_config)
-    
-    def get_input_schema(self) -> Dict:
-        return {
-            "type": "object",
-            "properties": {
-                "country_code": {
-                    "type": "string",
-                    "description": "ISO 2-letter country code"
-                },
-                "indicator": {
-                    "type": "string",
-                    "description": "Common WEO indicator name",
-                    "enum": list(self.weo_indicators.keys())
-                },
-                "indicator_code": {
-                    "type": "string",
-                    "description": "WEO indicator code (use if specific code needed)"
-                },
-                "start_year": {
-                    "type": "integer",
-                    "minimum": 1950,
-                    "maximum": 2030
-                },
-                "end_year": {
-                    "type": "integer",
-                    "minimum": 1950,
-                    "maximum": 2030
-                }
-            },
-            "required": ["country_code"],
-            "oneOf": [
-                {"required": ["indicator"]},
-                {"required": ["indicator_code"]}
-            ]
-        }
-    
-    def get_output_schema(self) -> Dict:
-        return {
-            "type": "object",
-            "properties": {
-                "database": {"type": "string"},
-                "country_code": {"type": "string"},
-                "indicator_code": {"type": "string"},
-                "frequency": {"type": "string"},
-                "data": {
-                    "type": "array",
-                    "items": {
-                        "type": "object",
-                        "properties": {
-                            "period": {"type": "string"},
-                            "value": {"type": ["number", "null"]}
-                        }
-                    }
-                },
-                "count": {"type": "integer"}
-            }
-        }
-    
+    """World Economic Outlook series (annual, with IMF projections)."""
+
     def execute(self, arguments: Dict[str, Any]) -> Dict:
-        country_code = arguments.get('country_code')
-        indicator = arguments.get('indicator')
-        indicator_code = arguments.get('indicator_code')
-        
-        if indicator and not indicator_code:
-            indicator_code = self.weo_indicators.get(indicator)
-        
-        if not indicator_code:
-            raise ValueError("Either 'indicator' or 'indicator_code' is required")
-        
-        start_year = arguments.get('start_year')
-        end_year = arguments.get('end_year')
-        
-        return self._get_data('WEO', country_code, indicator_code, start_year, end_year, 'A')
+        code = arguments.get('indicator_code') or WEO_INDICATORS.get(arguments.get('indicator') or '')
+        if not code:
+            raise ValueError(f"Give indicator ({', '.join(WEO_INDICATORS)}) or a WEO indicator_code")
+        country = _country(arguments.get('country_code'))
+        return self._series('WEO', f"{country}.{code}.A", arguments.get('start_year'), arguments.get('end_year'),
+                            country_code=country, indicator_code=code, frequency='A')
 
 
 class IMFGetBOPDataTool(IMFBaseTool):
-    """Tool to retrieve Balance of Payments data"""
-    
-    def __init__(self, config: Dict = None):
-        default_config = {
-            'name': 'imf_get_bop_data',
-            'description': 'Retrieve Balance of Payments (BOP) data including trade balance, current account, and capital flows',
-            'version': '1.0.0',
-            'enabled': True
-        }
-        if config:
-            default_config.update(config)
-        super().__init__(default_config)
-    
-    def get_input_schema(self) -> Dict:
-        return {
-            "type": "object",
-            "properties": {
-                "country_code": {
-                    "type": "string",
-                    "description": "ISO 2-letter country code"
-                },
-                "indicator_code": {
-                    "type": "string",
-                    "description": "BOP indicator code"
-                },
-                "start_year": {
-                    "type": "integer",
-                    "minimum": 1950,
-                    "maximum": 2030
-                },
-                "end_year": {
-                    "type": "integer",
-                    "minimum": 1950,
-                    "maximum": 2030
-                },
-                "frequency": {
-                    "type": "string",
-                    "enum": ["A", "Q"],
-                    "default": "A",
-                    "description": "A=Annual, Q=Quarterly"
-                }
-            },
-            "required": ["country_code", "indicator_code"]
-        }
-    
-    def get_output_schema(self) -> Dict:
-        return {
-            "type": "object",
-            "properties": {
-                "database": {"type": "string"},
-                "country_code": {"type": "string"},
-                "indicator_code": {"type": "string"},
-                "frequency": {"type": "string"},
-                "data": {
-                    "type": "array",
-                    "items": {
-                        "type": "object",
-                        "properties": {
-                            "period": {"type": "string"},
-                            "value": {"type": ["number", "null"]}
-                        }
-                    }
-                },
-                "count": {"type": "integer"}
-            }
-        }
-    
+    """Balance of payments (BPM6), USD."""
+
     def execute(self, arguments: Dict[str, Any]) -> Dict:
-        country_code = arguments.get('country_code')
-        indicator_code = arguments.get('indicator_code')
-        start_year = arguments.get('start_year')
-        end_year = arguments.get('end_year')
+        code = arguments.get('indicator_code') or BOP_INDICATORS.get(arguments.get('indicator') or '')
+        if not code or code.count('.') != 1:
+            raise ValueError(f"Give indicator ({', '.join(BOP_INDICATORS)}) or indicator_code as "
+                             f"ACCOUNTING_ENTRY.INDICATOR, e.g. NETCD_T.CAB")
+        country = _country(arguments.get('country_code'))
         frequency = arguments.get('frequency', 'A')
-        
-        return self._get_data('BOP', country_code, indicator_code, start_year, end_year, frequency)
+        return self._series('BOP', f"{country}.{code}.USD.{frequency}", arguments.get('start_year'),
+                            arguments.get('end_year'), country_code=country, indicator_code=code,
+                            frequency=frequency, unit='USD')
 
 
 class IMFCompareCountriesTool(IMFBaseTool):
-    """Tool to compare economic indicators across multiple countries"""
-    
-    def __init__(self, config: Dict = None):
-        default_config = {
-            'name': 'imf_compare_countries',
-            'description': 'Compare economic indicators across multiple countries for cross-country analysis',
-            'version': '1.0.0',
-            'enabled': True
-        }
-        if config:
-            default_config.update(config)
-        super().__init__(default_config)
-    
-    def get_input_schema(self) -> Dict:
-        return {
-            "type": "object",
-            "properties": {
-                "country_codes": {
-                    "type": "array",
-                    "description": "List of ISO 2-letter country codes (minimum 2)",
-                    "items": {"type": "string"},
-                    "minItems": 2
-                },
-                "database": {
-                    "type": "string",
-                    "description": "IMF database to use",
-                    "enum": list(self.databases.keys()),
-                    "default": "IFS"
-                },
-                "indicator": {
-                    "type": "string",
-                    "description": "Common indicator name"
-                },
-                "indicator_code": {
-                    "type": "string",
-                    "description": "Specific indicator code"
-                },
-                "start_year": {
-                    "type": "integer",
-                    "minimum": 1950,
-                    "maximum": 2030
-                },
-                "end_year": {
-                    "type": "integer",
-                    "minimum": 1950,
-                    "maximum": 2030
-                },
-                "frequency": {
-                    "type": "string",
-                    "enum": ["A", "Q", "M"],
-                    "default": "A"
-                }
-            },
-            "required": ["country_codes"],
-            "oneOf": [
-                {"required": ["indicator"]},
-                {"required": ["indicator_code"]}
-            ]
-        }
-    
-    def get_output_schema(self) -> Dict:
-        return {
-            "type": "object",
-            "properties": {
-                "database": {"type": "string"},
-                "indicator_code": {"type": "string"},
-                "frequency": {"type": "string"},
-                "countries": {
-                    "type": "array",
-                    "description": "Data for each country",
-                    "items": {
-                        "type": "object",
-                        "properties": {
-                            "country_code": {"type": "string"},
-                            "data": {
-                                "type": "array",
-                                "items": {
-                                    "type": "object",
-                                    "properties": {
-                                        "period": {"type": "string"},
-                                        "value": {"type": ["number", "null"]}
-                                    }
-                                }
-                            },
-                            "error": {"type": "string"}
-                        }
-                    }
-                }
-            }
-        }
-    
+    """One indicator across countries, in one request."""
+
     def execute(self, arguments: Dict[str, Any]) -> Dict:
-        country_codes = arguments.get('country_codes', [])
-        database = arguments.get('database', 'IFS')
+        countries = [_country(c) for c in (arguments.get('country_codes') or [])]
+        if len(countries) < 2:
+            raise ValueError("country_codes needs at least two countries")
+        database = arguments.get('database', 'WEO')
         indicator = arguments.get('indicator')
-        indicator_code = arguments.get('indicator_code')
-        
-        if indicator and not indicator_code:
-            if database == 'WEO':
-                indicator_code = self.weo_indicators.get(indicator)
-            else:
-                indicator_code = self.ifs_indicators.get(indicator)
-        
-        if not indicator_code:
-            raise ValueError("Either 'indicator' or 'indicator_code' is required")
-        
-        start_year = arguments.get('start_year')
-        end_year = arguments.get('end_year')
-        frequency = arguments.get('frequency', 'A')
-        
-        comparison = {
-            'database': database,
-            'indicator_code': indicator_code,
-            'frequency': frequency,
-            'countries': []
-        }
-        
-        for country_code in country_codes:
-            try:
-                data = self._get_data(database, country_code, indicator_code, start_year, end_year, frequency)
-                comparison['countries'].append(data)
-            except Exception as e:
-                self.logger.warning(f"Failed to get data for {country_code}: {e}", exc_info=True)
-                comparison['countries'].append({
-                    'country_code': country_code,
-                    'error': str(e)
-                })
-        
-        return comparison
+        if database == 'IFS':
+            if indicator not in IFS_INDICATORS:
+                raise ValueError(f"For IFS, indicator must be one of: {', '.join(IFS_INDICATORS)}")
+            flow, template = IFS_INDICATORS[indicator]
+            frequency = arguments.get('frequency', 'A')
+            key = template.format(c='+'.join(countries), f=frequency)
+        else:
+            code = arguments.get('indicator_code') or WEO_INDICATORS.get(indicator or '')
+            if not code:
+                raise ValueError(f"Give indicator ({', '.join(WEO_INDICATORS)}) or a WEO indicator_code")
+            flow, frequency, key = 'WEO', 'A', f"{'+'.join(countries)}.{code}.A"
+        series = {s['dimensions'].get('COUNTRY'): s
+                  for s in self._query(flow, key, arguments.get('start_year'), arguments.get('end_year'))}
+        rows = []
+        for c in countries:
+            s = series.get(c)
+            row = {'country_code': c, 'country_name': country_codes.name(c) or c,
+                   'name': s['name'] if s else None, 'data': s['data'] if s else [],
+                   'count': len(s['data']) if s else 0}
+            if not s:
+                row['note'] = 'No data for this country'
+            rows.append(row)
+        return {'database': flow, 'key': key, 'frequency': frequency, 'countries': rows,
+                'source': sdmx_client.host('imf').source}
 
 
 class IMFGetCountryProfileTool(IMFBaseTool):
-    """Tool to get comprehensive country economic profile"""
-    
-    def __init__(self, config: Dict = None):
-        default_config = {
-            'name': 'imf_get_country_profile',
-            'description': 'Get a comprehensive economic profile for a country with key indicators including GDP, inflation, unemployment, and fiscal data',
-            'version': '1.0.0',
-            'enabled': True
-        }
-        if config:
-            default_config.update(config)
-        super().__init__(default_config)
-    
-    def get_input_schema(self) -> Dict:
-        return {
-            "type": "object",
-            "properties": {
-                "country_code": {
-                    "type": "string",
-                    "description": "ISO 2-letter country code"
-                }
-            },
-            "required": ["country_code"]
-        }
-    
-    def get_output_schema(self) -> Dict:
-        return {
-            "type": "object",
-            "properties": {
-                "country_code": {"type": "string"},
-                "country_name": {"type": "string"},
-                "indicators": {
-                    "type": "object",
-                    "description": "Key economic indicators",
-                    "additionalProperties": {
-                        "type": "object",
-                        "properties": {
-                            "code": {"type": "string"},
-                            "latest_value": {"type": ["number", "null"]},
-                            "latest_period": {"type": "string"},
-                            "recent_data": {
-                                "type": "array",
-                                "items": {
-                                    "type": "object",
-                                    "properties": {
-                                        "period": {"type": "string"},
-                                        "value": {"type": ["number", "null"]}
-                                    }
-                                }
-                            },
-                            "error": {"type": "string"}
-                        }
-                    }
-                }
-            }
-        }
-    
+    """Five WEO headline indicators for one country over the last five years and this one."""
+
     def execute(self, arguments: Dict[str, Any]) -> Dict:
-        country_code = arguments.get('country_code')
-        
-        profile = {
-            'country_code': country_code,
-            'country_name': self.common_countries.get(country_code, country_code),
-            'indicators': {}
-        }
-        
-        # Key indicators to fetch
-        key_indicators = {
-            'GDP Growth': ('WEO', 'NGDP_RPCH', 'A'),
-            'Inflation': ('WEO', 'PCPIPCH', 'A'),
-            'Unemployment': ('WEO', 'LUR', 'A'),
-            'Current Account': ('WEO', 'BCA_NGDPD', 'A'),
-            'Public Debt': ('WEO', 'GGXWDG_NGDP', 'A')
-        }
-        
-        current_year = datetime.now().year
-        start_year = current_year - 5
-        
-        for name, (db, code, freq) in key_indicators.items():
-            try:
-                data = self._get_data(db, country_code, code, start_year, current_year, freq)
-                if data['data']:
-                    latest = data['data'][-1]
-                    profile['indicators'][name] = {
-                        'code': code,
-                        'latest_value': latest['value'],
-                        'latest_period': latest['period'],
-                        'recent_data': data['data'][-3:] if len(data['data']) >= 3 else data['data']
-                    }
-            except Exception as e:
-                self.logger.warning(f"Failed to get {name} for {country_code}: {e}", exc_info=True)
-                profile['indicators'][name] = {
-                    'code': code,
-                    'error': str(e)
-                }
-        
-        return profile
+        country = _country(arguments.get('country_code'))
+        year = datetime.now().year
+        key = f"{country}.{'+'.join(PROFILE.values())}.A"
+        series = {s['dimensions'].get('INDICATOR'): s for s in self._query('WEO', key, year - 5, year)}
+        indicators = {}
+        for label, code in PROFILE.items():
+            s = series.get(code)
+            if not s or not s['data']:
+                indicators[label] = {'code': code, 'error': 'No data for this country'}
+                continue
+            latest = s['data'][-1]
+            indicators[label] = {'code': code, 'name': s['name'], 'latest_value': latest['value'],
+                                 'latest_period': latest['period'],
+                                 'latest_actual_year': s.get('latest_actual_year'),
+                                 'recent_data': s['data'][-3:]}
+        return {'country_code': country, 'country_name': country_codes.name(country) or country,
+                'indicators': indicators, 'source': sdmx_client.host('imf').source,
+                'note': 'WEO values after latest_actual_year are IMF projections.'}
 
 
 # Tool registry
@@ -892,5 +299,5 @@ IMF_TOOLS = {
     'imf_get_weo_data': IMFGetWEODataTool,
     'imf_get_bop_data': IMFGetBOPDataTool,
     'imf_compare_countries': IMFCompareCountriesTool,
-    'imf_get_country_profile': IMFGetCountryProfileTool
+    'imf_get_country_profile': IMFGetCountryProfileTool,
 }

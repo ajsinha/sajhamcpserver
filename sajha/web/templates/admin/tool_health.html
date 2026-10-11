@@ -1,7 +1,7 @@
 {% extends "common/base.html" %}
 <!--
 Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.com
-Tool Health (administration): health probes, saved test runs, the schema linter.
+Tool Health (administration): health probes, the live tool check, saved test runs, the schema linter.
 Design: docs/architecture/Tool Quality.md, sections 2 to 4
 -->
 {% block title %}Tool Health - Admin - SAJHA MCP Server{% endblock %}
@@ -75,6 +75,31 @@ Design: docs/architecture/Tool Quality.md, sections 2 to 4
       </table>
     </div>
   </div>
+
+  <h2 class="h5">Live tool check</h2>
+  <p class="q-meta mb-2">Every read-only tool called once with its schema example: {{ check.total }} tools in the last results
+    · {{ check.counts.ok }} ok · {{ check.counts.error + check.counts.schema_mismatch }} broken · {{ check.counts.empty }} empty
+    · {{ check.counts.not_configured }} need a key · {{ check.counts.not_checked }} without an example · {{ check.counts.skipped }} skipped.
+    Run it with <code>python -m sajha.quality check</code>{% if check.cron %}; scheduled <code>{{ check.cron }}</code>{% else %} (no schedule: quality.check.cron){% endif %}.</p>
+  {% if check.rows %}
+  <div class="card mb-4">
+    <div class="table-responsive">
+      <table class="table table-sm align-middle mb-0 obs-table">
+        <thead><tr><th scope="col">Tool</th><th scope="col">Folder</th><th scope="col">Outcome</th><th scope="col">Checked</th><th scope="col">Detail</th></tr></thead>
+        <tbody>
+        {% for r in check.rows %}
+          <tr>
+            <td>{{ r.tool }}</td><td>{{ r.folder }}</td>
+            <td><span class="obs-pill {{ 'obs-bad' if r.outcome in ('error', 'schema_mismatch') else 'q-warn' }}">{{ r.outcome }}</span></td>
+            <td>{{ r.when }}</td>
+            <td class="q-msg">{{ r.message }}</td>
+          </tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+  {% endif %}
 
   <h2 class="h5">Test runs</h2>
   <form method="post" action="/admin/tool-health/tests/run" class="q-forms mb-2">

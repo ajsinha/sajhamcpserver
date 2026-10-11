@@ -1,7 +1,8 @@
 {
   "name": "ecb_get_latest",
   "implementation": "sajha.tools.impl.european_central_bank_tool_refactored.ECBGetLatestTool",
-  "description": "The most recent observation of one ECB series, by dataflow and key or shorthand indicator, from the ECB Data Portal API (data-api.ecb.europa.eu, no API key).\nReturns: flow, key, series_name, description, date and value; an error when nothing is found. It looks back about 40 days, so a monthly or quarterly series (HICP, GDP, M3, unemployment) can come back with no data; use ecb_get_series for those.\nInputs: flow and key together (e.g. FM and B.U2.EUR.4F.KR.DFR.LEV) or indicator (eur_usd, eur_gbp, eur_jpy, eur_cny, eur_chf, main_refinancing_rate, deposit_facility_rate, marginal_lending_rate, eonia, ester, bond_2y/5y/10y, hicp_overall/core/energy, gdp, m1, m2, m3, unemployment_rate); one form is needed.\nFor several headline values at once use ecb_get_common_indicators.\nExample: {\"indicator\": \"eur_usd\"}",
+  "description": "The most recent observation of one ECB series, by dataflow and key or shorthand indicator. It asks the ECB for the series' last observation (lastNObservations=1), so it works for daily, monthly and quarterly series alike.\nReturns: flow, key, series_name, description, date and value; an error when the series has no data.\nInputs: flow and key together (e.g. FM and B.U2.EUR.4F.KR.DFR.LEV) or indicator (eur_usd, eur_gbp, eur_jpy, eur_cny, eur_chf, main_refinancing_rate, deposit_facility_rate, marginal_lending_rate, ester, bond_2y/5y/10y, hicp_overall/core/energy, gdp, m1, m2, m3, unemployment_rate); one form is needed.\nFor several headline values at once use ecb_get_common_indicators.\nExample: {\"indicator\": \"hicp_overall\"}",
+  "annotations": {"readOnlyHint": true, "idempotentHint": true, "openWorldHint": true},
   "version": "2.9.8",
   "enabled": true,
   "inputSchema": {
@@ -9,7 +10,7 @@
     "properties": {
       "flow": {
         "type": "string",
-        "description": "ECB data flow identifier (e.g., 'EXR', 'FM', 'ICP')"
+        "description": "ECB data flow identifier (e.g., 'EXR', 'FM', 'HICP')"
       },
       "key": {
         "type": "string",
@@ -20,7 +21,7 @@
         "description": "Common indicator shorthand",
         "enum": [
           "eur_usd", "eur_gbp", "eur_jpy", "eur_cny", "eur_chf",
-          "main_refinancing_rate", "deposit_facility_rate", "marginal_lending_rate", "eonia", "ester",
+          "main_refinancing_rate", "deposit_facility_rate", "marginal_lending_rate", "ester",
           "bond_2y", "bond_5y", "bond_10y",
           "hicp_overall", "hicp_core", "hicp_energy",
           "gdp", "m1", "m2", "m3", "unemployment_rate"
@@ -30,7 +31,8 @@
     "oneOf": [
       {"required": ["flow", "key"]},
       {"required": ["indicator"]}
-    ]
+    ],
+    "examples": [{"indicator": "hicp_overall"}]
   },
   "outputSchema": {
     "type": "object",
@@ -84,8 +86,8 @@
       {
         "description": "Get latest HICP overall inflation",
         "input": {
-          "flow": "ICP",
-          "key": "M.U2.N.000000.4.ANR"
+          "flow": "HICP",
+          "key": "M.U2.N.000000.4D0.ANR"
         }
       }
     ],

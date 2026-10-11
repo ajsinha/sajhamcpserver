@@ -460,6 +460,9 @@ def execute_step(tool, arguments: Dict, step_name: str = "") -> StepResult:
     try:
         # each step is governed like a direct call (sajha/policy; docs/architecture/Policy and Audit.md)
         from sajha import policy as _policy
+        # inputSchema defaults for absent keys, as on every call path (sajha/tools/schema_defaults.py)
+        from sajha.tools.schema_defaults import apply_for_tool as _apply_defaults
+        arguments, _ = _apply_defaults(tool, arguments)
         enforcement = _policy.enforce(tool, arguments) if hasattr(tool, 'name') else None
         result = tool.execute(arguments)
         if enforcement is not None:

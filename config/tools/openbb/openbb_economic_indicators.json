@@ -1,25 +1,48 @@
 {
   "name": "openbb_economic_indicators",
   "implementation": "sajha.tools.impl.openbb_tools.OpenBBEconomicIndicatorsTool",
-  "description": "One economic indicator series for a country through the OpenBB Platform (obb.economy.indicators).\nReturns: {indicator, data: [records with date, symbol, country and value]} or {error}.\nInputs (* required): symbol (indicator code of the chosen provider; default UNRATE); country (default united_states); provider (OpenBB 4.6 accepts econdb or imf; the default fred is rejected by this command, so set it).\nCodes for each provider: openbb_economy_available_indicators. FRED series directly: fred_custom_series. Keys: fmp, benzinga, fred, intrinio, polygon and tiingo need credentials in OpenBB's settings (~/.openbb_platform/user_settings.json), not supplied by SAJHA; yfinance, oecd, federal_reserve, sec, imf and government_us need none.\nExample: {\"symbol\": \"CPI\", \"country\": \"united_states\", \"provider\": \"econdb\"}",
+  "description": "One economic indicator series for a country through the OpenBB Platform (obb.economy.indicators).\nReturns: {indicator, provider, data_points, truncated, data: [records with date, symbol, country, value]} or {indicator, error}.\nInputs (* required): symbol (provider code; default CPI); country (two-letter code; default US); frequency (annual, quarter or month; default quarter); limit (rows returned, 1-1000; default 100; a dated series keeps its most recent rows); provider (econdb, imf; default econdb).\nCodes: openbb_economy_available_indicators (imf codes look like dataflow::identifier). FRED series: fred_custom_series. Keys: econdb, imf need none.\nExample: {\"symbol\": \"GDP\", \"country\": \"DE\", \"frequency\": \"annual\"}",
+  "annotations": {"readOnlyHint": true, "idempotentHint": true, "openWorldHint": true},
   "version": "4.5.0",
   "enabled": true,
   "inputSchema": {
     "type": "object",
     "properties": {
-      "country": {
-        "type": "string",
-        "description": "Country, lower case with underscores (e.g. united_states)",
-        "default": "united_states"
-      },
       "symbol": {
         "type": "string",
-        "description": "Indicator code"
+        "default": "CPI",
+        "description": "Indicator code of the provider, e.g. CPI, GDP, URATE (econdb)"
+      },
+      "country": {
+        "type": "string",
+        "default": "US",
+        "description": "Country code, e.g. US, DE, JP"
+      },
+      "frequency": {
+        "type": "string",
+        "enum": [
+          "annual",
+          "quarter",
+          "month"
+        ],
+        "default": "quarter",
+        "description": "annual, quarter or month"
+      },
+      "limit": {
+        "type": "integer",
+        "minimum": 1,
+        "maximum": 1000,
+        "default": 100,
+        "description": "Most rows returned (1-1000); a dated series keeps its most recent rows"
       },
       "provider": {
         "type": "string",
-        "description": "OpenBB data provider (econdb or imf)",
-        "default": "fred"
+        "enum": [
+          "econdb",
+          "imf"
+        ],
+        "default": "econdb",
+        "description": "OpenBB data provider"
       }
     },
     "required": []
@@ -27,8 +50,21 @@
   "outputSchema": {
     "type": "object",
     "properties": {
-      "result": {
-        "type": "object"
+      "provider": {
+        "type": "string"
+      },
+      "data_points": {
+        "type": "integer",
+        "description": "Rows before the cap"
+      },
+      "truncated": {
+        "type": "boolean"
+      },
+      "data": {
+        "type": "array"
+      },
+      "error": {
+        "type": "string"
       }
     }
   },
@@ -44,6 +80,15 @@
       "unemployment",
       "fred"
     ],
-    "examples": []
+    "examples": [
+      {
+        "description": "One economic indicator series for a country",
+        "input": {
+          "symbol": "GDP",
+          "country": "DE",
+          "frequency": "annual"
+        }
+      }
+    ]
   }
 }

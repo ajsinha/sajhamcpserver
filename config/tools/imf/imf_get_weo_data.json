@@ -1,7 +1,8 @@
 {
   "name": "imf_get_weo_data",
   "implementation": "sajha.tools.impl.imf_tool_refactored.IMFGetWEODataTool",
-  "description": "World Economic Outlook (WEO) annual series for one country, including IMF projections, by a friendly indicator name or a WEO code, from the IMF SDMX JSON data service (dataservices.imf.org, no API key).\nReturns: database, country_code, indicator_code, frequency, data (period, value) and count; a note when the series is empty (frequency always A).\nInputs (* required): country_code* (ISO 2-letter); indicator (gdp_growth, gdp_per_capita, inflation_avg, inflation_eop, unemployment, current_account, fiscal_balance, public_debt, exports_volume, imports_volume, population) or indicator_code (WEO code such as NGDP_RPCH, wins over indicator); one of the two is needed; start_year and end_year (1950-2030; omit both for the full history).\nFor monthly or quarterly financial series use imf_get_ifs_data; for a five-indicator snapshot imf_get_country_profile.\nExample: {\"country_code\": \"IN\", \"indicator\": \"gdp_growth\", \"start_year\": 2018, \"end_year\": 2028}",
+  "description": "World Economic Outlook annual series for one country, including IMF projections for the coming years (values after latest_actual_year are projections), by a friendly name or any WEO code: gdp_growth (real, %), gdp_usd (current USD), gdp_per_capita (USD), inflation_avg / inflation_eop (%), unemployment (%), current_account / fiscal_balance / public_debt (% of GDP), exports_volume / imports_volume (% change), population (persons).\nReturns: database, key, country_code, indicator or indicator_code, frequency, name, data (period, value) oldest first, count, source; a note when empty.\nInputs (* required): country_code* (ISO3 or ISO2; WEO group codes too); indicator or indicator_code (WEO code such as NGDP_RPCH; imf_get_dataflows lists them); one is needed; start_year, end_year.\nExample: {\"country_code\": \"USA\", \"indicator\": \"gdp_growth\", \"start_year\": 2020}",
+  "annotations": {"readOnlyHint": true, "idempotentHint": true, "openWorldHint": true},
   "version": "2.9.8",
   "enabled": true,
   "inputSchema": {
@@ -9,75 +10,127 @@
     "properties": {
       "country_code": {
         "type": "string",
-        "description": "ISO 2-letter country code"
+        "description": "Country: ISO alpha-3 (USA) or alpha-2 (US); IMF group codes such as G001 (world) pass through"
       },
       "indicator": {
         "type": "string",
-        "description": "Common WEO indicator name",
-        "enum": ["gdp_growth", "gdp_per_capita", "inflation_avg", "inflation_eop", "unemployment", "current_account", "fiscal_balance", "public_debt", "exports_volume", "imports_volume", "population"]
+        "enum": [
+          "gdp_growth",
+          "gdp_usd",
+          "gdp_per_capita",
+          "inflation_avg",
+          "inflation_eop",
+          "unemployment",
+          "current_account",
+          "fiscal_balance",
+          "public_debt",
+          "exports_volume",
+          "imports_volume",
+          "population"
+        ],
+        "description": "Friendly indicator name"
       },
       "indicator_code": {
         "type": "string",
-        "description": "WEO indicator code"
+        "description": "Any WEO indicator code (wins over indicator)"
       },
       "start_year": {
         "type": "integer",
-        "description": "First year, YYYY; if only end_year is given this defaults to 1950",
         "minimum": 1950,
-        "maximum": 2030
+        "maximum": 2035,
+        "description": "First year (optional)"
       },
       "end_year": {
         "type": "integer",
-        "description": "Last year, YYYY; if only start_year is given this defaults to the current year; omit both for the full history",
         "minimum": 1950,
-        "maximum": 2030
+        "maximum": 2035,
+        "description": "Last year (optional)"
       }
     },
-    "required": ["country_code"]
+    "required": [
+      "country_code"
+    ],
+    "examples": [{"country_code": "USA", "indicator": "gdp_growth", "start_year": 2020}]
   },
   "outputSchema": {
     "type": "object",
     "properties": {
-      "database": {"type": "string"},
-      "country_code": {"type": "string"},
-      "indicator_code": {"type": "string"},
-      "frequency": {"type": "string"},
+      "database": {
+        "type": "string"
+      },
+      "key": {
+        "type": "string"
+      },
+      "country_code": {
+        "type": "string"
+      },
+      "name": {
+        "type": [
+          "string",
+          "null"
+        ]
+      },
+      "latest_actual_year": {
+        "type": "string"
+      },
       "data": {
         "type": "array",
         "items": {
           "type": "object",
           "properties": {
-            "period": {"type": "string"},
-            "value": {"type": ["number", "null"]}
+            "period": {
+              "type": "string"
+            },
+            "value": {
+              "type": [
+                "number",
+                "null"
+              ]
+            }
           }
         }
       },
-      "count": {"type": "integer"}
+      "count": {
+        "type": "integer"
+      },
+      "source": {
+        "type": "string"
+      },
+      "note": {
+        "type": "string"
+      }
     }
   },
   "metadata": {
     "author": "Ashutosh Sinha",
     "category": "Economic Data",
-    "tags": ["imf", "weo", "gdp", "growth", "forecasts", "macroeconomics"],
+    "tags": [
+      "imf",
+      "weo",
+      "gdp",
+      "growth",
+      "forecasts",
+      "macroeconomics"
+    ],
     "rateLimit": 120,
     "cacheTTL": 3600,
     "note": "World Economic Outlook provides macroeconomic indicators and forecasts from the IMF.",
     "examples": [
       {
-        "description": "Get US GDP growth",
+        "description": "US GDP growth",
         "input": {
-          "country_code": "US",
+          "country_code": "USA",
           "indicator": "gdp_growth",
           "start_year": 2020
         }
       },
       {
-        "description": "Get China inflation",
+        "description": "China inflation",
         "input": {
           "country_code": "CN",
           "indicator": "inflation_avg",
           "start_year": 2023,
-          "end_year": 2025
+          "end_year": 2027
         }
       }
     ],

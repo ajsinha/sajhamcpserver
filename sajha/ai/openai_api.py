@@ -214,7 +214,7 @@ def _tool_models(auth: Any) -> List[Dict[str, Any]]:
             spec = getattr(t, "spec", None)
             out.append({"id": f"{TOOL_PREFIX}{t.name}", "object": "model", "created": 0, "owned_by": "sajha",
                         "sajha": {"kind": "llm_tool", "tool": t.name, "mode": getattr(spec, "mode", ""),
-                                  "description": (t.description or "")[:300]}})
+                                  "description": (getattr(t, "served_description", None) or t.description or "")[:300]}})
     return out
 
 

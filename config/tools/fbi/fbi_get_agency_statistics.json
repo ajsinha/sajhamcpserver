@@ -1,7 +1,8 @@
 {
   "name": "fbi_get_agency_statistics",
   "implementation": "sajha.tools.impl.fbi_tool_refactored.FBIGetAgencyStatisticsTool",
-  "description": "Offense counts, rate per 100,000 and clearances for one law enforcement agency (by ORI) and year, compared with its state and the nation, from the FBI Crime Data Explorer.\nReturns: ori, agency_name, state, offense_type, year, agency_data (total_incidents, total_cleared, clearance_rate_pct, rate_per_100k, population, population_coverage_pct, months_reported), comparison (state_rate_per_100k, national_rate_per_100k, percent_of_state, percent_of_national) and metadata.\nInputs (* required): ori* (9 letters/digits, e.g. VT0040100; find one with fbi_search_agencies); offense_type* (a UCR category such as violent_crime, property_crime, homicide, robbery, burglary; list in the schema); year (1985 to the current year; default last year).\nDirectory entry and staffing: fbi_get_agency_details; multi-year: fbi_get_crime_trend. Key: api.data.gov key in FBI_API_KEY, else the rate-limited DEMO_KEY.\nExample: {\"ori\": \"VT0040100\", \"offense_type\": \"property_crime\", \"year\": 2023}",
+  "description": "Offense counts, rate per 100,000 and clearances for one law enforcement agency (by ORI) and year, compared with its state and the nation, from the FBI Crime Data Explorer.\nReturns: ori, agency_name, state, offense_type, year, agency_data (total_incidents, total_cleared, clearance_rate_pct, rate_per_100k, population, population_coverage_pct, months_reported), comparison (state_rate_per_100k, national_rate_per_100k, percent_of_state, percent_of_national) and metadata.\nInputs (* required): ori* (9 letters/digits, e.g. VT0040100; find one with fbi_search_agencies); offense_type* (a UCR category such as violent_crime, property_crime, homicide, robbery, burglary; list in the schema); year (1985 to the current year; default last year).\nDirectory entry and staffing: fbi_get_agency_details; multi-year: fbi_get_crime_trend.\nExample: {\"ori\": \"VT0040100\", \"offense_type\": \"property_crime\", \"year\": 2023}",
+  "annotations": {"readOnlyHint": true, "idempotentHint": true, "openWorldHint": true},
   "version": "3.0.0",
   "enabled": true,
   "inputSchema": {
@@ -30,15 +31,15 @@
       },
       "year": {
         "type": "integer",
-        "description": "Data year (defaults to last calendar year)",
-        "minimum": 1985,
-        "maximum": 2100
+        "description": "Data year (1985 to the current year; defaults to last calendar year)",
+        "minimum": 1985
       }
     },
     "required": [
       "ori",
       "offense_type"
-    ]
+    ],
+    "examples": [{"ori": "VT0040100", "offense_type": "property_crime", "year": 2023}]
   },
   "outputSchema": {
     "type": "object",

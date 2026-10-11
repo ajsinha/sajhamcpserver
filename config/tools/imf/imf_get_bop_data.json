@@ -1,7 +1,8 @@
 {
   "name": "imf_get_bop_data",
   "implementation": "sajha.tools.impl.imf_tool_refactored.IMFGetBOPDataTool",
-  "description": "Balance of Payments (BOP) series for one country by BOP indicator code (current account, trade balance, capital and financial flows), from the IMF SDMX JSON data service (dataservices.imf.org, no API key).\nReturns: database, country_code, indicator_code, frequency, data (period, value) and count; a note when the series is empty.\nInputs (* required): country_code* (ISO 2-letter); indicator_code* (IMF BOP code); start_year and end_year (1950-2030; omit both for the full history); frequency (A or Q; default A).\nFor the current account as a share of GDP without a code use imf_get_weo_data with current_account; for any database imf_get_data.\nExample: {\"country_code\": \"DE\", \"indicator_code\": \"BCA_BP6_USD\", \"start_year\": 2015, \"end_year\": 2023}",
+  "description": "Balance of payments (BPM6) series for one country in US dollars: current_account (balance), goods_and_services (balance), capital_account (balance), financial_account (net, assets less liabilities), current_account_credit, current_account_debit; or any BOP code pair ACCOUNTING_ENTRY.INDICATOR such as NETCD_T.CAB.\nReturns: database, key, country_code, indicator or indicator_code, frequency, name, data (period, value) oldest first, count, source; a note when empty.\nInputs (* required): country_code* (ISO3 or ISO2); indicator or indicator_code; one is needed; frequency (A or Q; default A); start_year, end_year.\nMore BOP codes: imf_get_dataflows with database BOP.\nExample: {\"country_code\": \"DEU\", \"indicator\": \"current_account\", \"start_year\": 2018}",
+  "annotations": {"readOnlyHint": true, "idempotentHint": true, "openWorldHint": true},
   "version": "2.9.8",
   "enabled": true,
   "inputSchema": {
@@ -9,67 +10,120 @@
     "properties": {
       "country_code": {
         "type": "string",
-        "description": "ISO 2-letter country code"
+        "description": "Country: ISO alpha-3 (USA) or alpha-2 (US); IMF group codes such as G001 (world) pass through"
+      },
+      "indicator": {
+        "type": "string",
+        "enum": [
+          "current_account",
+          "goods_and_services",
+          "capital_account",
+          "financial_account",
+          "current_account_credit",
+          "current_account_debit"
+        ],
+        "description": "Friendly indicator name"
       },
       "indicator_code": {
         "type": "string",
-        "description": "BOP indicator code"
-      },
-      "start_year": {
-        "type": "integer",
-        "description": "First year, YYYY; if only end_year is given this defaults to 1950",
-        "minimum": 1950,
-        "maximum": 2030
-      },
-      "end_year": {
-        "type": "integer",
-        "description": "Last year, YYYY; if only start_year is given this defaults to the current year; omit both for the full history",
-        "minimum": 1950,
-        "maximum": 2030
+        "description": "BOP ACCOUNTING_ENTRY.INDICATOR, e.g. NETCD_T.CAB (wins over indicator)"
       },
       "frequency": {
         "type": "string",
-        "description": "Frequency: A annual, Q quarterly",
-        "enum": ["A", "Q"],
-        "default": "A"
+        "enum": [
+          "A",
+          "Q"
+        ],
+        "default": "A",
+        "description": "A annual, Q quarterly"
+      },
+      "start_year": {
+        "type": "integer",
+        "minimum": 1950,
+        "maximum": 2035,
+        "description": "First year (optional)"
+      },
+      "end_year": {
+        "type": "integer",
+        "minimum": 1950,
+        "maximum": 2035,
+        "description": "Last year (optional)"
       }
     },
-    "required": ["country_code", "indicator_code"]
+    "required": [
+      "country_code"
+    ],
+    "examples": [{"country_code": "DEU", "indicator": "current_account", "start_year": 2018}]
   },
   "outputSchema": {
     "type": "object",
     "properties": {
-      "database": {"type": "string"},
-      "country_code": {"type": "string"},
-      "indicator_code": {"type": "string"},
-      "frequency": {"type": "string"},
+      "database": {
+        "type": "string"
+      },
+      "key": {
+        "type": "string"
+      },
+      "country_code": {
+        "type": "string"
+      },
+      "name": {
+        "type": [
+          "string",
+          "null"
+        ]
+      },
+      "latest_actual_year": {
+        "type": "string"
+      },
       "data": {
         "type": "array",
         "items": {
           "type": "object",
           "properties": {
-            "period": {"type": "string"},
-            "value": {"type": ["number", "null"]}
+            "period": {
+              "type": "string"
+            },
+            "value": {
+              "type": [
+                "number",
+                "null"
+              ]
+            }
           }
         }
       },
-      "count": {"type": "integer"}
+      "count": {
+        "type": "integer"
+      },
+      "source": {
+        "type": "string"
+      },
+      "note": {
+        "type": "string"
+      }
     }
   },
   "metadata": {
     "author": "Ashutosh Sinha",
     "category": "Economic Data",
-    "tags": ["imf", "bop", "balance of payments", "trade", "current account"],
+    "tags": [
+      "imf",
+      "bop",
+      "balance of payments",
+      "trade",
+      "current account"
+    ],
     "rateLimit": 120,
     "cacheTTL": 3600,
     "note": "Balance of Payments data provides comprehensive information on international transactions.",
     "examples": [
       {
-        "description": "Get US current account balance",
+        "description": "Germany current account",
         "input": {
-          "country_code": "US",
-          "indicator_code": "BCA_BP6_USD",
-          "start_year": 2020
+          "country_code": "DEU",
+          "indicator": "current_account",
+          "start_year": 2018
         }
       }
     ],

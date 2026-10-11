@@ -1,6 +1,7 @@
 {
     "name": "olap_time_series",
     "description": "Time series over a semantic-layer OLAP dataset in DuckDB: measures per time bucket, with optional dimensions, gap filling and period comparison. Datasets, dimensions and measures: config/olap (e.g. sales_analysis); sample data is generated on first use if no OLAP database exists.\nReturns {success, data, columns, row_count, time_dimension, time_grain, measures, has_comparison, comparison_type, summary (min, max, sum, avg, first, last, total_change per measure), sql}.\nInputs (* required): dataset*, time_dimension* (a date dimension, e.g. date), time_grain* (year|quarter|month|week|day|hour), measures* (array), dimensions, comparison ({type: yoy|qoq|mom|wow|dod}), fill_gaps (default true; empty periods are zero), date_range ({start_date, end_date}, YYYY-MM-DD), filters (array of {dimension, operator, value}).\nFor a cross-tab use olap_pivot_table.\nExample: {\"dataset\": \"sales_analysis\", \"time_dimension\": \"date\", \"time_grain\": \"month\", \"measures\": [\"revenue\"], \"comparison\": {\"type\": \"yoy\"}}",
+    "annotations": {"readOnlyHint": true, "idempotentHint": true, "openWorldHint": false},
     "category": "OLAP Analytics",
     "version": "2.9.8",
     "enabled": true,

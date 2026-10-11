@@ -3,7 +3,7 @@
   "implementation": "sajha.tools.impl.qlrisk.qlrisk_tools.QlriskPriceProductTool",
   "product": "ConvertibleBond",
   "title": "Price a ConvertibleBond",
-  "description": "Price one Convertible Bond (qlrisk ConvertibleBond): NPV, pricing components and Greeks where the pricer gives them.\nInputs (* required): maturity* (tenor like 3Y or date), face_value (amount; default 100), coupon_pct (percent, 3 = 3%; default 2), conversion_ratio, ticker (default SPX), currency (see the schema's list; default USD). Rates are in percent, spreads in basis points, maturities a tenor (3Y, 18M, 6W, 10D) or a date YYYY-MM-DD. Optional `advanced`: trade_id, trade_date, effective_date, counterparty_id, issuer, spot, position, market_data, reporting_currency, include_cash_flows; market data defaults to qlrisk's sample snapshot valued today.\nExample: {\"maturity\": \"5Y\", \"face_value\": 100} gives NPV 98.05 USD on the sample market valued 2026-10-09. For several trades at once use qlrisk_price_trades.",
+  "description": "Price one Convertible Bond (qlrisk ConvertibleBond).\nInputs (* required, name=default): maturity*, face_value=100, coupon_pct=2, conversion_ratio, ticker=SPX, currency=USD. In `advanced` also: effective_date, issuer, spot, position.\nExample: {\"maturity\": \"5Y\", \"face_value\": 100} gives NPV 98.05 USD (sample market valued 2026-10-09).",
   "version": "1.0.0",
   "enabled": true,
   "requires": [

@@ -1,7 +1,8 @@
 {
   "name": "ecb_get_interest_rate",
   "implementation": "sajha.tools.impl.european_central_bank_tool_refactored.ECBGetInterestRateTool",
-  "description": "ECB policy and euro money-market rates in percent: main refinancing operations rate, deposit facility rate, marginal lending facility rate, EONIA (discontinued in 2022) or the euro short-term rate (euro STR), from the ECB Data Portal API (data-api.ecb.europa.eu, no API key).\nReturns: flow, key, series_name, description, observation_count and observations (date, value) oldest first.\nInputs (* required): rate_type* (main_refinancing_rate, deposit_facility_rate, marginal_lending_rate, eonia, ester); start_date, end_date (YYYY-MM-DD); recent_periods (1-100; default 10): unless both dates are given only the last recent_periods observations are kept, and with no dates the look-back is recent_periods x 40 days.\nFor government bond yields use ecb_get_bond_yield; for an overview ecb_get_common_indicators.\nExample: {\"rate_type\": \"deposit_facility_rate\", \"start_date\": \"2022-01-01\"}",
+  "description": "ECB policy and euro money-market rates in percent: main refinancing, deposit facility or marginal lending rate (FM; observations are the dates a rate changed) or the euro short-term rate, euro STR (EST, business-daily). EONIA ended in 2022 and is not offered.\nReturns: flow, key, series_name (the ECB title), description, unit, unit_multiplier, frequency, source, observation_count and observations (date, value) oldest first; a note when the period has no observations.\nInputs (* required): rate_type* (main_refinancing_rate, deposit_facility_rate, marginal_lending_rate, ester); start_date, end_date (YYYY-MM-DD, YYYY-MM or YYYY); recent_periods (1-100; default 10; the last N observations of the series whatever its frequency, used only when neither date is given).\nBond yields: ecb_get_bond_yield.\nExample: {\"rate_type\": \"deposit_facility_rate\", \"start_date\": \"2022-01-01\"}",
+  "annotations": {"readOnlyHint": true, "idempotentHint": true, "openWorldHint": true},
   "version": "2.9.8",
   "enabled": true,
   "inputSchema": {
@@ -14,7 +15,6 @@
           "main_refinancing_rate",
           "deposit_facility_rate",
           "marginal_lending_rate",
-          "eonia",
           "ester"
         ]
       },
@@ -34,7 +34,8 @@
         "default": 10
       }
     },
-    "required": ["rate_type"]
+    "required": ["rate_type"],
+    "examples": [{"rate_type": "deposit_facility_rate", "start_date": "2022-01-01"}]
   },
   "outputSchema": {
     "type": "object",
@@ -81,7 +82,7 @@
   "metadata": {
     "author": "Ashutosh Sinha",
     "category": "Economic Data",
-    "tags": ["interest rates", "monetary policy", "ecb", "eurozone", "policy rates", "EONIA", "ESTER"],
+    "tags": ["interest rates", "monetary policy", "ecb", "eurozone", "policy rates", "ESTER"],
     "rateLimit": 120,
     "cacheTTL": 3600,
     "note": "Main refinancing rate is the primary ECB policy rate. Deposit facility rate sets the floor. €STR replaced EONIA as the overnight reference rate in 2022.",

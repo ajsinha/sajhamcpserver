@@ -27,18 +27,48 @@ def _get_yf():
 def _ticker(symbol):
     return _get_yf().Ticker(symbol)
 
-def _df_to_records(df, limit=100):
-    if df is None or (hasattr(df, 'empty') and df.empty):
-        return []
+DEFAULT_ROWS = 100
+MAX_ROWS = 1000
+
+
+def _row_limit(args, default=DEFAULT_ROWS, maximum=MAX_ROWS) -> int:
+    """The caller's ``limit`` (else ``default``), within 1..``maximum``."""
     try:
+        n = int(args.get('limit') if args.get('limit') is not None else default)
+    except (TypeError, ValueError):
+        n = default
+    return max(1, min(n, maximum))
+
+
+def _df_to_records(df, limit=DEFAULT_ROWS, newest=False):
+    """Rows of a DataFrame (index included). ``newest`` keeps the last ``limit`` rows (a time
+    series in ascending order), else the first. Use _df_rows when the caller must know about the cut."""
+    return _df_rows(df, limit, newest)[0]
+
+
+def _df_rows(df, limit=DEFAULT_ROWS, newest=False):
+    """(rows, total rows, truncated) of a DataFrame, index included."""
+    if df is None or (hasattr(df, 'empty') and df.empty):
+        return [], 0, False
+    try:
+        total = len(df)
+        df = df.tail(limit) if newest else df.head(limit)
         df = df.reset_index()
         for col in df.columns:
             if hasattr(df[col], 'dt'):
                 df[col] = df[col].astype(str)
-        return df.head(limit).to_dict(orient='records')
+        df = df.astype(object).where(df.notna(), None)
+        return df.to_dict(orient='records'), total, total > limit
     except Exception as e:
         logger.warning(f"Error handled: {e}", exc_info=True)
-        return []
+        return [], 0, False
+
+
+def _series_result(key, df, args, default=DEFAULT_ROWS, newest=True, **head):
+    """{**head, data_points, truncated, key: rows}: the most recent ``limit`` rows of a time series,
+    oldest first."""
+    rows, total, truncated = _df_rows(df, _row_limit(args, default), newest)
+    return {**head, "data_points": total, "truncated": truncated, key: rows}
 
 
 class YFBaseTool(BaseMCPTool):
@@ -60,7 +90,7 @@ class YFStockHistoryTool(YFBaseTool):
         period = args.get('period', '1y')
         interval = args.get('interval', '1d')
         df = t.history(period=period, interval=interval)
-        return {"symbol": args['symbol'], "data_points": len(df), "prices": _df_to_records(df, 500)}
+        return _series_result("prices", df, args, 500, symbol=args['symbol'], period=period, interval=interval)
 
 class YFIncomeStatementTool(YFBaseTool):
     def execute(self, args: Dict[str, Any]) -> Dict:
@@ -84,17 +114,17 @@ class YFCashFlowTool(YFBaseTool):
 class YFDividendsTool(YFBaseTool):
     def execute(self, args: Dict[str, Any]) -> Dict:
         t = _ticker(args['symbol'])
-        return {"symbol": args['symbol'], "dividends": _df_to_records(t.dividends)}
+        return _series_result("dividends", t.dividends, args, symbol=args['symbol'])
 
 class YFSplitsTool(YFBaseTool):
     def execute(self, args: Dict[str, Any]) -> Dict:
         t = _ticker(args['symbol'])
-        return {"symbol": args['symbol'], "splits": _df_to_records(t.splits)}
+        return _series_result("splits", t.splits, args, symbol=args['symbol'])
 
 class YFActionsTool(YFBaseTool):
     def execute(self, args: Dict[str, Any]) -> Dict:
         t = _ticker(args['symbol'])
-        return {"symbol": args['symbol'], "actions": _df_to_records(t.actions)}
+        return _series_result("actions", t.actions, args, symbol=args['symbol'])
 
 class YFCalendarTool(YFBaseTool):
     def execute(self, args: Dict[str, Any]) -> Dict:
@@ -143,7 +173,7 @@ class YFInsiderPurchasesTool(YFBaseTool):
 class YFRecommendationsTool(YFBaseTool):
     def execute(self, args: Dict[str, Any]) -> Dict:
         t = _ticker(args['symbol'])
-        return {"symbol": args['symbol'], "recommendations": _df_to_records(t.recommendations, 50)}
+        return _series_result("recommendations", t.recommendations, args, 50, newest=False, symbol=args['symbol'])
 
 class YFAnalystPriceTargetsTool(YFBaseTool):
     def execute(self, args: Dict[str, Any]) -> Dict:
@@ -160,7 +190,8 @@ class YFAnalystPriceTargetsTool(YFBaseTool):
 class YFUpgradesDowngradesTool(YFBaseTool):
     def execute(self, args: Dict[str, Any]) -> Dict:
         t = _ticker(args['symbol'])
-        return {"symbol": args['symbol'], "upgrades_downgrades": _df_to_records(t.upgrades_downgrades, 30)}
+        # newest first, as Yahoo returns it
+        return _series_result("upgrades_downgrades", t.upgrades_downgrades, args, 30, newest=False, symbol=args['symbol'])
 
 class YFEarningsHistoryTool(YFBaseTool):
     def execute(self, args: Dict[str, Any]) -> Dict:
@@ -170,7 +201,8 @@ class YFEarningsHistoryTool(YFBaseTool):
 class YFEarningsDatesTool(YFBaseTool):
     def execute(self, args: Dict[str, Any]) -> Dict:
         t = _ticker(args['symbol'])
-        return {"symbol": args['symbol'], "dates": _df_to_records(t.earnings_dates)}
+        # newest (scheduled) first, as Yahoo returns it
+        return _series_result("dates", t.earnings_dates, args, 12, newest=False, symbol=args['symbol'])
 
 # 21-25: Options
 class YFOptionsExpiriesTool(YFBaseTool):
@@ -188,20 +220,29 @@ class YFOptionsChainTool(YFBaseTool):
         if not expiry:
             return {"error": "No options available"}
         chain = t.option_chain(expiry)
-        return {"symbol": args['symbol'], "expiry": expiry,
-                "calls": _df_to_records(chain.calls, 50),
-                "puts": _df_to_records(chain.puts, 50)}
+        n = _row_limit(args, 50, 500)
+        calls, n_calls, cut_calls = _df_rows(chain.calls, n)
+        puts, n_puts, cut_puts = _df_rows(chain.puts, n)
+        return {"symbol": args['symbol'], "expiry": expiry, "total_calls": n_calls, "total_puts": n_puts,
+                "truncated": cut_calls or cut_puts, "calls": calls, "puts": puts}
 
 class YFSharesOutstandingTool(YFBaseTool):
     def execute(self, args: Dict[str, Any]) -> Dict:
         t = _ticker(args['symbol'])
-        return {"symbol": args['symbol'], "shares": _df_to_records(t.get_shares_full())}
+        return _series_result("shares", t.get_shares_full(), args, symbol=args['symbol'])
 
 class YFNewsTool(YFBaseTool):
     def execute(self, args: Dict[str, Any]) -> Dict:
-        t = _ticker(args['symbol'])
-        news = t.news or []
-        return {"symbol": args['symbol'], "articles": news[:args.get('limit', 10)]}
+        limit = _row_limit(args, 10, 50)
+        news = []
+        try:
+            news = _ticker(args['symbol']).news or []
+        except Exception as e:
+            logger.warning(f"Error handled: {e}", exc_info=True)
+        if not news:
+            # Ticker.news has come back empty from Yahoo at times; the search endpoint still lists news
+            news = _get_yf().Search(args['symbol'], news_count=limit, max_results=1).news or []
+        return {"symbol": args['symbol'], "articles": news[:limit]}
 
 class YFFastInfoTool(YFBaseTool):
     def execute(self, args: Dict[str, Any]) -> Dict:
@@ -218,19 +259,26 @@ class YFFastInfoTool(YFBaseTool):
         }}
 
 # 26-30: Market screeners
+#: fields kept from each Yahoo screener quote
+SCREEN_FIELDS = ('symbol', 'shortName', 'longName', 'exchange', 'quoteType', 'currency', 'regularMarketPrice',
+                 'regularMarketChange', 'regularMarketChangePercent', 'regularMarketVolume', 'averageDailyVolume3Month',
+                 'marketCap', 'trailingPE', 'forwardPE', 'fiftyTwoWeekHigh', 'fiftyTwoWeekLow')
+
+
 class YFScreenerTool(YFBaseTool):
-    """Screen stocks using yfinance screener — gainers, losers, most active, etc."""
+    """Yahoo's predefined screens through yf.screen (yfinance 0.2.54 and later)."""
     def execute(self, args: Dict[str, Any]) -> Dict:
         yf = _get_yf()
         screen_type = args.get('screen_type', 'day_gainers')
+        count = _row_limit(args, 25, 250)
         try:
-            screener = yf.Screener()
-            screener.set_default_body(screen_type)
-            data = screener.response
-            quotes = data.get('finance', {}).get('result', [{}])[0].get('quotes', [])
-            return {"screen_type": screen_type, "count": len(quotes), "results": quotes[:50]}
+            data = yf.screen(screen_type, count=count) or {}
         except Exception as e:
             return {"screen_type": screen_type, "error": str(e)}
+        quotes = data.get('quotes') or []
+        results = [{k: q.get(k) for k in SCREEN_FIELDS if k in q} for q in quotes[:count]]
+        return {"screen_type": screen_type, "title": data.get('title'), "total": data.get('total'),
+                "count": len(results), "results": results}
 
 class YFSectorPerformanceTool(YFBaseTool):
     def execute(self, args: Dict[str, Any]) -> Dict:
@@ -254,28 +302,28 @@ class YFSectorPerformanceTool(YFBaseTool):
 
 class YFCryptoInfoTool(YFBaseTool):
     def execute(self, args: Dict[str, Any]) -> Dict:
-        sym = args.get('symbol', 'BTC-USD')
-        if not sym.endswith('-USD'):
-            sym = f'{sym}-USD'
+        sym = str(args.get('symbol') or 'BTC-USD').upper().strip()
+        if '-' not in sym:
+            sym = f'{sym}-USD'          # BTC -> BTC-USD; BTC-EUR stays as given
         t = _ticker(sym)
         info = t.info or {}
         return {"symbol": sym, "info": {k: v for k, v in info.items() if not callable(v)}}
 
 class YFForexHistoryTool(YFBaseTool):
     def execute(self, args: Dict[str, Any]) -> Dict:
-        pair = args.get('pair', 'EURUSD=X')
-        if '=X' not in pair:
+        pair = str(args.get('pair') or 'EURUSD=X').upper().replace('/', '').replace(' ', '')
+        if not pair.endswith('=X'):
             pair = f'{pair}=X'
-        t = _ticker(pair)
-        df = t.history(period=args.get('period', '3mo'))
-        return {"pair": pair, "data_points": len(df), "rates": _df_to_records(df)}
+        period = args.get('period', '3mo')
+        df = _ticker(pair).history(period=period)
+        return _series_result("rates", df, args, pair=pair, period=period)
 
 class YFIndexHistoryTool(YFBaseTool):
     def execute(self, args: Dict[str, Any]) -> Dict:
         index = args.get('index', '^GSPC')
-        t = _ticker(index)
-        df = t.history(period=args.get('period', '1y'))
-        return {"index": index, "data_points": len(df), "prices": _df_to_records(df)}
+        period = args.get('period', '1y')
+        df = _ticker(index).history(period=period)
+        return _series_result("prices", df, args, 260, index=index, period=period)
 
 # 31-35: ETF specific
 class YFETFInfoTool(YFBaseTool):
@@ -286,36 +334,60 @@ class YFETFInfoTool(YFBaseTool):
                 if k in ('shortName','longName','category','fundFamily','totalAssets','yield','ytdReturn',
                          'threeYearAverageReturn','fiveYearAverageReturn','expenseRatio') and not callable(v)}}
 
+MAX_TICKERS = 10
+
+
 class YFMultiTickerHistoryTool(YFBaseTool):
     def execute(self, args: Dict[str, Any]) -> Dict:
         yf = _get_yf()
         symbols = args.get('symbols', 'AAPL MSFT GOOGL')
-        df = yf.download(symbols, period=args.get('period', '1mo'), group_by='ticker')
-        results = {}
-        if isinstance(symbols, str):
-            syms = symbols.split()
-        else:
-            syms = symbols
+        raw = symbols.replace(',', ' ').split() if isinstance(symbols, str) else list(symbols)
+        syms = list(dict.fromkeys(s.strip().upper() for s in raw if str(s).strip()))
+        if len(syms) > MAX_TICKERS:
+            return {"error": f"at most {MAX_TICKERS} tickers per call; got {len(syms)}"}
+        if not syms:
+            return {"error": "no tickers given"}
+        period = args.get('period', '1mo')
+        limit = _row_limit(args, 30, 500)
+        df = yf.download(syms, period=period, group_by='ticker', auto_adjust=False, progress=False)
+        results, totals, truncated = {}, {}, False
         for s in syms:
             try:
-                sub = df[s] if len(syms) > 1 else df
-                results[s] = _df_to_records(sub, 30)
+                sub = df[s] if len(syms) > 1 else (df[s] if s in getattr(df.columns, 'levels', [[]])[0] else df)
+                sub = sub.dropna(how='all')
+                rows, total, cut = _df_rows(sub, limit, newest=True)
             except Exception as e:
                 logger.warning(f"Error handled: {e}", exc_info=True)
-                results[s] = []
-        return {"symbols": syms, "data": results}
+                rows, total, cut = [], 0, False
+            results[s], totals[s] = rows, total
+            truncated = truncated or cut
+        return {"symbols": syms, "period": period, "data_points": totals, "truncated": truncated, "data": results}
+
+
+TRENDING_URL = 'https://query1.finance.yahoo.com/v1/finance/trending/{region}'
+
 
 class YFTrendingTickersTool(YFBaseTool):
+    """Yahoo Finance's trending tickers for a region (yfinance has no call for it; the endpoint
+    needs no cookie)."""
     def execute(self, args: Dict[str, Any]) -> Dict:
-        yf = _get_yf()
+        import json as _json
+        import urllib.parse
+        import urllib.request
+        region = str(args.get('region') or 'US').upper()
+        count = _row_limit(args, 20, 50)
+        url = TRENDING_URL.format(region=urllib.parse.quote(region)) + '?' + urllib.parse.urlencode({'count': count})
+        req = urllib.request.Request(url, headers={'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) '
+                                                                 'AppleWebKit/537.36'})
         try:
-            trending = yf.Screener()
-            trending.set_default_body('most_actives')
-            data = trending.response
-            quotes = data.get('finance', {}).get('result', [{}])[0].get('quotes', [])
-            return {"trending": quotes[:20]}
+            with urllib.request.urlopen(req, timeout=15) as resp:
+                data = _json.loads(resp.read().decode('utf-8'))
         except Exception as e:
-            return {"error": str(e)}
+            return {"region": region, "error": f"Yahoo trending request failed: {e}"}
+        result = ((data.get('finance') or {}).get('result') or [{}])[0] or {}
+        symbols = [q.get('symbol') for q in result.get('quotes') or [] if q.get('symbol')]
+        return {"region": region, "count": len(symbols[:count]), "symbols": symbols[:count]}
+
 
 class YFMarketSummaryTool(YFBaseTool):
     def execute(self, args: Dict[str, Any]) -> Dict:

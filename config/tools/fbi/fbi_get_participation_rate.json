@@ -1,7 +1,8 @@
 {
   "name": "fbi_get_participation_rate",
   "implementation": "sajha.tools.impl.fbi_tool_refactored.FBIGetParticipationRateTool",
-  "description": "Share of the population covered by agencies reporting crime data to the FBI, nationally or for one state, by month, from the FBI Crime Data Explorer.\nReturns: scope, state, year, participation_data (total_population, average_participated_population, average_population_coverage_pct, months_reported), monthly (month YYYY-MM, population_coverage_pct, participated_population) and metadata. Coverage is read from the violent-crime series.\nInputs (none required): state (two-letter USPS code; omit for national); year (1985 to the current year; default last year).\nUse it to judge how complete the figures from fbi_get_national_statistics or fbi_get_state_statistics are for a year. Key: api.data.gov key in FBI_API_KEY, else the rate-limited DEMO_KEY.\nExample: {\"state\": \"FL\", \"year\": 2021}",
+  "description": "Share of the population covered by agencies reporting crime data to the FBI, nationally or for one state, by month, from the FBI Crime Data Explorer.\nReturns: scope, state, year, participation_data (total_population, average_participated_population, average_population_coverage_pct, months_reported), monthly (month YYYY-MM, population_coverage_pct, participated_population) and metadata. Coverage is read from the violent-crime series.\nInputs (none required): state (two-letter USPS code; omit for national); year (1985 to the current year; default last year).\nUse it to judge how complete the figures from fbi_get_national_statistics or fbi_get_state_statistics are for a year.\nExample: {\"state\": \"FL\", \"year\": 2021}",
+  "annotations": {"readOnlyHint": true, "idempotentHint": true, "openWorldHint": true},
   "version": "3.0.0",
   "enabled": true,
   "inputSchema": {
@@ -14,9 +15,8 @@
       },
       "year": {
         "type": "integer",
-        "description": "Data year (defaults to last calendar year)",
-        "minimum": 1985,
-        "maximum": 2100
+        "description": "Data year (1985 to the current year; defaults to last calendar year)",
+        "minimum": 1985
       }
     },
     "required": []

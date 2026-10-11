@@ -2,6 +2,7 @@
   "name": "sqlselect_get_schema",
   "implementation": "sajha.tools.impl.sqlselect_tool_refactored.SqlSelectGetSchemaTool",
   "description": "Column names and types of one configured data source, without a row count. Data sources are the named files configured in this tool's data_sources (CSV, Parquet or JSON in data.sqlselect.dir, default data/sqlselect), each loaded into a DuckDB table named after the source when the tool starts, with file and URL access then switched off; a source whose file is missing is listed but cannot be queried.\nReturns {success, source_name, schema, column_count, timestamp}: each schema entry is {column_name, data_type, nullable, key}.\nInputs (* required): source_name*.\nFor row count and source metadata as well use sqlselect_describe_source.\nExample: {\"source_name\": \"customers\"}",
+  "annotations": {"readOnlyHint": true, "idempotentHint": true, "openWorldHint": false},
   "version": "2.9.8",
   "enabled": true,
   "data_directory": "${data.sqlselect.dir:./data/sqlselect}",
@@ -35,7 +36,8 @@
         "description": "Name of the data source"
       }
     },
-    "required": ["source_name"]
+    "required": ["source_name"],
+    "examples": [{"source_name": "customers"}]
   },
   "outputSchema": {
     "type": "object",

@@ -1,16 +1,28 @@
 {
   "name": "openbb_index_available",
   "implementation": "sajha.tools.impl.openbb_tools.OpenBBGenericTool",
-  "description": "List of market indices a provider covers (symbol, name, currency and more) through the OpenBB Platform (obb.index.available).\nReturns: {tool, data_points (total rows), data: first 100 rows as OpenBB returns them} or {tool, error}.\nInputs (* required): provider (fmp or yfinance; schema default fmp; when omitted the tool sends yfinance, which needs no key).\nIndex history: openbb_index_price_historical, yf_index_history. Keys: fmp, benzinga, fred, intrinio, polygon and tiingo need credentials in OpenBB's settings (~/.openbb_platform/user_settings.json), not supplied by SAJHA; yfinance, oecd, federal_reserve, sec, imf and government_us need none.\nExample: {\"provider\": \"yfinance\"}",
+  "description": "Market indices a provider covers (symbol, name and code) through the OpenBB Platform (obb.index.available).\nReturns: {tool, provider, data_points (rows before the cap), truncated, data: rows with their dates, ignored_arguments when some did not apply} or {tool, error}.\nInputs (* required): limit (rows returned, 1-1000; default 500; a dated series keeps its most recent rows); provider (fmp, yfinance; default yfinance).\nIndex history: openbb_index_price_historical, yf_index_history. Keys: yfinance needs none; fmp uses SAJHA's FMP_API_KEY.\nExample: {\"limit\": 50}",
+  "annotations": {"readOnlyHint": true, "idempotentHint": true, "openWorldHint": true},
   "version": "4.5.0",
   "enabled": true,
   "inputSchema": {
     "type": "object",
     "properties": {
+      "limit": {
+        "type": "integer",
+        "minimum": 1,
+        "maximum": 1000,
+        "default": 500,
+        "description": "Most rows returned (1-1000); a dated series keeps its most recent rows"
+      },
       "provider": {
         "type": "string",
-        "description": "OpenBB data provider",
-        "default": "fmp"
+        "enum": [
+          "fmp",
+          "yfinance"
+        ],
+        "default": "yfinance",
+        "description": "OpenBB data provider"
       }
     },
     "required": []
@@ -18,8 +30,24 @@
   "outputSchema": {
     "type": "object",
     "properties": {
-      "result": {
-        "type": "object"
+      "tool": {
+        "type": "string"
+      },
+      "provider": {
+        "type": "string"
+      },
+      "data_points": {
+        "type": "integer",
+        "description": "Rows before the cap"
+      },
+      "truncated": {
+        "type": "boolean"
+      },
+      "data": {
+        "type": "array"
+      },
+      "error": {
+        "type": "string"
       }
     }
   },
@@ -32,6 +60,14 @@
       "openbb",
       "index",
       "available"
+    ],
+    "examples": [
+      {
+        "description": "Market indices a provider covers (symbol, name and code)",
+        "input": {
+          "limit": 50
+        }
+      }
     ]
   }
 }

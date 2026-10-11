@@ -11,7 +11,7 @@
 
 app:
   name: SAJHA MCP Server
-  version: 8.7.0
+  version: 8.8.0
   description: Model Context Protocol Server
   author: Ashutosh Sinha
   author_email: ajsinha@gmail.com       # shown with the copyright notice; SAJHA is proprietary (see LICENSE)
@@ -331,6 +331,14 @@ hot_reload:
 # rhythm re-checks tools skipped because a module their config "requires" is missing.
 tools:
   retry_failed_seconds: 300
+  # Fill absent arguments from each tool's inputSchema "default" before it runs (never a required
+  # property; nested objects only when supplied). The escape hatch exists for release 8.8.0 only and
+  # is removed in the release after. docs/architecture/Tool Quality.md §12.1
+  apply_schema_defaults: true
+  # A tool folder's optional domain.txt (what the folder as a whole is for) is appended to
+  # the description of each of its tools wherever descriptions are served. A longer file is
+  # refused with a notice, never cut. docs/architecture/Architecture.md §5
+  domain_description_max_chars: 600
   # Outbound fetch guard for tools that fetch a URL someone else chose: the web crawler
   # tools (the caller's URL) and Studio REST tools (the author's endpoint). Cloud metadata,
   # link-local and loopback addresses (localhost, 127.0.0.0/8, ::1, 0.0.0.0) are always
@@ -481,6 +489,7 @@ ai:
     - { name: xai,          config: { enabled: false } }
     - { name: openrouter,   config: { enabled: false } }
     - { name: perplexity,   config: { enabled: false } }
+    - { name: huggingface,  config: { enabled: false } }    # router.huggingface.co/v1; key: HF_TOKEN
     - { name: vllm,         config: { enabled: false, base_url: "http://localhost:8000/v1" } }
     - { name: lmstudio,     config: { enabled: false, base_url: "http://localhost:1234/v1" } }
   # Ordered candidates per alias; a bare provider name means its default_model.
@@ -912,6 +921,14 @@ quality:
     tick_seconds: 15               # how often the scheduler looks for due probes
     default_every_seconds: 300     # a probe with neither every nor cron
     history: 20                    # results kept per tool (state store)
+  check:                           # the live tool check: python -m sajha.quality check (Tool Quality §12.4)
+    cron: ''                       # e.g. "0 4 * * *" to run it daily on the probe scheduler; '' = CLI only
+    timezone: ''                   # of the cron expression; '' = UTC
+    pause_ms: 1000                 # between two calls to tools of the same folder (one provider)
+    concurrency: 4                 # folders checked at once; within a folder one call at a time
+    timeout_seconds: 60            # per call
+    budget_seconds: 1800           # the whole run; tools left over are reported as skipped
+    exclude: []                    # tool-name globs never called
   versions:
     enabled: true                  # false: versions files are ignored (every call runs the registered tool)
     reload_seconds: 5              # recheck versions_dir at most this often

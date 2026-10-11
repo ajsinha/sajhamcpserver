@@ -1,7 +1,8 @@
 {
   "name": "edgar_company_submissions",
   "implementation": "sajha.tools.impl.enhanced_edgar_tool.EDGARCompanySubmissionsTool",
-  "description": "Company profile and recent filing list from SEC EDGAR (the data.sec.gov submissions file).\nReturns {cik, name, sic, sicDescription, category (filer status), fiscalYearEnd (MMDD), stateOfIncorporation, addresses {business, mailing}, filings_count, recent_filings: [{accessionNumber, filingDate, reportDate, form, primaryDocument, primaryDocDescription}]}.\nInputs (* required): cik* (string, SEC Central Index Key, up to 10 digits; from edgar_company_search), include_old_filings (boolean, default false; accepted but currently has no effect, only recent filings are returned).\nFor one form type use edgar_filings_by_form; for the profile alone sec_get_company_info (accepts a ticker).\nExample: {\"cik\": \"0000320193\"}\nNo API key needed (SEC data.sec.gov; 110 ms between requests).",
+  "description": "Company profile and recent filing list from SEC EDGAR (the data.sec.gov submissions file).\nReturns {cik, name, sic, sicDescription, category (filer status), fiscalYearEnd (MMDD), stateOfIncorporation, addresses {business, mailing}, filings_count, recent_filings: [{accessionNumber, filingDate, reportDate, form, primaryDocument, primaryDocDescription}]}.\nInputs (* required): cik* (string, the CIK), include_old_filings (boolean, default false; accepted but currently has no effect, only recent filings are returned).\nFor one form type use edgar_filings_by_form; for the profile alone sec_get_company_info (accepts a ticker).\nExample: {\"cik\": \"0000320193\"}",
+  "annotations": {"readOnlyHint": true, "idempotentHint": true, "openWorldHint": true},
   "version": "2.9.8",
   "enabled": true,
   "inputSchema": {
@@ -17,7 +18,8 @@
         "default": false
       }
     },
-    "required": ["cik"]
+    "required": ["cik"],
+    "examples": [{"cik": "0000320193"}]
   },
   "outputSchema": {
     "type": "object",

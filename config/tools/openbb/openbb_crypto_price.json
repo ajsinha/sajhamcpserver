@@ -1,7 +1,8 @@
 {
   "name": "openbb_crypto_price",
   "implementation": "sajha.tools.impl.openbb_tools.OpenBBCryptoPriceTool",
-  "description": "Daily price history for one cryptocurrency pair through the OpenBB Platform (obb.crypto.price.historical).\nReturns: {symbol, data_points, start_date, end_date, prices: [{date, open, high, low, close, volume, ...}]}.\nInputs (* required): symbol* (pair, upper-cased, e.g. BTCUSD, ETHUSD; default BTCUSD); start_date (YYYY-MM-DD; default 90 days ago); end_date (YYYY-MM-DD; default today); provider (fmp, polygon, tiingo or yfinance; default yfinance, no key).\nOther sources: av_crypto_daily, yf_crypto_info, cg_coin_market_chart. Keys: fmp, benzinga, fred, intrinio, polygon and tiingo need credentials in OpenBB's settings (~/.openbb_platform/user_settings.json), not supplied by SAJHA; yfinance, oecd, federal_reserve, sec, imf and government_us need none.\nExample: {\"symbol\": \"ETHUSD\", \"start_date\": \"2026-01-01\"}",
+  "description": "Daily price history for one cryptocurrency pair through the OpenBB Platform (obb.crypto.price.historical).\nReturns: {symbol, provider, data_points, start_date, end_date, prices: [{date, open, high, low, close, volume}]} or {symbol, error}.\nInputs (* required): symbol (pair, upper-cased, e.g. BTCUSD, ETHUSD; default BTCUSD); start_date (default 90 days ago); end_date (default today); provider (fmp, polygon, tiingo, yfinance; default yfinance).\nOther sources: av_crypto_daily, yf_crypto_info, cg_coin_market_chart. Keys: yfinance needs none; fmp uses SAJHA's FMP_API_KEY; polygon, tiingo need a key in ~/.openbb_platform/user_settings.json.\nExample: {\"symbol\": \"ETHUSD\", \"start_date\": \"2026-07-01\"}",
+  "annotations": {"readOnlyHint": true, "idempotentHint": true, "openWorldHint": true},
   "version": "4.5.0",
   "enabled": true,
   "inputSchema": {
@@ -9,28 +10,32 @@
     "properties": {
       "symbol": {
         "type": "string",
-        "description": "Crypto pair (e.g., BTCUSD, ETHUSD, SOLUSD)",
-        "default": "BTCUSD"
+        "default": "BTCUSD",
+        "description": "Pair without separator, e.g. BTCUSD, ETHUSD"
       },
       "start_date": {
         "type": "string",
-        "description": "Start date (YYYY-MM-DD)",
+        "description": "Start date; default 90 days ago (YYYY-MM-DD)",
         "format": "date"
       },
       "end_date": {
         "type": "string",
-        "description": "End date (YYYY-MM-DD)",
+        "description": "End date; default today (YYYY-MM-DD)",
         "format": "date"
       },
       "provider": {
         "type": "string",
-        "description": "Data provider",
-        "default": "yfinance"
+        "enum": [
+          "fmp",
+          "polygon",
+          "tiingo",
+          "yfinance"
+        ],
+        "default": "yfinance",
+        "description": "OpenBB data provider"
       }
     },
-    "required": [
-      "symbol"
-    ]
+    "required": []
   },
   "outputSchema": {
     "type": "object",
@@ -64,16 +69,10 @@
     ],
     "examples": [
       {
-        "description": "Bitcoin 90 days",
-        "input": {
-          "symbol": "BTCUSD"
-        }
-      },
-      {
-        "description": "Ethereum history",
+        "description": "Daily price history for one cryptocurrency pair",
         "input": {
           "symbol": "ETHUSD",
-          "start_date": "2025-01-01"
+          "start_date": "2026-07-01"
         }
       }
     ]

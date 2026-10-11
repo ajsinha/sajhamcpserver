@@ -1,7 +1,8 @@
 {
   "name": "edgar_institutional_holdings",
   "implementation": "sajha.tools.impl.enhanced_edgar_tool.EDGARInstitutionalHoldingsTool",
-  "description": "Form 13F-HR quarterly holdings reports filed by an institutional investment manager, from SEC EDGAR (data.sec.gov submissions).\nReturns {cik, manager_name, filings_count, filings: [{accessionNumber, filingDate, reportDate, form, primaryDocument, primaryDocDescription, document_url}]}, newest first; document_url is an SEC viewer link.\nInputs (* required): cik* (string, SEC Central Index Key, up to 10 digits; from edgar_company_search), limit (integer 1-50, default 10).\nOnly the recent-filings block of the EDGAR submissions file is searched. The cik is the manager's (e.g. a fund company), not a held company. The result lists filings, not the positions themselves.\nExample: {\"cik\": \"0001067983\", \"limit\": 4}\nNo API key needed (SEC data.sec.gov; 110 ms between requests).",
+  "description": "Form 13F-HR quarterly holdings reports filed by an institutional investment manager, from SEC EDGAR (data.sec.gov submissions).\nReturns {cik, manager_name, filings_count, filings: [{accessionNumber, filingDate, reportDate, form, primaryDocument, primaryDocDescription, document_url}]}, newest first; document_url is an SEC viewer link.\nInputs (* required): cik* (string, the CIK), limit (integer 1-50, default 10).\nOnly the recent-filings block of the EDGAR submissions file is searched. The cik is the manager's (e.g. a fund company), not a held company. The result lists filings, not the positions themselves.\nExample: {\"cik\": \"0001067983\", \"limit\": 4}",
+  "annotations": {"readOnlyHint": true, "idempotentHint": true, "openWorldHint": true},
   "version": "2.9.8",
   "enabled": true,
   "inputSchema": {
@@ -19,7 +20,8 @@
         "default": 10
       }
     },
-    "required": ["cik"]
+    "required": ["cik"],
+    "examples": [{"cik": "0001067983", "limit": 4}]
   },
   "outputSchema": {
     "type": "object",

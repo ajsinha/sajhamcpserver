@@ -1,7 +1,8 @@
 {
   "name": "edgar_amendments",
   "implementation": "sajha.tools.impl.enhanced_edgar_tool.EDGARAmendmentsTool",
-  "description": "Amended filings (forms ending in /A, such as 10-K/A, 10-Q/A, 8-K/A, SC 13G/A) for one company, from SEC EDGAR, to spot corrections and restatements.\nReturns {cik, company_name, amendments_count, amendments: [{accessionNumber, filingDate, form, reportDate, document_url}]}, newest first.\nInputs (* required): cik* (string, SEC Central Index Key, up to 10 digits; from edgar_company_search), limit (integer 1-100, default 20).\nOnly the recent-filings block of the EDGAR submissions file is searched. For the original filings use edgar_filings_by_form.\nExample: {\"cik\": \"0000320193\", \"limit\": 10}\nNo API key needed (SEC data.sec.gov; 110 ms between requests).",
+  "description": "Amended filings (forms ending in /A, such as 10-K/A, 10-Q/A, 8-K/A, SC 13G/A) for one company, from SEC EDGAR, to spot corrections and restatements.\nReturns {cik, company_name, amendments_count, amendments: [{accessionNumber, filingDate, form, reportDate, document_url}]}, newest first.\nInputs (* required): cik* (string, the CIK), limit (integer 1-100, default 20).\nOnly the recent-filings block of the EDGAR submissions file is searched. For the original filings use edgar_filings_by_form.\nExample: {\"cik\": \"0000320193\", \"limit\": 10}",
+  "annotations": {"readOnlyHint": true, "idempotentHint": true, "openWorldHint": true},
   "version": "2.9.8",
   "enabled": true,
   "inputSchema": {
@@ -19,7 +20,8 @@
         "default": 20
       }
     },
-    "required": ["cik"]
+    "required": ["cik"],
+    "examples": [{"cik": "0000320193", "limit": 10}]
   },
   "outputSchema": {
     "type": "object",

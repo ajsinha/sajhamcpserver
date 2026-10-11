@@ -1,7 +1,8 @@
 {
   "name": "fmp_balance_sheet",
   "implementation": "sajha.tools.impl.fmp_tools.FMPBalanceSheetTool",
-  "description": "Balance sheets for one company from Financial Modeling Prep (FMP, /stable/balance-sheet-statement): total assets, liabilities, equity, cash, short- and long-term debt, retained earnings, one record per period.\nReturns {symbol, period, statements}: statements is the list of FMP period records.\nInputs (* required): symbol* (ticker, e.g. AAPL; upper-cased), period (annual or quarter; default annual), limit (integer 1-100, number of periods; default 5).\nSibling statements: fmp_income_statement and fmp_cash_flow; ratios: fmp_key_metrics.\nNeeds an FMP API key (config fmp.api.key, env FMP_API_KEY); without one it returns a demo placeholder naming the endpoint instead of data.\nExample: {\"symbol\": \"MSFT\", \"period\": \"annual\", \"limit\": 3}",
+  "description": "Balance sheets for one company from Financial Modeling Prep (FMP, /stable/balance-sheet-statement): total assets, liabilities, equity, cash, short- and long-term debt, retained earnings, one record per period.\nReturns {symbol, period, statements}: statements is the list of FMP period records.\nInputs (* required): symbol* (ticker, e.g. AAPL; upper-cased), period (annual or quarter; default annual), limit (integer 1-100, number of periods; default 5).\nSibling statements: fmp_income_statement and fmp_cash_flow; ratios: fmp_key_metrics.\nExample: {\"symbol\": \"MSFT\", \"period\": \"annual\", \"limit\": 3}",
+  "annotations": {"readOnlyHint": true, "idempotentHint": true, "openWorldHint": true},
   "version": "4.5.0",
   "enabled": true,
   "inputSchema": {
@@ -30,7 +31,8 @@
     },
     "required": [
       "symbol"
-    ]
+    ],
+    "examples": [{"symbol": "MSFT", "period": "annual", "limit": 3}]
   },
   "outputSchema": {
     "type": "object",

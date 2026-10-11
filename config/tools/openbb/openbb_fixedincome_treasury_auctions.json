@@ -1,16 +1,50 @@
 {
   "name": "openbb_fixedincome_treasury_auctions",
   "implementation": "sajha.tools.impl.openbb_tools.OpenBBGenericTool",
-  "description": "US Treasury auction results (security type, CUSIP, dates, high yield or rate, bid-to-cover and more) from TreasuryDirect through the OpenBB Platform (obb.fixedincome.government.treasury_auctions).\nReturns: {tool, data_points (total rows), data: first 100 rows as OpenBB returns them} or {tool, error}.\nInputs (* required): provider (OpenBB 4.6 accepts government_us only; schema default federal_reserve (also rejected), but when omitted the tool sends yfinance, which this command rejects, so set it); government_us needs no key.\nMarket yields: av_treasury_yield, fred_10yr_treasury. Keys: fmp, benzinga, fred, intrinio, polygon and tiingo need credentials in OpenBB's settings (~/.openbb_platform/user_settings.json), not supplied by SAJHA; yfinance, oecd, federal_reserve, sec, imf and government_us need none.\nExample: {\"provider\": \"government_us\"}",
+  "description": "US Treasury auction results (CUSIP, term, dates, high yield or rate, bid-to-cover) from TreasuryDirect through the OpenBB Platform (obb.fixedincome.government.treasury_auctions).\nReturns: {tool, provider, data_points (rows before the cap), truncated, data: rows with their dates, ignored_arguments when some did not apply} or {tool, error}.\nInputs (* required): security_type (bill, note, bond, cmb, tips or frn; default note); start_date; end_date; limit (rows returned, 1-1000; default 100; a dated series keeps its most recent rows); provider (government_us; default government_us).\nYields: openbb_treasury_rates, openbb_yield_curve. Keys: government_us needs none.\nExample: {\"security_type\": \"bill\", \"start_date\": \"2026-09-01\"}",
+  "annotations": {"readOnlyHint": true, "idempotentHint": true, "openWorldHint": true},
   "version": "4.5.0",
   "enabled": true,
   "inputSchema": {
     "type": "object",
     "properties": {
+      "security_type": {
+        "type": "string",
+        "enum": [
+          "bill",
+          "note",
+          "bond",
+          "cmb",
+          "tips",
+          "frn"
+        ],
+        "default": "note",
+        "description": "bill, note, bond, cmb, tips or frn"
+      },
+      "start_date": {
+        "type": "string",
+        "description": "Auction dates from (YYYY-MM-DD)",
+        "format": "date"
+      },
+      "end_date": {
+        "type": "string",
+        "description": "Auction dates to (YYYY-MM-DD)",
+        "format": "date"
+      },
+      "limit": {
+        "type": "integer",
+        "minimum": 1,
+        "maximum": 1000,
+        "default": 100,
+        "description": "Most rows returned (1-1000); a dated series keeps its most recent rows"
+      },
       "provider": {
         "type": "string",
-        "description": "OpenBB data provider",
-        "default": "federal_reserve"
+        "enum": [
+          "government_us"
+        ],
+        "default": "government_us",
+        "description": "OpenBB data provider"
       }
     },
     "required": []
@@ -18,8 +52,24 @@
   "outputSchema": {
     "type": "object",
     "properties": {
-      "result": {
-        "type": "object"
+      "tool": {
+        "type": "string"
+      },
+      "provider": {
+        "type": "string"
+      },
+      "data_points": {
+        "type": "integer",
+        "description": "Rows before the cap"
+      },
+      "truncated": {
+        "type": "boolean"
+      },
+      "data": {
+        "type": "array"
+      },
+      "error": {
+        "type": "string"
       }
     }
   },
@@ -32,6 +82,15 @@
       "openbb",
       "treasury",
       "auctions"
+    ],
+    "examples": [
+      {
+        "description": "US Treasury auction results (CUSIP, term, dates, high yield or rate, bid-to-cove",
+        "input": {
+          "security_type": "bill",
+          "start_date": "2026-09-01"
+        }
+      }
     ]
   }
 }

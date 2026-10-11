@@ -1,7 +1,8 @@
 {
   "name": "yf_market_summary",
   "implementation": "sajha.tools.impl.yfinance_tools.YFMarketSummaryTool",
-  "description": "Latest levels of major US market gauges from Yahoo Finance: S&P 500 (^GSPC), Dow Jones (^DJI), NASDAQ (^IXIC), Russell 2000 (^RUT), VIX (^VIX) and the 10-year Treasury yield index (^TNX). Takes no inputs.\nReturns: {market_summary: [{index, symbol, price}]}; only the last value, no change.\nHistory for one index: yf_index_history; sector ETFs: yf_sector_performance. No API key; data comes from Yahoo Finance through the yfinance library.\nExample: {}",
+  "description": "Latest levels of major US market gauges from Yahoo Finance: S&P 500 (^GSPC), Dow Jones (^DJI), NASDAQ (^IXIC), Russell 2000 (^RUT), VIX (^VIX) and the 10-year Treasury yield index (^TNX). Takes no inputs.\nReturns: {market_summary: [{index, symbol, price}]}; only the last value, no change.\nHistory for one index: yf_index_history; sector ETFs: yf_sector_performance.\nExample: {}",
+  "annotations": {"readOnlyHint": true, "idempotentHint": true, "openWorldHint": true},
   "version": "4.5.0",
   "enabled": true,
   "inputSchema": {

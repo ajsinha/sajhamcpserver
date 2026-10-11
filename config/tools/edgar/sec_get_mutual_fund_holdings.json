@@ -1,7 +1,8 @@
 {
   "name": "sec_get_mutual_fund_holdings",
   "implementation": "sajha.tools.impl.sec_edgar_tool_refactored.SECGetMutualFundHoldingsTool",
-  "description": "Form 13F-HR institutional holdings filings of an investment manager, from SEC EDGAR. Despite the name, it lists 13F-HR filings, not mutual fund N-PORT reports.\nReturns {cik, name, filing_count, filings: [{accession_number, filing_date, report_date, form, primary_document, description}]}, newest first; filings only, not the positions.\nInputs (* required): cik or ticker (one is needed; managers rarely have tickers, so use the cik; cik, 10 digits or shorter, wins when both are given; a ticker is resolved through the SEC company-tickers file), limit (integer 1-20, default 5).\nedgar_institutional_holdings returns the same filings with document URLs; for N-PORT fund holdings use edgar_mutual_fund_holdings.\nExample: {\"cik\": \"0001067983\", \"limit\": 4}\nNo API key; SEC data.sec.gov (requests are not throttled; the SEC allows 10 per second).",
+  "description": "Form NPORT-P monthly portfolio holdings reports filed by a registered fund (mutual fund or ETF registrant), from SEC EDGAR submissions.\nReturns {cik, name, filing_count, filings: [{accession_number, filing_date, report_date, form (NPORT-P or NPORT-P/A), primary_document, description}]}, newest first; filings only, not the positions.\nInputs (* required): cik or ticker (one is needed; cik, 10 digits or shorter, wins; a ticker is resolved through the SEC company-tickers file), limit (integer 1-20, default 5).\nedgar_mutual_fund_holdings returns the same filings with document URLs; for a manager's Form 13F-HR holdings use edgar_institutional_holdings.\nExample: {\"cik\": \"0000036405\", \"limit\": 3}",
+  "annotations": {"readOnlyHint": true, "idempotentHint": true, "openWorldHint": true},
   "version": "2.9.8",
   "enabled": true,
   "inputSchema": {
@@ -9,24 +10,33 @@
     "properties": {
       "cik": {
         "type": "string",
-        "description": "Central Index Key (CIK) - 10 digit company identifier for the institutional investment manager"
+        "description": "Central Index Key (CIK) of the fund registrant (the investment company that files N-PORT)"
       },
       "ticker": {
         "type": "string",
-        "description": "Stock ticker symbol (typically not applicable for institutional managers, use CIK)"
+        "description": "Ticker symbol, resolved through the SEC company-tickers file (fund registrants rarely have one; use cik)"
       },
       "limit": {
         "type": "integer",
-        "description": "Maximum number of Form 13F filings to return",
+        "description": "Maximum number of NPORT-P filings to return",
         "default": 5,
         "minimum": 1,
         "maximum": 20
       }
     },
     "oneOf": [
-      {"required": ["cik"]},
-      {"required": ["ticker"]}
-    ]
+      {
+        "required": [
+          "cik"
+        ]
+      },
+      {
+        "required": [
+          "ticker"
+        ]
+      }
+    ],
+    "examples": [{"cik": "0000036405", "limit": 3}]
   },
   "outputSchema": {
     "type": "object",
@@ -37,15 +47,15 @@
       },
       "name": {
         "type": "string",
-        "description": "Institution name"
+        "description": "Fund registrant name"
       },
       "filing_count": {
         "type": "integer",
-        "description": "Number of Form 13F filings returned"
+        "description": "Number of NPORT-P filings returned"
       },
       "filings": {
         "type": "array",
-        "description": "List of Form 13F holdings reports",
+        "description": "NPORT-P monthly portfolio holdings reports",
         "items": {
           "type": "object",
           "properties": {
@@ -63,7 +73,7 @@
             },
             "form": {
               "type": "string",
-              "description": "Form type (will be '13F-HR')"
+              "description": "Form type (NPORT-P or NPORT-P/A)"
             },
             "primary_document": {
               "type": "string",
@@ -74,24 +84,42 @@
               "description": "Filing description"
             }
           },
-          "required": ["accession_number", "filing_date", "form"]
+          "required": [
+            "accession_number",
+            "filing_date",
+            "form"
+          ]
         }
       }
     },
-    "required": ["cik", "name", "filing_count", "filings"]
+    "required": [
+      "cik",
+      "name",
+      "filing_count",
+      "filings"
+    ]
   },
   "metadata": {
     "author": "Ashutosh Sinha",
     "category": "Financial Data",
-    "tags": ["sec", "edgar", "13f", "institutional", "holdings", "mutual funds", "hedge funds", "portfolio"],
+    "tags": [
+      "sec",
+      "edgar",
+      "13f",
+      "institutional",
+      "holdings",
+      "mutual funds",
+      "hedge funds",
+      "portfolio"
+    ],
     "rateLimit": 10,
     "cacheTTL": 3600,
     "note": "Form 13F discloses equity holdings of institutional investment managers with >$100M in AUM. Filed quarterly.",
     "examples": [
       {
-        "description": "Get Berkshire Hathaway (Warren Buffett) holdings",
+        "description": "Vanguard Index Funds N-PORT filings",
         "input": {
-          "cik": "0001067983",
+          "cik": "0000036405",
           "limit": 4
         }
       },

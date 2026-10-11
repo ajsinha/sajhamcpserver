@@ -1,0 +1,1 @@
+SEC EDGAR, the SEC's filing system (sec.gov, data.sec.gov); no API key. Companies are identified by CIK (up to 10 digits; edgar_company_search finds it from a ticker or name). The edgar_* tools pause 110 ms between requests; the sec_* tools are not throttled (the SEC allows 10 requests a second).

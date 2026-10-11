@@ -1,7 +1,8 @@
 {
   "name": "openbb_cash_flow",
   "implementation": "sajha.tools.impl.openbb_tools.OpenBBCashFlowTool",
-  "description": "Cash flow statements (operating, investing, financing cash flow, free cash flow) for one company through the OpenBB Platform (obb.equity.fundamental.cash).\nReturns: {symbol, statements: [one record per period with period_ending, fiscal period and the line items]}.\nInputs (* required): symbol*; period (annual or quarter; default annual); limit (number of periods; default 5); provider (OpenBB 4.6 accepts fmp, intrinio, polygon, sec, yfinance; default yfinance, no key).\nRelated: openbb_income_statement, openbb_balance_sheet; other sources: yf_cash_flow, av_cash_flow. Keys: fmp, benzinga, fred, intrinio, polygon and tiingo need credentials in OpenBB's settings (~/.openbb_platform/user_settings.json), not supplied by SAJHA; yfinance, oecd, federal_reserve, sec, imf and government_us need none.\nExample: {\"symbol\": \"AAPL\", \"period\": \"quarter\", \"limit\": 4, \"provider\": \"yfinance\"}",
+  "description": "Cash flow statements (operating, investing, financing, free cash flow) for one company through the OpenBB Platform (obb.equity.fundamental.cash).\nReturns: {symbol, provider, data_points, truncated, statements: [one record per period with period_ending, fiscal period and the line items]} or {symbol, error}.\nInputs (* required): symbol*; period (annual or quarter; default annual); limit (periods, 1-100; default 5); provider (fmp, intrinio, polygon, sec, yfinance; default yfinance).\nRelated: openbb_income_statement, openbb_balance_sheet; other sources: yf_cash_flow, av_cash_flow. Keys: sec, yfinance need none; fmp uses SAJHA's FMP_API_KEY; intrinio, polygon need a key in ~/.openbb_platform/user_settings.json.\nExample: {\"symbol\": \"AAPL\", \"period\": \"quarter\", \"limit\": 4}",
+  "annotations": {"readOnlyHint": true, "idempotentHint": true, "openWorldHint": true},
   "version": "4.5.0",
   "enabled": true,
   "inputSchema": {
@@ -9,37 +10,60 @@
     "properties": {
       "symbol": {
         "type": "string",
-        "description": "Stock ticker symbol (e.g., AAPL, MSFT)"
+        "description": "Ticker symbol, e.g. AAPL"
       },
       "period": {
         "type": "string",
-        "description": "Period: annual or quarter",
         "enum": [
           "annual",
           "quarter"
         ],
-        "default": "annual"
-      },
-      "provider": {
-        "type": "string",
-        "description": "Data provider",
-        "default": "yfinance"
+        "default": "annual",
+        "description": "annual or quarter"
       },
       "limit": {
         "type": "integer",
-        "description": "Number of records",
-        "default": 5
+        "minimum": 1,
+        "maximum": 100,
+        "default": 5,
+        "description": "Number of periods"
+      },
+      "provider": {
+        "type": "string",
+        "enum": [
+          "fmp",
+          "intrinio",
+          "polygon",
+          "sec",
+          "yfinance"
+        ],
+        "default": "yfinance",
+        "description": "OpenBB data provider"
       }
     },
     "required": [
       "symbol"
-    ]
+    ],
+    "examples": [{"symbol": "AAPL", "period": "quarter", "limit": 4}]
   },
   "outputSchema": {
     "type": "object",
     "properties": {
-      "result": {
-        "type": "object"
+      "provider": {
+        "type": "string"
+      },
+      "data_points": {
+        "type": "integer",
+        "description": "Rows before the cap"
+      },
+      "truncated": {
+        "type": "boolean"
+      },
+      "statements": {
+        "type": "array"
+      },
+      "error": {
+        "type": "string"
       }
     }
   },
@@ -53,6 +77,15 @@
       "cash flow",
       "fcf"
     ],
-    "examples": []
+    "examples": [
+      {
+        "description": "Cash flow statements (operating, investing, financing, free cash flow) for one c",
+        "input": {
+          "symbol": "AAPL",
+          "period": "quarter",
+          "limit": 4
+        }
+      }
+    ]
   }
 }

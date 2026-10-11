@@ -1,7 +1,8 @@
 {
   "name": "edgar_frame_data",
   "implementation": "sajha.tools.impl.enhanced_edgar_tool.EDGARFrameDataTool",
-  "description": "One XBRL concept for one period across all reporting companies (the EDGAR frames API), for cross-company comparison and benchmarking.\nReturns {taxonomy, tag, label, description, frame (e.g. CY2023, CY2023Q4), units_count (data points), data: [{accn, cik, entityName, loc, end, val}]}, often thousands of rows.\nInputs (* required): concept* (string, XBRL tag such as Assets or NetIncomeLoss), year* (integer 2009-2030), quarter (Q1 | Q2 | Q3 | Q4 | CY; default CY = whole calendar year), unit (USD | shares | pure; default USD), taxonomy (us-gaap | ifrs-full | dei | srt; default us-gaap).\nSuits duration concepts (revenue, income); point-in-time frames for balance-sheet items (CY2023Q4I) are not built. Several concepts: edgar_xbrl_frames_multi_concept; one company: edgar_company_concept.\nExample: {\"concept\": \"NetIncomeLoss\", \"year\": 2023, \"quarter\": \"CY\"}\nNo API key needed (SEC data.sec.gov; 110 ms between requests).",
+  "description": "One XBRL concept for one period across all reporting companies (EDGAR frames API), to compare companies.\nReturns {taxonomy, tag, label, description, frame (CY2023, CY2023Q4; instants CY2023Q4I), units_count, data: [{accn, cik, entityName, loc, end, val}]}, often thousands of rows.\nInputs (* required): concept* (XBRL tag, e.g. Assets, NetIncomeLoss), year*, quarter (default CY), period_type (default auto: the duration frame, else the instant one, for CY the year-end Q4I, so balance-sheet concepts work), unit (default USD), taxonomy (default us-gaap).\nSeveral concepts: edgar_xbrl_frames_multi_concept; one company: edgar_company_concept.\nExample: {\"concept\": \"Assets\", \"year\": 2023, \"quarter\": \"CY\"}",
+  "annotations": {"readOnlyHint": true, "idempotentHint": true, "openWorldHint": true},
   "version": "2.9.8",
   "enabled": true,
   "inputSchema": {
@@ -10,7 +11,12 @@
       "taxonomy": {
         "type": "string",
         "description": "XBRL taxonomy standard",
-        "enum": ["us-gaap", "ifrs-full", "dei", "srt"],
+        "enum": [
+          "us-gaap",
+          "ifrs-full",
+          "dei",
+          "srt"
+        ],
         "default": "us-gaap"
       },
       "concept": {
@@ -20,7 +26,11 @@
       "unit": {
         "type": "string",
         "description": "Unit of measure for the concept",
-        "enum": ["USD", "shares", "pure"],
+        "enum": [
+          "USD",
+          "shares",
+          "pure"
+        ],
         "default": "USD"
       },
       "year": {
@@ -32,11 +42,31 @@
       "quarter": {
         "type": "string",
         "description": "Fiscal period: Q1, Q2, Q3, Q4 for quarters, or CY for full calendar year",
-        "enum": ["Q1", "Q2", "Q3", "Q4", "CY"],
+        "enum": [
+          "Q1",
+          "Q2",
+          "Q3",
+          "Q4",
+          "CY"
+        ],
         "default": "CY"
+      },
+      "period_type": {
+        "type": "string",
+        "enum": [
+          "auto",
+          "duration",
+          "instant"
+        ],
+        "default": "auto",
+        "description": "duration (income, cash flow), instant (balance sheet, e.g. CY2023Q4I) or auto: duration, then instant when there is no duration frame"
       }
     },
-    "required": ["concept", "year"]
+    "required": [
+      "concept",
+      "year"
+    ],
+    "examples": [{"concept": "Assets", "year": 2023, "quarter": "CY"}]
   },
   "outputSchema": {
     "type": "object",
@@ -72,7 +102,7 @@
           "type": "object",
           "properties": {
             "cik": {
-              "type": "string",
+              "type": ["string", "integer"],
               "description": "Company CIK"
             },
             "entityName": {
@@ -103,7 +133,16 @@
   "metadata": {
     "author": "Ashutosh Sinha",
     "category": "SEC EDGAR",
-    "tags": ["sec", "edgar", "xbrl", "frame", "aggregated data", "market analysis", "benchmarking", "peer comparison"],
+    "tags": [
+      "sec",
+      "edgar",
+      "xbrl",
+      "frame",
+      "aggregated data",
+      "market analysis",
+      "benchmarking",
+      "peer comparison"
+    ],
     "rateLimit": 10,
     "cacheTTL": 7200,
     "note": "Aggregated view across ALL public companies for a specific metric and time period. Excellent for industry analysis, peer comparisons, and market-wide trends. Response can be large with thousands of companies.",
@@ -171,7 +210,11 @@
         "use": "Analyze profit margins and performance"
       },
       "financial_health": {
-        "concepts": ["Assets", "Liabilities", "StockholdersEquity"],
+        "concepts": [
+          "Assets",
+          "Liabilities",
+          "StockholdersEquity"
+        ],
         "use": "Assess balance sheet strength"
       },
       "cash_position": {
@@ -179,7 +222,10 @@
         "use": "Evaluate liquidity across market"
       },
       "valuation": {
-        "concepts": ["EarningsPerShareBasic", "CommonStockSharesOutstanding"],
+        "concepts": [
+          "EarningsPerShareBasic",
+          "CommonStockSharesOutstanding"
+        ],
         "use": "Calculate market-wide valuation metrics"
       }
     }

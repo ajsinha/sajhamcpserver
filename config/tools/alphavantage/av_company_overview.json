@@ -1,7 +1,8 @@
 {
   "name": "av_company_overview",
   "implementation": "sajha.tools.impl.alphavantage_tools.AVCompanyOverviewTool",
-  "description": "Company profile and key ratios for one stock from Alpha Vantage (OVERVIEW).\nReturns: one flat object of strings: Symbol, Name, Description, Exchange, Currency, Sector, Industry, MarketCapitalization, PERatio, PEGRatio, BookValue, DividendPerShare, DividendYield, EPS, ProfitMargin, Beta, 52WeekHigh, 52WeekLow, AnalystTargetPrice and more. Alpha Vantage's JSON comes back unchanged, including its \"Error Message\" or \"Information\" notes; a network failure gives {\"error\": ...}.\nInputs (* required): symbol* (ticker).\nStatements: av_income_statement, av_balance_sheet, av_cash_flow; EPS history: av_earnings. Other sources: yf_stock_info, openbb_equity_profile.\nKey: ALPHA_VANTAGE_API_KEY (alpha_vantage.api.key); when unset the 'demo' key is sent, which only serves Alpha Vantage's documentation examples. Free tier: 25 requests/day.\nExample: {\"symbol\": \"IBM\"}",
+  "description": "Company profile and key ratios for one stock from Alpha Vantage (OVERVIEW).\nReturns: one flat object of strings: Symbol, Name, Description, Exchange, Currency, Sector, Industry, MarketCapitalization, PERatio, PEGRatio, BookValue, DividendPerShare, DividendYield, EPS, ProfitMargin, Beta, 52WeekHigh, 52WeekLow, AnalystTargetPrice and more.\nInputs (* required): symbol* (ticker).\nStatements: av_income_statement, av_balance_sheet, av_cash_flow; EPS history: av_earnings. Other sources: yf_stock_info, openbb_equity_profile.\nExample: {\"symbol\": \"IBM\"}",
+  "annotations": {"readOnlyHint": true, "idempotentHint": true, "openWorldHint": true},
   "version": "4.5.0",
   "enabled": true,
   "inputSchema": {
@@ -14,7 +15,8 @@
     },
     "required": [
       "symbol"
-    ]
+    ],
+    "examples": [{"symbol": "IBM"}]
   },
   "outputSchema": {
     "type": "object",
