@@ -4,6 +4,32 @@ Newest first. The current version is `app.version` in `config/application.yml`.
 
 ## Unreleased
 
+## v8.6.0 (October 2026) — an HTTP proxy for tool fetches; documentation brought up to date
+
+### Added
+
+- **A proxy for the guarded fetches** of the web crawler tools and Studio REST tools:
+  `tools.outbound.proxy` (an `http://` or `https://` proxy URL, empty = direct as before; set it with
+  `SAJHA_TOOLS_OUTBOUND_PROXY` because it may carry credentials, which are only ever shown masked) and
+  `tools.outbound.no_proxy` (host patterns or CIDRs that go direct). `HTTP_PROXY` / `HTTPS_PROXY` are never
+  read. Through the proxy the outbound fetch guard still refuses blocked names, literals and resolved
+  addresses and checks every redirect hop; a host that does not resolve locally is left to the proxy;
+  `https` goes by `CONNECT` with TLS verified to the real host. The connection cannot be pinned through a
+  proxy; the residual is described in the [Security Model](docs/security/Security%20Model.md#other-features-that-need-care).
+  API Import is unchanged (never proxied).
+
+### Fixed
+
+- Documentation brought in line with the code: per-user sign-in and the GitHub, Atlassian and Google
+  guides described as built (no longer "design" or "proposal"); those guides no longer claim a default
+  approval rule for proxied writes (none ships; an operator writes the policy rule, Roadmap L20); owners
+  named for tool folders and domains, qlrisk, the outbound fetch guard and the Implementation Plan; the
+  Implementation Plan and Roadmap statuses after wave 7; the Server connections pages in the menu table;
+  a glossary term for the outbound fetch guard; three archived documents marked as archived.
+- Console: removed buttons that only answered "Feature coming soon" (Admin > Tools "Enable/Disable All
+  Tools", Admin > Users "Enable All Users" and "Reset All Passwords") and MCP Studio's "Coming Soon" banner
+  for API import, which has shipped.
+
 ## v8.5.0 (October 2026) — outbound fetch guard for crawler and REST tools
 
 ### Upgrading

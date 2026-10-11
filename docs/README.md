@@ -29,7 +29,7 @@ alone. Definitions live in the root [GLOSSARY](../GLOSSARY.md); release history 
 |---|---|
 | `getting-started/` | The map, quick start, configuration reference, database setup, storage, Kubernetes, the Python Playground |
 | `protocol/` | MCP protocol guide, the two compliance reports, API reference, OAuth, MCP Apps and headers, the SAJHA Net protocol |
-| `architecture/` | How the server is built, and one design or as-built guide per subsystem: composition, the intelligence layer and its extension, LLM tools, planners, federation, SAJHA Net, connected accounts, API import, tool generation, data connectors, policy and audit, system notices, sandbox, scaling, observability, workflows, tool quality; the implementation plan and the roadmap |
+| `architecture/` | How the server is built, and one design or as-built guide per subsystem: composition, the intelligence layer and its extension, LLM tools, planners, federation, SAJHA Net, connected accounts, API import, tool generation, data connectors, policy and audit, system notices, sandbox, scaling, observability, workflows, tool quality, per-user sign-in for proxied servers and the GitHub, Atlassian and Google integrations; the adversarial QA plan; the implementation plan and the roadmap |
 | `studio/` | MCP Studio and its creators |
 | `tools/` | One reference guide per tool provider, by category; prompts |
 | `tutorials/` | Step-by-step walkthroughs, numbered |
@@ -73,10 +73,10 @@ alone. Definitions live in the root [GLOSSARY](../GLOSSARY.md); release history 
 - [Scaling and State](architecture/Scaling%20and%20State.md): several workers or hosts; the state store (memory, Redis, database), durable tasks, and what stays per process
 - [Observability](architecture/Observability.md): Prometheus `/metrics`, OpenTelemetry traces over OTLP, the usage and cost dashboard, alert rules
 - [Workflows](architecture/Workflows.md): DAGs of tools, composites and Ask SAJHA steps; cron, webhook, file and event triggers; durable runs that resume after a crash; re-run from a step; publish as a tool
-- [Per-User Sign-In for Proxied Servers](architecture/Per-User%20Sign-In%20for%20Proxied%20Servers.md): design — proxied MCP servers' tools running as each user with their own vendor account (OAuth or personal tokens), connect prompts, sessions, SAJHA Net, security
-- [GitHub Integration](architecture/GitHub%20Integration.md): proposal — proxying GitHub's official MCP server per user
-- [Atlassian Integration](architecture/Atlassian%20Integration.md): proposal — Jira and Confluence through Atlassian's Rovo MCP server (Cloud) or a self-hosted server (Data Center)
-- [Google Integration](architecture/Google%20Integration.md): proposal — proxying Google's Workspace MCP servers (Gmail, Drive, Calendar) and other public MCP servers, after per-user OAuth for proxied servers
+- [Per-User Sign-In for Proxied Servers](architecture/Per-User%20Sign-In%20for%20Proxied%20Servers.md): proxied MCP servers' tools running as each user with their own vendor account (OAuth sign-in or personal tokens): the design, what is built, connect prompts, sessions, SAJHA Net, security
+- [GitHub Integration](architecture/GitHub%20Integration.md): GitHub's official MCP server proxied per user, with personal tokens or each user's GitHub sign-in
+- [Atlassian Integration](architecture/Atlassian%20Integration.md): Jira and Confluence per user through Atlassian's Rovo MCP server (Cloud, OAuth sign-in) or a self-hosted server (Data Center, personal tokens)
+- [Google Integration](architecture/Google%20Integration.md): Google's Workspace MCP servers (Gmail, Drive, Calendar) proxied per user with OAuth sign-in (configurable, not verified against Google's live servers), and other public MCP servers worth the same
 - [Adversarial QA Plan](architecture/Adversarial%20QA%20Plan.md): how to attack SAJHA on purpose — every surface, what to try, the safe behaviour expected, priorities, automation and existing coverage
 - [Tool Quality](architecture/Tool%20Quality.md): test cases with recorded HTTP cassettes and JUnit output, the schema linter, health probes, evals for Ask SAJHA, tool versions with canary routing, rollback and sunset dates
 - [Policy and Audit](architecture/Policy%20and%20Audit.md): declarative rules on every tool call (deny, approval, argument constraints, rate limits, quotas, redaction, injection screening); the hash-chained, signed audit and SIEM export

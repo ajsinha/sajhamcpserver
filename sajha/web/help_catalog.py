@@ -234,7 +234,7 @@ CATALOG: List[dict] = [
                'The build order for LLM tools, SAJHA Net and the open roadmap items, wave by wave, '
                'each a release with its status, contents, dependencies, exit gates and risks.'),
             _g('Roadmap', 'Roadmap.md', 'bi-signpost-2',
-               'What is not built yet and what should come next: release hygiene, the gaps the guides record, '
+               'What is not built yet and what should come next: the gaps the guides record '
                'and recommended enhancements, each with its size, dependencies and the guide that owns it.'),
         ],
     },

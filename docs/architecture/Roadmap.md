@@ -40,9 +40,8 @@ judgement. They are collected in [section 5](#5-decisions-needed).
 
 ## 2. Now
 
-Wave 7 of the [Implementation Plan](Implementation%20Plan.md) is built (per-user sign-in for proxied
-servers, access rules for prompts and resources, and the [Adversarial QA Plan](Adversarial%20QA%20Plan.md)'s
-first automation); its release is the next step.
+Nothing is open. Every wave of the [Implementation Plan](Implementation%20Plan.md) so far has shipped;
+the next wave is the owner's choice from the items below.
 
 ---
 

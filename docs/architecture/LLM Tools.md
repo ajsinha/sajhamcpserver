@@ -130,24 +130,9 @@ tool planning at all.
 
 ## 3. Vocabulary
 
-These terms go into `GLOSSARY.md` when the feature is built (the glossary is the only place
-definitions live).
-
-| Term | Meaning |
-|---|---|
-| LLM tool | A tool whose `execute()` runs a model according to an `llm` block in its config. |
-| Mode | What kind of model interaction an LLM tool performs (section 6). |
-| Inner call | A call an LLM tool makes to another tool while answering. |
-| Conversation handle | The `conversation_id` an LLM tool returns and accepts, naming stored context. |
-| Client history | Earlier turns the caller sends in the `messages` argument instead of a handle. |
-| Sampling | MCP's mechanism for a server to ask the client's model for a completion. |
-| Depth | How many LLM tools are nested in the current call chain. |
-| Planner | The strategy an LLM tool follows: a bounded graph of stages defined in configuration (section 9). |
-| Stage | One unit of planner work from a fixed library (act, plan, critique, verify, ...), ending in a typed outcome. |
-| Bounded edge | A planner transition that may loop back, with a maximum number of visits and a destination when it is reached. |
-| Spool | Per-run files on local disk that hold large in-flight payloads instead of process memory. |
-| Canonical format | The OpenAI Chat Completions request and response shapes that every SAJHA model call uses (section 13). |
-| Memory guard | The watchdog that slows, refuses or ends LLM-tool runs before the process runs out of memory. |
+The terms this note uses (LLM tool, mode, inner call, conversation handle, client history,
+sampling, depth, planner, stage, bounded edge, spool, canonical format, memory guard) are defined in
+the [Glossary](../../GLOSSARY.md#9-ai-integration), the only place definitions live.
 
 ---
 

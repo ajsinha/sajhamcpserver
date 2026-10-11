@@ -2,7 +2,7 @@
 
 **SAJHA** (साझा, "shared") is one governed catalog of tools that every MCP client and
 agent shares. Market data, central banks, public statistics, filings, search, analytics
-and financial calculators, plus the tools you build in the browser, tools a model runs,
+and financial calculators (and risk analytics, with qlrisk installed), plus the tools you build in the browser, tools a model runs,
 and the tools of other MCP servers SAJHA proxies, all live in one catalog on one `/mcp`
 endpoint, under one set of credentials, roles, policy, sandboxing and audit. A client, an
 agent or SAJHA's own intelligence layer composes them on demand into whatever the
@@ -69,13 +69,16 @@ checks and tests it before an administrator approves the deploy. LLM tools are t
 whose work a model does (summarise, classify, extract, an assistant over other tools),
 configured like any tool and run as the caller. Composite tools chain tools with
 confidence tracking, and proxied MCP servers (paste a Claude Desktop or Cursor
-`mcpServers` file) put other servers' tools in the same catalog under the same governance.
+`mcpServers` file) put other servers' tools in the same catalog under the same governance,
+with each user signed in to the vendor as themselves where the server asks for it (personal
+tokens or OAuth; GitHub and Atlassian templates ship).
 → [MCP Studio User Guide](docs/studio/MCP%20Studio%20User%20Guide.md) ·
 [API Import](docs/architecture/API%20Import.md) ·
 [Tool Generation](docs/architecture/Tool%20Generation.md) ·
 [LLM Tools](docs/architecture/LLM%20Tools.md) ·
 [Composition Framework](docs/architecture/Composition%20Framework.md) ·
-[Federation](docs/architecture/Federation.md)
+[Federation](docs/architecture/Federation.md) ·
+[Per-User Sign-In for Proxied Servers](docs/architecture/Per-User%20Sign-In%20for%20Proxied%20Servers.md)
 
 **Reach your data and accounts.** Data connectors put PostgreSQL, MySQL, SQL Server,
 Oracle, Snowflake, BigQuery, Databricks and vector stores behind read-only tools with a

@@ -126,12 +126,15 @@ def request(method: str, url: str, *, params: Optional[Sequence[Tuple[str, str]]
             headers: Optional[Dict[str, str]] = None, content: Optional[bytes] = None,
             timeout: float = 30.0, max_bytes: int = 5 * 1024 * 1024,
             follow_redirects: bool = True,
-            vet: Optional[Callable[[str], Tuple[str, int, str]]] = None) -> Response:
+            vet: Optional[Callable[[str], Tuple[str, int, Optional[str]]]] = None,
+            proxy: Optional[str] = None) -> Response:
     """One guarded request. Raises UnsafeURLError, FetchTimeout or FetchError.
 
     ``vet(url) -> (host, port, ip)`` checks one hop and names the address to pin; the default
     is API Import's guard. The outbound fetch guard for tools (sajha/core/outbound.py) passes
-    its own, so it shares this pinned, redirect-checking client."""
+    its own, so it shares this pinned, redirect-checking client. A ``vet`` that answers
+    ``ip=None`` sends that hop through ``proxy`` (unpinned: the proxy connects; https by
+    CONNECT, TLS verified to the real host). API Import never passes a proxy."""
     method = method.upper()
     target = httpx.URL(url)
     if params:
@@ -144,15 +147,20 @@ def request(method: str, url: str, *, params: Optional[Sequence[Tuple[str, str]]
             ip = resolve_pinned(host, port)
         else:
             host, port, ip = vet(current)
-        pinned = target.copy_with(host=ip, port=port)
         send_headers = dict(headers or {})
-        send_headers['Host'] = target.netloc.decode('ascii')
+        if ip is None:                              # through the configured proxy
+            if not proxy:
+                raise FetchError(f'host {host} has no checked address and no proxy is configured')
+            dest, via, ext = target, proxy, {}
+        else:                                       # direct, pinned to the vetted address
+            dest, via, ext = target.copy_with(host=ip, port=port), None, {'sni_hostname': host}
+            send_headers['Host'] = target.netloc.decode('ascii')
         from sajha.observability.tracing import inject as _inject_trace
         _inject_trace(send_headers)                 # W3C traceparent of the current call
         try:
-            with httpx.Client(timeout=timeout, follow_redirects=False, trust_env=False) as client:
-                with client.stream(method, pinned, headers=send_headers, content=content,
-                                   extensions={'sni_hostname': host}) as resp:
+            with httpx.Client(timeout=timeout, follow_redirects=False, trust_env=False, proxy=via) as client:
+                with client.stream(method, dest, headers=send_headers, content=content,
+                                   extensions=ext) as resp:
                     if resp.status_code in (301, 302, 303, 307, 308) and follow_redirects \
                             and method in ('GET', 'HEAD') and resp.headers.get('location'):
                         hops += 1

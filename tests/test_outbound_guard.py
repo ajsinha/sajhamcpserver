@@ -17,6 +17,8 @@ from sajha.core import outbound
 
 @pytest.fixture(autouse=True)
 def _defaults(monkeypatch):
+    monkeypatch.delenv('SAJHA_TOOLS_OUTBOUND_PROXY', raising=False)
+    monkeypatch.delenv('SAJHA_TOOLS_OUTBOUND_NO_PROXY', raising=False)
     monkeypatch.delenv('SAJHA_TOOLS_OUTBOUND_BLOCK_PRIVATE_NETWORKS', raising=False)
     monkeypatch.delenv('SAJHA_TOOLS_OUTBOUND_EXEMPT_HOSTS', raising=False)
 
@@ -188,3 +190,144 @@ def test_a_studio_rest_tool_calls_an_exempt_local_endpoint(local_server, monkeyp
     assert out['success'], out
     assert out['data']['path'].startswith('/echo/7?') and 'q=x' in out['data']['path']
     assert out['data']['auth'] == 'Basic dTpw'
+
+
+# ── through tools.outbound.proxy ──
+
+class _ProxyHandler(BaseHTTPRequestHandler):
+    """A stand-in HTTP proxy: answers every absolute-form request itself, naming what it was asked."""
+    seen = []
+
+    def do_GET(self):
+        import json
+        type(self).seen.append({'target': self.path, 'proxy_auth': self.headers.get('Proxy-Authorization')})
+        if 'to-metadata' in self.path:
+            self.send_response(302)
+            self.send_header('Location', 'http://169.254.169.254/latest/meta-data/')
+            self.send_header('Content-Length', '0')
+            self.end_headers()
+            return
+        body = json.dumps({'via': 'proxy', 'target': self.path}).encode()
+        self.send_response(200)
+        self.send_header('Content-Type', 'application/json')
+        self.send_header('Content-Length', str(len(body)))
+        self.end_headers()
+        self.wfile.write(body)
+
+    def log_message(self, *a):
+        pass
+
+
+@pytest.fixture()
+def proxy_server(monkeypatch):
+    _ProxyHandler.seen = []
+    srv = ThreadingHTTPServer(('127.0.0.1', 0), _ProxyHandler)
+    threading.Thread(target=srv.serve_forever, daemon=True).start()
+    url = f'http://127.0.0.1:{srv.server_address[1]}'
+    monkeypatch.setenv('SAJHA_TOOLS_OUTBOUND_PROXY', url)
+    monkeypatch.delenv('SAJHA_TOOLS_OUTBOUND_NO_PROXY', raising=False)
+    yield url
+    srv.shutdown()
+    srv.server_close()
+
+
+def test_requests_go_through_the_configured_proxy(proxy_server, monkeypatch):
+    _fake_dns(monkeypatch, {'public.example': ['93.184.216.34']})
+    r = outbound.request('GET', 'http://public.example/page?q=1')
+    assert r.json() == {'via': 'proxy', 'target': 'http://public.example/page?q=1'}
+    assert outbound.vet('http://public.example/')[2] is None      # not pinned: the proxy connects
+
+
+def test_the_proxy_never_comes_from_the_environment_proxy_variables(monkeypatch):
+    monkeypatch.delenv('SAJHA_TOOLS_OUTBOUND_PROXY', raising=False)
+    monkeypatch.setenv('HTTP_PROXY', 'http://127.0.0.1:1')
+    monkeypatch.setenv('HTTPS_PROXY', 'http://127.0.0.1:1')
+    assert outbound.proxy_url() == '' and outbound.vet('http://93.184.216.34/')[2] == '93.184.216.34'
+
+
+@pytest.mark.parametrize('url', ['http://169.254.169.254/latest/meta-data/', 'http://metadata.google.internal/',
+                                 'http://localhost/', 'http://2130706433/', 'http://[::ffff:127.0.0.1]/'])
+def test_blocked_names_and_literals_are_refused_before_the_proxy_is_asked(proxy_server, url):
+    with pytest.raises(outbound.Refused):
+        outbound.request('GET', url)
+    assert _ProxyHandler.seen == []
+
+
+def test_a_name_resolving_to_a_blocked_address_is_refused_through_the_proxy(proxy_server, monkeypatch):
+    _fake_dns(monkeypatch, {'rebind.example': ['93.184.216.34', '127.0.0.1']})
+    with pytest.raises(outbound.Refused, match='loopback'):
+        outbound.request('GET', 'http://rebind.example/')
+    assert _ProxyHandler.seen == []
+
+
+def test_an_unresolvable_host_goes_to_the_proxy_but_fails_direct(proxy_server, monkeypatch):
+    r = outbound.request('GET', 'http://only-the-proxy-knows.invalid/x')
+    assert r.json()['target'] == 'http://only-the-proxy-knows.invalid/x'
+    monkeypatch.delenv('SAJHA_TOOLS_OUTBOUND_PROXY')
+    with pytest.raises(outbound.FetchError, match='does not resolve'):
+        outbound.request('GET', 'http://only-the-proxy-knows.invalid/x')
+
+
+def test_no_proxy_hosts_go_direct(proxy_server, local_server, monkeypatch):
+    monkeypatch.setenv('SAJHA_TOOLS_OUTBOUND_EXEMPT_HOSTS', '127.0.0.1/32')
+    monkeypatch.setenv('SAJHA_TOOLS_OUTBOUND_NO_PROXY', '127.0.0.0/8')
+    r = outbound.request('GET', local_server + '/page')
+    assert b'Local page' in r.content and _ProxyHandler.seen == []
+    monkeypatch.setenv('SAJHA_TOOLS_OUTBOUND_NO_PROXY', 'intranet.corp.test')
+    _fake_dns(monkeypatch, {'intranet.corp.test': ['10.1.2.3']})
+    assert outbound.vet('http://intranet.corp.test/')[2] == '10.1.2.3'
+
+
+def test_a_redirect_to_a_blocked_address_through_the_proxy_is_refused(proxy_server, monkeypatch):
+    _fake_dns(monkeypatch, {'public.example': ['93.184.216.34']})
+    with pytest.raises(outbound.Refused, match='169.254.169.254'):
+        outbound.request('GET', 'http://public.example/to-metadata')
+    assert len(_ProxyHandler.seen) == 1            # the second hop never reached the proxy
+
+
+def test_proxy_credentials_are_sent_but_never_shown(proxy_server, monkeypatch, caplog):
+    port = proxy_server.rsplit(':', 1)[1]
+    monkeypatch.setenv('SAJHA_TOOLS_OUTBOUND_PROXY', f'http://agent:s3cr%40t@127.0.0.1:{port}')
+    _fake_dns(monkeypatch, {'public.example': ['93.184.216.34']})
+    outbound.request('GET', 'http://public.example/')
+    assert _ProxyHandler.seen[-1]['proxy_auth'].startswith('Basic ')
+    # an unreachable proxy: the error and the logs carry no credentials
+    with socket.socket() as s:
+        s.bind(('127.0.0.1', 0))
+        dead = s.getsockname()[1]
+    monkeypatch.setenv('SAJHA_TOOLS_OUTBOUND_PROXY', f'http://agent:s3cr%40t@127.0.0.1:{dead}')
+    with caplog.at_level('DEBUG'):
+        with pytest.raises(outbound.FetchError) as e:
+            outbound.request('GET', 'http://public.example/', timeout=3)
+    for text in (str(e.value), caplog.text):
+        assert 's3cr' not in text and 'agent:' not in text
+    assert outbound.mask_proxy(f'http://agent:s3cr%40t@127.0.0.1:{dead}') == f'http://***@127.0.0.1:{dead}'
+
+
+def test_an_invalid_proxy_setting_is_an_error_without_its_credentials(monkeypatch):
+    monkeypatch.setenv('SAJHA_TOOLS_OUTBOUND_PROXY', 'socks5://u:pw123@proxy:1080')
+    with pytest.raises(outbound.FetchError) as e:
+        outbound.vet('http://93.184.216.34/')
+    assert 'tools.outbound.proxy' in str(e.value) and 'pw123' not in str(e.value)
+
+
+def test_https_goes_through_the_proxy_by_connect_to_the_real_host(monkeypatch):
+    import httpx
+    seen = {}
+
+    class Capture(httpx.Client):
+        def __init__(self, *a, **kw):
+            seen['proxy'] = kw.get('proxy')
+            seen['trust_env'] = kw.get('trust_env')
+            super().__init__(*a, **kw)
+
+        def stream(self, method, url, **kw):
+            seen['url'], seen['ext'] = str(url), kw.get('extensions')
+            raise httpx.ConnectError('stop here')
+    monkeypatch.setattr(httpx, 'Client', Capture)
+    monkeypatch.setenv('SAJHA_TOOLS_OUTBOUND_PROXY', 'http://proxy.corp.test:3128')
+    _fake_dns(monkeypatch, {'api.example': ['93.184.216.34']})
+    with pytest.raises(outbound.FetchError):
+        outbound.request('GET', 'https://api.example/v1')
+    assert seen == {'proxy': 'http://proxy.corp.test:3128', 'trust_env': False,
+                    'url': 'https://api.example/v1', 'ext': {}}

@@ -169,12 +169,6 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
             <button class="btn btn-primary" data-onclick="reloadTools()">
                 <i class="bi bi-arrow-clockwise"></i> Reload All Tools
             </button>
-            <button class="btn btn-success" data-onclick="enableAllTools()">
-                <i class="bi bi-check-circle"></i> Enable All Tools
-            </button>
-            <button class="btn btn-warning" data-onclick="disableAllTools()">
-                <i class="bi bi-x-circle"></i> Disable All Tools
-            </button>
             <button class="btn btn-info" data-onclick="exportMetrics()">
                 <i class="bi bi-download"></i> Export Metrics
             </button>
@@ -485,19 +479,7 @@ function reloadTools() {
     }
 }
 
-function enableAllTools() {
-    if (confirm('Enable all tools?')) {
-        // This would need to be implemented in the backend
-        alert('Feature coming soon');
-    }
-}
 
-function disableAllTools() {
-    if (confirm('Disable all tools? This will prevent all tool executions.')) {
-        // This would need to be implemented in the backend
-        alert('Feature coming soon');
-    }
-}
 
 function viewConfig(toolName) {
     window.location.href = `/admin/tools/${toolName}/config`;

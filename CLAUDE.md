@@ -47,6 +47,15 @@ the same thing, merge them and leave a link.
 | Adversarial testing (attack surfaces, what to try, priorities, coverage) | `docs/architecture/Adversarial QA Plan.md` |
 | Workflows (DAGs, schedules, triggers, runs) | `docs/architecture/Workflows.md` |
 | Federation (other MCP servers' tools) | `docs/architecture/Federation.md` |
+| Per-user sign-in for proxied servers (credential modes, `token_user`, `oauth_user`, Server connections; design and what is built) | `docs/architecture/Per-User Sign-In for Proxied Servers.md` (configuring it: `Federation.md`) |
+| GitHub, Atlassian, Google integrations (proxied per user) | `docs/architecture/GitHub Integration.md`, `Atlassian Integration.md`, `Google Integration.md` |
+| SAJHA Net (as built), its wire protocol, the agent | `docs/architecture/SAJHA Net.md`, `docs/protocol/SAJHA Net Protocol.md`, `docs/clients/SAJHA Net Agent.md` |
+| LLM tools; planner files | `docs/architecture/LLM Tools.md`; `docs/architecture/Planner Reference.md` |
+| Several workers, the state store | `docs/architecture/Scaling and State.md` |
+| Tool folders (`config/tools/<folder>/`) and tool domains (`/tools/domains`) | `docs/architecture/Architecture.md` §5 "Tool config files and folders" and §10 |
+| qlrisk risk tools | `docs/tools/qlrisk/QLRisk Tool Reference Guide.md` |
+| Outbound fetch guard (`tools.outbound.*`) | `docs/security/Security Model.md` ("Other features that need care") |
+| Build order (waves, each wave's status) | `docs/architecture/Implementation Plan.md` |
 | Sandboxed code tools | `docs/architecture/Sandbox.md` |
 | Metrics, tracing, usage and cost, alerts | `docs/architecture/Observability.md` |
 | Intelligence layer (LLM providers, models, Ask SAJHA) | `docs/architecture/Intelligence Layer.md` |

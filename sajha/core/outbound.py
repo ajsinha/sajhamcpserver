@@ -21,6 +21,12 @@ and IPv6 forms that embed an IPv4 target, are normalised by ``ipaddress`` first)
 connection is pinned to the checked address, and each redirect hop is checked again. The
 per-address rule is ``address_allowed`` (sajha/auth/oauth/clients.py), shared with federation,
 API Import, OAuth CIMD and webhooks; the pinned client is API Import's (sajha/api_import/fetch.py).
+
+``tools.outbound.proxy`` (explicit; HTTP_PROXY / HTTPS_PROXY are never read) sends these fetches
+through an HTTP proxy, except hosts matching ``tools.outbound.no_proxy``. The same names and
+addresses are refused through it; a host that does not resolve locally is left to the proxy;
+the connection is not pinned (the proxy connects). The proxy URL may carry credentials and is
+shown only masked.
 """
 
 from __future__ import annotations
@@ -38,6 +44,8 @@ logger = logging.getLogger(__name__)
 
 BLOCK_PRIVATE_KEY = 'tools.outbound.block_private_networks'
 EXEMPT_KEY = 'tools.outbound.exempt_hosts'
+PROXY_KEY = 'tools.outbound.proxy'
+NO_PROXY_KEY = 'tools.outbound.no_proxy'
 
 METADATA_ADDRESSES = frozenset(ipaddress.ip_address(a) for a in (
     '169.254.169.254',      # AWS, Azure, GCP, OpenStack, Oracle
@@ -73,9 +81,13 @@ def block_private_networks() -> bool:
 
 def exempt_entries() -> Tuple[List[str], List[Any]]:
     """``tools.outbound.exempt_hosts`` split into (host patterns, networks)."""
+    return _patterns_and_networks(EXEMPT_KEY)
+
+
+def _patterns_and_networks(key: str) -> Tuple[List[str], List[Any]]:
     from sajha.core.config import _list
     patterns, networks = [], []
-    for raw in _list(EXEMPT_KEY, []):
+    for raw in _list(key, []):
         entry = str(raw).strip().lower()
         if not entry:
             continue
@@ -84,6 +96,60 @@ def exempt_entries() -> Tuple[List[str], List[Any]]:
         except ValueError:
             patterns.append(entry.rstrip('.'))
     return patterns, networks
+
+
+def proxy_url() -> str:
+    """``tools.outbound.proxy``: the proxy for guarded fetches ('' = direct). Explicit only:
+    HTTP_PROXY / HTTPS_PROXY are never read. May carry credentials: never log it, use mask_proxy."""
+    from sajha.core.config import _get
+    return (_get(PROXY_KEY, '') or '').strip()
+
+
+def no_proxy_entries() -> Tuple[List[str], List[Any]]:
+    """``tools.outbound.no_proxy`` split into (host patterns, networks)."""
+    return _patterns_and_networks(NO_PROXY_KEY)
+
+
+def mask_proxy(proxy: str) -> str:
+    """The proxy URL without its credentials (``http://***@proxy:3128``)."""
+    try:
+        p = urlsplit(proxy or '')
+        hostport = p.netloc.rsplit('@', 1)[-1]
+        return urlunsplit((p.scheme, ('***@' if '@' in p.netloc else '') + hostport, '', '', ''))
+    except ValueError:
+        return '<proxy>'
+
+
+def _scrub(message: str, proxy: str) -> str:
+    """``message`` with any trace of the proxy's credentials replaced."""
+    if not proxy:
+        return message
+    from urllib.parse import unquote
+    out = message.replace(proxy, mask_proxy(proxy))
+    try:
+        p = urlsplit(proxy)
+        secrets = [x for x in (p.netloc.rsplit('@', 1)[0] if '@' in p.netloc else '', p.password or '',
+                               unquote(p.password or '')) if x]
+    except ValueError:
+        secrets = []
+    for x in sorted(set(secrets), key=len, reverse=True):
+        out = out.replace(x, '***')
+    return out
+
+
+def _checked_proxy() -> str:
+    proxy = proxy_url()
+    if not proxy:
+        return ''
+    try:
+        p = urlsplit(proxy)
+        ok = p.scheme in ('http', 'https') and bool(p.hostname)
+        p.port
+    except ValueError:
+        ok = False
+    if not ok:
+        raise FetchError(f'{PROXY_KEY} is not an http:// or https:// proxy URL ({mask_proxy(proxy)})')
+    return proxy
 
 
 # ── the rule ──────────────────────────────────────────────────────────
@@ -155,8 +221,13 @@ def _refuse(url: str, what: str) -> Refused:
     return Refused(f'refused: {shown} {what}{see}')
 
 
-def vet(url: str) -> Tuple[str, int, str]:
-    """Check one destination; returns (host, port, address to connect to). Raises Refused or FetchError."""
+def vet(url: str) -> Tuple[str, int, Optional[str]]:
+    """Check one destination; returns (host, port, address to connect to), the address None when
+    the request goes through ``tools.outbound.proxy``. Raises Refused or FetchError.
+
+    Through the proxy the same names and addresses are refused; a host that does not resolve
+    here is left to the proxy to resolve (an intranet resolver often cannot answer internet
+    names), and the connection cannot be pinned (the proxy connects)."""
     try:
         p = urlsplit(url or '')
         port = p.port
@@ -177,7 +248,17 @@ def vet(url: str) -> Tuple[str, int, str]:
             raise _refuse(url, 'resolves to a blocked address (cloud metadata)')
         if host == 'localhost' or host.endswith('.localhost'):
             raise _refuse(url, 'resolves to a blocked address (loopback)')
-    addrs = resolve(host, port)
+    proxy = _checked_proxy()
+    if proxy:
+        np_patterns, np_networks = no_proxy_entries()
+        if any(fnmatch.fnmatchcase(host, pat) for pat in np_patterns):
+            proxy = ''
+    try:
+        addrs = resolve(host, port)
+    except FetchError:
+        if proxy:
+            return host, port, None         # the proxy resolves it
+        raise
     if not exempt_host:
         block_private = block_private_networks()
         for addr in addrs:
@@ -187,7 +268,11 @@ def vet(url: str) -> Tuple[str, int, str]:
             reason = blocked_reason(ip, block_private)
             if reason:
                 raise _refuse(url, f'resolves to a blocked address ({reason})')
-    return host, port, addrs[0]
+    if proxy and np_networks and all(
+            any(ipaddress.ip_address(a).version == n.version and ipaddress.ip_address(a) in n
+                for n in np_networks) for a in addrs):
+        proxy = ''
+    return host, port, (None if proxy else addrs[0])
 
 
 # ── the request ───────────────────────────────────────────────────────
@@ -256,6 +341,7 @@ def request(method: str, url: str, *, params=None, headers: Optional[Dict[str, s
     Raises Refused, FetchTimeout or FetchError."""
     from sajha.api_import import fetch
     vet(url)                                # refuse before anything else touches the URL
+    proxy = proxy_url()
     send = dict(headers or {})
     if auth:
         import base64
@@ -268,13 +354,13 @@ def request(method: str, url: str, *, params=None, headers: Optional[Dict[str, s
             send['Content-Type'] = 'application/json'
     try:
         r = fetch.request(method, url, params=_param_items(params), headers=send, content=content,
-                          timeout=float(timeout), max_bytes=max_bytes, vet=vet)
+                          timeout=float(timeout), max_bytes=max_bytes, vet=vet, proxy=proxy or None)
     except fetch.FetchTimeout as e:
-        raise FetchTimeout(str(e))
+        raise FetchTimeout(_scrub(str(e), proxy))
     except fetch.FetchError as e:
-        raise FetchError(str(e))
+        raise FetchError(_scrub(str(e), proxy))
     except Refused:
         raise
     except Exception as e:                  # an httpx URL error and the like: a message, not a trace
-        raise FetchError(f'request failed: {e.__class__.__name__}: {e}')
+        raise FetchError(_scrub(f'request failed: {e.__class__.__name__}: {e}', proxy))
     return Response(r.status, r.reason, r.headers, r.content, r.url)

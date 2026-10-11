@@ -56,8 +56,9 @@ No credentials are required. Built-in behaviour:
 | Max crawl depth / pages | 3 / 100 |
 | Response decoding | UTF-8, undecodable bytes ignored |
 
-The server needs outbound HTTP(S) access. Proxies, cookies and site logins are
-not supported.
+The server needs outbound HTTP(S) access, direct or through the proxy set in
+`tools.outbound.proxy` (explicit only; `HTTP_PROXY` is not read; hosts in
+`tools.outbound.no_proxy` go direct). Cookies and site logins are not supported.
 
 Every fetch (the page, links `crawl_url` follows, robots.txt, sitemaps and each
 redirect hop) goes through the outbound fetch guard: cloud metadata, link-local
@@ -290,7 +291,7 @@ Single-page tools raise errors (tool error over MCP, `success: false` over REST)
 
 - No JavaScript execution: client-rendered content (SPAs, AJAX-loaded data) is
   not seen.
-- No authentication, cookies, sessions or proxy support.
+- No authentication, cookies or sessions; a proxy only through `tools.outbound.proxy`.
 - HTML only; PDFs and other binary resources are not parsed.
 - Iframe and shadow-DOM content is not followed.
 - Requests are sequential (single-threaded); large crawls are slow by design.

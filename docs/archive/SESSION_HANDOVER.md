@@ -1,3 +1,5 @@
+> Archived point-in-time document; not maintained. Current: the live documentation index, docs/README.md.
+
 # SAJHA MCP Server — Session Handover Document
 
 **Date:** June 28, 2026

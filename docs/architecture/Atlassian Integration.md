@@ -56,7 +56,8 @@ How proxied servers work is in [Federation](Federation.md).
 - Each user connects Atlassian once; Jira and Confluence permissions are Atlassian's own.
 - Read tools first (search issues with JQL, read issues and comments, search and read Confluence
   pages); writes — creating or transitioning issues, commenting, creating or editing pages — behind
-  SAJHA's approval policy.
+  an approval rule you write in the [policy engine](Policy%20and%20Audit.md); no default rule for
+  proxied writes ships yet ([Roadmap](Roadmap.md) L20).
 
 ## 5. Uses with the rest of SAJHA
 

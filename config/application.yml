@@ -11,7 +11,7 @@
 
 app:
   name: SAJHA MCP Server
-  version: 8.5.0
+  version: 8.6.0
   description: Model Context Protocol Server
   author: Ashutosh Sinha
   author_email: ajsinha@gmail.com       # shown with the copyright notice; SAJHA is proprietary (see LICENSE)
@@ -339,6 +339,11 @@ tools:
   outbound:
     block_private_networks: false  # also refuse 10/8, 172.16/12, 192.168/16, fc00::/7, CGNAT 100.64/10
     exempt_hosts: []               # host patterns (fnmatch) or CIDRs never refused, e.g. [localhost, 127.0.0.1/32]
+    # HTTP proxy for these fetches, http(s)://host:port; empty = direct. It may carry
+    # credentials, so set it with SAJHA_TOOLS_OUTBOUND_PROXY, not here. HTTP_PROXY and
+    # HTTPS_PROXY are never read.
+    proxy: ''
+    no_proxy: []                   # host patterns (fnmatch) or CIDRs that go direct even with a proxy
 
 # ── Features ─────────────────────────────────────────────────────────────────
 

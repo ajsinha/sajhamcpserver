@@ -160,7 +160,7 @@ whether the decisions are wise.
 
 | Attack | Safe behaviour | Automate | P | Existing coverage |
 |---|---|---|---|---|
-| Fetch, crawler and REST tools pointed at the cloud metadata address, localhost, private ranges | Refused by the network guard on every path: federation upstreams, API import and its tools, OAuth CIMD, webhooks, alert webhooks; the web crawler tools and Studio REST tools through the outbound fetch guard (metadata and loopback always, private ranges with `tools.outbound.block_private_networks`; finding F6, fixed); SAJHA Net peers by their own rule | URL corpus | P0 | `adversarial/test_ssrf.py`, `test_outbound_guard.py`, `test_hardening.py` |
+| Fetch, crawler and REST tools pointed at the cloud metadata address, localhost, private ranges | Refused by the network guard on every path: federation upstreams, API import and its tools, OAuth CIMD, webhooks, alert webhooks; the web crawler tools and Studio REST tools through the outbound fetch guard (metadata and loopback by default, private ranges with `tools.outbound.block_private_networks`; finding F6, fixed); SAJHA Net peers by their own rule | URL corpus | P0 | `adversarial/test_ssrf.py`, `test_outbound_guard.py`, `test_hardening.py` |
 | Connector queries reading outside their allowlist | Refused | Hostile queries | P0 | connector tests |
 | DuckDB reading local files | Refused | File path corpus | P0 | `test_duckdb_tools_sandbox.py` |
 

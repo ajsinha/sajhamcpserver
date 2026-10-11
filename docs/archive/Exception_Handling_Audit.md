@@ -1,3 +1,5 @@
+> Archived point-in-time document; not maintained. Current: the live documentation index, docs/README.md.
+
 # SAJHA MCP Server v5.3.0 — Exception Handling Audit
 
 **Date:** May 12, 2026

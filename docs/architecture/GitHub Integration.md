@@ -61,8 +61,9 @@ configuring.
 - Each user connects GitHub once (a personal token, or an OAuth sign-in); calls carry their own
   identity, so repository permissions and audit attribution are GitHub's own.
 - Narrow toolsets per deployment (for example issues, pull requests and repositories; Actions read).
-- Writes — creating issues or comments, opening or merging pull requests, dispatching workflows — go
-  through SAJHA's approval policy.
+- Writes — creating issues or comments, opening or merging pull requests, dispatching workflows — should
+  need approval: write a [policy](Policy%20and%20Audit.md) rule for them, since no default rule for
+  proxied writes ships yet ([Roadmap](Roadmap.md) L20).
 
 ## 5. Uses with the rest of SAJHA
 

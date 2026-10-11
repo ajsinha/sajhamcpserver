@@ -205,12 +205,6 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
             <button class="btn btn-info" data-onclick="exportUsers()">
                 <i class="bi bi-download"></i> Export All Users
             </button>
-            <button class="btn btn-success" data-onclick="enableAllUsers()">
-                <i class="bi bi-check-circle"></i> Enable All Users
-            </button>
-            <button class="btn btn-warning" data-onclick="resetAllPasswords()">
-                <i class="bi bi-key"></i> Reset All Passwords
-            </button>
         </div>
     </div>
 </div>
@@ -339,16 +333,6 @@ function exportUsers() {
     window.location.href = '/api/admin/users/export';
 }
 
-function enableAllUsers() {
-    if (confirm('Enable all users?')) {
-        alert('Feature coming soon');
-    }
-}
 
-function resetAllPasswords() {
-    if (confirm('Reset passwords for all users? They will need to be manually notified.')) {
-        alert('Feature coming soon');
-    }
-}
 </script>
 {% endblock %}

@@ -1,6 +1,6 @@
 # Implementation Plan
 
-> **Status: waves 1 to 7 done (8.3.0 shipped qlrisk and tool domains between waves)** (the Status column of
+> **Status: waves 1 to 7 done (between waves, 8.3.0 shipped qlrisk and tool domains, and 8.5.0 the outbound fetch guard)** (the Status column of
 > section 2 is the per-wave record). This is the build order for the two features,
 > [LLM Tools](LLM%20Tools.md) (with the [Planner Reference](Planner%20Reference.md)) and
 > [SAJHA Net](SAJHA%20Net.md) (with the [SAJHA Net Protocol](../protocol/SAJHA%20Net%20Protocol.md)),
@@ -19,6 +19,7 @@
 5. [Wave 3: planners, authoring and the OpenAI endpoint](#5-wave-3-planners-authoring-and-the-openai-endpoint)
 6. [Wave 4: SAJHA Net core](#6-wave-4-sajha-net-core)
 7. [Wave 5: sovereignty, the console and other MCP servers](#7-wave-5-sovereignty-the-console-and-other-mcp-servers)
+   - [Wave 7: per-user sign-in, access to prompts and resources, a hardened test suite](#7a-wave-7-per-user-sign-in-access-to-prompts-and-resources-a-hardened-test-suite)
 8. [After wave 5](#8-after-wave-5)
 9. [Gates every wave must pass](#9-gates-every-wave-must-pass)
 10. [Risks and how the plan handles them](#10-risks-and-how-the-plan-handles-them)
@@ -269,11 +270,11 @@ the owner of its detail.
 | Item | Why not earlier |
 |---|---|
 | X13 benchmark suite with published numbers, then X14 SLOs and failure tests | Most useful once LLM tools and SAJHA Net exist to measure; CI (wave 1) is its prerequisite |
-| X3 per-user access to prompts and data resources | Independent; can be pulled into any wave if a user needs it |
 | X10 Weaviate and Chroma connectors, X11 push-based reload, X12 protocol gaps | Independent, small to medium |
 | L1–L7: storage, federation, workflows, API import, tool quality, sandbox, provider tools | Finishing work on existing features |
 | L9–L12: container per stdio server, gateway scale, SaaS packs, signed plugins | Larger enhancements; L12 pairs naturally with SAJHA Net's plug-ins |
 | L13 one-click deployment templates, L14 console in other languages | Packaging and reach |
+| L16's remaining items, L19 host-side tasks across a net (deferred by the owner), L20 the rest of per-user sign-in | Remainders of features built in waves 5 to 7 |
 | L15 planners chosen by learning from results | Needs traffic and eval history from waves 3–5 |
 | X16 TypeScript client | Deferred by decision |
 
@@ -325,8 +326,8 @@ the System Notices design, and every open Roadmap item appears exactly once in t
 | SAJHA Net phases 1–9 | 1, 2, 3: wave 4 (with wave 1's identity groundwork; named nets, seeds and restarts, offline removal, resolution and preferences, one name one contract and waterfall fallback are in phases 1 and 2); 4, 5, 6, 7, 8, 9: wave 5 (Instances page and badge from phase 7 come early, in wave 4) |
 | SAJHA Net new-code items 1–13 ([SAJHA Net design note, "new code this design needs"](../archive/SAJHA%20Net%20Design%20Note.md)) | 1, 3, 4, 7, 10, 11: wave 1; 2, 5, 6, 9, 12, 13: wave 4; 8: wave 5 |
 | Roadmap Now (N2–N5) | wave 1 |
-| Roadmap Next (X2–X17) | X4, X17: wave 1; X7 (closed), X8, X9: wave 2; X2, X15: wave 3; X5, X6: wave 5; X3, X10–X14, X16: section 8 |
-| Roadmap Later (L1–L16) | L16 (SAJHA Net): waves 4–5; all others: section 8 |
+| Roadmap Next (X2–X17) | X4, X17: wave 1; X7 (closed), X8, X9: wave 2; X2, X15: wave 3; X5, X6: wave 5; X3: wave 7; X10–X14, X16: section 8 |
+| Roadmap Later (L1–L20) | L16 (SAJHA Net): waves 4–5; L17: wave 6; L18: wave 7; L19 and L20 (added after waves 6 and 7) and all others: section 8 |
 | System Notices | wave 1 (service, console, first sources); its later sources with the waves that add them (LLM tools: 2; SAJHA Net: 4) |
 
 ---

@@ -1,3 +1,5 @@
+> Archived point-in-time document; not maintained. Current: the live documentation index, docs/README.md.
+
 # SAJHA MCP Server v5.3.0 — UX Audit Report
 
 **Prepared by:** UX Design Lead + Behavioral Psychologist  

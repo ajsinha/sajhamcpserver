@@ -85,6 +85,8 @@ workers ([Scaling and State](../architecture/Scaling%20and%20State.md)).
 |---|---|---|
 | The catalog | Whatever the server has loaded: ask `tools/list`, or open the Tools page. Not listed in any document. | the running server |
 | A provider's tools | Parameters, examples and API keys, one guide per provider | the guides under [`docs/tools/`](../README.md#tools) |
+| Tool folders and domains | `config/tools/<folder>/` (one level, one place per name), `python -m sajha.tools folders` and `move`, optional dependencies (`requires`); the Tools page grouped by domain and the Domains page (`/tools/domains`) | [Architecture](../architecture/Architecture.md#tool-config-files-and-folders) (the folders) and its §10 (domains); the command in [Command Line](../clients/Command%20Line.md#6-tool-folders) |
+| Risk analytics (qlrisk) | The qlrisk library's pricing, sensitivities, VaR, stress, FRTB, SA-CCR, XVA and SIMM functions as native tools, loaded when qlrisk is installed | [QLRisk Tool Reference Guide](../tools/qlrisk/QLRisk%20Tool%20Reference%20Guide.md); [Tutorial 41](../tutorials/TUTORIAL_41_qlrisk_risk_tools.md) |
 | Prompts | Prompt configs, arguments, the prompt pages | [Prompts Management Guide](../tools/prompts/Prompts%20Management%20Guide.md) |
 | Writing a tool by hand | A tool config in `config/tools/` and its `BaseMCPTool` class | [Tutorial 2](../tutorials/TUTORIAL_02_create_a_custom_tool.md); internals in [Architecture](../architecture/Architecture.md) |
 | Building tools in the browser | MCP Studio and its creators; deploy into the running server | [MCP Studio User Guide](../studio/MCP%20Studio%20User%20Guide.md) |
@@ -96,9 +98,9 @@ workers ([Scaling and State](../architecture/Scaling%20and%20State.md)).
 | Plugins | Packages of tool configs and classes with a `plugin.json` manifest | [Tutorial 4](../tutorials/TUTORIAL_04_create_a_plugin.md) |
 | Caching and circuit breakers | Per-tool `cache_ttl`, the cache statistics, per-provider breakers | [Tutorial 6](../tutorials/TUTORIAL_06_configure_tool_caching.md) |
 | Background execution | Async tool runs delivered to a webhook, Kafka or a file (not the MCP tasks extension) | [Tutorial 7](../tutorials/TUTORIAL_07_submit_async_tool_execution.md); keys in the [Configuration Reference](Configuration%20Reference.md) |
-| Per-user sign-in for proxied servers (design) | Proxied MCP servers acting as each user with their own vendor account | [Per-User Sign-In for Proxied Servers](../architecture/Per-User%20Sign-In%20for%20Proxied%20Servers.md) |
-| GitHub and Atlassian (proposals) | GitHub's and Atlassian's MCP servers proxied per user | [GitHub Integration](../architecture/GitHub%20Integration.md), [Atlassian Integration](../architecture/Atlassian%20Integration.md) |
-| Google and public MCP servers (proposal) | Proxying Google Workspace MCP servers and other hosted MCP servers once proxied servers support per-user sign-in | [Google Integration](../architecture/Google%20Integration.md) |
+| Per-user sign-in for proxied servers | Proxied MCP servers acting as each user with their own vendor account: credential modes (`token_user` personal tokens, `oauth_user` sign-in), the Server connections pages, the design and what is built; configuring both modes is in [Federation](../architecture/Federation.md#per-user-credentials-token_user) | [Per-User Sign-In for Proxied Servers](../architecture/Per-User%20Sign-In%20for%20Proxied%20Servers.md) |
+| GitHub and Atlassian | GitHub's and Atlassian's MCP servers proxied per user, with templates in `config/mcp_servers/` | [GitHub Integration](../architecture/GitHub%20Integration.md), [Atlassian Integration](../architecture/Atlassian%20Integration.md) |
+| Google and public MCP servers | Proxying Google Workspace MCP servers per user (configurable, not verified against Google's live servers) and which other hosted MCP servers are worth the same | [Google Integration](../architecture/Google%20Integration.md) |
 | Adversarial testing | Attacks on every surface (MCP, transports, credentials, authorization, SAJHA Net, proxied servers, tool folders, the intelligence layer, Studio, the console, outbound requests, resilience, the test suite), with priorities and coverage | [Adversarial QA Plan](../architecture/Adversarial%20QA%20Plan.md) |
 | Tool quality and versions | Test cases with HTTP cassettes (`python -m sajha.quality test`, JUnit), the schema linter, health probes, evals for Ask SAJHA, tool versions with canary routing, pins, automatic rollback and sunset dates; the Tool Health, Evals and Tool Versions pages; `quality.*` | [Tool Quality](../architecture/Tool%20Quality.md) |
 | Python in the browser | The Python Playground: a Pyodide notebook; `import sajha` calls tools with the user's session; vendored or CDN assets; its own CSP and COOP/COEP | [Python Playground](Python%20Playground.md) |
@@ -120,7 +122,8 @@ workers ([Scaling and State](../architecture/Scaling%20and%20State.md)).
 | Configuration | `config/application.yml`, `${ENV:default}`, `SAJHA_*` overrides, every key | [Configuration Reference](Configuration%20Reference.md) |
 | Storage | Where configs, prompts, Studio output and docs live; local, S3, Azure, GCS; hot reload | [Storage Guide](Storage%20Guide.md) |
 | Database | SQLite or PostgreSQL (`db.*`) for users, keys, audit, composites and usage; one schema file per database, the manual PostgreSQL step, upgrades | [Database Setup](Database%20Setup.md) |
-| Security | Credentials, the administrators' credential files and plain or hashed storage, console single sign-on, users, roles, API keys, tool access, OAuth, Origin, cross-site and host checks, headers and CSP, TLS, rate limits, the fixes and the known limitations, deployment checklist | [Security Model](../security/Security%20Model.md) |
+| Security | Credentials, the administrators' credential files and plain or hashed storage, console single sign-on, users, roles, API keys, tool access and access to prompts and data resources, OAuth, Origin, cross-site and host checks, headers and CSP, TLS, rate limits, the fixes and the known limitations, deployment checklist | [Security Model](../security/Security%20Model.md) |
+| Tools fetching URLs | The outbound fetch guard on the web crawler tools and Studio REST tools: metadata, link-local and loopback refused, private ranges optional, exempt hosts, an outbound proxy; `tools.outbound.*` | [Security Model](../security/Security%20Model.md#other-features-that-need-care) |
 | Running user code | The sandbox for Studio Python and script tools and the shell: threat model, backends, guarantees, tool `sandbox` policy | [Sandbox](../architecture/Sandbox.md) |
 | Deployment | AWS CDK, Hetzner, bare metal, a three-instance SAJHA Net demo | [`deployment/README.md`](../../deployment/README.md) |
 | Kubernetes | The container image, the Helm chart (`charts/sajha`), Kustomize manifests, secrets every pod shares, several replicas, streaming ingress | [Kubernetes Deployment](Kubernetes%20Deployment.md) |
@@ -150,6 +153,7 @@ whose job it is holds the content, and the other links to it.
 | **Comparison** | How SAJHA compares with other MCP products: one verdict, note, source and date per cell | `/comparison`, rendered from `sajha/web/competitive.py` (the only copy) |
 | **Glossary** | One definition per term | [`GLOSSARY.md`](../../GLOSSARY.md) |
 | **Release log** | What changed, version by version | [`CHANGELOG.md`](../../CHANGELOG.md) |
+| **Implementation Plan** | The order in which things are built: waves, each a release, with each wave's status | [Implementation Plan](../architecture/Implementation%20Plan.md) |
 | **Roadmap** | What is not built yet and what should come next; one line per item, linking to the guide that records the limit | [Roadmap](../architecture/Roadmap.md) |
 | **Version** | The one version number | `app.version` in `config/application.yml` |
 | **Archive** | Point-in-time reports, not maintained | `docs/archive/` |
