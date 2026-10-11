@@ -1,0 +1,34 @@
+{
+  "_comment": "A self-hosted MCP server for Jira and Confluence Data Center (for example mcp-atlassian run on your network in multi-user mode), called as each user with their own Data Center personal access token (auth.type token_user). Each user saves the token once on Server connections; Jira and Confluence then apply that user's own permissions. Check your server's documentation for the header it expects: mcp-atlassian takes 'Authorization: Token <PAT>' per request. Private addresses need federation.allow_private_networks (or allowed_hosts).",
+  "mcpServers": {
+    "jira_dc": {
+      "url": "${JIRA_MCP_URL:https://jira-mcp.intranet.example/mcp}",
+      "title": "Jira (Data Center)",
+      "vendor": "atlassian",
+      "prefix": "jira",
+      "external": false,
+      "auth": {
+        "type": "token_user",
+        "header": "Authorization",
+        "format": "Token {token}",
+        "label": "Jira personal access token",
+        "help_url": "https://confluence.atlassian.com/enterprise/using-personal-access-tokens-1026032365.html"
+      }
+    },
+    "confluence_dc": {
+      "url": "${CONFLUENCE_MCP_URL:https://confluence-mcp.intranet.example/mcp}",
+      "title": "Confluence (Data Center)",
+      "vendor": "atlassian",
+      "prefix": "confluence",
+      "external": false,
+      "tools": ["confluence_search", "confluence_get_*"],
+      "auth": {
+        "type": "token_user",
+        "header": "Authorization",
+        "format": "Token {token}",
+        "label": "Confluence personal access token",
+        "help_url": "https://confluence.atlassian.com/enterprise/using-personal-access-tokens-1026032365.html"
+      }
+    }
+  }
+}

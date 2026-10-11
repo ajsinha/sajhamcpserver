@@ -689,6 +689,27 @@ Behaviour: [Connected Accounts](../architecture/Connected%20Accounts.md).
 | POST | `/admin/connections/rotate` | admin (form, CSRF) | Re-encrypt every link with the current vault key. |
 | GET | `/api/admin/accounts/connections` | admin | Every link's metadata (`?user=`, `?provider=`). |
 
+#### Server connections (`server_connections_routes.py`)
+
+Each user's own personal token for proxied MCP servers with `auth.type: token_user`. Forms carry the
+page's CSRF token; a cookie session calling the JSON API sends `X-CSRF-Token`. No route ever returns a
+saved token: status carries `token_hint` (`••••` and the last four characters). Behaviour:
+[Federation §3, Per-user credentials](../architecture/Federation.md#per-user-credentials-token_user).
+
+| Method | Path | Auth | Purpose |
+|---|---|---|---|
+| GET | `/account/server-connections` | user | The Server connections page: each per-user proxied server with connected, needs re-connect or not connected. |
+| GET | `/account/server-connections/{upstream}` | user | The connect page for one server (where "connect your account" answers point). |
+| POST | `/account/server-connections/{upstream}/token` | user (form, CSRF) | Save or replace the token (`token`; tested with `tools/list` unless `skip_test`); 303 to the list, 400 with the reason. |
+| POST | `/account/server-connections/{upstream}/remove` | user (form, CSRF) | Forget the caller's token. |
+| GET | `/api/accounts/server-connections` | user | `{connections}`: the caller's status per per-user server. |
+| PUT | `/api/accounts/server-connections/{upstream}` | user | `{"token", "test": true}`: save; `{connection}` or 400 `{error}`. |
+| DELETE | `/api/accounts/server-connections/{upstream}` | user | Remove; 404 when there was none. |
+| GET | `/admin/server-connections` | admin | Who is connected to which server; revoke. |
+| POST | `/admin/server-connections/revoke` | admin (form, CSRF) | Remove `upstream`'s token of `user_id`. |
+| GET | `/api/admin/server-connections` | admin | Every connection's metadata (`?server=`, `?user=`). |
+| DELETE | `/api/admin/server-connections/{upstream}/{user}` | admin | Revoke one; 404 when there was none. |
+
 ### 4.18 Policies, approvals and audit (`policy_routes.py`)
 
 The policy engine and the tamper-evident audit. Every route is admin only; a cookie session

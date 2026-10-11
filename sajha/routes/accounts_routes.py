@@ -225,7 +225,8 @@ def _admin_context(request: Request, auth: AuthContext, notice: str = '', error:
     rows, keys, current_kid = [], {}, ''
     try:
         vault = get_vault()
-        rows = [c.to_public() for c in vault.list_all(provider=provider, user_id=user_id, limit=2000)]
+        rows = [c.to_public() for c in vault.list_all(provider=provider, user_id=user_id, limit=2000)
+                if not c.provider.startswith('upstream:')]      # proxied servers: /admin/server-connections
         keys = vault.key_usage()
         current_kid = vault.keys.current()[0]
     except Exception as e:
@@ -274,5 +275,6 @@ async def api_admin_connections(request: Request, auth: AuthContext = Depends(re
     from sajha.accounts.vault import get_vault
     provider = request.query_params.get('provider') or None
     user_id = request.query_params.get('user') or None
-    rows = [c.to_public() for c in get_vault().list_all(provider=provider, user_id=user_id, limit=5000)]
+    rows = [c.to_public() for c in get_vault().list_all(provider=provider, user_id=user_id, limit=5000)
+            if not c.provider.startswith('upstream:')]
     return JSONResponse({'connections': rows})

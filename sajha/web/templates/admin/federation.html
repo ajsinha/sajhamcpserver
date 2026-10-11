@@ -98,7 +98,19 @@ details.schema pre{background:var(--t-inp);color:var(--t-text);padding:.5rem;bor
             <option value="header">API-key header</option>
             <option value="oauth_client_credentials">OAuth client credentials</option>
             <option value="connected_account">Each user's connected account</option>
+            <option value="token_user">Each user's own personal token</option>
+            <option value="oauth_user">Each user's OAuth sign-in (coming in phase 7.3)</option>
           </select></div>
+        <div class="col-md-2 a-tu" style="display:none"><label class="form-label" for="fTuHeader">Token header</label>
+          <input class="form-control form-control-sm" id="fTuHeader" placeholder="Authorization"></div>
+        <div class="col-md-2 a-tu" style="display:none"><label class="form-label" for="fTuFormat">Header value</label>
+          <input class="form-control form-control-sm" id="fTuFormat" placeholder="Bearer {token}"></div>
+        <div class="col-md-3 a-tu" style="display:none"><label class="form-label" for="fTuLabel">What users paste</label>
+          <input class="form-control form-control-sm" id="fTuLabel" placeholder="Personal access token"></div>
+        <div class="col-md-3 a-tu" style="display:none"><label class="form-label" for="fTuHelp">Where to create one (URL)</label>
+          <input class="form-control form-control-sm" id="fTuHelp" placeholder="https://vendor.example/settings/tokens"></div>
+        <div class="col-md-2 a-tu" style="display:none"><label class="form-label" for="fTuPrefix">Token prefix</label>
+          <input class="form-control form-control-sm" id="fTuPrefix" placeholder="optional"></div>
         <div class="col-md-3 a-ca" style="display:none"><label class="form-label" for="fCaProvider">Provider (connected accounts)</label>
           <input class="form-control form-control-sm" id="fCaProvider" placeholder="github"></div>
         <div class="col-md-3 a-ca" style="display:none"><label class="form-label" for="fCaScopes">Scopes the user must grant</label>
@@ -190,7 +202,8 @@ function load(){
   }).catch(function(e){document.getElementById('upstreams').innerHTML='<div class="fed-err">'+esc(e.message)+'</div>'});
 }
 var SOURCES={config:'from federation.upstreams',file:'from config/mcp_servers.json',store:'added here'};
-function stateText(s){return s==='needs_sign_in'?'needs sign-in (not supported yet)':s}
+function stateText(s){return s==='needs_sign_in'?'needs sign-in (not supported yet)':s==='waiting_for_user'?'waiting for a user to connect':s}
+var MODES={static:'shared credential',token_user:'each user\'s own token',oauth_user:'OAuth sign-in: coming in phase 7.3',connected_account:'each user\'s connected account'};
 function row(u){
   return '<tr><td><a href="#up-'+esc(u.id)+'"><code>'+esc(u.id)+'</code></a><div class="fed-meta">'+esc(SOURCES[u.source]||u.source)+'</div></td>'+
     '<td>'+(u.vendor?esc(u.vendor):'—')+'</td><td>'+(u.external?'External':'Internal')+'</td>'+
@@ -208,6 +221,8 @@ function render(u){
   h+=' · '+esc(SOURCES[u.source]||u.source)+(u.vendor?' · vendor '+esc(u.vendor):'')+' · '+(u.external?'external':'internal')+(u.listening?' · listening for changes':'')+'</div>';
   h+='<div class="fed-meta">Refreshed '+esc(when(u.last_refresh))+' · '+u.calls+' calls, '+u.failures+' failed'+(u.avg_ms!=null?' · avg '+u.avg_ms+' ms':'');
   if(u.breaker)h+=' · breaker '+esc(u.breaker.state);
+  h+=' · identity: '+esc(MODES[u.auth_mode]||u.auth_mode||'shared credential');
+  if(u.auth_mode==='token_user')h+=' · '+u.user_sessions+' open user session(s) · <a href="/admin/server-connections?server='+encodeURIComponent(u.id)+'">who is connected</a>';
   h+='</div>';
   if(u.last_error)h+='<div class="fed-err">'+esc(u.last_error)+'</div>';
   h+='</div><div class="fed-actions d-flex gap-1">';
@@ -257,6 +272,8 @@ function formData(){
   else if(at==='header')d.auth={type:at,header:v('fHeader'),value_ref:v('fValueRef')};
   else if(at==='oauth_client_credentials')d.auth={type:at,token_url:v('fTokenUrl'),client_id:v('fClientId'),client_secret_ref:v('fSecretRef'),scope:v('fScope')};
   else if(at==='connected_account')d.auth={type:at,provider:v('fCaProvider'),scopes:list(v('fCaScopes').replace(/\s+/g,','))};
+  else if(at==='token_user'){d.auth={type:at};[['header','fTuHeader'],['format','fTuFormat'],['label','fTuLabel'],['help_url','fTuHelp'],['token_prefix','fTuPrefix']].forEach(function(p){if(v(p[1]))d.auth[p[0]]=v(p[1])})}
+  else if(at==='oauth_user')d.auth={type:at};
   if(v('fTimeout'))d.timeout_seconds=Number(v('fTimeout'));
   if(v('fRate'))d.max_calls_per_minute=Number(v('fRate'));
   if(v('fCache'))d.cache_ttl=Number(v('fCache'));
@@ -276,7 +293,7 @@ function saveUp(){
   req.then(function(){hideForm();setTimeout(load,800)}).catch(function(e){msg(e.message,false)});
 }
 function showForm(){editing=null;document.getElementById('formTitle').textContent='Add upstream';document.getElementById('fId').disabled=false;
-  ['fId','fTitle','fPrefix','fUrl','fCommand','fArgs','fTokenRef','fHeader','fValueRef','fTokenUrl','fClientId','fSecretRef','fScope','fTimeout','fRate','fCache','fInclude','fExclude'].forEach(function(i){document.getElementById(i).value=''});
+  ['fId','fTitle','fPrefix','fUrl','fCommand','fArgs','fTokenRef','fHeader','fValueRef','fTokenUrl','fClientId','fSecretRef','fScope','fTimeout','fRate','fCache','fInclude','fExclude','fTuHeader','fTuFormat','fTuLabel','fTuHelp','fTuPrefix'].forEach(function(i){document.getElementById(i).value=''});
   document.getElementById('fTransport').value='streamable_http';document.getElementById('fProtocol').value='auto';document.getElementById('fAuth').value='none';
   document.getElementById('fEnabled').checked=true;['fPrompts','fResources','fAuto','fHold'].forEach(function(i){document.getElementById(i).checked=false});
   transportChanged();authChanged();msg('',true);document.getElementById('upForm').style.display='block';document.getElementById('fId').focus()}
@@ -289,6 +306,7 @@ function editUp(uid){
   var a=d.auth||{};set('fAuth',a.type||'none');set('fTokenRef',a.token_ref);set('fHeader',a.header);set('fValueRef',a.value_ref);
   set('fTokenUrl',a.token_url);set('fClientId',a.client_id);set('fSecretRef',a.client_secret_ref);set('fScope',a.scope);
   set('fCaProvider',a.provider);set('fCaScopes',(a.scopes||[]).join(' '));
+  if(a.type==='token_user'){set('fTuHeader',a.header);set('fTuFormat',a.format);set('fTuLabel',a.label);set('fTuHelp',a.help_url);set('fTuPrefix',a.token_prefix)}
   set('fTimeout',d.timeout_seconds);set('fRate',d.max_calls_per_minute);set('fCache',d.cache_ttl);
   set('fInclude',(d.include_tools||[]).join(', '));set('fExclude',(d.exclude_tools||[]).join(', '));
   document.getElementById('fEnabled').checked=d.enabled!==false;document.getElementById('fPrompts').checked=!!d.expose_prompts;
@@ -303,7 +321,8 @@ function authChanged(){var t=v('fAuth');
   document.querySelectorAll('.a-bearer').forEach(function(e){e.style.display=t==='bearer'?'':'none'});
   document.querySelectorAll('.a-header').forEach(function(e){e.style.display=t==='header'?'':'none'});
   document.querySelectorAll('.a-oauth').forEach(function(e){e.style.display=t==='oauth_client_credentials'?'':'none'});
-  document.querySelectorAll('.a-ca').forEach(function(e){e.style.display=t==='connected_account'?'':'none'})}
+  document.querySelectorAll('.a-ca').forEach(function(e){e.style.display=t==='connected_account'?'':'none'});
+  document.querySelectorAll('.a-tu').forEach(function(e){e.style.display=t==='token_user'?'':'none'})}
 load();
 setInterval(load, 15000);
 </script>

@@ -1,0 +1,83 @@
+{% extends "common/base.html" %}
+<!--
+Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.com
+Server connections (administration): who is connected to which proxied MCP server. Never a token.
+Design: docs/architecture/Per-User Sign-In for Proxied Servers.md
+-->
+{% block title %}Server connections (all users) - SAJHA MCP Server{% endblock %}
+
+{% block content %}
+<div class="container-fluid acct-page">
+  <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+    <div>
+      <h1 class="h3 mb-0"><i class="bi bi-person-lock me-2" aria-hidden="true"></i>Server connections: all users</h1>
+      <small class="text-muted">Which users have saved their own token for each proxied MCP server that acts as them. Tokens are encrypted in the vault and never shown, here or anywhere.</small>
+    </div>
+    <a class="btn btn-sm btn-outline-primary" href="{{ url_for('account_server_connections_page') }}"><i class="bi bi-person me-1" aria-hidden="true"></i>My connections</a>
+  </div>
+
+  {% if notice %}<div class="alert alert-success" role="status">{{ notice }}</div>{% endif %}
+  {% if error %}<div class="alert alert-danger" role="alert">{{ error }}</div>{% endif %}
+  {% if not federation_on %}<div class="alert alert-info" role="status">Proxied MCP servers are turned off (<code>federation.enabled</code>).</div>{% endif %}
+
+  <div class="acct-tiles mb-3">
+    <div class="obs-tile obs-tile-accent"><div class="obs-label">Connections</div><div class="obs-value">{{ rows|length }}</div><div class="obs-sub">matching the filter</div></div>
+    <div class="obs-tile"><div class="obs-label">Need re-connect</div><div class="obs-value">{{ rows|selectattr('status', 'ne', 'connected')|list|length }}</div><div class="obs-sub">the server refused the token</div></div>
+    <div class="obs-tile"><div class="obs-label">Per-user servers</div><div class="obs-value">{{ servers|length }}</div><div class="obs-sub">token_user or oauth_user</div></div>
+  </div>
+
+  <form class="row g-2 align-items-end mb-3" method="get" action="/admin/server-connections">
+    <div class="col-sm-4 col-md-3"><label class="form-label small" for="fUser">User</label>
+      <input class="form-control form-control-sm" id="fUser" name="user" value="{{ filter_user }}" placeholder="any"></div>
+    <div class="col-sm-4 col-md-3"><label class="form-label small" for="fServer">Server</label>
+      <select class="form-select form-select-sm" id="fServer" name="server">
+        <option value="">any</option>
+        {% for s in servers %}<option value="{{ s.id }}"{% if s.id == filter_server %} selected{% endif %}>{{ s.title }}</option>{% endfor %}
+      </select></div>
+    <div class="col-auto"><button class="btn btn-sm btn-primary" type="submit">Filter</button></div>
+  </form>
+
+  <div class="card">
+    <div class="table-responsive">
+      <table class="table table-sm align-middle mb-0 obs-table">
+        <thead><tr><th scope="col">User</th><th scope="col">Server</th><th scope="col">Token</th><th scope="col">Status</th>
+          <th scope="col">Last used</th><th scope="col">Saved</th><th scope="col"><span class="visually-hidden">Actions</span></th></tr></thead>
+        <tbody>
+        {% for r in rows %}
+          <tr>
+            <td>{{ r.user_id }}</td>
+            <td>{{ r.title }} <small class="text-muted">({{ r.upstream }})</small></td>
+            <td><code>{{ r.token_hint or '••••' }}</code></td>
+            <td>{% if r.status == 'connected' %}<span class="obs-pill obs-ok">connected</span>{% else %}<span class="obs-pill obs-bad" title="{{ r.last_error }}">needs re-connect</span>{% endif %}</td>
+            <td>{{ r.last_used_at or '—' }}</td>
+            <td>{{ r.updated_at or r.connected_at }}</td>
+            <td class="text-end">
+              <form method="post" action="/admin/server-connections/revoke" data-onsubmit="return confirm('Remove the {{ r.upstream }} token of {{ r.user_id }}? Their calls to it stop until they connect again.');">
+                <input type="hidden" name="csrf" value="{{ csrf }}">
+                <input type="hidden" name="user_id" value="{{ r.user_id }}">
+                <input type="hidden" name="upstream" value="{{ r.upstream }}">
+                <button class="btn btn-sm btn-outline-danger" type="submit" aria-label="Revoke {{ r.upstream }} for {{ r.user_id }}"><i class="bi bi-x-circle" aria-hidden="true"></i></button>
+              </form>
+            </td>
+          </tr>
+        {% else %}
+          <tr><td colspan="7" class="text-muted text-center py-3">No server connections{% if filter_user or filter_server %} match the filter{% endif %}.</td></tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <h2 class="h6 mt-4">Per-user servers</h2>
+  <div class="table-responsive">
+    <table class="table table-sm obs-table">
+      <thead><tr><th scope="col">Id</th><th scope="col">Server</th><th scope="col">Mode</th><th scope="col">Connected users</th></tr></thead>
+      <tbody>{% for s in servers %}
+        <tr><td><code>{{ s.id }}</code></td><td>{{ s.title }}</td>
+          <td>{% if s.mode == 'oauth_user' %}OAuth sign-in: coming in phase 7.3{% else %}personal token{% endif %}</td>
+          <td>{{ s.connected }}</td></tr>
+      {% else %}<tr><td colspan="4" class="text-muted">None configured.</td></tr>{% endfor %}</tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

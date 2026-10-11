@@ -14,8 +14,28 @@ Newest first. The current version is `app.version` in `config/application.yml`.
   had until a role is given `prompt` / `resource` permission rows. Anonymous callers are unchanged, except
   that federated resources now also need `mcp.anonymous.resources`.
 - **Database:** no schema change; prompt and resource entries live in the existing `tool_access_list`.
+  Per-user tokens for proxied servers use the existing `connected_accounts` table (provider `upstream:<id>`).
+- **Proxied servers:** nothing changes for existing upstreams (their credential mode is `static`). "Sign out
+  everywhere", an administrator's session revocation, disabling and deleting a user now also delete that
+  user's personal tokens for proxied servers.
 
 ### Added
+
+- **Per-user sign-in for proxied MCP servers, part 1** (wave 7 phase 7.2, Roadmap L18;
+  [Per-User Sign-In for Proxied Servers](docs/architecture/Per-User%20Sign-In%20for%20Proxied%20Servers.md)):
+  a credential mode per proxied server (`auth.type`: `static`, the default; `token_user`; `oauth_user`
+  accepted and shown as "OAuth sign-in: coming in phase 7.3") in `federation.upstreams`, console-added
+  upstreams and `config/mcp_servers.json`. A `token_user` server is called as the person who asked, with the
+  personal token they saved once on the new **Server connections** pages (`/account/server-connections`,
+  the connect page per server with a test call, and `/admin/server-connections` with revoke); no token
+  gives the "connect your account" answer on MCP 2026-07-28, 2025-11-25, REST and Ask SAJHA, also relayed to
+  SAJHA Net callers; a vendor 401/403 marks the connection "needs re-connect"; session-based upstreams get
+  one session per user (`federation.per_user_session_idle_seconds`, `federation.per_user_sessions_max`);
+  discovery uses a discovery credential or the first connected user's token and offers the union of what
+  users see. Tokens are encrypted in the vault, masked in status, never logged or returned; every connect,
+  disconnect and refusal is audited and every proxied call's audit record names the identity used.
+  Templates `config/mcp_servers/11_github_token_user.json.example` and
+  `12_atlassian_datacenter_token_user.json.example`; [Federation §3](docs/architecture/Federation.md#per-user-credentials-token_user).
 
 - **Adversarial QA, first automation** ([Adversarial QA Plan](docs/architecture/Adversarial%20QA%20Plan.md)):
   `tests/adversarial/` attacks the P0 surfaces: a denied tool under every name (plain, qualified, published,

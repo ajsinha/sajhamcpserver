@@ -1,9 +1,9 @@
 # GitHub Integration
 
-**Status: proposal, not built.** How SAJHA should reach GitHub (repositories, issues, pull requests,
-code search, Actions, Projects). It depends on
-[Per-User Sign-In for Proxied Servers](Per-User%20Sign-In%20for%20Proxied%20Servers.md) for anything
-beyond a shared identity. How proxied servers work today is in [Federation](Federation.md).
+**Status: works per user with personal access tokens (`token_user`, phase 7.2); OAuth sign-in
+(`oauth_user`) comes in phase 7.3.** How SAJHA reaches GitHub (repositories, issues, pull requests,
+code search, Actions, Projects). Acting as each user rests on
+[Per-User Sign-In for Proxied Servers](Per-User%20Sign-In%20for%20Proxied%20Servers.md). How proxied servers work today is in [Federation](Federation.md).
 
 ## 1. Recommendation
 
@@ -27,17 +27,27 @@ GitHub tools by hand.
 Check the current endpoint, toolsets and authentication options in GitHub's documentation before
 configuring.
 
-## 3. What works today, and its limit
+## 3. What works today
 
-A `config/mcp_servers.json` entry with a static `Authorization: Bearer ${GITHUB_PAT}` header works now
-(see `config/mcp_servers/04_remote_bearer_token.json.example`). Its limit: **every SAJHA user acts as
-the token's owner** — they see that person's repositories and every write is attributed to them. Use
-it only with a read-only, narrowly scoped token for a shared purpose (for example public issue search).
+- **Each user with their own personal access token** (`token_user`): copy
+  `config/mcp_servers/11_github_token_user.json.example` into `config/mcp_servers.json`. Each user saves a
+  GitHub personal access token once on **Server connections** (`/account/server-connections/github`; the
+  page links to GitHub's token page and checks the token's shape, then tests it with `tools/list`). Calls
+  then carry that user's token, so GitHub's own permissions and attribution apply; a user without a token
+  is asked to connect; a token GitHub refuses marks the connection "needs re-connect". Discovery uses the
+  first connected user's token unless the entry names a discovery token. Configuration and behaviour:
+  [Federation §3, Per-user credentials](Federation.md#per-user-credentials-token_user).
+- **One shared token** (a static `Authorization: Bearer ${GITHUB_PAT}` header,
+  `config/mcp_servers/04_remote_bearer_token.json.example`) still works. Its limit: **every SAJHA user acts
+  as the token's owner**. Use it only with a read-only, narrowly scoped token for a shared purpose (for
+  example public issue search).
+- **Not yet:** OAuth sign-in (phase 7.3), so Enterprise Managed Users whose enterprise disables personal
+  access tokens cannot connect yet.
 
 ## 4. With per-user sign-in
 
-- Each user connects GitHub once (OAuth, or a personal token under `token_user`); calls carry their own
-  identity, so repository permissions and audit attribution are GitHub's own.
+- Each user connects GitHub once (a personal token under `token_user` now, OAuth in phase 7.3); calls
+  carry their own identity, so repository permissions and audit attribution are GitHub's own.
 - Narrow toolsets per deployment (for example issues, pull requests and repositories; Actions read).
 - Writes — creating issues or comments, opening or merging pull requests, dispatching workflows — go
   through SAJHA's approval policy.

@@ -1,6 +1,7 @@
 # Per-User Sign-In for Proxied Servers
 
-**Status: design, not built** (Roadmap [L18](Roadmap.md)). How a proxied MCP server's tools should run
+**Status: part 1 built (`token_user`, phase 7.2); `oauth_user` comes in phase 7.3** (Roadmap
+[L18](Roadmap.md); what is built and what is not: [§10](#10-what-is-built)). How a proxied MCP server's tools should run
 **as the person who asked**, with that person's own account at the vendor, instead of one shared
 credential. It is the prerequisite for the [Google](Google%20Integration.md),
 [GitHub](GitHub%20Integration.md) and [Atlassian](Atlassian%20Integration.md) integrations and for most
@@ -92,6 +93,25 @@ connection fails the run with a clear notice instead of silently using another i
    authorization server and MCP server.
 3. Per-user sessions for 2025-11-25 servers; per-user discovery.
 4. SAJHA Net relay of "connect your account"; audit and revocation; documentation and a tutorial.
+
+## 10. What is built
+
+**Part 1 (phase 7.2): `token_user`**, configured and operated as described in
+[Federation §3, Per-user credentials](Federation.md#per-user-credentials-token_user):
+
+| Design item | Built |
+|---|---|
+| Credential modes (§2) | `auth.type` `static` (default; today's headers and credentials, unchanged), `token_user`, and `oauth_user` accepted and shown as "OAuth sign-in: coming in phase 7.3" (its tools refuse calls). In `federation.upstreams`, console-added upstreams and `config/mcp_servers.json` alike. `service_with_user` is not built. |
+| At call time (§3) | The caller (signed-in user, owned API key's owner, SAJHA Net mapped user) → their token from the vault (`upstream:<id>`) → sent with that call only. No token: the connected-accounts "connect your account" answers on every front end. Anonymous callers refused. Vendor 401/403 passed back, connection marked "needs re-connect", never retried as anyone else. |
+| Connecting (§4) | For tokens: the connect page (`/account/server-connections/<id>`) with the token's label, where to create one, prefix/pattern checks and a test call; the Connections view per user and the administrators' view with revoke. The OAuth items (discovery, PKCE, resource indicators, scopes) are phase 7.3. |
+| Sessions and discovery (§5) | Per request on 2026-07-28 upstreams; one session per user on session-based ones (idle close, cap per upstream); discovery with a discovery credential or the first connected user's token, the union of what users' tokens list. |
+| SAJHA Net (§6) | The connect request relayed back to a remote caller as an input request; the token stays on the defining server. |
+| Security (§7) | Encrypted in the vault, never logged or returned, masked in status; revoked when a user is disabled or deleted or signs out everywhere; every connect, disconnect and refusal audited, every call's audit record names the identity mode and user. Write approvals use the existing policy engine (no default rule is shipped for proxied writes). |
+| Background work (§8) | Workflows and scheduled jobs run as their owner, so they use the owner's token; a missing token fails the step with the connect message. |
+
+**Phase 7.3 adds** `oauth_user`: OAuth discovery (RFC 9728, RFC 8414), dynamic or operator-registered
+clients, authorization code with PKCE and resource indicators, refresh, scopes on the Connections view,
+and a tutorial.
 
 ---
 

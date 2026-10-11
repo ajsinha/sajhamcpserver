@@ -28,7 +28,11 @@ TOOL_NAME = re.compile(r'^[A-Za-z0-9_.-]{1,128}$')
 TRANSPORTS = ('streamable_http', 'sse', 'stdio')
 PROTOCOLS = ('auto', 'legacy', '2026-07-28')
 ON_CHANGE = ('withdraw', 'hold')
-AUTH_TYPES = ('none', 'bearer', 'header', 'oauth_client_credentials', 'connected_account')
+#: credential modes: one shared identity ('static' = 'none' plus fixed ``headers``; bearer, header,
+#: oauth_client_credentials), the caller's connected account, or per-user sign-in for proxied servers
+#: (token_user; oauth_user is accepted and shown as coming in phase 7.3). See sajha/federation/user_tokens.py.
+AUTH_TYPES = ('none', 'static', 'bearer', 'header', 'oauth_client_credentials', 'connected_account',
+              'token_user', 'oauth_user')
 #: what a connected_account upstream may use for discovery (tools/list) when no user is calling
 DISCOVERY_AUTH_TYPES = ('none', 'bearer', 'header', 'oauth_client_credentials')
 
@@ -55,6 +59,8 @@ class FederationSettings:
     upstreams: List[Dict[str, Any]] = field(default_factory=list)
     mcp_servers_file: str = ''           # the mcpServers JSON file ('' : none); see sajha/federation/mcp_servers.py
     mcp_servers_reload_seconds: float = 5.0
+    per_user_session_idle_seconds: float = 900.0   # token_user, session-based upstreams: close a user's idle session
+    per_user_sessions_max: int = 50                # token_user: open per-user sessions per upstream (oldest idle evicted)
 
     @classmethod
     def load(cls) -> 'FederationSettings':
@@ -84,6 +90,8 @@ class FederationSettings:
             upstreams=_configured_upstreams(),
             mcp_servers_file=str(_get('federation.mcp_servers_file', 'config/mcp_servers.json') or ''),
             mcp_servers_reload_seconds=max(1.0, _float('federation.mcp_servers_reload_seconds', 5.0)),
+            per_user_session_idle_seconds=max(1.0, _float('federation.per_user_session_idle_seconds', 900.0)),
+            per_user_sessions_max=max(1, _int('federation.per_user_sessions_max', 50)),
         )
 
 
@@ -210,7 +218,8 @@ class UpstreamConfig:
             transport=str(data.get('transport') or 'streamable_http').strip(),
             protocol=str(data.get('protocol') or 'auto').strip(),
             prefix=str(data.get('prefix') or '').strip(),
-            auth=_d('auth'),
+            auth=({'type': data['auth'].strip()} if isinstance(data.get('auth'), str) and data['auth'].strip()
+                  else _d('auth')),        # "auth": "token_user" is short for {"type": "token_user"}
             headers={str(k): str(v) for k, v in _d('headers').items()},
             timeout_seconds=_f('timeout_seconds'),
             retries=max(0, min(5, _i('retries', 1))),
@@ -273,6 +282,10 @@ class UpstreamConfig:
             raise ConfigError('auth.type oauth_client_credentials needs token_url, client_id and client_secret_ref')
         if atype == 'connected_account':
             self._validate_connected_account()
+        if atype in ('token_user', 'oauth_user'):
+            self._validate_per_user(atype)
+        if atype == 'static' and set(self.auth) - {'type'}:
+            raise ConfigError('auth.type static takes no other fields: the shared credential goes in headers')
         for name, ref in self.env_refs.items():
             if not _is_ref(ref):
                 raise ConfigError(f'env_refs.{name} must be a secret reference')
@@ -308,6 +321,39 @@ class UpstreamConfig:
         unknown = set(a) - {'type', 'provider', 'scopes', 'discovery'}
         if unknown:
             raise ConfigError(f'auth: unknown field(s) for connected_account: {", ".join(sorted(unknown))}')
+
+    def _validate_per_user(self, atype: str) -> None:
+        """token_user: each call carries the caller's own personal token (sajha/federation/user_tokens.py);
+        oauth_user: accepted, built in phase 7.3. ``discovery`` is the credential for tools/list."""
+        a = self.auth
+        if self.transport == 'stdio':
+            raise ConfigError(f'auth.type {atype} needs an HTTP transport (a credential per user)')
+        if self.cache_ttl:
+            raise ConfigError(f'cache_ttl cannot be used with auth.type {atype}: results are per user')
+        disc = a.get('discovery') or {}
+        if not isinstance(disc, dict):
+            raise ConfigError('auth.discovery must be an object (the credential used for tools/list)')
+        dtype = disc.get('type', 'none') or 'none'
+        if dtype not in DISCOVERY_AUTH_TYPES:
+            raise ConfigError(f'auth.discovery.type must be one of {", ".join(DISCOVERY_AUTH_TYPES)}')
+        for key, value in disc.items():
+            if key.endswith('_ref') and value and not _is_ref(value):
+                raise ConfigError(f'auth.discovery.{key} must be a secret reference (env:NAME, file:/path or db:table/key)')
+            if key in ('token', 'value', 'client_secret', 'password', 'api_key'):
+                raise ConfigError(f'auth.discovery.{key}: put secrets in a reference ({key}_ref: env:NAME)')
+        if atype == 'oauth_user':
+            return
+        from sajha.federation.user_tokens import TokenUserSpec
+        unknown = set(a) - set(TokenUserSpec.KEYS)
+        if unknown:
+            raise ConfigError(f'auth: unknown field(s) for token_user: {", ".join(sorted(unknown))}')
+        spec = TokenUserSpec.from_auth(a)
+        problems = spec.problems()
+        if problems:
+            raise ConfigError(problems[0])
+        if any(k.lower() == spec.header.lower() for k in self.headers or {}):
+            raise ConfigError(f'headers.{spec.header} conflicts with auth.header: a token_user upstream never sends a '
+                              f'shared value in the header that carries each user\'s token')
 
     @property
     def effective_prefix(self) -> str:

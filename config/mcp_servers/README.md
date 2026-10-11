@@ -18,10 +18,12 @@ SAJHA servers is in [SAJHA Net](../../docs/architecture/SAJHA%20Net.md#56-vendor
 | `03_docker_stdio.json.example` | A container over stdio with `docker run -i`; a token passed by name from the environment |
 | `04_remote_bearer_token.json.example` | Hosted servers over Streamable HTTP with a bearer or API-key header; `${NAME}` and `${NAME:default}`; two entries of one vendor with different prefixes |
 | `05_remote_no_auth.json.example` | Hosted servers that need no credential |
-| `06_remote_oauth_sign_in.json.example` | Hosted servers that need each user to sign in with OAuth: not supported yet, kept disabled as templates |
+| `06_remote_oauth_sign_in.json.example` | Hosted servers that need each user to sign in with OAuth: not supported yet (`oauth_user` comes in phase 7.3), kept disabled as templates |
 | `07_legacy_sse.json.example` | The legacy HTTP+SSE transport (`"type": "sse"`) |
 | `08_internal_not_external.json.example` | `"external": false`: your own teams' servers, and another SAJHA, governed as internal federation upstreams |
 | `09_mixed_complete.json.example` | All of the above in one file, as a starting point |
+| `11_github_token_user.json.example` | GitHub's remote server called as each user with their own personal access token (`"auth": {"type": "token_user"}`): a header format, a label, where to create a token, a token pattern |
+| `12_atlassian_datacenter_token_user.json.example` | A self-hosted Jira and Confluence Data Center MCP server with each user's own personal access token, as internal upstreams |
 
 ## Keys
 
@@ -41,6 +43,7 @@ SAJHA keys, all optional:
 | `cwd` | | stdio only: the working directory |
 | `title` | the entry's name | A display name |
 | `timeout_seconds` | `federation.default_timeout_seconds` | One call's deadline |
+| `auth` | `"static"` | Who the vendor sees. `"static"`: one shared identity (the `headers`). `{"type": "token_user", ...}`: each user, with a personal token they save once on Server connections ([Per-User Sign-In for Proxied Servers](../../docs/architecture/Per-User%20Sign-In%20for%20Proxied%20Servers.md)). `"oauth_user"`: accepted and shown as coming in phase 7.3 |
 
 `description` is accepted and ignored. Keys whose names start with `_` are comments and are ignored, at any depth; any other key is an error
 for that entry (the rest of the file still loads).

@@ -85,6 +85,15 @@ class ConnectedAccountRequired(InputRequired):
     def __str__(self) -> str:
         return self.message
 
+    @property
+    def local_path(self) -> str:
+        """The connect page as a path on this server (for its own pages, such as Ask SAJHA)."""
+        from urllib.parse import urlsplit
+        u = urlsplit(self.connect_url or '')
+        if u.path:
+            return u.path + (f'?{u.query}' if u.query else '')
+        return f'/account/connections?connect={self.provider}'
+
     def to_dict(self) -> Dict[str, Any]:
         return {'error': self.message, 'error_code': 'connected_account_required',
                 'provider': self.provider, 'provider_title': self.provider_title,

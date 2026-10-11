@@ -695,6 +695,8 @@ file are re-read when it changes. Design, the upstream fields and operation:
 | `federation.upstreams` | `[]` | The upstreams defined in configuration; each entry's fields are in [Federation](../architecture/Federation.md#2-the-upstream-model). An id also in the mcpServers file uses this definition. |
 | `federation.mcp_servers_file` | `config/mcp_servers.json` | The mcpServers file: proxied MCP servers in the `{"mcpServers": {...}}` JSON of Claude Desktop, Cursor and VS Code, git-ignored (templates: `config/mcp_servers.json.example`, `config/mcp_servers/`). Each entry is an upstream, external unless it says `"external": false`; its keys are in [Federation](../architecture/Federation.md#the-mcpservers-file). Empty: no file. A missing file is no error. |
 | `federation.mcp_servers_reload_seconds` | `5` | How often the mcpServers file's modification time and size are checked; a change is applied without a restart. |
+| `federation.per_user_session_idle_seconds` | `900` | `auth.type: token_user` on a session-based (2025-11-25 or legacy SSE) upstream: a user's own upstream session is closed after this long without a call ([Per-user credentials](../architecture/Federation.md#per-user-credentials-token_user)). |
+| `federation.per_user_sessions_max` | `50` | The most per-user sessions open at once per such upstream; the oldest idle one is closed to make room, and a call is refused when every one is busy. |
 
 ## SAJHA Net
 

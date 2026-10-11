@@ -68,12 +68,26 @@ class _Upstream:
         self.last_call: Optional[float] = None
         self.total_ms = 0.0
         self.limiter = None
+        # token_user: one open session per user on a session-based (2025-11-25) upstream, and the
+        # tools users saw with their own tokens (discovery offers the union)
+        self.user_sessions: Dict[str, '_UserSession'] = {}
+        self.user_tools: Dict[str, Dict[str, Any]] = {}
         if config.max_calls_per_minute:
             from sajha.security import RateLimiter
             # Named per upstream: the window key is ratelimit:<name>:calls, so a shared
             # default name would put every upstream in one window.
             self.limiter = RateLimiter(max_requests=config.max_calls_per_minute, window_seconds=60,
                                        name=f'federation:{config.id}')
+
+
+class _UserSession:
+    """One user's open session on a session-based token_user upstream (lives on the federation loop)."""
+
+    def __init__(self, conn: UpstreamConnection, fingerprint: str):
+        self.conn = conn
+        self.fingerprint = fingerprint      # a hash of the credential: a replaced token opens a new session
+        self.last_used = time.time()
+        self.busy = 0
 
 
 def _net_external(upstream_id: str) -> Optional[Dict[str, Any]]:
@@ -166,8 +180,11 @@ class FederationManager:
         self._thread = None
 
     async def _stop_all(self) -> None:
+        sessions = [s.conn for u in self._upstreams.values() for s in u.user_sessions.values()]
+        for u in self._upstreams.values():
+            u.user_sessions.clear()
         await asyncio.gather(*(u.conn.stop() for u in self._upstreams.values() if u.conn is not None),
-                             return_exceptions=True)
+                             *(c.stop(timeout=2.0) for c in sessions), return_exceptions=True)
 
     def _ensure_loop(self) -> asyncio.AbstractEventLoop:
         with self._lock:
@@ -430,6 +447,11 @@ class FederationManager:
         return True
 
     def _teardown(self, up: _Upstream, forget: bool) -> None:
+        if up.user_sessions and self._loop is not None:
+            try:
+                self._run(self._close_sessions(up, list(up.user_sessions)), timeout=10)
+            except Exception as e:
+                logger.debug(f'federation: closing per-user sessions of {up.config.id}: {e}')
         if up.conn is not None and self._loop is not None:
             try:
                 self._run(up.conn.stop(), timeout=10)
@@ -475,8 +497,11 @@ class FederationManager:
             up.last_refresh_error = describe(e)
             raise
         dump = lambda m: m.model_dump(mode='json', by_alias=True, exclude_none=True)   # noqa: E731
-        changed = self._reconcile(up, [dump(t) for t in tools], [dump(p) for p in prompts],
-                                  [dump(r) for r in resources])
+        tool_dicts = [dump(t) for t in tools]
+        if up.user_tools:           # token_user: the union of what each user's own token lists
+            seen = {t.get('name') for t in tool_dicts}
+            tool_dicts += [t for n, t in sorted(up.user_tools.items()) if n not in seen]
+        changed = self._reconcile(up, tool_dicts, [dump(p) for p in prompts], [dump(r) for r in resources])
         up.last_refresh = time.time()
         up.last_refresh_error = None
         if changed:
@@ -769,6 +794,20 @@ class FederationManager:
             raise FederationError(f'{tool.name} is no longer exposed by upstream {tool.upstream_id}')
         if up.conn is None:
             raise UpstreamUnavailable(f'upstream {tool.upstream_id} is not connected')
+        from sajha.federation.user_tokens import OAUTH_USER_PENDING, auth_mode
+        mode = auth_mode(up.config)
+        if mode == 'oauth_user':
+            raise FederationError(f'{up.config.display_title} signs each user in with OAuth ({OAUTH_USER_PENDING}); '
+                                  f'its tools cannot be called until then')
+        user_cred = None
+        if mode == 'token_user':
+            # the caller's own token, or "connect your account" (ConnectedAccountRequired) before
+            # anything is sent; never another user's token or a shared credential
+            from sajha.accounts.injection import caller_user_id
+            from sajha.federation.user_tokens import TokenUserSpec, get_tokens
+            uid = caller_user_id()
+            token = get_tokens().resolve(up.config, uid, tool=tool.name)
+            user_cred = (uid, token, TokenUserSpec.from_auth(up.config.auth).header_value(token))
         if up.limiter is not None and not up.limiter.is_allowed('calls'):
             raise FederationError(f'rate limit reached for upstream {tool.upstream_id} '
                                   f'({up.config.max_calls_per_minute} calls per minute)')
@@ -807,7 +846,10 @@ class FederationManager:
             user_token = self._caller_token(up, tool) if self._passthrough(up) else None
             for attempt in range(attempts):
                 try:
-                    if user_token is not None:
+                    if user_cred is not None:
+                        result = self._call_token_user(up, tool, user_cred, arguments, timeout, progress,
+                                                       responses, request_state, ctx, trace_meta)
+                    elif user_token is not None:
                         result = self._call_as_user(up, tool, user_token, arguments, timeout, progress,
                                                     responses, request_state, ctx, trace_meta)
                     else:
@@ -833,7 +875,8 @@ class FederationManager:
             data.pop('resultType', None)
             if data.pop('isError', False):
                 text = ' '.join(b.get('text', '') for b in data.get('content') or [] if b.get('type') == 'text')
-                raise FederatedToolError(redact(text or f'{tool.name} failed upstream', up.conn.secret_values())
+                raise FederatedToolError(redact(text or f'{tool.name} failed upstream',
+                                                up.conn.secret_values() + ([user_cred[1]] if user_cred else []))
                                          [:2000], data)
             return data
         except InputRequired:
@@ -876,6 +919,183 @@ class FederationManager:
                 svc.mark_rejected(token, f'upstream {up.config.id} refused the token')
                 raise svc.required(token.provider.id, 'reauth_required', token.user_id, tool=tool.name)
         raise AssertionError('unreachable')
+
+    # ── token_user: the caller's own token ─────────────────────────
+    def _modern(self, up: _Upstream) -> Optional[bool]:
+        """True: a stateless 2026-07-28 upstream; False: session-based; None: not known yet."""
+        cfg = up.config
+        if cfg.transport == 'sse' or cfg.protocol == 'legacy':
+            return False
+        if cfg.protocol == '2026-07-28':
+            return True
+        pv = up.conn.protocol_version if up.conn is not None else None
+        return (pv >= '2026-07-28') if pv else None
+
+    def _call_token_user(self, up: _Upstream, tool: FederatedTool, cred, arguments, timeout, progress,
+                         responses, request_state, ctx, trace_meta=None):
+        """tools/call as the caller: on a 2026-07-28 upstream the header rides on this call's own
+        connection; on a session-based one, in the caller's own session (opened on first use). A
+        refused token (HTTP 401/403) is the vendor's answer: passed back, the connection marked
+        "needs re-connect", never retried as anyone else."""
+        from sajha.federation.connection import UpstreamUnauthorized
+        uid, token, (header, value) = cred
+        connect_wait = min(timeout, 30.0)
+        try:
+            if self._modern(up):
+                coro = up.conn.call_tool_with_header(header, value, tool.upstream_name, arguments, timeout, progress,
+                                                     responses, request_state, trace_meta)
+            else:
+                coro = self._call_in_session(up, uid, header, value, tool.upstream_name, arguments, timeout,
+                                             progress, responses, request_state, trace_meta)
+            return self._wait(coro, timeout + connect_wait + 5.0, ctx)
+        except UpstreamUnauthorized as e:
+            from sajha.federation.user_tokens import get_tokens
+            tokens = get_tokens()
+            tokens.mark_needs_reconnect(up.config.id, uid, f'the server refused the token (HTTP {e.status})')
+            vendor = redact(e.vendor or '', [token, value]).strip()
+            err = FederatedToolError(
+                f'{up.config.display_title} refused your token (HTTP {e.status})'
+                + (f': {vendor}' if vendor else '') + '. Your connection is marked "needs re-connect"; '
+                f'replace the token at {tokens.connect_url(up.config.id)}.',
+                {'content': [], 'isError': True})
+            err.caller_specific = True          # one user's credential: not the upstream's failure (breaker)
+            raise err from None
+
+    async def _call_in_session(self, up: _Upstream, uid: str, header: str, value: str, name: str, arguments,
+                               timeout: float, progress, responses, request_state, meta):
+        from sajha.federation.connection import UpstreamUnauthorized
+        s = await self._acquire_session(up, uid, header, value)
+        try:
+            try:
+                await s.conn.ready_client(min(timeout, 30.0))
+                result = await s.conn.call_tool(name, arguments, timeout, progress, responses, request_state, meta)
+            except UpstreamUnauthorized:
+                raise
+            except Exception as e:
+                refused = s.conn.refusal(e, True)
+                if refused is not None:
+                    raise refused from None
+                raise
+        except BaseException:
+            if s.conn.refused is not None or s.conn.state in ('disabled',):
+                await self._close_sessions(up, [uid], only=s)
+            raise
+        finally:
+            s.busy -= 1
+            s.last_used = time.time()
+        if s.conn.protocol_version and s.conn.protocol_version >= '2026-07-28':
+            await self._close_sessions(up, [uid], only=s)      # stateless after all: nothing to keep
+        return result
+
+    async def _acquire_session(self, up: _Upstream, uid: str, header: str, value: str) -> _UserSession:
+        fp = hashlib.sha256(f'{header}\n{value}'.encode('utf-8')).hexdigest()
+        s = up.user_sessions.get(uid)
+        if s is not None and (s.fingerprint != fp or s.conn.refused is not None or s.conn.state == 'disabled'):
+            await self._close_sessions(up, [uid], only=s)       # token replaced, refused or closed
+            s = None
+        if s is None:
+            await self._sweep_idle(up)
+            if len(up.user_sessions) >= self.settings.per_user_sessions_max:
+                idle = sorted((x for x in up.user_sessions.items() if x[1].busy == 0), key=lambda x: x[1].last_used)
+                if not idle:
+                    raise FederationError(f'upstream {up.config.id}: every per-user session is busy '
+                                          f'(federation.per_user_sessions_max = {self.settings.per_user_sessions_max})')
+                await self._close_sessions(up, [idle[0][0]])
+            conn = up.conn.user_connection(header, value)
+            conn.start()
+            s = _UserSession(conn, fp)
+            up.user_sessions[uid] = s
+            self._ensure_sweeper()
+        s.busy += 1
+        s.last_used = time.time()
+        return s
+
+    async def _close_sessions(self, up: _Upstream, uids: List[str], only: Optional[_UserSession] = None) -> None:
+        stops = []
+        for uid in uids:
+            s = up.user_sessions.get(uid)
+            if s is None or (only is not None and s is not only):
+                continue
+            up.user_sessions.pop(uid, None)
+            stops.append(s.conn.stop(timeout=2.0))
+        if stops:
+            await asyncio.gather(*stops, return_exceptions=True)
+
+    async def _sweep_idle(self, up: _Upstream) -> None:
+        cutoff = time.time() - self.settings.per_user_session_idle_seconds
+        idle = [uid for uid, s in up.user_sessions.items() if s.busy == 0 and s.last_used < cutoff]
+        if idle:
+            await self._close_sessions(up, idle)
+
+    def _ensure_sweeper(self) -> None:
+        if getattr(self, '_sweeper', None) is not None and not self._sweeper.done():
+            return
+
+        async def sweep():
+            period = max(0.5, min(self.settings.per_user_session_idle_seconds / 2.0, 30.0))
+            while any(u.user_sessions for u in self._upstreams.values()):
+                await asyncio.sleep(period)
+                for up in list(self._upstreams.values()):
+                    await self._sweep_idle(up)
+        self._sweeper = asyncio.ensure_future(sweep())
+
+    def user_sessions(self, upstream_id: str) -> List[str]:
+        """The users with an open session on a session-based token_user upstream (status, tests)."""
+        up = self._upstreams.get(upstream_id)
+        return sorted(up.user_sessions) if up else []
+
+    def close_user_sessions(self, upstream_id: str, user_id: Optional[str] = None) -> None:
+        """Close one user's session (token removed or replaced) or every session of the upstream."""
+        up = self._upstreams.get(upstream_id)
+        if up is None or not up.user_sessions or self._loop is None:
+            return
+        uids = [user_id] if user_id else list(up.user_sessions)
+        try:
+            self._run(self._close_sessions(up, uids), timeout=10)
+        except Exception as e:
+            logger.debug(f'federation: closing per-user sessions of {upstream_id}: {e}')
+
+    def test_user_token(self, upstream_id: str, token: str, timeout: Optional[float] = None) -> List[str]:
+        """The connect page's test call: tools/list with ``token``. Returns the tool names; the tools
+        join the upstream's discovery (the union of what users see). Raises TokenRejected."""
+        from sajha.federation.connection import UpstreamUnauthorized
+        from sajha.federation.user_tokens import TokenRejected, TokenUserSpec
+        up = self._upstreams.get(upstream_id)
+        if up is None:
+            raise TokenRejected(f'There is no proxied server {upstream_id}.')
+        if not self.settings.enabled or not up.config.enabled:
+            raise TokenRejected(f'{up.config.display_title} is not enabled, so the token cannot be tested now.')
+        header, value = TokenUserSpec.from_auth(up.config.auth).header_value(token)
+        t = float(timeout or up.config.timeout_seconds or self.settings.default_timeout_seconds)
+        probe = up.conn if up.conn is not None else UpstreamConnection(up.config, self.settings, self._discover)
+        try:
+            tools = self._run(probe.list_tools_with_header(header, value, t), timeout=t * 2 + 10)
+        except UpstreamUnauthorized as e:
+            vendor = redact(e.vendor or '', [token, value]).strip()
+            raise TokenRejected(f'{up.config.display_title} refused this token (HTTP {e.status})'
+                                + (f': {vendor}' if vendor else '') + '. Check it and its permissions.') from None
+        except Exception as e:
+            raise TokenRejected(f'{up.config.display_title} could not be reached to test the token: '
+                                f'{redact(describe(e), [token, value])}') from None
+        dump = [x.model_dump(mode='json', by_alias=True, exclude_none=True) for x in tools]
+        for d in dump:
+            if isinstance(d.get('name'), str) and d['name'] not in up.user_tools:
+                up.user_tools[d['name']] = d
+                up.user_tools_new = True
+        return [d.get('name') for d in dump]
+
+    def user_connected(self, upstream_id: str) -> None:
+        """A user saved a token: discovery can use it now (the first user), and tools only their token
+        lists join the catalog (the union)."""
+        up = self._upstreams.get(upstream_id)
+        conn = up.conn if up is not None else None
+        if conn is None or self._loop is None:
+            return
+        if conn.state != 'connected' or conn.waiting_for_user:
+            self._loop.call_soon_threadsafe(conn.kick)
+        elif getattr(up, 'user_tools_new', False):
+            up.user_tools_new = False
+            self._submit(conn.request_refresh())
 
     def _wait(self, coro, timeout: float, ctx=None):
         """Wait for a coroutine on the federation loop. When the caller is cancelled (a dropped
@@ -1110,7 +1330,12 @@ class FederationManager:
         except Exception:
             breaker = None
         ext = next((x for x in self.file_external if x['upstream'] == cfg.id), None) or _net_external(cfg.id)
+        from sajha.federation.user_tokens import OAUTH_USER_PENDING, auth_mode
+        mode = auth_mode(cfg)
         return {
+            'auth_mode': mode,
+            'auth_note': OAUTH_USER_PENDING if mode == 'oauth_user' else '',
+            'user_sessions': len(up.user_sessions),
             'id': cfg.id, 'title': cfg.display_title, 'source': cfg.source, 'enabled': cfg.enabled,
             'vendor': (ext or {}).get('vendor') or self.file_vendors.get(cfg.id) or '',
             'external': ext is not None,                   # SAJHA Net design §5.6

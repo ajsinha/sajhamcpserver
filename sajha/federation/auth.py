@@ -15,6 +15,12 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
                                 *calling user's* token for ``provider`` (sajha/accounts),
                                 on a connection opened for that call; the shared connection
                                 discovers tools with ``discovery`` (one of the above) or nothing.
+* ``token_user``                per-user personal tokens (sajha/federation/user_tokens.py): each call
+                                carries the caller's own token in ``header``/``format``; the shared
+                                connection discovers with ``discovery`` or, without one, the token
+                                of the first user who connected.
+* ``oauth_user``                per-user OAuth sign-in (phase 7.3): discovery only, as above.
+* ``static``                    the same as ``none``: the shared credential is in ``headers``.
 
 Secrets are references (``env:``, ``file:``, ``db:``) resolved when the connection is
 built; resolved values are held only by the Auth object and never logged.
@@ -138,7 +144,18 @@ def build_auth(config, settings) -> Optional[httpx2.Auth]:
         # Tool calls carry the caller's own token on a connection of their own (call_tool_as).
         a = dict(a.get('discovery') or {})
         kind = a.get('type') or 'none'
-    if kind == 'none':
+    elif kind in ('token_user', 'oauth_user'):
+        disc = dict(a.get('discovery') or {})
+        if (disc.get('type') or 'none') == 'none' and kind == 'token_user':
+            # no discovery credential: discover as the first user who connected (the union of what
+            # users see is completed from each user's own listing when they connect)
+            from sajha.federation.user_tokens import TokenUserSpec, get_tokens
+            token = get_tokens().first_token(config.id)
+            if not token:
+                return None
+            return StaticHeaderAuth(*TokenUserSpec.from_auth(a).header_value(token))
+        a, kind = disc, disc.get('type') or 'none'
+    if kind in ('none', 'static'):
         return None
     if kind == 'bearer':
         token = resolve_ref(a.get('token_ref'), f'upstream {config.id} auth.token_ref')

@@ -93,4 +93,9 @@ def end_all_sessions(db, user, by: str, reason: str) -> int:
         AuditDAO(db).log('user.sessions_revoked', by, 'user', user.user_id, {'reason': reason})
     except Exception as e:
         logger.warning(f'audit of sessions_revoked failed: {e}')
+    if reason in ('sign_out_everywhere', 'admin_revoke'):
+        # signing out everywhere also forgets the personal tokens for proxied servers
+        # (docs/architecture/Per-User Sign-In for Proxied Servers.md §7)
+        from sajha.federation.user_tokens import revoke_user
+        revoke_user(user.user_id, actor=by, reason=reason)
     return user.token_version

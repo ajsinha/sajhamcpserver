@@ -341,8 +341,9 @@ class BaseMCPTool(ABC):
         except Exception as e:
             execution_time = (datetime.now() - start_time).total_seconds()
 
-            # Record failure in circuit breaker
-            if breaker:
+            # Record failure in circuit breaker (not when the failure belongs to one caller, such as
+            # a proxied server refusing that user's own token: sajha/federation/manager.py)
+            if breaker and not getattr(e, 'caller_specific', False):
                 breaker.record_failure()
 
             # Record for replay

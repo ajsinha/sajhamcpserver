@@ -75,6 +75,7 @@
       (url_for('admin_federation_page'), 'diagram-2', 'Proxied MCP servers', 'The MCP servers this instance embeds and proxies calls to: their state, tools and approvals'),
       (url_for('admin_sajhanet_page'), 'share', 'SAJHA Net', 'Nets this server is in: membership, names, adding a peer'),
       (url_for('admin_connections_page'), 'link-45deg', 'Connected accounts', 'Which services each user linked; revoke; vault keys'),
+      (url_for('admin_server_connections_page'), 'person-lock', 'Server connections', 'Who saved their own token for each proxied server; revoke'),
       (url_for('admin_connectors_page'), 'database-gear', 'Data connectors', 'Databases and vector stores as governed, read-only tools')]),
     ('Governance', [
       (url_for('admin_policies_page'), 'shield-check', 'Policies', 'Rules on every tool call; the test bench'),
@@ -143,6 +144,7 @@
             <div class="dropdown-divider"></div>
             <a class="dropdown-item" href="{{ url_for('change_password_page') }}"><i class="bi bi-key" aria-hidden="true"></i> Change password</a>
             <a class="dropdown-item" href="{{ url_for('account_connections_page') }}"><i class="bi bi-link-45deg" aria-hidden="true"></i> Connected accounts</a>
+            <a class="dropdown-item" href="{{ url_for('account_server_connections_page') }}"><i class="bi bi-person-lock" aria-hidden="true"></i> Server connections</a>
             <a class="dropdown-item" href="{{ url_for('account_apikeys_page') }}"><i class="bi bi-key-fill" aria-hidden="true"></i> My API keys</a>
             <a class="dropdown-item" href="{{ url_for('logout') }}"><i class="bi bi-box-arrow-right" aria-hidden="true"></i> Log out</a>
           </div>

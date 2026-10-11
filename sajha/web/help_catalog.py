@@ -176,8 +176,12 @@ CATALOG: List[dict] = [
                'DAGs of tools, composites and Ask SAJHA steps; cron, webhook, file and event triggers; '
                'durable runs that resume after a crash, re-run from a step, publish as a tool.'),
             _g('Per-User Sign-In for Proxied Servers', 'Per-User Sign-In for Proxied Servers.md', 'bi-person-lock',
-               'Design: proxied MCP servers acting as each user with their own vendor account — credential '
-               'modes, connect prompts, sessions, SAJHA Net and security rules.'),
+               'Proxied MCP servers acting as each user with their own vendor account: credential modes '
+               '(static, token_user; oauth_user next), connect prompts, per-user sessions, SAJHA Net and security.'),
+            _p('Server connections', 'account_server_connections_page', 'bi-person-lock',
+               'Your own token for each proxied server that acts as you: connect, replace, remove; status.'),
+            _p('Server connections: all users', 'admin_server_connections_page', 'bi-shield-lock',
+               'Administrators: who is connected to which proxied server, needs re-connect, revoke. Never a token.'),
             _g('GitHub Integration', 'GitHub Integration.md', 'bi-github',
                'Proposal: GitHub\'s official MCP server proxied per user (issues, pull requests, code, Actions).'),
             _g('Atlassian Integration', 'Atlassian Integration.md', 'bi-kanban',

@@ -98,6 +98,8 @@ ROUTES: List[Tuple[str, bool]] = [
     ('/admin/audit', True),
     ('/admin/connections', True),
     ('/account/connections', True),
+    ('/account/server-connections', True),      # Server connections (per-user tokens for proxied servers)
+    ('/admin/server-connections', True),
     ('/account/apikeys', True),
     ('/studio', True),
     ('/studio/rest', True),

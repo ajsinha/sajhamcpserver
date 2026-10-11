@@ -1,0 +1,83 @@
+{% extends "common/base.html" %}
+<!--
+Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.com
+Connect to one proxied MCP server with your own personal token (auth.type token_user).
+Design: docs/architecture/Per-User Sign-In for Proxied Servers.md
+-->
+{% block title %}Connect {{ server.title }} - SAJHA MCP Server{% endblock %}
+
+{% block content %}
+<div class="container-fluid acct-page">
+  <nav aria-label="breadcrumb"><ol class="breadcrumb small mb-2">
+    <li class="breadcrumb-item"><a href="{{ url_for('account_server_connections_page') }}">Server connections</a></li>
+    <li class="breadcrumb-item active" aria-current="page">{{ server.title }}</li></ol></nav>
+  <h1 class="h3 mb-1"><i class="bi bi-key me-2" aria-hidden="true"></i>Connect {{ server.title }}</h1>
+  <p class="text-muted small mb-3">Tools from {{ server.title }} act as you, with your own account there. Save your {{ st.label or 'token' }} once: SAJHA encrypts it, sends it only to this server, and never shows it again.</p>
+
+  {% if error %}<div class="alert alert-danger" role="alert"><i class="bi bi-exclamation-triangle me-1" aria-hidden="true"></i>{{ error }}</div>{% endif %}
+  {% if not federation_on %}<div class="alert alert-info" role="status">Proxied MCP servers are turned off on this server (<code>federation.enabled</code>).</div>{% endif %}
+
+  {% if not is_user %}
+  <div class="alert alert-info" role="status">Server connections belong to signed-in users. This credential has none.</div>
+  {% elif st.mode == 'oauth_user' %}
+  <div class="alert alert-info" role="status">{{ server.title }} signs users in with OAuth. {{ st.note }}.</div>
+  {% else %}
+  <div class="row g-3">
+    <div class="col-lg-7">
+      <section class="acct-card{% if st.status == 'needs_reconnect' %} acct-attn{% endif %}" aria-labelledby="ctitle">
+        <div class="acct-head">
+          <span class="acct-icon" aria-hidden="true"><i class="bi bi-diagram-2"></i></span>
+          <div class="acct-title"><h2 class="h6 mb-0" id="ctitle">{{ st.label }}</h2>
+            <small class="text-muted">{{ server.url }}</small></div>
+          {% if st.status == 'connected' %}<span class="acct-badge acct-ok">Connected</span>
+          {% elif st.status == 'needs_reconnect' %}<span class="acct-badge acct-bad">Needs re-connect</span>
+          {% else %}<span class="acct-badge">Not connected</span>{% endif %}
+        </div>
+        {% if st.status != 'not_connected' %}
+        <dl class="acct-facts">
+          <dt>Saved token</dt><dd><code>{{ st.token_hint }}</code></dd>
+          <dt>Saved</dt><dd>{{ st.updated_at or st.connected_at }}</dd>
+          <dt>Last used</dt><dd>{{ st.last_used_at or 'not yet' }}</dd>
+          {% if st.status == 'needs_reconnect' %}<dt>Status</dt><dd class="text-danger">{{ st.last_error or 'The server refused your token.' }}</dd>{% endif %}
+        </dl>
+        {% endif %}
+        <form method="post" action="/account/server-connections/{{ server.id }}/token" class="mt-2" autocomplete="off">
+          <input type="hidden" name="csrf" value="{{ csrf }}">
+          <label class="form-label small" for="tokenInput">{% if st.status == 'not_connected' %}Your {{ st.label }}{% else %}Replace with a new {{ st.label }}{% endif %}</label>
+          <input class="form-control form-control-sm" id="tokenInput" name="token" type="password" required autocomplete="off" spellcheck="false"
+                 placeholder="{% if st.token_prefix %}{{ st.token_prefix }}…{% else %}paste it here{% endif %}" aria-describedby="tokenHelp">
+          <div id="tokenHelp" class="form-text">Sent as the <code>{{ st.header }}</code> header on your calls to {{ server.title }} only.
+            {% if st.help_url %}<a href="{{ st.help_url }}" target="_blank" rel="noopener">Where to create one</a>.{% endif %}</div>
+          <div class="form-check small mt-2">
+            <input class="form-check-input" type="checkbox" id="skipTest" name="skip_test" value="1">
+            <label class="form-check-label" for="skipTest">Save without testing (normally SAJHA lists the server's tools with your token first)</label>
+          </div>
+          <div class="acct-actions mt-2">
+            <button type="submit" class="btn btn-sm btn-primary"><i class="bi bi-check2 me-1" aria-hidden="true"></i>{% if st.status == 'not_connected' %}Test and save{% else %}Test and replace{% endif %}</button>
+          </div>
+        </form>
+        {% if st.status != 'not_connected' %}
+        <form method="post" action="/account/server-connections/{{ server.id }}/remove" class="mt-2"
+              data-onsubmit="return confirm('Remove your {{ server.title }} token? Its tools stop working for you until you connect again.');">
+          <input type="hidden" name="csrf" value="{{ csrf }}">
+          <button type="submit" class="btn btn-sm btn-outline-danger"><i class="bi bi-x-circle me-1" aria-hidden="true"></i>Remove my token</button>
+        </form>
+        {% endif %}
+      </section>
+    </div>
+    <div class="col-lg-5">
+      <div class="card"><div class="card-body small">
+        <h2 class="h6">What SAJHA does with it</h2>
+        <ul class="mb-0">
+          <li>Keeps it encrypted in the token vault, bound to you and to {{ server.title }}.</li>
+          <li>Sends it only on your own calls to this server; never as anyone else, never to another server.</li>
+          <li>Shows only <code>••••</code> and its last four characters, here and to administrators.</li>
+          <li>Forgets it when you remove it, sign out everywhere, or your account is disabled.</li>
+          <li>If {{ server.title }} refuses it, your connection is marked "needs re-connect" until you replace it.</li>
+        </ul>
+      </div></div>
+    </div>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

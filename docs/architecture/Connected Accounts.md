@@ -244,6 +244,20 @@ federation:
 * The cost is one MCP handshake per call. The design of federation is in
   [Federation](Federation.md).
 
+### Proxied-server connections (personal tokens)
+
+Servers that take a **personal token** rather than an OAuth link (a GitHub personal access token, a
+Jira or Confluence Data Center token) use `auth.type: token_user` instead
+([Federation §3](Federation.md#per-user-credentials-token_user)). Those tokens live in this same vault,
+one row per user and upstream under the provider key `upstream:<id>` (encrypted and bound to both like
+every row, re-encrypted by the same rotation), and use the same "connect your account" answers (§6),
+pointing at the connect page `/account/server-connections/<id>` instead of `/account/connections`.
+They have their own pages, **Server connections** (`/account/server-connections`, in the user menu)
+and **Server connections: all users** (`/admin/server-connections`), and are left out of the
+connected-accounts pages and APIs. A token's status is connected, needs re-connect (the vendor refused
+it) or not connected; only `••••` and its last four characters are ever shown. Design and status:
+[Per-User Sign-In for Proxied Servers](Per-User%20Sign-In%20for%20Proxied%20Servers.md).
+
 ## 8. Several workers
 
 * Flow state (`accounts:flow:*`) is in the state store, so the callback may land on any

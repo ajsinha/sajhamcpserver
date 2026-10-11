@@ -1,7 +1,9 @@
 # Atlassian Integration
 
-**Status: proposal, not built.** How SAJHA should reach Jira, Confluence and other Atlassian products.
-It depends on [Per-User Sign-In for Proxied Servers](Per-User%20Sign-In%20for%20Proxied%20Servers.md).
+**Status: Data Center works per user with personal access tokens (`token_user`, phase 7.2); Atlassian
+Cloud needs OAuth sign-in (`oauth_user`), which comes in phase 7.3.** How SAJHA reaches Jira, Confluence
+and other Atlassian products. Acting as each user rests on
+[Per-User Sign-In for Proxied Servers](Per-User%20Sign-In%20for%20Proxied%20Servers.md).
 How proxied servers work today is in [Federation](Federation.md).
 
 ## 1. Recommendation
@@ -25,11 +27,19 @@ How proxied servers work today is in [Federation](Federation.md).
   guides disagree on the exact path, so take it from Atlassian's current documentation.
 - **Data Center:** no official remote server; community servers run on your own infrastructure.
 
-## 3. What works today, and its limit
+## 3. What works today
 
-An API-token entry (where the administrator enabled it) can be proxied now with a static header, but
-then **every SAJHA user acts as that one Atlassian account**: they see its projects and spaces and every
-change is attributed to it. Suitable only for a read-only service account with narrow access.
+- **Data Center, each user with their own personal access token** (`token_user`): run a self-hosted MCP
+  server for Jira and Confluence on your network and copy
+  `config/mcp_servers/12_atlassian_datacenter_token_user.json.example` (internal upstreams `jira_dc` and
+  `confluence_dc`; set the header format your server expects). Each user saves their Data Center personal
+  access token once on **Server connections**; calls carry it, so Jira's and Confluence's own permissions
+  apply, and a user without one is asked to connect. Configuration and behaviour:
+  [Federation §3, Per-user credentials](Federation.md#per-user-credentials-token_user).
+- **Cloud with one shared API token** (where the administrator enabled API-token access) can be proxied
+  with a static header, but then **every SAJHA user acts as that one Atlassian account**: suitable only for
+  a read-only service account with narrow access.
+- **Not yet:** each user's OAuth sign-in to the Cloud Rovo server (phase 7.3).
 
 ## 4. With per-user sign-in
 

@@ -40,7 +40,13 @@ class UpstreamTimeout(TimeoutError):
 
 
 class UpstreamUnauthorized(RuntimeError):
-    """The upstream answered HTTP 401 to a per-user (connected-account) call."""
+    """The upstream refused a per-user credential (HTTP 401, or 403 for a personal token).
+    ``vendor``: the start of the vendor's own answer, already redacted."""
+
+    def __init__(self, message: str, status: int = 401, vendor: str = ''):
+        super().__init__(message)
+        self.status = status
+        self.vendor = vendor
 
 
 def is_unauthorized(exc: BaseException) -> bool:
@@ -109,7 +115,11 @@ class UpstreamConnection:
         self.connected_at: Optional[float] = None
         self.listening = False
         self.needs_sign_in = False          # HTTP 401 with no credential configured: per-user OAuth (not built)
+        self.waiting_for_user = False       # token_user without a discovery credential and nobody connected yet
+        self.user_session = False           # a per-user session (token_user): a refused token ends it for good
+        self.refused: Optional[UpstreamUnauthorized] = None
         self._last_status: Optional[int] = None
+        self._last_refusal = ''             # the start of the vendor's 401/403 body (redacted)
         self._client = None
         self._secret_values: List[str] = []
         self._ready = asyncio.Event()
@@ -118,6 +128,8 @@ class UpstreamConnection:
         self._refresh = asyncio.Event()
         self._refresh_done: List[asyncio.Future] = []
         self._task: Optional[asyncio.Task] = None
+        self._fatal = asyncio.Event()       # user sessions: the vendor refused the token
+        self._wake = asyncio.Event()        # kick(): try again now instead of after the backoff
 
     # ── lifecycle ──────────────────────────────────────────────────
     def start(self) -> None:
@@ -132,6 +144,11 @@ class UpstreamConnection:
             except (asyncio.TimeoutError, Exception):
                 self._task.cancel()
         self.state = 'disabled'
+
+    def kick(self) -> None:
+        """Reconnect now (a user just connected: discovery can use their token)."""
+        self._wake.set()
+        self._lost.set()
 
     def mark_lost(self, why: str = '') -> None:
         if why:
@@ -169,6 +186,8 @@ class UpstreamConnection:
                             except Exception:
                                 pass
                         self.connected_at = time.time()
+                        self.waiting_for_user = False
+                        self._wake.clear()
                         self.last_error = None
                         backoff = 1.0
                         self._lost.clear()
@@ -196,7 +215,22 @@ class UpstreamConnection:
                 raise
             except Exception as e:
                 self.last_error = describe(e)
-                if (is_unauthorized(e) or self._last_status == 401) and not self._has_credential():
+                status = self._last_status if self._last_status in (401, 403) else (401 if is_unauthorized(e) else None)
+                if self.user_session and status:
+                    from sajha.federation.security import redact
+                    self.refused = UpstreamUnauthorized(f'upstream {self.config.id} refused the user token '
+                                                        f'(HTTP {status})', status,
+                                                        redact(self._last_refusal, self._secret_values))
+                    self._fatal.set()
+                    self._fail_waiters()
+                    break
+                if status == 401 and self._per_user_mode() and not self._secret_values:
+                    self.waiting_for_user = True
+                    self.last_error = ('waiting for the first user to connect: this server signs each user in with '
+                                       'their own token, and has no discovery credential (auth.discovery); tools '
+                                       'appear once a user connects')
+                    backoff = BACKOFF_MAX_SECONDS
+                elif (is_unauthorized(e) or self._last_status == 401) and not self._has_credential():
                     if not self.needs_sign_in:
                         self._sign_in_notice()
                     self.needs_sign_in = True
@@ -210,17 +244,27 @@ class UpstreamConnection:
                 self._fail_waiters()
             if self._stop.is_set():
                 break
-            self.state = 'needs_sign_in' if self.needs_sign_in else 'error'
+            self.state = ('needs_sign_in' if self.needs_sign_in
+                          else 'waiting_for_user' if self.waiting_for_user else 'error')
             try:
-                await asyncio.wait_for(self._stop.wait(), timeout=backoff)
+                await asyncio.wait_for(_first(self._stop.wait(), self._wake.wait()), timeout=backoff)
             except asyncio.TimeoutError:
                 pass
+            if self._wake.is_set():
+                self._wake.clear()
+                backoff = 1.0
+                continue
             backoff = min(backoff * 2, BACKOFF_MAX_SECONDS)
         self.state = 'disabled'
 
+    def _per_user_mode(self) -> bool:
+        return (self.config.auth or {}).get('type') in ('token_user', 'oauth_user')
+
     def _has_credential(self) -> bool:
         a = (self.config.auth or {}).get('type', 'none') or 'none'
-        return a != 'none' or any(k.lower() in ('authorization', 'x-api-key', 'api-key')
+        if a in ('token_user', 'oauth_user'):
+            return bool(self._secret_values)
+        return a not in ('none', 'static') or any(k.lower() in ('authorization', 'x-api-key', 'api-key')
                                   for k in (self.config.headers or {}))
 
     def _sign_in_notice(self) -> None:
@@ -293,6 +337,12 @@ class UpstreamConnection:
         from mcp.client.streamable_http import streamable_http_client
         async def seen(response):              # the SDK hides an HTTP 401 behind a generic MCP error
             self._last_status = response.status_code
+            if response.status_code in (401, 403):
+                try:                           # the vendor's own answer, for the user (redacted later)
+                    await response.aread()
+                    self._last_refusal = (response.text or '')[:300]
+                except Exception:
+                    self._last_refusal = ''
         http = httpx2.AsyncClient(headers=headers, auth=auth, follow_redirects=False, trust_env=False,
                                   timeout=httpx2.Timeout(connect_timeout, read=max(timeout, 300.0)),
                                   event_hooks={'response': [seen]})
@@ -328,10 +378,24 @@ class UpstreamConnection:
             waiters, self._refresh_done = self._refresh_done, []
             try:
                 await self._on_discover(self)
+                if self.waiting_for_user:
+                    self.waiting_for_user = False
+                    self.state = 'connected'
             except asyncio.CancelledError:
                 raise
             except Exception as e:
                 why = describe(e)
+                if self._per_user_mode() and not self._secret_values and self._last_status in (401, 403):
+                    # a stateless upstream opens without a request: the first refusal comes here
+                    self.waiting_for_user = True
+                    self.state = 'waiting_for_user'
+                    self.last_error = ('waiting for the first user to connect: this server signs each user in with '
+                                       'their own token, and has no discovery credential (auth.discovery); tools '
+                                       'appear once a user connects')
+                    for f in waiters:
+                        if not f.done():
+                            f.set_exception(UpstreamUnavailable(self.last_error))
+                    continue
                 logger.warning(f'federation: discovery on upstream {self.config.id} failed: {why}')
                 for f in waiters:
                     if not f.done():
@@ -387,10 +451,16 @@ class UpstreamConnection:
     async def ready_client(self, wait: float):
         if self._client is not None and self._ready.is_set():
             return self._client
+        if self.refused is not None:
+            raise self.refused
         if self._stop.is_set():
             raise UpstreamUnavailable(f'upstream {self.config.id} is stopped')
         try:
-            await asyncio.wait_for(self._ready.wait(), timeout=max(0.0, wait))
+            await asyncio.wait_for(_first(self._ready.wait(), self._fatal.wait()), timeout=max(0.0, wait))
+            if self.refused is not None:
+                raise self.refused
+            if not self._ready.is_set():
+                raise asyncio.TimeoutError()
         except asyncio.TimeoutError:
             raise UpstreamUnavailable(f'upstream {self.config.id} is not connected'
                                       + (f' ({self.last_error})' if self.last_error else ''))
@@ -457,12 +527,18 @@ class UpstreamConnection:
         """One tools/call presenting ``bearer`` (the calling user's connected-account token) on a
         connection opened for this call and closed after it, so no user's token is ever on the
         shared connection or reused for another user. Raises UpstreamUnauthorized on HTTP 401."""
-        from sajha.federation.auth import StaticHeaderAuth
+        return await self.call_tool_with_header('Authorization', f'Bearer {bearer}', name, arguments, timeout,
+                                                progress, input_responses, request_state, meta, refuse_403=False)
 
-        async def _no_discovery(_conn):
-            return None
-        eph = UpstreamConnection(self.config, self.settings, _no_discovery, refresh_seconds=0)
-        eph._auth_override = StaticHeaderAuth('Authorization', f'Bearer {bearer}')
+    async def call_tool_with_header(self, header: str, value: str, name: str, arguments: Dict[str, Any],
+                                    timeout: float, progress: Optional[Callable] = None,
+                                    input_responses: Optional[Dict] = None, request_state: Optional[str] = None,
+                                    meta: Optional[Dict[str, Any]] = None, refuse_403: bool = True):
+        """One tools/call carrying ``header: value`` (one user's credential) on a connection opened
+        for this call and closed after it: on a 2026-07-28 upstream that is the credential riding on
+        the request, with no per-user state kept. Raises UpstreamUnauthorized on HTTP 401 (and 403
+        when ``refuse_403``)."""
+        eph = self.user_connection(header, value)
         responses = _input_responses(input_responses) if input_responses else None
 
         async def call():
@@ -474,11 +550,59 @@ class UpstreamConnection:
                         input_responses=responses, request_state=request_state, allow_input_required=True,
                         meta=meta or None)
             except Exception as e:
-                if is_unauthorized(e):
-                    raise UpstreamUnauthorized(f'upstream {self.config.id} refused the user token (HTTP 401)') \
-                        from None
+                refused = eph.refusal(e, refuse_403)
+                if refused is not None:
+                    raise refused from None
                 raise
         return await eph._guarded(call, timeout, f'tools/call {name}')
+
+    async def list_tools_with_header(self, header: str, value: str, timeout: float) -> List[Any]:
+        """tools/list (every page) as one user, on a connection of its own (the connect page's test
+        call and the per-user part of discovery). Raises UpstreamUnauthorized on 401/403."""
+        eph = self.user_connection(header, value)
+
+        async def listing():
+            try:
+                async with AsyncExitStack() as stack:
+                    client = await eph._open(stack)
+                    items: List[Any] = []
+                    cursor = None
+                    for _ in range(100):
+                        page = await client.list_tools(cursor=cursor)
+                        items.extend(page.tools or [])
+                        cursor = page.next_cursor
+                        if not cursor:
+                            break
+                    return items
+            except Exception as e:
+                refused = eph.refusal(e, True)
+                if refused is not None:
+                    raise refused from None
+                raise
+        return await eph._guarded(listing, timeout, 'tools/list')
+
+    def user_connection(self, header: str, value: str) -> 'UpstreamConnection':
+        """An unstarted connection to this upstream presenting one user's credential."""
+        from sajha.federation.auth import StaticHeaderAuth
+
+        async def _no_discovery(_conn):
+            return None
+        c = UpstreamConnection(self.config, self.settings, _no_discovery, refresh_seconds=0)
+        c._auth_override = StaticHeaderAuth(header, value)
+        c.user_session = True
+        return c
+
+    def refusal(self, exc: BaseException, refuse_403: bool = True) -> Optional[UpstreamUnauthorized]:
+        """UpstreamUnauthorized when ``exc`` (or the last HTTP status seen) is the vendor refusing the
+        credential, else None."""
+        from sajha.federation.security import redact
+        status = self._last_status if self._last_status in ((401, 403) if refuse_403 else (401,)) else None
+        if status is None and is_unauthorized(exc):
+            status = 401
+        if status is None:
+            return None
+        return UpstreamUnauthorized(f'upstream {self.config.id} refused the user token (HTTP {status})', status,
+                                    redact(self._last_refusal, self._secret_values))
 
     async def get_prompt(self, name: str, arguments: Dict[str, str], timeout: float):
         client = await self.ready_client(min(timeout, 5.0))

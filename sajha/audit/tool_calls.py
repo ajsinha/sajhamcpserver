@@ -175,6 +175,26 @@ def redacted_arguments(arguments: Any, max_bytes: int) -> Any:
     return value
 
 
+def _proxied_identity(tool, caller) -> Optional[Dict[str, Any]]:
+    """For a proxied server's tool: which identity the vendor saw (the credential mode and, for the
+    per-user modes, the SAJHA user whose own credential was sent). Never a credential."""
+    upstream = getattr(tool, 'upstream_id', None)
+    if not upstream:
+        return None
+    try:
+        from sajha.federation.manager import get_federation
+        from sajha.federation.user_tokens import auth_mode
+        m = get_federation()
+        cfg = m.get_config(upstream) if m is not None else None
+        mode = auth_mode(cfg) if cfg is not None else 'static'
+    except Exception:
+        mode = 'static'
+    out: Dict[str, Any] = {'upstream': upstream, 'mode': mode}
+    if mode != 'static':
+        out['user'] = caller.user_id or 'anonymous'
+    return out
+
+
 def record_call(tool, arguments: Any, outcome: str, duration_s: float, error: str = '') -> None:
     """Write the ``tool.call`` record for one finished call (or skip it, per the settings).
     Never raises: auditing must not break the call it records."""
@@ -208,6 +228,9 @@ def record_call(tool, arguments: Any, outcome: str, duration_s: float, error: st
             details['arguments'] = redacted_arguments(arguments, s.max_argument_bytes)
         if destructive:
             details['destructive'] = True
+        identity = _proxied_identity(tool, c)
+        if identity:
+            details['identity'] = identity
         if rate is not None:
             details['sample_rate'] = rate
         if error and outcome not in ('ok', 'cache_hit'):

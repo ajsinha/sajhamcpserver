@@ -468,6 +468,8 @@ class ConnectedAccountsService:
     def connections_for(self, user_id: str) -> List[Dict[str, Any]]:
         out = []
         for conn in self.vault.list_for_user(user_id):
+            if conn.provider.startswith('upstream:'):      # proxied-server tokens: their own pages
+                continue
             out.append(conn.to_public())
         return out
 

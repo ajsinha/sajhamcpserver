@@ -1,0 +1,19 @@
+{
+  "_comment": "GitHub's remote MCP server, called as each user with their own GitHub personal access token (auth.type token_user). Nothing shared: every user saves a token once on Server connections (/account/server-connections/github), SAJHA keeps it encrypted and sends it only on that user's calls. A user without a token is asked to connect (an input request on MCP 2026-07-28, URL elicitation on 2025-11-25, HTTP 428 on REST, a Connect button in Ask SAJHA). Discovery (tools/list) uses the first connected user's token unless auth.discovery names one (for example {\"type\": \"bearer\", \"token_ref\": \"env:GITHUB_DISCOVERY_PAT\"}). Keep 'tools' narrow: most GitHub tools write.",
+  "mcpServers": {
+    "github": {
+      "url": "https://api.githubcopilot.com/mcp/",
+      "title": "GitHub",
+      "tools": ["get_*", "list_*", "search_*"],
+      "auth": {
+        "type": "token_user",
+        "header": "Authorization",
+        "format": "Bearer {token}",
+        "label": "GitHub personal access token",
+        "help_url": "https://github.com/settings/personal-access-tokens",
+        "token_pattern": "(ghp_|github_pat_)[A-Za-z0-9_]+",
+        "_comment": "token_pattern catches a pasted password or another service's key before anything is sent; GitHub decides what each token may see."
+      }
+    }
+  }
+}

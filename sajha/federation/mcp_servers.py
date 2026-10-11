@@ -14,7 +14,10 @@ credentials). Each entry becomes a federation upstream whose id is the entry's k
   server is offered into SAJHA Net by this instance and is never a member; ``false`` makes it an
   ordinary internal federation upstream), ``tools`` (globs of the server's tools to take; federation's
   ``include_tools``), ``enabled`` (``false``: listed, never connected), ``cwd`` (stdio), ``title``,
-  ``timeout_seconds``; a key starting with ``_`` is a comment, at any depth;
+  ``timeout_seconds``, ``auth`` (the credential mode: ``"static"``, the default, sends ``headers`` as one
+  shared identity; ``{"type": "token_user", ...}`` sends each user's own personal token; ``"oauth_user"``
+  is accepted and shown as coming in phase 7.3; the same ``auth`` block as federation upstreams); a key
+  starting with ``_`` is a comment, at any depth;
 * ``${NAME}`` and ``${NAME:default}`` in ``url``, header values, ``args`` and ``env`` are read from the
   environment. A raw secret-looking header still works (the owner's intranet stance) but is reported,
   by header name only, never its value.
@@ -42,7 +45,7 @@ _VAR = re.compile(r'\$\{([A-Za-z_][A-Za-z0-9_]*)(?::([^}]*))?\}')
 _SECRET_HEADER = re.compile(r'authorization|api[-_]?key|token|secret|cookie|password', re.I)
 _TRANSPORT = {'http': 'streamable_http', 'streamable_http': 'streamable_http', 'streamable-http': 'streamable_http',
               'streamablehttp': 'streamable_http', 'sse': 'sse', 'stdio': 'stdio'}
-SAJHA_KEYS = ('vendor', EXTERNAL_KEY, 'tools', 'prefix', 'enabled', 'title', 'timeout_seconds', 'cwd')
+SAJHA_KEYS = ('vendor', EXTERNAL_KEY, 'tools', 'prefix', 'enabled', 'title', 'timeout_seconds', 'cwd', 'auth')
 STANDARD_KEYS = ('url', 'headers', 'command', 'args', 'env', 'type', 'transport')
 
 
@@ -125,6 +128,15 @@ def parse(data: Any) -> Parsed:
         for k in ('title', 'timeout_seconds'):
             if e.get(k) not in (None, ''):
                 up[k] = e[k]
+        auth = e.get('auth')
+        if isinstance(auth, str) and auth.strip():
+            auth = {'type': auth.strip()}
+        if auth not in (None, '', {}):
+            if not isinstance(auth, dict):
+                out.errors[key] = 'auth must be "static", "token_user", "oauth_user" or an object with "type"'
+                continue
+            if (auth.get('type') or 'static') != 'static' or len(auth) > 1:
+                up['auth'] = dict(auth)
         vendor = str(e.get('vendor') or _vendor_of(key))
         out.vendors[key] = vendor
         up['prefix'] = str(e.get('prefix') or vendor)   # tools are <prefix>__<tool>, here and in SAJHA Net

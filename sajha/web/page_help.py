@@ -154,6 +154,16 @@ PAGE_HELP: dict = {
                 'need one then act as you there. Tokens stay encrypted on the server and are never shown.',
         'terms': ['Connected account', 'Connected-account provider', 'Token vault', 'PKCE', 'Scope'],
         'guide': 'Connected Accounts.md'},
+    'account_server_connections_page': {
+        'what': 'Your own sign-in to each proxied MCP server that acts as you: connected, needs re-connect or not '
+                'connected; open one to save, replace or remove your token.',
+        'terms': ['Per-user token', 'Server connection', 'Credential mode', 'Token vault', 'Proxied MCP server'],
+        'guide': 'Per-User Sign-In for Proxied Servers.md'},
+    'account_server_connect_page': {
+        'what': 'Save your personal token for one proxied server (tested with a tools/list first), replace it or '
+                'remove it. It is encrypted, sent only to that server on your calls, and never shown again.',
+        'terms': ['Per-user token', 'Server connection', 'Token vault', 'Proxied MCP server'],
+        'guide': 'Per-User Sign-In for Proxied Servers.md'},
     'account_connections_callback': {
         'what': 'Where a service sends you back after you approve a link; on a problem it explains what went wrong.',
         'terms': ['Connected account', 'PKCE', 'Token vault'],
@@ -261,6 +271,11 @@ PAGE_HELP: dict = {
                 're-encrypt the vault after a key change. Never a token.',
         'terms': ['Connected account', 'Token vault', 'Vault key', 'Audit log'],
         'guide': 'Connected Accounts.md'},
+    'admin_server_connections_page': {
+        'what': 'Which users saved their own token for each proxied server that acts as them, its status and last use; '
+                'revoke one. Never a token.',
+        'terms': ['Server connection', 'Per-user token', 'Credential mode', 'Token vault', 'Audit log'],
+        'guide': 'Per-User Sign-In for Proxied Servers.md'},
     'admin_connectors_page': {
         'what': 'Databases, warehouses, vector stores and search clusters behind governed, read-only tools: add and '
                 'test a connection, browse its catalog, mask columns, build curated views.',

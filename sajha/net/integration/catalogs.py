@@ -815,6 +815,7 @@ class NetCatalogs:
 
     def _run_tool(self, tool, ctx: CallContext, arguments: Dict[str, Any]) -> Dict[str, Any]:
         from sajha.core.inner_calls import CallTooDeep
+        from sajha.accounts.errors import ConnectedAccountRequired
         from sajha.core.mcp_mrtr import InputRequired
         from sajha.policy.errors import PolicyError
         from sajha.tools.base_mcp_tool import ToolArgumentError
@@ -828,6 +829,12 @@ class NetCatalogs:
             raise HostRefusal('access')
         except ToolArgumentError as e:
             return {'content': [{'type': 'text', 'text': str(e)}], 'isError': True}
+        except ConnectedAccountRequired as e:
+            # the mapped local user has not connected (a per-user proxied server or a connected-accounts
+            # tool): the question goes back as an input request pointing at this server's connect page;
+            # the token itself never leaves this server (Per-User Sign-In for Proxied Servers §6)
+            from sajha.accounts.respond import relay_response
+            return relay_response(e)
         except InputRequired:
             raise                               # the host's answer is input_required (§15.6, HostServer._finish)
         except Exception as e:
@@ -1259,7 +1266,11 @@ def mrtr_ask(name: str, out: Dict[str, Any]) -> Dict[str, Any]:
     ctx = mtc.current_context()
     if ctx is None or isinstance(ctx, mtc.TransportToolContext) or not requests \
             or not isinstance(out.get('requestState'), str):
-        return {'content': [{'type': 'text', 'text': f'{name} needs input from you; call it over MCP 2026-07-28 '
+        urls = [r['params']['url'] for r in requests.values() if isinstance(r, dict)
+                and isinstance(r.get('params'), dict) and r['params'].get('mode') == 'url'
+                and isinstance(r['params'].get('url'), str) and r['params']['url'].startswith(('https://', 'http://'))]
+        extra = f' (it asks you to open {urls[0][:500]}, then retry)' if urls else ''
+        return {'content': [{'type': 'text', 'text': f'{name} needs input from you{extra}; call it over MCP 2026-07-28 '
                                                      f'from a client that can answer input requests'}],
                 'isError': True, '_meta': out.get('_meta') or {}}
     clean: Dict[str, Any] = {}

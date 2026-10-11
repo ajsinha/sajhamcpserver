@@ -71,6 +71,24 @@ def mcp_response(exc: ConnectedAccountRequired, era: str, session: Optional[Dict
     return tool_error(exc)
 
 
+def relay_response(exc: ConnectedAccountRequired) -> Dict[str, Any]:
+    """For a call relayed from another server (a SAJHA Net host answering a remote caller): the
+    "connect your account" question as an MRTR input request with a URL elicitation, which travels
+    back to the caller like any input request (the URL is this server's connect page: the token
+    stays here). A retry that still finds no link, or a case no page visit fixes, is a tool error."""
+    if not _fixable(exc):
+        return tool_error(exc)
+    from sajha.core.mcp_tool_context import current_context
+    ctx = current_context()
+    answer = (getattr(ctx, 'input_responses', None) or {}).get(exc.elicitation_key)
+    if answer is None:
+        raise InputRequired({exc.elicitation_key: {'method': 'elicitation/create', 'params': url_elicitation(exc)}})
+    action = answer.get('action') if isinstance(answer, dict) else None
+    if action == 'accept':
+        return tool_error(exc, f'{exc.provider_title} is still not linked.')
+    return tool_error(exc, f'Linking {exc.provider_title} was {action or "not completed"}.')
+
+
 def rest_response(exc: ConnectedAccountRequired):
     """HTTP 428 Precondition Required: the call needs a linked account first."""
     from fastapi.responses import JSONResponse

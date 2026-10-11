@@ -246,6 +246,7 @@ class SajhaMCPServerWebApp:
         from sajha.routes.observability_routes import router as observability_router
         from sajha.routes.api_import_routes import router as api_import_router
         from sajha.routes.accounts_routes import router as accounts_router
+        from sajha.routes.server_connections_routes import router as server_connections_router
         from sajha.routes.policy_routes import router as policy_router
         from sajha.routes.quality_routes import router as quality_router
         from sajha.routes.workflow_routes import router as workflow_router
@@ -274,6 +275,7 @@ class SajhaMCPServerWebApp:
             observability_router,
             api_import_router,
             accounts_router,
+            server_connections_router,
             policy_router,
             quality_router,
             workflow_router,

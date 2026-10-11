@@ -320,6 +320,8 @@ async def api_disable_user(uid: str, auth: AuthContext = Depends(require_admin),
     user.enabled = False
     user_dao.update(user)
     AuditDAO(db).log('user.disable', auth.user_id, 'user', uid)
+    from sajha.federation.user_tokens import revoke_user as _revoke_proxied
+    _revoke_proxied(uid, actor=auth.user_id, reason='user disabled')      # proxied-server tokens go with access
     return JSONResponse({'success': True})
 
 
@@ -335,6 +337,8 @@ async def api_delete_user(uid: str, auth: AuthContext = Depends(require_admin), 
     forget_user(db, user)      # persistent key records of this user's keys (the rows go with the user)
     user_dao.delete(user)
     AuditDAO(db).log('user.delete', auth.user_id, 'user', uid)
+    from sajha.federation.user_tokens import revoke_user as _revoke_proxied
+    _revoke_proxied(uid, actor=auth.user_id, reason='user deleted')
     return JSONResponse({'success': True})
 
 

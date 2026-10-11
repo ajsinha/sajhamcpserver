@@ -792,7 +792,7 @@ class IntelligenceService:
             # a connected-accounts tool and no usable link: the page shows a "Connect <provider>" button
             return refused("needs_connection", f"not run: {e.message}",
                            {"id": call.id, "name": name, "provider": e.provider, "provider_title": e.provider_title,
-                            "connect_url": f"/account/connections?connect={e.provider}", "reason": e.reason})
+                            "connect_url": e.local_path, "reason": e.reason})
         except Exception as e:
             out, ok = {"error": f"{e.__class__.__name__}: {e}"}, False
         latency = int((time.time() - t) * 1000)
