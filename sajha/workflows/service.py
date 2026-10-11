@@ -739,6 +739,11 @@ def init_workflows(tools_registry) -> Optional[WorkflowService]:
         _service = svc
         return svc
     svc.store.ensure()
+    try:
+        from sajha.workflows.shipped import install_shipped
+        install_shipped(svc)                 # config/workflows/*.yaml not yet saved (sajha/workflows/shipped.py)
+    except Exception as e:
+        logger.warning(f'  Workflows: shipped definitions not installed ({e})')
     n = svc.publish_all()
     svc.start()
     _service = svc

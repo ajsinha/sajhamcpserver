@@ -60,7 +60,7 @@ hash-chained.
 | `sajha/audit/sinks.py` | the SIEM exporters: syslog (RFC 5424 over TCP/TLS), HTTP, JSONL file |
 | `sajha/audit/__main__.py` | `python -m sajha.audit verify|chains|show` |
 | `sajha/routes/policy_routes.py` | the Policies, Approvals and Audit admin pages and their JSON API |
-| `config/policies/` | the policy files: `00-default.yaml` (no rules) and disabled examples |
+| `config/policies/` | the policy files: `00-default.yaml` (no rules), `10-sanctions.yaml` (`sanctions_*` refused for the sources `ask` and `openai_api`; [Open Data Tools](Open%20Data%20Tools.md#6-decisions) section 6) and disabled examples |
 | `tests/test_policy.py`, `tests/test_audit_chain.py` | every behaviour below |
 
 ---

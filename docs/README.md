@@ -124,9 +124,14 @@ These guides document each provider's tools, parameters and API keys.
   [European Central Bank](tools/central-banks/European%20Central%20Bank%20Tool%20Reference%20Guide.md) ·
   [Federal Reserve](tools/central-banks/Federal%20Reserve%20Tool%20Reference%20Guide.md) ·
   [People's Bank of China](tools/central-banks/Peoples%20Bank%20of%20China%20Tool%20Reference%20Guide.md)
-- **Public data:** [FBI](tools/public-data/FBI%20Tool%20Reference%20Guide.md) ·
+- **Public data:** [BIS](tools/public-data/BIS%20Tool%20Reference%20Guide.md) ·
+  [FBI](tools/public-data/FBI%20Tool%20Reference%20Guide.md) ·
+  [FDIC](tools/public-data/FDIC%20Tool%20Reference%20Guide.md) ·
+  [GLEIF](tools/public-data/GLEIF%20Tool%20Reference%20Guide.md) ·
   [IMF](tools/public-data/IMF%20Tool%20Reference%20Guide.md) ·
+  [Sanctions](tools/public-data/Sanctions%20Tool%20Reference%20Guide.md) ·
   [United Nations](tools/public-data/United%20Nations%20Tool%20Reference%20Guide.md) ·
+  [US Treasury](tools/public-data/US%20Treasury%20Tool%20Reference%20Guide.md) ·
   [World Bank](tools/public-data/World%20Bank%20Tool%20Reference%20Guide.md)
 - **Filings:** [SEC EDGAR](tools/filings/SEC%20EDGAR%20Tool%20Reference%20Guide.md) ·
   [Investor Relations](tools/filings/Investor%20Relations%20Tool%20Reference%20Guide.md)
@@ -135,7 +140,8 @@ These guides document each provider's tools, parameters and API keys.
   [Tavily Search](tools/search/Tavily%20Search%20Tool%20Reference%20Guide.md) ·
   [Web Crawler](tools/search/Web%20Crawler%20Tool%20Reference%20Guide.md) ·
   [Wikipedia Search](tools/search/Wikipedia%20Search%20Tool%20Reference%20Guide.md)
-- **Analytics:** [DuckDB](tools/analytics/DuckDB%20Tool%20Reference%20Guide.md) ·
+- **Analytics:** [Calendars](tools/analytics/Calendars%20Tool%20Reference%20Guide.md) ·
+  [DuckDB](tools/analytics/DuckDB%20Tool%20Reference%20Guide.md) ·
   [Financial Calculators](tools/analytics/Financial%20Calculators%20Tool%20Reference%20Guide.md) ·
   [OLAP Analytics](tools/analytics/OLAP%20Analytics%20Tool%20Reference%20Guide.md) ·
   [SQL Select](tools/analytics/SQL%20Select%20Tool%20Reference%20Guide.md)

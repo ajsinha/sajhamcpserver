@@ -855,7 +855,9 @@ class LLMTool(BaseMCPTool):
             info.stopped_by, info.result = stop, self._error(stop, stop) if stop in ERROR_STOPS else \
                 self._fit({"text": "", "data": None, "stopped_by": stop})
             return
-        data = tool.execute_with_tracking(src_args)
+        from sajha.policy.context import using_source
+        with using_source("ask", override=True):    # its result goes to a model, as a call a model chose does
+            data = tool.execute_with_tracking(src_args)
         run.inner_calls += 1
         info.steps.append(name)
         preview = run.add(f"source-{name}", data)

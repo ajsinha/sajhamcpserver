@@ -1,0 +1,111 @@
+{
+  "name": "ust_daily_treasury_statement",
+  "implementation": "sajha.tools.impl.us_treasury_tools.UstDailyTreasuryStatementTool",
+  "title": "Daily Treasury Statement",
+  "description": "One table of the Daily Treasury Statement (the Treasury's daily cash and debt operations), in millions of US dollars.\nReturns: table, title, units, count, truncated, rows (date plus the table's own columns; amounts as numbers).\nInputs: table (operating_cash_balance for the TGA, deposits_withdrawals_operating_cash, public_debt_transactions, adjustment_public_debt_transactions_cash_basis, debt_subject_to_limit, inter_agency_tax_transfers, income_tax_refunds_issued); date or from/to. No date: the latest statement.\nExample: {\"table\": \"operating_cash_balance\"}",
+  "annotations": {
+    "title": "Daily Treasury Statement",
+    "readOnlyHint": true,
+    "destructiveHint": false,
+    "idempotentHint": true,
+    "openWorldHint": true
+  },
+  "version": "1.0.0",
+  "enabled": true,
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "table": {
+        "type": "string",
+        "description": "DTS table",
+        "enum": [
+          "operating_cash_balance",
+          "deposits_withdrawals_operating_cash",
+          "public_debt_transactions",
+          "adjustment_public_debt_transactions_cash_basis",
+          "debt_subject_to_limit",
+          "inter_agency_tax_transfers",
+          "income_tax_refunds_issued"
+        ]
+      },
+      "date": {
+        "type": "string",
+        "description": "One statement date (YYYY-MM-DD)",
+        "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+      },
+      "from": {
+        "type": "string",
+        "description": "First day (YYYY-MM-DD)",
+        "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+      },
+      "to": {
+        "type": "string",
+        "description": "Last day (YYYY-MM-DD)",
+        "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+      }
+    },
+    "required": [
+      "table"
+    ],
+    "additionalProperties": false,
+    "examples": [
+      {
+        "table": "operating_cash_balance"
+      }
+    ]
+  },
+  "outputSchema": {
+    "type": "object",
+    "properties": {
+      "table": {
+        "type": "string"
+      },
+      "title": {
+        "type": "string"
+      },
+      "units": {
+        "type": "string"
+      },
+      "count": {
+        "type": "integer"
+      },
+      "truncated": {
+        "type": "boolean"
+      },
+      "rows": {
+        "type": "array",
+        "description": "Rows in statement order",
+        "items": {
+          "type": "object",
+          "properties": {
+            "date": {
+              "type": "string",
+              "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+            }
+          },
+          "required": [
+            "date"
+          ]
+        }
+      },
+      "source": {
+        "type": "string",
+        "description": "Attribution"
+      }
+    },
+    "required": [
+      "rows",
+      "source"
+    ]
+  },
+  "metadata": {
+    "author": "Ashutosh Sinha",
+    "category": "Fiscal Data",
+    "tags": [
+      "treasury",
+      "daily treasury statement",
+      "TGA",
+      "cash"
+    ]
+  }
+}

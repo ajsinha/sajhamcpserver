@@ -1,0 +1,113 @@
+{
+  "name": "wikidata_search",
+  "implementation": "sajha.tools.impl.wikidata_tools.WikidataSearchTool",
+  "description": "Find Wikidata items (QIDs) by name or alias (wbsearchentities).\nReturns {query, result_count, results: [{qid, label, description, url, matched}], source}.\nInputs (* required): name* (string), limit (1-50, default 10), language (default en).\nThen wikidata_entity for the facts, or wikidata_company_identifiers for a company.\nWikidata (wikidata.org), CC0; no API key.\nExample: {\"name\": \"Deutsche Bank\", \"limit\": 5}",
+  "annotations": {
+    "readOnlyHint": true,
+    "idempotentHint": true,
+    "openWorldHint": true
+  },
+  "version": "1.0.0",
+  "enabled": true,
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "name": {
+        "type": "string",
+        "description": "Name to look up",
+        "minLength": 1,
+        "maxLength": 250
+      },
+      "limit": {
+        "type": "integer",
+        "description": "Results",
+        "minimum": 1,
+        "maximum": 50,
+        "default": 10
+      },
+      "language": {
+        "type": "string",
+        "description": "Language code for labels",
+        "pattern": "^[a-z]{2,3}(-[a-z]+)?$",
+        "default": "en"
+      }
+    },
+    "required": [
+      "name"
+    ],
+    "additionalProperties": false,
+    "examples": [
+      {
+        "name": "Deutsche Bank",
+        "limit": 5
+      }
+    ]
+  },
+  "outputSchema": {
+    "type": "object",
+    "required": [
+      "results",
+      "source"
+    ],
+    "properties": {
+      "query": {
+        "type": "string",
+        "description": "Name searched"
+      },
+      "result_count": {
+        "type": "integer",
+        "description": "Items returned"
+      },
+      "results": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "qid": {
+              "type": "string",
+              "description": "Item id"
+            },
+            "label": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "description": "Label"
+            },
+            "description": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "description": "Description"
+            },
+            "url": {
+              "type": "string",
+              "description": "Item page"
+            },
+            "matched": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "description": "Label or alias that matched"
+            }
+          }
+        }
+      },
+      "source": {
+        "type": "string",
+        "description": "Attribution line; cite it with the data"
+      }
+    }
+  },
+  "metadata": {
+    "author": "Ashutosh Sinha",
+    "category": "Information Retrieval",
+    "tags": [
+      "wikidata",
+      "search",
+      "entities"
+    ]
+  }
+}

@@ -1,0 +1,30 @@
+{
+ "tool": "fdic_institutions",
+ "arguments": {
+  "name": "Silicon Valley Bank",
+  "limit": 3
+ },
+ "recorded": "2026-10-11",
+ "calls": [
+  {
+   "url": "https://api.fdic.gov/banks/institutions",
+   "params": [
+    [
+     "search",
+     "NAME:Silicon Valley Bank"
+    ],
+    [
+     "fields",
+     "CERT,NAME,CITY,STALP,ACTIVE,ASSET,DEP,NETINC,REPDTE,BKCLASS,REGAGNT,NAMEHCR,FED_RSSD,WEBADDR,ESTYMD,INSDATE,OFFICES"
+    ],
+    [
+     "limit",
+     "3"
+    ]
+   ],
+   "status": 200,
+   "content_type": "application/json; charset=utf-8",
+   "body": "{\"meta\":{\"total\":4,\"parameters\":{\"filters\":\"\",\"fields\":\"CERT,NAME,CITY,STALP,ACTIVE,ASSET,DEP,NETINC,REPDTE,BKCLASS,REGAGNT,NAMEHCR,FED_RSSD,WEBADDR,ESTYMD,INSDATE,OFFICES\",\"limit\":\"3\",\"search\":\"NAME:Silicon Valley Bank\"},\"index\":{\"name\":\"institutions_20261009090008\",\"createTimestamp\":\"2026-10-09T12:00:05Z\"}},\"data\":[{\"data\":{\"NAMEHCR\":\"SVB FINANCIAL GROUP\",\"REGAGNT\":\"FED\",\"ACTIVE\":0,\"BKCLASS\":\"SM\",\"REPDTE\":\"12/31/2022\",\"FED_RSSD\":\"802866\",\"ASSET\":209026000,\"NETINC\":2024000,\"INSDATE\":\"10/17/1983\",\"DEP\":175378000,\"NAME\":\"Silicon Valley Bank\",\"CITY\":\"Santa Clara\",\"WEBADDR\":\"\",\"CERT\":24735,\"STALP\":\"CA\",\"ESTYMD\":\"10/17/1983\",\"ID\":\"24735\"},\"score\":832.24854,\"highlight\":{\"NAME.raw\":[\"<em>Silicon</em> <em>Valley</em> <em>Bank</em>\"]}},{\"data\":{\"NAMEHCR\":\"CARPENTER BANK PARTNERS INC\",\"REGAGNT\":\"OCC\",\"ACTIVE\":0,\"BKCLASS\":\"N\",\"REPDTE\":\"03/31/2015\",\"FED_RSSD\":\"3025406\",\"ASSET\":1877917,\"NETINC\":4814,\"INSDATE\":\"05/14/2001\",\"DEP\":1671559,\"NAME\":\"Bridge Bank, National Association\",\"CITY\":\"San Jose\",\"WEBADDR\":\"\",\"CERT\":57086,\"STALP\":\"CA\",\"ESTYMD\":\"05/14/2001\",\"ID\":\"57086\"},\"score\":64.48736},{\"data\":{\"REGAGNT\":\"OCC\",\"CITY\":\"Santa Clara\",\"ACTIVE\":0,\"BKCLASS\":\"N\",\"FED_RSSD\":\"5836688\",\"WEBADDR\":\"\",\"CERT\":59334,\"STALP\":\"CA\",\"ESTYMD\":\"03/13/2023\",\"INSDATE\":\"03/13/2023\",\"NAME\":\"Silicon Valley Bridge Bank, National Association\",\"ID\":\"59334\"},\"score\":61.64527,\"highlight\":{\"NAME.raw\":[\"<em>Silicon</em> <em>Valley</em> Bridge <em>Bank,</em> National Association\"]}}],\"totals\":{\"count\":4}}"
+  }
+ ]
+}

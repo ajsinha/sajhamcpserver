@@ -1,0 +1,242 @@
+{
+  "name": "ust_auctions",
+  "implementation": "sajha.tools.impl.us_treasury_tools.UstAuctionsTool",
+  "title": "Treasury auctions",
+  "description": "Announced and completed US Treasury auctions with their results: amounts, bid-to-cover, high yield or discount rate, bidder shares; newest first.\nReturns: security_type, units, count, total, truncated, auctions (cusip, terms, dates, amounts, rates, results_published).\nInputs: security_type (Bill, Note, Bond, TIPS, FRN); term (e.g. 13-Week, 10-Year; the original term, so reopenings are included); from, to (auction dates); limit (default 20).\nExample: {\"security_type\": \"Note\", \"term\": \"10-Year\", \"limit\": 5}",
+  "annotations": {
+    "title": "Treasury auctions",
+    "readOnlyHint": true,
+    "destructiveHint": false,
+    "idempotentHint": true,
+    "openWorldHint": true
+  },
+  "version": "1.0.0",
+  "enabled": true,
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "security_type": {
+        "type": "string",
+        "description": "Security type",
+        "enum": [
+          "Bill",
+          "Note",
+          "Bond",
+          "TIPS",
+          "FRN"
+        ]
+      },
+      "term": {
+        "type": "string",
+        "description": "Term as Treasury writes it: 4-Week, 13-Week, 2-Year, 10-Year, 30-Year"
+      },
+      "from": {
+        "type": "string",
+        "description": "First auction date (YYYY-MM-DD)",
+        "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+      },
+      "to": {
+        "type": "string",
+        "description": "Last auction date (YYYY-MM-DD)",
+        "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+      },
+      "limit": {
+        "type": "integer",
+        "description": "Most auctions to return",
+        "minimum": 1,
+        "maximum": 500,
+        "default": 20
+      }
+    },
+    "required": [
+      "security_type"
+    ],
+    "additionalProperties": false,
+    "examples": [
+      {
+        "security_type": "Note",
+        "term": "10-Year",
+        "limit": 5
+      }
+    ]
+  },
+  "outputSchema": {
+    "type": "object",
+    "properties": {
+      "security_type": {
+        "type": "string"
+      },
+      "units": {
+        "type": "string"
+      },
+      "count": {
+        "type": "integer"
+      },
+      "total": {
+        "type": "integer"
+      },
+      "truncated": {
+        "type": "boolean"
+      },
+      "auctions": {
+        "type": "array",
+        "description": "Newest first",
+        "items": {
+          "type": "object",
+          "properties": {
+            "cusip": {
+              "type": "string"
+            },
+            "security_type": {
+              "type": "string"
+            },
+            "security_term": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "original_security_term": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "reopening": {
+              "type": "boolean"
+            },
+            "tips": {
+              "type": "boolean"
+            },
+            "frn": {
+              "type": "boolean"
+            },
+            "announcement_date": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "auction_date": {
+              "type": "string"
+            },
+            "issue_date": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "maturity_date": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "offering_amount": {
+              "type": [
+                "number",
+                "null"
+              ]
+            },
+            "total_tendered": {
+              "type": [
+                "number",
+                "null"
+              ]
+            },
+            "total_accepted": {
+              "type": [
+                "number",
+                "null"
+              ]
+            },
+            "bid_to_cover_ratio": {
+              "type": [
+                "number",
+                "null"
+              ]
+            },
+            "interest_rate": {
+              "type": [
+                "number",
+                "null"
+              ]
+            },
+            "high_yield": {
+              "type": [
+                "number",
+                "null"
+              ]
+            },
+            "high_discount_rate": {
+              "type": [
+                "number",
+                "null"
+              ]
+            },
+            "high_investment_rate": {
+              "type": [
+                "number",
+                "null"
+              ]
+            },
+            "high_discount_margin": {
+              "type": [
+                "number",
+                "null"
+              ]
+            },
+            "high_price": {
+              "type": [
+                "number",
+                "null"
+              ]
+            },
+            "indirect_bidder_accepted": {
+              "type": [
+                "number",
+                "null"
+              ]
+            },
+            "direct_bidder_accepted": {
+              "type": [
+                "number",
+                "null"
+              ]
+            },
+            "primary_dealer_accepted": {
+              "type": [
+                "number",
+                "null"
+              ]
+            },
+            "results_published": {
+              "type": "boolean"
+            }
+          },
+          "required": [
+            "cusip",
+            "auction_date"
+          ]
+        }
+      },
+      "source": {
+        "type": "string",
+        "description": "Attribution"
+      }
+    },
+    "required": [
+      "auctions",
+      "source"
+    ]
+  },
+  "metadata": {
+    "author": "Ashutosh Sinha",
+    "category": "Fiscal Data",
+    "tags": [
+      "treasury",
+      "auctions",
+      "primary market"
+    ]
+  }
+}

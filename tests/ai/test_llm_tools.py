@@ -233,6 +233,23 @@ def test_narrate_runs_the_source_and_keeps_its_data():
     assert t.config["annotations"]["readOnlyHint"] is False          # the source does not say it is read-only
 
 
+def test_narrate_runs_its_source_as_a_model_call_so_policy_on_source_ask_applies():
+    """A narrate source's result goes to a model, so it runs with source "ask" whatever the outer call's
+    source (the shipped sanctions policy relies on this)."""
+    from sajha.policy import context
+    box = ToolBox(with_calc=False)
+    seen = []
+    box.add(FakeTool("cmp_src", "Source", output=lambda a: seen.append(context.source()) or {"n": 1}))
+    c = cfg("narrate", {"template": "Say {{input.question}}.",
+                        "source": {"composite": "cmp_src", "arguments": {}}},
+            outputs={"text": {"type": "string"}, "data": {"type": "object"}, "stopped_by": {"type": "string"}})
+    t = wire(LLMTool(c), toolbox=box)
+    with context.using_source("mcp", override=True):
+        t.run({"question": "hi"}, ctx=ADMIN, audit=False)
+        assert context.source() == "mcp"
+    assert seen == ["ask"]
+
+
 def test_answer_runs_as_the_caller_and_never_widens_access():
     from sajha.observability.caller import Caller, reset, set_caller
     t = wire(LLMTool(shipped("llm_markets_assistant")))

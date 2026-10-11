@@ -190,7 +190,8 @@ def literal_address(host: str):
 
 
 def resolve(host: str, port: int) -> List[str]:
-    """Every address ``host`` resolves to."""
+    """Every address ``host`` resolves to, in the resolver's order (which puts the addresses this machine
+    can reach first, so an IPv6 address does not come first where there is no IPv6 route)."""
     lit = literal_address(host)
     if lit is not None:
         return [str(lit)]
@@ -198,7 +199,7 @@ def resolve(host: str, port: int) -> List[str]:
         infos = socket.getaddrinfo(host, port, type=socket.SOCK_STREAM)
     except (OSError, UnicodeError) as e:
         raise FetchError(f'host {host} does not resolve ({e.__class__.__name__})')
-    addrs = sorted({r[4][0].split('%')[0] for r in infos})
+    addrs = list(dict.fromkeys(r[4][0].split('%')[0] for r in infos))
     if not addrs:
         raise FetchError(f'host {host} does not resolve')
     return addrs

@@ -1,0 +1,108 @@
+{
+  "name": "cal_adjust_date",
+  "implementation": "sajha.tools.impl.calendars_tools.CalAdjustDateTool",
+  "title": "Adjust a date to a business day",
+  "description": "Roll a date that is not a business day by a business-day convention: following, modified_following (following unless that leaves the month, then preceding) or preceding.\nReturns: date, rule, calendars, adjusted, weekday, changed.\nInputs: date (YYYY-MM-DD); rule (default modified_following); calendars.\nExample: {\"date\": \"2026-10-31\", \"rule\": \"modified_following\", \"calendars\": [\"XLON\"]}",
+  "annotations": {
+    "title": "Adjust a date to a business day",
+    "readOnlyHint": true,
+    "destructiveHint": false,
+    "idempotentHint": true,
+    "openWorldHint": false
+  },
+  "version": "1.0.0",
+  "enabled": true,
+  "requires": [
+    "holidays"
+  ],
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "date": {
+        "type": "string",
+        "description": "Date to adjust (YYYY-MM-DD)",
+        "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+      },
+      "rule": {
+        "type": "string",
+        "description": "Business-day convention",
+        "enum": [
+          "following",
+          "modified_following",
+          "preceding"
+        ],
+        "default": "modified_following"
+      },
+      "calendars": {
+        "type": "array",
+        "description": "Calendar codes: countries (US, CA, GBR), subdivisions (CA-ON) or markets (XNYS, XLON, XECB); a day must be a business day in all of them",
+        "items": {
+          "type": "string",
+          "minLength": 2,
+          "maxLength": 12
+        },
+        "minItems": 1,
+        "maxItems": 10
+      }
+    },
+    "required": [
+      "date",
+      "calendars"
+    ],
+    "additionalProperties": false,
+    "examples": [
+      {
+        "date": "2026-10-31",
+        "rule": "modified_following",
+        "calendars": [
+          "XLON"
+        ]
+      }
+    ]
+  },
+  "outputSchema": {
+    "type": "object",
+    "properties": {
+      "date": {
+        "type": "string",
+        "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+      },
+      "rule": {
+        "type": "string"
+      },
+      "calendars": {
+        "type": "array",
+        "description": "Resolved calendar codes",
+        "items": {
+          "type": "string"
+        }
+      },
+      "adjusted": {
+        "type": "string",
+        "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+      },
+      "weekday": {
+        "type": "string"
+      },
+      "changed": {
+        "type": "boolean"
+      },
+      "source": {
+        "type": "string",
+        "description": "Attribution"
+      }
+    },
+    "required": [
+      "adjusted"
+    ]
+  },
+  "metadata": {
+    "author": "Ashutosh Sinha",
+    "category": "Calendars",
+    "tags": [
+      "business day convention",
+      "modified following",
+      "calendar"
+    ]
+  }
+}

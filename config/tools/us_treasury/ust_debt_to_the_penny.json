@@ -1,0 +1,103 @@
+{
+  "name": "ust_debt_to_the_penny",
+  "implementation": "sajha.tools.impl.us_treasury_tools.UstDebtToThePennyTool",
+  "title": "Debt to the penny",
+  "description": "Total US public debt outstanding each business day, split into debt held by the public and intragovernmental holdings, in US dollars.\nReturns: units, count, truncated, records (date, total_public_debt_outstanding, debt_held_by_the_public, intragovernmental_holdings) oldest first.\nInputs: from, to (YYYY-MM-DD; either or both). No dates: the latest day.\nExample: {\"from\": \"2026-09-01\", \"to\": \"2026-09-30\"}",
+  "annotations": {
+    "title": "Debt to the penny",
+    "readOnlyHint": true,
+    "destructiveHint": false,
+    "idempotentHint": true,
+    "openWorldHint": true
+  },
+  "version": "1.0.0",
+  "enabled": true,
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "from": {
+        "type": "string",
+        "description": "First day (YYYY-MM-DD)",
+        "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+      },
+      "to": {
+        "type": "string",
+        "description": "Last day (YYYY-MM-DD)",
+        "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+      }
+    },
+    "required": [],
+    "additionalProperties": false,
+    "examples": [
+      {
+        "from": "2026-09-01",
+        "to": "2026-09-30"
+      }
+    ]
+  },
+  "outputSchema": {
+    "type": "object",
+    "properties": {
+      "units": {
+        "type": "string"
+      },
+      "count": {
+        "type": "integer"
+      },
+      "truncated": {
+        "type": "boolean"
+      },
+      "records": {
+        "type": "array",
+        "description": "Oldest first",
+        "items": {
+          "type": "object",
+          "properties": {
+            "date": {
+              "type": "string",
+              "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+            },
+            "total_public_debt_outstanding": {
+              "type": [
+                "number",
+                "null"
+              ]
+            },
+            "debt_held_by_the_public": {
+              "type": [
+                "number",
+                "null"
+              ]
+            },
+            "intragovernmental_holdings": {
+              "type": [
+                "number",
+                "null"
+              ]
+            }
+          },
+          "required": [
+            "date"
+          ]
+        }
+      },
+      "source": {
+        "type": "string",
+        "description": "Attribution"
+      }
+    },
+    "required": [
+      "records",
+      "source"
+    ]
+  },
+  "metadata": {
+    "author": "Ashutosh Sinha",
+    "category": "Fiscal Data",
+    "tags": [
+      "treasury",
+      "public debt",
+      "fiscal"
+    ]
+  }
+}

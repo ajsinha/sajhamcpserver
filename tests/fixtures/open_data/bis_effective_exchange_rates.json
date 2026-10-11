@@ -1,0 +1,27 @@
+{
+ "tool": "bis_effective_exchange_rates",
+ "arguments": {
+  "countries": [
+   "US",
+   "JP"
+  ],
+  "real": true,
+  "basket": "broad",
+  "frequency": "monthly",
+  "period": "last 12 months"
+ },
+ "calls": [
+  {
+   "url": "https://stats.bis.org/api/v1/data/WS_EER/M.R.B.US+JP",
+   "params": [
+    [
+     "startPeriod",
+     "2025-10"
+    ]
+   ],
+   "status": 200,
+   "content_type": "text/csv;charset=UTF-8",
+   "body": "DATAFLOW,FREQ,EER_TYPE,EER_BASKET,REF_AREA,TIME_PERIOD,OBS_VALUE,TIME_FORMAT,COLLECTION,TITLE_TS,UNIT_MEASURE,OBS_STATUS,OBS_CONF,OBS_PRE_BREAK\nBIS:WS_EER(1.0),M,R,B,JP,2025-10,70.76,,A,Japan - Real - Broad (64 economies),882,A,F,\nBIS:WS_EER(1.0),M,R,B,JP,2025-11,69.57,,A,Japan - Real - Broad (64 economies),882,A,F,\nBIS:WS_EER(1.0),M,R,B,JP,2025-12,68.42,,A,Japan - Real - Broad (64 economies),882,A,F,\nBIS:WS_EER(1.0),M,R,B,JP,2026-01,67.67,,A,Japan - Real - Broad (64 economies),882,A,F,\nBIS:WS_EER(1.0),M,R,B,JP,2026-02,66.82,,A,Japan - Real - Broad (64 economies),882,A,F,\nBIS:WS_EER(1.0),M,R,B,JP,2026-03,66.25,,A,Japan - Real - Broad (64 economies),882,A,F,\nBIS:WS_EER(1.0),M,R,B,JP,2026-04,65.57,,A,Japan - Real - Broad (64 economies),882,A,F,\nBIS:WS_EER(1.0),M,R,B,JP,2026-05,66.09,,A,Japan - Real - Broad (64 economies),882,A,F,\nBIS:WS_EER(1.0),M,R,B,JP,2026-06,65.49,,A,Japan - Real - Broad (64 economies),882,A,F,\nBIS:WS_EER(1.0),M,R,B,JP,2026-07,65.24,,A,Japan - Real - Broad (64 economies),882,A,F,\nBIS:WS_EER(1.0),M,R,B,JP,2026-08,66.02,,A,Japan - Real - Broad (64 economies),882,A,F,\nBIS:WS_EER(1.0),M,R,B,US,2025-10,107.69,,A,United States - Real - Broad (64 economies),882,A,F,\nBIS:WS_EER(1.0),M,R,B,US,2025-11,108.02,,A,United States - Real - Broad (64 economies),882,A,F,\nBIS:WS_EER(1.0),M,R,B,US,2025-12,106.71,,A,United States - Real - Broad (64 economies),882,A,F,\nBIS:WS_EER(1.0),M,R,B,US,2026-01,106.36,,A,United States - Real - Broad (64 economies),882,A,F,\nBIS:WS_EER(1.0),M,R,B,US,2026-02,104.94,,A,United States - Real - Broad (64 economies),882,A,F,\nBIS:WS_EER(1.0),M,R,B,US,2026-03,107.39,,A,United States - Real - Broad (64 economies),882,A,F,\nBIS:WS_EER(1.0),M,R,B,US,2026-04,106.97,,A,United States - Real - Broad (64 economies),882,A,F,\nBIS:WS_EER(1.0),M,R,B,US,2026-05,107.2,,A,United States - Real - Broad (64 economies),882,A,F,\nBIS:WS_EER(1.0),M,R,B,US,2026-06,107.83,,A,United States - Real - Broad (64 economies),882,A,F,\nBIS:WS_EER(1.0),M,R,B,US,2026-07,108.22,,A,United States - Real - Broad (64 economies),882,A,F,\nBIS:WS_EER(1.0),M,R,B,US,2026-08,106.7,,A,United States - Real - Broad (64 economies),882,A,F,\n"
+  }
+ ]
+}

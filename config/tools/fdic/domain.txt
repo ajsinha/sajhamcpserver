@@ -1,0 +1,1 @@
+FDIC BankFind (api.fdic.gov), keyless, a US government work. Banks are identified by FDIC certificate number (cert; find it with fdic_institutions). Amounts in thousands of US dollars, ratios in percent; Call Reports are quarterly (2025-Q3). Results are cached and calls share one throttle. Each result names its source.

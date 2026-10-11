@@ -1,0 +1,137 @@
+{
+  "name": "wikidata_company_identifiers",
+  "implementation": "sajha.tools.impl.wikidata_tools.WikidataCompanyIdentifiersTool",
+  "description": "A company's identifiers from Wikidata: LEI (P1278), ISINs (P946), current tickers with their exchange (P414 with P249), official websites (P856). A name uses the top wikidata_search hit; check label and description.\nReturns {qid, matched_by, label, description, lei, isins, tickers: [{ticker, exchange, exchange_qid}], official_websites, source}.\nInputs: name or qid (one of them).\nVerify an LEI, or get the hierarchy: gleif_lookup, gleif_parents.\nWikidata (wikidata.org), CC0; no API key.\nExample: {\"name\": \"Deutsche Bank\"}",
+  "annotations": {
+    "readOnlyHint": true,
+    "idempotentHint": true,
+    "openWorldHint": true
+  },
+  "version": "1.0.0",
+  "enabled": true,
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "name": {
+        "type": "string",
+        "description": "Company name",
+        "minLength": 1,
+        "maxLength": 250
+      },
+      "qid": {
+        "type": "string",
+        "description": "Wikidata item id, e.g. Q66048",
+        "pattern": "^[Qq][1-9][0-9]*$"
+      }
+    },
+    "additionalProperties": false,
+    "examples": [
+      {
+        "name": "Deutsche Bank"
+      }
+    ],
+    "anyOf": [
+      {
+        "required": [
+          "name"
+        ]
+      },
+      {
+        "required": [
+          "qid"
+        ]
+      }
+    ]
+  },
+  "outputSchema": {
+    "type": "object",
+    "required": [
+      "qid",
+      "source"
+    ],
+    "properties": {
+      "qid": {
+        "type": "string",
+        "description": "Item id"
+      },
+      "matched_by": {
+        "type": "string",
+        "description": "qid or name (top search result)"
+      },
+      "label": {
+        "type": [
+          "string",
+          "null"
+        ],
+        "description": "Label"
+      },
+      "description": {
+        "type": [
+          "string",
+          "null"
+        ],
+        "description": "Description"
+      },
+      "lei": {
+        "type": [
+          "string",
+          "null"
+        ],
+        "description": "LEI"
+      },
+      "isins": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        }
+      },
+      "tickers": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "ticker": {
+              "type": "string",
+              "description": "Ticker symbol"
+            },
+            "exchange": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "description": "Exchange name"
+            },
+            "exchange_qid": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "description": "Exchange item id"
+            }
+          }
+        }
+      },
+      "official_websites": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        }
+      },
+      "source": {
+        "type": "string",
+        "description": "Attribution line; cite it with the data"
+      }
+    }
+  },
+  "metadata": {
+    "author": "Ashutosh Sinha",
+    "category": "Information Retrieval",
+    "tags": [
+      "wikidata",
+      "company",
+      "lei",
+      "isin",
+      "ticker"
+    ]
+  }
+}

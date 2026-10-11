@@ -1,0 +1,166 @@
+{
+  "name": "fdic_failures",
+  "implementation": "sajha.tools.impl.fdic_tools.FdicFailuresTool",
+  "title": "Bank failures",
+  "description": "Failed and assisted FDIC-insured institutions since 1934, newest first, with acquirer, size and estimated loss to the insurance fund.\nReturns: units, count, total, truncated, failures (cert, name, city, state, failure_date, resolution, transaction_type, acquirer, total_assets, total_deposits, estimated_loss, fund).\nInputs (none required): from, to (failure dates); state; limit (default 50).\nExample: {\"from\": \"2023-01-01\", \"to\": \"2023-12-31\"}",
+  "annotations": {
+    "title": "Bank failures",
+    "readOnlyHint": true,
+    "destructiveHint": false,
+    "idempotentHint": true,
+    "openWorldHint": true
+  },
+  "version": "1.0.0",
+  "enabled": true,
+  "cache_ttl": 3600,
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "from": {
+        "type": "string",
+        "description": "First failure date (YYYY-MM-DD)",
+        "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+      },
+      "to": {
+        "type": "string",
+        "description": "Last failure date (YYYY-MM-DD)",
+        "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+      },
+      "state": {
+        "type": "string",
+        "description": "Two-letter US state code (NY, CA)",
+        "pattern": "^[A-Za-z]{2}$"
+      },
+      "limit": {
+        "type": "integer",
+        "description": "Most failures to return",
+        "minimum": 1,
+        "maximum": 1000,
+        "default": 50
+      }
+    },
+    "required": [],
+    "additionalProperties": false,
+    "examples": [
+      {
+        "from": "2023-01-01",
+        "to": "2023-12-31"
+      }
+    ]
+  },
+  "outputSchema": {
+    "type": "object",
+    "properties": {
+      "units": {
+        "type": "string"
+      },
+      "count": {
+        "type": "integer"
+      },
+      "total": {
+        "type": "integer"
+      },
+      "truncated": {
+        "type": "boolean"
+      },
+      "failures": {
+        "type": "array",
+        "description": "Newest first",
+        "items": {
+          "type": "object",
+          "properties": {
+            "cert": {
+              "type": [
+                "integer",
+                "null"
+              ]
+            },
+            "name": {
+              "type": "string"
+            },
+            "city": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "state": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "failure_date": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "resolution": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "transaction_type": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "acquirer": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "total_assets": {
+              "type": [
+                "number",
+                "null"
+              ]
+            },
+            "total_deposits": {
+              "type": [
+                "number",
+                "null"
+              ]
+            },
+            "estimated_loss": {
+              "type": [
+                "number",
+                "null"
+              ]
+            },
+            "fund": {
+              "type": [
+                "string",
+                "null"
+              ]
+            }
+          },
+          "required": [
+            "name"
+          ]
+        }
+      },
+      "source": {
+        "type": "string",
+        "description": "Attribution"
+      }
+    },
+    "required": [
+      "failures",
+      "source"
+    ]
+  },
+  "metadata": {
+    "author": "Ashutosh Sinha",
+    "category": "Banking",
+    "tags": [
+      "fdic",
+      "bank failures",
+      "resolutions"
+    ]
+  }
+}

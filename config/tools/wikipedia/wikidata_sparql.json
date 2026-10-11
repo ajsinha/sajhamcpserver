@@ -1,0 +1,105 @@
+{
+  "name": "wikidata_sparql",
+  "implementation": "sajha.tools.impl.wikidata_tools.WikidataSparqlTool",
+  "description": "Run a read-only SPARQL query (SELECT or ASK) on the Wikidata Query Service: the main graph, or the scholarly-article graph split off in 2025 (graph: scholarly). Updates are refused; a SELECT without LIMIT gets one; rows past max_rows are cut.\nReturns {graph, columns, rows (variable to value), row_count, truncated, boolean (ASK), source}.\nInputs (* required): query*, graph (main or scholarly; default main), max_rows (1-1000, default 100), timeout_seconds (5-60, default 30).\nWikidata allows 60 s of query time a minute; keep queries small.\nWikidata (wikidata.org), CC0; no API key.\nExample: {\"query\": \"SELECT ?item ?itemLabel WHERE { ?item wdt:P1278 \\\"7LTWFZYICNSX8D621K86\\\" . SERVICE wikibase:label { bd:serviceParam wikibase:language \\\"en\\\". } }\"}",
+  "annotations": {
+    "readOnlyHint": true,
+    "idempotentHint": true,
+    "openWorldHint": true
+  },
+  "version": "1.0.0",
+  "enabled": true,
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "query": {
+        "type": "string",
+        "description": "SPARQL SELECT or ASK query",
+        "minLength": 6,
+        "maxLength": 10000
+      },
+      "graph": {
+        "type": "string",
+        "description": "main or scholarly",
+        "enum": [
+          "main",
+          "scholarly"
+        ],
+        "default": "main"
+      },
+      "max_rows": {
+        "type": "integer",
+        "description": "Most rows returned",
+        "minimum": 1,
+        "maximum": 1000,
+        "default": 100
+      },
+      "timeout_seconds": {
+        "type": "integer",
+        "description": "Seconds to wait",
+        "minimum": 5,
+        "maximum": 60,
+        "default": 30
+      }
+    },
+    "required": [
+      "query"
+    ],
+    "additionalProperties": false,
+    "examples": [
+      {
+        "query": "SELECT ?item ?itemLabel WHERE { ?item wdt:P1278 \"7LTWFZYICNSX8D621K86\" . SERVICE wikibase:label { bd:serviceParam wikibase:language \"en\". } }"
+      }
+    ]
+  },
+  "outputSchema": {
+    "type": "object",
+    "required": [
+      "rows",
+      "source"
+    ],
+    "properties": {
+      "graph": {
+        "type": "string",
+        "description": "main or scholarly"
+      },
+      "columns": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        }
+      },
+      "rows": {
+        "type": "array",
+        "items": {
+          "type": "object"
+        }
+      },
+      "row_count": {
+        "type": "integer",
+        "description": "Rows returned"
+      },
+      "truncated": {
+        "type": "boolean",
+        "description": "Rows were cut at max_rows"
+      },
+      "boolean": {
+        "type": "boolean",
+        "description": "ASK answer"
+      },
+      "source": {
+        "type": "string",
+        "description": "Attribution line; cite it with the data"
+      }
+    }
+  },
+  "metadata": {
+    "author": "Ashutosh Sinha",
+    "category": "Information Retrieval",
+    "tags": [
+      "wikidata",
+      "sparql",
+      "knowledge graph"
+    ]
+  }
+}

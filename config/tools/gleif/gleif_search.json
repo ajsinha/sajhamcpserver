@@ -1,0 +1,147 @@
+{
+  "name": "gleif_search",
+  "implementation": "sajha.tools.impl.gleif_tools.GleifSearchTool",
+  "description": "Find LEIs by entity name (legal and other names contain the words), optionally by country and status; falls back to GLEIF's fuzzy matching when nothing contains them.\nReturns: query, matched_by, total, result_count, results (lei, legal_name, country, jurisdiction, entity_status, registration_status), source.\nInputs (* required): name*, country, status, limit (1-50, default 10).\nExample: {\"name\": \"Deutsche Bank\", \"country\": \"DE\", \"status\": \"ACTIVE\"}",
+  "annotations": {
+    "readOnlyHint": true,
+    "idempotentHint": true,
+    "openWorldHint": true
+  },
+  "version": "1.0.0",
+  "enabled": true,
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "name": {
+        "type": "string",
+        "description": "Entity name or part of it",
+        "minLength": 2,
+        "maxLength": 200
+      },
+      "country": {
+        "type": "string",
+        "description": "Legal address country, ISO 3166 alpha-2",
+        "pattern": "^[A-Za-z]{2}$"
+      },
+      "status": {
+        "type": "string",
+        "description": "Entity status",
+        "enum": [
+          "ACTIVE",
+          "INACTIVE"
+        ]
+      },
+      "limit": {
+        "type": "integer",
+        "description": "Results to return",
+        "minimum": 1,
+        "maximum": 50,
+        "default": 10
+      }
+    },
+    "required": [
+      "name"
+    ],
+    "additionalProperties": false,
+    "examples": [
+      {
+        "name": "Deutsche Bank",
+        "country": "DE",
+        "status": "ACTIVE"
+      }
+    ]
+  },
+  "outputSchema": {
+    "type": "object",
+    "required": [
+      "results",
+      "source"
+    ],
+    "properties": {
+      "query": {
+        "type": "string",
+        "description": "Name searched"
+      },
+      "matched_by": {
+        "type": "string",
+        "description": "name or fuzzy",
+        "enum": [
+          "name",
+          "fuzzy"
+        ]
+      },
+      "total": {
+        "type": "integer",
+        "description": "Records matched"
+      },
+      "result_count": {
+        "type": "integer",
+        "description": "Records returned"
+      },
+      "results": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "lei": {
+              "type": "string",
+              "description": "Legal entity identifier"
+            },
+            "legal_name": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "description": "Legal name"
+            },
+            "country": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "description": "Country of the legal address (ISO 3166 alpha-2)"
+            },
+            "jurisdiction": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "description": "Legal jurisdiction (ISO 3166 code)"
+            },
+            "entity_status": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "description": "ACTIVE or INACTIVE"
+            },
+            "registration_status": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "description": "ISSUED, LAPSED, RETIRED, ..."
+            }
+          }
+        }
+      },
+      "note": {
+        "type": "string",
+        "description": "When nothing matched"
+      },
+      "source": {
+        "type": "string",
+        "description": "Attribution line; cite it with the data"
+      }
+    }
+  },
+  "metadata": {
+    "author": "Ashutosh Sinha",
+    "category": "Reference Data",
+    "tags": [
+      "lei",
+      "gleif",
+      "search"
+    ]
+  }
+}

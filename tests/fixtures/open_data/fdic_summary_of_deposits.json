@@ -1,0 +1,39 @@
+{
+ "tool": "fdic_summary_of_deposits",
+ "arguments": {
+  "state": "VT",
+  "year": 2025,
+  "limit": 10
+ },
+ "recorded": "2026-10-11",
+ "calls": [
+  {
+   "url": "https://api.fdic.gov/banks/sod",
+   "params": [
+    [
+     "filters",
+     "YEAR:2025 AND STALPBR:VT"
+    ],
+    [
+     "fields",
+     "CERT,NAMEFULL,NAMEBR,BRNUM,ADDRESBR,CITYBR,STALPBR,ZIPBR,DEPSUMBR,BKMO,YEAR,UNINUMBR"
+    ],
+    [
+     "sort_by",
+     "DEPSUMBR"
+    ],
+    [
+     "sort_order",
+     "DESC"
+    ],
+    [
+     "limit",
+     "10"
+    ]
+   ],
+   "status": 200,
+   "content_type": "application/json; charset=utf-8",
+   "body": "{\"meta\":{\"total\":219,\"parameters\":{\"filters\":\"YEAR:2025 AND STALPBR:VT\",\"fields\":\"CERT,NAMEFULL,NAMEBR,BRNUM,ADDRESBR,CITYBR,STALPBR,ZIPBR,DEPSUMBR,BKMO,YEAR,UNINUMBR\",\"limit\":\"10\"},\"index\":{\"name\":\"sod_1789738734553\",\"createTimestamp\":\"2026-09-18T13:38:54Z\"}},\"data\":[{\"data\":{\"STALPBR\":\"VT\",\"YEAR\":2025,\"BKMO\":0,\"ZIPBR\":\"05401\",\"DEPSUMBR\":1769553,\"UNINUMBR\":8835,\"NAMEBR\":\"Two Burlington Square Branch\",\"NAMEFULL\":\"Manufacturers and Traders Trust Company\",\"CERT\":588,\"CITYBR\":\"Burlington\",\"BRNUM\":1805,\"ADDRESBR\":\"77 Pine St\",\"ID\":\"2025_588_1805\"},\"score\":0},{\"data\":{\"STALPBR\":\"VT\",\"YEAR\":2025,\"BKMO\":0,\"ZIPBR\":\"05401\",\"DEPSUMBR\":999780,\"UNINUMBR\":4232,\"NAMEBR\":\"Burlington, Vt Branch\",\"NAMEFULL\":\"TD Bank, National Association\",\"CERT\":18409,\"CITYBR\":\"Burlington\",\"BRNUM\":185,\"ADDRESBR\":\"111 Main St\",\"ID\":\"2025_18409_185\"},\"score\":0},{\"data\":{\"STALPBR\":\"VT\",\"YEAR\":2025,\"BKMO\":0,\"ZIPBR\":\"05401\",\"DEPSUMBR\":536767,\"UNINUMBR\":8825,\"NAMEBR\":\"Corporate Plaza Branch\",\"NAMEFULL\":\"KeyBank National Association\",\"CERT\":17534,\"CITYBR\":\"Burlington\",\"BRNUM\":698,\"ADDRESBR\":\"149 Bank St\",\"ID\":\"2025_17534_698\"},\"score\":0},{\"data\":{\"STALPBR\":\"VT\",\"YEAR\":2025,\"BKMO\":0,\"ZIPBR\":\"05602\",\"DEPSUMBR\":453714,\"UNINUMBR\":209207,\"NAMEBR\":\"School St. Montpelier Branch\",\"NAMEFULL\":\"TD Bank, National Association\",\"CERT\":18409,\"CITYBR\":\"Montpelier\",\"BRNUM\":199,\"ADDRESBR\":\"9 School St\",\"ID\":\"2025_18409_199\"},\"score\":0},{\"data\":{\"STALPBR\":\"VT\",\"YEAR\":2025,\"BKMO\":1,\"ZIPBR\":\"05855\",\"DEPSUMBR\":330245,\"UNINUMBR\":4235,\"NAMEBR\":\"Community National Bank\",\"NAMEFULL\":\"Community National Bank\",\"CERT\":6271,\"CITYBR\":\"Derby\",\"BRNUM\":0,\"ADDRESBR\":\"4811 U.S. Route 5\",\"ID\":\"2025_6271_0\"},\"score\":0},{\"data\":{\"STALPBR\":\"VT\",\"YEAR\":2025,\"BKMO\":0,\"ZIPBR\":\"05701\",\"DEPSUMBR\":318398,\"UNINUMBR\":231042,\"NAMEBR\":\"Rutland Branch\",\"NAMEFULL\":\"TD Bank, National Association\",\"CERT\":18409,\"CITYBR\":\"Rutland\",\"BRNUM\":209,\"ADDRESBR\":\"89 Merchants Row\",\"ID\":\"2025_18409_209\"},\"score\":0},{\"data\":{\"STALPBR\":\"VT\",\"YEAR\":2025,\"BKMO\":1,\"ZIPBR\":\"05753\",\"DEPSUMBR\":287291,\"UNINUMBR\":4239,\"NAMEBR\":\"The National Bank Of Middlebury\",\"NAMEFULL\":\"The National Bank of Middlebury\",\"CERT\":6275,\"CITYBR\":\"Middlebury\",\"BRNUM\":0,\"ADDRESBR\":\"30 Main St\",\"ID\":\"2025_6275_0\"},\"score\":0},{\"data\":{\"STALPBR\":\"VT\",\"YEAR\":2025,\"BKMO\":0,\"ZIPBR\":\"05602\",\"DEPSUMBR\":253826,\"UNINUMBR\":231026,\"NAMEBR\":\"Montpelier Branch\",\"NAMEFULL\":\"Northfield Savings Bank\",\"CERT\":14140,\"CITYBR\":\"Montpelier\",\"BRNUM\":4,\"ADDRESBR\":\"100 State St, Ste 1\",\"ID\":\"2025_14140_4\"},\"score\":0},{\"data\":{\"STALPBR\":\"VT\",\"YEAR\":2025,\"BKMO\":1,\"ZIPBR\":\"05403\",\"DEPSUMBR\":242655,\"UNINUMBR\":640962,\"NAMEBR\":\"Bank Of Burlington\",\"NAMEFULL\":\"Bank of Burlington\",\"CERT\":59298,\"CITYBR\":\"South Burlington\",\"BRNUM\":0,\"ADDRESBR\":\"30 Kimball Ave, Suite 201\",\"ID\":\"2025_59298_0\"},\"score\":0},{\"data\":{\"STALPBR\":\"VT\",\"YEAR\":2025,\"BKMO\":1,\"ZIPBR\":\"05661\",\"DEPSUMBR\":240596,\"UNINUMBR\":8840,\"NAMEBR\":\"Union Bank\",\"NAMEFULL\":\"Union Bank\",\"CERT\":14158,\"CITYBR\":\"Morrisville\",\"BRNUM\":0,\"ADDRESBR\":\"20 Main St\",\"ID\":\"2025_14158_0\"},\"score\":0}],\"totals\":{\"count\":219}}"
+  }
+ ]
+}

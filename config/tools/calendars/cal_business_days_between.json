@@ -1,0 +1,118 @@
+{
+  "name": "cal_business_days_between",
+  "implementation": "sajha.tools.impl.calendars_tools.CalBusinessDaysBetweenTool",
+  "title": "Business days between two dates",
+  "description": "Count the business days from one date to another: from is counted, to is not (negative when to is before from).\nReturns: from, to, calendars, business_days, calendar_days, holidays_on_weekdays (date, reason).\nInputs: from, to (YYYY-MM-DD; at most 50 years apart); calendars.\nExample: {\"from\": \"2026-12-01\", \"to\": \"2027-01-04\", \"calendars\": [\"US\", \"GB\"]}",
+  "annotations": {
+    "title": "Business days between two dates",
+    "readOnlyHint": true,
+    "destructiveHint": false,
+    "idempotentHint": true,
+    "openWorldHint": false
+  },
+  "version": "1.0.0",
+  "enabled": true,
+  "requires": [
+    "holidays"
+  ],
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "from": {
+        "type": "string",
+        "description": "Start date, counted (YYYY-MM-DD)",
+        "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+      },
+      "to": {
+        "type": "string",
+        "description": "End date, not counted (YYYY-MM-DD)",
+        "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+      },
+      "calendars": {
+        "type": "array",
+        "description": "Calendar codes: countries (US, CA, GBR), subdivisions (CA-ON) or markets (XNYS, XLON, XECB); a day must be a business day in all of them",
+        "items": {
+          "type": "string",
+          "minLength": 2,
+          "maxLength": 12
+        },
+        "minItems": 1,
+        "maxItems": 10
+      }
+    },
+    "required": [
+      "from",
+      "to",
+      "calendars"
+    ],
+    "additionalProperties": false,
+    "examples": [
+      {
+        "from": "2026-12-01",
+        "to": "2027-01-04",
+        "calendars": [
+          "US",
+          "GB"
+        ]
+      }
+    ]
+  },
+  "outputSchema": {
+    "type": "object",
+    "properties": {
+      "from": {
+        "type": "string",
+        "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+      },
+      "to": {
+        "type": "string",
+        "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+      },
+      "calendars": {
+        "type": "array",
+        "description": "Resolved calendar codes",
+        "items": {
+          "type": "string"
+        }
+      },
+      "business_days": {
+        "type": "integer"
+      },
+      "calendar_days": {
+        "type": "integer"
+      },
+      "holidays_on_weekdays": {
+        "type": "array",
+        "description": "Holidays that removed a working day",
+        "items": {
+          "type": "object",
+          "properties": {
+            "date": {
+              "type": "string",
+              "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+            },
+            "reason": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "source": {
+        "type": "string",
+        "description": "Attribution"
+      }
+    },
+    "required": [
+      "business_days"
+    ]
+  },
+  "metadata": {
+    "author": "Ashutosh Sinha",
+    "category": "Calendars",
+    "tags": [
+      "business days",
+      "day count",
+      "calendar"
+    ]
+  }
+}

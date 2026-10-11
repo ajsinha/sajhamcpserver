@@ -9,10 +9,11 @@
    - [wiki_search](#wiki_search)
    - [wiki_get_summary](#wiki_get_summary)
    - [wiki_get_page](#wiki_get_page)
-5. [Typical Workflow](#typical-workflow)
-6. [Errors and Troubleshooting](#errors-and-troubleshooting)
-7. [Limitations](#limitations)
-8. [See Also](#see-also)
+5. [Wikidata](#wikidata)
+6. [Typical Workflow](#typical-workflow)
+7. [Errors and Troubleshooting](#errors-and-troubleshooting)
+8. [Limitations](#limitations)
+9. [See Also](#see-also)
 
 ---
 
@@ -29,12 +30,18 @@ edition (`https://{language}.wikipedia.org/w/api.php`):
 | `wiki_get_page` | The full plain-text content of one Wikipedia article, split into sections, with categories, links and revision details. | — | `query`, `page_id`, `language` (`en`), `redirect` (`true`), `include_images` (`true`), `include_links` (`true`) | read-only, idempotent, open-world |
 | `wiki_get_summary` | The lead (introduction) of one Wikipedia article as plain text, with its short description, images and coordinates. | — | `query`, `page_id`, `language` (`en`), `sentences` (`3`), `redirect` (`true`), `include_image` (`true`) | read-only, idempotent, open-world |
 | `wiki_search` | Search Wikipedia articles by keyword or phrase (MediaWiki search API). | `query` | `limit` (`5`), `language` (`en`) | read-only, idempotent, open-world |
+| `wikidata_company_identifiers` | A company's identifiers from Wikidata: LEI (P1278), ISINs (P946), current tickers with their exchange (P414 with P249), official websites (P856). | — | `name`, `qid` | read-only, idempotent, open-world |
+| `wikidata_entity` | One Wikidata item's facts: label, description, aliases, Wikipedia link and its statements, each property and item value labelled (preferred-rank values when any; at most 20 values a property). | `qid` | `properties`, `language` (`en`) | read-only, idempotent, open-world |
+| `wikidata_search` | Find Wikidata items (QIDs) by name or alias (wbsearchentities). | `name` | `limit` (`10`), `language` (`en`) | read-only, idempotent, open-world |
+| `wikidata_sparql` | Run a read-only SPARQL query (SELECT or ASK) on the Wikidata Query Service: the main graph, or the scholarly-article graph split off in 2025 (graph: scholarly). | `query` | `graph` (`main`), `max_rows` (`100`), `timeout_seconds` (`30`) | read-only, idempotent, open-world |
 
 <!-- /generated:tools -->
 
 Implementation: `sajha.tools.impl.wikipedia_tool`; tool configs:
 `config/tools/wikipedia/wiki_search.json`, `wiki_get_summary.json`, `wiki_get_page.json`.
 Only the Python standard library is used.
+
+The `wikidata_` tools in the same folder read Wikidata; see [Wikidata](#wikidata).
 
 ---
 
@@ -160,6 +167,34 @@ Result fields:
 
 ---
 
+## Wikidata
+
+The `wikidata_` tools (implementation `sajha/tools/impl/wikidata_tools.py`) read Wikidata, the
+structured-data sibling of Wikipedia, with the same operator (Wikimedia) and User-Agent policy:
+
+- `wikidata_search` finds items (QIDs) by name or alias (`wbsearchentities`).
+- `wikidata_entity` returns one item's label, description, aliases, Wikipedia link and statements, each
+  property and item value labelled; `properties` limits it to given property ids (for example `P1278`
+  LEI, `P946` ISIN, `P856` official website). Preferred-rank values are returned when an item has any;
+  at most 20 values a property, with `value_count` giving the total.
+- `wikidata_company_identifiers` takes a `name` (the top search hit is used; check `label` and
+  `description`) or a `qid`, and returns the LEI, ISINs, current tickers with their exchange (`P414`
+  with a `P249` qualifier and no end date) and official websites. Verify an LEI, or get the hierarchy,
+  with `gleif_lookup` and `gleif_parents` ([GLEIF Tool Reference Guide](../public-data/GLEIF%20Tool%20Reference%20Guide.md)).
+- `wikidata_sparql` runs a read-only SPARQL query on `https://query.wikidata.org/sparql`, or on the
+  scholarly-article graph split off in 2025 (`https://query-scholarly.wikidata.org/sparql`) with
+  `graph: scholarly`. Only SELECT and ASK are accepted, and update keywords are refused; a SELECT
+  without LIMIT gets `LIMIT max_rows + 1`, rows past `max_rows` (default 100, at most 1000) are cut
+  with `truncated: true`, and `timeout_seconds` (default 30, at most 60) bounds the wait.
+
+No key. The data is CC0; every result carries `source: "Source: Wikidata (CC0)"`. Unlike the
+`wiki_` tools, these fetch through the outbound fetch guard and HTTP proxy (`sajha/core/outbound.py`),
+with the User-Agent `SAJHA-MCP-Server/8 (https://github.com/ajsinha/sajhamcpserver; Wikidata tools) httpx`:
+Wikidata answers 403 to a User-Agent without contact information. The query service allows 60 seconds
+of query time a minute per client ([user manual](https://www.mediawiki.org/wiki/Wikidata_Query_Service/User_Manual)).
+
+---
+
 ## Typical Workflow
 
 1. `wiki_search` to find the exact title or `page_id`.
@@ -205,6 +240,7 @@ Disambiguation pages are returned like any other page; refine the title
 
 - [Google Search Tool Reference Guide](Google%20Search%20Tool%20Reference%20Guide.md)
 - [Tavily Search Tool Reference Guide](Tavily%20Search%20Tool%20Reference%20Guide.md)
+- [GLEIF Tool Reference Guide](../public-data/GLEIF%20Tool%20Reference%20Guide.md)
 - [Glossary](../../../GLOSSARY.md)
 - [MediaWiki Action API](https://www.mediawiki.org/wiki/API:Main_page)
 

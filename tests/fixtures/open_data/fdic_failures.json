@@ -1,0 +1,39 @@
+{
+ "tool": "fdic_failures",
+ "arguments": {
+  "from": "2023-01-01",
+  "to": "2023-12-31",
+  "limit": 50
+ },
+ "recorded": "2026-10-11",
+ "calls": [
+  {
+   "url": "https://api.fdic.gov/banks/failures",
+   "params": [
+    [
+     "filters",
+     "FAILDATE:[\"2023-01-01\" TO \"2023-12-31\"]"
+    ],
+    [
+     "fields",
+     "CERT,NAME,CITY,PSTALP,FAILDATE,RESTYPE,RESTYPE1,BIDNAME,QBFASSET,QBFDEP,COST,SAVR"
+    ],
+    [
+     "sort_by",
+     "FAILDATE"
+    ],
+    [
+     "sort_order",
+     "DESC"
+    ],
+    [
+     "limit",
+     "50"
+    ]
+   ],
+   "status": 200,
+   "content_type": "application/json; charset=utf-8",
+   "body": "{\"meta\":{\"total\":5,\"parameters\":{\"filters\":\"FAILDATE:[\\\"2023-01-01\\\" TO \\\"2023-12-31\\\"]\",\"fields\":\"CERT,NAME,CITY,PSTALP,FAILDATE,RESTYPE,RESTYPE1,BIDNAME,QBFASSET,QBFDEP,COST,SAVR\",\"limit\":\"50\"},\"index\":{\"name\":\"failures_1787667198788\",\"createTimestamp\":\"2026-08-25T14:13:18Z\"}},\"data\":[{\"data\":{\"QBFDEP\":52311,\"COST\":12464.63,\"QBFASSET\":60448,\"CITY\":\"SAC CITY\",\"BIDNAME\":\"IOWA TRUST & SAVINGS BANK\",\"PSTALP\":\"IA\",\"FAILDATE\":\"11/3/2023\",\"CERT\":8758,\"RESTYPE\":\"FAILURE\",\"SAVR\":\"DIF\",\"RESTYPE1\":\"PA\",\"NAME\":\"CITIZENS BANK\",\"ID\":\"4109\"},\"score\":0},{\"data\":{\"QBFDEP\":130110,\"COST\":42666.372,\"QBFASSET\":139446,\"CITY\":\"ELKHART\",\"BIDNAME\":\"DREAM FIRST BANK,NATIONAL ASSOCIATION\",\"PSTALP\":\"KS\",\"FAILDATE\":\"7/28/2023\",\"CERT\":25851,\"RESTYPE\":\"FAILURE\",\"SAVR\":\"DIF\",\"RESTYPE1\":\"PA\",\"NAME\":\"HEARTLAND TRI-STATE BANK\",\"ID\":\"4108\"},\"score\":0},{\"data\":{\"QBFDEP\":176436706,\"COST\":15495761.533,\"QBFASSET\":212638872,\"CITY\":\"SAN FRANCISCO\",\"BIDNAME\":\"JPMORGAN CHASE BANK, N.A.\",\"PSTALP\":\"CA\",\"FAILDATE\":\"5/1/2023\",\"CERT\":59017,\"RESTYPE\":\"FAILURE\",\"SAVR\":\"DIF\",\"RESTYPE1\":\"PA\",\"NAME\":\"FIRST REPUBLIC BANK\",\"ID\":\"4107\"},\"score\":0},{\"data\":{\"QBFDEP\":88612911,\"COST\":0,\"QBFASSET\":110363650,\"CITY\":\"NEW YORK\",\"BIDNAME\":\"FLAGSTAR BANK, N.A.\",\"PSTALP\":\"NY\",\"FAILDATE\":\"3/12/2023\",\"CERT\":57053,\"RESTYPE\":\"FAILURE\",\"SAVR\":\"DIF\",\"RESTYPE1\":\"PA\",\"NAME\":\"SIGNATURE BANK\",\"ID\":\"4106\"},\"score\":0},{\"data\":{\"QBFDEP\":175378000,\"COST\":18744254.463,\"QBFASSET\":209026000,\"CITY\":\"SANTA CLARA\",\"BIDNAME\":\"FIRST-CITIZENS BANK & TRUST COMPANY\",\"PSTALP\":\"CA\",\"FAILDATE\":\"3/10/2023\",\"CERT\":24735,\"RESTYPE\":\"FAILURE\",\"SAVR\":\"DIF\",\"RESTYPE1\":\"PA\",\"NAME\":\"SILICON VALLEY BANK\",\"ID\":\"4105\"},\"score\":0}],\"totals\":{\"count\":5}}"
+  }
+ ]
+}

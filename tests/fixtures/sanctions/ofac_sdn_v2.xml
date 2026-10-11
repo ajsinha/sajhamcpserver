@@ -1,0 +1,47 @@
+<?xml version="1.0" standalone="yes"?>
+<sdnList xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="https://sanctionslistservice.ofac.treas.gov/api/PublicationPreview/exports/XML">
+  <publshInformation>
+    <Publish_Date>10/16/2026</Publish_Date>
+    <Record_Count>4</Record_Count>
+  </publshInformation>
+  <sdnEntry>
+    <uid>306</uid>
+    <lastName>BANCO NACIONAL DE CUBA</lastName>
+    <sdnType>Entity</sdnType>
+    <programList><program>CUBA</program></programList>
+    <akaList>
+      <aka><uid>219</uid><type>a.k.a.</type><category>weak</category><lastName>BNC</lastName></aka>
+      <aka><uid>220</uid><type>a.k.a.</type><category>strong</category><lastName>NATIONAL BANK OF CUBA</lastName></aka>
+    </akaList>
+    <addressList>
+      <address><uid>199</uid><address1>Zweierstrasse 35</address1><city>Zurich</city><postalCode>CH-8022</postalCode><country>Switzerland</country></address>
+    </addressList>
+  </sdnEntry>
+  <sdnEntry>
+    <uid>7777</uid>
+    <firstName>Muammar</firstName>
+    <lastName>QADHAFI</lastName>
+    <sdnType>Individual</sdnType>
+    <programList><program>LIBYA2</program></programList>
+    <nationalityList><nationality><uid>1</uid><country>Libya</country></nationality></nationalityList>
+    <dateOfBirthList>
+      <dateOfBirthItem><uid>1001</uid><dateOfBirth>1942</dateOfBirth><mainEntry>true</mainEntry></dateOfBirthItem>
+    </dateOfBirthList>
+  </sdnEntry>
+  <sdnEntry>
+    <uid>4243</uid>
+    <lastName>EBANO II</lastName>
+    <sdnType>Vessel</sdnType>
+    <programList><program>CUBA</program></programList>
+    <idList><id><uid>22133</uid><idType>Vessel Registration Identification</idType><idNumber>IMO 7406784</idNumber></id></idList>
+    <vesselInfo><vesselType>General Cargo</vesselType><vesselFlag>Panama</vesselFlag></vesselInfo>
+  </sdnEntry>
+  <sdnEntry>
+    <uid>9001</uid>
+    <firstName>Ivan</firstName>
+    <lastName>PETROV</lastName>
+    <sdnType>Individual</sdnType>
+    <programList><program>RUSSIA-EO14024</program></programList>
+    <nationalityList><nationality><uid>2</uid><country>Russia</country></nationality></nationalityList>
+  </sdnEntry>
+</sdnList>

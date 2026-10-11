@@ -1,0 +1,148 @@
+{
+  "name": "gleif_children",
+  "implementation": "sajha.tools.impl.gleif_tools.GleifChildrenTool",
+  "description": "The entities that report this LEI as their direct or ultimate parent, a page at a time.\nReturns: lei, level, total, page, result_count, more, children (lei, legal_name, country, jurisdiction, entity_status, registration_status), source.\nInputs (* required): lei*, level (direct or ultimate; default direct), limit (1-200, default 50), page.\nExample: {\"lei\": \"HWUPKR0MPOU8FGXBT394\", \"level\": \"direct\"}",
+  "annotations": {
+    "readOnlyHint": true,
+    "idempotentHint": true,
+    "openWorldHint": true
+  },
+  "version": "1.0.0",
+  "enabled": true,
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "lei": {
+        "type": "string",
+        "description": "LEI, 20 characters",
+        "pattern": "^[A-Za-z0-9]{18}[0-9]{2}$"
+      },
+      "level": {
+        "type": "string",
+        "description": "direct or ultimate children",
+        "enum": [
+          "direct",
+          "ultimate"
+        ],
+        "default": "direct"
+      },
+      "limit": {
+        "type": "integer",
+        "description": "Children per page",
+        "minimum": 1,
+        "maximum": 200,
+        "default": 50
+      },
+      "page": {
+        "type": "integer",
+        "description": "Page number",
+        "minimum": 1,
+        "default": 1
+      }
+    },
+    "required": [
+      "lei"
+    ],
+    "additionalProperties": false,
+    "examples": [
+      {
+        "lei": "HWUPKR0MPOU8FGXBT394",
+        "level": "direct"
+      }
+    ]
+  },
+  "outputSchema": {
+    "type": "object",
+    "required": [
+      "children",
+      "source"
+    ],
+    "properties": {
+      "lei": {
+        "type": "string",
+        "description": "The parent"
+      },
+      "level": {
+        "type": "string",
+        "description": "direct or ultimate"
+      },
+      "total": {
+        "type": "integer",
+        "description": "Children in all pages"
+      },
+      "page": {
+        "type": "integer",
+        "description": "This page"
+      },
+      "result_count": {
+        "type": "integer",
+        "description": "Children on this page"
+      },
+      "more": {
+        "type": "boolean",
+        "description": "More pages follow"
+      },
+      "children": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "lei": {
+              "type": "string",
+              "description": "Legal entity identifier"
+            },
+            "legal_name": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "description": "Legal name"
+            },
+            "country": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "description": "Country of the legal address (ISO 3166 alpha-2)"
+            },
+            "jurisdiction": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "description": "Legal jurisdiction (ISO 3166 code)"
+            },
+            "entity_status": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "description": "ACTIVE or INACTIVE"
+            },
+            "registration_status": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "description": "ISSUED, LAPSED, RETIRED, ..."
+            }
+          }
+        }
+      },
+      "source": {
+        "type": "string",
+        "description": "Attribution line; cite it with the data"
+      }
+    }
+  },
+  "metadata": {
+    "author": "Ashutosh Sinha",
+    "category": "Reference Data",
+    "tags": [
+      "lei",
+      "gleif",
+      "hierarchy",
+      "subsidiaries"
+    ]
+  }
+}

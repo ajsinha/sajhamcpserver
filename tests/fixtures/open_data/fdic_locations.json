@@ -1,0 +1,39 @@
+{
+ "tool": "fdic_locations",
+ "arguments": {
+  "cert": 628,
+  "state": "VT",
+  "limit": 100
+ },
+ "recorded": "2026-10-11",
+ "calls": [
+  {
+   "url": "https://api.fdic.gov/banks/locations",
+   "params": [
+    [
+     "filters",
+     "CERT:628 AND STALP:VT"
+    ],
+    [
+     "fields",
+     "NAME,OFFNUM,OFFNAME,MAINOFF,SERVTYPE_DESC,ADDRESS,CITY,STALP,ZIP,COUNTY,ESTYMD,LATITUDE,LONGITUDE,UNINUM"
+    ],
+    [
+     "sort_by",
+     "OFFNUM"
+    ],
+    [
+     "sort_order",
+     "ASC"
+    ],
+    [
+     "limit",
+     "100"
+    ]
+   ],
+   "status": 200,
+   "content_type": "application/json; charset=utf-8",
+   "body": "{\"meta\":{\"total\":3,\"parameters\":{\"filters\":\"CERT:628 AND STALP:VT\",\"fields\":\"NAME,OFFNUM,OFFNAME,MAINOFF,SERVTYPE_DESC,ADDRESS,CITY,STALP,ZIP,COUNTY,ESTYMD,LATITUDE,LONGITUDE,UNINUM\",\"limit\":\"100\"},\"index\":{\"name\":\"locations_20261009090008\",\"createTimestamp\":\"2026-10-09T11:48:49Z\"}},\"data\":[{\"data\":{\"ZIP\":\"05401\",\"MAINOFF\":0,\"OFFNAME\":\"DOWNTOWN BURLINGTON BRANCH\",\"LONGITUDE\":-73.21302803848546,\"NAME\":\"JPMorgan Chase Bank, National Association\",\"UNINUM\":635104,\"SERVTYPE_DESC\":\"FULL SERVICE - BRICK AND MORTAR\",\"CITY\":\"Burlington\",\"ADDRESS\":\"1 Church St\",\"STALP\":\"VT\",\"LATITUDE\":44.48020601853739,\"OFFNUM\":8726,\"ESTYMD\":\"06/29/2021\",\"COUNTY\":\"Chittenden\",\"ID\":\"635104\"},\"score\":0},{\"data\":{\"ZIP\":\"05495\",\"MAINOFF\":0,\"OFFNAME\":\"WILLISTON BRANCH\",\"LONGITUDE\":-73.110635812655,\"NAME\":\"JPMorgan Chase Bank, National Association\",\"UNINUM\":644993,\"SERVTYPE_DESC\":\"FULL SERVICE - BRICK AND MORTAR\",\"CITY\":\"Williston\",\"ADDRESS\":\"39 Connor Way\",\"STALP\":\"VT\",\"LATITUDE\":44.446946764152,\"OFFNUM\":8851,\"ESTYMD\":\"04/05/2022\",\"COUNTY\":\"Chittenden\",\"ID\":\"644993\"},\"score\":0},{\"data\":{\"ZIP\":\"05403\",\"MAINOFF\":0,\"OFFNAME\":\"SOUTH BURLINGTON BRANCH\",\"LONGITUDE\":-73.208979914528,\"NAME\":\"JPMorgan Chase Bank, National Association\",\"UNINUM\":681789,\"SERVTYPE_DESC\":\"FULL SERVICE - BRICK AND MORTAR\",\"CITY\":\"South Burlington\",\"ADDRESS\":\"760 Shelburne Rd\",\"STALP\":\"VT\",\"LATITUDE\":44.445577694311,\"OFFNUM\":9614,\"ESTYMD\":\"02/24/2026\",\"COUNTY\":\"Chittenden\",\"ID\":\"681789\"},\"score\":0}],\"totals\":{\"count\":3}}"
+  }
+ ]
+}

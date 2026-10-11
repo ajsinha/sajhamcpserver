@@ -1,0 +1,279 @@
+{
+  "name": "gleif_lookup",
+  "implementation": "sajha.tools.impl.gleif_tools.GleifLookupTool",
+  "description": "One LEI record by LEI or ISIN: names, addresses, legal form, status, registration dates, BICs.\nReturns: lei, legal_name, other_names, legal_address, headquarters_address, jurisdiction, entity_status, registration_status, legal_form, category, dates, managing_lou, bic, source.\nInputs: lei or isin (one of them).\nHierarchy: gleif_parents, gleif_children.\nExample: {\"lei\": \"HWUPKR0MPOU8FGXBT394\"}",
+  "annotations": {
+    "readOnlyHint": true,
+    "idempotentHint": true,
+    "openWorldHint": true
+  },
+  "version": "1.0.0",
+  "enabled": true,
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "lei": {
+        "type": "string",
+        "description": "LEI, 20 characters",
+        "pattern": "^[A-Za-z0-9]{18}[0-9]{2}$"
+      },
+      "isin": {
+        "type": "string",
+        "description": "ISIN, 12 characters",
+        "pattern": "^[A-Za-z]{2}[A-Za-z0-9]{9}[0-9]$"
+      }
+    },
+    "additionalProperties": false,
+    "examples": [
+      {
+        "lei": "HWUPKR0MPOU8FGXBT394"
+      }
+    ],
+    "anyOf": [
+      {
+        "required": [
+          "lei"
+        ]
+      },
+      {
+        "required": [
+          "isin"
+        ]
+      }
+    ]
+  },
+  "outputSchema": {
+    "type": "object",
+    "required": [
+      "lei",
+      "source"
+    ],
+    "properties": {
+      "lei": {
+        "type": "string",
+        "description": "Legal entity identifier"
+      },
+      "legal_name": {
+        "type": [
+          "string",
+          "null"
+        ],
+        "description": "Legal name"
+      },
+      "country": {
+        "type": [
+          "string",
+          "null"
+        ],
+        "description": "Country of the legal address (ISO 3166 alpha-2)"
+      },
+      "jurisdiction": {
+        "type": [
+          "string",
+          "null"
+        ],
+        "description": "Legal jurisdiction (ISO 3166 code)"
+      },
+      "entity_status": {
+        "type": [
+          "string",
+          "null"
+        ],
+        "description": "ACTIVE or INACTIVE"
+      },
+      "registration_status": {
+        "type": [
+          "string",
+          "null"
+        ],
+        "description": "ISSUED, LAPSED, RETIRED, ..."
+      },
+      "other_names": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Other and previous names"
+      },
+      "legal_address": {
+        "type": [
+          "object",
+          "null"
+        ],
+        "properties": {
+          "lines": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "city": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "City"
+          },
+          "region": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "ISO 3166-2 region"
+          },
+          "country": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "ISO 3166 alpha-2"
+          },
+          "postal_code": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Postal code"
+          }
+        }
+      },
+      "headquarters_address": {
+        "type": [
+          "object",
+          "null"
+        ],
+        "properties": {
+          "lines": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "city": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "City"
+          },
+          "region": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "ISO 3166-2 region"
+          },
+          "country": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "ISO 3166 alpha-2"
+          },
+          "postal_code": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Postal code"
+          }
+        }
+      },
+      "legal_form": {
+        "type": [
+          "string",
+          "null"
+        ],
+        "description": "ISO 20275 entity legal form code"
+      },
+      "category": {
+        "type": [
+          "string",
+          "null"
+        ],
+        "description": "GENERAL, FUND, BRANCH, SOLE_PROPRIETOR, ..."
+      },
+      "registered_as": {
+        "type": [
+          "string",
+          "null"
+        ],
+        "description": "Identifier in the business register"
+      },
+      "creation_date": {
+        "type": [
+          "string",
+          "null"
+        ],
+        "description": "Date the entity was created"
+      },
+      "successor_lei": {
+        "type": [
+          "string",
+          "null"
+        ],
+        "description": "LEI of the successor entity, if any"
+      },
+      "initial_registration_date": {
+        "type": [
+          "string",
+          "null"
+        ],
+        "description": "First LEI registration"
+      },
+      "last_update_date": {
+        "type": [
+          "string",
+          "null"
+        ],
+        "description": "Last change to the record"
+      },
+      "next_renewal_date": {
+        "type": [
+          "string",
+          "null"
+        ],
+        "description": "Next renewal due"
+      },
+      "managing_lou": {
+        "type": [
+          "string",
+          "null"
+        ],
+        "description": "LEI of the issuer (local operating unit)"
+      },
+      "corroboration_level": {
+        "type": [
+          "string",
+          "null"
+        ],
+        "description": "How far the data was validated"
+      },
+      "bic": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Linked BIC codes"
+      },
+      "isin": {
+        "type": "string",
+        "description": "The ISIN looked up, when the lookup was by ISIN"
+      },
+      "source": {
+        "type": "string",
+        "description": "Attribution line; cite it with the data"
+      }
+    }
+  },
+  "metadata": {
+    "author": "Ashutosh Sinha",
+    "category": "Reference Data",
+    "tags": [
+      "lei",
+      "gleif",
+      "entity",
+      "counterparty"
+    ]
+  }
+}

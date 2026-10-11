@@ -1,0 +1,137 @@
+{
+  "name": "sanctions_refresh",
+  "implementation": "sajha.tools.impl.sanctions_tools.SanctionsRefreshTool",
+  "description": "Download the official sanctions lists (OFAC SDN and consolidated, EU, UK) into the local index and record what changed; administrators only.\nReturns {started_at, finished_at, data_dir, lists: [{list, status (initial, updated, unchanged, error), publication_date, entries, names, bytes, added, changed, removed, seconds, error}], ok}.\nInputs: lists (default every enabled list), force (boolean, default false: the EU list is fetched only when its feed shows a new publication).\nExample: {\"lists\": [\"ofac_consolidated\"]}\nRun daily by the shipped sanctions_refresh workflow; a failed list keeps its old index and fails the call.",
+  "annotations": {
+    "readOnlyHint": false,
+    "destructiveHint": false,
+    "idempotentHint": true,
+    "openWorldHint": true
+  },
+  "version": "1.0.0",
+  "enabled": true,
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "lists": {
+        "type": "array",
+        "items": {
+          "type": "string",
+          "enum": [
+            "ofac_sdn",
+            "ofac_consolidated",
+            "eu",
+            "uk",
+            "un"
+          ]
+        },
+        "uniqueItems": true,
+        "description": "Lists to refresh; default every enabled list"
+      },
+      "force": {
+        "type": "boolean",
+        "default": false,
+        "description": "Download the EU list even when its feed shows no new publication"
+      }
+    },
+    "additionalProperties": false,
+    "examples": [
+      {
+        "lists": [
+          "ofac_consolidated"
+        ]
+      }
+    ]
+  },
+  "outputSchema": {
+    "type": "object",
+    "properties": {
+      "started_at": {
+        "type": "string"
+      },
+      "finished_at": {
+        "type": "string"
+      },
+      "data_dir": {
+        "type": "string"
+      },
+      "lists": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "list": {
+              "type": "string"
+            },
+            "status": {
+              "type": "string"
+            },
+            "publication_date": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "entries": {
+              "type": [
+                "integer",
+                "null"
+              ]
+            },
+            "names": {
+              "type": "integer"
+            },
+            "bytes": {
+              "type": "integer"
+            },
+            "added": {
+              "type": "integer"
+            },
+            "changed": {
+              "type": "integer"
+            },
+            "removed": {
+              "type": "integer"
+            },
+            "seconds": {
+              "type": "number"
+            },
+            "error": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "list",
+            "status"
+          ]
+        }
+      },
+      "ok": {
+        "type": "boolean"
+      }
+    },
+    "required": [
+      "lists",
+      "ok"
+    ]
+  },
+  "metadata": {
+    "author": "Ashutosh Sinha",
+    "category": "Sanctions",
+    "tags": [
+      "sanctions",
+      "refresh",
+      "download"
+    ],
+    "examples": [
+      {
+        "description": "Refresh the OFAC consolidated list",
+        "input": {
+          "lists": [
+            "ofac_consolidated"
+          ]
+        }
+      }
+    ]
+  }
+}

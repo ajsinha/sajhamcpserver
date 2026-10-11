@@ -1,8 +1,9 @@
 # SAJHA MCP Server — Open Data Tools
 
-> **Status: planned, not built.** Wave 8, phase 8.3 (release 8.10.0) of the
-> [Implementation Plan](Implementation%20Plan.md#7b-wave-8-tool-health-open-data-business-intelligence-and-reports);
-> Roadmap items L26 to L39. None of the tools below exist yet. Each source was checked live on
+> **Status: P1 built (8.10.0); P2 and P3 planned.** Wave 8, phase 8.3 of the
+> [Implementation Plan](Implementation%20Plan.md#7b-wave-8-tool-health-open-data-business-intelligence-and-reports).
+> The P1 folders (`calendars`, `gleif`, `bis`, `us_treasury`, `sanctions`, `fdic`) and the Wikidata
+> tools in `wikipedia` are built; each section says so. P2 and P3 (Roadmap L32 to L39) are not built. Each source was checked live on
 > 2026-10-11 (endpoint, key, terms, limits). Terms change, so the 8.3 gate re-checks every source in
 > the week of release.
 
@@ -89,7 +90,7 @@ is published.
 
 | Source | Why |
 |---|---|
-| **Nager.Date** (public holidays API) | Its [Terms of Service](https://nagerholidays.com/legal/termsofservice) require "active sponsorship" for commercial purposes, including self-hosting, which needs a licence key. Replaced by the MIT-licensed [`holidays`](https://github.com/vacanza/holidays) Python package, which works offline from rules and includes financial-market calendars by ISO 10383 code (for example XNYS, XLON and XECB; there is no Toronto market calendar, so Canadian dates use the country calendar for `CA`). It becomes an optional dependency (`requires`) |
+| **Nager.Date** (public holidays API) | Its [Terms of Service](https://nagerholidays.com/legal/termsofservice) require "active sponsorship" for commercial purposes, including self-hosting, which needs a licence key. Replaced by the MIT-licensed [`holidays`](https://github.com/vacanza/holidays) Python package, which works offline from rules and includes financial-market calendars by ISO 10383 code (for example XNYS, XLON, XTSE and XECB). It becomes an optional dependency (`requires`) |
 | **Open-Meteo** (weather) | The free API is "only for non-commercial purposes" ([terms](https://open-meteo.com/en/terms)), and an internal bank tool is commercial use. It can return as a hazards tool if the owner buys a plan (the customer API needs a key) |
 | **OpenSanctions** | Its data is CC BY-NC 4.0, and its [FAQ](https://www.opensanctions.org/faq/32/) says any use inside a for-profit business, including screening, needs a paid data licence. SAJHA screens against the official lists and does not depend on it |
 | **GDELT GEO 2.0** | Answers 404 in every form; the DOC, TV and Context APIs are kept |
@@ -135,6 +136,8 @@ new tools sit beside; their descriptions point at each other.
 
 Complements `qlrisk` pricing dates and every report's as-of date.
 
+> **Built (8.10.0):** [Calendars Tool Reference Guide](../tools/analytics/Calendars%20Tool%20Reference%20Guide.md).
+
 **`gleif` (new folder; L27).**
 
 | Tool | Inputs |
@@ -147,6 +150,10 @@ Complements `qlrisk` pricing dates and every report's as-of date.
 
 Complements `edgar_company_search` and FMP profiles, and gives the counterparty exposure report
 its hierarchy.
+
+> **Built (8.10.0):** [GLEIF Tool Reference Guide](../tools/public-data/GLEIF%20Tool%20Reference%20Guide.md).
+> `gleif_search` matches names with `filter[entity.names]` and falls back to `fuzzycompletions`
+> (`field=fulltext`), which answered an empty list for every query tried on 2026-10-11.
 
 **`bis` (new folder; L28).**
 
@@ -163,6 +170,9 @@ its hierarchy.
 Complements the central bank folders (`ecb`, `bank_of_canada`, `bank_of_japan`,
 `federal_reserve`, `peoples_bank_of_china`) with one cross-country source.
 
+> **Built (8.10.0):** [BIS Tool Reference Guide](../tools/public-data/BIS%20Tool%20Reference%20Guide.md);
+> the `bis` host profile is registered by `sajha/tools/impl/bis_tools.py`.
+
 **`us_treasury` (new folder; L29).**
 
 | Tool | Inputs |
@@ -177,9 +187,14 @@ Complements the central bank folders (`ecb`, `bank_of_canada`, `bank_of_japan`,
 The stale `upcoming_auctions` dataset is not wrapped. Complements `fred_10yr_treasury` and its
 siblings with the official curve, and `qlrisk_price_treasury_*` with market inputs.
 
-**`sanctions` (new folder; L30).** The official lists are downloaded into a local index by a
-refresh job (a workflow on a schedule; OFAC's delta and the EU RSS feed drive incremental
-updates), so screening never sends a name to a third party.
+> **Built (8.10.0):** [US Treasury Tool Reference Guide](../tools/public-data/US%20Treasury%20Tool%20Reference%20Guide.md). The Daily Treasury Statement tables that stopped in 2023 (federal tax deposits, short-term cash investments) are not offered.
+
+**`sanctions` (new folder; L30).** **Built in 8.10.0**; parameters, matching and the refresh are in
+the [Sanctions guide](../tools/public-data/Sanctions%20Tool%20Reference%20Guide.md). The official
+lists are downloaded into a local index by a refresh job (the shipped workflow `sanctions_refresh`,
+daily; the EU RSS feed says when the EU file is new; OFAC's delta file is not used: the whole list
+is downloaded and compared), so screening never sends a name to a third party. A fifth tool,
+`sanctions_refresh` (administrators only), is the workflow's step.
 
 | Tool | Inputs |
 |---|---|
@@ -206,6 +221,8 @@ ships disabled until legal approves (section 6); `lists` refuses `un` until then
 | `fdic_summary_of_deposits` | `cert` or `state`, `year` |
 
 Complements `edgar_*` (bank holding companies) and `gleif_*`.
+
+> **Built (8.10.0):** [FDIC Tool Reference Guide](../tools/public-data/FDIC%20Tool%20Reference%20Guide.md). `fdic_history` lists institution-level events unless `include_branches` is set.
 
 ### P2
 
@@ -278,6 +295,10 @@ with the release vintage.
     into `gleif_*`.
   - `wikidata_sparql(query)`, read-only, with a timeout and a row cap, against the main graph, or
     the scholarly graph when `graph: scholarly`.
+  - **Built (8.10.0)** with phase 8.3's P1 sources:
+    [Wikipedia Search Tool Reference Guide](../tools/search/Wikipedia%20Search%20Tool%20Reference%20Guide.md#wikidata).
+    `wikidata_sparql` takes SELECT and ASK only. Wikidata refuses (403) a User-Agent without contact
+    information; the tools send the project URL.
 - **`gdelt` (new folder; L38).**
   - `gdelt_articles(query, from, to, max_records)`.
   - `gdelt_coverage_timeline(query, from, to)` (volume and tone).

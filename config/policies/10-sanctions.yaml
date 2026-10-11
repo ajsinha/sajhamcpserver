@@ -1,0 +1,17 @@
+# SAJHA shipped policy: sanctions screening results are not given to a model.
+#
+# Owner decision (docs/architecture/Open Data Tools.md, section 6): the sanctions_* tools are not
+# run for Ask SAJHA or for LLM tools; people use them directly (MCP, the REST API, the console,
+# workflows). Every call a model chooses runs with source "ask" (Ask SAJHA, an LLM tool's planner
+# loop, a workflow's ask step); "openai_api" is the OpenAI-compatible endpoint. The rule language:
+# docs/architecture/Policy and Audit.md.
+name: sanctions
+description: Sanctions screening results are not given to Ask SAJHA or to LLM tools.
+enabled: true
+rules:
+  - id: no-sanctions-for-models
+    match:
+      tools: ["sanctions_*"]
+      sources: [ask, openai_api]
+    effect: deny
+    reason: sanctions screening results are not given to a model (owner decision); use the sanctions tools directly

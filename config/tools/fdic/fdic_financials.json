@@ -1,0 +1,118 @@
+{
+  "name": "fdic_financials",
+  "implementation": "sajha.tools.impl.fdic_tools.FdicFinancialsTool",
+  "title": "Bank Call Report financials",
+  "description": "Quarterly Call Report figures for one FDIC-insured institution.\nReturns: cert, from, to, units (per field), count, quarters (report_date, quarter, one value per field) oldest first.\nInputs: cert; fields (default total_assets, total_deposits, net_income, equity, roa, roe; also domestic_deposits, net_loans, net_interest_income, noncurrent_loans, net_interest_margin, efficiency_ratio, leverage_ratio, tier1_risk_based_ratio, total_risk_based_ratio, or any BankFind field code); period (default \"last 4 quarters\"; or 2025, 2025-Q3).\nExample: {\"cert\": 628, \"fields\": [\"total_assets\", \"net_income\", \"tier1_risk_based_ratio\"], \"period\": \"last 8 quarters\"}",
+  "annotations": {
+    "title": "Bank Call Report financials",
+    "readOnlyHint": true,
+    "destructiveHint": false,
+    "idempotentHint": true,
+    "openWorldHint": true
+  },
+  "version": "1.0.0",
+  "enabled": true,
+  "cache_ttl": 3600,
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "cert": {
+        "type": "integer",
+        "description": "FDIC certificate number (find it with fdic_institutions)",
+        "minimum": 1
+      },
+      "fields": {
+        "type": "array",
+        "description": "Friendly names or BankFind field codes",
+        "items": {
+          "type": "string"
+        },
+        "minItems": 1,
+        "maxItems": 40
+      },
+      "period": {
+        "type": "string",
+        "description": "2025, 2025-Q3, 2025-07, 2025-01-01:2025-06-30 or \"last 12 months\""
+      }
+    },
+    "required": [
+      "cert"
+    ],
+    "additionalProperties": false,
+    "examples": [
+      {
+        "cert": 628,
+        "fields": [
+          "total_assets",
+          "net_income",
+          "tier1_risk_based_ratio"
+        ],
+        "period": "last 8 quarters"
+      }
+    ]
+  },
+  "outputSchema": {
+    "type": "object",
+    "properties": {
+      "cert": {
+        "type": "integer"
+      },
+      "from": {
+        "type": "string",
+        "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+      },
+      "to": {
+        "type": "string",
+        "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+      },
+      "units": {
+        "type": "object",
+        "additionalProperties": {
+          "type": "string"
+        }
+      },
+      "count": {
+        "type": "integer"
+      },
+      "quarters": {
+        "type": "array",
+        "description": "Oldest first",
+        "items": {
+          "type": "object",
+          "properties": {
+            "report_date": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "quarter": {
+              "type": [
+                "string",
+                "null"
+              ]
+            }
+          }
+        }
+      },
+      "source": {
+        "type": "string",
+        "description": "Attribution"
+      }
+    },
+    "required": [
+      "quarters",
+      "source"
+    ]
+  },
+  "metadata": {
+    "author": "Ashutosh Sinha",
+    "category": "Banking",
+    "tags": [
+      "fdic",
+      "call report",
+      "bank financials",
+      "capital ratios"
+    ]
+  }
+}

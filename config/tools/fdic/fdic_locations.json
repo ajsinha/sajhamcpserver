@@ -1,0 +1,173 @@
+{
+  "name": "fdic_locations",
+  "implementation": "sajha.tools.impl.fdic_tools.FdicLocationsTool",
+  "title": "Bank offices",
+  "description": "The offices (main office and branches) of one FDIC-insured institution, with address, service type and coordinates.\nReturns: cert, institution, count, total, truncated, offices (office_number, office_name, main_office, service_type, address, city, state, zip, county, established, latitude, longitude, uninum).\nInputs: cert; state; limit (default 100).\nExample: {\"cert\": 628, \"state\": \"VT\"}",
+  "annotations": {
+    "title": "Bank offices",
+    "readOnlyHint": true,
+    "destructiveHint": false,
+    "idempotentHint": true,
+    "openWorldHint": true
+  },
+  "version": "1.0.0",
+  "enabled": true,
+  "cache_ttl": 3600,
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "cert": {
+        "type": "integer",
+        "description": "FDIC certificate number (find it with fdic_institutions)",
+        "minimum": 1
+      },
+      "state": {
+        "type": "string",
+        "description": "Two-letter US state code (NY, CA)",
+        "pattern": "^[A-Za-z]{2}$"
+      },
+      "limit": {
+        "type": "integer",
+        "description": "Most offices to return",
+        "minimum": 1,
+        "maximum": 10000,
+        "default": 100
+      }
+    },
+    "required": [
+      "cert"
+    ],
+    "additionalProperties": false,
+    "examples": [
+      {
+        "cert": 628,
+        "state": "VT"
+      }
+    ]
+  },
+  "outputSchema": {
+    "type": "object",
+    "properties": {
+      "cert": {
+        "type": "integer"
+      },
+      "institution": {
+        "type": [
+          "string",
+          "null"
+        ]
+      },
+      "count": {
+        "type": "integer"
+      },
+      "total": {
+        "type": "integer"
+      },
+      "truncated": {
+        "type": "boolean"
+      },
+      "offices": {
+        "type": "array",
+        "description": "By office number",
+        "items": {
+          "type": "object",
+          "properties": {
+            "office_number": {
+              "type": [
+                "integer",
+                "null"
+              ]
+            },
+            "office_name": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "main_office": {
+              "type": "boolean"
+            },
+            "service_type": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "address": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "city": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "state": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "zip": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "county": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "established": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "latitude": {
+              "type": [
+                "number",
+                "null"
+              ]
+            },
+            "longitude": {
+              "type": [
+                "number",
+                "null"
+              ]
+            },
+            "uninum": {
+              "type": [
+                "integer",
+                "string",
+                "null"
+              ]
+            }
+          }
+        }
+      },
+      "source": {
+        "type": "string",
+        "description": "Attribution"
+      }
+    },
+    "required": [
+      "offices",
+      "source"
+    ]
+  },
+  "metadata": {
+    "author": "Ashutosh Sinha",
+    "category": "Banking",
+    "tags": [
+      "fdic",
+      "branches",
+      "locations"
+    ]
+  }
+}

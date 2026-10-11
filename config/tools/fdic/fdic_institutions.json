@@ -1,0 +1,198 @@
+{
+  "name": "fdic_institutions",
+  "implementation": "sajha.tools.impl.fdic_tools.FdicInstitutionsTool",
+  "title": "FDIC-insured institutions",
+  "description": "Find FDIC-insured banks and savings institutions, active or closed, with their latest size and identifiers.\nReturns: units, count, total, truncated, institutions (cert, name, city, state, active, total_assets, total_deposits, net_income_ytd, report_date, bank_class, regulator, holding_company, fed_rssd, website, established, insured_since, offices).\nInputs (any): name (fuzzy), state, cert, active; limit (default 25). Without name, largest first.\nExample: {\"name\": \"Silicon Valley Bank\", \"limit\": 3}",
+  "annotations": {
+    "title": "FDIC-insured institutions",
+    "readOnlyHint": true,
+    "destructiveHint": false,
+    "idempotentHint": true,
+    "openWorldHint": true
+  },
+  "version": "1.0.0",
+  "enabled": true,
+  "cache_ttl": 3600,
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "name": {
+        "type": "string",
+        "description": "Institution name, matched fuzzily"
+      },
+      "state": {
+        "type": "string",
+        "description": "Two-letter US state code (NY, CA)",
+        "pattern": "^[A-Za-z]{2}$"
+      },
+      "cert": {
+        "type": "integer",
+        "description": "FDIC certificate number (find it with fdic_institutions)",
+        "minimum": 1
+      },
+      "active": {
+        "type": "boolean",
+        "description": "true: open institutions only; false: closed only"
+      },
+      "limit": {
+        "type": "integer",
+        "description": "Most institutions to return",
+        "minimum": 1,
+        "maximum": 500,
+        "default": 25
+      }
+    },
+    "required": [],
+    "additionalProperties": false,
+    "examples": [
+      {
+        "name": "Silicon Valley Bank",
+        "limit": 3
+      }
+    ]
+  },
+  "outputSchema": {
+    "type": "object",
+    "properties": {
+      "units": {
+        "type": "string"
+      },
+      "count": {
+        "type": "integer"
+      },
+      "total": {
+        "type": "integer"
+      },
+      "truncated": {
+        "type": "boolean"
+      },
+      "institutions": {
+        "type": "array",
+        "description": "Matches",
+        "items": {
+          "type": "object",
+          "properties": {
+            "cert": {
+              "type": [
+                "integer",
+                "null"
+              ]
+            },
+            "name": {
+              "type": "string"
+            },
+            "city": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "state": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "active": {
+              "type": "boolean"
+            },
+            "total_assets": {
+              "type": [
+                "number",
+                "null"
+              ]
+            },
+            "total_deposits": {
+              "type": [
+                "number",
+                "null"
+              ]
+            },
+            "net_income_ytd": {
+              "type": [
+                "number",
+                "null"
+              ]
+            },
+            "report_date": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "bank_class": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "regulator": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "holding_company": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "fed_rssd": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "website": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "established": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "insured_since": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "offices": {
+              "type": [
+                "integer",
+                "null"
+              ]
+            }
+          },
+          "required": [
+            "cert",
+            "name"
+          ]
+        }
+      },
+      "source": {
+        "type": "string",
+        "description": "Attribution"
+      }
+    },
+    "required": [
+      "institutions",
+      "source"
+    ]
+  },
+  "metadata": {
+    "author": "Ashutosh Sinha",
+    "category": "Banking",
+    "tags": [
+      "fdic",
+      "banks",
+      "institutions",
+      "counterparty"
+    ]
+  }
+}

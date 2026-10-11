@@ -1,0 +1,179 @@
+{
+  "name": "bis_policy_rates",
+  "implementation": "sajha.tools.impl.bis_tools.BisPolicyRatesTool",
+  "description": "Central bank policy rates across countries, in percent per year (BIS WS_CBPOL; about 40 central banks).\nReturns: dataflow, key, source, series (country, title, unit, frequency, observations date/value).\nInputs (* required): countries*, period (default last 12 months), frequency (monthly or daily; default monthly).\nExample: {\"countries\": [\"US\", \"GB\", \"XM\"], \"period\": \"last 12 months\"}",
+  "annotations": {
+    "readOnlyHint": true,
+    "idempotentHint": true,
+    "openWorldHint": true
+  },
+  "version": "1.0.0",
+  "enabled": true,
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "countries": {
+        "type": "array",
+        "items": {
+          "type": "string",
+          "minLength": 2
+        },
+        "minItems": 1,
+        "maxItems": 20,
+        "description": "ISO 3166 alpha-2 codes (XM euro area), alpha-3 or names"
+      },
+      "period": {
+        "type": "string",
+        "description": "latest, 'last N days|months|quarters|years', 2025, 2025-Q3, 2025-07, or A/B",
+        "default": "last 12 months"
+      },
+      "frequency": {
+        "type": "string",
+        "description": "monthly (end of month) or daily",
+        "enum": [
+          "monthly",
+          "daily"
+        ],
+        "default": "monthly"
+      }
+    },
+    "required": [
+      "countries"
+    ],
+    "additionalProperties": false,
+    "examples": [
+      {
+        "countries": [
+          "US",
+          "GB",
+          "XM"
+        ],
+        "period": "last 12 months"
+      }
+    ]
+  },
+  "outputSchema": {
+    "type": "object",
+    "required": [
+      "source",
+      "series"
+    ],
+    "properties": {
+      "dataflow": {
+        "type": "string",
+        "description": "BIS dataflow (WS_CBPOL, WS_TC, ...)"
+      },
+      "key": {
+        "type": "string",
+        "description": "SDMX series key asked for"
+      },
+      "period": {
+        "type": [
+          "string",
+          "null"
+        ],
+        "description": "The period asked for"
+      },
+      "source": {
+        "type": "string",
+        "description": "Source: BIS ...; cite it with the data"
+      },
+      "series_count": {
+        "type": "integer",
+        "description": "Series matched"
+      },
+      "truncated": {
+        "type": "boolean",
+        "description": "More series matched than were returned"
+      },
+      "note": {
+        "type": "string",
+        "description": "Why there is no data, or what was cut"
+      },
+      "series": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "key": {
+              "type": "string",
+              "description": "Series key"
+            },
+            "country": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "description": "BIS area code"
+            },
+            "title": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "description": "BIS series title"
+            },
+            "unit": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "description": "Unit (e.g. Per cent per year, Percentage of GDP, Index, 2010 = 100)"
+            },
+            "unit_multiplier": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "description": "thousands, millions, billions or null"
+            },
+            "frequency": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "description": "Daily, Monthly, Quarterly, ..."
+            },
+            "dimensions": {
+              "type": "object",
+              "description": "The series key by dimension"
+            },
+            "observation_count": {
+              "type": "integer",
+              "description": "Observations returned"
+            },
+            "observations": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "date": {
+                    "type": "string",
+                    "description": "Period: YYYY-MM-DD, YYYY-MM, YYYY-Qn or YYYY"
+                  },
+                  "value": {
+                    "type": [
+                      "number",
+                      "null"
+                    ],
+                    "description": "Value in the series unit"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "metadata": {
+    "author": "Ashutosh Sinha",
+    "category": "Economic Data",
+    "tags": [
+      "bis",
+      "policy rates",
+      "central banks",
+      "interest rates"
+    ]
+  }
+}

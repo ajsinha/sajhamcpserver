@@ -1,0 +1,43 @@
+{
+ "tool": "fdic_financials",
+ "arguments": {
+  "cert": 628,
+  "fields": [
+   "total_assets",
+   "net_income",
+   "tier1_risk_based_ratio"
+  ],
+  "period": "last 8 quarters"
+ },
+ "recorded": "2026-10-11",
+ "calls": [
+  {
+   "url": "https://api.fdic.gov/banks/financials",
+   "params": [
+    [
+     "filters",
+     "CERT:628 AND REPDTE:[20241011 TO 20261011]"
+    ],
+    [
+     "fields",
+     "CERT,REPDTE,ASSET,NETINC,RBCT1CER"
+    ],
+    [
+     "sort_by",
+     "REPDTE"
+    ],
+    [
+     "sort_order",
+     "ASC"
+    ],
+    [
+     "limit",
+     "200"
+    ]
+   ],
+   "status": 200,
+   "content_type": "application/json; charset=utf-8",
+   "body": "{\"meta\":{\"total\":7,\"parameters\":{\"filters\":\"CERT:628 AND REPDTE:[20241011 TO 20261011]\",\"fields\":\"CERT,REPDTE,ASSET,NETINC,RBCT1CER\",\"limit\":\"200\"},\"index\":{\"name\":\"risview_20260819185831\",\"createTimestamp\":\"2026-08-19T18:58:33Z\"}},\"data\":[{\"data\":{\"RBCT1CER\":16.04,\"REPDTE\":\"20241231\",\"ASSET\":3459261000,\"CERT\":628,\"NETINC\":52502000,\"ID\":\"628_20241231\"},\"score\":0},{\"data\":{\"RBCT1CER\":15.75,\"REPDTE\":\"20250331\",\"ASSET\":3643099000,\"CERT\":628,\"NETINC\":12708000,\"ID\":\"628_20250331\"},\"score\":0},{\"data\":{\"RBCT1CER\":15.57,\"REPDTE\":\"20250630\",\"ASSET\":3788551000,\"CERT\":628,\"NETINC\":25810000,\"ID\":\"628_20250630\"},\"score\":0},{\"data\":{\"RBCT1CER\":15.69,\"REPDTE\":\"20250930\",\"ASSET\":3813431000,\"CERT\":628,\"NETINC\":38227000,\"ID\":\"628_20250930\"},\"score\":0},{\"data\":{\"RBCT1CER\":15.29,\"REPDTE\":\"20251231\",\"ASSET\":3752662000,\"CERT\":628,\"NETINC\":49644000,\"ID\":\"628_20251231\"},\"score\":0},{\"data\":{\"RBCT1CER\":15.08,\"REPDTE\":\"20260331\",\"ASSET\":4016571000,\"CERT\":628,\"NETINC\":13974000,\"ID\":\"628_20260331\"},\"score\":0},{\"data\":{\"RBCT1CER\":15.03,\"REPDTE\":\"20260630\",\"ASSET\":4091315000,\"CERT\":628,\"NETINC\":31335000,\"ID\":\"628_20260630\"},\"score\":0}],\"totals\":{\"count\":7}}"
+  }
+ ]
+}

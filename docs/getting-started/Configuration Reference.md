@@ -28,7 +28,7 @@ The **Reader** column in the tables below says which one applies to each key.
 | Reader | Used for | Resolution (highest wins) |
 |--------|----------|---------------------------|
 | **Settings**: `get_settings()` in `sajha/core/config.py` | app, server, db, auth (secrets, JWT), config, hot_reload, logging, data, cache, async, shell | 1. env var named after the Settings field, `SAJHA_<FIELD_NAME>` (pydantic-settings, `env_prefix='SAJHA_'`) → 2. `SAJHA_` + the dotted key in upper case with dots changed to underscores → 3. YAML (after `${VAR}` substitution) → 4. built-in default. It is evaluated once per process (`lru_cache`). |
-| **Live `_get`**: `_get` / `_bool` / `_int` / `_list` in `sajha/core/config.py`, called on each use | all `mcp.*` keys, `state.*`, `auth.login.*`, `auth.password.min_length`, `auth.secrets_file`, `async.delivery.webhook.allowed_urls`, `playground.*`, `sandbox.*`, `workflows.*`, `quality.*` | 1. `SAJHA_<DOTTED_KEY>` (for example `SAJHA_MCP_AUTH_MODE`) → 2. YAML → 3. code default. Env vars are read on every call, but the YAML is a snapshot taken at import, so a YAML edit needs a restart. |
+| **Live `_get`**: `_get` / `_bool` / `_int` / `_list` in `sajha/core/config.py`, called on each use | all `mcp.*` keys, `state.*`, `auth.login.*`, `auth.password.min_length`, `auth.secrets_file`, `async.delivery.webhook.allowed_urls`, `playground.*`, `sandbox.*`, `workflows.*`, `quality.*`, `sanctions.*` | 1. `SAJHA_<DOTTED_KEY>` (for example `SAJHA_MCP_AUTH_MODE`) → 2. YAML → 3. code default. Env vars are read on every call, but the YAML is a snapshot taken at import, so a YAML edit needs a restart. |
 | **Raw YAML / PropertiesConfigurator**: `sajha.core.config._CFG` and `sajha/core/properties_configurator.py` | `ai.tool_search.*`, `ai.embedding_model`, `${key}` references inside tool JSON configs (`storage.*` is read this way too, but with env overrides first: see [storage](#storage)) | YAML only (after `${VAR}` substitution); `SAJHA_` env overrides **do not apply**. To override one of these keys, edit the YAML, or put a `${VAR:default}` placeholder in the value and set `VAR`. |
 | **AI settings**: `sajha/ai/llm/settings.py` | the rest of `ai.*` (providers, aliases, policy, budgets, cache, retry, breaker, gateway, ask) | 1. `SAJHA_AI_<SECTION>_<FIELD>` → 2. the vendor's own variable (providers only) → 3. YAML → 4. the `llm_providers` / `llm_models` tables (providers only) → 5. default. See [ai](#ai). |
 
@@ -353,6 +353,12 @@ Reader: `sajha/core/config.py::_get` (`Limits.from_config` in `sajha/tools/impl/
 | `data.dir` | `./data` | `SAJHA_DATA_DIR` | Base of the default OAuth signing-key path (`sajha/auth/oauth/settings.py`). |
 | `data.duckdb.dir` | `./data/duckdb` | YAML only | Not read by Python. Tool JSON configs (DuckDB tools) and `config/olap/datasets.json` reference it as `${data.duckdb.dir}`, and the tools registry resolves those references through PropertiesConfigurator. |
 | `data.sqlselect.dir` | `./data/sqlselect` | YAML only | Referenced as `${data.sqlselect.dir}` by the sqlselect tool configs. |
+
+## sanctions
+
+| Key | Default | Env | Purpose / reader |
+|-----|---------|-----|------------------|
+| `sanctions.data_dir` | `data/sanctions` | `SAJHA_SANCTIONS_DATA_DIR` | The local sanctions index (list files, `status.json`, `changes.jsonl`), read through `_get` on each call (`sajha/sanctions/store.py`); git-ignored ([Sanctions guide](../tools/public-data/Sanctions%20Tool%20Reference%20Guide.md#the-local-index-and-its-refresh)). |
 
 ## storage
 

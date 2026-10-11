@@ -1,0 +1,38 @@
+{
+ "tool": "ust_debt_to_the_penny",
+ "arguments": {
+  "from": "2026-09-01",
+  "to": "2026-09-30"
+ },
+ "recorded": "2026-10-11",
+ "calls": [
+  {
+   "url": "https://api.fiscaldata.treasury.gov/services/api/fiscal_service/v2/accounting/od/debt_to_penny",
+   "params": [
+    [
+     "sort",
+     "-record_date"
+    ],
+    [
+     "page[size]",
+     "10000"
+    ],
+    [
+     "page[number]",
+     "1"
+    ],
+    [
+     "filter",
+     "record_date:gte:2026-09-01,record_date:lte:2026-09-30"
+    ],
+    [
+     "fields",
+     "record_date,debt_held_public_amt,intragov_hold_amt,tot_pub_debt_out_amt"
+    ]
+   ],
+   "status": 200,
+   "content_type": "application/json",
+   "body": "{\"data\":[{\"record_date\":\"2026-09-30\",\"debt_held_public_amt\":\"32425012546390.57\",\"intragov_hold_amt\":\"7746812554949.74\",\"tot_pub_debt_out_amt\":\"40171825101340.31\"},{\"record_date\":\"2026-09-29\",\"debt_held_public_amt\":\"32367872193303.63\",\"intragov_hold_amt\":\"7729082440263.05\",\"tot_pub_debt_out_amt\":\"40096954633566.68\"},{\"record_date\":\"2026-09-28\",\"debt_held_public_amt\":\"32386263609755.87\",\"intragov_hold_amt\":\"7715922087109.50\",\"tot_pub_debt_out_amt\":\"40102185696865.37\"},{\"record_date\":\"2026-09-25\",\"debt_held_public_amt\":\"32385874118414.11\",\"intragov_hold_amt\":\"7711304001336.80\",\"tot_pub_debt_out_amt\":\"40097178119750.91\"},{\"record_date\":\"2026-09-24\",\"debt_held_public_amt\":\"32362728656693.39\",\"intragov_hold_amt\":\"7706079335231.45\",\"tot_pub_debt_out_amt\":\"40068807991924.84\"},{\"record_date\":\"2026-09-23\",\"debt_held_public_amt\":\"32376938482751.49\",\"intragov_hold_amt\":\"7696620048450.19\",\"tot_pub_debt_out_amt\":\"40073558531201.68\"},{\"record_date\":\"2026-09-22\",\"debt_held_public_amt\":\"32375685818022.20\",\"intragov_hold_amt\":\"7722148210419.87\",\"tot_pub_debt_out_amt\":\"40097834028442.07\"},{\"record_date\":\"2026-09-21\",\"debt_held_public_amt\":\"32402191477341.65\",\"intragov_hold_amt\":\"7709926673770.27\",\"tot_pub_debt_out_amt\":\"40112118151111.92\"},{\"record_date\":\"2026-09-18\",\"debt_held_public_amt\":\"32401926526743.72\",\"intragov_hold_amt\":\"7699573989968.37\",\"tot_pub_debt_out_amt\":\"40101500516712.09\"},{\"record_date\":\"2026-09-17\",\"debt_held_public_amt\":\"32392786557372.46\",\"intragov_hold_amt\":\"7700556910778.04\",\"tot_pub_debt_out_amt\":\"40093343468150.50\"},{\"record_date\":\"2026-09-16\",\"debt_held_public_amt\":\"32406353922774.30\",\"intragov_hold_amt\":\"7687726505016.67\",\"tot_pub_debt_out_amt\":\"40094080427790.97\"},{\"record_date\":\"2026-09-15\",\"debt_held_public_amt\":\"32406391951586.01\",\"intragov_hold_amt\":\"7708053739580.83\",\"tot_pub_debt_out_amt\":\"40114445691166.84\"},{\"record_date\":\"2026-09-14\",\"debt_held_public_amt\":\"32358452350574.73\",\"intragov_hold_amt\":\"7695969617212.18\",\"tot_pub_debt_out_amt\":\"40054421967786.91\"},{\"record_date\":\"2026-09-11\",\"debt_held_public_amt\":\"32357573654300.31\",\"intragov_hold_amt\":\"7688604668492.47\",\"tot_pub_debt_out_amt\":\"40046178322792.78\"},{\"record_date\":\"2026-09-10\",\"debt_held_public_amt\":\"32363418108364.11\",\"intragov_hold_amt\":\"7684308841406.04\",\"tot_pub_debt_out_amt\":\"40047726949770.15\"},{\"record_date\":\"2026-09-09\",\"debt_held_public_amt\":\"32388611390871.80\",\"intragov_hold_amt\":\"7685673534914.70\",\"tot_pub_debt_out_amt\":\"40074284925786.50\"},{\"record_date\":\"2026-09-08\",\"debt_held_public_amt\":\"32387921094746.81\",\"intragov_hold_amt\":\"7696169690699.54\",\"tot_pub_debt_out_amt\":\"40084090785446.35\"},{\"record_date\":\"2026-09-04\",\"debt_held_public_amt\":\"32410785543623.23\",\"intragov_hold_amt\":\"7683805092678.47\",\"tot_pub_debt_out_amt\":\"40094590636301.70\"},{\"record_date\":\"2026-09-03\",\"debt_held_public_amt\":\"32423635247198.78\",\"intragov_hold_amt\":\"7679329031387.32\",\"tot_pub_debt_out_amt\":\"40102964278586.10\"},{\"record_date\":\"2026-09-02\",\"debt_held_public_amt\":\"32421027120428.18\",\"intragov_hold_amt\":\"7696018006644.39\",\"tot_pub_debt_out_amt\":\"40117045127072.57\"},{\"record_date\":\"2026-09-01\",\"debt_held_public_amt\":\"32420529452197.11\",\"intragov_hold_amt\":\"7691935141009.19\",\"tot_pub_debt_out_amt\":\"40112464593206.30\"}],\"meta\":{\"count\":21,\"labels\":{\"record_date\":\"Record Date\",\"debt_held_public_amt\":\"Debt Held by the Public\",\"intragov_hold_amt\":\"Intragovernmental Holdings\",\"tot_pub_debt_out_amt\":\"Total Public Debt Outstanding\"},\"dataTypes\":{\"record_date\":\"DATE\",\"debt_held_public_amt\":\"CURRENCY\",\"intragov_hold_amt\":\"CURRENCY\",\"tot_pub_debt_out_amt\":\"CURRENCY\"},\"dataFormats\":{\"record_date\":\"YYYY-MM-DD\",\"debt_held_public_amt\":\"$10.20\",\"intragov_hold_amt\":\"$10.20\",\"tot_pub_debt_out_amt\":\"$10.20\"},\"total-count\":21,\"total-pages\":1},\"links\":{\"self\":\"&page%5Bnumber%5D=1&page%5Bsize%5D=10000\",\"first\":\"&page%5Bnumber%5D=1&page%5Bsize%5D=10000\",\"prev\":null,\"next\":null,\"last\":\"&page%5Bnumber%5D=1&page%5Bsize%5D=10000\"}}"
+  }
+ ]
+}

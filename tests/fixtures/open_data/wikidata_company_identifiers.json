@@ -1,0 +1,108 @@
+{
+ "tool": "wikidata_company_identifiers",
+ "arguments": {
+  "name": "Deutsche Bank"
+ },
+ "calls": [
+  {
+   "url": "https://www.wikidata.org/w/api.php",
+   "params": [
+    [
+     "action",
+     "wbsearchentities"
+    ],
+    [
+     "search",
+     "Deutsche Bank"
+    ],
+    [
+     "language",
+     "en"
+    ],
+    [
+     "uselang",
+     "en"
+    ],
+    [
+     "type",
+     "item"
+    ],
+    [
+     "limit",
+     1
+    ],
+    [
+     "format",
+     "json"
+    ]
+   ],
+   "status": 200,
+   "content_type": "application/json; charset=utf-8",
+   "body": "{\"searchinfo\":{\"search\":\"Deutsche Bank\"},\"search\":[{\"id\":\"Q66048\",\"title\":\"Q66048\",\"pageid\":68755,\"concepturi\":\"http://www.wikidata.org/entity/Q66048\",\"repository\":\"wikidata\",\"url\":\"//www.wikidata.org/wiki/Q66048\",\"display\":{\"label\":{\"value\":\"Deutsche Bank\",\"language\":\"en\"},\"description\":{\"value\":\"German global banking and financial services company\",\"language\":\"en\"}},\"label\":\"Deutsche Bank\",\"description\":\"German global banking and financial services company\",\"match\":{\"type\":\"label\",\"language\":\"en\",\"text\":\"Deutsche Bank\"}}],\"search-continue\":1,\"success\":1}"
+  },
+  {
+   "url": "https://www.wikidata.org/w/api.php",
+   "params": [
+    [
+     "action",
+     "wbgetentities"
+    ],
+    [
+     "ids",
+     "Q66048"
+    ],
+    [
+     "props",
+     "labels|descriptions|claims"
+    ],
+    [
+     "languages",
+     "en"
+    ],
+    [
+     "sitefilter",
+     "enwiki"
+    ],
+    [
+     "format",
+     "json"
+    ]
+   ],
+   "status": 200,
+   "content_type": "application/json; charset=utf-8",
+   "body": "{\"entities\": {\"Q66048\": {\"type\": \"item\", \"id\": \"Q66048\", \"labels\": {\"en\": {\"language\": \"en\", \"value\": \"Deutsche Bank\"}}, \"descriptions\": {\"en\": {\"language\": \"en\", \"value\": \"German global banking and financial services company\"}}, \"claims\": {\"P414\": [{\"mainsnak\": {\"snaktype\": \"value\", \"property\": \"P414\", \"datavalue\": {\"value\": {\"entity-type\": \"item\", \"numeric-id\": 13677, \"id\": \"Q13677\"}, \"type\": \"wikibase-entityid\"}, \"datatype\": \"wikibase-item\"}, \"type\": \"statement\", \"qualifiers\": {\"P249\": [{\"snaktype\": \"value\", \"property\": \"P249\", \"hash\": \"ccce592418c49ba304e624a7567341ff398dff6d\", \"datavalue\": {\"value\": \"DB\", \"type\": \"string\"}, \"datatype\": \"string\"}], \"P580\": [{\"snaktype\": \"value\", \"property\": \"P580\", \"hash\": \"8752b82cdffad4bcee274913d130a05ca27d08b0\", \"datavalue\": {\"value\": {\"time\": \"+2001-00-00T00:00:00Z\", \"timezone\": 0, \"before\": 0, \"after\": 0, \"precision\": 9, \"calendarmodel\": \"http://www.wikidata.org/entity/Q1985727\"}, \"type\": \"time\"}, \"datatype\": \"time\"}]}, \"qualifiers-order\": [\"P249\", \"P580\"], \"id\": \"q66048$C5280E77-2A00-42BF-BE38-892C344A4EA1\", \"rank\": \"normal\"}, {\"mainsnak\": {\"snaktype\": \"value\", \"property\": \"P414\", \"datavalue\": {\"value\": {\"entity-type\": \"item\", \"numeric-id\": 151139, \"id\": \"Q151139\"}, \"type\": \"wikibase-entityid\"}, \"datatype\": \"wikibase-item\"}, \"type\": \"statement\", \"qualifiers\": {\"P249\": [{\"snaktype\": \"value\", \"property\": \"P249\", \"hash\": \"f328774878ea2185d2dd32571d2a270abe7fc428\", \"datavalue\": {\"value\": \"DBK\", \"type\": \"string\"}, \"datatype\": \"string\"}], \"P580\": [{\"snaktype\": \"value\", \"property\": \"P580\", \"hash\": \"1b78a145365b13a8cf4393163f132ee87202010e\", \"datavalue\": {\"value\": {\"time\": \"+1870-05-30T00:00:00Z\", \"timezone\": 0, \"before\": 0, \"after\": 0, \"precision\": 11, \"calendarmodel\": \"http://www.wikidata.org/entity/Q1985727\"}, \"type\": \"time\"}, \"datatype\": \"time\"}]}, \"qualifiers-order\": [\"P249\", \"P580\"], \"id\": \"q66048$2454767e-4014-65f8-5532-2c409055abdc\", \"rank\": \"normal\"}, {\"mainsnak\": {\"snaktype\": \"value\", \"property\": \"P414\", \"datavalue\": {\"value\": {\"entity-type\": \"item\", \"numeric-id\": 217475, \"id\": \"Q217475\"}, \"type\": \"wikibase-entityid\"}, \"datatype\": \"wikibase-item\"}, \"type\": \"statement\", \"qualifiers\": {\"P249\": [{\"snaktype\": \"value\", \"property\": \"P249\", \"hash\": \"17efd3cdbe39610586906ea38427fe42c42f8863\", \"datavalue\": {\"value\": \"8651\", \"type\": \"string\"}, \"datatype\": \"string\"}], \"P582\": [{\"snaktype\": \"value\", \"property\": \"P582\", \"hash\": \"cc1eb7be328141f509f8ee911c8516aa66afd358\", \"datavalue\": {\"value\": {\"time\": \"+2006-09-29T00:00:00Z\", \"timezone\": 0, \"before\": 0, \"after\": 0, \"precision\": 11, \"calendarmodel\": \"http://www.wikidata.org/entity/Q1985727\"}, \"type\": \"time\"}, \"datatype\": \"time\"}]}, \"qualifiers-order\": [\"P249\", \"P582\"], \"id\": \"Q66048$90E07391-8CA1-473D-B005-C413F8738C5C\", \"rank\": \"deprecated\"}, {\"mainsnak\": {\"snaktype\": \"value\", \"property\": \"P414\", \"datavalue\": {\"value\": {\"entity-type\": \"item\", \"numeric-id\": 936563, \"id\": \"Q936563\"}, \"type\": \"wikibase-entityid\"}, \"datatype\": \"wikibase-item\"}, \"type\": \"statement\", \"qualifiers\": {\"P249\": [{\"snaktype\": \"value\", \"property\": \"P249\", \"hash\": \"309aeec5d8dd6d8c695cdd63c0f0ce993bec9c13\", \"datavalue\": {\"value\": \"1DBK\", \"type\": \"string\"}, \"datatype\": \"string\"}]}, \"qualifiers-order\": [\"P249\"], \"id\": \"Q66048$95e182fd-4482-b7e9-fda6-b60d02991984\", \"rank\": \"normal\"}], \"P159\": [{\"mainsnak\": {\"snaktype\": \"value\", \"property\": \"P159\", \"datavalue\": {\"value\": {\"entity-type\": \"item\", \"numeric-id\": 1794, \"id\": \"Q1794\"}, \"type\": \"wikibase-entityid\"}, \"datatype\": \"wikibase-item\"}, \"type\": \"statement\", \"qualifiers\": {\"P276\": [{\"snaktype\": \"value\", \"property\": \"P276\", \"hash\": \"78f4cd2a3769ad57734ac6dd619eaa17553af8cf\", \"datavalue\": {\"value\": {\"entity-type\": \"item\", \"numeric-id\": 701538, \"id\": \"Q701538\"}, \"type\": \"wikibase-entityid\"}, \"datatype\": \"wikibase-item\"}]}, \"qualifiers-order\": [\"P276\"], \"id\": \"Q66048$d16c6540-4e71-b9bd-4eef-591f1c7ae021\", \"rank\": \"normal\"}], \"P856\": [{\"mainsnak\": {\"snaktype\": \"value\", \"property\": \"P856\", \"datavalue\": {\"value\": \"https://www.db.com\", \"type\": \"string\"}, \"datatype\": \"url\"}, \"type\": \"statement\", \"qualifiers\": {\"P407\": [{\"snaktype\": \"value\", \"property\": \"P407\", \"hash\": \"daf1c4fcb58181b02dff9cc89deb084004ddae4b\", \"datavalue\": {\"value\": {\"entity-type\": \"item\", \"numeric-id\": 1860, \"id\": \"Q1860\"}, \"type\": \"wikibase-entityid\"}, \"datatype\": \"wikibase-item\"}]}, \"qualifiers-order\": [\"P407\"], \"id\": \"Q66048$74C6FF39-9C7F-48CB-9331-530B0D6C68D4\", \"rank\": \"preferred\"}, {\"mainsnak\": {\"snaktype\": \"value\", \"property\": \"P856\", \"datavalue\": {\"value\": \"https://www.deutsche-bank.de/\", \"type\": \"string\"}, \"datatype\": \"url\"}, \"type\": \"statement\", \"qualifiers\": {\"P407\": [{\"snaktype\": \"value\", \"property\": \"P407\", \"hash\": \"46bfd327b830f66f7061ea92d1be430c135fa91f\", \"datavalue\": {\"value\": {\"entity-type\": \"item\", \"numeric-id\": 188, \"id\": \"Q188\"}, \"type\": \"wikibase-entityid\"}, \"datatype\": \"wikibase-item\"}]}, \"qualifiers-order\": [\"P407\"], \"id\": \"Q66048$1830cb11-4141-d06e-bf19-4dc07348e2de\", \"rank\": \"normal\"}, {\"mainsnak\": {\"snaktype\": \"value\", \"property\": \"P856\", \"datavalue\": {\"value\": \"https://www.db-finanzberatung.de/\", \"type\": \"string\"}, \"datatype\": \"url\"}, \"type\": \"statement\", \"qualifiers\": {\"P407\": [{\"snaktype\": \"value\", \"property\": \"P407\", \"hash\": \"46bfd327b830f66f7061ea92d1be430c135fa91f\", \"datavalue\": {\"value\": {\"entity-type\": \"item\", \"numeric-id\": 188, \"id\": \"Q188\"}, \"type\": \"wikibase-entityid\"}, \"datatype\": \"wikibase-item\"}]}, \"qualifiers-order\": [\"P407\"], \"id\": \"Q66048$5b5687f6-4982-6c31-f5d5-047978fe078f\", \"rank\": \"normal\"}, {\"mainsnak\": {\"snaktype\": \"value\", \"property\": \"P856\", \"datavalue\": {\"value\": \"https://www.deutsche-bank.es/\", \"type\": \"string\"}, \"datatype\": \"url\"}, \"type\": \"statement\", \"qualifiers\": {\"P407\": [{\"snaktype\": \"value\", \"property\": \"P407\", \"hash\": \"ffe70325d10cfc55f0dca807ed80ca0b5b97c472\", \"datavalue\": {\"value\": {\"entity-type\": \"item\", \"numeric-id\": 1321, \"id\": \"Q1321\"}, \"type\": \"wikibase-entityid\"}, \"datatype\": \"wikibase-item\"}]}, \"qualifiers-order\": [\"P407\"], \"id\": \"Q66048$61a91e45-4d90-5063-4688-09904654f8ab\", \"rank\": \"normal\"}], \"P946\": [{\"mainsnak\": {\"snaktype\": \"value\", \"property\": \"P946\", \"datavalue\": {\"value\": \"DE0005140008\", \"type\": \"string\"}, \"datatype\": \"external-id\"}, \"type\": \"statement\", \"id\": \"Q66048$3F89DEB6-EF43-41F7-9923-C37A5E63BF1E\", \"rank\": \"normal\"}], \"P1278\": [{\"mainsnak\": {\"snaktype\": \"value\", \"property\": \"P1278\", \"datavalue\": {\"value\": \"7LTWFZYICNSX8D621K86\", \"type\": \"string\"}, \"datatype\": \"external-id\"}, \"type\": \"statement\", \"id\": \"Q66048$f5ec8231-41a9-9789-9a98-3125d8ffdfe3\", \"rank\": \"normal\"}]}}}, \"success\": 1}"
+  },
+  {
+   "url": "https://www.wikidata.org/w/api.php",
+   "params": [
+    [
+     "action",
+     "wbgetentities"
+    ],
+    [
+     "ids",
+     "Q13677|Q151139|Q936563"
+    ],
+    [
+     "props",
+     "labels"
+    ],
+    [
+     "languages",
+     "en"
+    ],
+    [
+     "sitefilter",
+     "enwiki"
+    ],
+    [
+     "format",
+     "json"
+    ]
+   ],
+   "status": 200,
+   "content_type": "application/json; charset=utf-8",
+   "body": "{\"entities\": {\"Q13677\": {\"type\": \"item\", \"id\": \"Q13677\", \"labels\": {\"en\": {\"language\": \"en\", \"value\": \"New York Stock Exchange\"}}}, \"Q151139\": {\"type\": \"item\", \"id\": \"Q151139\", \"labels\": {\"en\": {\"language\": \"en\", \"value\": \"Frankfurt Stock Exchange\"}}}, \"Q936563\": {\"type\": \"item\", \"id\": \"Q936563\", \"labels\": {\"en\": {\"language\": \"en\", \"value\": \"Italian Stock Exchange\"}}}}, \"success\": 1}"
+  }
+ ]
+}

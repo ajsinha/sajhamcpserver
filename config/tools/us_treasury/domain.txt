@@ -1,0 +1,1 @@
+US Treasury data, keyless, US government works: Fiscal Data (api.fiscaldata.treasury.gov) and the daily par yield curve (home.treasury.gov). Dates YYYY-MM-DD; periods 2025, 2025-Q3, 2025-07 or last 12 months. Rates in percent; debt in US dollars; Daily Treasury Statement in millions of dollars. Daily data lag a business day, average rates a month. Each result names its source.

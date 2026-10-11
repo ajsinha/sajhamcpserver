@@ -88,3 +88,6 @@ config/mcp_servers.json
 
 # ── The local test lab's instances: configs, databases, keys and logs (deployment/local-lab/lab.py) ──
 deployment/local-lab/run/
+
+# ── The local sanctions index: official lists downloaded by the refresh (sanctions.data_dir) ──
+data/sanctions/

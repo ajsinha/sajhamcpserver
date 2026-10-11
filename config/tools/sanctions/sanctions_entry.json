@@ -1,0 +1,211 @@
+{
+  "name": "sanctions_entry",
+  "implementation": "sajha.tools.impl.sanctions_tools.SanctionsEntryTool",
+  "description": "The full record of one entry on an official sanctions list in the local index, by list and entry id (as sanctions_screen returns them).\nReturns {entry: {entry_id, list, type, name, aliases, programmes, dates_of_birth, places_of_birth, countries, addresses, identifiers, remarks, listed_on, last_updated, reference}, index (publication date, last refresh, age), notice, source}.\nInputs (* required): list* (ofac_sdn, ofac_consolidated, eu, uk), entry_id* (OFAC uid, EU logical id, UK unique id such as AFG0006).\nExample: {\"list\": \"ofac_sdn\", \"entry_id\": \"306\"}",
+  "annotations": {
+    "readOnlyHint": true,
+    "idempotentHint": true,
+    "openWorldHint": false
+  },
+  "version": "1.0.0",
+  "enabled": true,
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "list": {
+        "type": "string",
+        "enum": [
+          "ofac_sdn",
+          "ofac_consolidated",
+          "eu",
+          "uk",
+          "un"
+        ],
+        "description": "The list"
+      },
+      "entry_id": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 40,
+        "description": "The entry id on that list",
+        "examples": [
+          "306"
+        ]
+      }
+    },
+    "required": [
+      "list",
+      "entry_id"
+    ],
+    "additionalProperties": false,
+    "examples": [
+      {
+        "list": "ofac_sdn",
+        "entry_id": "306"
+      }
+    ]
+  },
+  "outputSchema": {
+    "type": "object",
+    "properties": {
+      "entry": {
+        "type": "object",
+        "properties": {
+          "entry_id": {
+            "type": "string"
+          },
+          "list": {
+            "type": "string"
+          },
+          "type": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "aliases": {
+            "type": "array",
+            "items": {
+              "type": "object"
+            }
+          },
+          "programmes": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "dates_of_birth": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "places_of_birth": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "countries": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "addresses": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "identifiers": {
+            "type": "array",
+            "items": {
+              "type": "object"
+            }
+          },
+          "remarks": {
+            "type": "string"
+          },
+          "listed_on": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "last_updated": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "reference": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "entry_id",
+          "list",
+          "type",
+          "name"
+        ]
+      },
+      "index": {
+        "type": "object",
+        "properties": {
+          "list": {
+            "type": "string"
+          },
+          "publication_date": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "last_refresh": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "age_hours": {
+            "type": [
+              "number",
+              "null"
+            ]
+          },
+          "entry_count": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          }
+        }
+      },
+      "notice": {
+        "type": "string",
+        "description": "Screening aid, not a determination"
+      },
+      "source": {
+        "type": "string"
+      }
+    },
+    "required": [
+      "entry",
+      "index",
+      "notice",
+      "source"
+    ]
+  },
+  "metadata": {
+    "author": "Ashutosh Sinha",
+    "category": "Sanctions",
+    "tags": [
+      "sanctions",
+      "entry",
+      "ofac",
+      "eu",
+      "uk"
+    ],
+    "examples": [
+      {
+        "description": "Banco Nacional de Cuba on the SDN list",
+        "input": {
+          "list": "ofac_sdn",
+          "entry_id": "306"
+        }
+      },
+      {
+        "description": "A UK designation",
+        "input": {
+          "list": "uk",
+          "entry_id": "AFG0006"
+        }
+      }
+    ]
+  }
+}

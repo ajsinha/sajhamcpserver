@@ -1,0 +1,121 @@
+{
+  "name": "sanctions_lists_status",
+  "implementation": "sajha.tools.impl.sanctions_tools.SanctionsListsStatusTool",
+  "description": "Each official sanctions list's state in the local index: publication date, last refresh and its age, entry and name counts, the last error, and whether the list is enabled.\nReturns {lists: [{list, title, enabled, loaded, publication_date, last_refresh, age_hours, last_attempt, last_error, entry_count, name_count, source, disabled_reason}], notice}.\nInputs: none.\nExample: {}\nThe UN list is listed as disabled until legal approves its terms. A list never refreshed shows loaded false.",
+  "annotations": {
+    "readOnlyHint": true,
+    "idempotentHint": true,
+    "openWorldHint": false
+  },
+  "version": "1.0.0",
+  "enabled": true,
+  "inputSchema": {
+    "type": "object",
+    "properties": {},
+    "additionalProperties": false,
+    "examples": [
+      {}
+    ]
+  },
+  "outputSchema": {
+    "type": "object",
+    "properties": {
+      "lists": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "list": {
+              "type": "string"
+            },
+            "title": {
+              "type": "string"
+            },
+            "enabled": {
+              "type": "boolean"
+            },
+            "loaded": {
+              "type": "boolean"
+            },
+            "publication_date": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "last_refresh": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "age_hours": {
+              "type": [
+                "number",
+                "null"
+              ]
+            },
+            "last_attempt": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "last_error": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "entry_count": {
+              "type": [
+                "integer",
+                "null"
+              ]
+            },
+            "name_count": {
+              "type": [
+                "integer",
+                "null"
+              ]
+            },
+            "source": {
+              "type": "string"
+            },
+            "disabled_reason": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "list",
+            "enabled",
+            "loaded"
+          ]
+        }
+      },
+      "notice": {
+        "type": "string",
+        "description": "Screening aid, not a determination"
+      }
+    },
+    "required": [
+      "lists",
+      "notice"
+    ]
+  },
+  "metadata": {
+    "author": "Ashutosh Sinha",
+    "category": "Sanctions",
+    "tags": [
+      "sanctions",
+      "status",
+      "freshness"
+    ],
+    "examples": [
+      {
+        "description": "Every list's status",
+        "input": {}
+      }
+    ]
+  }
+}

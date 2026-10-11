@@ -1,0 +1,142 @@
+{
+  "name": "ust_yield_curve",
+  "implementation": "sajha.tools.impl.us_treasury_tools.UstYieldCurveTool",
+  "title": "Treasury par yield curve",
+  "description": "Daily US Treasury par yield curve in percent: nominal (1M to 30Y), real (TIPS, 5Y to 30Y) or bill rates (4W to 52W, coupon equivalent plus bank discount).\nReturns: curve, units, tenors, count, observations (date, yields by tenor; bank_discount for bills) oldest first.\nInputs (none required): curve (default nominal); date (that day, or the last curve before it) or from/to (up to 10 calendar years); tenors (e.g. [\"2Y\", \"10Y\"]). No date: the latest curve.\nComplements fred_10yr_treasury and qlrisk_price_treasury_*.\nExample: {\"curve\": \"nominal\", \"tenors\": [\"2Y\", \"10Y\", \"30Y\"]}",
+  "annotations": {
+    "title": "Treasury par yield curve",
+    "readOnlyHint": true,
+    "destructiveHint": false,
+    "idempotentHint": true,
+    "openWorldHint": true
+  },
+  "version": "1.0.0",
+  "enabled": true,
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "curve": {
+        "type": "string",
+        "description": "Which curve",
+        "enum": [
+          "nominal",
+          "real",
+          "bills"
+        ],
+        "default": "nominal"
+      },
+      "date": {
+        "type": "string",
+        "description": "One day (YYYY-MM-DD)",
+        "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+      },
+      "from": {
+        "type": "string",
+        "description": "First day (YYYY-MM-DD)",
+        "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+      },
+      "to": {
+        "type": "string",
+        "description": "Last day (YYYY-MM-DD)",
+        "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+      },
+      "tenors": {
+        "type": "array",
+        "description": "Tenors to keep (1M, 1.5M, 3M, 2Y, 10Y, 30Y; bills 4W to 52W)",
+        "items": {
+          "type": "string",
+          "pattern": "^[0-9.]+[WMY]$"
+        },
+        "minItems": 1
+      }
+    },
+    "required": [],
+    "additionalProperties": false,
+    "examples": [
+      {
+        "curve": "nominal",
+        "tenors": [
+          "2Y",
+          "10Y",
+          "30Y"
+        ]
+      }
+    ]
+  },
+  "outputSchema": {
+    "type": "object",
+    "properties": {
+      "curve": {
+        "type": "string"
+      },
+      "units": {
+        "type": "string"
+      },
+      "tenors": {
+        "type": "array",
+        "description": "Tenors returned",
+        "items": {
+          "type": "string"
+        }
+      },
+      "count": {
+        "type": "integer"
+      },
+      "observations": {
+        "type": "array",
+        "description": "Oldest first",
+        "items": {
+          "type": "object",
+          "properties": {
+            "date": {
+              "type": "string",
+              "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+            },
+            "yields": {
+              "type": "object",
+              "additionalProperties": {
+                "type": [
+                  "number",
+                  "null"
+                ]
+              }
+            },
+            "bank_discount": {
+              "type": "object",
+              "additionalProperties": {
+                "type": [
+                  "number",
+                  "null"
+                ]
+              }
+            }
+          },
+          "required": [
+            "date",
+            "yields"
+          ]
+        }
+      },
+      "source": {
+        "type": "string",
+        "description": "Attribution"
+      }
+    },
+    "required": [
+      "curve",
+      "observations",
+      "source"
+    ]
+  },
+  "metadata": {
+    "author": "Ashutosh Sinha",
+    "category": "Fixed Income",
+    "tags": [
+      "treasury",
+      "yield curve",
+      "rates",
+      "TIPS",
+      "bills"
+    ]
+  }
+}

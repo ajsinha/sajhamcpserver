@@ -1,0 +1,27 @@
+{
+ "tool": "wikidata_sparql",
+ "arguments": {
+  "query": "ASK { wd:Q66048 wdt:P1278 \"7LTWFZYICNSX8D621K86\" }",
+  "graph": "main",
+  "max_rows": 100,
+  "timeout_seconds": 30
+ },
+ "calls": [
+  {
+   "url": "https://query.wikidata.org/sparql",
+   "params": [
+    [
+     "query",
+     "ASK { wd:Q66048 wdt:P1278 \"7LTWFZYICNSX8D621K86\" }"
+    ],
+    [
+     "format",
+     "json"
+    ]
+   ],
+   "status": 200,
+   "content_type": "application/sparql-results+json;charset=utf-8",
+   "body": "{\n  \"head\" : { },\n  \"boolean\" : true\n}"
+  }
+ ]
+}

@@ -1,0 +1,38 @@
+{
+ "tool": "ust_exchange_rates",
+ "arguments": {
+  "currency": "EUR",
+  "period": "last 12 months"
+ },
+ "recorded": "2026-10-11",
+ "calls": [
+  {
+   "url": "https://api.fiscaldata.treasury.gov/services/api/fiscal_service/v1/accounting/od/rates_of_exchange",
+   "params": [
+    [
+     "sort",
+     "-record_date"
+    ],
+    [
+     "page[size]",
+     "10000"
+    ],
+    [
+     "page[number]",
+     "1"
+    ],
+    [
+     "filter",
+     "record_date:gte:2025-10-11,record_date:lte:2026-10-11,country_currency_desc:eq:Euro Zone-Euro"
+    ],
+    [
+     "fields",
+     "record_date,country,currency,country_currency_desc,exchange_rate,effective_date"
+    ]
+   ],
+   "status": 200,
+   "content_type": "application/json",
+   "body": "{\"data\":[{\"record_date\":\"2026-09-30\",\"country\":\"Euro Zone\",\"currency\":\"Euro\",\"country_currency_desc\":\"Euro Zone-Euro\",\"exchange_rate\":\"0.881\",\"effective_date\":\"2026-09-30\"},{\"record_date\":\"2026-06-30\",\"country\":\"Euro Zone\",\"currency\":\"Euro\",\"country_currency_desc\":\"Euro Zone-Euro\",\"exchange_rate\":\"0.877\",\"effective_date\":\"2026-06-30\"},{\"record_date\":\"2026-03-31\",\"country\":\"Euro Zone\",\"currency\":\"Euro\",\"country_currency_desc\":\"Euro Zone-Euro\",\"exchange_rate\":\"0.87\",\"effective_date\":\"2026-03-31\"},{\"record_date\":\"2025-12-31\",\"country\":\"Euro Zone\",\"currency\":\"Euro\",\"country_currency_desc\":\"Euro Zone-Euro\",\"exchange_rate\":\"0.851\",\"effective_date\":\"2025-12-31\"}],\"meta\":{\"count\":4,\"labels\":{\"record_date\":\"Record Date\",\"country\":\"Country\",\"currency\":\"Currency\",\"country_currency_desc\":\"Country - Currency Description\",\"exchange_rate\":\"Exchange Rate\",\"effective_date\":\"Effective Date\"},\"dataTypes\":{\"record_date\":\"DATE\",\"country\":\"STRING\",\"currency\":\"STRING\",\"country_currency_desc\":\"STRING\",\"exchange_rate\":\"NUMBER\",\"effective_date\":\"DATE\"},\"dataFormats\":{\"record_date\":\"YYYY-MM-DD\",\"country\":\"String\",\"currency\":\"String\",\"country_currency_desc\":\"String\",\"exchange_rate\":\"10.2\",\"effective_date\":\"YYYY-MM-DD\"},\"total-count\":4,\"total-pages\":1},\"links\":{\"self\":\"&page%5Bnumber%5D=1&page%5Bsize%5D=10000\",\"first\":\"&page%5Bnumber%5D=1&page%5Bsize%5D=10000\",\"prev\":null,\"next\":null,\"last\":\"&page%5Bnumber%5D=1&page%5Bsize%5D=10000\"}}"
+  }
+ ]
+}

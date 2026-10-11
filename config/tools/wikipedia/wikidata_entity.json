@@ -1,0 +1,142 @@
+{
+  "name": "wikidata_entity",
+  "implementation": "sajha.tools.impl.wikidata_tools.WikidataEntityTool",
+  "description": "One Wikidata item's facts: label, description, aliases, Wikipedia link and its statements, each property and item value labelled (preferred-rank values when any; at most 20 values a property).\nReturns {qid, label, description, aliases, url, wikipedia_url, property_count, missing_properties, properties: {Pnnn: {property, values, value_count}}, source}.\nInputs (* required): qid*, properties (property ids such as P1278 LEI, P946 ISIN, P856 website, P159 headquarters; default all), language (default en).\nWikidata (wikidata.org), CC0; no API key.\nExample: {\"qid\": \"Q66048\", \"properties\": [\"P1278\", \"P946\", \"P159\"]}",
+  "annotations": {
+    "readOnlyHint": true,
+    "idempotentHint": true,
+    "openWorldHint": true
+  },
+  "version": "1.0.0",
+  "enabled": true,
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "qid": {
+        "type": "string",
+        "description": "Wikidata item id, e.g. Q66048",
+        "pattern": "^[Qq][1-9][0-9]*$"
+      },
+      "properties": {
+        "type": "array",
+        "items": {
+          "type": "string",
+          "pattern": "^[Pp][1-9][0-9]*$"
+        },
+        "maxItems": 50,
+        "description": "Property ids to return (default all)"
+      },
+      "language": {
+        "type": "string",
+        "description": "Language code for labels",
+        "pattern": "^[a-z]{2,3}(-[a-z]+)?$",
+        "default": "en"
+      }
+    },
+    "required": [
+      "qid"
+    ],
+    "additionalProperties": false,
+    "examples": [
+      {
+        "qid": "Q66048",
+        "properties": [
+          "P1278",
+          "P946",
+          "P159"
+        ]
+      }
+    ]
+  },
+  "outputSchema": {
+    "type": "object",
+    "required": [
+      "qid",
+      "properties",
+      "source"
+    ],
+    "properties": {
+      "qid": {
+        "type": "string",
+        "description": "Item id"
+      },
+      "label": {
+        "type": [
+          "string",
+          "null"
+        ],
+        "description": "Label"
+      },
+      "description": {
+        "type": [
+          "string",
+          "null"
+        ],
+        "description": "Description"
+      },
+      "aliases": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        }
+      },
+      "url": {
+        "type": "string",
+        "description": "Item page"
+      },
+      "wikipedia_url": {
+        "type": [
+          "string",
+          "null"
+        ],
+        "description": "Wikipedia article in the language"
+      },
+      "property_count": {
+        "type": "integer",
+        "description": "Properties returned"
+      },
+      "missing_properties": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Properties asked for that the item lacks"
+      },
+      "properties": {
+        "type": "object",
+        "additionalProperties": {
+          "type": "object",
+          "properties": {
+            "property": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "description": "Property label"
+            },
+            "values": {
+              "type": "array"
+            },
+            "value_count": {
+              "type": "integer",
+              "description": "Values the item has"
+            }
+          }
+        }
+      },
+      "source": {
+        "type": "string",
+        "description": "Attribution line; cite it with the data"
+      }
+    }
+  },
+  "metadata": {
+    "author": "Ashutosh Sinha",
+    "category": "Information Retrieval",
+    "tags": [
+      "wikidata",
+      "entities",
+      "facts"
+    ]
+  }
+}

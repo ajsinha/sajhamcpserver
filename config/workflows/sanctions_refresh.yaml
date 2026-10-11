@@ -1,0 +1,19 @@
+# SAJHA shipped workflow: refresh the official sanctions lists every day.
+#
+# Installed at start-up when no workflow of this name exists, owned by the administrator "admin"
+# (sajha/workflows/shipped.py). To stop it, disable it on the Workflows page; a deleted shipped
+# workflow is installed again at the next start. The tool and the lists:
+# docs/tools/public-data/Sanctions Tool Reference Guide.md.
+name: sanctions_refresh
+description: Download the official sanctions lists (OFAC, EU, UK) into the local index and record what changed
+concurrency: 1
+timeout_seconds: 1800
+steps:
+  - id: refresh
+    kind: tool
+    tool: sanctions_refresh
+    params: {}
+    timeout_seconds: 1500
+    retry: {max_attempts: 2, backoff_seconds: 300}
+triggers:
+  - {id: daily, type: cron, cron: "30 6 * * *", timezone: UTC}

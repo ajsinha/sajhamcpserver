@@ -4,12 +4,15 @@ Wikipedia MCP Tool Implementation - Refactored with Individual Tools
 """
 
 import json
+import re
 import urllib.parse
-import urllib.request
 from typing import Dict, Any, List, Optional
 from datetime import datetime
 from sajha.tools.base_mcp_tool import BaseMCPTool
-from sajha.tools.http_utils import safe_json_response, ENCODINGS_ALL
+from sajha.core import outbound
+
+# Wikimedia refuses a User-Agent without contact details (as the Wikidata tools found)
+USER_AGENT = 'SAJHA-MCP-Server/8 (https://github.com/ajsinha/sajhamcpserver; Wikipedia tools) httpx'
 
 
 class WikipediaBaseTool(BaseMCPTool):
@@ -36,25 +39,24 @@ class WikipediaBaseTool(BaseMCPTool):
         Returns:
             Parsed JSON response
         """
+        if not isinstance(language, str) or not re.fullmatch(r'[a-z]{2,3}(-[a-z]{2,10})?', language):
+            raise ValueError(f"Wikipedia language code {language!r} is not valid (for example 'en', 'de', 'zh-yue')")
         url = self.api_base.format(lang=language)
-        params['format'] = 'json'
-        url += '?' + urllib.parse.urlencode(params)
-        
+        params = dict(params, format='json')
         try:
-            headers = {
-                'User-Agent': 'Mozilla/5.0 (compatible; MCP-Tools/1.0)'
-            }
-            req = urllib.request.Request(url, headers=headers)
-            with urllib.request.urlopen(req, timeout=10) as response:
-                data = safe_json_response(response, ENCODINGS_ALL)
-                return data
-        except urllib.error.HTTPError as e:
-            if e.code == 404:
-                raise ValueError(f"Wikipedia resource not found")
-            else:
-                raise ValueError(f"Wikipedia API request failed: HTTP {e.code}")
-        except Exception as e:
-            raise ValueError(f"Wikipedia API request failed: {str(e)}")
+            r = outbound.request('GET', url, params=params, headers={'User-Agent': USER_AGENT}, timeout=10)
+        except outbound.Refused as e:
+            raise ValueError(f"Wikipedia API request refused: {e}")
+        except outbound.FetchError as e:
+            raise ValueError(f"Wikipedia API request failed: {e}")
+        if r.status_code == 404:
+            raise ValueError("Wikipedia resource not found")
+        if r.status_code >= 400:
+            raise ValueError(f"Wikipedia API request failed: HTTP {r.status_code}")
+        try:
+            return json.loads(r.content.decode('utf-8', errors='replace'))
+        except ValueError as e:
+            raise ValueError(f"Wikipedia API returned a response that is not JSON: {e}")
 
 
 class WikiSearchTool(WikipediaBaseTool):

@@ -1,0 +1,27 @@
+{
+ "tool": "wikidata_sparql",
+ "arguments": {
+  "query": "SELECT ?item ?itemLabel WHERE { ?item wdt:P1278 \"7LTWFZYICNSX8D621K86\" . SERVICE wikibase:label { bd:serviceParam wikibase:language \"en\". } }",
+  "graph": "main",
+  "max_rows": 100,
+  "timeout_seconds": 30
+ },
+ "calls": [
+  {
+   "url": "https://query.wikidata.org/sparql",
+   "params": [
+    [
+     "query",
+     "SELECT ?item ?itemLabel WHERE { ?item wdt:P1278 \"7LTWFZYICNSX8D621K86\" . SERVICE wikibase:label { bd:serviceParam wikibase:language \"en\". } }\nLIMIT 101"
+    ],
+    [
+     "format",
+     "json"
+    ]
+   ],
+   "status": 200,
+   "content_type": "application/sparql-results+json;charset=utf-8",
+   "body": "{\n  \"head\" : {\n    \"vars\" : [ \"item\", \"itemLabel\" ]\n  },\n  \"results\" : {\n    \"bindings\" : [ {\n      \"item\" : {\n        \"type\" : \"uri\",\n        \"value\" : \"http://www.wikidata.org/entity/Q66048\"\n      },\n      \"itemLabel\" : {\n        \"xml:lang\" : \"en\",\n        \"type\" : \"literal\",\n        \"value\" : \"Deutsche Bank\"\n      }\n    } ]\n  }\n}"
+  }
+ ]
+}

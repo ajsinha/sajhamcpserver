@@ -82,6 +82,11 @@ ollama>=0.4.0,<1.0.0              # Ollama local models
 pypdf>=4.0,<7.0                             # .pdf
 python-docx>=1.1,<2.0                       # .docx
 
+# ── Business calendars: the cal_* tools (optional) ─────────────
+# Their configs declare "requires": ["holidays"]; without it they are not loaded and the info
+# notice tools.requires:holidays says so. 0.106: ISO 10383 market calendars incl. XNYS, XLON, XTSE, XECB.
+holidays>=0.106,<1.0
+
 # ── RAG vector store (optional — the default ai.rag.store, sqlite_vec) ──────
 # The document index's own SQLite file with vector search (sajha/ai/rag/sqlite_vec.py). Needs a
 # Python whose sqlite3 can load extensions; without either, ai.rag.store auto uses the in-memory

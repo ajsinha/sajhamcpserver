@@ -1,0 +1,53 @@
+<?xml version="1.0" standalone="yes"?>
+<sdnList xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="https://sanctionslistservice.ofac.treas.gov/api/PublicationPreview/exports/XML">
+  <publshInformation>
+    <Publish_Date>10/09/2026</Publish_Date>
+    <Record_Count>4</Record_Count>
+  </publshInformation>
+  <sdnEntry>
+    <uid>306</uid>
+    <lastName>BANCO NACIONAL DE CUBA</lastName>
+    <sdnType>Entity</sdnType>
+    <programList><program>CUBA</program></programList>
+    <akaList>
+      <aka><uid>219</uid><type>a.k.a.</type><category>weak</category><lastName>BNC</lastName></aka>
+      <aka><uid>220</uid><type>a.k.a.</type><category>strong</category><lastName>NATIONAL BANK OF CUBA</lastName></aka>
+    </akaList>
+    <addressList>
+      <address><uid>199</uid><address1>Zweierstrasse 35</address1><city>Zurich</city><postalCode>CH-8022</postalCode><country>Switzerland</country></address>
+    </addressList>
+  </sdnEntry>
+  <sdnEntry>
+    <uid>2674</uid>
+    <firstName>Abu</firstName>
+    <lastName>ABBAS</lastName>
+    <title>Director of PALESTINE LIBERATION FRONT - ABU ABBAS FACTION</title>
+    <sdnType>Individual</sdnType>
+    <programList><program>SDGT</program></programList>
+    <akaList>
+      <aka><uid>1795</uid><type>a.k.a.</type><category>strong</category><lastName>ZAYDAN</lastName><firstName>Muhammad</firstName></aka>
+    </akaList>
+    <dateOfBirthList>
+      <dateOfBirthItem><uid>1000</uid><dateOfBirth>10 Dec 1948</dateOfBirth><mainEntry>true</mainEntry></dateOfBirthItem>
+    </dateOfBirthList>
+  </sdnEntry>
+  <sdnEntry>
+    <uid>7777</uid>
+    <firstName>Muammar</firstName>
+    <lastName>QADHAFI</lastName>
+    <sdnType>Individual</sdnType>
+    <programList><program>LIBYA2</program></programList>
+    <nationalityList><nationality><uid>1</uid><country>Libya</country></nationality></nationalityList>
+    <dateOfBirthList>
+      <dateOfBirthItem><uid>1001</uid><dateOfBirth>1942</dateOfBirth><mainEntry>true</mainEntry></dateOfBirthItem>
+    </dateOfBirthList>
+  </sdnEntry>
+  <sdnEntry>
+    <uid>4243</uid>
+    <lastName>EBANO</lastName>
+    <sdnType>Vessel</sdnType>
+    <programList><program>CUBA</program></programList>
+    <idList><id><uid>22133</uid><idType>Vessel Registration Identification</idType><idNumber>IMO 7406784</idNumber></id></idList>
+    <vesselInfo><vesselType>General Cargo</vesselType><vesselFlag>Panama</vesselFlag></vesselInfo>
+  </sdnEntry>
+</sdnList>

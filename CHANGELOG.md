@@ -2,6 +2,75 @@
 
 Newest first. The current version is `app.version` in `config/application.yml`.
 
+## v8.10.0 (October 2026) — open data: calendars, GLEIF, BIS, US Treasury, sanctions screening, FDIC, Wikidata
+
+### Added
+
+- **GLEIF tools** (`config/tools/gleif/`, `sajha/tools/impl/gleif_tools.py`;
+  [GLEIF Tool Reference Guide](docs/tools/public-data/GLEIF%20Tool%20Reference%20Guide.md)): `gleif_lookup`
+  (by LEI or ISIN), `gleif_search`, `gleif_parents` (direct and ultimate parent, or the reporting
+  exception; a 404 there is `not_applicable`, not an error), `gleif_children` and `gleif_isins`. No key;
+  CC0.
+- **BIS tools** (`config/tools/bis/`, `sajha/tools/impl/bis_tools.py`;
+  [BIS Tool Reference Guide](docs/tools/public-data/BIS%20Tool%20Reference%20Guide.md)): `bis_policy_rates`,
+  `bis_credit_gap`, `bis_total_credit`, `bis_debt_service_ratio`, `bis_property_prices`,
+  `bis_effective_exchange_rates` and `bis_get_series`, a `bis` host profile on the shared SDMX client.
+  Every result carries "Source: BIS".
+- **Wikidata tools** in the `wikipedia` folder (`sajha/tools/impl/wikidata_tools.py`;
+  [Wikipedia Search Tool Reference Guide](docs/tools/search/Wikipedia%20Search%20Tool%20Reference%20Guide.md)):
+  `wikidata_search`, `wikidata_entity`, `wikidata_company_identifiers` (LEI, ISINs, tickers, websites)
+  and `wikidata_sparql` (read-only SELECT or ASK, row cap, main or scholarly graph).
+- **Business calendars** (`config/tools/calendars/`, `sajha/tools/impl/calendars_tools.py`;
+  [Calendars Tool Reference Guide](docs/tools/analytics/Calendars%20Tool%20Reference%20Guide.md)): `cal_holidays`,
+  `cal_is_business_day`, `cal_business_days_between`, `cal_add_business_days`, `cal_settlement_date` and
+  `cal_adjust_date`, computed offline from the MIT `holidays` package for countries (ISO 3166, with
+  subdivisions such as `CA-ON`) and exchanges (ISO 10383, such as `XNYS`); a day is a business day only when
+  it is one in every named calendar. `holidays` is an optional dependency (`requires`), now in
+  `requirements.txt`.
+- **US Treasury tools** (`config/tools/us_treasury/`, `sajha/tools/impl/us_treasury_tools.py`;
+  [US Treasury Tool Reference Guide](docs/tools/public-data/US%20Treasury%20Tool%20Reference%20Guide.md)):
+  `ust_yield_curve` (nominal, real and bill curves from home.treasury.gov), `ust_debt_to_the_penny`,
+  `ust_average_interest_rates`, `ust_auctions`, `ust_daily_treasury_statement` and `ust_exchange_rates`
+  (Fiscal Data). No key.
+- **FDIC BankFind tools** (`config/tools/fdic/`, `sajha/tools/impl/fdic_tools.py`;
+  [FDIC Tool Reference Guide](docs/tools/public-data/FDIC%20Tool%20Reference%20Guide.md)): `fdic_institutions`,
+  `fdic_financials`, `fdic_failures`, `fdic_locations`, `fdic_history` and `fdic_summary_of_deposits`. No key
+  (an optional `FDIC_API_KEY` is sent when set); results cached (`cache_ttl`), and every request takes a slot
+  in one state-store window (20 a minute) shared by all workers.
+- The calendars, US Treasury and FDIC tools are tested offline (`tests/test_open_data_calendars_treasury_fdic.py`;
+  the Treasury and FDIC ones against recorded responses in `tests/fixtures/open_data/`).
+- The GLEIF, BIS and Wikidata tools fetch through the outbound fetch guard and are tested against
+  responses recorded from the live services (`tests/test_open_data_gleif_bis_wikidata.py`,
+  `tests/fixtures/open_data/`).
+- **Sanctions screening** (`config/tools/sanctions/`, `sajha/sanctions/`, `sajha/tools/impl/sanctions_tools.py`;
+  [Sanctions Tool Reference Guide](docs/tools/public-data/Sanctions%20Tool%20Reference%20Guide.md)):
+  `sanctions_screen`, `sanctions_entry`, `sanctions_changes` and `sanctions_lists_status` (read-only and
+  closed-world: a local index, so no name leaves the machine), and `sanctions_refresh` (administrators only).
+  The official OFAC SDN and consolidated, EU and UK lists are downloaded through the outbound fetch guard into
+  `sanctions.data_dir` (default `data/sanctions`, git-ignored; no tables), with the entries added, changed and
+  removed at each refresh; `python -m sajha.sanctions refresh|status`. Fuzzy matching normalises names
+  (transliteration, case, punctuation, word order, honorifics) and scores token-set similarity plus a phonetic
+  key (`threshold` 85). Every result says "screening aid, not a determination". The UN list is refused until
+  legal approves. Tested offline against small recorded list files (`tests/test_sanctions.py`).
+- **Shipped policy `config/policies/10-sanctions.yaml`** denies `sanctions_*` for the sources `ask` and
+  `openai_api`, so screening results never reach Ask SAJHA or an LLM tool. Because of this rule the policy
+  engine is active by default.
+- **Shipped workflows.** Definitions in `config/workflows/` are installed at start-up when no workflow of that
+  name exists, owned by `admin` (`sajha/workflows/shipped.py`); the first is `sanctions_refresh` (daily, 06:30 UTC).
+
+### Fixed
+
+- **Outbound fetches on hosts without IPv6.** The fetch guard sorted a host's addresses as text, so an
+  IPv6 address came first and the connection was pinned to it; on a machine without an IPv6 route every
+  call to a dual-stack host (FDIC, for one) failed with "Network is unreachable". The resolver's order is
+  kept now (`sajha/core/outbound.py`).
+- **The `wiki_*` tools go through the outbound fetch guard and proxy** (they used `urllib` directly) and
+  send a User-Agent with contact details, which Wikimedia asks for. The `language` argument is checked.
+- **Cassettes record the host, not the pinned IP.** A call through the fetch guard was recorded under the
+  address it connected to, so a replay never matched; the `wiki_search` cassette is re-recorded.
+- **An LLM tool in narrate mode runs its source as a model call** (policy source `ask`), so a policy that
+  keeps a tool's results from models, such as the shipped sanctions rule, also covers a narrate source.
+
 ## v8.9.0 (October 2026) — quantitative planners: computed numbers with units and lineage, scenarios, data analysis, optimisation
 
 ### Upgrading

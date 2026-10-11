@@ -11,7 +11,7 @@
 
 app:
   name: SAJHA MCP Server
-  version: 8.9.0
+  version: 8.10.0
   description: Model Context Protocol Server
   author: Ashutosh Sinha
   author_email: ajsinha@gmail.com       # shown with the copyright notice; SAJHA is proprietary (see LICENSE)
@@ -379,6 +379,10 @@ data:
     dir: ./data/duckdb
   sqlselect:
     dir: ./data/sqlselect
+
+# ── Sanctions screening: the local index of the official lists (docs/tools/public-data/Sanctions Tool Reference Guide.md)
+sanctions:
+  data_dir: data/sanctions                 # git-ignored; filled by python -m sajha.sanctions refresh or the sanctions_refresh workflow
 
 # ── Storage backend (filesystem abstraction: local on-prem, S3 on AWS) ───────
 # Routes read/write IO through sajha.core.storage. 'local' is a no-op wrapper

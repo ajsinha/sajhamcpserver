@@ -1,0 +1,182 @@
+{
+  "name": "fdic_summary_of_deposits",
+  "implementation": "sajha.tools.impl.fdic_tools.FdicSummaryOfDepositsTool",
+  "title": "Summary of Deposits",
+  "description": "Deposits by branch as of 30 June of a year (the FDIC Summary of Deposits survey), for one institution or every branch in a state, largest first.\nReturns: year, as_of, units, count, total, truncated, total_deposits_listed, branches (cert, institution, branch_name, branch_number, address, city, state, zip, deposits, main_office, year, uninum).\nInputs: cert or state (or both); year (1994 to last year; published each autumn); limit (default 100).\nExample: {\"state\": \"VT\", \"year\": 2025, \"limit\": 10}",
+  "annotations": {
+    "title": "Summary of Deposits",
+    "readOnlyHint": true,
+    "destructiveHint": false,
+    "idempotentHint": true,
+    "openWorldHint": true
+  },
+  "version": "1.0.0",
+  "enabled": true,
+  "cache_ttl": 3600,
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "cert": {
+        "type": "integer",
+        "description": "FDIC certificate number (find it with fdic_institutions)",
+        "minimum": 1
+      },
+      "state": {
+        "type": "string",
+        "description": "Two-letter US state code of the branches",
+        "pattern": "^[A-Za-z]{2}$"
+      },
+      "year": {
+        "type": "integer",
+        "description": "Survey year (as of 30 June)",
+        "minimum": 1994,
+        "maximum": 2100
+      },
+      "limit": {
+        "type": "integer",
+        "description": "Most branches to return",
+        "minimum": 1,
+        "maximum": 10000,
+        "default": 100
+      }
+    },
+    "required": [
+      "year"
+    ],
+    "additionalProperties": false,
+    "examples": [
+      {
+        "state": "VT",
+        "year": 2025,
+        "limit": 10
+      }
+    ]
+  },
+  "outputSchema": {
+    "type": "object",
+    "properties": {
+      "year": {
+        "type": "integer"
+      },
+      "as_of": {
+        "type": "string",
+        "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+      },
+      "units": {
+        "type": "string"
+      },
+      "count": {
+        "type": "integer"
+      },
+      "total": {
+        "type": "integer"
+      },
+      "truncated": {
+        "type": "boolean"
+      },
+      "total_deposits_listed": {
+        "type": [
+          "number",
+          "null"
+        ]
+      },
+      "branches": {
+        "type": "array",
+        "description": "Largest deposits first",
+        "items": {
+          "type": "object",
+          "properties": {
+            "cert": {
+              "type": [
+                "integer",
+                "null"
+              ]
+            },
+            "institution": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "branch_name": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "branch_number": {
+              "type": [
+                "integer",
+                "null"
+              ]
+            },
+            "address": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "city": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "state": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "zip": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "deposits": {
+              "type": [
+                "number",
+                "null"
+              ]
+            },
+            "main_office": {
+              "type": "boolean"
+            },
+            "year": {
+              "type": [
+                "integer",
+                "null"
+              ]
+            },
+            "uninum": {
+              "type": [
+                "integer",
+                "string",
+                "null"
+              ]
+            }
+          }
+        }
+      },
+      "source": {
+        "type": "string",
+        "description": "Attribution"
+      }
+    },
+    "required": [
+      "branches",
+      "source"
+    ]
+  },
+  "metadata": {
+    "author": "Ashutosh Sinha",
+    "category": "Banking",
+    "tags": [
+      "fdic",
+      "deposits",
+      "market share",
+      "branches"
+    ]
+  }
+}

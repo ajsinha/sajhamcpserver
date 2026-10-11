@@ -1,0 +1,28 @@
+{
+ "tool": "bis_policy_rates",
+ "arguments": {
+  "countries": [
+   "United States"
+  ],
+  "frequency": "daily",
+  "period": "2026-10-01/2026-10-06"
+ },
+ "calls": [
+  {
+   "url": "https://stats.bis.org/api/v1/data/WS_CBPOL/D.US",
+   "params": [
+    [
+     "startPeriod",
+     "2026-10-01"
+    ],
+    [
+     "endPeriod",
+     "2026-10-06"
+    ]
+   ],
+   "status": 200,
+   "content_type": "text/csv;charset=UTF-8",
+   "body": "DATAFLOW,FREQ,REF_AREA,TIME_PERIOD,OBS_VALUE,UNIT_MEASURE,UNIT_MULT,TIME_FORMAT,COMPILATION,DECIMALS,SOURCE_REF,SUPP_INFO_BREAKS,TITLE,OBS_STATUS,OBS_CONF,OBS_PRE_BREAK\nBIS:WS_CBPOL(1.0),D,US,2026-10-01,3.875,368,0,,From 19 Dec 1985 onwards: mid-point of the Federal Reserve target rate; from 1 Jul 1954 to 18 Dec 1985: US Fed Funds effective rate.,4,US Federal Reserve System,, Central bank policy rates - United States - Daily - End of period,A,F,\nBIS:WS_CBPOL(1.0),D,US,2026-10-02,3.875,368,0,,From 19 Dec 1985 onwards: mid-point of the Federal Reserve target rate; from 1 Jul 1954 to 18 Dec 1985: US Fed Funds effective rate.,4,US Federal Reserve System,, Central bank policy rates - United States - Daily - End of period,A,F,\nBIS:WS_CBPOL(1.0),D,US,2026-10-03,3.875,368,0,,From 19 Dec 1985 onwards: mid-point of the Federal Reserve target rate; from 1 Jul 1954 to 18 Dec 1985: US Fed Funds effective rate.,4,US Federal Reserve System,, Central bank policy rates - United States - Daily - End of period,A,F,\nBIS:WS_CBPOL(1.0),D,US,2026-10-04,3.875,368,0,,From 19 Dec 1985 onwards: mid-point of the Federal Reserve target rate; from 1 Jul 1954 to 18 Dec 1985: US Fed Funds effective rate.,4,US Federal Reserve System,, Central bank policy rates - United States - Daily - End of period,A,F,\nBIS:WS_CBPOL(1.0),D,US,2026-10-05,3.875,368,0,,From 19 Dec 1985 onwards: mid-point of the Federal Reserve target rate; from 1 Jul 1954 to 18 Dec 1985: US Fed Funds effective rate.,4,US Federal Reserve System,, Central bank policy rates - United States - Daily - End of period,A,F,\nBIS:WS_CBPOL(1.0),D,US,2026-10-06,3.875,368,0,,From 19 Dec 1985 onwards: mid-point of the Federal Reserve target rate; from 1 Jul 1954 to 18 Dec 1985: US Fed Funds effective rate.,4,US Federal Reserve System,, Central bank policy rates - United States - Daily - End of period,A,F,\n"
+  }
+ ]
+}

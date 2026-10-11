@@ -1,0 +1,45 @@
+{
+ "tool": "gleif_search",
+ "arguments": {
+  "name": "Deutsch Bnk",
+  "limit": 10
+ },
+ "calls": [
+  {
+   "url": "https://api.gleif.org/api/v1/lei-records",
+   "params": [
+    [
+     "filter[entity.names]",
+     "Deutsch Bnk"
+    ],
+    [
+     "page[size]",
+     "10"
+    ],
+    [
+     "page[number]",
+     "1"
+    ]
+   ],
+   "status": 200,
+   "content_type": "application/vnd.api+json",
+   "body": "{\"meta\":{\"goldenCopy\":{\"publishDate\":\"2026-10-11T08:00:00Z\"},\"pagination\":{\"currentPage\":1,\"perPage\":10,\"from\":null,\"to\":null,\"total\":0,\"lastPage\":1}},\"links\":{\"first\":\"https:\\/\\/api.gleif.org\\/api\\/v1\\/lei-records?filter%5Bentity.names%5D=Deutsch+Bnk&page%5Bnumber%5D=1&page%5Bsize%5D=10\",\"last\":\"https:\\/\\/api.gleif.org\\/api\\/v1\\/lei-records?filter%5Bentity.names%5D=Deutsch+Bnk&page%5Bnumber%5D=1&page%5Bsize%5D=10\"},\"data\":[]}"
+  },
+  {
+   "url": "https://api.gleif.org/api/v1/fuzzycompletions",
+   "params": [
+    [
+     "field",
+     "fulltext"
+    ],
+    [
+     "q",
+     "Deutsch Bnk"
+    ]
+   ],
+   "status": 200,
+   "content_type": "application/vnd.api+json",
+   "body": "{\"data\":[]}"
+  }
+ ]
+}

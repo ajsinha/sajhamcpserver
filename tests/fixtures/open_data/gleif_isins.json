@@ -1,0 +1,26 @@
+{
+ "tool": "gleif_isins",
+ "arguments": {
+  "lei": "HWUPKR0MPOU8FGXBT394",
+  "limit": 20,
+  "page": 1
+ },
+ "calls": [
+  {
+   "url": "https://api.gleif.org/api/v1/lei-records/HWUPKR0MPOU8FGXBT394/isins",
+   "params": [
+    [
+     "page[size]",
+     "20"
+    ],
+    [
+     "page[number]",
+     "1"
+    ]
+   ],
+   "status": 200,
+   "content_type": "application/vnd.api+json",
+   "body": "{\"meta\":{\"goldenCopy\":{\"publishDate\":\"2026-10-11T08:00:00Z\"},\"pagination\":{\"currentPage\":1,\"perPage\":20,\"from\":1,\"to\":20,\"total\":949,\"lastPage\":48}},\"links\":{\"first\":\"https:\\/\\/api.gleif.org\\/api\\/v1\\/lei-records\\/HWUPKR0MPOU8FGXBT394\\/isins?page%5Bnumber%5D=1&page%5Bsize%5D=20\",\"next\":\"https:\\/\\/api.gleif.org\\/api\\/v1\\/lei-records\\/HWUPKR0MPOU8FGXBT394\\/isins?page%5Bnumber%5D=2&page%5Bsize%5D=20\",\"last\":\"https:\\/\\/api.gleif.org\\/api\\/v1\\/lei-records\\/HWUPKR0MPOU8FGXBT394\\/isins?page%5Bnumber%5D=48&page%5Bsize%5D=20\"},\"data\":[{\"type\":\"isins\",\"id\":\"b334dc46-aeb5-4fae-b329-9e30ed4428db\",\"attributes\":{\"lei\":\"HWUPKR0MPOU8FGXBT394\",\"isin\":\"US03785CVX37\"}},{\"type\":\"isins\",\"id\":\"ccf8a843-7a29-4c8c-94ce-ce71bbb76662\",\"attributes\":{\"lei\":\"HWUPKR0MPOU8FGXBT394\",\"isin\":\"US03785CZE10\"}},{\"type\":\"isins\",\"id\":\"65a6e541-45ea-47ce-a48f-d9e5a8c0ba2a\",\"attributes\":{\"lei\":\"HWUPKR0MPOU8FGXBT394\",\"isin\":\"US03785CSB53\"}},{\"type\":\"isins\",\"id\":\"7a0f629c-f6ac-4e34-9c53-651ad6d28659\",\"attributes\":{\"lei\":\"HWUPKR0MPOU8FGXBT394\",\"isin\":\"US03785CRX82\"}},{\"type\":\"isins\",\"id\":\"7bf93a5b-8725-4f00-92a9-d2ec73f854d3\",\"attributes\":{\"lei\":\"HWUPKR0MPOU8FGXBT394\",\"isin\":\"US03785CR912\"}},{\"type\":\"isins\",\"id\":\"079aa325-d4ee-4242-9daa-0fef7a7840d3\",\"attributes\":{\"lei\":\"HWUPKR0MPOU8FGXBT394\",\"isin\":\"US03785CE951\"}},{\"type\":\"isins\",\"id\":\"74dd4678-9b8b-4f35-a3ac-9e4fdfb15864\",\"attributes\":{\"lei\":\"HWUPKR0MPOU8FGXBT394\",\"isin\":\"US03785CAD02\"}},{\"type\":\"isins\",\"id\":\"efd60951-2908-42ca-91a6-346157686b52\",\"attributes\":{\"lei\":\"HWUPKR0MPOU8FGXBT394\",\"isin\":\"US03785CHN11\"}},{\"type\":\"isins\",\"id\":\"f45ff328-88ba-4b4c-905e-5214d0e643c7\",\"attributes\":{\"lei\":\"HWUPKR0MPOU8FGXBT394\",\"isin\":\"US03785CDT27\"}},{\"type\":\"isins\",\"id\":\"0be95e32-d3d8-4fd5-a4b0-88a54b80bcf4\",\"attributes\":{\"lei\":\"HWUPKR0MPOU8FGXBT394\",\"isin\":\"US03785CUF30\"}},{\"type\":\"isins\",\"id\":\"4cf309ff-994a-4003-a6dd-6eab78ba9492\",\"attributes\":{\"lei\":\"HWUPKR0MPOU8FGXBT394\",\"isin\":\"US03785CWV61\"}},{\"type\":\"isins\",\"id\":\"799380de-aa3f-4e9b-b672-8270c762d7d4\",\"attributes\":{\"lei\":\"HWUPKR0MPOU8FGXBT394\",\"isin\":\"US03785CRS97\"}},{\"type\":\"isins\",\"id\":\"3667cd56-ea94-49ef-881b-943ef91b7026\",\"attributes\":{\"lei\":\"HWUPKR0MPOU8FGXBT394\",\"isin\":\"US03785C4B11\"}},{\"type\":\"isins\",\"id\":\"884cac10-0325-4684-a51b-9b3c5beddba4\",\"attributes\":{\"lei\":\"HWUPKR0MPOU8FGXBT394\",\"isin\":\"US03785CEG96\"}},{\"type\":\"isins\",\"id\":\"edd939b1-2f00-4f1f-a0eb-1dd50fd1cc88\",\"attributes\":{\"lei\":\"HWUPKR0MPOU8FGXBT394\",\"isin\":\"US03785CMM72\"}},{\"type\":\"isins\",\"id\":\"60333de0-5eef-4f64-9e21-e429bed299ea\",\"attributes\":{\"lei\":\"HWUPKR0MPOU8FGXBT394\",\"isin\":\"US03785CYH59\"}},{\"type\":\"isins\",\"id\":\"24d66226-8c3c-4d58-934e-17ea8d77cfdd\",\"attributes\":{\"lei\":\"HWUPKR0MPOU8FGXBT394\",\"isin\":\"US03785CDW55\"}},{\"type\":\"isins\",\"id\":\"a2723de8-f706-422a-afdb-fcc784b3a3ef\",\"attributes\":{\"lei\":\"HWUPKR0MPOU8FGXBT394\",\"isin\":\"US03785C3W66\"}},{\"type\":\"isins\",\"id\":\"f76450f2-d643-4b45-8cb3-3f7a6a1a14da\",\"attributes\":{\"lei\":\"HWUPKR0MPOU8FGXBT394\",\"isin\":\"US03785CAY49\"}},{\"type\":\"isins\",\"id\":\"0ab7bcbd-5e04-459e-95d5-142c410edac5\",\"attributes\":{\"lei\":\"HWUPKR0MPOU8FGXBT394\",\"isin\":\"US03785CXH68\"}}]}"
+  }
+ ]
+}

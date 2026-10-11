@@ -1,0 +1,102 @@
+{
+  "name": "cal_add_business_days",
+  "implementation": "sajha.tools.impl.calendars_tools.CalAddBusinessDaysTool",
+  "title": "Add business days",
+  "description": "The date a number of business days after (or, with a negative number, before) a date; with 0, the date itself or the next business day.\nReturns: date, days, calendars, result, weekday.\nInputs: date (YYYY-MM-DD); days (-10000 to 10000); calendars.\nFor trade settlement use cal_settlement_date.\nExample: {\"date\": \"2026-12-23\", \"days\": 3, \"calendars\": [\"XNYS\"]}",
+  "annotations": {
+    "title": "Add business days",
+    "readOnlyHint": true,
+    "destructiveHint": false,
+    "idempotentHint": true,
+    "openWorldHint": false
+  },
+  "version": "1.0.0",
+  "enabled": true,
+  "requires": [
+    "holidays"
+  ],
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "date": {
+        "type": "string",
+        "description": "Start date (YYYY-MM-DD)",
+        "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+      },
+      "days": {
+        "type": "integer",
+        "description": "Business days to add; negative to go back",
+        "minimum": -10000,
+        "maximum": 10000
+      },
+      "calendars": {
+        "type": "array",
+        "description": "Calendar codes: countries (US, CA, GBR), subdivisions (CA-ON) or markets (XNYS, XLON, XECB); a day must be a business day in all of them",
+        "items": {
+          "type": "string",
+          "minLength": 2,
+          "maxLength": 12
+        },
+        "minItems": 1,
+        "maxItems": 10
+      }
+    },
+    "required": [
+      "date",
+      "days",
+      "calendars"
+    ],
+    "additionalProperties": false,
+    "examples": [
+      {
+        "date": "2026-12-23",
+        "days": 3,
+        "calendars": [
+          "XNYS"
+        ]
+      }
+    ]
+  },
+  "outputSchema": {
+    "type": "object",
+    "properties": {
+      "date": {
+        "type": "string",
+        "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+      },
+      "days": {
+        "type": "integer"
+      },
+      "calendars": {
+        "type": "array",
+        "description": "Resolved calendar codes",
+        "items": {
+          "type": "string"
+        }
+      },
+      "result": {
+        "type": "string",
+        "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+      },
+      "weekday": {
+        "type": "string"
+      },
+      "source": {
+        "type": "string",
+        "description": "Attribution"
+      }
+    },
+    "required": [
+      "result"
+    ]
+  },
+  "metadata": {
+    "author": "Ashutosh Sinha",
+    "category": "Calendars",
+    "tags": [
+      "business days",
+      "date arithmetic",
+      "calendar"
+    ]
+  }
+}

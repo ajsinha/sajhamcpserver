@@ -11,10 +11,10 @@
     "status": 200,
     "reason": "OK",
     "headers": {
-     "date": "Tue, 06 Oct 2026 22:35:42 GMT",
-     "server": "mw-api-ext.eqiad.main-8596cdcc5c-wqnjd",
+     "date": "Sun, 11 Oct 2026 20:04:50 GMT",
+     "server": "mw-api-ext.eqiad.main-5c8bb5c95f-dhldw",
      "x-content-type-options": "nosniff",
-     "x-search-id": "6udr26zmgx99qnva08m3ehsgf",
+     "x-search-id": "1wzfilo4s1fa2u6mpo2kh26ob",
      "content-security-policy": "default-src 'self'; script-src 'none'; object-src 'none'",
      "x-frame-options": "DENY",
      "content-disposition": "inline; filename=api-result.json",
@@ -29,14 +29,12 @@
      "nel": "{ \"report_to\": \"wm_nel\", \"max_age\": 604800, \"failure_fraction\": 0.05, \"success_fraction\": 0.0}",
      "x-client-ip": "71.127.200.129",
      "vary": "Accept-Encoding,X-Subdomain,Treat-as-Untrusted,X-Forwarded-Proto,Cookie,Authorization,User-Agent",
-     "transfer-encoding": "chunked",
-     "x-request-id": "20342c3c-f2e5-4368-bbc1-3fff1dba17ba",
+     "x-request-id": "c57d12d3-f127-4a41-8d6f-de77ff614d6e",
      "x-analytics": "",
-     "server-timing": "cache;desc=\"pass\", host;desc=\"cp1106\",co_id;desc=\"2453985175\"",
-     "connection": "close"
+     "server-timing": "cache;desc=\"pass\", host;desc=\"cp1106\",co_id;desc=\"797222135\""
     },
     "body": {
-     "text": "{\"batchcomplete\":\"\",\"continue\":{\"sroffset\":3,\"continue\":\"-||\"},\"query\":{\"searchinfo\":{\"totalhits\":3851,\"suggestion\":\"maria curie\",\"suggestionsnippet\":\"maria curie\"},\"search\":[{\"ns\":0,\"title\":\"Marie Curie\",\"pageid\":20408,\"wordcount\":10656,\"snippet\":\"Maria Salomea Sk\\u0142odowska <span class=\\\"searchmatch\\\">Curie</span> (n\\u00e9e\\u00a0Sk\\u0142odowska; 7 November 1867 \\u2013 4 July 1934), better known as <span class=\\\"searchmatch\\\">Marie</span> <span class=\\\"searchmatch\\\">Curie</span>, was a Polish and naturalised-French physicist\",\"timestamp\":\"2026-10-05T16:20:40Z\",\"titlesnippet\":\"<span class=\\\"searchmatch\\\">Marie</span> <span class=\\\"searchmatch\\\">Curie</span>\"},{\"ns\":0,\"title\":\"Pierre Curie\",\"pageid\":24509,\"wordcount\":2695,\"snippet\":\"material and was named after <span class=\\\"searchmatch\\\">Marie</span> and Pierre <span class=\\\"searchmatch\\\">Curie</span> by the Radiology Congress in 1910. <span class=\\\"searchmatch\\\">Curie</span> formulated what is now known as the <span class=\\\"searchmatch\\\">Curie</span> Dissymmetry Principle:\",\"timestamp\":\"2026-09-28T20:00:32Z\",\"titlesnippet\":\"Pierre <span class=\\\"searchmatch\\\">Curie</span>\"},{\"ns\":0,\"title\":\"Ir\\u00e8ne Joliot-Curie\",\"pageid\":62070,\"wordcount\":4270,\"snippet\":\"the <span class=\\\"searchmatch\\\">Curie</span> family&#039;s legacy of five Nobel Prizes. This made the Curies the family with the most Nobel laureates to date. She and her mother <span class=\\\"searchmatch\\\">Marie</span> Sk\\u0142odowska-Curie\",\"timestamp\":\"2026-10-06T22:14:20Z\",\"titlesnippet\":\"Ir\\u00e8ne Joliot-<span class=\\\"searchmatch\\\">Curie</span>\"}]}}"
+     "text": "{\"batchcomplete\":\"\",\"continue\":{\"sroffset\":3,\"continue\":\"-||\"},\"query\":{\"searchinfo\":{\"totalhits\":3859,\"suggestion\":\"maria curie\",\"suggestionsnippet\":\"maria curie\"},\"search\":[{\"ns\":0,\"title\":\"Marie Curie\",\"pageid\":20408,\"wordcount\":10678,\"snippet\":\"Maria Salomea Sk\\u0142odowska <span class=\\\"searchmatch\\\">Curie</span> (n\\u00e9e\\u00a0Sk\\u0142odowska; 7 November 1867 \\u2013 4 July 1934), better known as <span class=\\\"searchmatch\\\">Marie</span> <span class=\\\"searchmatch\\\">Curie</span>, was a Polish and naturalised-French physicist\",\"timestamp\":\"2026-10-11T08:08:49Z\",\"titlesnippet\":\"<span class=\\\"searchmatch\\\">Marie</span> <span class=\\\"searchmatch\\\">Curie</span>\"},{\"ns\":0,\"title\":\"Pierre Curie\",\"pageid\":24509,\"wordcount\":2701,\"snippet\":\"material and was named after <span class=\\\"searchmatch\\\">Marie</span> and Pierre <span class=\\\"searchmatch\\\">Curie</span> by the Radiology Congress in 1910. <span class=\\\"searchmatch\\\">Curie</span> formulated what is now known as the <span class=\\\"searchmatch\\\">Curie</span> Dissymmetry Principle:\",\"timestamp\":\"2026-10-10T21:32:00Z\",\"titlesnippet\":\"Pierre <span class=\\\"searchmatch\\\">Curie</span>\"},{\"ns\":0,\"title\":\"Ir\\u00e8ne Joliot-Curie\",\"pageid\":62070,\"wordcount\":4616,\"snippet\":\"the <span class=\\\"searchmatch\\\">Curie</span> family&#039;s legacy of five Nobel Prizes. This made the Curies the family with the most Nobel laureates to date. She and her mother <span class=\\\"searchmatch\\\">Marie</span> Sk\\u0142odowska-Curie\",\"timestamp\":\"2026-10-11T18:03:31Z\",\"titlesnippet\":\"Ir\\u00e8ne Joliot-<span class=\\\"searchmatch\\\">Curie</span>\"}]}}"
     }
    }
   }

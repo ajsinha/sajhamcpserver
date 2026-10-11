@@ -105,10 +105,10 @@ def test_shipped_policies_are_permissive_and_parse():
     pols = load_dir(str(ROOT / 'config' / 'policies'))
     assert pols and not [p.error for p in pols if p.error]
     enforced = [r for p in pols if p.enabled for r in p.rules]
-    assert enforced == []                                   # the default changes nothing
+    # the only enforced shipped rule keeps sanctions_* from models (config/policies/10-sanctions.yaml)
+    assert [r.id for r in enforced] == ['no-sanctions-for-models']
+    assert enforced[0].match.tools == ['sanctions_*'] and enforced[0].match.sources == ['ask', 'openai_api']
     assert any(not p.enabled and p.rules for p in pols)     # the examples ship disabled
-    ps = PolicySet(str(ROOT / 'config' / 'policies'))
-    assert PolicyEngine(ps).active() is False
 
 
 @pytest.mark.parametrize('doc,fragment', [

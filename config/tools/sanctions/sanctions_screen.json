@@ -1,0 +1,260 @@
+{
+  "name": "sanctions_screen",
+  "implementation": "sajha.tools.impl.sanctions_tools.SanctionsScreenTool",
+  "description": "Screen a name against the official sanctions lists in the local index, with fuzzy matching (accents, scripts, case, punctuation, word order, honorifics).\nReturns {query, matches: [{list, entry_id, name, matched_alias, score, phonetic_match, type, programmes, dates_of_birth, countries, dob_match, country_match}], match_count, truncated (over 50), lists_searched, lists_missing, notice, source}.\nInputs (* required): name*; type (individual, entity, vessel, aircraft); date_of_birth (YYYY[-MM[-DD]], drops entries that disagree); country (code or name, ranks only); lists; threshold (percent, default 85).\nExample: {\"name\": \"Banco Nacional de Cuba\", \"lists\": [\"ofac_sdn\"]}",
+  "annotations": {
+    "readOnlyHint": true,
+    "idempotentHint": true,
+    "openWorldHint": false
+  },
+  "version": "1.0.0",
+  "enabled": true,
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "name": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 300,
+        "description": "The name to screen, in any order and any Latin, Cyrillic or Greek spelling",
+        "examples": [
+          "Banco Nacional de Cuba"
+        ]
+      },
+      "type": {
+        "type": "string",
+        "enum": [
+          "individual",
+          "entity",
+          "vessel",
+          "aircraft"
+        ],
+        "description": "Only entries of this type"
+      },
+      "date_of_birth": {
+        "type": "string",
+        "pattern": "^\\d{4}(-\\d{2}(-\\d{2})?)?$",
+        "description": "YYYY-MM-DD, YYYY-MM or YYYY; entries whose listed dates of birth all disagree are dropped (entries without one are kept)"
+      },
+      "country": {
+        "type": "string",
+        "maxLength": 60,
+        "description": "ISO 3166 code (GB, IRN) or country name; matching entries rank first"
+      },
+      "lists": {
+        "type": "array",
+        "items": {
+          "type": "string",
+          "enum": [
+            "ofac_sdn",
+            "ofac_consolidated",
+            "eu",
+            "uk",
+            "un"
+          ]
+        },
+        "uniqueItems": true,
+        "description": "Lists to search; default every enabled list. un is refused until legal approves"
+      },
+      "threshold": {
+        "type": "number",
+        "minimum": 50,
+        "maximum": 100,
+        "default": 85,
+        "description": "Minimum similarity in percent"
+      }
+    },
+    "required": [
+      "name"
+    ],
+    "additionalProperties": false,
+    "examples": [
+      {
+        "name": "Banco Nacional de Cuba",
+        "lists": [
+          "ofac_sdn"
+        ]
+      }
+    ]
+  },
+  "outputSchema": {
+    "type": "object",
+    "properties": {
+      "query": {
+        "type": "object"
+      },
+      "matches": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "list": {
+              "type": "string"
+            },
+            "entry_id": {
+              "type": "string"
+            },
+            "name": {
+              "type": "string"
+            },
+            "matched_alias": {
+              "type": "string"
+            },
+            "matched_primary_name": {
+              "type": "boolean"
+            },
+            "score": {
+              "type": "number"
+            },
+            "phonetic_match": {
+              "type": "boolean"
+            },
+            "type": {
+              "type": "string"
+            },
+            "programmes": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "dates_of_birth": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "countries": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "reference": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "dob_match": {
+              "type": [
+                "boolean",
+                "null"
+              ]
+            },
+            "country_match": {
+              "type": [
+                "boolean",
+                "null"
+              ]
+            }
+          },
+          "required": [
+            "list",
+            "entry_id",
+            "name",
+            "matched_alias",
+            "score"
+          ]
+        }
+      },
+      "match_count": {
+        "type": "integer"
+      },
+      "truncated": {
+        "type": "boolean"
+      },
+      "lists_searched": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "list": {
+              "type": "string"
+            },
+            "publication_date": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "last_refresh": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "age_hours": {
+              "type": [
+                "number",
+                "null"
+              ]
+            },
+            "entry_count": {
+              "type": [
+                "integer",
+                "null"
+              ]
+            }
+          }
+        }
+      },
+      "lists_missing": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        }
+      },
+      "notice": {
+        "type": "string",
+        "description": "Screening aid, not a determination"
+      },
+      "source": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Attribution line of each list in the result"
+      }
+    },
+    "required": [
+      "query",
+      "matches",
+      "match_count",
+      "lists_searched",
+      "notice",
+      "source"
+    ]
+  },
+  "metadata": {
+    "author": "Ashutosh Sinha",
+    "category": "Sanctions",
+    "tags": [
+      "sanctions",
+      "screening",
+      "ofac",
+      "eu",
+      "uk",
+      "compliance"
+    ],
+    "examples": [
+      {
+        "description": "Screen a bank on the SDN list",
+        "input": {
+          "name": "Banco Nacional de Cuba",
+          "lists": [
+            "ofac_sdn"
+          ]
+        }
+      },
+      {
+        "description": "An individual with a date of birth",
+        "input": {
+          "name": "Saddam Hussein",
+          "type": "individual",
+          "date_of_birth": "1937"
+        }
+      }
+    ]
+  }
+}

@@ -1,0 +1,94 @@
+{
+  "name": "gleif_isins",
+  "implementation": "sajha.tools.impl.gleif_tools.GleifIsinsTool",
+  "description": "The ISINs mapped to an LEI (from the ANNA-GLEIF mapping), a page at a time.\nReturns: lei, total, page, result_count, more, isins, source.\nInputs (* required): lei*, limit (1-200, default 100), page.\nISIN to LEI: gleif_lookup.\nExample: {\"lei\": \"HWUPKR0MPOU8FGXBT394\", \"limit\": 20}",
+  "annotations": {
+    "readOnlyHint": true,
+    "idempotentHint": true,
+    "openWorldHint": true
+  },
+  "version": "1.0.0",
+  "enabled": true,
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "lei": {
+        "type": "string",
+        "description": "LEI, 20 characters",
+        "pattern": "^[A-Za-z0-9]{18}[0-9]{2}$"
+      },
+      "limit": {
+        "type": "integer",
+        "description": "ISINs per page",
+        "minimum": 1,
+        "maximum": 200,
+        "default": 100
+      },
+      "page": {
+        "type": "integer",
+        "description": "Page number",
+        "minimum": 1,
+        "default": 1
+      }
+    },
+    "required": [
+      "lei"
+    ],
+    "additionalProperties": false,
+    "examples": [
+      {
+        "lei": "HWUPKR0MPOU8FGXBT394",
+        "limit": 20
+      }
+    ]
+  },
+  "outputSchema": {
+    "type": "object",
+    "required": [
+      "isins",
+      "source"
+    ],
+    "properties": {
+      "lei": {
+        "type": "string",
+        "description": "The entity"
+      },
+      "total": {
+        "type": "integer",
+        "description": "ISINs in all pages"
+      },
+      "page": {
+        "type": "integer",
+        "description": "This page"
+      },
+      "result_count": {
+        "type": "integer",
+        "description": "ISINs on this page"
+      },
+      "more": {
+        "type": "boolean",
+        "description": "More pages follow"
+      },
+      "isins": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        }
+      },
+      "source": {
+        "type": "string",
+        "description": "Attribution line; cite it with the data"
+      }
+    }
+  },
+  "metadata": {
+    "author": "Ashutosh Sinha",
+    "category": "Reference Data",
+    "tags": [
+      "lei",
+      "gleif",
+      "isin",
+      "securities"
+    ]
+  }
+}

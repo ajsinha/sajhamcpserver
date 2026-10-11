@@ -1,0 +1,128 @@
+{
+  "name": "cal_holidays",
+  "implementation": "sajha.tools.impl.calendars_tools.CalHolidaysTool",
+  "title": "Public or market holidays",
+  "description": "Public holidays of a country (optionally one subdivision) or the holidays of an exchange, for a year or a date range.\nReturns: calendar, kind (country or market), from, to, count and holidays (date, name, weekday) in date order.\nInputs: country (ISO 3166, e.g. US) or market (ISO 10383, e.g. XNYS), one of them; subdivision (e.g. ON, with country); year (default this year) or from/to dates.\nTo test one date use cal_is_business_day.\nExample: {\"market\": \"XNYS\", \"year\": 2026}",
+  "annotations": {
+    "title": "Public or market holidays",
+    "readOnlyHint": true,
+    "destructiveHint": false,
+    "idempotentHint": true,
+    "openWorldHint": false
+  },
+  "version": "1.0.0",
+  "enabled": true,
+  "requires": [
+    "holidays"
+  ],
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "country": {
+        "type": "string",
+        "description": "ISO 3166 country code (US, CA, GB or USA)"
+      },
+      "market": {
+        "type": "string",
+        "description": "ISO 10383 market code (XNYS, XNAS, XLON, XTSE, XECB) or an alias (NYSE)"
+      },
+      "subdivision": {
+        "type": "string",
+        "description": "Subdivision of the country (ON, QC, NY, ENG)"
+      },
+      "year": {
+        "type": "integer",
+        "description": "Calendar year (default: this year)",
+        "minimum": 1950,
+        "maximum": 2100
+      },
+      "from": {
+        "type": "string",
+        "description": "First day of the range (YYYY-MM-DD)",
+        "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+      },
+      "to": {
+        "type": "string",
+        "description": "Last day of the range (YYYY-MM-DD)",
+        "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+      }
+    },
+    "required": [],
+    "additionalProperties": false,
+    "examples": [
+      {
+        "market": "XNYS",
+        "year": 2026
+      }
+    ]
+  },
+  "outputSchema": {
+    "type": "object",
+    "properties": {
+      "calendar": {
+        "type": "string"
+      },
+      "kind": {
+        "type": "string",
+        "description": "country or market",
+        "enum": [
+          "country",
+          "market"
+        ]
+      },
+      "from": {
+        "type": "string",
+        "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+      },
+      "to": {
+        "type": "string",
+        "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+      },
+      "count": {
+        "type": "integer"
+      },
+      "holidays": {
+        "type": "array",
+        "description": "Holidays in date order",
+        "items": {
+          "type": "object",
+          "properties": {
+            "date": {
+              "type": "string",
+              "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+            },
+            "name": {
+              "type": "string"
+            },
+            "weekday": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "date",
+            "name"
+          ]
+        }
+      },
+      "source": {
+        "type": "string",
+        "description": "Attribution"
+      }
+    },
+    "required": [
+      "calendar",
+      "holidays",
+      "source"
+    ]
+  },
+  "metadata": {
+    "author": "Ashutosh Sinha",
+    "category": "Calendars",
+    "tags": [
+      "holidays",
+      "calendar",
+      "business days",
+      "exchange calendar"
+    ]
+  }
+}

@@ -294,26 +294,37 @@ def _patch_httpx(cassette: Cassette):
         return {k: v for k, v in resp_headers.items() if k.lower() not in ('content-encoding', 'content-length',
                                                                            'transfer-encoding')}
 
+    def _url(request) -> str:
+        # the outbound guard pins the connection to a checked IP and sends the real host in Host;
+        # a cassette keys on the URL a person wrote, so it is recorded and matched under that host
+        host = request.headers.get('host')
+        if host and host.split(':')[0].lower() != (request.url.host or '').lower():
+            try:
+                return str(request.url.copy_with(netloc=host.encode('ascii')))
+            except Exception:
+                pass
+        return str(request.url)
+
     def handle_request(self, request):
         body = request.read() if hasattr(request, 'read') else request.content
         if cassette.mode == 'replay':
-            r = cassette._find(request.method, str(request.url), body)
+            r = cassette._find(request.method, _url(request), body)
             return httpx.Response(r['status'], headers=r['headers'], content=_decode_body(r['body']), request=request)
         resp = sync_orig(self, request)
         payload = resp.read()
         hdrs = _headers(resp.headers)
-        cassette._record(request.method, str(request.url), body, resp.status_code, resp.reason_phrase, hdrs, payload)
+        cassette._record(request.method, _url(request), body, resp.status_code, resp.reason_phrase, hdrs, payload)
         return httpx.Response(resp.status_code, headers=hdrs, content=payload, request=request)
 
     async def handle_async_request(self, request):
         body = await request.aread() if hasattr(request, 'aread') else request.content
         if cassette.mode == 'replay':
-            r = cassette._find(request.method, str(request.url), body)
+            r = cassette._find(request.method, _url(request), body)
             return httpx.Response(r['status'], headers=r['headers'], content=_decode_body(r['body']), request=request)
         resp = await async_orig(self, request)
         payload = await resp.aread()
         hdrs = _headers(resp.headers)
-        cassette._record(request.method, str(request.url), body, resp.status_code, resp.reason_phrase, hdrs, payload)
+        cassette._record(request.method, _url(request), body, resp.status_code, resp.reason_phrase, hdrs, payload)
         return httpx.Response(resp.status_code, headers=hdrs, content=payload, request=request)
 
     httpx.HTTPTransport.handle_request = handle_request

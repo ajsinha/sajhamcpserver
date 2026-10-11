@@ -1,0 +1,1 @@
+Official sanctions lists (OFAC SDN and consolidated, EU, UK) in a local index refreshed daily; screening never sends a name off the machine; no API key. Every result is a screening aid, not a determination. Blocked from Ask SAJHA and LLM tools by policy. The UN list is off until legal approves.

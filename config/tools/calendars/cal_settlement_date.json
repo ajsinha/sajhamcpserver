@@ -1,0 +1,110 @@
+{
+  "name": "cal_settlement_date",
+  "implementation": "sajha.tools.impl.calendars_tools.CalSettlementDateTool",
+  "title": "Settlement date",
+  "description": "The settlement date of a trade: the trade date plus the convention's business days (T+0 rolls to the next business day).\nReturns: trade_date, convention, calendars, settlement_date, weekday, trade_date_is_business_day.\nInputs: trade_date (YYYY-MM-DD); convention (T+0 to T+3; default T+1, US equities since May 2024); calendars (e.g. XNYS, or both currencies' countries for FX).\nExample: {\"trade_date\": \"2026-11-25\", \"convention\": \"T+1\", \"calendars\": [\"XNYS\"]}",
+  "annotations": {
+    "title": "Settlement date",
+    "readOnlyHint": true,
+    "destructiveHint": false,
+    "idempotentHint": true,
+    "openWorldHint": false
+  },
+  "version": "1.0.0",
+  "enabled": true,
+  "requires": [
+    "holidays"
+  ],
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "trade_date": {
+        "type": "string",
+        "description": "Trade date (YYYY-MM-DD)",
+        "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+      },
+      "convention": {
+        "type": "string",
+        "description": "Settlement convention",
+        "enum": [
+          "T+0",
+          "T+1",
+          "T+2",
+          "T+3"
+        ],
+        "default": "T+1"
+      },
+      "calendars": {
+        "type": "array",
+        "description": "Calendar codes: countries (US, CA, GBR), subdivisions (CA-ON) or markets (XNYS, XLON, XECB); a day must be a business day in all of them",
+        "items": {
+          "type": "string",
+          "minLength": 2,
+          "maxLength": 12
+        },
+        "minItems": 1,
+        "maxItems": 10
+      }
+    },
+    "required": [
+      "trade_date",
+      "calendars"
+    ],
+    "additionalProperties": false,
+    "examples": [
+      {
+        "trade_date": "2026-11-25",
+        "convention": "T+1",
+        "calendars": [
+          "XNYS"
+        ]
+      }
+    ]
+  },
+  "outputSchema": {
+    "type": "object",
+    "properties": {
+      "trade_date": {
+        "type": "string",
+        "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+      },
+      "convention": {
+        "type": "string"
+      },
+      "calendars": {
+        "type": "array",
+        "description": "Resolved calendar codes",
+        "items": {
+          "type": "string"
+        }
+      },
+      "settlement_date": {
+        "type": "string",
+        "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+      },
+      "weekday": {
+        "type": "string"
+      },
+      "trade_date_is_business_day": {
+        "type": "boolean"
+      },
+      "source": {
+        "type": "string",
+        "description": "Attribution"
+      }
+    },
+    "required": [
+      "settlement_date"
+    ]
+  },
+  "metadata": {
+    "author": "Ashutosh Sinha",
+    "category": "Calendars",
+    "tags": [
+      "settlement",
+      "T+1",
+      "business days",
+      "calendar"
+    ]
+  }
+}

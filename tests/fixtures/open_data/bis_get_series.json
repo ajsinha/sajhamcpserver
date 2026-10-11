@@ -1,0 +1,23 @@
+{
+ "tool": "bis_get_series",
+ "arguments": {
+  "dataflow": "WS_DSR",
+  "key": "Q.US.H",
+  "period": "latest",
+  "max_series": 20
+ },
+ "calls": [
+  {
+   "url": "https://stats.bis.org/api/v1/data/WS_DSR/Q.US.H",
+   "params": [
+    [
+     "lastNObservations",
+     "1"
+    ]
+   ],
+   "status": 200,
+   "content_type": "text/csv;charset=UTF-8",
+   "body": "DATAFLOW,FREQ,BORROWERS_CTY,DSR_BORROWERS,TIME_PERIOD,OBS_VALUE,COLLECTION,UNIT_MEASURE,UNIT_MULT,DECIMALS,TITLE_TS,OBS_CONF,OBS_PRE_BREAK,OBS_STATUS\nBIS:WS_DSR(1.0),Q,US,H,2026-Q1,8,,367,0,1,United States - Households and NPISHs,F,,A\n"
+  }
+ ]
+}

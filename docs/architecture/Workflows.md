@@ -335,6 +335,12 @@ SQLite creates them at start-up; on PostgreSQL an operator applies the schema fi
 SAJHA only checks that they exist. Times are epoch seconds. Finished runs older than
 `workflows.run_retention_days` are deleted by the scheduler (0 keeps them).
 
+**Shipped workflows.** A definition in `config/workflows/` (`*.yaml`, `*.yml`, `*.json`) is saved at
+start-up when no workflow of that name exists, owned by the administrator `admin` (only when that
+user exists; `sajha/workflows/shipped.py`). An existing workflow is never changed, so edits and a
+disabled flag are kept; a deleted one is installed again at the next start, so disable it instead.
+Shipped: `sanctions_refresh` (daily; [Sanctions guide](../tools/public-data/Sanctions%20Tool%20Reference%20Guide.md#the-local-index-and-its-refresh)).
+
 ---
 
 ## 8. The API, the page and the CLI

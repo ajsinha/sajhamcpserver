@@ -1,0 +1,173 @@
+{
+  "name": "fdic_history",
+  "implementation": "sajha.tools.impl.fdic_tools.FdicHistoryTool",
+  "title": "Bank structure history",
+  "description": "Structure events of one FDIC-insured institution, newest first: mergers and acquisitions, charter, name and location changes, failures; branch openings and closings on request.\nReturns: cert, count, total, truncated, events (effective_date, processed_date, change_code, event, institution, office_name, institution_city, institution_state, acquirer, acquirer_cert, outgoing_institution, outgoing_cert, level).\nInputs: cert; include_branches (default false); limit (default 50).\nExample: {\"cert\": 628, \"limit\": 10}",
+  "annotations": {
+    "title": "Bank structure history",
+    "readOnlyHint": true,
+    "destructiveHint": false,
+    "idempotentHint": true,
+    "openWorldHint": true
+  },
+  "version": "1.0.0",
+  "enabled": true,
+  "cache_ttl": 3600,
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "cert": {
+        "type": "integer",
+        "description": "FDIC certificate number (find it with fdic_institutions)",
+        "minimum": 1
+      },
+      "include_branches": {
+        "type": "boolean",
+        "description": "Also list branch openings, closings and relocations",
+        "default": false
+      },
+      "limit": {
+        "type": "integer",
+        "description": "Most events to return",
+        "minimum": 1,
+        "maximum": 1000,
+        "default": 50
+      }
+    },
+    "required": [
+      "cert"
+    ],
+    "additionalProperties": false,
+    "examples": [
+      {
+        "cert": 628,
+        "limit": 10
+      }
+    ]
+  },
+  "outputSchema": {
+    "type": "object",
+    "properties": {
+      "cert": {
+        "type": "integer"
+      },
+      "count": {
+        "type": "integer"
+      },
+      "total": {
+        "type": "integer"
+      },
+      "truncated": {
+        "type": "boolean"
+      },
+      "events": {
+        "type": "array",
+        "description": "Newest first",
+        "items": {
+          "type": "object",
+          "properties": {
+            "effective_date": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "processed_date": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "change_code": {
+              "type": [
+                "integer",
+                "null"
+              ]
+            },
+            "event": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "institution": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "office_name": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "institution_city": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "institution_state": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "acquirer": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "acquirer_cert": {
+              "type": [
+                "integer",
+                "string",
+                "null"
+              ]
+            },
+            "outgoing_institution": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "outgoing_cert": {
+              "type": [
+                "integer",
+                "string",
+                "null"
+              ]
+            },
+            "level": {
+              "type": "string",
+              "description": "institution or branch",
+              "enum": [
+                "institution",
+                "branch"
+              ]
+            }
+          }
+        }
+      },
+      "source": {
+        "type": "string",
+        "description": "Attribution"
+      }
+    },
+    "required": [
+      "events",
+      "source"
+    ]
+  },
+  "metadata": {
+    "author": "Ashutosh Sinha",
+    "category": "Banking",
+    "tags": [
+      "fdic",
+      "mergers",
+      "structure changes"
+    ]
+  }
+}

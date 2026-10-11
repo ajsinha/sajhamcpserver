@@ -1,0 +1,39 @@
+{
+ "tool": "fdic_institutions",
+ "arguments": {
+  "state": "VT",
+  "active": true,
+  "limit": 2
+ },
+ "recorded": "2026-10-11",
+ "calls": [
+  {
+   "url": "https://api.fdic.gov/banks/institutions",
+   "params": [
+    [
+     "filters",
+     "STALP:VT AND ACTIVE:1"
+    ],
+    [
+     "fields",
+     "CERT,NAME,CITY,STALP,ACTIVE,ASSET,DEP,NETINC,REPDTE,BKCLASS,REGAGNT,NAMEHCR,FED_RSSD,WEBADDR,ESTYMD,INSDATE,OFFICES"
+    ],
+    [
+     "limit",
+     "2"
+    ],
+    [
+     "sort_by",
+     "ASSET"
+    ],
+    [
+     "sort_order",
+     "DESC"
+    ]
+   ],
+   "status": 200,
+   "content_type": "application/json; charset=utf-8",
+   "body": "{\"meta\":{\"total\":12,\"parameters\":{\"filters\":\"STALP:VT AND ACTIVE:1\",\"fields\":\"CERT,NAME,CITY,STALP,ACTIVE,ASSET,DEP,NETINC,REPDTE,BKCLASS,REGAGNT,NAMEHCR,FED_RSSD,WEBADDR,ESTYMD,INSDATE,OFFICES\",\"limit\":\"2\"},\"index\":{\"name\":\"institutions_20261009090008\",\"createTimestamp\":\"2026-10-09T12:00:05Z\"}},\"data\":[{\"data\":{\"NAMEHCR\":\"NORTHFIELD MHC\",\"REGAGNT\":\"FDIC\",\"ACTIVE\":1,\"BKCLASS\":\"SI\",\"REPDTE\":\"06/30/2026\",\"FED_RSSD\":\"520003\",\"ASSET\":1576574,\"OFFICES\":13,\"NETINC\":5650,\"INSDATE\":\"03/31/1934\",\"DEP\":1329504,\"NAME\":\"Northfield Savings Bank\",\"CITY\":\"Northfield\",\"WEBADDR\":\"www.nsbvt.com\",\"CERT\":14140,\"STALP\":\"VT\",\"ESTYMD\":\"11/21/1867\",\"ID\":\"14140\"},\"score\":0},{\"data\":{\"NAMEHCR\":\"UNION BANKSHARES INC\",\"REGAGNT\":\"FDIC\",\"ACTIVE\":1,\"BKCLASS\":\"NM\",\"REPDTE\":\"06/30/2026\",\"FED_RSSD\":\"333203\",\"ASSET\":1558133,\"OFFICES\":21,\"NETINC\":6406,\"INSDATE\":\"03/31/1934\",\"DEP\":1100008,\"NAME\":\"Union Bank\",\"CITY\":\"Morrisville\",\"WEBADDR\":\"www.ublocal.com\",\"CERT\":14158,\"STALP\":\"VT\",\"ESTYMD\":\"01/01/1891\",\"ID\":\"14158\"},\"score\":0}],\"totals\":{\"count\":12}}"
+  }
+ ]
+}

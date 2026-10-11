@@ -1,0 +1,39 @@
+{
+ "tool": "ust_auctions",
+ "arguments": {
+  "security_type": "Note",
+  "term": "10-Year",
+  "limit": 5
+ },
+ "recorded": "2026-10-11",
+ "calls": [
+  {
+   "url": "https://api.fiscaldata.treasury.gov/services/api/fiscal_service/v1/accounting/od/auctions_query",
+   "params": [
+    [
+     "sort",
+     "-auction_date"
+    ],
+    [
+     "page[size]",
+     "5"
+    ],
+    [
+     "page[number]",
+     "1"
+    ],
+    [
+     "filter",
+     "security_type:eq:Note,inflation_index_security:eq:No,floating_rate:eq:No,original_security_term:eq:10-Year"
+    ],
+    [
+     "fields",
+     "cusip,security_type,security_term,original_security_term,reopening,inflation_index_security,floating_rate,announcemt_date,auction_date,issue_date,maturity_date,offering_amt,total_tendered,total_accepted,bid_to_cover_ratio,int_rate,high_yield,high_discnt_rate,high_investment_rate,high_discnt_margin,high_price,indirect_bidder_accepted,direct_bidder_accepted,primary_dealer_accepted"
+    ]
+   ],
+   "status": 200,
+   "content_type": "application/json",
+   "body": "{\"data\":[{\"cusip\":\"91282CRF0\",\"security_type\":\"Note\",\"security_term\":\"9-Year 10-Month\",\"original_security_term\":\"10-Year\",\"reopening\":\"Yes\",\"inflation_index_security\":\"No\",\"floating_rate\":\"No\",\"announcemt_date\":\"2026-10-01\",\"auction_date\":\"2026-10-07\",\"issue_date\":\"2026-10-15\",\"maturity_date\":\"2036-08-15\",\"offering_amt\":\"39000000000\",\"total_tendered\":\"108995289900\",\"total_accepted\":\"39926321900\",\"bid_to_cover_ratio\":\"2.770000\",\"int_rate\":\"4.625000\",\"high_yield\":\"5.3000\",\"high_discnt_rate\":\"null\",\"high_investment_rate\":\"null\",\"high_discnt_margin\":\"null\",\"high_price\":\"94.864261\",\"indirect_bidder_accepted\":\"31063238000\",\"direct_bidder_accepted\":\"6618200000\",\"primary_dealer_accepted\":\"984000000\"},{\"cusip\":\"91282CRF0\",\"security_type\":\"Note\",\"security_term\":\"9-Year 11-Month\",\"original_security_term\":\"10-Year\",\"reopening\":\"Yes\",\"inflation_index_security\":\"No\",\"floating_rate\":\"No\",\"announcemt_date\":\"2026-09-03\",\"auction_date\":\"2026-09-09\",\"issue_date\":\"2026-09-15\",\"maturity_date\":\"2036-08-15\",\"offering_amt\":\"39000000000\",\"total_tendered\":\"105812590000\",\"total_accepted\":\"39000040000\",\"bid_to_cover_ratio\":\"2.710000\",\"int_rate\":\"4.625000\",\"high_yield\":\"4.8340\",\"high_discnt_rate\":\"null\",\"high_investment_rate\":\"null\",\"high_discnt_margin\":\"null\",\"high_price\":\"98.361116\",\"indirect_bidder_accepted\":\"30804090000\",\"direct_bidder_accepted\":\"6420800000\",\"primary_dealer_accepted\":\"1677000000\"},{\"cusip\":\"91282CRF0\",\"security_type\":\"Note\",\"security_term\":\"10-Year\",\"original_security_term\":\"10-Year\",\"reopening\":\"No\",\"inflation_index_security\":\"No\",\"floating_rate\":\"No\",\"announcemt_date\":\"2026-08-05\",\"auction_date\":\"2026-08-12\",\"issue_date\":\"2026-08-17\",\"maturity_date\":\"2036-08-15\",\"offering_amt\":\"42000000000\",\"total_tendered\":\"116957209500\",\"total_accepted\":\"52623557100\",\"bid_to_cover_ratio\":\"2.530000\",\"int_rate\":\"4.625000\",\"high_yield\":\"4.6830\",\"high_discnt_rate\":\"null\",\"high_investment_rate\":\"null\",\"high_discnt_margin\":\"null\",\"high_price\":\"99.540696\",\"indirect_bidder_accepted\":\"32087936000\",\"direct_bidder_accepted\":\"6135867600\",\"primary_dealer_accepted\":\"3597810000\"},{\"cusip\":\"91282CQQ7\",\"security_type\":\"Note\",\"security_term\":\"9-Year 10-Month\",\"original_security_term\":\"10-Year\",\"reopening\":\"Yes\",\"inflation_index_security\":\"No\",\"floating_rate\":\"No\",\"announcemt_date\":\"2026-07-02\",\"auction_date\":\"2026-07-08\",\"issue_date\":\"2026-07-15\",\"maturity_date\":\"2036-05-15\",\"offering_amt\":\"39000000000\",\"total_tendered\":\"105180648500\",\"total_accepted\":\"43055875200\",\"bid_to_cover_ratio\":\"2.590000\",\"int_rate\":\"4.375000\",\"high_yield\":\"4.5800\",\"high_discnt_rate\":\"null\",\"high_investment_rate\":\"null\",\"high_discnt_margin\":\"null\",\"high_price\":\"98.380297\",\"indirect_bidder_accepted\":\"31720938500\",\"direct_bidder_accepted\":\"4175493900\",\"primary_dealer_accepted\":\"3027415300\"},{\"cusip\":\"91282CQQ7\",\"security_type\":\"Note\",\"security_term\":\"9-Year 11-Month\",\"original_security_term\":\"10-Year\",\"reopening\":\"Yes\",\"inflation_index_security\":\"No\",\"floating_rate\":\"No\",\"announcemt_date\":\"2026-06-04\",\"auction_date\":\"2026-06-10\",\"issue_date\":\"2026-06-15\",\"maturity_date\":\"2036-05-15\",\"offering_amt\":\"39000000000\",\"total_tendered\":\"100044669600\",\"total_accepted\":\"39000001000\",\"bid_to_cover_ratio\":\"2.570000\",\"int_rate\":\"4.375000\",\"high_yield\":\"4.5380\",\"high_discnt_rate\":\"null\",\"high_investment_rate\":\"null\",\"high_discnt_margin\":\"null\",\"high_price\":\"98.703094\",\"indirect_bidder_accepted\":\"30435505400\",\"direct_bidder_accepted\":\"4796000000\",\"primary_dealer_accepted\":\"3683175000\"}],\"meta\":{\"count\":5,\"labels\":{\"cusip\":\"CUSIP\",\"security_type\":\"Security Type\",\"security_term\":\"Security Term\",\"original_security_term\":\"Original Security Term\",\"reopening\":\"Reopening\",\"inflation_index_security\":\"Inflation Index Security\",\"floating_rate\":\"Floating Rate\",\"announcemt_date\":\"Announcement Date\",\"auction_date\":\"Auction Date\",\"issue_date\":\"Issue Date\",\"maturity_date\":\"Maturity Date\",\"offering_amt\":\"Offering Amount\",\"total_tendered\":\"Total Tendered\",\"total_accepted\":\"Total Accepted\",\"bid_to_cover_ratio\":\"Bid-to-Cover Ratio\",\"int_rate\":\"Interest Rate\",\"high_yield\":\"High Yield\",\"high_discnt_rate\":\"High Discount Rate\",\"high_investment_rate\":\"High Investment Rate\",\"high_discnt_margin\":\"High Discount Margin\",\"high_price\":\"High Price\",\"indirect_bidder_accepted\":\"Indirect Bidder Accepted\",\"direct_bidder_accepted\":\"Direct Bidder Accepted\",\"primary_dealer_accepted\":\"Primary Dealer Accepted\"},\"dataTypes\":{\"cusip\":\"STRING\",\"security_type\":\"STRING\",\"security_term\":\"STRING\",\"original_security_term\":\"STRING\",\"reopening\":\"STRING\",\"inflation_index_security\":\"STRING\",\"floating_rate\":\"STRING\",\"announcemt_date\":\"DATE\",\"auction_date\":\"DATE\",\"issue_date\":\"DATE\",\"maturity_date\":\"DATE\",\"offering_amt\":\"CURRENCY0\",\"total_tendered\":\"NUMBER\",\"total_accepted\":\"NUMBER\",\"bid_to_cover_ratio\":\"NUMBER\",\"int_rate\":\"NUMBER\",\"high_yield\":\"NUMBER\",\"high_discnt_rate\":\"NUMBER\",\"high_investment_rate\":\"NUMBER\",\"high_discnt_margin\":\"NUMBER\",\"high_price\":\"STRING\",\"indirect_bidder_accepted\":\"NUMBER\",\"direct_bidder_accepted\":\"NUMBER\",\"primary_dealer_accepted\":\"NUMBER\"},\"dataFormats\":{\"cusip\":\"String\",\"security_type\":\"String\",\"security_term\":\"String\",\"original_security_term\":\"String\",\"reopening\":\"String\",\"inflation_index_security\":\"String\",\"floating_rate\":\"String\",\"announcemt_date\":\"YYYY-MM-DD\",\"auction_date\":\"YYYY-MM-DD\",\"issue_date\":\"YYYY-MM-DD\",\"maturity_date\":\"YYYY-MM-DD\",\"offering_amt\":\"$1,000,000\",\"total_tendered\":\"10.2\",\"total_accepted\":\"10.2\",\"bid_to_cover_ratio\":\"10.2\",\"int_rate\":\"10.2\",\"high_yield\":\"10.2\",\"high_discnt_rate\":\"10.2\",\"high_investment_rate\":\"10.2\",\"high_discnt_margin\":\"10.2\",\"high_price\":\"String\",\"indirect_bidder_accepted\":\"10.2\",\"direct_bidder_accepted\":\"10.2\",\"primary_dealer_accepted\":\"10.2\"},\"total-count\":362,\"total-pages\":73},\"links\":{\"self\":\"&page%5Bnumber%5D=1&page%5Bsize%5D=5\",\"first\":\"&page%5Bnumber%5D=1&page%5Bsize%5D=5\",\"prev\":null,\"next\":\"&page%5Bnumber%5D=2&page%5Bsize%5D=5\",\"last\":\"&page%5Bnumber%5D=73&page%5Bsize%5D=5\"}}"
+  }
+ ]
+}

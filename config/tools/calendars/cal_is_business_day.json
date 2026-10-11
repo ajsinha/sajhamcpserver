@@ -1,0 +1,114 @@
+{
+  "name": "cal_is_business_day",
+  "implementation": "sajha.tools.impl.calendars_tools.CalIsBusinessDayTool",
+  "title": "Is it a business day",
+  "description": "Whether a date is a business day in every named calendar, with the reason per calendar when it is not (holiday name or weekend).\nReturns: date, weekday, is_business_day, calendars (calendar, is_business_day, reason), previous_business_day, next_business_day.\nInputs: date (YYYY-MM-DD); calendars (countries, subdivisions or markets).\nExample: {\"date\": \"2026-11-26\", \"calendars\": [\"XNYS\", \"CA\"]}",
+  "annotations": {
+    "title": "Is it a business day",
+    "readOnlyHint": true,
+    "destructiveHint": false,
+    "idempotentHint": true,
+    "openWorldHint": false
+  },
+  "version": "1.0.0",
+  "enabled": true,
+  "requires": [
+    "holidays"
+  ],
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "date": {
+        "type": "string",
+        "description": "The date to test (YYYY-MM-DD)",
+        "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+      },
+      "calendars": {
+        "type": "array",
+        "description": "Calendar codes: countries (US, CA, GBR), subdivisions (CA-ON) or markets (XNYS, XLON, XECB); a day must be a business day in all of them",
+        "items": {
+          "type": "string",
+          "minLength": 2,
+          "maxLength": 12
+        },
+        "minItems": 1,
+        "maxItems": 10
+      }
+    },
+    "required": [
+      "date",
+      "calendars"
+    ],
+    "additionalProperties": false,
+    "examples": [
+      {
+        "date": "2026-11-26",
+        "calendars": [
+          "XNYS",
+          "CA"
+        ]
+      }
+    ]
+  },
+  "outputSchema": {
+    "type": "object",
+    "properties": {
+      "date": {
+        "type": "string",
+        "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+      },
+      "weekday": {
+        "type": "string"
+      },
+      "is_business_day": {
+        "type": "boolean"
+      },
+      "calendars": {
+        "type": "array",
+        "description": "Per calendar",
+        "items": {
+          "type": "object",
+          "properties": {
+            "calendar": {
+              "type": "string"
+            },
+            "is_business_day": {
+              "type": "boolean"
+            },
+            "reason": {
+              "type": [
+                "string",
+                "null"
+              ]
+            }
+          }
+        }
+      },
+      "previous_business_day": {
+        "type": "string",
+        "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+      },
+      "next_business_day": {
+        "type": "string",
+        "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+      },
+      "source": {
+        "type": "string",
+        "description": "Attribution"
+      }
+    },
+    "required": [
+      "date",
+      "is_business_day"
+    ]
+  },
+  "metadata": {
+    "author": "Ashutosh Sinha",
+    "category": "Calendars",
+    "tags": [
+      "business day",
+      "holidays",
+      "calendar"
+    ]
+  }
+}

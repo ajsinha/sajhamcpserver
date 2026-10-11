@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<export xmlns="http://eu.europa.ec/fpi/fsd/export" generationDate="2026-09-22T20:01:34.799+02:00" globalFileId="185564">
+    <sanctionEntity designationDetails="" unitedNationId="" euReferenceNumber="EU.27.28" logicalId="13">
+        <remark>UNSC RESOLUTION 1483</remark>
+        <regulation regulationType="regulation" organisationType="commission" publicationDate="2003-07-08" entryIntoForceDate="2003-07-07" numberTitle="1210/2003 (OJ L169)" programme="IRQ" logicalId="348"/>
+        <subjectType code="person" classificationCode="P"/>
+        <nameAlias firstName="Saddam" middleName="" lastName="Hussein Al-Tikriti" wholeName="Saddam Hussein Al-Tikriti" function="" gender="M" title="" nameLanguage="" strong="true" regulationLanguage="en" logicalId="17"/>
+        <nameAlias firstName="" middleName="" lastName="" wholeName="Abu Ali" function="" title="" nameLanguage="" strong="true" regulationLanguage="en" logicalId="19"/>
+        <citizenship region="" countryIso2Code="IQ" countryDescription="IRAQ" regulationLanguage="en" logicalId="1"/>
+        <birthdate circa="false" calendarType="GREGORIAN" city="al-Awja, near Tikrit" zipCode="" birthdate="1937-04-28" dayOfMonth="28" monthOfYear="4" year="1937" region="" place="" countryIso2Code="IQ" countryDescription="IRAQ" regulationLanguage="en" logicalId="14"/>
+    </sanctionEntity>
+    <sanctionEntity designationDetails="" unitedNationId="" euReferenceNumber="EU.8516.2" logicalId="120000">
+        <regulation regulationType="regulation" organisationType="council" publicationDate="2022-02-28" entryIntoForceDate="2022-02-28" numberTitle="2022/336" programme="UKR" logicalId="7000"/>
+        <subjectType code="person" classificationCode="P"/>
+        <nameAlias firstName="Vladimir" middleName="Vladimirovich" lastName="Putin" wholeName="Vladimir Vladimirovich PUTIN" function="President" title="" nameLanguage="" strong="true" regulationLanguage="en" logicalId="120001"/>
+        <nameAlias firstName="" middleName="" lastName="" wholeName="Владимир Владимирович Путин" function="" title="" nameLanguage="RU" strong="true" regulationLanguage="en" logicalId="120002"/>
+        <citizenship region="" countryIso2Code="RU" countryDescription="RUSSIAN FEDERATION" regulationLanguage="en" logicalId="120003"/>
+        <birthdate circa="false" calendarType="GREGORIAN" city="Leningrad" zipCode="" birthdate="1952-10-07" dayOfMonth="7" monthOfYear="10" year="1952" region="" place="" countryIso2Code="RU" countryDescription="RUSSIAN FEDERATION" regulationLanguage="en" logicalId="120004"/>
+    </sanctionEntity>
+    <sanctionEntity designationDetails="" unitedNationId="" euReferenceNumber="EU.9000.1" logicalId="130000">
+        <regulation regulationType="regulation" organisationType="council" publicationDate="2023-06-23" entryIntoForceDate="2023-06-23" numberTitle="2023/1215" programme="RUS" logicalId="7100"/>
+        <subjectType code="enterprise" classificationCode="E"/>
+        <nameAlias firstName="" middleName="" lastName="" wholeName="Joint Stock Company Müller Trading GmbH" function="" title="" nameLanguage="" strong="true" regulationLanguage="en" logicalId="130001"/>
+        <address city="Moscow" street="Tverskaya 1" zipCode="" region="" countryIso2Code="RU" countryDescription="RUSSIAN FEDERATION" regulationLanguage="en" logicalId="130002"/>
+    </sanctionEntity>
+</export>

@@ -331,3 +331,16 @@ def test_https_goes_through_the_proxy_by_connect_to_the_real_host(monkeypatch):
         outbound.request('GET', 'https://api.example/v1')
     assert seen == {'proxy': 'http://proxy.corp.test:3128', 'trust_env': False,
                     'url': 'https://api.example/v1', 'ext': {}}
+
+
+def test_resolve_keeps_the_resolvers_order_so_ipv4_stays_first(monkeypatch):
+    """On a host without an IPv6 route the resolver lists IPv4 first; pinning the first address must
+    keep that order (a string sort put "2600:…" first and every fetch failed)."""
+    import socket
+    from sajha.core import outbound
+    infos = [(socket.AF_INET, socket.SOCK_STREAM, 6, '', ('40.39.152.53', 443)),
+             (socket.AF_INET, socket.SOCK_STREAM, 6, '', ('3.32.127.166', 443)),
+             (socket.AF_INET6, socket.SOCK_STREAM, 6, '', ('2600:1f12::1', 443, 0, 0)),
+             (socket.AF_INET, socket.SOCK_STREAM, 6, '', ('40.39.152.53', 443))]
+    monkeypatch.setattr(outbound.socket, 'getaddrinfo', lambda *a, **k: infos)
+    assert outbound.resolve('api.example.gov', 443) == ['40.39.152.53', '3.32.127.166', '2600:1f12::1']

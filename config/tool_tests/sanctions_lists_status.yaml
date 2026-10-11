@@ -1,0 +1,15 @@
+# Tool test cases (docs/architecture/Tool Quality.md §2). Local only: reads the sanctions index status.
+tool: sanctions_lists_status
+cases:
+  - name: every list reported
+    tags: [smoke]
+    arguments: {}
+    expect:
+      - schema: output
+      - path: $.lists
+        length: 5
+      - path: $.notice
+        regex: "not a determination"
+probe:
+  case: every list reported
+  every: 3600

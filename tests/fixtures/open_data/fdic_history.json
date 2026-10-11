@@ -1,0 +1,39 @@
+{
+ "tool": "fdic_history",
+ "arguments": {
+  "cert": 628,
+  "limit": 10,
+  "include_branches": false
+ },
+ "recorded": "2026-10-11",
+ "calls": [
+  {
+   "url": "https://api.fdic.gov/banks/history",
+   "params": [
+    [
+     "filters",
+     "CERT:628 AND NOT ORG_ROLE_CDE:BR"
+    ],
+    [
+     "fields",
+     "EFFDATE,PROCDATE,CHANGECODE,CHANGECODE_DESC,INSTNAME,OFF_NAME,PCITY,PSTALP,ACQ_INSTNAME,ACQ_CERT,OUT_INSTNAME,OUT_CERT,ORG_ROLE_CDE"
+    ],
+    [
+     "sort_by",
+     "EFFDATE"
+    ],
+    [
+     "sort_order",
+     "DESC"
+    ],
+    [
+     "limit",
+     "10"
+    ]
+   ],
+   "status": 200,
+   "content_type": "application/json; charset=utf-8",
+   "body": "{\"meta\":{\"total\":51,\"parameters\":{\"filters\":\"CERT:628 AND NOT ORG_ROLE_CDE:BR\",\"fields\":\"EFFDATE,PROCDATE,CHANGECODE,CHANGECODE_DESC,INSTNAME,OFF_NAME,PCITY,PSTALP,ACQ_INSTNAME,ACQ_CERT,OUT_INSTNAME,OUT_CERT,ORG_ROLE_CDE\",\"limit\":\"10\"},\"index\":{\"name\":\"history_20261009090008\",\"createTimestamp\":\"2026-10-09T10:25:05Z\"}},\"data\":[{\"data\":{\"CHANGECODE_DESC\":\"Phantom (Interim) Corporate Reorganization\",\"INSTNAME\":\"JPMorgan Chase Bank, National Association\",\"CHANGECODE\":820,\"PSTALP\":\"OH\",\"EFFDATE\":\"2025-02-01T00:00:00\",\"ORG_ROLE_CDE\":\"FI\",\"PCITY\":\"Columbus\",\"PROCDATE\":\"2025-03-06T00:00:00\",\"ID\":\"2025005514_820_417__\"},\"score\":0},{\"data\":{\"CHANGECODE_DESC\":\"Phantom (Interim) Corporate Reorganization\",\"INSTNAME\":\"JPMorgan Chase Bank, National Association\",\"CHANGECODE\":820,\"PSTALP\":\"OH\",\"EFFDATE\":\"2024-11-01T00:00:00\",\"ORG_ROLE_CDE\":\"FI\",\"PCITY\":\"Columbus\",\"PROCDATE\":\"2024-11-26T00:00:00\",\"ID\":\"2024029728_820_417__\"},\"score\":0},{\"data\":{\"CHANGECODE_DESC\":\"Participated in FDIC Assisted Merger\",\"CHANGECODE\":811,\"OUT_INSTNAME\":\"First Republic Bank\",\"ACQ_CERT\":628,\"PSTALP\":\"OH\",\"EFFDATE\":\"2023-05-01T00:00:00\",\"ACQ_INSTNAME\":\"JPMorgan Chase Bank, National Association\",\"OUT_CERT\":59017,\"ORG_ROLE_CDE\":\"FI\",\"PROCDATE\":\"2023-05-02T00:00:00\",\"ID\":\"2023160984_811_417_417_497251\"},\"score\":0},{\"data\":{\"CHANGECODE_DESC\":\"Participated in Absorbtion/Consolidation/Merger\",\"CHANGECODE\":810,\"OUT_INSTNAME\":\"Chase Bank USA, National Association\",\"ACQ_CERT\":628,\"PSTALP\":\"OH\",\"EFFDATE\":\"2019-05-18T00:00:00\",\"ACQ_INSTNAME\":\"JPMorgan Chase Bank, National Association\",\"OUT_CERT\":23702,\"ORG_ROLE_CDE\":\"FI\",\"PROCDATE\":\"2019-06-17T00:00:00\",\"ID\":\"201904689_810_417_417_16580\"},\"score\":0},{\"data\":{\"CHANGECODE_DESC\":\"Participated in Absorbtion/Consolidation/Merger\",\"CHANGECODE\":810,\"OUT_INSTNAME\":\"JPMorgan Bank and Trust Company, National Association\",\"ACQ_CERT\":628,\"PSTALP\":\"OH\",\"EFFDATE\":\"2015-08-31T00:00:00\",\"ACQ_INSTNAME\":\"JPMorgan Chase Bank, National Association\",\"OUT_CERT\":58729,\"ORG_ROLE_CDE\":\"FI\",\"PROCDATE\":\"2015-09-24T00:00:00\",\"ID\":\"201509768_810_417_417_464484\"},\"score\":0},{\"data\":{\"CHANGECODE_DESC\":\"Participated in Absorbtion/Consolidation/Merger\",\"CHANGECODE\":810,\"OUT_INSTNAME\":\"Custodial Trust Company\",\"ACQ_CERT\":628,\"PSTALP\":\"OH\",\"EFFDATE\":\"2011-10-14T00:00:00\",\"ACQ_INSTNAME\":\"JPMorgan Chase Bank, National Association\",\"OUT_CERT\":25809,\"ORG_ROLE_CDE\":\"FI\",\"PROCDATE\":\"2011-11-10T00:00:00\",\"ID\":\"201113599_810_417_417_32038\"},\"score\":0},{\"data\":{\"CHANGECODE_DESC\":\"Phantom (Interim) Corporate Reorganization\",\"INSTNAME\":\"JPMorgan Chase Bank, National Association\",\"CHANGECODE\":820,\"PSTALP\":\"OH\",\"EFFDATE\":\"2011-10-01T00:00:00\",\"ORG_ROLE_CDE\":\"FI\",\"PCITY\":\"Columbus\",\"PROCDATE\":\"2012-11-01T00:00:00\",\"ID\":\"201214651_820_417__\"},\"score\":0},{\"data\":{\"CHANGECODE_DESC\":\"Phantom (Interim) Corporate Reorganization\",\"INSTNAME\":\"JPMorgan Chase Bank, National Association\",\"CHANGECODE\":820,\"PSTALP\":\"OH\",\"EFFDATE\":\"2011-10-01T00:00:00\",\"ORG_ROLE_CDE\":\"FI\",\"PCITY\":\"Columbus\",\"PROCDATE\":\"2012-11-01T00:00:00\",\"ID\":\"201214661_820_417__\"},\"score\":0},{\"data\":{\"CHANGECODE_DESC\":\"Phantom (Interim) Corporate Reorganization\",\"INSTNAME\":\"JPMorgan Chase Bank, National Association\",\"CHANGECODE\":820,\"PSTALP\":\"OH\",\"EFFDATE\":\"2011-06-01T00:00:00\",\"ORG_ROLE_CDE\":\"FI\",\"PCITY\":\"Columbus\",\"PROCDATE\":\"2012-11-01T00:00:00\",\"ID\":\"201214660_820_417__\"},\"score\":0},{\"data\":{\"CHANGECODE_DESC\":\"Phantom (Interim) Corporate Reorganization\",\"INSTNAME\":\"JPMorgan Chase Bank, National Association\",\"CHANGECODE\":820,\"PSTALP\":\"OH\",\"EFFDATE\":\"2011-05-01T00:00:00\",\"ORG_ROLE_CDE\":\"FI\",\"PCITY\":\"Columbus\",\"PROCDATE\":\"2012-11-01T00:00:00\",\"ID\":\"201214659_820_417__\"},\"score\":0}],\"totals\":{\"count\":51}}"
+  }
+ ]
+}

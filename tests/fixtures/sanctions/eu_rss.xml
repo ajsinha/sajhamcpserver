@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0">
+  <channel>
+    <title>European Commission - External relations / Sanctions List</title>
+    <item>
+      <title>XML (Based on XSD) - v1.1</title>
+      <link>https://webgate.ec.europa.eu/fsd/fsf/public/files/xmlFullSanctionsList_1_1/content?token=dG9rZW4tMjAxNw</link>
+      <enclosure url="https://webgate.ec.europa.eu/fsd/fsf/public/files/xmlFullSanctionsList_1_1/content?token=dG9rZW4tMjAxNw" length="25791425" type="text/xml" />
+      <pubDate>Tue, 22 Sep 2026 18:10:17 GMT</pubDate>
+    </item>
+  </channel>
+</rss>
