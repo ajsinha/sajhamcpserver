@@ -1,7 +1,7 @@
 {
   "name": "imf_get_weo_data",
   "implementation": "sajha.tools.impl.imf_tool_refactored.IMFGetWEODataTool",
-  "description": "Retrieve World Economic Outlook (WEO) data including GDP growth, inflation, unemployment, fiscal balance, public debt, and other macroeconomic indicators.",
+  "description": "World Economic Outlook (WEO) annual series for one country, including IMF projections, by a friendly indicator name or a WEO code, from the IMF SDMX JSON data service (dataservices.imf.org, no API key).\nReturns: database, country_code, indicator_code, frequency, data (period, value) and count; a note when the series is empty (frequency always A).\nInputs (* required): country_code* (ISO 2-letter); indicator (gdp_growth, gdp_per_capita, inflation_avg, inflation_eop, unemployment, current_account, fiscal_balance, public_debt, exports_volume, imports_volume, population) or indicator_code (WEO code such as NGDP_RPCH, wins over indicator); one of the two is needed; start_year and end_year (1950-2030; omit both for the full history).\nFor monthly or quarterly financial series use imf_get_ifs_data; for a five-indicator snapshot imf_get_country_profile.\nExample: {\"country_code\": \"IN\", \"indicator\": \"gdp_growth\", \"start_year\": 2018, \"end_year\": 2028}",
   "version": "2.9.8",
   "enabled": true,
   "inputSchema": {
@@ -22,11 +22,13 @@
       },
       "start_year": {
         "type": "integer",
+        "description": "First year, YYYY; if only end_year is given this defaults to 1950",
         "minimum": 1950,
         "maximum": 2030
       },
       "end_year": {
         "type": "integer",
+        "description": "Last year, YYYY; if only start_year is given this defaults to the current year; omit both for the full history",
         "minimum": 1950,
         "maximum": 2030
       }

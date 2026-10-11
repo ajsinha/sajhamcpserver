@@ -1,7 +1,7 @@
 {
   "name": "boj_get_economic_indicator",
   "implementation": "sajha.tools.impl.japan_central_bank.BoJGetEconomicIndicatorTool",
-  "description": "Retrieve Japanese economic indicators (GDP, unemployment, industrial production, trade balance)",
+  "description": "One Japanese economic indicator from FRED (Federal Reserve Bank of St. Louis): real GDP (JPNRGDPEXP, quarterly), unemployment rate, industrial production index, or trade_balance, which reads JPNXTEXVA01NCMLM, an OECD goods-exports value series rather than a balance.\nReturns: series_code (FRED id), series_id, label, source, observation_count and observations (date, value) oldest first, missing values dropped.\nInputs (none required): indicator (gdp, unemployment, industrial_production, trade_balance; default gdp); start_date, end_date (YYYY-MM-DD); recent_periods (1-500; the last N observations, with no dates looking back N x 45 days; when omitted the whole history in the date range is returned).\nFor prices use boj_get_inflation; all series: boj_list_series. Needs a FRED API key (FRED_API_KEY, config fred.api.key); without one the call fails with a message saying so.\nExample: {\"indicator\": \"unemployment\", \"start_date\": \"2018-01-01\"}",
   "version": "2.9.8",
   "enabled": true,
   "metadata": {

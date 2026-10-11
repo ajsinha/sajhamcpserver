@@ -1,7 +1,7 @@
 {
   "name": "cg_trending_coins",
   "implementation": "sajha.tools.impl.coingecko_tools.CGTrendingCoinsTool",
-  "description": "Get trending cryptocurrencies from CoinGecko \u2014 most searched coins in last 24h",
+  "description": "Trending search items on CoinGecko over the last 24 hours (search/trending): coins, plus NFTs and categories.\nReturns {coins: [{item: {id, name, symbol, market_cap_rank, price_btc, score, ...}}], nfts: [...], categories: [...]}.\nInputs: none.\nPopularity by searches, not price movement; for 24h movers see cg_top_gainers and cg_top_losers.\nExample: {}\nNo API key is sent (CoinGecko public API, rate-limited by CoinGecko); a failed call returns {\"error\": ...}.",
   "version": "4.5.0",
   "enabled": true,
   "inputSchema": {

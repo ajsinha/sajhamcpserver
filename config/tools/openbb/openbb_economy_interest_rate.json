@@ -1,7 +1,7 @@
 {
   "name": "openbb_economy_interest_rate",
   "implementation": "sajha.tools.impl.openbb_tools.OpenBBGenericTool",
-  "description": "Get short-term interest rates via OpenBB by country",
+  "description": "Meant to give short-term interest rates by country from the OECD through OpenBB (obb.economy.short_term_interest_rate).\nReturns: {tool, data_points (total rows), data: first 100 rows as OpenBB returns them} or {tool, error}.\nInputs (* required): country (default united_states); provider (schema default oecd; when omitted the tool sends yfinance).\nOpenBB 4.x (4.6 checked) has no obb.economy.short_term_interest_rate (4.6 has obb.economy.interest_rates), so this tool currently returns an error object; alternatives: fred_fed_funds_rate, openbb_fixedincome_sofr or the central bank tools.\nExample: {\"country\": \"japan\", \"provider\": \"oecd\"}",
   "version": "4.5.0",
   "enabled": true,
   "inputSchema": {
@@ -9,10 +9,12 @@
     "properties": {
       "country": {
         "type": "string",
+        "description": "Country, lower case with underscores",
         "default": "united_states"
       },
       "provider": {
         "type": "string",
+        "description": "OpenBB data provider",
         "default": "oecd"
       }
     },

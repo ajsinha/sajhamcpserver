@@ -1,7 +1,7 @@
 {
   "name": "yf_insider_purchases",
   "implementation": "sajha.tools.impl.yfinance_tools.YFInsiderPurchasesTool",
-  "description": "Get insider purchase summary from Yahoo Finance \u2014 aggregated insider buying activity",
+  "description": "Six-month summary of insider buying and selling for one stock from Yahoo Finance (yfinance insider_purchases).\nReturns: {symbol, purchases: [{Insider Purchases Last 6m (row label such as Purchases, Sales, Net Shares Purchased (Sold), Total Insider Shares Held), Shares, Trans}]}.\nInputs (* required): symbol* (Yahoo ticker, e.g. AAPL, BRK-B, 7203.T).\nIndividual trades: yf_insider_transactions. No API key; data comes from Yahoo Finance through the yfinance library.\nExample: {\"symbol\": \"TSLA\"}",
   "version": "4.5.0",
   "enabled": true,
   "inputSchema": {

@@ -1,7 +1,7 @@
 {
   "name": "fbi_compare_states",
   "implementation": "sajha.tools.impl.fbi_tool_refactored.FBICompareStatesTool",
-  "description": "Rank several US states on one offense for one year, with the national rate for reference",
+  "description": "Rank 2 to 10 US states on one offense for one year, from the FBI Crime Data Explorer.\nReturns: comparison_type, states_compared ranked highest first (rank, state, total_incidents, rate_per_100k, state_population, population_coverage_pct, percent_of_national), comparison_summary (highest_state, lowest_state, range, average_of_compared), national_reference, metadata, errors for states without data.\nInputs (* required): states* (2-10 two-letter codes); offense_type* (a UCR category such as violent_crime, property_crime, homicide, robbery, burglary; list in the schema); year (1985 to the current year; default last year); per_capita (rank by rate per 100,000 if true, by count if false; default true); include_national_average (boolean; default true).\nFor one state in detail use fbi_get_state_statistics. Key: api.data.gov key in FBI_API_KEY, else the rate-limited DEMO_KEY.\nExample: {\"states\": [\"CA\", \"TX\", \"NY\", \"FL\"], \"offense_type\": \"motor_vehicle_theft\", \"year\": 2023}",
   "version": "3.0.0",
   "enabled": true,
   "inputSchema": {
@@ -47,6 +47,7 @@
       },
       "include_national_average": {
         "type": "boolean",
+        "description": "Add national_reference with the national rate per 100,000 (default true)",
         "default": true
       }
     },

@@ -1,7 +1,7 @@
 {
   "name": "edgar_company_search",
   "implementation": "sajha.tools.impl.enhanced_edgar_tool.EDGARCompanySearchTool",
-  "description": "Search for public companies in SEC EDGAR database by company name or ticker symbol to retrieve CIK numbers",
+  "description": "Find public companies and their CIK numbers in SEC EDGAR by ticker or by name, using the SEC company-tickers file.\nReturns {query, results_count, companies: [{cik (10 digits), ticker, title, exchange}]}; exact ticker matches first, then names starting with the query, then names containing it.\nInputs (* required): query* (string, ticker such as AAPL or part of a company name), search_type (name | ticker | auto; default auto = both), limit (integer 1-100, default 10).\nUse it first to get the CIK the other edgar_* tools need. sec_search_company is a simpler substring search over the same file.\nExample: {\"query\": \"Microsoft\", \"search_type\": \"name\", \"limit\": 5}\nNo API key needed (SEC data.sec.gov; 110 ms between requests).",
   "version": "2.9.8",
   "enabled": true,
   "inputSchema": {

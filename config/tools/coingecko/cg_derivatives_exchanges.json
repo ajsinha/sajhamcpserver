@@ -1,7 +1,7 @@
 {
   "name": "cg_derivatives_exchanges",
   "implementation": "sajha.tools.impl.coingecko_tools.CGDerivativesExchangesTool",
-  "description": "Get crypto derivatives exchanges from CoinGecko",
+  "description": "Crypto derivatives exchanges from CoinGecko (derivatives/exchanges).\nReturns {exchanges: [{id, name, open_interest_btc, trade_volume_24h_btc, number_of_perpetual_pairs, number_of_futures_pairs, year_established, country, url, ...}]}.\nInputs: none.\nFor individual contracts use cg_derivatives; spot venues are in cg_exchanges_list.\nExample: {}\nNo API key is sent (CoinGecko public API, rate-limited by CoinGecko); a failed call returns {\"error\": ...}.",
   "version": "4.5.0",
   "enabled": true,
   "inputSchema": {

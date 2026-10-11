@@ -1,7 +1,7 @@
 {
   "name": "fmp_share_float",
   "implementation": "sajha.tools.impl.fmp_tools.FMPGenericTool",
-  "description": "Get share float data from FMP \u2014 free float, shares outstanding",
+  "description": "Share float for one company from Financial Modeling Prep (FMP): free float, float shares and shares outstanding.\nReturns {tool, endpoint, data}: data is FMP's JSON from /stable/shares-float as returned (usually a list of records).\nInputs (* required): symbol* (ticker, sent as given, e.g. AAPL).\nFor market cap use fmp_market_cap.\nNeeds an FMP API key (config fmp.api.key, env FMP_API_KEY); without one it returns a demo placeholder naming the endpoint instead of data.\nExample: {\"symbol\": \"TSLA\"}",
   "version": "4.5.0",
   "enabled": true,
   "inputSchema": {

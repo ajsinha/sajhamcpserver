@@ -1,7 +1,7 @@
 {
   "name": "llm_triage_ticket",
   "implementation": "sajha.ai.llm_tools.LLMTool",
-  "description": "Classifies a support message into one queue: billing, technical, account, sales or other, with a short reason. Use it to route or tag incoming requests. An example LLM tool (mode classify), disabled until an administrator enables it.",
+  "description": "Classifies one support message into a queue (LLM tool, mode classify, model alias fast): billing (invoices, charges, refunds, payment), technical (errors, outages, bugs), account (sign-in, password, profile, access), sales (pricing, plans, quotes) or other. Calls no tools; identical inputs are served from cache.\nReturns: label (one of the five), reason (short), confidence (0-1) and stopped_by.\nInputs (* required): message* (the support message text).\nUse it to route or tag incoming requests; for a summary of a long message use llm_summarise. An example LLM tool shipped disabled; an administrator enables it.\nExample: {\"message\": \"I was charged twice for my March invoice and need a refund.\"}",
   "version": "1.0.0",
   "enabled": false,
   "inputSchema": {

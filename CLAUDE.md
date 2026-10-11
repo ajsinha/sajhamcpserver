@@ -46,6 +46,9 @@ the same thing, merge them and leave a link.
 | Tool testing, lint, probes, evals, tool versions and canary | `docs/architecture/Tool Quality.md` |
 | Adversarial testing (attack surfaces, what to try, priorities, coverage) | `docs/architecture/Adversarial QA Plan.md` |
 | Workflows (DAGs, schedules, triggers, runs) | `docs/architecture/Workflows.md` |
+| Open data sources as tools (verified terms, placement, priorities) | `docs/architecture/Open Data Tools.md` |
+| Business intelligence (metrics layer, analysis, charts, dashboards, data quality) | `docs/architecture/Business Intelligence.md` |
+| Reports (definitions, formats, narration, delivery) | `docs/architecture/Reports.md` |
 | Federation (other MCP servers' tools) | `docs/architecture/Federation.md` |
 | Per-user sign-in for proxied servers (credential modes, `token_user`, `oauth_user`, Server connections; design and what is built) | `docs/architecture/Per-User Sign-In for Proxied Servers.md` (configuring it: `Federation.md`) |
 | GitHub, Atlassian, Google integrations (proxied per user) | `docs/architecture/GitHub Integration.md`, `Atlassian Integration.md`, `Google Integration.md` |

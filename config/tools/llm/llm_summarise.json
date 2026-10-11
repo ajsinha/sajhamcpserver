@@ -1,7 +1,7 @@
 {
   "name": "llm_summarise",
   "implementation": "sajha.ai.llm_tools.LLMTool",
-  "description": "Summarises a piece of text in a few sentences, keeping names, figures and units exactly. Calls no tools. An example LLM tool (mode complete), disabled until an administrator enables it.",
+  "description": "Summarises a piece of text in a few sentences, keeping names, figures and units as written (LLM tool, mode complete, model alias fast). Calls no tools; identical inputs are served from cache.\nReturns: text (the summary) and stopped_by.\nInputs (* required): text* (the text to summarise; at most 20,000 characters); max_sentences (1-10; default 2). The summary is capped at 400 output tokens.\nFor classification into queues use llm_triage_ticket. An example LLM tool shipped disabled; an administrator enables it.\nExample: {\"text\": \"The central bank held its policy rate at 4.5% on Wednesday, citing sticky services inflation, and signalled two cuts later in the year.\", \"max_sentences\": 1}",
   "version": "1.0.0",
   "enabled": false,
   "inputSchema": {

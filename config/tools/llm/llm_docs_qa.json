@@ -1,7 +1,7 @@
 {
   "name": "llm_docs_qa",
   "implementation": "sajha.ai.llm_tools.LLMTool",
-  "description": "Answers questions about SAJHA only from its documentation and the configured document sources, citing each passage it used, and says 'Not found in the sources' rather than guess. An example LLM tool (mode grounded), disabled until an administrator enables it.",
+  "description": "Answers a question about SAJHA from its own documentation only (LLM tool, mode grounded): it searches the sajha_docs source (4 passages), answers from those passages with numbered citations, and answers \"Not found in the sources.\" when nothing relevant is found.\nReturns: answer, confidence (0-1, higher when more sentences cite a passage; 0 when not found), citations (passage links), caveats, conversation_id and stopped_by (answer, no_sources, refused or error).\nInputs (* required): question* (plain words); conversation_id (from a previous answer, to ask a follow-up; the conversation is kept 240 minutes, up to 10 turns).\nFor the raw passages without an LLM answer use sajha_search_docs; for questions answered with other tools sajha_ask. An example LLM tool shipped disabled; an administrator enables it.\nExample: {\"question\": \"How do I switch the state backend to Redis?\"}",
   "version": "1.0.0",
   "enabled": false,
   "inputSchema": {

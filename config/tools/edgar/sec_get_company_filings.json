@@ -1,7 +1,7 @@
 {
   "name": "sec_get_company_filings",
   "implementation": "sajha.tools.impl.sec_edgar_tool_refactored.SECGetCompanyFilingsTool",
-  "description": "Retrieve SEC filings for a company with optional filtering by type and date range",
+  "description": "A company's recent SEC filings from EDGAR, by CIK or ticker, optionally filtered by form type and filing-date range.\nReturns {cik, name, filing_count, filings: [{accession_number, filing_date, report_date, form, primary_document, description}]}, newest first.\nInputs (* required): cik or ticker (one of them is needed; cik, 10 digits or shorter, wins when both are given; a ticker is resolved through the SEC company-tickers file), filing_type (one of the schema's list, e.g. 10-K, 10-Q, 8-K, 4, DEF 14A; exact match), start_date and end_date (YYYY-MM-DD), limit (integer 1-100, default 10).\nOnly the recent-filings block of the EDGAR submissions file is searched. edgar_filings_by_form adds document URLs and more form types.\nExample: {\"ticker\": \"AAPL\", \"filing_type\": \"10-Q\", \"limit\": 4}\nNo API key; SEC data.sec.gov (requests are not throttled; the SEC allows 10 per second).",
   "version": "2.9.8",
   "enabled": true,
   "inputSchema": {

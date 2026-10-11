@@ -1,7 +1,7 @@
 {
   "name": "pboc_get_exchange_rate",
   "implementation": "sajha.tools.impl.china_central_bank.PBoCGetExchangeRateTool",
-  "description": "Retrieve Chinese Yuan exchange rates against major currencies",
+  "description": "Daily Chinese yuan per US dollar (USD/CNY, FRED series DEXCHUS, noon buying rates in New York) from FRED (Federal Reserve Bank of St. Louis).\nReturns: series_code (FRED id), series_id, label, source, observation_count and observations (date, value) oldest first, missing values dropped.\nInputs (none required): currency_pair (only usd_cny; default usd_cny); start_date, end_date (YYYY-MM-DD); recent_periods (1-500; the last N observations; with no dates it looks back N x 45 days); omit all three for the full history.\nFor other yuan crosses use ecb_get_exchange_rate with EUR/CNY or boc_get_exchange_rate with CNY/CAD. Needs a FRED API key (FRED_API_KEY, config fred.api.key); without one the call fails with a message saying so.\nExample: {\"currency_pair\": \"usd_cny\", \"recent_periods\": 30}",
   "version": "2.9.8",
   "enabled": true,
   "metadata": {

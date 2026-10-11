@@ -2,7 +2,7 @@
   "name": "connected_http_request",
   "implementation": "sajha.accounts.tools.http_request.ConnectedHttpRequestTool",
   "title": "GitHub API request (as me)",
-  "description": "Call a read-only GitHub REST API endpoint as the signed-in user, through their connected GitHub account: GET under /user, /users, /repos, /orgs, /search, /notifications or /issues. An administrator binding of the generic connected_http_request implementation; copy this file to bind another provider's endpoints.",
+  "description": "Call a read-only GitHub REST API endpoint (api.github.com) as the signed-in user, through their connected GitHub account. This is an administrator binding of the generic connected_http_request implementation: GET only, and only paths under /user, /users, /repos, /orgs, /search, /notifications or /issues.\nReturns: status (HTTP code), ok, content_type and body (parsed JSON, or text up to 20,000 characters).\nInputs (* required): path* (absolute API path starting with /, e.g. /user/repos or /repos/octocat/hello-world/pulls; no .. or //); method (GET only; default GET); query (object of query parameters, e.g. {\"per_page\": 50}); body (ignored for GET).\nFor the common cases use github_list_my_repos or github_create_issue. Runs only for a signed-in SAJHA user; when the account is not linked, or lacks the scope, the call returns a request to connect it with a link instead of a result.\nExample: {\"path\": \"/repos/octocat/hello-world/issues\", \"query\": {\"state\": \"open\", \"per_page\": 20}}",
   "version": "1.0.0",
   "enabled": true,
   "auth": {

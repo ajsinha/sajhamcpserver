@@ -1,7 +1,7 @@
 {
   "name": "yf_splits",
   "implementation": "sajha.tools.impl.yfinance_tools.YFSplitsTool",
-  "description": "Get stock split history from Yahoo Finance \u2014 all historical splits with dates and ratios",
+  "description": "Stock split history for one ticker from Yahoo Finance (yfinance splits).\nReturns: {symbol, splits: [{Date, Stock Splits (ratio as a number, e.g. 4.0 for 4-for-1)}]}, oldest first, at most 100 rows.\nInputs (* required): symbol* (Yahoo ticker, e.g. AAPL, BRK-B, 7203.T).\nDividends and splits together: yf_actions; dividends only: yf_dividends. No API key; data comes from Yahoo Finance through the yfinance library.\nExample: {\"symbol\": \"AAPL\"}",
   "version": "4.5.0",
   "enabled": true,
   "inputSchema": {

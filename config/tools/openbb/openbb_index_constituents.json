@@ -1,7 +1,7 @@
 {
   "name": "openbb_index_constituents",
   "implementation": "sajha.tools.impl.openbb_tools.OpenBBIndexConstituentsTool",
-  "description": "Get index constituents via OpenBB \u2014 list of stocks in S&P 500, NASDAQ-100, Dow Jones, FTSE, etc.",
+  "description": "Meant to list the members of a stock index (S&P 500, NASDAQ, Dow Jones) through OpenBB.\nReturns: {index, constituents: [...]} or {index, error}.\nInputs (* required): index* (sp500, nasdaq or dowjones; default sp500); provider (code default fmp; the schema says yfinance).\nOpenBB 4.6 has no obb.index.sp500, and obb.index.constituents takes symbol rather than index, so this tool currently returns an error object; use fmp_sp500_constituents, fmp_nasdaq_constituents or fmp_dowjones_constituents instead.\nExample: {\"index\": \"sp500\"}",
   "version": "4.5.0",
   "enabled": true,
   "inputSchema": {

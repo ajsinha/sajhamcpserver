@@ -1,7 +1,7 @@
 {
   "name": "fred_trade_balance",
   "implementation": "sajha.tools.impl.fred_tools.FREDTradeBalanceTool",
-  "description": "Get US Trade Balance (Goods & Services) from FRED",
+  "description": "The US trade balance in goods and services (balance of payments basis) from FRED, the St. Louis Fed's economic database: series BOPGSTB (millions of dollars, monthly; negative is a deficit).\nReturns {\"series\": \"BOPGSTB\", \"data\": <FRED observations response>}; data.observations = [{date (YYYY-MM-DD), value (a string, \".\" if missing), realtime_start, realtime_end}], newest first; data is {\"error\": ...} if the call fails.\nInputs (* required): limit (integer, number of newest observations; omitted: 60, although the schema default says 30).\nRelated: fred_dollar_index, fred_national_debt; for any other FRED series use fred_custom_series.\nExample: {\"limit\": 12}\nAPI key: env FRED_API_KEY (config fred.api.key); when unset the placeholder DEMO_KEY is sent.",
   "version": "4.5.0",
   "enabled": true,
   "inputSchema": {

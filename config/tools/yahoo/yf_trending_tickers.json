@@ -1,7 +1,7 @@
 {
   "name": "yf_trending_tickers",
   "implementation": "sajha.tools.impl.yfinance_tools.YFTrendingTickersTool",
-  "description": "Get trending/most active tickers from Yahoo Finance \u2014 what the market is watching today",
+  "description": "Most actively traded US stocks from Yahoo Finance's most_actives screen, through yfinance's Screener class. Takes no inputs.\nReturns: {trending: up to 20 Yahoo quote objects} or {error}.\nyfinance 0.2.66 (the version installed with SAJHA at the time of writing) no longer has yf.Screener, so this returns {error}; openbb_equity_discovery_active (provider yfinance) gives the same list. No API key; data comes from Yahoo Finance through the yfinance library.\nExample: {}",
   "version": "4.5.0",
   "enabled": true,
   "inputSchema": {

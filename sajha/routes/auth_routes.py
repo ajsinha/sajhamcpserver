@@ -402,9 +402,8 @@ def _db_table_count() -> int:
 
 @router.get('/')
 async def root(request: Request, auth: AuthContext = Depends(get_current_user)):
-    if auth.authenticated:
-        return RedirectResponse(url='/dashboard', status_code=302)
-    # Show landing page for unauthenticated visitors. The counts, the "Out of the box" domain chips
+    # The landing page for everyone (the navbar logo links here); a signed-in visitor gets a Dashboard
+    # button where a visitor gets Sign In. The counts, the "Out of the box" domain chips
     # and the hero's constellation come from the live registry, grouped by tool domain (tool folder,
     # proxied server, Unfiled) exactly as the Tools page and the help pages group them.
     from urllib.parse import quote
@@ -415,6 +414,7 @@ async def root(request: Request, auth: AuthContext = Depends(get_current_user)):
     # see; every other star is drawn from the counts alone
     live = live_tool_groups(with_names=True, visible=anonymous_policy().can_see)
     return render_standalone(request, 'landing.html', {
+        'signed_in': bool(auth.authenticated),
         'llm_provider_count': _llm_provider_count(),
         'db_table_count': _db_table_count(),
         'endpoint_count': len({(getattr(r, 'path', ''), m) for r in request.app.routes

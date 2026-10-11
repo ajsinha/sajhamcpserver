@@ -1,7 +1,7 @@
 {
   "name": "imf_compare_countries",
   "implementation": "sajha.tools.impl.imf_tool_refactored.IMFCompareCountriesTool",
-  "description": "Compare economic indicators across multiple countries for cross-country analysis. Perfect for benchmarking and comparative studies.",
+  "description": "The same IMF indicator for two or more countries, one series each, from the IMF SDMX JSON data service (dataservices.imf.org, no API key).\nReturns: database, indicator_code, frequency and countries: per country the series (database, country_code, indicator_code, frequency, data (period, value) and count; a note when the series is empty) or country_code and error.\nInputs (* required): country_codes* (array of at least 2 ISO 2-letter codes); database (IFS, DOT, BOP, GFSR, FSI, WEO, GFSMAB, CDIS, CPIS, WHDREO; default IFS); indicator (a WEO name when database is WEO, else an IFS name; see imf_get_weo_data and imf_get_ifs_data) or indicator_code (wins); one of the two is needed; start_year and end_year (1950-2030; omit both for the full history); frequency (A, Q or M; default A).\nFor one country use imf_get_data, imf_get_ifs_data or imf_get_weo_data.\nExample: {\"country_codes\": [\"US\", \"DE\", \"JP\"], \"database\": \"WEO\", \"indicator\": \"public_debt\", \"start_year\": 2015, \"end_year\": 2025}",
   "version": "2.9.8",
   "enabled": true,
   "inputSchema": {
@@ -29,16 +29,19 @@
       },
       "start_year": {
         "type": "integer",
+        "description": "First year, YYYY; if only end_year is given this defaults to 1950",
         "minimum": 1950,
         "maximum": 2030
       },
       "end_year": {
         "type": "integer",
+        "description": "Last year, YYYY; if only start_year is given this defaults to the current year; omit both for the full history",
         "minimum": 1950,
         "maximum": 2030
       },
       "frequency": {
         "type": "string",
+        "description": "Frequency: A annual, Q quarterly, M monthly",
         "enum": ["A", "Q", "M"],
         "default": "A"
       }

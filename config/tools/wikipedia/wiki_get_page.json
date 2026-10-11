@@ -1,7 +1,7 @@
 {
   "name": "wiki_get_page",
   "implementation": "sajha.tools.impl.wikipedia_tool.WikiGetPageTool",
-  "description": "Retrieve the complete content of a Wikipedia article by title or page ID. Returns full article text, images, links, and metadata.",
+  "description": "The full plain-text content of one Wikipedia article, split into sections, with categories and last-revision details.\nReturns {title, page_id, url, language, content (full text), summary (first paragraph), sections: [{title, level, content}], categories, images (lead image only), last_modified, last_modified_by, revision_id, word_count, last_updated}; links, references and html_content are present but always empty.\nInputs (* required): query (string, exact title) or page_id (integer); one is needed, page_id wins. language (string, Wikipedia language code such as en, fr, de, zh; default en), redirect (boolean, default true), include_images (boolean, default true), include_links and include_references (accepted, no effect).\nLarge output; for an overview use wiki_get_summary.\nExample: {\"query\": \"Value at risk\"}\nNo API key. A title that does not exist gives 'Page not found'.",
   "version": "2.9.8",
   "enabled": true,
   "inputSchema": {

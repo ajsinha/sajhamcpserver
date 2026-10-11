@@ -1,7 +1,7 @@
 {
   "name": "sajha_search_docs",
   "implementation": "sajha.ai.rag.tool.SajhaSearchDocsTool",
-  "description": "Search SAJHA's documentation (guides, configuration reference, tutorials, tool reference guides) and the document sources an administrator configured. Returns the best-matching passages, each with its citation: document, section and link. Use it for questions about how SAJHA works and how to configure, run or use it.",
+  "description": "Search SAJHA's documentation (guides, configuration reference, tutorials, tool reference guides) and any document sources an administrator configured; no LLM involved.\nReturns: query, count and results, best first, each with citation (number), source, document, title, section, url (help-page link for SAJHA guides, else null), score and text (the passage, cut to 500 characters).\nInputs (* required): query* (plain words; a question works); top_k (1-20; default 3); source (only this source: sajha_docs, uploads or a configured source's name).\nNeeds the document index (ai.rag.enabled); otherwise the call fails saying document search is off. For an answer written from the passages use llm_docs_qa where enabled.\nExample: {\"query\": \"configure the redis state backend\", \"top_k\": 5}",
   "version": "1.0.0",
   "enabled": true,
   "inputSchema": {

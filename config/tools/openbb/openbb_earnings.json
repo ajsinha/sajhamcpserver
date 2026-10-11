@@ -1,7 +1,7 @@
 {
   "name": "openbb_earnings",
   "implementation": "sajha.tools.impl.openbb_tools.OpenBBEarningsTool",
-  "description": "Get earnings history and calendar via OpenBB \u2014 EPS estimates vs actuals, revenue surprises",
+  "description": "Meant to give earnings history for one stock through OpenBB (obb.equity.fundamental.earnings).\nReturns: {symbol, earnings: [...]} or {symbol, error}.\nInputs (* required): symbol*; provider (default yfinance).\nOpenBB 4.x (4.6 checked) has no obb.equity.fundamental.earnings, so this tool currently returns an error object; alternatives: yf_earnings_history, yf_earnings_dates or av_earnings.\nExample: {\"symbol\": \"AAPL\"}",
   "version": "4.5.0",
   "enabled": true,
   "inputSchema": {

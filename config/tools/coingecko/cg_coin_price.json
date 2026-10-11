@@ -1,7 +1,7 @@
 {
   "name": "cg_coin_price",
   "implementation": "sajha.tools.impl.coingecko_tools.CGCoinPriceTool",
-  "description": "Get current crypto prices from CoinGecko \u2014 price, 24h change, market cap for any coin",
+  "description": "Current price, 24-hour change and market cap for one or more cryptocurrencies, from CoinGecko (simple/price).\nReturns {coin_id: {<vs>: price, <vs>_market_cap, <vs>_24h_change (percent)}} per requested coin.\nInputs (* required): ids* (string, comma-separated CoinGecko coin ids such as bitcoin,ethereum,solana; not ticker symbols), vs (string, quote currency such as usd, eur, btc; default usd; several can be comma-separated).\nFor ranked lists with volume use cg_coin_markets; for history cg_coin_market_chart or cg_coin_history.\nExample: {\"ids\": \"bitcoin,ethereum\", \"vs\": \"usd\"}\nNo API key is sent (CoinGecko public API, rate-limited by CoinGecko); a failed call returns {\"error\": ...}.",
   "version": "4.5.0",
   "enabled": true,
   "inputSchema": {
@@ -13,6 +13,7 @@
         "description": "Coin IDs (comma-separated: bitcoin,ethereum,solana)"
       },
       "vs": {
+        "description": "Quote currency code(s), comma-separated (e.g. usd or usd,eur)",
         "type": "string",
         "default": "usd"
       }

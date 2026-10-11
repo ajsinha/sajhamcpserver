@@ -1,21 +1,23 @@
 {
   "name": "calc_future_value",
   "implementation": "sajha.tools.impl.calc_tools.CalcFutureValueTool",
-  "description": "Calculate future value \u2014 what a present sum grows to at a given rate",
+  "description": "Future value of a single present amount with annual compounding: FV = PV(1 + r)^t. Computed locally in Python; no API key or network.\nReturns {present_value, rate, years, future_value}, future_value rounded to 2 decimals.\nInputs (* required): present_value* (amount), rate* (annual rate in percent), years* (may be fractional).\nFor monthly or other compounding use calc_compound_interest; the inverse is calc_present_value.\nExample: {\"present_value\": 10000, \"rate\": 7, \"years\": 15}",
   "version": "4.5.0",
   "enabled": true,
   "inputSchema": {
     "type": "object",
     "properties": {
       "present_value": {
-        "type": "number"
+        "type": "number",
+        "description": "Amount today"
       },
       "rate": {
         "type": "number",
         "description": "%"
       },
       "years": {
-        "type": "number"
+        "type": "number",
+        "description": "Years (may be fractional)"
       }
     },
     "required": [

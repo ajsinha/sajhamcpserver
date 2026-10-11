@@ -1,7 +1,7 @@
 {
   "name": "extract_links",
   "implementation": "sajha.tools.impl.webcrawler_tool_refactored.ExtractLinksTool",
-  "description": "Extract all hyperlinks from a web page with options to normalize URLs and filter by internal/external",
+  "description": "All hyperlinks (<a href>) on one web page, marked internal or external.\nReturns {url, links: [{url, is_internal, is_absolute}], link_count, internal_count, external_count, extracted_at}.\nInputs (* required): url* (string, absolute http(s) URL), normalize (boolean, default true: relative links made absolute, unusable ones dropped), internal_only (boolean, default false: keep only same-domain links).\nTo follow the links as well use crawl_url; for a site's listed pages crawl_sitemap.\nExample: {\"url\": \"https://example.com\", \"internal_only\": true}\nFetches go through SAJHA's outbound fetch guard (loopback and cloud-metadata addresses refused; private networks too when tools.outbound.block_private_networks is on). No API key.",
   "version": "2.9.8",
   "enabled": true,
   "inputSchema": {

@@ -1,17 +1,19 @@
 {
   "name": "calc_percentage_change",
   "implementation": "sajha.tools.impl.calc_tools.CalcPercentageChangeTool",
-  "description": "Calculate percentage change between two values",
+  "description": "Percentage change from an old value to a new value: (new - old) / |old| * 100. Computed locally in Python; no API key or network.\nReturns {old_value, new_value, percentage_change} (4 decimals; 0 when old_value is 0).\nInputs (* required): old_value*, new_value* (numbers).\nExample: {\"old_value\": 80, \"new_value\": 92}",
   "version": "4.5.0",
   "enabled": true,
   "inputSchema": {
     "type": "object",
     "properties": {
       "old_value": {
-        "type": "number"
+        "type": "number",
+        "description": "Starting value"
       },
       "new_value": {
-        "type": "number"
+        "type": "number",
+        "description": "Ending value"
       }
     },
     "required": [

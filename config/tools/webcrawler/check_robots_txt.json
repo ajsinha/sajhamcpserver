@@ -1,7 +1,7 @@
 {
   "name": "check_robots_txt",
   "implementation": "sajha.tools.impl.webcrawler_tool_refactored.CheckRobotsTxtTool",
-  "description": "Check robots.txt file to determine if web crawling is allowed and get crawl delay recommendations",
+  "description": "Whether a site's robots.txt allows a user agent to fetch a URL, and its crawl delay.\nReturns {url, robots_url, can_fetch (boolean), user_agent, crawl_delay (seconds or null), checked_at}; when robots.txt is missing or unreadable, {url, can_fetch: true, note, error, checked_at}.\nInputs (* required): url* (string, absolute http(s) URL; a site root or a specific path), user_agent (string, default 'Mozilla/5.0 (compatible; WebCrawlerTool/1.0)', the agent the other crawler tools send).\ncrawl_url performs this check itself when respect_robots is true.\nExample: {\"url\": \"https://example.com/admin\", \"user_agent\": \"*\"}\nFetches go through SAJHA's outbound fetch guard (loopback and cloud-metadata addresses refused; private networks too when tools.outbound.block_private_networks is on). No API key.",
   "version": "2.9.8",
   "enabled": true,
   "inputSchema": {

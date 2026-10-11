@@ -1,7 +1,7 @@
 {
   "name": "fed_search_series",
   "implementation": "sajha.tools.impl.fed_reserve_tool_refactored.FedSearchSeriesTool",
-  "description": "Search for economic data series in the FRED database. Find the right data series using keywords and discover available economic indicators.",
+  "description": "Search FRED (Federal Reserve Bank of St. Louis) series by keywords.\nReturns: query, count and results (id, title, units, frequency, popularity, observation_start, observation_end) in FRED's order. In demo mode a small fixed list is returned whatever the query.\nInputs (* required): query* (keywords, e.g. treasury yield, housing prices); limit (1-100; default 20).\nPass an id to fed_get_series or fed_get_latest. Key: the api_key field of this tool's config (a FRED key); the shipped config sets none, so the tool runs in demo mode and returns synthetic values with a note. fred_custom_series reads FRED_API_KEY and returns live data.\nExample: {\"query\": \"consumer price index\", \"limit\": 10}",
   "version": "2.9.8",
   "enabled": true,
   "inputSchema": {

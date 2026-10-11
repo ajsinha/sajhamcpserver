@@ -1,7 +1,7 @@
 {
   "name": "fmp_market_gainers",
   "implementation": "sajha.tools.impl.fmp_tools.FMPMarketGainersTool",
-  "description": "Get today's biggest stock market gainers from FMP \u2014 top performing stocks by percentage change",
+  "description": "Today's largest percentage gainers from Financial Modeling Prep (FMP, /stable/stock-market-gainers): symbol, name, price, change and change %.\nReturns {gainers}: the list of stocks (empty if FMP returns no list).\nInputs (* required): limit (integer, number of stocks; default 5).\nSiblings: fmp_market_losers, fmp_most_active; sector moves: fmp_sector_performance.\nNeeds an FMP API key (config fmp.api.key, env FMP_API_KEY); without one it returns a demo placeholder naming the endpoint instead of data.\nExample: {\"limit\": 10}",
   "version": "4.5.0",
   "enabled": true,
   "inputSchema": {

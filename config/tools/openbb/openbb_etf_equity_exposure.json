@@ -1,7 +1,7 @@
 {
   "name": "openbb_etf_equity_exposure",
   "implementation": "sajha.tools.impl.openbb_tools.OpenBBGenericTool",
-  "description": "Get a stock's exposure across ETFs via OpenBB",
+  "description": "ETFs that hold a given stock, with weight and market value, through the OpenBB Platform (obb.etf.equity_exposure).\nReturns: {tool, data_points (total rows), data: first 100 rows as OpenBB returns them} or {tool, error}.\nInputs (* required): symbol* (stock ticker); provider (OpenBB 4.6 accepts fmp only; schema default fmp, but when omitted the tool sends yfinance, which this command rejects, so set it).\nThe reverse (what one ETF holds): openbb_etf_holdings; another source: fmp_etf_stock_exposure. Keys: fmp, benzinga, fred, intrinio, polygon and tiingo need credentials in OpenBB's settings (~/.openbb_platform/user_settings.json), not supplied by SAJHA; yfinance, oecd, federal_reserve, sec, imf and government_us need none.\nExample: {\"symbol\": \"NVDA\", \"provider\": \"fmp\"}",
   "version": "4.5.0",
   "enabled": true,
   "inputSchema": {
@@ -13,6 +13,7 @@
       },
       "provider": {
         "type": "string",
+        "description": "OpenBB data provider",
         "default": "fmp"
       }
     },

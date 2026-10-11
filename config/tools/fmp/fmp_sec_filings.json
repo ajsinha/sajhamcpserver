@@ -1,7 +1,7 @@
 {
   "name": "fmp_sec_filings",
   "implementation": "sajha.tools.impl.fmp_tools.FMPSECFilingsTool",
-  "description": "Get SEC filings from FMP \u2014 10-K, 10-Q, 8-K, S-1 and other regulatory filings with links and dates",
+  "description": "SEC filings for one company from Financial Modeling Prep (FMP, /stable/sec-filings): form type (10-K, 10-Q, 8-K, S-1 and others), filing date and links.\nReturns {symbol, filings}: FMP's list of filing records.\nInputs (* required): symbol* (ticker, e.g. AAPL; upper-cased), type (form type filter, e.g. 10-K), limit (integer; default 5).\nFor filing content use the edgar_* tools; for 13F holdings of a fund fmp_13f_filing.\nNeeds an FMP API key (config fmp.api.key, env FMP_API_KEY); without one it returns a demo placeholder naming the endpoint instead of data.\nExample: {\"symbol\": \"AAPL\", \"type\": \"10-K\", \"limit\": 5}",
   "version": "4.5.0",
   "enabled": true,
   "inputSchema": {

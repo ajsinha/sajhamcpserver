@@ -1,7 +1,7 @@
 {
   "name": "wb_get_lending_types",
   "implementation": "sajha.tools.impl.world_bank_tool.WBGetLendingTypesTool",
-  "description": "Retrieve World Bank lending type classifications and metadata. Get information about different lending categories for countries.",
+  "description": "List the World Bank lending-type classifications: IBRD, IDA, Blend and not classified (World Bank Indicators API v2, no API key).\nReturns: total_types, lending_types (id, iso2code, value) and descriptions, a fixed map of IBD, IDB, IDX and LNX to their names.\nInputs (none required): per_page (1-100; default 50).\nUse the ids as the lending_type filter of wb_get_countries. Siblings: wb_get_income_levels, wb_get_regions.\nExample: {}",
   "version": "2.9.8",
   "enabled": true,
   "inputSchema": {

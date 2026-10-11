@@ -1,7 +1,7 @@
 {
   "name": "ecb_get_bond_yield",
   "implementation": "sajha.tools.impl.european_central_bank_tool_refactored.ECBGetBondYieldTool",
-  "description": "Retrieve Euro Area government bond yields for various maturities (2Y, 5Y, 10Y) with historical data.",
+  "description": "Euro area government bond yields in percent (ECB yield curve, all euro area issuers, spot rate) for a 2, 5 or 10 year maturity, business-daily, from the ECB Data Portal API (data-api.ecb.europa.eu, no API key).\nReturns: flow, key, series_name, description, observation_count and observations (date, value) oldest first.\nInputs (* required): bond_term* (2y, 5y, 10y); start_date, end_date (YYYY-MM-DD); recent_periods (1-100; default 10): unless both dates are given only the last recent_periods observations are kept, and with no dates the look-back is recent_periods x 40 days.\nFor French government bonds use bdf_get_oat_yield; for policy rates ecb_get_interest_rate.\nExample: {\"bond_term\": \"10y\", \"recent_periods\": 30}",
   "version": "2.9.8",
   "enabled": true,
   "inputSchema": {

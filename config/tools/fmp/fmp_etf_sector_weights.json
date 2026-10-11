@@ -1,7 +1,7 @@
 {
   "name": "fmp_etf_sector_weights",
   "implementation": "sajha.tools.impl.fmp_tools.FMPGenericTool",
-  "description": "Get ETF sector weightings from FMP",
+  "description": "Sector allocation of one ETF from Financial Modeling Prep (FMP): weight per sector.\nReturns {tool, endpoint, data}: data is FMP's JSON from /stable/etf-sector-weightings as returned (usually a list of records).\nInputs (* required): symbol* (ETF ticker, sent as given, e.g. SPY).\nCountry mix: fmp_etf_country_weights; individual holdings: fmp_etf_holdings.\nNeeds an FMP API key (config fmp.api.key, env FMP_API_KEY); without one it returns a demo placeholder naming the endpoint instead of data.\nExample: {\"symbol\": \"SPY\"}",
   "version": "4.5.0",
   "enabled": true,
   "inputSchema": {

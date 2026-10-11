@@ -1,7 +1,7 @@
 {
   "name": "fbi_get_agency_details",
   "implementation": "sajha.tools.impl.fbi_tool_refactored.FBIGetAgencyDetailsTool",
-  "description": "Directory details for one law enforcement agency by ORI (name, type, county, coordinates, NIBRS status) plus its staffing from the police-employee data",
+  "description": "Directory details and staffing for one law enforcement agency by ORI, from the FBI Crime Data Explorer agency list and police-employee data.\nReturns: ori, agency_name, agency_type, location (state, state_name, county, latitude, longitude), reporting_status (is_nibrs, nibrs_start_date) and personnel for the year (male/female/total officers and civilians, total_employees, employees_per_1000, population_served), null when not reported; personnel_error if the staffing call fails.\nInputs (* required): ori* (9 letters/digits starting with the state code, e.g. VT0040100); year (staffing year; 1985 to the current year; default last year).\nFor crime figures use fbi_get_agency_statistics; to find an ORI use fbi_search_agencies. Key: api.data.gov key in FBI_API_KEY, else the rate-limited DEMO_KEY.\nExample: {\"ori\": \"VT0040100\", \"year\": 2023}",
   "version": "3.0.0",
   "enabled": true,
   "inputSchema": {

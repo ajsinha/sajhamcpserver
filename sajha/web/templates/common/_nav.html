@@ -102,7 +102,7 @@
 
 <nav class="navbar navbar-expand-lg sajha-nav fixed-top" aria-label="Main">
   <div class="container-fluid">
-    <a class="navbar-brand sajha-brand" href="{{ url_for('dashboard') if session.token else '/' }}">
+    <a class="navbar-brand sajha-brand" href="/">
       <svg class="sajha-mark" aria-hidden="true"><use href="#icon-sajha"/></svg>
       <span><span class="name">SAJHA</span><small>MCP Server</small></span></a>
     {% if session.token %}{% include "common/_net_badge.html" %}{% endif %}

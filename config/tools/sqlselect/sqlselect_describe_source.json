@@ -1,7 +1,7 @@
 {
   "name": "sqlselect_describe_source",
   "implementation": "sajha.tools.impl.sqlselect_tool_refactored.SqlSelectDescribeSourceTool",
-  "description": "Get detailed information about a specific data source including columns, types, row count, and metadata",
+  "description": "Columns and row count of one configured data source. Data sources are the named files configured in this tool's data_sources (CSV, Parquet or JSON in data.sqlselect.dir, default data/sqlselect), each loaded into a DuckDB table named after the source when the tool starts, with file and URL access then switched off; a source whose file is missing is listed but cannot be queried.\nReturns {success, source_name, file, type, description, row_count, columns, timestamp}: each column is {column_name, data_type, nullable, key}.\nInputs (* required): source_name* (as listed by sqlselect_list_sources).\nFor columns only use sqlselect_get_schema; for example rows sqlselect_sample_data.\nExample: {\"source_name\": \"orders\"}",
   "version": "2.9.8",
   "enabled": true,
   "data_directory": "${data.sqlselect.dir:./data/sqlselect}",

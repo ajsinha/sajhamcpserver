@@ -1,7 +1,7 @@
 {
   "name": "bdf_get_french_indicator",
   "implementation": "sajha.tools.impl.france_central_bank.BdFGetFrenchEconomicIndicatorTool",
-  "description": "Retrieve French economic indicators including CPI, GDP, and unemployment",
+  "description": "A French economic indicator: HICP inflation (annual rate of change, monthly), GDP (quarterly, current prices) or unemployment rate (monthly).\nReturns: series_code, label, unit, frequency (always reported as % and Daily), observation_count and observations (date, value).\nInputs (* required): indicator* (fr_cpi, fr_gdp, fr_unemployment; schema default fr_cpi); start_date, end_date (YYYY-MM-DD); recent_periods (1-100; default 10; keeps the last N observations, only when no date is given).\nFor euro area aggregates use bdf_get_eurozone_indicator or ecb_get_inflation. Despite the bdf_ name, data comes from the legacy ECB statistical web service (sdw-wsrest.ecb.europa.eu), no API key; the ecb_ tools read the same ECB data from the current ECB Data Portal API.\nExample: {\"indicator\": \"fr_cpi\", \"recent_periods\": 12}",
   "version": "2.9.8",
   "enabled": true,
   "metadata": {

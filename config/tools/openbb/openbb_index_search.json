@@ -1,7 +1,7 @@
 {
   "name": "openbb_index_search",
   "implementation": "sajha.tools.impl.openbb_tools.OpenBBGenericTool",
-  "description": "Search for market indexes via OpenBB",
+  "description": "Meant to search market indices by name through OpenBB (obb.index.search).\nReturns: {tool, data_points (total rows), data: first 100 rows as OpenBB returns them} or {tool, error}.\nInputs (* required): query* (default S&P); provider (schema default fmp; when omitted the tool sends yfinance).\nOpenBB 4.x (4.6 checked) has no obb.index.search, so this tool currently returns an error object; alternatives: openbb_index_available for the full list.\nExample: {\"query\": \"Nikkei\"}",
   "version": "4.5.0",
   "enabled": true,
   "inputSchema": {
@@ -9,10 +9,12 @@
     "properties": {
       "query": {
         "type": "string",
+        "description": "Search text",
         "default": "S&P"
       },
       "provider": {
         "type": "string",
+        "description": "OpenBB data provider",
         "default": "fmp"
       }
     },

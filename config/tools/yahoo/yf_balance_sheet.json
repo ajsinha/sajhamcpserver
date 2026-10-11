@@ -1,7 +1,7 @@
 {
   "name": "yf_balance_sheet",
   "implementation": "sajha.tools.impl.yfinance_tools.YFBalanceSheetTool",
-  "description": "Get balance sheet from Yahoo Finance \u2014 assets, liabilities, equity (annual or quarterly)",
+  "description": "Balance sheets (total assets, liabilities, equity, cash, debt and more) for one company from Yahoo Finance (yfinance balance_sheet).\nReturns: {symbol, statements: [one row per reporting period, newest first, with \"index\" = period end date and one key per line item]}; Yahoo usually has about 4 annual or 4-5 quarterly periods.\nInputs (* required): symbol*; quarterly (boolean; default false = annual).\nRelated: yf_income_statement, yf_cash_flow; other sources: av_balance_sheet, openbb_balance_sheet. No API key; data comes from Yahoo Finance through the yfinance library.\nExample: {\"symbol\": \"AAPL\", \"quarterly\": true}",
   "version": "4.5.0",
   "enabled": true,
   "inputSchema": {
@@ -13,6 +13,7 @@
       },
       "quarterly": {
         "type": "boolean",
+        "description": "true for quarterly statements, false for annual",
         "default": false
       }
     },

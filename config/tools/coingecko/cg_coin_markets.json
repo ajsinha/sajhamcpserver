@@ -1,17 +1,19 @@
 {
   "name": "cg_coin_markets",
   "implementation": "sajha.tools.impl.coingecko_tools.CGCoinMarketsTool",
-  "description": "Get top crypto by market cap from CoinGecko \u2014 ranked list with prices and 24h change",
+  "description": "Ranked list of coins with market data in USD from CoinGecko (coins/markets).\nReturns {coins: [{id, symbol, name, current_price, market_cap, market_cap_rank, total_volume, high_24h, low_24h, price_change_percentage_24h, circulating_supply, ath, ...}]}.\nInputs (* required): order (string, CoinGecko sort: market_cap_desc, market_cap_asc, volume_desc, volume_asc, id_asc or id_desc; default market_cap_desc), limit (integer, coins per page; default 50; CoinGecko allows up to 250). Quote currency is fixed to usd.\nFor specific coins use cg_coin_price; for 24h movers cg_top_gainers and cg_top_losers.\nExample: {\"order\": \"volume_desc\", \"limit\": 20}\nNo API key is sent (CoinGecko public API, rate-limited by CoinGecko); a failed call returns {\"error\": ...}.",
   "version": "4.5.0",
   "enabled": true,
   "inputSchema": {
     "type": "object",
     "properties": {
       "order": {
+        "description": "Sort order: market_cap_desc, market_cap_asc, volume_desc, volume_asc, id_asc or id_desc",
         "type": "string",
         "default": "market_cap_desc"
       },
       "limit": {
+        "description": "Number of coins (CoinGecko allows up to 250)",
         "type": "integer",
         "default": 50
       }

@@ -40,8 +40,9 @@ judgement. They are collected in [section 5](#5-decisions-needed).
 
 ## 2. Now
 
-Nothing is open. Every wave of the [Implementation Plan](Implementation%20Plan.md) so far has shipped;
-the next wave is the owner's choice from the items below.
+Every wave of the [Implementation Plan](Implementation%20Plan.md) through wave 7 has shipped. Wave 8
+(tool health, open data, business intelligence and reports) is placed and planned: its items are
+L21 to L50 in [section 4.3](#43-wave-8-placed).
 
 ---
 
@@ -97,11 +98,65 @@ the next wave is the owner's choice from the items below.
 | L16 | SAJHA Net, finished | Domain data sovereignty across SAJHA and other MCP servers is built (waves 4 and 5 of the [Implementation Plan](Implementation%20Plan.md)); a few parts of the design are not | [SAJHA Net §5.5](SAJHA%20Net.md#55-what-is-built) lists what is built and what remains, with the protocol's conformance ids not yet covered | Take the remaining items in that section's order; each lands with its conformance case | M | none |
 | L19 | SAJHA Net: tasks held at the host | A long remote job should survive a restart of the server the client called, and run longer than one hop's deadline | A task at the home wraps a forwarded call (polling and cancellation work for remote tools); the task lives only at the home, so a home restart loses it and the hop's deadline (`sajhanet.default_timeout_seconds`) bounds it; the `tasks` feature is not listed ([SAJHA Net §5.5](SAJHA%20Net.md#55-what-is-built), protocol §15.6 and §22) | Host-side tasks: a task-augmented forwarded call creates the task at the host for the resolved net user, and the home relays `tasks/get`, `tasks/update` and `tasks/cancel` as signed requests with the same identity; list `tasks` | M | none |
 
+### 4.3 Wave 8 (placed)
+
+The owner approved these items on 2026-10-11 and placed them in wave 8 of the
+[Implementation Plan](Implementation%20Plan.md#7b-wave-8-tool-health-open-data-business-intelligence-and-reports):
+
+| Phase | Items | Release |
+|---|---|---|
+| 8.1 | L21–L25 | 8.8.0 |
+| 8.2 | L26–L39 | 8.9.0 |
+| 8.3 | L40–L44 | 8.10.0 |
+| 8.4 | L45–L50 | 8.11.0 |
+
+| ID | Item | Why it matters | Current state | Proposed approach | Size | Depends on |
+|---|---|---|---|---|---|---|
+| L21 | Schema defaults applied before every call (wave 8) | A client reads a tool's `default` and expects it; today the code's own default wins, and they disagree | Nothing applies `inputSchema` defaults; FRED, Alpha Vantage, Bank of Japan, Banque de France and OpenBB tools differ from their schemas ([Tool Quality §12](Tool%20Quality.md#12-planned-tool-health-wave-8-phase-81)) | One helper on every call path: absent keys only, never `required`, nested objects only when supplied; per-tool decisions listed in the CHANGELOG; a one-release switch | M | none |
+| L22 | Broken tools fixed or removed, and one SDMX client (wave 8) | Tools that cannot work erode trust in all of them | OpenBB commands absent in 4.6, Yahoo endpoints refused, Banque de France on a dead host, RBI's undocumented API, demo data without a key, stubs, misnamed series ([Tool Quality §12](Tool%20Quality.md#12-planned-tool-health-wave-8-phase-81).2) | Fix where a documented upstream exists, else remove; a shared SDMX client for ECB, IMF and Banque de France; descriptions rewritten with the fix | M | none |
+| L23 | Live tool check (wave 8) | A broken upstream is found by a user, not by SAJHA | Probes run only hand-written cases, and they raise no notice ([Tool Quality §12](Tool%20Quality.md#12-planned-tool-health-wave-8-phase-81).4) | Call every read-only tool once with its schema example, one call at a time per folder; outcomes on the Tool Health page and one notice per folder; structured examples added to every shipped tool | M | L21 |
+| L24 | Domain descriptions (wave 8) | A model needs what a whole folder is for (codes, units, attribution) without it being repeated in every tool | Folders only group tools ([Architecture §5](Architecture.md#domain-descriptions-planned)) | An optional `domain.txt` per folder appended to served descriptions, never written into tool files, hot-reloaded, shown on the Domains page, left out where it would push a description past SAJHA Net's limit | S | none |
+| L25 | Generated Tool Reference Guide tables (wave 8) | Five provider guides claim generated tables that nobody generates | No generator exists ([Tool Quality §12](Tool%20Quality.md#12-planned-tool-health-wave-8-phase-81).5) | `python -m sajha.tools guides` rewrites marked regions from tool configs; `--check` in the test suite | S | L21 |
+| L26 | Business calendars (`calendars`) (wave 8) | Settlement dates, business-day counts and holidays are in every finance question | Not built; Nager.Date dropped for its commercial terms ([Open Data Tools](Open%20Data%20Tools.md)) | Offline calendars from the MIT `holidays` package: holidays, business days, add business days, settlement and date adjustment | S | none |
+| L27 | Legal entities (`gleif`) (wave 8) | Counterparty hierarchy is the base of exposure reporting | Not built ([Open Data Tools](Open%20Data%20Tools.md)) | LEI lookup and search, direct and ultimate parents and children, ISINs; CC0 | S | none |
+| L28 | BIS statistics (`bis`) (wave 8) | One cross-country source for policy rates, credit gaps, property prices and effective exchange rates | Not built ([Open Data Tools](Open%20Data%20Tools.md)) | Host profile on the shared SDMX client; "Source: BIS" on every result | S | L22 |
+| L29 | US Treasury (`us_treasury`) (wave 8) | The official yield curve, debt, auctions and daily statement | Not built ([Open Data Tools](Open%20Data%20Tools.md)) | Fiscal Data and the par yield curve feeds, tenors and percent as inputs | S | none |
+| L30 | Sanctions screening (`sanctions`) (wave 8) | Screening against official lists is a daily control | Not built; OpenSanctions dropped for its licence ([Open Data Tools](Open%20Data%20Tools.md)) | OFAC, EU, UK and (after legal sign-off) UN lists in a local index refreshed by a workflow; fuzzy screening, entries, changes | M | none |
+| L31 | FDIC BankFind (`fdic`) (wave 8) | US bank institutions, financials and failures | Not built ([Open Data Tools](Open%20Data%20Tools.md)) | Institutions, financials, failures, locations, history, deposits; optional key; cached | S | none |
+| L32 | CFTC Commitments of Traders (`cftc`) (wave 8) | Positioning by trader category | Not built ([Open Data Tools](Open%20Data%20Tools.md)) | Latest, history, markets and net positioning over the Socrata datasets, with an app token | S | none |
+| L33 | Eurostat and OECD (`eurostat`, `oecd`) (wave 8) | Monthly and quarterly European and OECD statistics | Not built ([Open Data Tools](Open%20Data%20Tools.md)) | Host profiles on the shared SDMX client; OECD under one shared hourly budget | M | L22 |
+| L34 | Statistics offices (`ons`, `statcan`, `abs`) (wave 8) | First-hand national statistics for the UK, Canada and Australia | Not built ([Open Data Tools](Open%20Data%20Tools.md)) | One folder per office; ABS on the SDMX client | M | L22 |
+| L35 | US BLS, BEA and EIA (`bls`, `bea`, `eia`) (wave 8) | First-hand US labour, national accounts and energy data | Not built; BEA answered 503 on the day it was checked ([Open Data Tools](Open%20Data%20Tools.md)) | Keys from the environment; BLS v2; curated and generic tools | M | none |
+| L36 | Hazards (`hazards`) (wave 8) | Operational and physical-climate risk questions | Not built; Open-Meteo dropped for its non-commercial free tier ([Open Data Tools](Open%20Data%20Tools.md)) | USGS earthquakes, GDACS alerts with their disclaimer, NASA FIRMS fires | S | none |
+| L37 | Research and Wikidata (`research`, `wikipedia`) (wave 8) | Literature and entity facts behind an answer | Not built ([Open Data Tools](Open%20Data%20Tools.md)) | OpenAlex (key and budget), Crossref, arXiv (global throttle); Wikidata in the existing `wikipedia` folder | M | none |
+| L38 | News events (`gdelt`) (wave 8) | Coverage and tone of events over time | Not built; GEO 2.0 dropped ([Open Data Tools](Open%20Data%20Tools.md)) | DOC, TV and Context APIs, serialised at one call per 5 seconds, cached | S | none |
+| L39 | Public spending and catalogue (`us_spending`) (wave 8) | US federal awards and the data.gov catalogue | Not built; the CKAN API is gone ([Open Data Tools](Open%20Data%20Tools.md)) | USAspending search and recipients; the new data.gov catalogue API pinned by a contract test | S | none |
+| L40 | Metrics layer (`bi`) (wave 8) | Every caller re-invents "revenue" in SQL | OLAP measures are DuckDB expressions, not owned metrics ([Business Intelligence](Business%20Intelligence.md)) | Metric definitions with owner, grain and dimensions, compiled to safe SQL that runs through the source's own guard; list, describe, query | L | none |
+| L41 | BI analysis tools (wave 8) | People ask compared with when, why it changed and what next | The OLAP engines for cohorts and windows are not exposed ([Business Intelligence](Business%20Intelligence.md)) | Compare, top-N and Pareto, crosstab, cohort retention, contribution analysis, anomalies, forecasts | M | L40 |
+| L42 | Charts and blending tool results (wave 8) | Answers need pictures, and public data joined with internal data | No chart tool; tool output cannot be joined with tables ([Business Intelligence](Business%20Intelligence.md)) | `bi_chart` (spec, SVG, MCP Apps view); `bi_load_tool_result` into a private, expiring DuckDB table per user | M | L40 |
+| L43 | Dataset catalogue, profiling and data quality (wave 8) | Trust in a metric needs its data's freshness and checks | Not built ([Business Intelligence](Business%20Intelligence.md)) | A catalogue across OLAP, DuckDB and connectors; profiling; check suites scheduled as workflows with notices and alerts | M | L40 |
+| L44 | Dashboards (wave 8) | Teams look at the same metrics every day | Not built ([Business Intelligence](Business%20Intelligence.md)) | Dashboard files of tiles (the unit reports reuse), a BI console page | M | L41, L42 |
+| L45 | Report definitions and engine (`reports`) (wave 8) | Recurring documents built by hand from tool output | Not built ([Reports](Reports.md)) | Definitions in a reports directory published as `report_<name>` tools; run, list, describe, history | L | L44 |
+| L46 | Report formats (wave 8) | Recipients want PDF, Excel, PowerPoint or Word | Not built ([Reports](Reports.md)) | HTML, Markdown, DOCX; PDF through headless Chromium, XLSX and PPTX as optional dependencies; classification marking; provenance appendix | M | L45 |
+| L47 | Narration with a numbers check (wave 8) | Model commentary must not invent figures | Not built ([Reports](Reports.md)) | `report_narrate` over the run's data only; every number checked against the data; rejected text never delivered | M | L45 |
+| L48 | Report delivery and governance (wave 8) | Reports leave the building | Not built ([Reports](Reports.md)) | Email, Teams or Slack webhook, SharePoint, folder; approval for external targets; audit; scheduling through workflows | M | L45, L46 |
+| L49 | Studio Report creator and report library page (wave 8) | Authors need to build and run reports without YAML | Not built; `/reports` is today the usage dashboard ([Reports](Reports.md)) | A Studio creator with preview; a library page with run, history and compare | M | L45 |
+| L50 | Flagship reports (wave 8) | Each proves the design on a real need | Not built ([Reports](Reports.md)) | Daily risk, counterparty exposure, regulatory capital, morning brief, company tearsheet, country profile, central bank watch, metric pack, data quality, platform report, access review | M | L46–L48 |
+
 ---
 
 ## 5. Decisions needed
 
-None open. Recorded decisions:
+Open, from wave 8 (each is detailed in the owning design):
+
+- **UN sanctions list terms, and screening results shown to people and models** (L30):
+  [Open Data Tools §6](Open%20Data%20Tools.md#6-decisions-needed).
+- **Paid data options** (OpenAlex beyond its free budget, Open-Meteo, a Nager.Date sponsorship):
+  spending decisions; the design works without them.
+- **The name of the existing `/reports` usage page** once report definitions get their own page (L49):
+  [Reports §9](Reports.md#9-console-and-studio).
+
+Recorded decisions:
 
 - **Release 7.0.0** cut on the owner's decision (formerly N1).
 - **TypeScript client** stays deferred (X16).

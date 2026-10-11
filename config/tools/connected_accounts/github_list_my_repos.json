@@ -2,7 +2,7 @@
   "name": "github_list_my_repos",
   "implementation": "sajha.accounts.tools.github.GithubListMyReposTool",
   "title": "List my GitHub repositories",
-  "description": "List the GitHub repositories the signed-in user can access (owned, collaborator and organization), as that user, through their connected GitHub account. Returns name, visibility, description, URL, language, stars and open issues, most recently updated first.",
+  "description": "List the GitHub repositories the signed-in user can access, as that user, through their connected GitHub account (GitHub REST API GET /user/repos).\nReturns: account (GitHub login), count and repositories (full_name, private, description, url, default_branch, language, stars, open_issues, updated_at).\nInputs (none required): limit (1-100; default 30); sort (updated, created, pushed, full_name; default updated); visibility (all, public, private; default all); affiliation (comma-separated owner, collaborator, organization_member; default all three).\nFor other GitHub reads use connected_http_request; to open an issue github_create_issue. Runs only for a signed-in SAJHA user; when the account is not linked, or lacks the scope, the call returns a request to connect it with a link instead of a result.\nExample: {\"limit\": 10, \"visibility\": \"private\", \"affiliation\": \"owner\"}",
   "version": "1.0.0",
   "enabled": true,
   "auth": {

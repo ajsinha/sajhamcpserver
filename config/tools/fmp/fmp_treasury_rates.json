@@ -1,7 +1,7 @@
 {
   "name": "fmp_treasury_rates",
   "implementation": "sajha.tools.impl.fmp_tools.FMPTreasuryRatesTool",
-  "description": "Get US Treasury rates from FMP \u2014 yield curve data across 1mo, 3mo, 6mo, 1yr, 2yr, 5yr, 10yr, 30yr maturities",
+  "description": "US Treasury yield curve history from Financial Modeling Prep (FMP, /stable/treasury): daily yields for maturities from 1 month to 30 years, in percent.\nReturns {rates}: FMP's list of daily records, one per date.\nInputs (* required): from_date (YYYY-MM-DD), to_date (YYYY-MM-DD); both optional.\nFor macro events use fmp_economic_calendar; for equity risk premia fmp_market_risk_premium.\nNeeds an FMP API key (config fmp.api.key, env FMP_API_KEY); without one it returns a demo placeholder naming the endpoint instead of data.\nExample: {\"from_date\": \"2025-01-01\", \"to_date\": \"2025-01-31\"}",
   "version": "4.5.0",
   "enabled": true,
   "inputSchema": {

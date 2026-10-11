@@ -1,7 +1,7 @@
 {
   "name": "openbb_balance_sheet",
   "implementation": "sajha.tools.impl.openbb_tools.OpenBBBalanceSheetTool",
-  "description": "Get balance sheet via OpenBB \u2014 assets, liabilities, equity, cash, debt from Yahoo Finance, FMP, or Intrinio",
+  "description": "Balance sheets (assets, liabilities, equity, cash, debt) for one company through the OpenBB Platform (obb.equity.fundamental.balance).\nReturns: {symbol, statements: [one record per period with period_ending, fiscal period and the line items]}.\nInputs (* required): symbol*; period (annual or quarter; default annual); limit (number of periods; default 5); provider (OpenBB 4.6 accepts fmp, intrinio, polygon, sec, yfinance; default yfinance, no key).\nRelated: openbb_income_statement, openbb_cash_flow; other sources: yf_balance_sheet, av_balance_sheet. Keys: fmp, benzinga, fred, intrinio, polygon and tiingo need credentials in OpenBB's settings (~/.openbb_platform/user_settings.json), not supplied by SAJHA; yfinance, oecd, federal_reserve, sec, imf and government_us need none.\nExample: {\"symbol\": \"AAPL\", \"period\": \"quarter\", \"limit\": 4, \"provider\": \"yfinance\"}",
   "version": "4.5.0",
   "enabled": true,
   "inputSchema": {

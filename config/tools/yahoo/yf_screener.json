@@ -1,7 +1,7 @@
 {
   "name": "yf_screener",
   "implementation": "sajha.tools.impl.yfinance_tools.YFScreenerTool",
-  "description": "Screen stocks using Yahoo Finance \u2014 gainers, losers, most active, undervalued, growth",
+  "description": "Yahoo Finance predefined stock screens (day gainers, losers, most active and others), through yfinance's Screener class.\nReturns: {screen_type, count, results: up to 50 Yahoo quote objects} or {screen_type, error}.\nInputs (* required): screen_type (day_gainers, day_losers, most_actives, undervalued_large_caps, aggressive_small_caps, growth_technology_stocks, undervalued_growth_stocks; default day_gainers).\nyfinance 0.2.66 (the version installed with SAJHA at the time of writing) no longer has yf.Screener, so this returns the error form; openbb_equity_discovery_gainers, openbb_equity_discovery_losers and openbb_equity_discovery_active (provider yfinance) cover the same lists. No API key; data comes from Yahoo Finance through the yfinance library.\nExample: {\"screen_type\": \"most_actives\"}",
   "version": "4.5.0",
   "enabled": true,
   "inputSchema": {
@@ -9,6 +9,7 @@
     "properties": {
       "screen_type": {
         "type": "string",
+        "description": "Yahoo predefined screen",
         "default": "day_gainers",
         "enum": [
           "day_gainers",

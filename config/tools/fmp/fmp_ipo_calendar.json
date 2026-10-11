@@ -1,7 +1,7 @@
 {
   "name": "fmp_ipo_calendar",
   "implementation": "sajha.tools.impl.fmp_tools.FMPIPOCalendarTool",
-  "description": "Get upcoming and recent IPOs from FMP \u2014 company name, expected date, price range, shares offered, exchange",
+  "description": "IPO calendar from Financial Modeling Prep (FMP, /stable/ipo-calendar): company, expected date, exchange, price range and shares offered for upcoming and recent listings.\nReturns {ipos}: FMP's list of IPO records.\nInputs (* required): from_date (YYYY-MM-DD), to_date (YYYY-MM-DD); both optional.\nFor private offerings use fmp_equity_offering or fmp_crowdfunding_rss; other calendars: fmp_earnings_calendar, fmp_dividend_calendar.\nNeeds an FMP API key (config fmp.api.key, env FMP_API_KEY); without one it returns a demo placeholder naming the endpoint instead of data.\nExample: {\"from_date\": \"2025-09-01\", \"to_date\": \"2025-09-30\"}",
   "version": "4.5.0",
   "enabled": true,
   "inputSchema": {

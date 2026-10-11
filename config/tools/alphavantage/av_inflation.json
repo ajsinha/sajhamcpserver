@@ -1,7 +1,7 @@
 {
   "name": "av_inflation",
   "implementation": "sajha.tools.impl.alphavantage_tools.AVInflationTool",
-  "description": "Get US inflation rate from Alpha Vantage",
+  "description": "Annual US inflation rate (consumer prices, percent) from Alpha Vantage (INFLATION). Takes no inputs.\nReturns: {name, interval, unit, data: [{date, value}]} with yearly values as strings, newest first. Alpha Vantage's JSON comes back unchanged, including its \"Error Message\" or \"Information\" notes; a network failure gives {\"error\": ...}.\nFor the monthly index level use av_cpi; other sources: fred_cpi, openbb_economy_cpi.\nKey: ALPHA_VANTAGE_API_KEY (alpha_vantage.api.key); when unset the 'demo' key is sent, which only serves Alpha Vantage's documentation examples. Free tier: 25 requests/day.\nExample: {}",
   "version": "4.5.0",
   "enabled": true,
   "inputSchema": {

@@ -1,7 +1,7 @@
 {
   "name": "boc_get_common_indicators",
   "implementation": "sajha.tools.impl.bank_of_canada_tool_refactored.BoCGetCommonIndicatorsTool",
-  "description": "Retrieve a dashboard of key Canadian economic indicators with their latest values in a single API call. Optimized for economic overview displays.",
+  "description": "Latest values of several headline Canadian indicators in one call (one Valet request per indicator), from the Bank of Canada Valet API (no API key).\nReturns: indicators keyed by name (series_name, label, value, date, description, or an error) and last_updated.\nInputs (none required): indicators (array of 1-15 of usd_cad, eur_cad, gbp_cad, jpy_cad, cny_cad, policy_rate, overnight_rate, prime_rate, bond_2y/5y/10y/30y, cpi, core_cpi, gdp; default usd_cad, policy_rate, bond_10y, cpi).\nFor history use boc_get_series; for a single value boc_get_latest.\nExample: {\"indicators\": [\"usd_cad\", \"policy_rate\", \"bond_2y\", \"bond_10y\"]}",
   "version": "2.9.8",
   "enabled": true,
   "inputSchema": {

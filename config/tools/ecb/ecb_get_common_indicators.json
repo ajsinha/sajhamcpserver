@@ -1,7 +1,7 @@
 {
   "name": "ecb_get_common_indicators",
   "implementation": "sajha.tools.impl.european_central_bank_tool_refactored.ECBGetCommonIndicatorsTool",
-  "description": "Retrieve a dashboard of key Euro Area economic indicators with their latest values in a single API call. Optimized for economic overview displays.",
+  "description": "Latest values of several headline euro area indicators in one call (one ECB request per indicator), from the ECB Data Portal API (data-api.ecb.europa.eu, no API key).\nReturns: indicators keyed by name (flow, key, description, value, date, or an error) and last_updated. Each looks back about 40 days, so monthly or quarterly ones (hicp_overall, gdp, unemployment_rate, m1-m3) can show an error instead of a value.\nInputs (none required): indicators (array of 1-20 of eur_usd, eur_gbp, main_refinancing_rate, deposit_facility_rate, bond_2y, bond_5y, bond_10y, hicp_overall, hicp_core, gdp, unemployment_rate, m1, m2, m3; default eur_usd, main_refinancing_rate, bond_10y, hicp_overall, unemployment_rate).\nFor history use ecb_get_series.\nExample: {\"indicators\": [\"eur_usd\", \"deposit_facility_rate\", \"bond_10y\"]}",
   "version": "2.9.8",
   "enabled": true,
   "inputSchema": {

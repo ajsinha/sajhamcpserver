@@ -1,7 +1,7 @@
 {
   "name": "sec_get_company_info",
   "implementation": "sajha.tools.impl.sec_edgar_tool_refactored.SECGetCompanyInfoTool",
-  "description": "Retrieve detailed company information including business address, SIC code, and fiscal year end",
+  "description": "A company's SEC registration profile from EDGAR (data.sec.gov submissions), by CIK or ticker.\nReturns {cik, name, tickers, exchanges, sic, sic_description, category, fiscal_year_end (MMDD), state_of_incorporation, business_address, mailing_address, ein, phone, website, investor_website}.\nInputs (* required): cik or ticker (one of them is needed; cik, 10 digits or shorter, wins when both are given; a ticker is resolved through the SEC company-tickers file).\nFor the filing list as well use edgar_company_submissions or sec_get_company_filings.\nExample: {\"ticker\": \"MSFT\"}\nNo API key; SEC data.sec.gov (requests are not throttled; the SEC allows 10 per second).",
   "version": "2.9.8",
   "enabled": true,
   "inputSchema": {

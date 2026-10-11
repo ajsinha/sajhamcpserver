@@ -1,7 +1,7 @@
 {
   "name": "boj_get_money_supply",
   "implementation": "sajha.tools.impl.japan_central_bank.BoJGetMoneySupplyTool",
-  "description": "Retrieve Japanese money stock indicators (M1, M2, M3) with historical data.",
+  "description": "Japanese money stock (M1, M2 or M3, monthly, national currency) from FRED (Federal Reserve Bank of St. Louis, IMF and OECD series).\nReturns: series_code (FRED id), series_id, label, source, observation_count and observations (date, value) oldest first, missing values dropped.\nInputs (* required): aggregate* (m1, m2, m3; schema default m2); start_date, end_date (YYYY-MM-DD); recent_periods (1-100; the last N observations, with no dates looking back N x 45 days; when omitted the whole history in the date range is returned).\nFor prices use boj_get_inflation; all series: boj_list_series. Needs a FRED API key (FRED_API_KEY, config fred.api.key); without one the call fails with a message saying so.\nExample: {\"aggregate\": \"m2\", \"start_date\": \"2020-01-01\", \"end_date\": \"2024-12-31\"}",
   "version": "2.9.8",
   "enabled": true,
   "inputSchema": {

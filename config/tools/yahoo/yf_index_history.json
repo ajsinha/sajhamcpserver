@@ -1,7 +1,7 @@
 {
   "name": "yf_index_history",
   "implementation": "sajha.tools.impl.yfinance_tools.YFIndexHistoryTool",
-  "description": "Get market index history from Yahoo Finance \u2014 S&P 500, NASDAQ, Dow Jones, Russell",
+  "description": "Daily history for one market index from Yahoo Finance.\nReturns: {index, data_points (total days), prices: the first (oldest) 100 days, each {Date, Open, High, Low, Close, Volume, Dividends, Stock Splits}}; with the default 1y period the most recent months are cut off, so a shorter period gives the latest data.\nInputs (* required): index* (Yahoo index symbol, e.g. ^GSPC, ^DJI, ^IXIC, ^RUT; default ^GSPC); period (1mo, 3mo, 6mo, 1y, 5y, ytd, max, ...; default 1y).\nUp to 500 bars: yf_stock_history with the index symbol; latest levels: yf_market_summary. No API key; data comes from Yahoo Finance through the yfinance library.\nExample: {\"index\": \"^IXIC\", \"period\": \"3mo\"}",
   "version": "4.5.0",
   "enabled": true,
   "inputSchema": {
@@ -14,6 +14,7 @@
       },
       "period": {
         "type": "string",
+        "description": "yfinance period, e.g. 1mo, 3mo, 6mo, 1y, ytd, max",
         "default": "1y"
       }
     },

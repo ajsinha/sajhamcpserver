@@ -1,7 +1,7 @@
 {
   "name": "fmp_stock_news",
   "implementation": "sajha.tools.impl.fmp_tools.FMPStockNewsTool",
-  "description": "Get latest stock market news from FMP \u2014 headlines, summaries, sources, sentiment for specific stocks or the broader market",
+  "description": "Recent news articles from Financial Modeling Prep (FMP, /stable/stock-news) for one stock, or general market news when no symbol is given: title, text snippet, source site, URL, published date.\nReturns {symbol, articles_count, articles}: symbol is \"market\" when omitted.\nInputs (* required): symbol (ticker, optional; upper-cased), limit (integer 1-50; default 10).\nFor company announcements use fmp_press_releases; for filings fmp_sec_filings.\nNeeds an FMP API key (config fmp.api.key, env FMP_API_KEY); without one it returns a demo placeholder naming the endpoint instead of data.\nExample: {\"symbol\": \"TSLA\", \"limit\": 5}",
   "version": "4.5.0",
   "enabled": true,
   "inputSchema": {

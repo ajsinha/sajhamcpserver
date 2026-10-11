@@ -1,7 +1,7 @@
 {
   "name": "calc_bond_price",
   "implementation": "sajha.tools.impl.calc_tools.CalcBondPriceTool",
-  "description": "Calculate bond price given face value, coupon rate, yield, and years to maturity",
+  "description": "Price of a fixed-coupon bond with semi-annual coupons, discounted at a flat yield: sum of coupon/(1+y/2)^i plus face/(1+y/2)^(2n). Computed locally in Python; no API key or network.\nReturns {face_value, coupon_rate, yield, price}, price rounded to 2 decimals.\nInputs (* required): face_value (amount; default 1000), coupon_rate* (annual percent), yield_rate* (annual percent), years* (integer years to maturity).\nFor curve-based pricing with accrued interest and risk measures use qlrisk_price_treasury_bond or qlrisk_price_corporate_bond.\nExample: {\"face_value\": 1000, \"coupon_rate\": 5, \"yield_rate\": 4.5, \"years\": 10}",
   "version": "4.5.0",
   "enabled": true,
   "inputSchema": {
@@ -9,6 +9,7 @@
     "properties": {
       "face_value": {
         "type": "number",
+        "description": "Face (par) value",
         "default": 1000
       },
       "coupon_rate": {
@@ -20,7 +21,8 @@
         "description": "%"
       },
       "years": {
-        "type": "integer"
+        "type": "integer",
+        "description": "Years to maturity (whole years)"
       }
     },
     "required": [

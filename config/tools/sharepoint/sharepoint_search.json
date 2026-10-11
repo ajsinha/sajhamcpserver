@@ -1,6 +1,6 @@
 {
     "name": "sharepoint_search",
-    "description": "Enterprise search across SharePoint - documents, sites, people, and lists",
+    "description": "Search the configured SharePoint site via the Microsoft Graph search API (documents, list items, sites), or the directory for people.\nReturns {query, total_results, result_count, results: [{title, path (URL), author, modified, size, summary, content_class}], success, execution_time_ms}; people: [{title, email, job_title, department, id}]; or {success: false, error}.\nInputs (* required): query* (string, KQL; * for everything), search_type (all | documents | people | sites; default all), file_types (array of extensions such as docx, pdf), max_results (1-500, default 50), start_row (offset for paging, default 0).\nLimited to the configured site; people search covers the tenant. Folder browsing: sharepoint_documents.\nExample: {\"query\": \"quarterly risk report\", \"search_type\": \"documents\", \"file_types\": [\"pdf\"]}\nNeeds SHAREPOINT_SITE_URL, AZURE_TENANT_ID, SHAREPOINT_CLIENT_ID, SHAREPOINT_CLIENT_SECRET (Entra ID app); unset, it answers 'SharePoint is not configured'.",
     "category": "Document Management",
     "version": "2.9.8",
     "enabled": true,
@@ -21,6 +21,7 @@
                 "description": "Search query"
             },
             "search_type": {
+                "description": "What to search: all (files, list items, sites), documents, people or sites",
                 "type": "string",
                 "enum": [
                     "all",
@@ -39,12 +40,14 @@
                 "description": "Filter by file types (e.g., ['docx', 'pdf'])"
             },
             "max_results": {
+                "description": "Maximum results (1-500)",
                 "type": "integer",
                 "default": 50,
                 "maximum": 500,
                 "minimum": 1
             },
             "start_row": {
+                "description": "Offset of the first result, for paging",
                 "type": "integer",
                 "default": 0,
                 "minimum": 0

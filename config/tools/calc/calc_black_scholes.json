@@ -1,20 +1,23 @@
 {
   "name": "calc_black_scholes",
   "implementation": "sajha.tools.impl.calc_tools.CalcBlackScholesTool",
-  "description": "Calculate option prices using Black-Scholes model \u2014 European call and put",
+  "description": "Black-Scholes prices of a European call and put on a non-dividend-paying stock. Computed locally in Python; no API key or network.\nReturns {call_price, put_price, d1, d2}, 4 decimals; no Greeks.\nInputs (* required): stock_price* (spot), strike*, time_years* (time to expiry in years, > 0, e.g. 0.5), risk_free_rate* (annual percent, continuous), volatility* (annual percent, > 0).\nFor dividends, American exercise or Greeks use qlrisk_price_equity_option.\nExample: {\"stock_price\": 100, \"strike\": 105, \"time_years\": 0.5, \"risk_free_rate\": 4, \"volatility\": 25}",
   "version": "4.5.0",
   "enabled": true,
   "inputSchema": {
     "type": "object",
     "properties": {
       "stock_price": {
-        "type": "number"
+        "type": "number",
+        "description": "Current price of the underlying"
       },
       "strike": {
-        "type": "number"
+        "type": "number",
+        "description": "Strike price"
       },
       "time_years": {
-        "type": "number"
+        "type": "number",
+        "description": "Time to expiry in years (> 0)"
       },
       "risk_free_rate": {
         "type": "number",

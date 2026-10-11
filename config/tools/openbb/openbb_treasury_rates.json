@@ -1,7 +1,7 @@
 {
   "name": "openbb_treasury_rates",
   "implementation": "sajha.tools.impl.openbb_tools.OpenBBTreasuryRatesTool",
-  "description": "Get US Treasury and Federal Funds rate data via OpenBB \u2014 daily effective federal funds rate from the Federal Reserve",
+  "description": "Meant to give the daily effective federal funds rate through OpenBB (obb.fixedincome.rate.dff).\nReturns: {data_points, start_date, end_date, rates} or {error}.\nInputs (* required): start_date (YYYY-MM-DD; default one year ago); end_date (default today); provider (default federal_reserve).\nOpenBB 4.x (4.6 checked) has no obb.fixedincome.rate.dff, so this tool currently returns an error object; alternatives: openbb_fixedincome_effr (provider federal_reserve), fred_fed_funds_rate or av_fed_funds_rate; Treasury yields: av_treasury_yield, fred_10yr_treasury.\nExample: {\"start_date\": \"2026-01-01\"}",
   "version": "4.5.0",
   "enabled": true,
   "inputSchema": {
@@ -19,6 +19,7 @@
       },
       "provider": {
         "type": "string",
+        "description": "OpenBB data provider",
         "default": "federal_reserve"
       }
     },

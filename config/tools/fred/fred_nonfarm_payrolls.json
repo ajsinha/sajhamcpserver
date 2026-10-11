@@ -1,13 +1,14 @@
 {
   "name": "fred_nonfarm_payrolls",
   "implementation": "sajha.tools.impl.fred_tools.FREDCustomSeriesTool",
-  "description": "Get US Nonfarm Payrolls from FRED \u2014 monthly jobs report (series: PAYEMS)",
+  "description": "The US total nonfarm payroll employment from FRED, the St. Louis Fed's economic database: series PAYEMS (thousands of persons, monthly).\nReturns {\"series\": \"PAYEMS\", \"data\": <FRED observations response>}; data.observations = [{date (YYYY-MM-DD), value (a string, \".\" if missing), realtime_start, realtime_end}], newest first; data is {\"error\": ...} if the call fails.\nInputs (* required): series_id (string; the schema default PAYEMS is not filled in by the server, so it has to be sent), limit (integer, number of newest observations; omitted: 60, although the schema default says 20).\nRelated: fred_unemployment, fred_avg_hourly_earnings, fred_initial_claims; fred_custom_series takes any series id.\nExample: {\"series_id\": \"PAYEMS\", \"limit\": 20}\nAPI key: env FRED_API_KEY (config fred.api.key); when unset the placeholder DEMO_KEY is sent.",
   "version": "4.5.0",
   "enabled": true,
   "inputSchema": {
     "type": "object",
     "properties": {
       "series_id": {
+        "description": "FRED series id; the default is this tool's series, which the server does not fill in, so it has to be sent",
         "type": "string",
         "default": "PAYEMS"
       },

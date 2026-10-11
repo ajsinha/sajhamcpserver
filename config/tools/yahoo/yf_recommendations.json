@@ -1,7 +1,7 @@
 {
   "name": "yf_recommendations",
   "implementation": "sajha.tools.impl.yfinance_tools.YFRecommendationsTool",
-  "description": "Get analyst recommendations from Yahoo Finance \u2014 buy/hold/sell ratings over time",
+  "description": "Analyst recommendation counts for one stock from Yahoo Finance (yfinance recommendations).\nReturns: {symbol, recommendations: [{period (0m = this month, -1m, -2m, -3m), strongBuy, buy, hold, sell, strongSell}]}.\nInputs (* required): symbol* (Yahoo ticker, e.g. AAPL, BRK-B, 7203.T).\nIndividual rating changes: yf_upgrades_downgrades; price targets: yf_analyst_price_targets. No API key; data comes from Yahoo Finance through the yfinance library.\nExample: {\"symbol\": \"NVDA\"}",
   "version": "4.5.0",
   "enabled": true,
   "inputSchema": {

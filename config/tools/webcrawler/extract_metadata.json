@@ -1,7 +1,7 @@
 {
   "name": "extract_metadata",
   "implementation": "sajha.tools.impl.webcrawler_tool_refactored.ExtractMetadataTool",
-  "description": "Extract SEO and structural metadata including title, meta tags, headings, and content metrics from a web page",
+  "description": "SEO and structural metadata of one web page: title, meta description and keywords, headings and size.\nReturns {url, status_code, content_type, title, meta_description, meta_keywords, headings: {h1: [...], h2: [...], h3: [...]}, content_length (characters of HTML), extracted_at}.\nInputs (* required): url* (string, absolute http(s) URL).\nget_page_info adds link and image counts and caps headings at 5 per level; extract_content returns the text.\nExample: {\"url\": \"https://example.com\"}\nFetches go through SAJHA's outbound fetch guard (loopback and cloud-metadata addresses refused; private networks too when tools.outbound.block_private_networks is on). No API key.",
   "version": "2.9.8",
   "enabled": true,
   "inputSchema": {

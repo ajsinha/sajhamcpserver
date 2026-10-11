@@ -1,7 +1,7 @@
 {
   "name": "openbb_equity_profile",
   "implementation": "sajha.tools.impl.openbb_tools.OpenBBEquityProfileTool",
-  "description": "Get company profile via OpenBB \u2014 name, sector, industry, market cap, employees, description, CEO, headquarters",
+  "description": "Company profile for one stock through the OpenBB Platform (obb.equity.profile).\nReturns: {symbol, profile: one record (name, sector, industry, market cap, employees, description, website, address and other provider fields)}; an empty object when none.\nInputs (* required): symbol*; provider (fmp, intrinio or yfinance; default yfinance, no key).\nOther sources: yf_stock_info, av_company_overview; executives: openbb_equity_management. Keys: fmp, benzinga, fred, intrinio, polygon and tiingo need credentials in OpenBB's settings (~/.openbb_platform/user_settings.json), not supplied by SAJHA; yfinance, oecd, federal_reserve, sec, imf and government_us need none.\nExample: {\"symbol\": \"MSFT\", \"provider\": \"yfinance\"}",
   "version": "4.5.0",
   "enabled": true,
   "inputSchema": {

@@ -1,7 +1,7 @@
 {
   "name": "boj_get_jgb_yield",
   "implementation": "sajha.tools.impl.japan_central_bank.BoJGetJGBYieldTool",
-  "description": "Retrieve Japanese Government Bond (JGB) yields (10-year) and the 3-month rate, with historical data (source: FRED; requires FRED_API_KEY).",
+  "description": "Japanese interest rates by term from FRED (Federal Reserve Bank of St. Louis, OECD monthly data), in percent: 10y is the 10-year JGB yield (IRLTLT01JPM156N), 3m the 3-month interbank rate (IR3TIB01JPM156N).\nReturns: series_code (FRED id), series_id, label, source, observation_count and observations (date, value) oldest first, missing values dropped.\nInputs (* required): bond_term* (10y or 3m; schema default 10y); start_date, end_date (YYYY-MM-DD); recent_periods (1-100; the last N observations, with no dates looking back N x 45 days; when omitted the whole history in the date range is returned).\nFor the call money and discount rates use boj_get_policy_rate. Needs a FRED API key (FRED_API_KEY, config fred.api.key); without one the call fails with a message saying so.\nExample: {\"bond_term\": \"10y\", \"start_date\": \"2022-01-01\"}",
   "version": "2.9.8",
   "enabled": true,
   "inputSchema": {

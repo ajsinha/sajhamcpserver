@@ -1,7 +1,7 @@
 {
   "name": "bdf_get_ecb_policy_rate",
   "implementation": "sajha.tools.impl.france_central_bank.BdFGetECBPolicyRateTool",
-  "description": "Retrieve ECB policy rates including main refinancing, deposit, and marginal lending rates",
+  "description": "ECB key policy rates in percent: main refinancing operations rate, deposit facility rate or marginal lending facility rate.\nReturns: series_code, label, unit, frequency (always reported as % and Daily), observation_count and observations (date, value).\nInputs (* required): rate_type* (ecb_main_refi, ecb_deposit, ecb_marginal_lending; schema default ecb_main_refi); start_date, end_date (YYYY-MM-DD); recent_periods (1-100; default 10; keeps the last N observations, only when no date is given).\necb_get_interest_rate returns the same rates plus euro STR and EONIA. Despite the bdf_ name, data comes from the legacy ECB statistical web service (sdw-wsrest.ecb.europa.eu), no API key; the ecb_ tools read the same ECB data from the current ECB Data Portal API.\nExample: {\"rate_type\": \"ecb_deposit\", \"start_date\": \"2022-01-01\"}",
   "version": "2.9.8",
   "enabled": true,
   "metadata": {

@@ -1,7 +1,7 @@
 {
   "name": "fmp_historical_dcf",
   "implementation": "sajha.tools.impl.fmp_tools.FMPHistoricalDCFTool",
-  "description": "Get historical DCF valuations from FMP \u2014 track intrinsic value changes over time for a stock",
+  "description": "Historical DCF valuations for one stock from Financial Modeling Prep (FMP, /stable/historical-discounted-cash-flow): DCF value per share and stock price per period.\nReturns {symbol, historical_dcf}: FMP's list of period records.\nInputs (* required): symbol* (ticker, e.g. AAPL; upper-cased), period (annual or quarter; default annual), limit (integer, number of periods; default 5).\nFor the current value use fmp_dcf_valuation.\nNeeds an FMP API key (config fmp.api.key, env FMP_API_KEY); without one it returns a demo placeholder naming the endpoint instead of data.\nExample: {\"symbol\": \"AAPL\", \"period\": \"annual\", \"limit\": 5}",
   "version": "4.5.0",
   "enabled": true,
   "inputSchema": {

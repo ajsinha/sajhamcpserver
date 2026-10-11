@@ -1,7 +1,7 @@
 {
   "name": "cg_coin_list",
   "implementation": "sajha.tools.impl.coingecko_tools.CGCoinListTool",
-  "description": "Get full list of all coins on CoinGecko \u2014 IDs, symbols, names",
+  "description": "Every coin CoinGecko tracks (coins/list), to map names and symbols to CoinGecko ids.\nReturns {coins: [{id, symbol, name}, ...]}: a very large list (tens of thousands of entries); symbols are not unique.\nInputs: none.\nTo find one coin's id, cg_search is smaller and ranked.\nExample: {}\nNo API key is sent (CoinGecko public API, rate-limited by CoinGecko); a failed call returns {\"error\": ...}.",
   "version": "4.5.0",
   "enabled": true,
   "inputSchema": {

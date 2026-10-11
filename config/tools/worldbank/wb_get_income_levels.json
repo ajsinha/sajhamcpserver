@@ -1,7 +1,7 @@
 {
   "name": "wb_get_income_levels",
   "implementation": "sajha.tools.impl.world_bank_tool.WBGetIncomeLevelsTool",
-  "description": "Retrieve World Bank income level classifications and metadata. Get information about income groupings (High, Upper Middle, Lower Middle, Low).",
+  "description": "List the World Bank income-group classifications (World Bank Indicators API v2, no API key).\nReturns: total_levels, income_levels (id, iso2code, value) and descriptions, a fixed map of HIC, UMC, LMC and LIC to their names.\nInputs (none required): per_page (1-100; default 50).\nUse the ids as the income_level filter of wb_get_countries or wb_get_indicator_data. Siblings: wb_get_regions, wb_get_lending_types.\nExample: {}",
   "version": "2.9.8",
   "enabled": true,
   "inputSchema": {

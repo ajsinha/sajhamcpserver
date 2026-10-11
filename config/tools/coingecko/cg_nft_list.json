@@ -1,7 +1,7 @@
 {
   "name": "cg_nft_list",
   "implementation": "sajha.tools.impl.coingecko_tools.CGNFTListTool",
-  "description": "Get NFT collections list from CoinGecko",
+  "description": "NFT collections tracked by CoinGecko (nfts/list).\nReturns {nfts: [{id, contract_address, name, asset_platform_id, symbol}, ...]} (one page of CoinGecko's list).\nInputs: none.\nCollection ids can be looked up by name with cg_search.\nExample: {}\nNo API key is sent (CoinGecko public API, rate-limited by CoinGecko); a failed call returns {\"error\": ...}.",
   "version": "4.5.0",
   "enabled": true,
   "inputSchema": {

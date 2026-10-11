@@ -1,13 +1,14 @@
 {
   "name": "cg_coin_tickers",
   "implementation": "sajha.tools.impl.coingecko_tools.CGCoinTickersTool",
-  "description": "Get exchange tickers for a crypto from CoinGecko \u2014 where it trades, bid/ask, volume",
+  "description": "Exchange markets where one coin trades, from CoinGecko (coins/{id}/tickers): each pair's exchange, last price, volume, bid-ask spread and trust score.\nReturns {name, tickers: [{base, target, market {name, identifier}, last, volume, converted_last, converted_volume, bid_ask_spread_percentage, trust_score, trade_url, ...}]}; CoinGecko pages the list (first page only).\nInputs (* required): id* (string, CoinGecko coin id such as bitcoin or ethereum, not the ticker symbol; ids come from cg_search or cg_coin_list; default bitcoin).\nFor all pairs on one exchange use cg_exchange_tickers.\nExample: {\"id\": \"bitcoin\"}\nNo API key is sent (CoinGecko public API, rate-limited by CoinGecko); a failed call returns {\"error\": ...}.",
   "version": "4.5.0",
   "enabled": true,
   "inputSchema": {
     "type": "object",
     "properties": {
       "id": {
+        "description": "CoinGecko coin id (e.g. bitcoin, ethereum), not the ticker symbol",
         "type": "string",
         "default": "bitcoin"
       }

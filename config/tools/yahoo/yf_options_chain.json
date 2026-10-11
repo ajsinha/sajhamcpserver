@@ -1,7 +1,7 @@
 {
   "name": "yf_options_chain",
   "implementation": "sajha.tools.impl.yfinance_tools.YFOptionsChainTool",
-  "description": "Get options chain from Yahoo Finance \u2014 calls and puts with strike, bid, ask, volume, OI",
+  "description": "Option chain (calls and puts) for one underlying and expiry from Yahoo Finance (yfinance option_chain).\nReturns: {symbol, expiry, calls: [...], puts: [...]}, each list at most 50 contracts in Yahoo's strike order, with contractSymbol, lastTradeDate, strike, lastPrice, bid, ask, change, percentChange, volume, openInterest, impliedVolatility, inTheMoney, contractSize, currency; {\"error\": \"No options available\"} when there are none.\nInputs (* required): symbol*; expiry (YYYY-MM-DD from yf_options_expiries; default the nearest expiry).\nOther source: openbb_options_chains. No API key; data comes from Yahoo Finance through the yfinance library.\nExample: {\"symbol\": \"AAPL\"}",
   "version": "4.5.0",
   "enabled": true,
   "inputSchema": {

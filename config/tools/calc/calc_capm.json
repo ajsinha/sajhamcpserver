@@ -1,7 +1,7 @@
 {
   "name": "calc_capm",
   "implementation": "sajha.tools.impl.calc_tools.CalcCAPMTool",
-  "description": "Calculate expected return using CAPM \u2014 Capital Asset Pricing Model",
+  "description": "Expected return under the Capital Asset Pricing Model: rf + beta * (market return - rf). Computed locally in Python; no API key or network.\nReturns {expected_return, risk_premium}: both percent, 4 decimals; risk_premium is the market premium (market return - rf).\nInputs (* required): risk_free_rate* (percent), beta* (number), market_return* (percent).\nTo estimate beta use calc_beta; country premia: fmp_market_risk_premium; to combine with debt calc_wacc.\nExample: {\"risk_free_rate\": 4, \"beta\": 1.2, \"market_return\": 9}",
   "version": "4.5.0",
   "enabled": true,
   "inputSchema": {
@@ -12,7 +12,8 @@
         "description": "%"
       },
       "beta": {
-        "type": "number"
+        "type": "number",
+        "description": "Beta of the asset against the market"
       },
       "market_return": {
         "type": "number",

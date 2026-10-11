@@ -1,7 +1,7 @@
 {
   "name": "duckdb_query",
   "implementation": "sajha.tools.impl.duckdb_olap_tools_refactored.DuckDbQueryTool",
-  "description": "Execute SQL queries on CSV, Parquet, and JSON files using DuckDB analytics engine. Query the customers, orders, and products tables directly with SQL.",
+  "description": "Runs one read-only SQL statement (SELECT, WITH, FROM, EXPLAIN, DESCRIBE, SHOW, SUMMARIZE) with DuckDB. Tables: one per data file in data.duckdb.dir (orders.csv is orders), in a sandbox without file or URL access.\nReturns {query, columns, rows, row_count, execution_time_ms, limited}: rows are objects keyed by column; query is the text run.\nInputs (* required): sql_query* (one statement; DDL, DML, COPY, ATTACH and multiple statements are refused), limit (1-10000; default 100; appended as LIMIT when the query has none and caps the rows returned), output_format (json, csv or table; currently ignored, rows are always JSON objects).\nTo discover tables use duckdb_list_tables and duckdb_describe_table; for grouped totals without SQL duckdb_aggregate.\nExample: {\"sql_query\": \"SELECT region, COUNT(*) AS orders FROM orders GROUP BY region ORDER BY orders DESC\", \"limit\": 20}",
   "version": "2.9.8",
   "enabled": true,
   "data_directory": "${data.duckdb.dir:./data/duckdb}",

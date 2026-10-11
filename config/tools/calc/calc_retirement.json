@@ -1,24 +1,27 @@
 {
   "name": "calc_retirement",
   "implementation": "sajha.tools.impl.calc_tools.CalcRetirementTool",
-  "description": "Calculate retirement savings projection \u2014 future balance with annual contributions",
+  "description": "Retirement savings projection: compounds the balance annually and adds the contribution at the end of each year. Computed locally in Python; no API key or network.\nReturns {final_balance, total_contributed, investment_growth}.\nInputs (* required): current_savings* (amount), annual_contribution* (amount per year), return_rate* (annual percent), years* (integer).\nFor a lump sum alone use calc_compound_interest or calc_future_value.\nExample: {\"current_savings\": 50000, \"annual_contribution\": 12000, \"return_rate\": 6, \"years\": 25}",
   "version": "4.5.0",
   "enabled": true,
   "inputSchema": {
     "type": "object",
     "properties": {
       "current_savings": {
-        "type": "number"
+        "type": "number",
+        "description": "Balance today"
       },
       "annual_contribution": {
-        "type": "number"
+        "type": "number",
+        "description": "Amount added at each year end"
       },
       "return_rate": {
         "type": "number",
         "description": "%"
       },
       "years": {
-        "type": "integer"
+        "type": "integer",
+        "description": "Years until retirement"
       }
     },
     "required": [

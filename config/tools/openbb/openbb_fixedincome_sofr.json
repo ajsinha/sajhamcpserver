@@ -1,7 +1,7 @@
 {
   "name": "openbb_fixedincome_sofr",
   "implementation": "sajha.tools.impl.openbb_tools.OpenBBGenericTool",
-  "description": "Get SOFR (Secured Overnight Financing Rate) via OpenBB",
+  "description": "Secured Overnight Financing Rate (SOFR, percent) history through the OpenBB Platform (obb.fixedincome.rate.sofr), in OpenBB's default date window.\nReturns: {tool, data_points (total rows), data: first 100 rows as OpenBB returns them} or {tool, error}.\nInputs (* required): provider (OpenBB 4.6 accepts federal_reserve or fred; schema default federal_reserve, but when omitted the tool sends yfinance, which this command rejects, so set it); federal_reserve needs no key.\nOther overnight rates: openbb_fixedincome_effr, openbb_fixedincome_estr, openbb_fixedincome_iorb. Keys: fmp, benzinga, fred, intrinio, polygon and tiingo need credentials in OpenBB's settings (~/.openbb_platform/user_settings.json), not supplied by SAJHA; yfinance, oecd, federal_reserve, sec, imf and government_us need none.\nExample: {\"provider\": \"federal_reserve\"}",
   "version": "4.5.0",
   "enabled": true,
   "inputSchema": {
@@ -9,6 +9,7 @@
     "properties": {
       "provider": {
         "type": "string",
+        "description": "OpenBB data provider",
         "default": "federal_reserve"
       }
     },

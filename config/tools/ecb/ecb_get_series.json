@@ -1,7 +1,7 @@
 {
   "name": "ecb_get_series",
   "implementation": "sajha.tools.impl.european_central_bank_tool_refactored.ECBGetSeriesTool",
-  "description": "Retrieve time series economic data from European Central Bank by flow/key or indicator. Supports date ranges and recent periods.",
+  "description": "Time series for any ECB statistical series, by dataflow and series key or by a shorthand indicator, from the ECB Data Portal API (data-api.ecb.europa.eu, no API key).\nReturns: flow, key, series_name, description, observation_count and observations (date, value) oldest first.\nInputs: flow and key together (e.g. flow EXR, key D.USD.EUR.SP00.A) or indicator (shorthand such as eur_usd, ester, bond_10y, hicp_overall, gdp, m3; list in the schema); one form is needed; start_date, end_date (YYYY-MM-DD); recent_periods (1-100; default 10): unless both dates are given only the last recent_periods observations are kept, and with no dates the look-back is recent_periods x 40 days.\nFind flows, keys and shorthands with ecb_search_series; for one value use ecb_get_latest; topic tools: ecb_get_exchange_rate, ecb_get_interest_rate, ecb_get_bond_yield, ecb_get_inflation.\nExample: {\"indicator\": \"hicp_core\", \"start_date\": \"2023-01-01\", \"end_date\": \"2024-12-31\"}",
   "version": "2.9.8",
   "enabled": true,
   "inputSchema": {

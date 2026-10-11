@@ -1,7 +1,7 @@
 {
   "name": "av_stock_weekly",
   "implementation": "sajha.tools.impl.alphavantage_tools.AVStockWeeklyTool",
-  "description": "Get weekly stock prices from Alpha Vantage",
+  "description": "Weekly OHLCV price history for one stock from Alpha Vantage (TIME_SERIES_WEEKLY), covering 20+ years.\nReturns: {\"Meta Data\", \"Weekly Time Series\"} keyed by week-ending date, each with \"1. open\" to \"5. volume\". Alpha Vantage's JSON comes back unchanged, including its \"Error Message\" or \"Information\" notes; a network failure gives {\"error\": ...}.\nInputs (* required): symbol* (ticker).\nDaily bars: av_stock_daily; monthly: av_stock_monthly.\nKey: ALPHA_VANTAGE_API_KEY (alpha_vantage.api.key); when unset the 'demo' key is sent, which only serves Alpha Vantage's documentation examples. Free tier: 25 requests/day.\nExample: {\"symbol\": \"MSFT\"}",
   "version": "4.5.0",
   "enabled": true,
   "inputSchema": {

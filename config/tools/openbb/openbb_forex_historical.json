@@ -1,7 +1,7 @@
 {
   "name": "openbb_forex_historical",
   "implementation": "sajha.tools.impl.openbb_tools.OpenBBForexHistoricalTool",
-  "description": "Get historical forex exchange rates via OpenBB \u2014 any currency pair (EURUSD, GBPJPY, etc.) with daily OHLCV data",
+  "description": "Daily exchange-rate history for one currency pair through the OpenBB Platform (obb.currency.price.historical).\nReturns: {symbol, data_points, start_date, end_date, rates: [{date, open, high, low, close, ...}]}.\nInputs (* required): symbol* (six-letter pair, upper-cased, e.g. EURUSD, GBPJPY, USDINR; default EURUSD); start_date (YYYY-MM-DD; default 90 days ago); end_date (YYYY-MM-DD; default today); provider (fmp, polygon, tiingo or yfinance; default yfinance, no key).\nOther sources: yf_forex_history, av_forex_daily; current rate: av_forex_rate. Keys: fmp, benzinga, fred, intrinio, polygon and tiingo need credentials in OpenBB's settings (~/.openbb_platform/user_settings.json), not supplied by SAJHA; yfinance, oecd, federal_reserve, sec, imf and government_us need none.\nExample: {\"symbol\": \"GBPJPY\", \"start_date\": \"2026-07-01\", \"end_date\": \"2026-09-30\"}",
   "version": "4.5.0",
   "enabled": true,
   "inputSchema": {

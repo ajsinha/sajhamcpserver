@@ -1,7 +1,7 @@
 {
   "name": "msdoc_get_excel_metadata",
   "implementation": "sajha.tools.impl.msdoc_tools_tool_refactored.MsDocGetExcelMetadataTool",
-  "description": "Extract metadata and workbook properties from Excel files",
+  "description": "Workbook properties of an Excel file (.xlsx/.xlsm). Files are looked up by name in the docs folder (data/msdocs; msdoc_list_files shows it).\nReturns {filename, metadata}: metadata has creator, title, subject, created and modified (empty strings when unset).\nInputs (* required): filename*.\nFor sheet names use msdoc_get_excel_sheets; for Word files msdoc_get_word_metadata.\nExample: {\"filename\": \"sales.xlsx\"}",
   "version": "2.9.8",
   "enabled": true,
   "inputSchema": {

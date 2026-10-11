@@ -1,7 +1,7 @@
 {
   "name": "boj_get_inflation",
   "implementation": "sajha.tools.impl.japan_central_bank.BoJGetInflationTool",
-  "description": "Retrieve Japanese price indices including CPI and PPI with historical data.",
+  "description": "Japanese price indices, monthly, from FRED (Federal Reserve Bank of St. Louis, OECD series): cpi (all items), core_cpi (less food and energy) or ppi. Values are index levels, not rates.\nReturns: series_code (FRED id), series_id, label, source, observation_count and observations (date, value) oldest first, missing values dropped.\nInputs (* required): index_type* (cpi, core_cpi, ppi; schema default cpi); start_date, end_date (YYYY-MM-DD); recent_periods (1-100; the last N observations, with no dates looking back N x 45 days; when omitted the whole history in the date range is returned).\nFor GDP, unemployment and production use boj_get_economic_indicator. Needs a FRED API key (FRED_API_KEY, config fred.api.key); without one the call fails with a message saying so.\nExample: {\"index_type\": \"core_cpi\", \"recent_periods\": 13}",
   "version": "2.9.8",
   "enabled": true,
   "inputSchema": {

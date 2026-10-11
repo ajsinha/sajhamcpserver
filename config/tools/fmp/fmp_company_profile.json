@@ -1,7 +1,7 @@
 {
   "name": "fmp_company_profile",
   "implementation": "sajha.tools.impl.fmp_tools.FMPCompanyProfileTool",
-  "description": "Get comprehensive company profile from FMP \u2014 market cap, sector, industry, CEO, description, financial summary, and stock info",
+  "description": "Company profile for one listed stock from Financial Modeling Prep (FMP, /stable/profile): name, exchange, sector, industry, CEO, business description, market cap, price, beta, website and similar fields.\nReturns {symbol, profile}: profile is FMP's first profile record.\nInputs (* required): symbol* (ticker, e.g. AAPL; upper-cased).\nFor the live price use fmp_stock_quote; for management fmp_key_executives; for comparable companies fmp_company_peers.\nNeeds an FMP API key (config fmp.api.key, env FMP_API_KEY); without one it returns a demo placeholder naming the endpoint instead of data.\nExample: {\"symbol\": \"AAPL\"}",
   "version": "4.5.0",
   "enabled": true,
   "inputSchema": {

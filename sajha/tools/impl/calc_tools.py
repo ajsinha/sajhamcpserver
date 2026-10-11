@@ -84,7 +84,7 @@ class CalcLoanAmortizationTool(CalcBaseTool):
 
 class CalcBondPriceTool(CalcBaseTool):
     def execute(self, a):
-        fv, c, y, n = a['face_value'], a['coupon_rate']/100, a['yield_rate']/100, a['years']
+        fv, c, y, n = a.get('face_value', 1000), a['coupon_rate']/100, a['yield_rate']/100, a['years']
         coupon = fv * c / 2
         price = sum(coupon/(1+y/2)**i for i in range(1, n*2+1)) + fv/(1+y/2)**(n*2)
         return {"face_value": fv, "coupon_rate": a['coupon_rate'], "yield": a['yield_rate'], "price": round(price,2)}
@@ -191,7 +191,13 @@ class CalcCurrencyConverterTool(CalcBaseTool):
             url = f"https://open.er-api.com/v6/latest/{fr}"
             with urllib.request.urlopen(url, timeout=10) as resp:
                 data = json.loads(resp.read())
-                rate = data['rates'].get(to, 1)
+                rates = data.get('rates') or {}
+                if not rates:
+                    return {"error": f"No exchange rates for base currency {fr!r}: "
+                                     f"{data.get('error-type') or data.get('result') or 'unknown currency'}"}
+                if to not in rates:
+                    return {"error": f"Unknown target currency {to!r}: no rate from {fr} to {to}"}
+                rate = rates[to]
                 return {"from": fr, "to": to, "amount": amt, "rate": rate, "converted": round(amt*rate, 4)}
         except Exception as e:
             return {"error": str(e)}

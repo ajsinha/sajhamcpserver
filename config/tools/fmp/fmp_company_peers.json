@@ -1,7 +1,7 @@
 {
   "name": "fmp_company_peers",
   "implementation": "sajha.tools.impl.fmp_tools.FMPCompanyPeersTool",
-  "description": "Get peer companies from FMP \u2014 stocks in the same sector with similar market cap for competitive analysis",
+  "description": "Peer companies for one stock from Financial Modeling Prep (FMP, /stable/stock-peers): tickers in the same sector and exchange with similar market cap, for comparisons.\nReturns {symbol, peers}: peers is the list of peer tickers (FMP's peersList).\nInputs (* required): symbol* (ticker, e.g. AAPL; upper-cased).\nFeed the peers to fmp_key_metrics or fmp_stock_quote to compare; for all companies at once use fmp_stock_peers_bulk.\nNeeds an FMP API key (config fmp.api.key, env FMP_API_KEY); without one it returns a demo placeholder naming the endpoint instead of data.\nExample: {\"symbol\": \"MSFT\"}",
   "version": "4.5.0",
   "enabled": true,
   "inputSchema": {

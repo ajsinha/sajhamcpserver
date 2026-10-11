@@ -1,7 +1,7 @@
 {
   "name": "fmp_dcf_valuation",
   "implementation": "sajha.tools.impl.fmp_tools.FMPDCFValuationTool",
-  "description": "Get discounted cash flow valuation from FMP \u2014 DCF per share, stock price, and date for intrinsic value analysis",
+  "description": "Discounted cash flow valuation for one stock from Financial Modeling Prep (FMP, /stable/discounted-cash-flow): FMP's DCF value per share next to the current stock price, with the date.\nReturns {symbol, dcf}: dcf is FMP's first DCF record.\nInputs (* required): symbol* (ticker, e.g. AAPL; upper-cased).\nFor history use fmp_historical_dcf; for the levered variant fmp_levered_dcf; for a DCF from your own inputs calc_dcf_model.\nNeeds an FMP API key (config fmp.api.key, env FMP_API_KEY); without one it returns a demo placeholder naming the endpoint instead of data.\nExample: {\"symbol\": \"AAPL\"}",
   "version": "4.5.0",
   "enabled": true,
   "inputSchema": {

@@ -1,7 +1,7 @@
 {
   "name": "openbb_unemployment",
   "implementation": "sajha.tools.impl.openbb_tools.OpenBBUnemploymentTool",
-  "description": "Get unemployment rate data via OpenBB \u2014 historical unemployment rates by country from OECD",
+  "description": "Unemployment rate for a country from the OECD through the OpenBB Platform (obb.economy.unemployment).\nReturns: {country, data: [records with date, country and value (percent)]} or {error}.\nInputs (* required): country (lower case with underscores, e.g. united_states, france; default united_states); provider (oecd only in OpenBB 4.6; default oecd, no key).\nUS-only alternatives: av_unemployment, fred_unemployment. Keys: fmp, benzinga, fred, intrinio, polygon and tiingo need credentials in OpenBB's settings (~/.openbb_platform/user_settings.json), not supplied by SAJHA; yfinance, oecd, federal_reserve, sec, imf and government_us need none.\nExample: {\"country\": \"france\"}",
   "version": "4.5.0",
   "enabled": true,
   "inputSchema": {
@@ -9,10 +9,12 @@
     "properties": {
       "country": {
         "type": "string",
+        "description": "Country, lower case with underscores (e.g. united_states)",
         "default": "united_states"
       },
       "provider": {
         "type": "string",
+        "description": "OpenBB data provider",
         "default": "oecd"
       }
     },

@@ -1,21 +1,24 @@
 {
   "name": "cg_coin_market_chart",
   "implementation": "sajha.tools.impl.coingecko_tools.CGCoinMarketChartTool",
-  "description": "Get crypto price chart from CoinGecko \u2014 historical prices, volumes, market caps",
+  "description": "Historical price, market cap and total volume series for one coin over the last N days, from CoinGecko (coins/{id}/market_chart).\nReturns {prices: [[timestamp_ms, price]], market_caps: [[timestamp_ms, value]], total_volumes: [[timestamp_ms, value]]}; CoinGecko picks the granularity from the span (finer for short spans, daily for long ones).\nInputs (* required): id* (string, CoinGecko coin id such as bitcoin or ethereum, not the ticker symbol; ids come from cg_search or cg_coin_list; default bitcoin), days (integer, look-back in days; default 30), vs (string, quote currency; default usd).\nFor candles use cg_coin_ohlc; for one past date cg_coin_history; for the current price cg_coin_price.\nExample: {\"id\": \"ethereum\", \"days\": 90, \"vs\": \"usd\"}\nNo API key is sent (CoinGecko public API, rate-limited by CoinGecko); a failed call returns {\"error\": ...}.",
   "version": "4.5.0",
   "enabled": true,
   "inputSchema": {
     "type": "object",
     "properties": {
       "id": {
+        "description": "CoinGecko coin id (e.g. bitcoin, ethereum), not the ticker symbol",
         "type": "string",
         "default": "bitcoin"
       },
       "days": {
+        "description": "Number of days of history",
         "type": "integer",
         "default": 30
       },
       "vs": {
+        "description": "Quote currency code (e.g. usd, eur, btc)",
         "type": "string",
         "default": "usd"
       }

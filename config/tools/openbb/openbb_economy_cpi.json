@@ -1,7 +1,7 @@
 {
   "name": "openbb_economy_cpi",
   "implementation": "sajha.tools.impl.openbb_tools.OpenBBEconomyCPITool",
-  "description": "Get Consumer Price Index (CPI) data via OpenBB \u2014 inflation trends, CPI values over time from FRED or other providers",
+  "description": "Consumer price index for a country through the OpenBB Platform (obb.economy.cpi).\nReturns: {country, data_points, cpi_data: [records with date, country and value]} or {country, error}.\nInputs (* required): country (lower case with underscores, e.g. united_states, japan; default united_states); provider (fred, imf or oecd; default fred, which needs a key; oecd and imf need none).\nUS-only alternatives: av_cpi, av_inflation, fred_cpi, fred_core_cpi. Keys: fmp, benzinga, fred, intrinio, polygon and tiingo need credentials in OpenBB's settings (~/.openbb_platform/user_settings.json), not supplied by SAJHA; yfinance, oecd, federal_reserve, sec, imf and government_us need none.\nExample: {\"country\": \"japan\", \"provider\": \"oecd\"}",
   "version": "4.5.0",
   "enabled": true,
   "inputSchema": {
@@ -14,6 +14,7 @@
       },
       "provider": {
         "type": "string",
+        "description": "OpenBB data provider (fred, imf or oecd)",
         "default": "fred"
       }
     },

@@ -1,7 +1,7 @@
 {
   "name": "openbb_fixedincome_estr",
   "implementation": "sajha.tools.impl.openbb_tools.OpenBBGenericTool",
-  "description": "Get Euro Short-Term Rate (ESTR) via OpenBB",
+  "description": "Euro short-term rate (ESTR, percent) history from FRED through the OpenBB Platform (obb.fixedincome.rate.estr).\nReturns: {tool, data_points (total rows), data: first 100 rows as OpenBB returns them} or {tool, error}.\nInputs (* required): provider (OpenBB 4.6 accepts fred only; schema default federal_reserve (also rejected), but when omitted the tool sends yfinance, which this command rejects, so set it).\nUS overnight rates: openbb_fixedincome_sofr, openbb_fixedincome_effr; ECB source: ecb_get_interest_rate. Keys: fmp, benzinga, fred, intrinio, polygon and tiingo need credentials in OpenBB's settings (~/.openbb_platform/user_settings.json), not supplied by SAJHA; yfinance, oecd, federal_reserve, sec, imf and government_us need none.\nExample: {\"provider\": \"fred\"}",
   "version": "4.5.0",
   "enabled": true,
   "inputSchema": {
@@ -9,6 +9,7 @@
     "properties": {
       "provider": {
         "type": "string",
+        "description": "OpenBB data provider",
         "default": "federal_reserve"
       }
     },

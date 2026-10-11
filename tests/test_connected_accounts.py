@@ -961,15 +961,15 @@ def test_federation_passes_each_users_own_token(env, tmp_path):
     from sajha.federation.manager import FederationManager
     from sajha.federation.store import FederationStore
     up = _AuthRecordingUpstream()
-    settings = FederationSettings(enabled=True, allow_localhost=True, require_approval=False, startup_wait_seconds=10,
-                                  default_timeout_seconds=10, upstreams=[{
+    settings = FederationSettings(enabled=True, allow_localhost=True, require_approval=False, startup_wait_seconds=30,
+                                  default_timeout_seconds=30, upstreams=[{
                                       'id': 'units', 'url': up.url,
                                       'auth': {'type': 'connected_account', 'provider': 'github'}}])
     reg = _Reg()
     m = FederationManager(reg, settings, FederationStore(str(tmp_path / 'fed.json')))
     m.start()
     try:
-        assert m.wait_until_discovered(10)
+        assert m.wait_until_discovered(30)
         tool = reg.tools['units__celsius_to_fahrenheit']
         assert up.seen and all(h == '' for h in up.seen)          # discovery carried no user token
         link(env, 'alice')

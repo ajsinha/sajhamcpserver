@@ -1,7 +1,7 @@
 {
   "name": "openbb_fixedincome_effr",
   "implementation": "sajha.tools.impl.openbb_tools.OpenBBGenericTool",
-  "description": "Get Effective Federal Funds Rate via OpenBB",
+  "description": "Effective federal funds rate (percent) history through the OpenBB Platform (obb.fixedincome.rate.effr), in OpenBB's default date window.\nReturns: {tool, data_points (total rows), data: first 100 rows as OpenBB returns them} or {tool, error}.\nInputs (* required): symbol (accepted by the schema, ignored by this command); provider (OpenBB 4.6 accepts federal_reserve or fred; schema default fmp (also rejected), but when omitted the tool sends yfinance, which this command rejects, so set it); federal_reserve needs no key.\nOther sources: av_fed_funds_rate, fred_fed_funds_rate; SOFR: openbb_fixedincome_sofr. Keys: fmp, benzinga, fred, intrinio, polygon and tiingo need credentials in OpenBB's settings (~/.openbb_platform/user_settings.json), not supplied by SAJHA; yfinance, oecd, federal_reserve, sec, imf and government_us need none.\nExample: {\"provider\": \"federal_reserve\"}",
   "version": "4.5.0",
   "enabled": true,
   "inputSchema": {
@@ -13,6 +13,7 @@
       },
       "provider": {
         "type": "string",
+        "description": "OpenBB data provider",
         "default": "fmp"
       }
     },

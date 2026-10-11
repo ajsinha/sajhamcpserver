@@ -1,7 +1,7 @@
 {
   "name": "fmp_13f_filing",
   "implementation": "sajha.tools.impl.fmp_tools.FMPGenericTool",
-  "description": "Get 13F institutional holdings filing from FMP \u2014 hedge fund positions",
+  "description": "Form 13F holdings report of one institutional investment manager (for example a hedge fund) from Financial Modeling Prep (FMP): securities held, shares and value.\nReturns {tool, endpoint, data}: data is FMP's JSON from /stable/13f as returned (usually a list of records).\nInputs (* required): cik* (SEC CIK of the filer, as a string).\nTo find a CIK use fmp_cik_list; for the holders of one stock use fmp_institutional_holders.\nNeeds an FMP API key (config fmp.api.key, env FMP_API_KEY); without one it returns a demo placeholder naming the endpoint instead of data.\nExample: {\"cik\": \"0001067983\"}",
   "version": "4.5.0",
   "enabled": true,
   "inputSchema": {

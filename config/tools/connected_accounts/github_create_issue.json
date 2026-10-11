@@ -2,7 +2,7 @@
   "name": "github_create_issue",
   "implementation": "sajha.accounts.tools.github.GithubCreateIssueTool",
   "title": "Create a GitHub issue",
-  "description": "Open a new issue in a GitHub repository as the signed-in user, through their connected GitHub account (needs the repo scope). Returns the issue number and URL.",
+  "description": "Open a new issue in a GitHub repository as the signed-in user, through their connected GitHub account (needs the repo scope). Writes to GitHub; not idempotent.\nReturns: number, url, title, state and created_by (GitHub login).\nInputs (* required): owner* (user or organization; letters, digits, -, _ and .); repo* (repository name, same characters); title* (1-256 characters); body (Markdown, up to 65,536 characters); labels (up to 20 label names).\nTo read issues use connected_http_request with /repos/OWNER/REPO/issues. Runs only for a signed-in SAJHA user; when the account is not linked, or lacks the scope, the call returns a request to connect it with a link instead of a result.\nExample: {\"owner\": \"octocat\", \"repo\": \"hello-world\", \"title\": \"Broken link in README\", \"body\": \"The install link returns 404.\", \"labels\": [\"docs\"]}",
   "version": "1.0.0",
   "enabled": true,
   "auth": {

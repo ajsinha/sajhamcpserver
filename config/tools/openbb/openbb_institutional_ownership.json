@@ -1,7 +1,7 @@
 {
   "name": "openbb_institutional_ownership",
   "implementation": "sajha.tools.impl.openbb_tools.OpenBBInstitutionalOwnershipTool",
-  "description": "Get institutional ownership via OpenBB \u2014 major fund holders, shares held, changes from SEC 13F filings",
+  "description": "Institutional ownership summary for one stock from SEC 13F data through the OpenBB Platform (obb.equity.ownership.institutional).\nReturns: {symbol, holders: [records per filing date with investor counts, shares held, ownership percent and changes]} or {symbol, error}.\nInputs (* required): symbol*; provider (fmp only in OpenBB 4.6, which needs a key; default fmp).\nTop named holders without a key: yf_institutional_holders, yf_mutual_fund_holders. Keys: fmp, benzinga, fred, intrinio, polygon and tiingo need credentials in OpenBB's settings (~/.openbb_platform/user_settings.json), not supplied by SAJHA; yfinance, oecd, federal_reserve, sec, imf and government_us need none.\nExample: {\"symbol\": \"AAPL\"}",
   "version": "4.5.0",
   "enabled": true,
   "inputSchema": {
@@ -13,6 +13,7 @@
       },
       "provider": {
         "type": "string",
+        "description": "OpenBB data provider",
         "default": "fmp"
       }
     },

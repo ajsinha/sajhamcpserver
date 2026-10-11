@@ -1,7 +1,7 @@
 {
   "name": "llm_markets_assistant",
   "implementation": "sajha.ai.llm_tools.LLMTool",
-  "description": "Answers questions about markets, the economy and financial calculations using SAJHA's calculator, market-data and central-bank tools. Cites the tool calls it used. Pass conversation_id from a previous answer to ask a follow-up. An example LLM tool (mode answer), disabled until an administrator enables it.",
+  "description": "Answers questions about markets, the economy and financial calculations by calling SAJHA tools (LLM tool, mode answer, model alias reasoning): it may use calc_*, yahoo_*, fred_* and boc_* tools, at most 6 steps, 10 tool calls, 60 seconds and USD 0.20 per question.\nReturns: answer, confidence, citations (the tool calls used), caveats, conversation_id, stopped_by (answer, a limit such as step_limit or budget, needs_confirmation, error) and, when a destructive call waits for approval, pending (calls with fingerprints).\nInputs (* required): question* (plain words); conversation_id (follow-up within 24 hours, up to 20 turns); confirm (fingerprints from pending that the user approved).\nFor questions that need any SAJHA tool use sajha_ask; for one series call the data tool directly (e.g. fred_custom_series). An example LLM tool shipped disabled; an administrator enables it.\nExample: {\"question\": \"What is the spread between the US 10-year and 2-year Treasury yields today?\"}",
   "version": "1.0.0",
   "enabled": false,
   "inputSchema": {

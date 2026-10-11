@@ -1,7 +1,7 @@
 {
   "name": "bdf_get_eurozone_indicator",
   "implementation": "sajha.tools.impl.france_central_bank.BdFGetEurozoneIndicatorTool",
-  "description": "Retrieve Eurozone economic indicators including CPI, GDP, and M3",
+  "description": "A euro area aggregate: HICP inflation (annual rate of change, monthly), GDP (quarterly, current prices) or m3, which reads BSI.M.U2.N.A.A20.A.1.U2.2240.Z01.E, a loans-to-corporations series rather than M3 (ecb_get_series with indicator m3 gives M3).\nReturns: series_code, label, unit, frequency (always reported as % and Daily), observation_count and observations (date, value).\nInputs (* required): indicator* (ez_cpi, ez_gdp, m3; schema default ez_cpi); start_date, end_date (YYYY-MM-DD); recent_periods (1-100; default 10; keeps the last N observations, only when no date is given).\nFor French figures use bdf_get_french_indicator; ecb_get_series covers more euro area series. Despite the bdf_ name, data comes from the legacy ECB statistical web service (sdw-wsrest.ecb.europa.eu), no API key; the ecb_ tools read the same ECB data from the current ECB Data Portal API.\nExample: {\"indicator\": \"ez_cpi\", \"start_date\": \"2023-01-01\", \"end_date\": \"2024-12-31\"}",
   "version": "2.9.8",
   "enabled": true,
   "metadata": {

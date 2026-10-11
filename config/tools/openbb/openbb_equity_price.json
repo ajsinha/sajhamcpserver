@@ -1,7 +1,7 @@
 {
   "name": "openbb_equity_price",
   "implementation": "sajha.tools.impl.openbb_tools.OpenBBEquityPriceTool",
-  "description": "Get historical equity prices via OpenBB \u2014 daily OHLCV data from Yahoo Finance, FMP, or Intrinio. Supports global stocks.",
+  "description": "Daily OHLCV price history for one stock through the OpenBB Platform (obb.equity.price.historical).\nReturns: {symbol, provider, data_points, start_date, end_date, prices: [{date, open, high, low, close, volume, ...provider extras}]}, every row in the range.\nInputs (* required): symbol* (ticker, upper-cased); start_date (YYYY-MM-DD; default one year ago); end_date (YYYY-MM-DD; default today); provider (yfinance, fmp or intrinio; default yfinance, no key).\nOther sources: yf_stock_history, av_stock_daily; indices: openbb_index_price_historical. Keys: fmp, benzinga, fred, intrinio, polygon and tiingo need credentials in OpenBB's settings (~/.openbb_platform/user_settings.json), not supplied by SAJHA; yfinance, oecd, federal_reserve, sec, imf and government_us need none.\nExample: {\"symbol\": \"AAPL\", \"start_date\": \"2026-01-01\", \"end_date\": \"2026-06-30\", \"provider\": \"yfinance\"}",
   "version": "4.5.0",
   "enabled": true,
   "inputSchema": {

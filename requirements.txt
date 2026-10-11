@@ -48,7 +48,7 @@ python-dotenv>=1.0.0,<2.0.0
 pyyaml>=6.0,<7.0
 
 # ── Analytics ────────────────────────────────────────────────
-duckdb>=1.0.0,<2.0.0
+duckdb>=1.1.0,<2.0.0                # 1.1+: duckdb.SQLExpression (sqlselect_count_rows where_clause)
 
 # ── Financial Data: Yahoo Finance (35 yfinance_* tools) ──────
 yfinance>=0.2.36,<0.3.0
@@ -74,11 +74,11 @@ ollama>=0.4.0,<1.0.0              # Ollama local models
 # For optional API-driven vector search set ai.tool_search.embedder: gateway (uses the
 # already-configured LLM embedding provider, e.g. OpenAI).
 
-# ── RAG document sources (optional — only to index PDF and Word files) ─────
-# Imported when such a file is met (sajha/ai/rag/extract.py); without them those files are
-# skipped and the index build names the package to install. Text types need nothing extra.
-# pypdf>=4.0,<7.0                            # .pdf
-# python-docx>=1.1,<2.0                      # .docx
+# ── Document readers: RAG sources (PDF, Word) and the msdoc_* Word tools ─────
+# Imported when needed (sajha/ai/rag/extract.py, sajha/tools/impl/msdoc_tools_tool_refactored.py);
+# without them RAG skips those files and the Word tools return an error naming the package.
+pypdf>=4.0,<7.0                             # .pdf
+python-docx>=1.1,<2.0                       # .docx
 
 # ── RAG vector store (optional — the default ai.rag.store, sqlite_vec) ──────
 # The document index's own SQLite file with vector search (sajha/ai/rag/sqlite_vec.py). Needs a

@@ -1,7 +1,7 @@
 {
   "name": "openbb_yield_curve",
   "implementation": "sajha.tools.impl.openbb_tools.OpenBBYieldCurveTool",
-  "description": "Get US Treasury yield curve via OpenBB \u2014 rates across all maturities (1mo to 30yr) for a given date",
+  "description": "Meant to give the US Treasury yield curve for a date through OpenBB (obb.fixedincome.government.us_yield_curve).\nReturns: {yield_curve: [...]} or {error}.\nInputs (* required): date (YYYY-MM-DD; latest if omitted); provider (default federal_reserve).\nOpenBB 4.x (4.6 checked) has no obb.fixedincome.government.us_yield_curve (4.6 has fixedincome.government.yield_curve), so this tool currently returns an error object; alternatives: av_treasury_yield per maturity, or fred_2yr_treasury, fred_5yr_treasury, fred_10yr_treasury, fred_30yr_treasury and fred_yield_spread.\nExample: {\"date\": \"2026-09-30\"}",
   "version": "4.5.0",
   "enabled": true,
   "inputSchema": {
@@ -13,6 +13,7 @@
       },
       "provider": {
         "type": "string",
+        "description": "OpenBB data provider",
         "default": "federal_reserve"
       }
     },

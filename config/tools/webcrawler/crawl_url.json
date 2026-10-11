@@ -1,7 +1,7 @@
 {
   "name": "crawl_url",
   "implementation": "sajha.tools.impl.webcrawler_tool_refactored.CrawlURLTool",
-  "description": "Recursively crawl a website starting from a URL, following links up to a specified depth (max 3 levels). Extract page metadata, links, images, and text content.",
+  "description": "Crawl a website breadth-first from a start URL, up to 3 link levels deep, summarising each page fetched.\nReturns {start_url, pages_crawled, pages: [{url, depth, status_code, title, meta_description, link_count, images (first 10), text_preview (500 chars)} or {url, depth, error}], crawl_duration (s), ...}; if robots.txt disallows the start URL, {error, robots_check, url}.\nInputs (* required): url* (string, absolute http(s) URL), max_depth (0-3, default 1), max_pages (1-100, default 10), follow_external (default false), respect_robots (default true), extract_images, extract_text (default true), delay (0.5-5 s, default 1.0), timeout (5-30 s, default 10).\nOne page: extract_content.\nExample: {\"url\": \"https://example.com/blog\", \"max_depth\": 1, \"max_pages\": 5}\nFetches go through SAJHA's outbound fetch guard (loopback and cloud-metadata addresses refused; private networks too when tools.outbound.block_private_networks is on). No API key.",
   "version": "2.9.8",
   "enabled": true,
   "inputSchema": {

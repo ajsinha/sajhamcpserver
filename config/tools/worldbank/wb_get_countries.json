@@ -1,7 +1,7 @@
 {
   "name": "wb_get_countries",
   "implementation": "sajha.tools.impl.world_bank_tool.WBGetCountriesTool",
-  "description": "Retrieve list of all countries and regions with their metadata including income levels, regions, and lending types from the World Bank API.",
+  "description": "List countries and aggregate groups with their World Bank classifications, from the World Bank Indicators API v2 (no API key).\nReturns: total_countries, filters_applied and countries: id (ISO3 code), name, capital, region, income_level and lending_type (each {id, iso2code, value}), longitude, latitude.\nInputs (none required): income_level (HIC, UMC, LMC, LIC or all; default all), region (EAS, ECS, LCN, MEA, NAC, SAS, SSF, WLD or all; default all), lending_type (IBD, IDB, IDX, LNX or all; default all), per_page (1-500; default 300). Only the first page is returned.\nUse it to find country codes for wb_get_country_data or wb_compare_countries; for the code lists themselves use wb_get_income_levels, wb_get_regions or wb_get_lending_types.\nExample: {\"region\": \"SAS\", \"income_level\": \"LMC\"}",
   "version": "2.9.8",
   "enabled": true,
   "inputSchema": {

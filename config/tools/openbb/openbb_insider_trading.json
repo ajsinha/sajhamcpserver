@@ -1,7 +1,7 @@
 {
   "name": "openbb_insider_trading",
   "implementation": "sajha.tools.impl.openbb_tools.OpenBBInsiderTradingTool",
-  "description": "Get insider trading activity via OpenBB \u2014 officer/director buys and sells from SEC Form 4 filings",
+  "description": "Insider (officer, director, 10% owner) transactions from SEC Form 4 data through the OpenBB Platform (obb.equity.ownership.insider_trading).\nReturns: {symbol, transactions: [records with filing and transaction dates, owner name and title, transaction type, shares, price, shares owned after]} or {symbol, error}.\nInputs (* required): symbol*; limit (when omitted the tool asks for 20, the schema says 5); provider (fmp, intrinio or sec; default fmp; sec needs no key).\nOther sources: yf_insider_transactions, edgar_insider_transactions. Keys: fmp, benzinga, fred, intrinio, polygon and tiingo need credentials in OpenBB's settings (~/.openbb_platform/user_settings.json), not supplied by SAJHA; yfinance, oecd, federal_reserve, sec, imf and government_us need none.\nExample: {\"symbol\": \"TSLA\", \"limit\": 10, \"provider\": \"sec\"}",
   "version": "4.5.0",
   "enabled": true,
   "inputSchema": {
@@ -13,6 +13,7 @@
       },
       "provider": {
         "type": "string",
+        "description": "OpenBB data provider",
         "default": "fmp"
       },
       "limit": {

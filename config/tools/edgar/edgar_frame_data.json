@@ -1,7 +1,7 @@
 {
   "name": "edgar_frame_data",
   "implementation": "sajha.tools.impl.enhanced_edgar_tool.EDGARFrameDataTool",
-  "description": "Retrieve aggregated XBRL frame data across ALL companies for a specific financial concept and time period - useful for market-wide analysis and benchmarking",
+  "description": "One XBRL concept for one period across all reporting companies (the EDGAR frames API), for cross-company comparison and benchmarking.\nReturns {taxonomy, tag, label, description, frame (e.g. CY2023, CY2023Q4), units_count (data points), data: [{accn, cik, entityName, loc, end, val}]}, often thousands of rows.\nInputs (* required): concept* (string, XBRL tag such as Assets or NetIncomeLoss), year* (integer 2009-2030), quarter (Q1 | Q2 | Q3 | Q4 | CY; default CY = whole calendar year), unit (USD | shares | pure; default USD), taxonomy (us-gaap | ifrs-full | dei | srt; default us-gaap).\nSuits duration concepts (revenue, income); point-in-time frames for balance-sheet items (CY2023Q4I) are not built. Several concepts: edgar_xbrl_frames_multi_concept; one company: edgar_company_concept.\nExample: {\"concept\": \"NetIncomeLoss\", \"year\": 2023, \"quarter\": \"CY\"}\nNo API key needed (SEC data.sec.gov; 110 ms between requests).",
   "version": "2.9.8",
   "enabled": true,
   "inputSchema": {

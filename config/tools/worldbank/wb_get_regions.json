@@ -1,7 +1,7 @@
 {
   "name": "wb_get_regions",
   "implementation": "sajha.tools.impl.world_bank_tool.WBGetRegionsTool",
-  "description": "Retrieve World Bank geographic region classifications and metadata. Get information about regional groupings of countries.",
+  "description": "List the World Bank region groupings (World Bank Indicators API v2, no API key).\nReturns: total_regions, regions (id, iso2code, value as the region name, code) and descriptions, a fixed map of EAS, ECS, LCN, MEA, NAC, SAS, SSF and WLD to their names.\nInputs (none required): per_page (1-100; default 50).\nUse the codes as the region filter of wb_get_countries or wb_get_indicator_data. Siblings: wb_get_income_levels, wb_get_lending_types.\nExample: {\"per_page\": 100}",
   "version": "2.9.8",
   "enabled": true,
   "inputSchema": {

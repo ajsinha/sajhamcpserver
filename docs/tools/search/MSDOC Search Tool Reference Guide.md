@@ -61,7 +61,11 @@ Implementation: `sajha.tools.impl.msdoc_tools_tool_refactored`; tool configs:
   tool results.
 
 Copy `.docx` / `.xlsx` files into the directory and refer to them by bare file
-name (e.g. `report.docx`). See the
+name (e.g. `report.docx`) or a path below it (`2024/report.docx`). A file
+argument is confined to the documents directory: an absolute path, a `..` part,
+or a name (including a symbolic link) whose real path lies outside the directory
+is refused, and links out of the directory are not listed
+(`confined_path` in `sajha/core/storage.py`). See the
 [Configuration Reference](../../getting-started/Configuration%20Reference.md)
 for general configuration.
 
@@ -217,6 +221,7 @@ For Word: `msdoc_list_files` → `msdoc_search_word` to locate content →
 | Message | Cause | Fix |
 |---------|-------|-----|
 | `File not found: <name>` | Not in the documents directory | Run `msdoc_list_files`; use the exact name including extension |
+| `'<name>': give a file name inside the documents folder ...` or `... resolves outside the documents folder; refused` | An absolute path, a `..` part, or a link out of the directory | Copy the file into the documents directory and pass its name |
 | `python-docx library not installed ...` | Missing dependency | `pip install python-docx` |
 | `openpyxl library not installed ...` | Missing dependency | `pip install openpyxl` |
 | `Failed to read Word document: ...` | Corrupt file or legacy `.doc` | Re-save as `.docx` |

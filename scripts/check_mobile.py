@@ -361,7 +361,7 @@ def run(base: str, user: str, password: str, routes: List[Tuple[str, bool]], vie
         browser = pw.chromium.launch()
         for spec in viewports:
             w, h = _vp(spec)
-            # Public pages in a signed-out browser (signed in, "/" and "/login" redirect away)
+            # Public pages in a signed-out browser (signed in, "/login" redirects away)
             for signed in (False, True):
                 todo = [p for p, auth in routes if auth == signed]
                 if not todo:

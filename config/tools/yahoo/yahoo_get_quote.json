@@ -1,7 +1,7 @@
 {
   "name": "yahoo_get_quote",
   "implementation": "sajha.tools.impl.yahoo_finance_tool.YahooGetQuoteTool",
-  "description": "Retrieve real-time stock quote data including current price, volume, market cap, and key statistics for a given stock symbol.",
+  "description": "Current quote for one Yahoo Finance symbol (stock, index, ETF, crypto pair, currency pair), from Yahoo's quoteSummary endpoint.\nReturns: {symbol, name, price, currency, change, change_percent, volume, avg_volume, market_cap, pe_ratio, dividend_yield, fifty_two_week_high, fifty_two_week_low, day_high, day_low, open, previous_close, last_updated}.\nInputs (* required): symbol* (1-20 characters of letters, digits and ^ . = -, e.g. AAPL, ^GSPC, BTC-USD, EURUSD=X, 7203.T; upper-cased).\nYahoo may answer this endpoint with HTTP 401 when no browser session cookie is sent; yf_fast_info and yf_stock_info (yfinance library) are alternatives. History: yahoo_get_history; find a ticker: yahoo_search_symbols.\nNo API key.\nExample: {\"symbol\": \"AAPL\"}",
   "version": "2.9.8",
   "enabled": true,
   "inputSchema": {

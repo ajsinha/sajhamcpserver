@@ -1,7 +1,7 @@
 {
   "name": "openbb_dividends",
   "implementation": "sajha.tools.impl.openbb_tools.OpenBBDividendsTool",
-  "description": "Get dividend history via OpenBB \u2014 ex-date, payment date, amount, frequency for any stock",
+  "description": "Dividend history for one stock through the OpenBB Platform (obb.equity.fundamental.dividends).\nReturns: {symbol, dividends: [records with ex_dividend_date, amount and, depending on the provider, record, payment and declaration dates]}.\nInputs (* required): symbol*; provider (fmp, intrinio, nasdaq or yfinance; default yfinance, no key).\nOther sources: yf_dividends; upcoming market-wide: openbb_equity_calendar_dividend. Keys: fmp, benzinga, fred, intrinio, polygon and tiingo need credentials in OpenBB's settings (~/.openbb_platform/user_settings.json), not supplied by SAJHA; yfinance, oecd, federal_reserve, sec, imf and government_us need none.\nExample: {\"symbol\": \"KO\", \"provider\": \"yfinance\"}",
   "version": "4.5.0",
   "enabled": true,
   "inputSchema": {

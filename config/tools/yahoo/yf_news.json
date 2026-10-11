@@ -1,7 +1,7 @@
 {
   "name": "yf_news",
   "implementation": "sajha.tools.impl.yfinance_tools.YFNewsTool",
-  "description": "Get latest news from Yahoo Finance for a specific stock \u2014 headlines, links, publisher",
+  "description": "Recent news items about one ticker from Yahoo Finance (yfinance news).\nReturns: {symbol, articles: [Yahoo news items as provided by yfinance, typically with id and content holding title, summary, pubDate, provider and canonicalUrl]}; the list can be empty.\nInputs (* required): symbol*; limit (integer, maximum items; default 10).\nOther news sources: openbb_company_news, fmp_stock_news. No API key; data comes from Yahoo Finance through the yfinance library.\nExample: {\"symbol\": \"AAPL\", \"limit\": 5}",
   "version": "4.5.0",
   "enabled": true,
   "inputSchema": {
@@ -13,6 +13,7 @@
       },
       "limit": {
         "type": "integer",
+        "description": "Maximum number of news items",
         "default": 10
       }
     },

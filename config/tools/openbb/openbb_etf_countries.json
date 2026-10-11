@@ -1,7 +1,7 @@
 {
   "name": "openbb_etf_countries",
   "implementation": "sajha.tools.impl.openbb_tools.OpenBBGenericTool",
-  "description": "Get ETF country allocation via OpenBB",
+  "description": "Country weights of one ETF through the OpenBB Platform (obb.etf.countries).\nReturns: {tool, data_points (total rows), data: first 100 rows as OpenBB returns them} or {tool, error}.\nInputs (* required): symbol*; provider (OpenBB 4.6 accepts fmp only; schema default fmp, but when omitted the tool sends yfinance, which this command rejects, so set it).\nSector weights: openbb_etf_sectors; another source: fmp_etf_country_weights. Keys: fmp, benzinga, fred, intrinio, polygon and tiingo need credentials in OpenBB's settings (~/.openbb_platform/user_settings.json), not supplied by SAJHA; yfinance, oecd, federal_reserve, sec, imf and government_us need none.\nExample: {\"symbol\": \"VEA\", \"provider\": \"fmp\"}",
   "version": "4.5.0",
   "enabled": true,
   "inputSchema": {
@@ -13,6 +13,7 @@
       },
       "provider": {
         "type": "string",
+        "description": "OpenBB data provider",
         "default": "fmp"
       }
     },

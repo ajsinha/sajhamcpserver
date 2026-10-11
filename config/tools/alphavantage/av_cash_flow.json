@@ -1,7 +1,7 @@
 {
   "name": "av_cash_flow",
   "implementation": "sajha.tools.impl.alphavantage_tools.AVCashFlowTool",
-  "description": "Get cash flow from Alpha Vantage \u2014 operating, investing, financing",
+  "description": "Cash flow statements (operating cash flow, capital expenditures, investing, financing, dividend payout and other line items) for one company from Alpha Vantage (CASH_FLOW).\nReturns: {symbol, annualReports: [...], quarterlyReports: [...]}, each report with fiscalDateEnding, reportedCurrency and the line items as strings. Alpha Vantage's JSON comes back unchanged, including its \"Error Message\" or \"Information\" notes; a network failure gives {\"error\": ...}.\nInputs (* required): symbol* (ticker). Annual and quarterly reports both come back; there is no period filter.\nRelated: av_income_statement, av_balance_sheet; other sources: yf_cash_flow, openbb_cash_flow.\nKey: ALPHA_VANTAGE_API_KEY (alpha_vantage.api.key); when unset the 'demo' key is sent, which only serves Alpha Vantage's documentation examples. Free tier: 25 requests/day.\nExample: {\"symbol\": \"IBM\"}",
   "version": "4.5.0",
   "enabled": true,
   "inputSchema": {

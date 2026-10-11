@@ -1,17 +1,19 @@
 {
   "name": "openbb_regulators_sec_search",
   "implementation": "sajha.tools.impl.openbb_tools.OpenBBGenericTool",
-  "description": "Search SEC EDGAR via OpenBB \u2014 find companies and filings",
+  "description": "Search SEC-registered institutions (13F filers such as fund managers) by name through the OpenBB Platform (obb.regulators.sec.institutions_search); results carry name and CIK.\nReturns: {tool, data_points (total rows), data: first 100 rows as OpenBB returns them} or {tool, error}.\nInputs (* required): query*; provider (OpenBB 4.6 accepts sec only; schema default sec, but when omitted the tool sends yfinance, which this command rejects, so set it); no key.\nCompany search: edgar_company_search, openbb_equity_search (provider sec); holdings: edgar_institutional_holdings. Keys: fmp, benzinga, fred, intrinio, polygon and tiingo need credentials in OpenBB's settings (~/.openbb_platform/user_settings.json), not supplied by SAJHA; yfinance, oecd, federal_reserve, sec, imf and government_us need none.\nExample: {\"query\": \"Vanguard\", \"provider\": \"sec\"}",
   "version": "4.5.0",
   "enabled": true,
   "inputSchema": {
     "type": "object",
     "properties": {
       "query": {
-        "type": "string"
+        "type": "string",
+        "description": "Search text"
       },
       "provider": {
         "type": "string",
+        "description": "OpenBB data provider",
         "default": "sec"
       }
     },

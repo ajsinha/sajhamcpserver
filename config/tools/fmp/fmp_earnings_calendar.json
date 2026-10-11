@@ -1,7 +1,7 @@
 {
   "name": "fmp_earnings_calendar",
   "implementation": "sajha.tools.impl.fmp_tools.FMPEarningsCalendarTool",
-  "description": "Get upcoming and recent earnings announcements from FMP \u2014 dates, EPS estimates vs actuals, revenue estimates",
+  "description": "Earnings announcement calendar from Financial Modeling Prep (FMP, /stable/earning-calendar): report dates, EPS estimate vs actual, revenue estimate vs actual.\nReturns {events}: FMP's list of earnings events.\nInputs (* required): from_date (YYYY-MM-DD), to_date (YYYY-MM-DD), symbol (ticker filter); all optional, FMP's default window applies without dates.\nFor dividends, IPOs, splits and macro releases use fmp_dividend_calendar, fmp_ipo_calendar, fmp_stock_split_calendar, fmp_economic_calendar; for call text fmp_earnings_transcript.\nNeeds an FMP API key (config fmp.api.key, env FMP_API_KEY); without one it returns a demo placeholder naming the endpoint instead of data.\nExample: {\"from_date\": \"2025-07-01\", \"to_date\": \"2025-07-31\"}",
   "version": "4.5.0",
   "enabled": true,
   "inputSchema": {

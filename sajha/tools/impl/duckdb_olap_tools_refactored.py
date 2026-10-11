@@ -818,6 +818,12 @@ class DuckDbListFilesTool(DuckDbBaseTool):
             except Exception as e:
                 self.logger.warning(f"Could not read the loaded tables: {e}")
 
+            if not include_metadata:
+                # the summary above still counts sizes; the per-file size and date are dropped
+                for file_info in files:
+                    for key in ('file_size_bytes', 'file_size_human', 'modified_date'):
+                        file_info.pop(key, None)
+
             return {
                 'data_directory': self.data_directory,
                 'files': files,

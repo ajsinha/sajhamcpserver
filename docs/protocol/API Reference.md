@@ -65,7 +65,7 @@ curl -H "X-API-Key: sja_your_key_here" http://localhost:3002/api/metrics
 | GET | `/login` | none | Login page (HTML), with a "Sign in with ..." button when single sign-on is on. With `auth.sso.auto_redirect`, redirects to `/auth/sso/login` (keeping `?next=`) unless `?local=1`. |
 | POST | `/login` | none | Login form (`user_id`, `password`); signs out the browser's previous session, sets the `sajha_token` cookie and redirects to `?next=` (local paths only) or `/dashboard`. Same throttle (429) and lockout (423) as the JSON login. |
 | GET | `/logout` | none | Revokes the session token, clears the cookie, redirects to `/`, or to the identity provider's end-session endpoint when single sign-on started the session (`auth.sso.idp_logout`). |
-| GET | `/` | optional | Landing page, or redirect to `/dashboard` when signed in. |
+| GET | `/` | optional | Landing page, for everyone (the navbar logo links here); signed in, its buttons lead to `/dashboard` instead of `/login`. |
 
 Console single sign-on (`sso_routes.py`; off unless `auth.sso.enabled`; [Security Model](../security/Security%20Model.md#console-single-sign-on)):
 

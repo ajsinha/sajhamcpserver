@@ -1,7 +1,7 @@
 {
   "name": "fmp_financial_growth",
   "implementation": "sajha.tools.impl.fmp_tools.FMPGenericTool",
-  "description": "Get financial growth metrics from FMP \u2014 revenue, earnings, cash flow growth rates",
+  "description": "Growth rates of one company's financials by period from Financial Modeling Prep (FMP): revenue, earnings, EPS, cash flow, debt and other line items, as fractions.\nReturns {tool, endpoint, data}: data is FMP's JSON from /stable/financial-growth as returned (usually a list of records).\nInputs (* required): symbol* (ticker, sent as given, e.g. AAPL), period (annual or quarter; sent only when given), limit (integer; sent only when given).\nFor the underlying statements use fmp_income_statement, fmp_balance_sheet, fmp_cash_flow.\nNeeds an FMP API key (config fmp.api.key, env FMP_API_KEY); without one it returns a demo placeholder naming the endpoint instead of data.\nExample: {\"symbol\": \"AAPL\", \"period\": \"annual\", \"limit\": 5}",
   "version": "4.5.0",
   "enabled": true,
   "inputSchema": {
@@ -13,6 +13,7 @@
       },
       "period": {
         "type": "string",
+        "description": "Reporting period: annual or quarter (sent only when given)",
         "default": "annual"
       },
       "limit": {

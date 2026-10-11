@@ -2,7 +2,7 @@
   "name": "slack_post_message",
   "implementation": "sajha.accounts.tools.slack.SlackPostMessageTool",
   "title": "Post a Slack message",
-  "description": "Post a message to a Slack channel or direct message as the signed-in user, through their connected Slack account (a user token with chat:write). Returns the channel and message timestamp.",
+  "description": "Post a message to a Slack channel, direct message or thread as the signed-in user, through their connected Slack account (a user token with chat:write; Web API chat.postMessage). Writes to Slack; not idempotent.\nReturns: ok, channel (ID), ts (message timestamp, usable as thread_ts for replies) and text.\nInputs (* required): channel* (channel ID such as C0123..., name such as #general, or a user ID for a DM); text* (1-40,000 characters, Slack mrkdwn); thread_ts (parent message ts to reply in its thread, e.g. 1712345678.000100).\nRuns only for a signed-in SAJHA user; when the account is not linked, or lacks the scope, the call returns a request to connect it with a link instead of a result.\nExample: {\"channel\": \"#general\", \"text\": \"Deploy finished at 14:05 UTC.\"}",
   "version": "1.0.0",
   "enabled": true,
   "auth": {

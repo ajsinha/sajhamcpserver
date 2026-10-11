@@ -1,7 +1,7 @@
 {
   "name": "av_rsi",
   "implementation": "sajha.tools.impl.alphavantage_tools.AVRSITool",
-  "description": "Get Relative Strength Index from Alpha Vantage",
+  "description": "Relative strength index (0-100 momentum oscillator) for one stock from Alpha Vantage (RSI) computed on closing prices.\nReturns: {\"Meta Data\", \"Technical Analysis: RSI\"} keyed by date or timestamp, each with RSI. Alpha Vantage's JSON comes back unchanged, including its \"Error Message\" or \"Information\" notes; a network failure gives {\"error\": ...}.\nInputs (* required): symbol* (ticker); interval (1min, 5min, 15min, 30min, 60min, daily, weekly or monthly; default daily); time_period (bars in the window; default 14 when omitted).\nUse it for overbought (>70) or oversold (<30) readings; av_stoch and av_williams_r are other oscillators. Raw prices: av_stock_daily.\nKey: ALPHA_VANTAGE_API_KEY (alpha_vantage.api.key); when unset the 'demo' key is sent, which only serves Alpha Vantage's documentation examples. Free tier: 25 requests/day.\nExample: {\"symbol\": \"IBM\", \"interval\": \"daily\", \"time_period\": 14}",
   "version": "4.5.0",
   "enabled": true,
   "inputSchema": {
@@ -13,10 +13,12 @@
       },
       "interval": {
         "type": "string",
+        "description": "Bar interval: 1min, 5min, 15min, 30min, 60min, daily, weekly or monthly",
         "default": "daily"
       },
       "time_period": {
         "type": "integer",
+        "description": "Number of bars in the indicator window",
         "default": 14
       }
     },

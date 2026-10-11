@@ -1,7 +1,7 @@
 {
   "name": "edgar_company_facts",
   "implementation": "sajha.tools.impl.enhanced_edgar_tool.EDGARCompanyFactsTool",
-  "description": "Retrieve all structured financial facts and XBRL data reported by a company across all filings",
+  "description": "Every XBRL financial fact a company has reported to the SEC, from the EDGAR companyfacts API.\nReturns {cik, entityName, facts_count, taxonomies (e.g. us-gaap, dei), facts: {taxonomy: {concept: {label, description, units: {unit: [{end, val, fy, fp, form, filed, accn, ...}]}}}}}. The response is large.\nInputs (* required): cik* (string, SEC Central Index Key, up to 10 digits; from edgar_company_search).\nFor one concept over time use edgar_company_concept; for computed ratios edgar_financial_ratios; sec_get_company_facts is the same data addressed by ticker or CIK.\nExample: {\"cik\": \"320193\"}\nNo API key needed (SEC data.sec.gov; 110 ms between requests).",
   "version": "2.9.8",
   "enabled": true,
   "inputSchema": {

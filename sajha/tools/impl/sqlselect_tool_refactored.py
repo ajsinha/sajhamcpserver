@@ -1,13 +1,33 @@
 """
 Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.com
 SQL Select MCP Tool Implementation - Refactored with Individual Tools
+
+Sandbox (as the duckdb_* tools): each configured data source is copied into a table of an
+in-memory DuckDB, then ``enable_external_access`` is switched off and the configuration
+locked, so no query can read or write a file or URL (``read_text('/etc/passwd')``,
+``read_csv``, ``COPY``, ``ATTACH``, ``INSTALL``) or switch that back on. Source names are
+looked up in the configured sources and used quoted; a caller's query or filter must parse
+as exactly one read-only statement (``sajha/olap/sql_safety.py``).
 """
 
 import os
+import re
 import duckdb
 from typing import Dict, Any, List, Optional
 from datetime import datetime
 from sajha.tools.base_mcp_tool import BaseMCPTool
+from sajha.olap import sql_safety as sq
+
+_LOADERS = {
+    'csv': "read_csv_auto(?)",
+    'parquet': "read_parquet(?)",
+    'json': "read_json_auto(?)",
+}
+# Statement keywords refused in a caller's query, matched as whole words only, so a column
+# such as created_at or updated_by is fine. The protection is the sandboxed connection and
+# the parser check; this list only gives a clearer message.
+_FORBIDDEN_WORDS = ('DROP', 'DELETE', 'UPDATE', 'INSERT', 'CREATE', 'ALTER', 'TRUNCATE')
+_FORBIDDEN_RE = re.compile(r'\b(' + '|'.join(_FORBIDDEN_WORDS) + r')\b', re.IGNORECASE)
 
 
 class SqlSelectBaseTool(BaseMCPTool):
@@ -38,8 +58,10 @@ class SqlSelectBaseTool(BaseMCPTool):
             # Ensure data directory exists
             os.makedirs(self.data_directory, exist_ok=True)
             
-            # Register all configured data sources
+            # Register all configured data sources, then cut off file and network access
             self._register_data_sources()
+            self.connection.execute("SET enable_external_access = false")
+            self.connection.execute("SET lock_configuration = true")
             
             self.logger.info(f"DuckDB connection initialized for {self.name}")
             
@@ -48,7 +70,8 @@ class SqlSelectBaseTool(BaseMCPTool):
             raise Exception(f"Failed to initialize DuckDB connection: {str(e)}")
     
     def _register_data_sources(self):
-        """Register all configured data sources as DuckDB tables/views"""
+        """Copy each configured data source into a DuckDB table (not a view over the file:
+        the file functions are switched off once the sources are loaded)."""
         for source_name, source_config in self.data_sources.items():
             try:
                 file_path = os.path.join(self.data_directory, source_config['file'])
@@ -58,28 +81,26 @@ class SqlSelectBaseTool(BaseMCPTool):
                     self.logger.warning(f"Data file not found: {file_path}")
                     continue
                 
-                # Create table/view based on file type
-                if file_type == 'csv':
-                    self.connection.execute(
-                        f"CREATE OR REPLACE VIEW {source_name} AS "
-                        f"SELECT * FROM read_csv_auto('{file_path}')"
-                    )
-                elif file_type == 'parquet':
-                    self.connection.execute(
-                        f"CREATE OR REPLACE VIEW {source_name} AS "
-                        f"SELECT * FROM read_parquet('{file_path}')"
-                    )
-                elif file_type == 'json':
-                    self.connection.execute(
-                        f"CREATE OR REPLACE VIEW {source_name} AS "
-                        f"SELECT * FROM read_json_auto('{file_path}')"
-                    )
+                if file_type not in _LOADERS:
+                    self.logger.warning(f"Data source {source_name}: unsupported type {file_type}")
+                    continue
+                self.connection.execute(
+                    f"CREATE OR REPLACE TABLE {sq.quote_identifier(source_name)} AS "
+                    f"SELECT * FROM {_LOADERS[file_type]}", [file_path])
                 
                 self.logger.info(f"Registered data source: {source_name} ({file_type})")
                     
             except Exception as e:
                 self.logger.error(f"Error registering data source {source_name}: {str(e)}", exc_info=True)
     
+    def _source(self, source_name: Any) -> str:
+        """The quoted table name of a configured data source, or ValueError."""
+        if not isinstance(source_name, str) or not source_name:
+            raise ValueError("source_name is required")
+        if source_name not in self.data_sources:
+            raise ValueError(f"Data source not found: {source_name}")
+        return sq.quote_identifier(source_name)
+
     def _error_response(self, error_message: str) -> Dict[str, Any]:
         """Generate error response"""
         return {
@@ -95,7 +116,7 @@ class SqlSelectBaseTool(BaseMCPTool):
                 self.connection.close()
                 self.logger.info(f"DuckDB connection closed for {self.name}")
             except Exception as e:
-                logger.error(f"Unexpected error: {e}", exc_info=True)
+                self.logger.debug(f"closing the DuckDB connection failed: {e}")
                 pass
 
 
@@ -291,7 +312,7 @@ class SqlSelectDescribeSourceTool(SqlSelectBaseTool):
         
         # Get column information
         try:
-            columns_query = f"DESCRIBE {source_name}"
+            columns_query = f"DESCRIBE {self._source(source_name)}"
             result = self.connection.execute(columns_query).fetchall()
             columns = [
                 {
@@ -308,7 +329,7 @@ class SqlSelectDescribeSourceTool(SqlSelectBaseTool):
         
         # Get row count
         try:
-            count_query = f"SELECT COUNT(*) FROM {source_name}"
+            count_query = f"SELECT COUNT(*) FROM {self._source(source_name)}"
             row_count = self.connection.execute(count_query).fetchone()[0]
         except Exception as e:
             self.logger.error(f"Error counting rows for {source_name}: {str(e)}", exc_info=True)
@@ -417,17 +438,14 @@ class SqlSelectExecuteQueryTool(SqlSelectBaseTool):
         if not query_upper.startswith('SELECT'):
             return self._error_response("Only SELECT queries are allowed")
         
-        # Prevent potentially dangerous keywords
-        dangerous_keywords = ['DROP', 'DELETE', 'UPDATE', 'INSERT', 'CREATE', 'ALTER', 'TRUNCATE']
-        for keyword in dangerous_keywords:
-            if keyword in query_upper:
-                return self._error_response(f"Query contains forbidden keyword: {keyword}")
-        
-        # Add LIMIT if not present
-        if 'LIMIT' not in query_upper:
-            query = f"{query.strip().rstrip(';')} LIMIT {limit}"
+        # A clearer message for a write keyword (whole words only: created_at is a column)
+        bad = _FORBIDDEN_RE.search(query)
+        if bad:
+            return self._error_response(f"Query contains forbidden keyword: {bad.group(1).upper()}")
         
         try:
+            # exactly one read-only statement; LIMIT added when the query has none
+            query = sq.read_only_sql(self.connection, query, sq.integer(limit, 'limit', 1, 10000))
             result = self.connection.execute(query).fetchall()
             columns = [desc[0] for desc in self.connection.description]
             
@@ -538,10 +556,10 @@ class SqlSelectSampleDataTool(SqlSelectBaseTool):
         if source_name not in self.data_sources:
             return self._error_response(f"Data source not found: {source_name}")
         
-        query = f"SELECT * FROM {source_name} LIMIT {limit}"
-        
         try:
-            result = self.connection.execute(query).fetchall()
+            limit = sq.integer(limit, 'limit', 1, 1000)
+            result = self.connection.execute(
+                f"SELECT * FROM {self._source(source_name)} LIMIT ?", [limit]).fetchall()
             columns = [desc[0] for desc in self.connection.description]
             
             data = []
@@ -654,7 +672,7 @@ class SqlSelectGetSchemaTool(SqlSelectBaseTool):
             return self._error_response(f"Data source not found: {source_name}")
         
         try:
-            columns_query = f"DESCRIBE {source_name}"
+            columns_query = f"DESCRIBE {self._source(source_name)}"
             result = self.connection.execute(columns_query).fetchall()
             
             schema = []
@@ -754,11 +772,23 @@ class SqlSelectCountRowsTool(SqlSelectBaseTool):
         if source_name not in self.data_sources:
             return self._error_response(f"Data source not found: {source_name}")
         
-        query = f"SELECT COUNT(*) FROM {source_name}"
-        if where_clause:
-            query += f" WHERE {where_clause}"
-        
         try:
+            query = f"SELECT COUNT(*) FROM {self._source(source_name)}"
+            if where_clause:
+                # One filter expression only: no statement separator or comment, and DuckDB's
+                # expression parser must accept it as a single expression (so "x) UNION ..."
+                # cannot break out of the WHERE); the parsed expression, not the raw text, is
+                # put in the query, which must then parse as one read-only statement. It runs on
+                # the sandboxed connection, so it can see no more than sqlselect_execute_query.
+                if not isinstance(where_clause, str) or ';' in where_clause \
+                        or '--' in where_clause or '/*' in where_clause:
+                    return self._error_response(
+                        "where_clause must be a single filter expression (no ';' or comments)")
+                try:
+                    condition = str(duckdb.SQLExpression(where_clause))
+                except Exception as e:
+                    return self._error_response(f"where_clause is not a single SQL expression: {e}")
+                query = sq.read_only_sql(self.connection, f"{query} WHERE {condition}")
             count = self.connection.execute(query).fetchone()[0]
             
             self.logger.info(f"Counted rows in {source_name}: {count}")

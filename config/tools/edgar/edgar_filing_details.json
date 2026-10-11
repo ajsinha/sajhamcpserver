@@ -1,7 +1,7 @@
 {
   "name": "edgar_filing_details",
   "implementation": "sajha.tools.impl.enhanced_edgar_tool.EDGARFilingDetailsTool",
-  "description": "Get detailed information about a specific SEC filing by accession number with direct document URLs",
+  "description": "Details and document links for one SEC filing, identified by company CIK and accession number, from SEC EDGAR.\nReturns {cik, accessionNumber, form, filingDate, reportDate, acceptanceDateTime, primaryDocument, primaryDocDescription, document_url (SEC viewer), filing_url (the primary document in the EDGAR archive)}.\nInputs (* required): cik* (string, SEC Central Index Key, up to 10 digits; from edgar_company_search), accession_number* (string, with or without dashes, e.g. 0000320193-23-000106).\nAn accession number outside the recent-filings block gives 'Filing not found'. Accession numbers come from edgar_filings_by_form and the other filing-list tools.\nExample: {\"cik\": \"0000320193\", \"accession_number\": \"0000320193-23-000106\"}\nNo API key needed (SEC data.sec.gov; 110 ms between requests).",
   "version": "2.9.8",
   "enabled": true,
   "inputSchema": {

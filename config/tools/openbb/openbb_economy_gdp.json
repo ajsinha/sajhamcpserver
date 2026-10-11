@@ -1,7 +1,7 @@
 {
   "name": "openbb_economy_gdp",
   "implementation": "sajha.tools.impl.openbb_tools.OpenBBEconomyGDPTool",
-  "description": "Get nominal GDP data via OpenBB \u2014 GDP values and growth rates for countries worldwide from OECD or World Bank",
+  "description": "Nominal GDP for a country through the OpenBB Platform (obb.economy.gdp.nominal).\nReturns: {country, data_points, gdp_data: [records with date, country and value]} or {country, error}.\nInputs (* required): country (OECD-style name in lower case with underscores, e.g. united_states, germany, japan; default united_states); provider (oecd or econdb; default oecd, no key).\nUS real GDP: av_gdp, fred_gdp; growth: fred_gdp_growth. Keys: fmp, benzinga, fred, intrinio, polygon and tiingo need credentials in OpenBB's settings (~/.openbb_platform/user_settings.json), not supplied by SAJHA; yfinance, oecd, federal_reserve, sec, imf and government_us need none.\nExample: {\"country\": \"germany\", \"provider\": \"oecd\"}",
   "version": "4.5.0",
   "enabled": true,
   "inputSchema": {
@@ -14,6 +14,7 @@
       },
       "provider": {
         "type": "string",
+        "description": "OpenBB data provider (oecd or econdb)",
         "default": "oecd"
       }
     },

@@ -1,7 +1,7 @@
 {
   "name": "av_crypto_weekly",
   "implementation": "sajha.tools.impl.alphavantage_tools.AVCryptoWeeklyTool",
-  "description": "Get weekly crypto prices from Alpha Vantage",
+  "description": "Historical weekly prices for one cryptocurrency from Alpha Vantage (DIGITAL_CURRENCY_WEEKLY).\nReturns: {\"Meta Data\", \"Time Series (Digital Currency Weekly)\"} keyed by date, each with open, high, low, close and volume in the chosen market currency. Alpha Vantage's JSON comes back unchanged, including its \"Error Message\" or \"Information\" notes; a network failure gives {\"error\": ...}.\nInputs (* required): symbol* (crypto code such as BTC or ETH; the tool falls back to BTC if it is missing); market (fiat currency code; default USD).\nRelated: av_crypto_daily; current rate: av_forex_rate with from=BTC; other sources: openbb_crypto_price, yf_crypto_info, cg_coin_market_chart.\nKey: ALPHA_VANTAGE_API_KEY (alpha_vantage.api.key); when unset the 'demo' key is sent, which only serves Alpha Vantage's documentation examples. Free tier: 25 requests/day.\nExample: {\"symbol\": \"ETH\", \"market\": \"USD\"}",
   "version": "4.5.0",
   "enabled": true,
   "inputSchema": {
@@ -9,10 +9,12 @@
     "properties": {
       "symbol": {
         "type": "string",
+        "description": "Crypto code, e.g. BTC, ETH",
         "default": "BTC"
       },
       "market": {
         "type": "string",
+        "description": "Fiat market currency code, e.g. USD, EUR",
         "default": "USD"
       }
     },

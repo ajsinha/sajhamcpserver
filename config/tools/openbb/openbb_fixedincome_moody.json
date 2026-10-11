@@ -1,7 +1,7 @@
 {
   "name": "openbb_fixedincome_moody",
   "implementation": "sajha.tools.impl.openbb_tools.OpenBBGenericTool",
-  "description": "Get Moody's corporate bond yields via OpenBB \u2014 AAA, BAA spreads",
+  "description": "Meant to give Moody's Aaa and Baa corporate bond yields through OpenBB (obb.fixedincome.corporate.moody).\nReturns: {tool, data_points (total rows), data: first 100 rows as OpenBB returns them} or {tool, error}.\nInputs (* required): provider (schema default fred; when omitted the tool sends yfinance).\nOpenBB 4.x (4.6 checked) has no obb.fixedincome.corporate.moody, so this tool currently returns an error object; alternatives: fred_credit_spread or fred_high_yield_spread.\nExample: {\"provider\": \"fred\"}",
   "version": "4.5.0",
   "enabled": true,
   "inputSchema": {
@@ -9,6 +9,7 @@
     "properties": {
       "provider": {
         "type": "string",
+        "description": "OpenBB data provider",
         "default": "fred"
       }
     },

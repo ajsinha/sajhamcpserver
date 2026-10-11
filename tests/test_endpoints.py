@@ -353,8 +353,18 @@ class TestWebPages:
         assert r.status_code in (302, 401, 403)
 
     def test_root_shows_landing_page_when_signed_out(self, client):
-        r = client.get('/', follow_redirects=False)      # signed-in visitors are redirected to /dashboard
+        r = client.get('/', follow_redirects=False)
         assert r.status_code == 200
+
+    def test_root_shows_landing_page_when_signed_in(self, client):
+        client.post('/login', data={'user_id': 'admin', 'password': 'admin123'}, follow_redirects=False)
+        try:
+            r = client.get('/', follow_redirects=False)       # the navbar logo leads here, never away
+            assert r.status_code == 200 and 'href="/dashboard"' in r.text and 'Sign In</a>' not in r.text
+            nav = client.get('/dashboard').text
+            assert 'class="navbar-brand sajha-brand" href="/"' in nav
+        finally:
+            client.cookies.clear()
 
     def test_swagger_docs(self, client):
         r = client.get('/api/docs')

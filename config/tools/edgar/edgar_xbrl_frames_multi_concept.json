@@ -1,7 +1,7 @@
 {
   "name": "edgar_xbrl_frames_multi_concept",
   "implementation": "sajha.tools.impl.enhanced_edgar_tool.EDGARXBRLFramesMultiConceptTool",
-  "description": "Retrieve multiple XBRL concepts in a single frame query for efficient batch analysis across all companies",
+  "description": "Several XBRL concepts for one period across all reporting companies (one EDGAR frames call per concept), for side-by-side cross-company analysis.\nReturns {frame (e.g. CY2023), concepts_retrieved, data_by_concept: {concept: {tag, label, units_count, data: [{accn, cik, entityName, loc, end, val}]} or {error}}}; a failing concept does not stop the others.\nInputs (* required): concepts* (array of 1-10 XBRL tags), year* (integer 2009-2030), quarter (Q1 | Q2 | Q3 | Q4 | CY; default CY), unit (USD | shares | pure; default USD, shared by all concepts), taxonomy (us-gaap | ifrs-full | dei | srt; default us-gaap).\nPoint-in-time frames (CY2023Q4I) are not built, so balance-sheet concepts may return errors. For one concept use edgar_frame_data.\nExample: {\"concepts\": [\"Revenues\", \"NetIncomeLoss\"], \"year\": 2023}\nNo API key needed (SEC data.sec.gov; 110 ms between requests).",
   "version": "2.9.8",
   "enabled": true,
   "inputSchema": {

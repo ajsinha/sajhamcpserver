@@ -1,7 +1,7 @@
 {
   "name": "av_williams_r",
   "implementation": "sajha.tools.impl.alphavantage_tools.AVWilliamsRTool",
-  "description": "Get Williams %R from Alpha Vantage \u2014 overbought/oversold",
+  "description": "Williams %R (-100 to 0 oscillator) for one stock from Alpha Vantage (WILLR).\nReturns: {\"Meta Data\", \"Technical Analysis: WILLR\"} keyed by date or timestamp, each with WILLR. Alpha Vantage's JSON comes back unchanged, including its \"Error Message\" or \"Information\" notes; a network failure gives {\"error\": ...}.\nInputs (* required): symbol* (ticker); interval (1min, 5min, 15min, 30min, 60min, daily, weekly or monthly; default daily); time_period (bars in the window; default 14 when omitted).\nUse it for overbought (above -20) or oversold (below -80) readings; av_rsi, av_stoch. Raw prices: av_stock_daily.\nKey: ALPHA_VANTAGE_API_KEY (alpha_vantage.api.key); when unset the 'demo' key is sent, which only serves Alpha Vantage's documentation examples. Free tier: 25 requests/day.\nExample: {\"symbol\": \"IBM\", \"interval\": \"daily\", \"time_period\": 14}",
   "version": "4.5.0",
   "enabled": true,
   "inputSchema": {
@@ -13,10 +13,12 @@
       },
       "interval": {
         "type": "string",
+        "description": "Bar interval: 1min, 5min, 15min, 30min, 60min, daily, weekly or monthly",
         "default": "daily"
       },
       "time_period": {
         "type": "integer",
+        "description": "Number of bars in the indicator window",
         "default": 14
       }
     },

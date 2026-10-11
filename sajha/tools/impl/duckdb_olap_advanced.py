@@ -311,7 +311,7 @@ class DuckDBOLAPAdvancedTool(BaseMCPTool):
                 "inputSchema": {
                     "type": "object",
                     "properties": {
-                        "dataset": {"type": "string"},
+                        "dataset": {"type": "string", "description": "Name of the dataset to analyze"},
                         "time_dimension": {
                             "type": "string",
                             "description": "The date/time dimension to use (e.g., 'order_date')"
@@ -355,7 +355,8 @@ class DuckDBOLAPAdvancedTool(BaseMCPTool):
                             },
                             "description": "Optional date range filter"
                         },
-                        "filters": {"type": "array", "items": {"type": "object"}}
+                        "filters": {"type": "array", "items": {"type": "object"},
+                                    "description": "Filters to apply, each {dimension, operator, value}"}
                     },
                     "required": ["dataset", "time_dimension", "time_grain", "measures"]
                 }

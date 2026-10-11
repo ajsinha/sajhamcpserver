@@ -1,7 +1,7 @@
 {
   "name": "duckdb_aggregate",
   "implementation": "sajha.tools.impl.duckdb_olap_tools_refactored.DuckDbAggregateTool",
-  "description": "Perform aggregation operations on tables with grouping (SUM, AVG, COUNT, MIN, MAX)",
+  "description": "Grouped aggregation on one DuckDB table without writing SQL. Tables: one per data file in data.duckdb.dir (orders.csv is orders), in a sandbox without file or URL access.\nReturns {table_name, aggregations_applied, grouped_by, results, row_count, execution_time_ms}: rows hold the group columns and one <function>_<column> per aggregation (e.g. sum_quantity).\nInputs (* required): table_name*, aggregations* (object {column: sum|avg|count|min|max|count_distinct}), group_by (array of columns), having ('<name> <op> <number or 'text'>' joined by AND, on output or group columns), order_by (array of {column, direction asc|desc}, same columns), limit (1-10000; default 100).\nFor joins or expressions use duckdb_query.\nExample: {\"table_name\": \"orders\", \"aggregations\": {\"quantity\": \"sum\", \"order_id\": \"count\"}, \"group_by\": [\"product_category\"], \"having\": \"sum_quantity > 10\", \"order_by\": [{\"column\": \"sum_quantity\", \"direction\": \"desc\"}], \"limit\": 10}",
   "version": "2.9.8",
   "enabled": true,
   "data_directory": "${data.duckdb.dir:./data/duckdb}",

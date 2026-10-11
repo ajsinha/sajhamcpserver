@@ -1,7 +1,7 @@
 {
   "name": "yf_shares_outstanding",
   "implementation": "sajha.tools.impl.yfinance_tools.YFSharesOutstandingTool",
-  "description": "Get shares outstanding history from Yahoo Finance \u2014 track share count changes over time",
+  "description": "Shares outstanding over time for one company from Yahoo Finance (yfinance get_shares_full, about the last 18 months).\nReturns: {symbol, shares: [{index (date-time), 0 (share count)}]}, oldest first, at most 100 rows.\nInputs (* required): symbol* (Yahoo ticker, e.g. AAPL, BRK-B, 7203.T).\nCurrent count only: yf_fast_info (shares_outstanding); float and short interest: openbb_equity_share_statistics. No API key; data comes from Yahoo Finance through the yfinance library.\nExample: {\"symbol\": \"AAPL\"}",
   "version": "4.5.0",
   "enabled": true,
   "inputSchema": {

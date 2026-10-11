@@ -1,7 +1,7 @@
 {
   "name": "yf_stock_history",
   "implementation": "sajha.tools.impl.yfinance_tools.YFStockHistoryTool",
-  "description": "Get historical stock price data from Yahoo Finance \u2014 OHLCV for any period (1d,5d,1mo,3mo,6mo,1y,2y,5y,10y,ytd,max)",
+  "description": "Historical OHLCV bars for one ticker from Yahoo Finance (yfinance Ticker.history, prices adjusted for splits and dividends).\nReturns: {symbol, data_points (total bars), prices: up to the first 500 bars, oldest first, each {Date (or Datetime for intraday), Open, High, Low, Close, Volume, Dividends, Stock Splits}}.\nInputs (* required): symbol*; period (1d, 5d, 1mo, 3mo, 6mo, 1y, 2y, 5y, 10y, ytd, max; default 1y); interval (1m, 5m, 15m, 1h, 1d, 1wk, 1mo; default 1d; Yahoo limits minute bars to recent days).\nSeveral tickers at once: yf_multi_ticker_history; indices: yf_index_history; other sources: av_stock_daily, openbb_equity_price. No API key; data comes from Yahoo Finance through the yfinance library.\nExample: {\"symbol\": \"AAPL\", \"period\": \"6mo\", \"interval\": \"1d\"}",
   "version": "4.5.0",
   "enabled": true,
   "inputSchema": {
@@ -13,6 +13,7 @@
       },
       "period": {
         "type": "string",
+        "description": "Look-back period",
         "default": "1y",
         "enum": [
           "1d",
@@ -30,6 +31,7 @@
       },
       "interval": {
         "type": "string",
+        "description": "Bar size",
         "default": "1d",
         "enum": [
           "1m",

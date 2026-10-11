@@ -1,17 +1,19 @@
 {
   "name": "cg_coin_ohlc",
   "implementation": "sajha.tools.impl.coingecko_tools.CGCoinOHLCTool",
-  "description": "Get crypto OHLC candlestick data from CoinGecko",
+  "description": "Open/high/low/close candles for one coin in USD over the last N days, from CoinGecko (coins/{id}/ohlc).\nReturns {ohlc: [[timestamp_ms, open, high, low, close], ...]}; CoinGecko sets the candle width from the span and accepts days of 1, 7, 14, 30, 90, 180, 365 or max.\nInputs (* required): id* (string, CoinGecko coin id such as bitcoin or ethereum, not the ticker symbol; ids come from cg_search or cg_coin_list; default bitcoin), days (integer; default 30). The quote currency is fixed to usd.\nFor volume and market cap series use cg_coin_market_chart.\nExample: {\"id\": \"bitcoin\", \"days\": 7}\nNo API key is sent (CoinGecko public API, rate-limited by CoinGecko); a failed call returns {\"error\": ...}.",
   "version": "4.5.0",
   "enabled": true,
   "inputSchema": {
     "type": "object",
     "properties": {
       "id": {
+        "description": "CoinGecko coin id (e.g. bitcoin, ethereum), not the ticker symbol",
         "type": "string",
         "default": "bitcoin"
       },
       "days": {
+        "description": "Number of days; CoinGecko accepts 1, 7, 14, 30, 90, 180 or 365",
         "type": "integer",
         "default": 30
       }

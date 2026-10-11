@@ -197,6 +197,15 @@ CATALOG: List[dict] = [
             _g('Tool Quality', 'Tool Quality.md', 'bi-heart-pulse',
                'Test cases with recorded HTTP cassettes and JUnit output, the schema linter, health probes, '
                'evals for Ask SAJHA, and tool versions with canary routing, rollback and sunset dates.'),
+            _g('Open Data Tools', 'Open Data Tools.md', 'bi-globe2',
+               'Planned: public data sources verified for use as tools (licence, key, rate limits), the sources '
+               'dropped and why, the tool folder and tools for each, by priority.', badge='Planned'),
+            _g('Business Intelligence', 'Business Intelligence.md', 'bi-bar-chart-line',
+               'Planned: a metrics layer compiled to safe SQL through the sources\' own guards; compare, explain '
+               'a change, anomalies, forecasts, charts, blending tool results, data quality, dashboards.', badge='Planned'),
+            _g('Reports', 'Reports.md', 'bi-file-earmark-bar-graph',
+               'Planned: report definitions published as tools, PDF, Excel, PowerPoint and Word output, '
+               'narration under a numbers check, governed delivery and scheduling.', badge='Planned'),
             _g('Policy and Audit', 'Policy and Audit.md', 'bi-shield-check',
                'Declarative rules on every tool call (deny, approval, argument constraints, rate limits, '
                'quotas, PII redaction, injection screening); hash-chained, signed audit; SIEM export.'),

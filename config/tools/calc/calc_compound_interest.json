@@ -1,24 +1,27 @@
 {
   "name": "calc_compound_interest",
   "implementation": "sajha.tools.impl.calc_tools.CalcCompoundInterestTool",
-  "description": "Calculate compound interest \u2014 future value of an investment with regular compounding",
+  "description": "Future value of a lump sum with periodic compounding: FV = P(1 + r/n)^(n*t). Computed locally in Python; no API key or network.\nReturns {principal, rate, years, future_value, total_interest}, amounts rounded to 2 decimals.\nInputs (* required): principal* (amount), rate* (annual rate in percent, 5 = 5%), years* (may be fractional), compounds_per_year (integer; default 12, monthly).\nFor annual compounding use calc_future_value; with yearly contributions calc_retirement; to discount back calc_present_value.\nExample: {\"principal\": 10000, \"rate\": 5, \"years\": 10, \"compounds_per_year\": 12}",
   "version": "4.5.0",
   "enabled": true,
   "inputSchema": {
     "type": "object",
     "properties": {
       "principal": {
-        "type": "number"
+        "type": "number",
+        "description": "Starting amount"
       },
       "rate": {
         "type": "number",
         "description": "Annual rate %"
       },
       "years": {
-        "type": "number"
+        "type": "number",
+        "description": "Years invested (may be fractional)"
       },
       "compounds_per_year": {
         "type": "integer",
+        "description": "Compounding periods per year",
         "default": 12
       }
     },

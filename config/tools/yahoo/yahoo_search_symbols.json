@@ -1,7 +1,7 @@
 {
   "name": "yahoo_search_symbols",
   "implementation": "sajha.tools.impl.yahoo_finance_tool.YahooSearchSymbolsTool",
-  "description": "Search for stock symbols and companies by name, ticker, or keyword. Returns matching securities with their symbols and basic info.",
+  "description": "Search Yahoo Finance for tickers by company name, ticker or keyword.\nReturns: {query, result_count, results: [{symbol, name, exchange, type (EQUITY, ETF, FUTURE, ...), sector, industry, market_cap, description (always null)}], last_updated}.\nInputs (* required): query* (1-100 chars); limit (1-50; default 10); exchange (NYSE, NASDAQ, AMEX, LSE, TSX or all; default all). The exchange filter compares with Yahoo's own exchange codes (such as NMS or NYQ), so a named exchange usually yields no results; it also applies after the limit.\nUse it to find the symbol for yahoo_get_quote, yahoo_get_history or the yf_* tools. Other searches: openbb_equity_search, fmp_symbol_search. No API key.\nExample: {\"query\": \"Apple\", \"limit\": 5}",
   "version": "2.9.8",
   "enabled": true,
   "inputSchema": {

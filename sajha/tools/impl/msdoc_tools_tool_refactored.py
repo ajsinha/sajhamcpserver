@@ -26,16 +26,20 @@ class MsDocBaseTool(BaseMCPTool):
         Path(self.docs_directory).mkdir(parents=True, exist_ok=True)
     
     def _get_file_path(self, filename: str) -> Path:
-        """Get full path for a file"""
-        return Path(self.docs_directory) / filename
+        """The file's real path inside the docs folder; ValueError for a path out of it
+        (``..``, an absolute path, or a symbolic link to elsewhere)."""
+        from sajha.core.storage import confined_path
+        return confined_path(self.docs_directory, filename)
     
     def _list_files_by_type(self, file_type: str = 'all') -> List[Dict]:
         """List files by type"""
         files = []
         
         try:
+            root = Path(self.docs_directory).resolve()
             for file_path in Path(self.docs_directory).iterdir():
-                if file_path.is_file():
+                # a link to a file outside the folder is not listed (it could not be read either)
+                if file_path.is_file() and file_path.resolve().is_relative_to(root):
                     extension = file_path.suffix.lower()
                     
                     # Filter by type
@@ -90,6 +94,14 @@ class MsDocBaseTool(BaseMCPTool):
         except Exception as e:
             raise ValueError(f"Failed to read Word document: {str(e)}")
     
+    @staticmethod
+    def _cell_value(value):
+        """A JSON-friendly cell value: an array or data-table formula object becomes its formula text."""
+        text = getattr(value, 'text', None)
+        if isinstance(text, str) and not isinstance(value, str):
+            return text if text.startswith('=') else '=' + text
+        return value
+
     def _read_excel_document(self, file_path: Path, sheet_name: Optional[str] = None, 
                             sheet_index: Optional[int] = None, max_rows: int = 100,
                             include_formulas: bool = False) -> Dict:
@@ -109,10 +121,12 @@ class MsDocBaseTool(BaseMCPTool):
             
             # Extract data
             data = []
-            for i, row in enumerate(sheet.iter_rows(values_only=not include_formulas)):
+            # values only: with include_formulas a formula cell gives its formula text ("=SUM(A1:A3)"),
+            # otherwise its last computed value; never an openpyxl Cell object
+            for i, row in enumerate(sheet.iter_rows(values_only=True)):
                 if i >= max_rows:
                     break
-                data.append(list(row))
+                data.append([self._cell_value(v) for v in row])
             
             result = {
                 'filename': file_path.name,
@@ -127,10 +141,11 @@ class MsDocBaseTool(BaseMCPTool):
                 for row in sheet.iter_rows():
                     row_formulas = []
                     for cell in row:
-                        if cell.value and isinstance(cell.value, str) and cell.value.startswith('='):
+                        value = self._cell_value(cell.value)
+                        if value and isinstance(value, str) and value.startswith('='):
                             row_formulas.append({
                                 'cell': cell.coordinate,
-                                'formula': cell.value
+                                'formula': value
                             })
                     if row_formulas:
                         formulas.append(row_formulas)

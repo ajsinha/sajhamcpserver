@@ -1,7 +1,7 @@
 {
   "name": "rbi_get_forex_reserves",
   "implementation": "sajha.tools.impl.india_central_bank.RBIGetForexReservesTool",
-  "description": "Retrieve India foreign exchange reserves data",
+  "description": "India's foreign exchange reserves, from the Reserve Bank of India's DBIE endpoint (rbi.org.in/Scripts/api/dbie, no API key).\nReturns: series_code, label, description, unit, frequency, observation_count and observations (date, value) as the endpoint orders them.\nInputs (none required): start_date, end_date (YYYY-MM-DD, passed through as fromDate and toDate); recent_periods (1-100; default 10; keeps the last N observations, only when no date is given).\nFor rupee exchange rates use rbi_get_exchange_rate; for reserves of other countries imf_get_ifs_data with international_reserves.\nExample: {\"recent_periods\": 12}",
   "version": "2.9.8",
   "enabled": true,
   "metadata": {

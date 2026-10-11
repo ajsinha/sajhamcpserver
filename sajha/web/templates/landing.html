@@ -55,7 +55,8 @@ the SAJHA Net ring beside it by static/js/netring.js).
             </ul>
             <div class="d-flex align-items-center gap-2 pb-2 pb-lg-0">
                 {% include "common/_theme_menu.html" %}
-                <a class="btn btn-light btn-sm fw-bold" href="/login"><i class="bi bi-box-arrow-in-right" aria-hidden="true"></i> Sign In</a>
+                {% if signed_in %}<a class="btn btn-light btn-sm fw-bold" href="/dashboard"><i class="bi bi-speedometer2" aria-hidden="true"></i> Dashboard</a>
+                {% else %}<a class="btn btn-light btn-sm fw-bold" href="/login"><i class="bi bi-box-arrow-in-right" aria-hidden="true"></i> Sign In</a>{% endif %}
             </div>
         </div>
     </div>
@@ -71,7 +72,8 @@ the SAJHA Net ring beside it by static/js/netring.js).
         <p class="lp2-sub">{{ tool_count }} tools across {{ group_count }} domains, ready out of the box.{% if llm_provider_count %} {{ llm_provider_count }} LLM provider types.{% endif %} Both MCP eras on one endpoint.<br>
         SAJHA connects every AI agent to financial markets, government data, analytics, and enterprise systems through a single MCP endpoint.</p>
         <div class="lp2-actions">
-            <a href="/login" class="lp2-btn lp2-btn-primary"><i class="bi bi-rocket-takeoff" aria-hidden="true"></i> Get Started</a>
+            {% if signed_in %}<a href="/dashboard" class="lp2-btn lp2-btn-primary"><i class="bi bi-speedometer2" aria-hidden="true"></i> Open the dashboard</a>
+            {% else %}<a href="/login" class="lp2-btn lp2-btn-primary"><i class="bi bi-rocket-takeoff" aria-hidden="true"></i> Get Started</a>{% endif %}
             <a href="/docs" class="lp2-btn lp2-btn-outline"><i class="bi bi-book" aria-hidden="true"></i> Documentation</a>
         </div>
     </div>

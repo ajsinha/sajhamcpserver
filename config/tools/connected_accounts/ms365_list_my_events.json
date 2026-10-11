@@ -2,7 +2,7 @@
   "name": "ms365_list_my_events",
   "implementation": "sajha.accounts.tools.microsoft.MS365ListMyEventsTool",
   "title": "List my Outlook calendar events",
-  "description": "List the signed-in user's Outlook calendar events in a time window (default: the next 7 days), through their connected Microsoft 365 account and Microsoft Graph. Times are UTC.",
+  "description": "List the signed-in user's Outlook calendar events in a time window, through their connected Microsoft 365 account (Microsoft Graph /me/calendarView, Calendars.Read), ordered by start time. Times are UTC.\nReturns: from, to, count and events (subject, start, end, location, organizer, online, url).\nInputs (none required): start (ISO 8601 date or time; default now; no time zone means UTC); end (ISO 8601; default start + days); days (window length when end is not given, 1-92; default 7); limit (1-100; default 25).\nRuns only for a signed-in SAJHA user; when the account is not linked, or lacks the scope, the call returns a request to connect it with a link instead of a result.\nExample: {\"start\": \"2026-10-12T00:00:00Z\", \"days\": 5, \"limit\": 50}",
   "version": "1.0.0",
   "enabled": true,
   "auth": {

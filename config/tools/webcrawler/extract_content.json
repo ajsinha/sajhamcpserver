@@ -1,7 +1,7 @@
 {
   "name": "extract_content",
   "implementation": "sajha.tools.impl.webcrawler_tool_refactored.ExtractContentTool",
-  "description": "Extract structured content including text, images, and headings from a web page for content analysis",
+  "description": "Readable content of one web page: title, h1-h3 headings, plain text and images.\nReturns {url, status_code, title, headings: {h1: [...], h2: [...], h3: [...]}, text_content and content_length (when extract_text), images: [{src (absolute), alt, title}] and image_count (when extract_images), extracted_at}. Text is the HTML with tags stripped and whitespace collapsed, so script and style text can remain.\nInputs (* required): url* (string, absolute http(s) URL), extract_text (boolean, default true), extract_images (boolean, default true), text_max_length (integer 100-50000, default 5000; longer text is cut and ends with ...).\nFor SEO tags use extract_metadata; for counts only get_page_info.\nExample: {\"url\": \"https://example.com/article\", \"text_max_length\": 2000}\nFetches go through SAJHA's outbound fetch guard (loopback and cloud-metadata addresses refused; private networks too when tools.outbound.block_private_networks is on). No API key.",
   "version": "2.9.8",
   "enabled": true,
   "inputSchema": {

@@ -1,17 +1,19 @@
 {
   "name": "openbb_etf_search",
   "implementation": "sajha.tools.impl.openbb_tools.OpenBBGenericTool",
-  "description": "Search for ETFs via OpenBB \u2014 find ETFs by name or keyword",
+  "description": "Search ETFs by name or keyword through the OpenBB Platform (obb.etf.search).\nReturns: {tool, data_points (total rows), data: first 100 rows as OpenBB returns them} or {tool, error}.\nInputs (* required): query*; provider (OpenBB 4.6 accepts fmp or intrinio; schema default fmp, but when omitted the tool sends yfinance, which this command rejects, so set it).\nFund facts: openbb_etf_info, yf_etf_info; keyless symbol search: yahoo_search_symbols. Keys: fmp, benzinga, fred, intrinio, polygon and tiingo need credentials in OpenBB's settings (~/.openbb_platform/user_settings.json), not supplied by SAJHA; yfinance, oecd, federal_reserve, sec, imf and government_us need none.\nExample: {\"query\": \"dividend\", \"provider\": \"fmp\"}",
   "version": "4.5.0",
   "enabled": true,
   "inputSchema": {
     "type": "object",
     "properties": {
       "query": {
-        "type": "string"
+        "type": "string",
+        "description": "Search text"
       },
       "provider": {
         "type": "string",
+        "description": "OpenBB data provider",
         "default": "fmp"
       }
     },

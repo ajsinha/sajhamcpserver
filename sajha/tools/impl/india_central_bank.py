@@ -150,13 +150,15 @@ class RBIGetGSecYieldTool(ReserveBankOfIndiaBaseTool):
             "properties": {
                 "bond_term": {
                     "type": "string",
+                    "description": "Maturity",
                     "enum": ["1y", "5y", "10y", "30y"],
                     "default": "10y"
                 },
-                "start_date": {"type": "string"},
-                "end_date": {"type": "string"},
+                "start_date": {"type": "string", "description": "Start date, YYYY-MM-DD"},
+                "end_date": {"type": "string", "description": "End date, YYYY-MM-DD"},
                 "recent_periods": {
                     "type": "integer",
+                    "description": "Keep the last N observations (used only when no date is given)",
                     "minimum": 1,
                     "maximum": 100,
                     "default": 10
@@ -222,12 +224,14 @@ class RBIGetPolicyRateTool(ReserveBankOfIndiaBaseTool):
             "properties": {
                 "rate_type": {
                     "type": "string",
+                    "description": "Which rate",
                     "enum": ["repo_rate", "reverse_repo_rate", "bank_rate", "crr", "slr"],
                     "default": "repo_rate"
                 },
-                "start_date": {"type": "string"},
-                "end_date": {"type": "string"},
-                "recent_periods": {"type": "integer", "minimum": 1, "maximum": 100, "default": 10}
+                "start_date": {"type": "string", "description": "Start date, YYYY-MM-DD"},
+                "end_date": {"type": "string", "description": "End date, YYYY-MM-DD"},
+                "recent_periods": {"type": "integer", "minimum": 1, "maximum": 100, "default": 10,
+                                   "description": "Keep the last N observations (used only when no date is given)"}
             },
             "required": ["rate_type"]
         }
@@ -286,12 +290,14 @@ class RBIGetExchangeRateTool(ReserveBankOfIndiaBaseTool):
             "properties": {
                 "currency_pair": {
                     "type": "string",
+                    "description": "Currency pair",
                     "enum": ["usd_inr", "eur_inr", "gbp_inr", "jpy_inr"],
                     "default": "usd_inr"
                 },
-                "start_date": {"type": "string"},
-                "end_date": {"type": "string"},
-                "recent_periods": {"type": "integer", "minimum": 1, "maximum": 100, "default": 10}
+                "start_date": {"type": "string", "description": "Start date, YYYY-MM-DD"},
+                "end_date": {"type": "string", "description": "End date, YYYY-MM-DD"},
+                "recent_periods": {"type": "integer", "minimum": 1, "maximum": 100, "default": 10,
+                                   "description": "Keep the last N observations (used only when no date is given)"}
             },
             "required": ["currency_pair"]
         }
@@ -350,12 +356,14 @@ class RBIGetInflationTool(ReserveBankOfIndiaBaseTool):
             "properties": {
                 "index_type": {
                     "type": "string",
+                    "description": "Which price index",
                     "enum": ["cpi", "wpi", "core_cpi"],
                     "default": "cpi"
                 },
-                "start_date": {"type": "string"},
-                "end_date": {"type": "string"},
-                "recent_periods": {"type": "integer", "minimum": 1, "maximum": 100, "default": 10}
+                "start_date": {"type": "string", "description": "Start date, YYYY-MM-DD"},
+                "end_date": {"type": "string", "description": "End date, YYYY-MM-DD"},
+                "recent_periods": {"type": "integer", "minimum": 1, "maximum": 100, "default": 10,
+                                   "description": "Keep the last N observations (used only when no date is given)"}
             },
             "required": ["index_type"]
         }
@@ -412,9 +420,10 @@ class RBIGetForexReservesTool(ReserveBankOfIndiaBaseTool):
         return {
             "type": "object",
             "properties": {
-                "start_date": {"type": "string"},
-                "end_date": {"type": "string"},
-                "recent_periods": {"type": "integer", "minimum": 1, "maximum": 100, "default": 10}
+                "start_date": {"type": "string", "description": "Start date, YYYY-MM-DD"},
+                "end_date": {"type": "string", "description": "End date, YYYY-MM-DD"},
+                "recent_periods": {"type": "integer", "minimum": 1, "maximum": 100, "default": 10,
+                                   "description": "Keep the last N observations (used only when no date is given)"}
             }
         }
     

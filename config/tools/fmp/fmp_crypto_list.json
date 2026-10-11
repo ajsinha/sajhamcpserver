@@ -1,7 +1,7 @@
 {
   "name": "fmp_crypto_list",
   "implementation": "sajha.tools.impl.fmp_tools.FMPGenericTool",
-  "description": "Get all available cryptocurrencies from FMP",
+  "description": "Cryptocurrencies covered by Financial Modeling Prep (FMP), with their symbols.\nReturns {tool, endpoint, data}: data is FMP's JSON from /stable/cryptocurrency-list as returned (usually a list of records).\nInputs (* required): none.\nUse the symbols with fmp_crypto_quote or fmp_crypto_historical.\nNeeds an FMP API key (config fmp.api.key, env FMP_API_KEY); without one it returns a demo placeholder naming the endpoint instead of data.\nExample: {}",
   "version": "4.5.0",
   "enabled": true,
   "inputSchema": {

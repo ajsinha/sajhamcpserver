@@ -1,7 +1,7 @@
 {
   "name": "imf_get_dataflows",
   "implementation": "sajha.tools.impl.imf_tool_refactored.IMFGetDataflowsTool",
-  "description": "Get available dataflows and indicators for a specific IMF database. Discover what indicators are available in databases like IFS or WEO.",
+  "description": "List the dataflows the IMF publishes for one database code, from the IMF SDMX JSON data service (dataservices.imf.org, no API key).\nReturns: database, dataflows (id, name) and count; on failure an error and note instead.\nInputs (* required): database* (IFS, DOT, BOP, GFSR, FSI, WEO, GFSMAB, CDIS, CPIS, WHDREO; the schema's default is IFS).\nDiscover database codes with imf_get_databases; fetch values with imf_get_data.\nExample: {\"database\": \"IFS\"}",
   "version": "2.9.8",
   "enabled": true,
   "inputSchema": {

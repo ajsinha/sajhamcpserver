@@ -36,7 +36,8 @@ The SQL Select tools (`sajha/tools/impl/sqlselect_tool_refactored.py`) run read-
  ┌────────────────────────────────────────┐
  │ sqlselect_* tools (SqlSelectBaseTool)  │
  │  • in-memory DuckDB connection         │
- │  • one view per configured source      │
+ │  • one table per configured source     │
+ │  • no file/URL access after loading    │
  │  • SELECT-only validation, auto LIMIT  │
  └───────────────────┬────────────────────┘
                      ▼
@@ -46,7 +47,7 @@ The SQL Select tools (`sajha/tools/impl/sqlselect_tool_refactored.py`) run read-
  └────────────────────────────────────────┘
 ```
 
-When a tool is loaded it opens an in-memory DuckDB connection and creates a view named after each source (`read_csv_auto`, `read_parquet` or `read_json_auto`). Sources whose file is missing are skipped with a warning.
+When a tool is loaded it opens an in-memory DuckDB connection and copies each source into a table named after it (`read_csv_auto`, `read_parquet` or `read_json_auto`), then switches `enable_external_access` off and locks the configuration, as the [DuckDB tools](DuckDB%20Tool%20Reference%20Guide.md) do. Sources whose file is missing are skipped with a warning. A change to a data file is seen when the tools are next loaded (a server restart or tool reload).
 
 ---
 
@@ -115,7 +116,7 @@ Returns `source_name`, `columns`, `rows`, `row_count`.
 | Parameter | Type | Required | Description |
 |-----------|------|----------|-------------|
 | `source_name` | string | Yes | Source name |
-| `where_clause` | string | No | Filter condition without the `WHERE` keyword, e.g. `status = 'shipped'` |
+| `where_clause` | string | No | One filter expression without the `WHERE` keyword, e.g. `status = 'shipped'`; no `;` or comments |
 
 Returns `source_name`, `row_count`, `where_clause`.
 
@@ -123,7 +124,7 @@ Returns `source_name`, `row_count`, `where_clause`.
 
 | Parameter | Type | Required | Default | Description |
 |-----------|------|----------|---------|-------------|
-| `query` | string | Yes | | A `SELECT` statement over the source views |
+| `query` | string | Yes | | A `SELECT` statement over the source tables |
 | `limit` | integer | No | 100 | 1–10000; appended as `LIMIT` when the query has none |
 
 Returns `columns`, `rows`, `row_count` and the executed `query`.
@@ -159,11 +160,11 @@ Over REST, `POST /api/tools/execute` with `{"tool": "sqlselect_count_rows", "arg
 
 ## Security and Limitations
 
-- **SELECT only.** `sqlselect_execute_query` requires the statement to start with `SELECT` (so `WITH ...` CTE queries are rejected) and rejects any query containing `DROP`, `DELETE`, `UPDATE`, `INSERT`, `CREATE`, `ALTER` or `TRUNCATE`, even inside identifiers or literals.
+- **SELECT only.** `sqlselect_execute_query` requires the statement to start with `SELECT` (so `WITH ...` CTE queries are rejected) and to parse as exactly one read-only statement (`read_only_sql` in `sajha/olap/sql_safety.py`). It also rejects the words `DROP`, `DELETE`, `UPDATE`, `INSERT`, `CREATE`, `ALTER` and `TRUNCATE`, matched as whole words (so a column `created_at` is fine, but a literal `'drop'` is refused).
 - **Row caps.** `limit` maxes out at 10,000 for queries and 1,000 for samples; everything is processed in memory.
-- **Catalog scope.** Only configured sources are registered as views, but DuckDB file functions such as `read_csv_auto('<path>')` are not blocked, so restrict who may call `sqlselect_execute_query` via SAJHA roles/API-key scopes.
-- **Trusted input.** `where_clause` and `source_name` are interpolated into SQL.
-- **Concurrency.** Each tool instance has a single connection; data files are read at query time.
+- **No file access.** Once the sources are loaded, external access is off and locked, so a query cannot read or write a file or URL (`read_text('/etc/passwd')`, `read_csv`, `COPY`, `ATTACH`, `INSTALL`) or switch access back on.
+- **Source names and filters.** `source_name` must be a configured source and is used double-quoted. `where_clause` must have no `;` or comment and must parse as a single DuckDB expression; the parsed expression goes into the query, which must be one read-only statement.
+- **Concurrency.** Each tool instance has a single connection holding its own copy of the sources.
 
 ---
 
@@ -174,7 +175,7 @@ Over REST, `POST /api/tools/execute` with `{"tool": "sqlselect_count_rows", "arg
 | Source not found | Check `sqlselect_list_sources`; add the source to `data_sources` in every `sqlselect_*.json` |
 | Source listed but queries fail with "table does not exist" | The file is missing from `data.sqlselect.dir`; check the server log warning |
 | "Only SELECT queries are allowed" | Rewrite CTEs as subqueries; remove leading comments |
-| "Query contains forbidden keyword" | Rename aliases/literals containing write keywords |
+| "Query contains forbidden keyword" | Rename aliases or literals that are a write keyword as a whole word |
 | Out of memory | Add filters, select fewer columns, lower `limit`, or convert large CSVs to Parquet |
 
 See the [Glossary](../../../GLOSSARY.md) for SQL terms.

@@ -1,7 +1,7 @@
 {
   "name": "un_get_sdg_data",
   "implementation": "sajha.tools.impl.united_nations_tool_refactored.UNGetSDGDataTool",
-  "description": "Retrieve historical time series data for a specific SDG indicator, optionally filtered by country and date range",
+  "description": "Time series of one SDG indicator, for one area or all, from the UN Statistics Division SDG API (Indicator/Data, no API key).\nReturns: indicator_code, indicator_description (the series description), country_code, country_name, data (year, value, unit per observation) and count; on failure an error and note instead.\nInputs (* required): indicator_code* (SDG indicator code such as 1.1.1 or 3.2.1); country_code (area code passed to the API as areaCode; the schema suggests ISO3; omit for all areas); start_year and end_year (2000-2030; each optional).\nFind indicator codes with un_get_sdg_indicators. For World Bank development series use wb_get_country_data.\nExample: {\"indicator_code\": \"3.2.1\", \"country_code\": \"IND\", \"start_year\": 2015, \"end_year\": 2023}",
   "version": "2.9.8",
   "enabled": true,
   "inputSchema": {

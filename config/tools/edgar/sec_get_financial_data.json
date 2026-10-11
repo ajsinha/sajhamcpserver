@@ -1,7 +1,7 @@
 {
   "name": "sec_get_financial_data",
   "implementation": "sajha.tools.impl.sec_edgar_tool_refactored.SECGetFinancialDataTool",
-  "description": "Retrieve specific financial metrics (Assets, Revenue, Net Income, etc.) from company XBRL filings",
+  "description": "One financial metric's reported history from a company's XBRL facts (EDGAR companyfacts), by CIK or ticker; without a metric, the list of available tags.\nReturns, with fact_type: {cik, entity_name, fact_type, data: [{taxonomy, label, description, units: {unit: [{end, val, fy, fp, form, filed}]}}]}; without: {cik, entity_name, available_facts: {taxonomy: [tag]}}.\nInputs (* required): cik or ticker (one of them is needed; cik, 10 digits or shorter, wins when both are given; a ticker is resolved through the SEC company-tickers file), fact_type (a name from the schema enum, e.g. Assets, Revenues, NetIncomeLoss, LongTermDebt; omit it to list available tags).\nfact_type is matched as an exact XBRL tag, so names that are not us-gaap tags (CurrentAssets is AssetsCurrent there) give an empty data list; edgar_company_concept takes any tag.\nExample: {\"ticker\": \"MSFT\", \"fact_type\": \"NetIncomeLoss\"}\nNo API key; SEC data.sec.gov (requests are not throttled; the SEC allows 10 per second).",
   "version": "2.9.8",
   "enabled": true,
   "inputSchema": {

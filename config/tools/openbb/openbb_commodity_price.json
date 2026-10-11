@@ -1,7 +1,7 @@
 {
   "name": "openbb_commodity_price",
   "implementation": "sajha.tools.impl.openbb_tools.OpenBBCommodityPriceTool",
-  "description": "Get commodity price history via OpenBB \u2014 gold, silver, oil, natural gas, copper, wheat, corn, etc.",
+  "description": "Meant to give commodity futures price history (gold GC=F, oil CL=F, silver SI=F) through OpenBB (obb.commodity.price.historical).\nReturns: {symbol, data_points, prices} when the command exists.\nInputs (* required): symbol* (Yahoo futures symbol); start_date (YYYY-MM-DD; default 180 days ago); provider (default yfinance).\nOpenBB 4.x (4.6 checked) has no obb.commodity.price.historical, so the call fails with an error; use openbb_derivatives_futures_historical (provider yfinance), fmp_commodity_historical, fred_oil_price or fred_gold_price instead.\nExample: {\"symbol\": \"CL=F\", \"start_date\": \"2026-04-01\"}",
   "version": "4.5.0",
   "enabled": true,
   "inputSchema": {

@@ -1,7 +1,7 @@
 {
   "name": "boj_get_exchange_rate",
   "implementation": "sajha.tools.impl.japan_central_bank.BoJGetExchangeRateTool",
-  "description": "Retrieve Japanese Yen exchange rates against the US dollar and the euro (USD/JPY; EUR/JPY derived from FRED cross rates).",
+  "description": "Daily yen exchange rates from FRED (Federal Reserve Bank of St. Louis): usd_jpy is yen per US dollar (DEXJPUS); eur_jpy is yen per euro, derived as DEXJPUS x DEXUSEU on matching dates.\nReturns: series_code (FRED id), series_id, label, source, observation_count and observations (date, value) oldest first, missing values dropped (eur_jpy also carries units and a derived-rate source).\nInputs (* required): currency_pair* (usd_jpy or eur_jpy; schema default usd_jpy); start_date, end_date (YYYY-MM-DD); recent_periods (1-100; the last N observations, with no dates looking back N x 45 days; when omitted the whole history in the date range is returned).\nFor euro reference rates use ecb_get_exchange_rate with EUR/JPY. Needs a FRED API key (FRED_API_KEY, config fred.api.key); without one the call fails with a message saying so.\nExample: {\"currency_pair\": \"usd_jpy\", \"recent_periods\": 30}",
   "version": "2.9.8",
   "enabled": true,
   "inputSchema": {

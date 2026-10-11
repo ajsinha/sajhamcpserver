@@ -1,7 +1,7 @@
 {
   "name": "edgar_filings_by_form",
   "implementation": "sajha.tools.impl.enhanced_edgar_tool.EDGARFilingsByFormTool",
-  "description": "Search and filter company filings by specific form type (10-K, 10-Q, 8-K, DEF 14A, etc.) with optional date range filtering",
+  "description": "A company's SEC filings of one form type (10-K, 10-Q, 8-K, 4, DEF 14A, S-1, 20-F ...), optionally in a filing-date range, from SEC EDGAR.\nReturns {cik, company_name, form_type, form_description, filings_count, filings: [{accessionNumber, filingDate, reportDate, form, primaryDocument, primaryDocDescription, document_url}]}, newest first.\nInputs (* required): cik* (string, SEC Central Index Key, up to 10 digits; from edgar_company_search), form_type* (one of the schema's list), start_date and end_date (YYYY-MM-DD, filing date), limit (integer 1-500, default 50).\nOnly the recent-filings block of the EDGAR submissions file is searched. edgar_insider_transactions, edgar_proxy_statements, edgar_current_reports etc. fix the form; edgar_amendments lists /A forms.\nExample: {\"cik\": \"0000320193\", \"form_type\": \"10-K\", \"start_date\": \"2020-01-01\", \"limit\": 5}\nNo API key needed (SEC data.sec.gov; 110 ms between requests).",
   "version": "2.9.8",
   "enabled": true,
   "inputSchema": {

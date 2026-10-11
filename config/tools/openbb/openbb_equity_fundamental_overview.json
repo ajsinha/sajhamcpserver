@@ -1,7 +1,7 @@
 {
   "name": "openbb_equity_fundamental_overview",
   "implementation": "sajha.tools.impl.openbb_tools.OpenBBGenericTool",
-  "description": "Get company fundamental overview via OpenBB \u2014 all-in-one snapshot",
+  "description": "Meant to give an all-in-one fundamental overview of one company through OpenBB (obb.equity.fundamental.overview).\nReturns: {tool, data_points (total rows), data: first 100 rows as OpenBB returns them} or {tool, error}.\nInputs (* required): symbol; provider (schema default fmp; omitted sends yfinance).\nOpenBB 4.x (4.6 checked) has no obb.equity.fundamental.overview, so this tool currently returns an error object; alternatives: openbb_equity_profile, openbb_equity_metrics, yf_stock_info or av_company_overview.\nExample: {\"symbol\": \"AAPL\", \"provider\": \"fmp\"}",
   "version": "4.5.0",
   "enabled": true,
   "inputSchema": {
@@ -13,6 +13,7 @@
       },
       "provider": {
         "type": "string",
+        "description": "OpenBB data provider",
         "default": "fmp"
       }
     },

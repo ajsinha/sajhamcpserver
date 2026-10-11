@@ -283,17 +283,17 @@ class FMPHistoricalPriceTool(FMPBaseTool):
 
 class FMPMarketGainersTool(FMPBaseTool):
     def execute(self, arguments: Dict[str, Any]) -> Dict:
-        data = self._fmp_get('stock-market-gainers', {'limit': arguments.get('limit', 20)})
+        data = self._fmp_get('stock-market-gainers', {'limit': arguments.get('limit', 5)})
         return {"gainers": data if isinstance(data, list) else []}
 
 class FMPMarketLosersTool(FMPBaseTool):
     def execute(self, arguments: Dict[str, Any]) -> Dict:
-        data = self._fmp_get('stock-market-losers', {'limit': arguments.get('limit', 20)})
+        data = self._fmp_get('stock-market-losers', {'limit': arguments.get('limit', 5)})
         return {"losers": data if isinstance(data, list) else []}
 
 class FMPMostActiveTool(FMPBaseTool):
     def execute(self, arguments: Dict[str, Any]) -> Dict:
-        data = self._fmp_get('stock-market-most-active', {'limit': arguments.get('limit', 20)})
+        data = self._fmp_get('stock-market-most-active', {'limit': arguments.get('limit', 5)})
         return {"most_active": data if isinstance(data, list) else []}
 
 
@@ -345,14 +345,14 @@ class FMPPriceTargetTool(FMPBaseTool):
     def execute(self, arguments: Dict[str, Any]) -> Dict:
         symbol = arguments.get('symbol', '').upper()
         if not symbol: return {"error": "Symbol is required"}
-        data = self._fmp_get('price-target', {'symbol': symbol, 'limit': arguments.get('limit', 10)})
+        data = self._fmp_get('price-target', {'symbol': symbol, 'limit': arguments.get('limit', 5)})
         return {"symbol": symbol, "targets": data if isinstance(data, list) else []}
 
 class FMPUpgradesDowngradesTool(FMPBaseTool):
     def execute(self, arguments: Dict[str, Any]) -> Dict:
         symbol = arguments.get('symbol', '').upper()
         if not symbol: return {"error": "Symbol is required"}
-        data = self._fmp_get('upgrades-downgrades', {'symbol': symbol, 'limit': arguments.get('limit', 10)})
+        data = self._fmp_get('upgrades-downgrades', {'symbol': symbol, 'limit': arguments.get('limit', 5)})
         return {"symbol": symbol, "changes": data if isinstance(data, list) else []}
 
 
@@ -404,7 +404,7 @@ class FMPSECFilingsTool(FMPBaseTool):
     def execute(self, arguments: Dict[str, Any]) -> Dict:
         symbol = arguments.get('symbol', '').upper()
         if not symbol: return {"error": "Symbol is required"}
-        params = {'symbol': symbol, 'limit': arguments.get('limit', 20)}
+        params = {'symbol': symbol, 'limit': arguments.get('limit', 5)}
         if arguments.get('type'): params['type'] = arguments['type']
         data = self._fmp_get('sec-filings', params)
         return {"symbol": symbol, "filings": data if isinstance(data, list) else []}
@@ -430,7 +430,7 @@ class FMPETFHoldingsTool(FMPBaseTool):
 
 class FMPSenateTradingTool(FMPBaseTool):
     def execute(self, arguments: Dict[str, Any]) -> Dict:
-        params = {'limit': arguments.get('limit', 20)}
+        params = {'limit': arguments.get('limit', 5)}
         if arguments.get('symbol'): params['symbol'] = arguments['symbol'].upper()
         data = self._fmp_get('senate-trading', params)
         return {"trades": data if isinstance(data, list) else []}

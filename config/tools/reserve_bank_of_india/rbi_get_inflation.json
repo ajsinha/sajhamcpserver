@@ -1,7 +1,7 @@
 {
   "name": "rbi_get_inflation",
   "implementation": "sajha.tools.impl.india_central_bank.RBIGetInflationTool",
-  "description": "Retrieve Indian inflation data including CPI and WPI",
+  "description": "Indian price indices: consumer price index (cpi), wholesale price index (wpi) or core CPI, from the Reserve Bank of India's DBIE endpoint (rbi.org.in/Scripts/api/dbie, no API key).\nReturns: series_code, label, description, unit, frequency, observation_count and observations (date, value) as the endpoint orders them.\nInputs (* required): index_type* (cpi, wpi, core_cpi; schema default cpi); start_date, end_date (YYYY-MM-DD, passed through as fromDate and toDate); recent_periods (1-100; default 10; keeps the last N observations, only when no date is given).\nFor policy rates use rbi_get_policy_rate.\nExample: {\"index_type\": \"cpi\", \"start_date\": \"2023-01-01\"}",
   "version": "2.9.8",
   "enabled": true,
   "metadata": {

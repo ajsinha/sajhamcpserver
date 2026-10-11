@@ -1,6 +1,6 @@
 {
     "name": "sharepoint_documents",
-    "description": "Manage documents in Microsoft SharePoint - upload, download, search, version control, metadata management",
+    "description": "Files in the configured SharePoint site's default document library, via Microsoft Graph.\nReturns a per-operation object with success, or {success: false, error}.\nInputs (* required): operation* (default list_files). list_files: folder_path, recursive. get_file, download (return_content: base64), get_metadata, get_versions, check_out: file_url. upload: file_name, content_base64 (up to 4 MB), folder_path, overwrite. search: query, folder_path, file_types, max_results. update_metadata: file_url, metadata. check_in: file_url, comment, publish. delete: file_url, recycle (default true). move, copy: source_url, destination_url, overwrite. Paths are library-relative (/Project/a.docx) or server-relative.\nSite search: sharepoint_search.\nExample: {\"operation\": \"list_files\", \"folder_path\": \"/Reports\"}\nNeeds SHAREPOINT_SITE_URL, AZURE_TENANT_ID, SHAREPOINT_CLIENT_ID, SHAREPOINT_CLIENT_SECRET (Entra ID app); unset, it answers 'SharePoint is not configured'.",
     "category": "Document Management",
     "version": "2.9.8",
     "enabled": true,

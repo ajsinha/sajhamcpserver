@@ -1,7 +1,7 @@
 {
   "name": "imf_get_bop_data",
   "implementation": "sajha.tools.impl.imf_tool_refactored.IMFGetBOPDataTool",
-  "description": "Retrieve Balance of Payments (BOP) data including current account, capital account, trade balance, and financial flows.",
+  "description": "Balance of Payments (BOP) series for one country by BOP indicator code (current account, trade balance, capital and financial flows), from the IMF SDMX JSON data service (dataservices.imf.org, no API key).\nReturns: database, country_code, indicator_code, frequency, data (period, value) and count; a note when the series is empty.\nInputs (* required): country_code* (ISO 2-letter); indicator_code* (IMF BOP code); start_year and end_year (1950-2030; omit both for the full history); frequency (A or Q; default A).\nFor the current account as a share of GDP without a code use imf_get_weo_data with current_account; for any database imf_get_data.\nExample: {\"country_code\": \"DE\", \"indicator_code\": \"BCA_BP6_USD\", \"start_year\": 2015, \"end_year\": 2023}",
   "version": "2.9.8",
   "enabled": true,
   "inputSchema": {
@@ -17,16 +17,19 @@
       },
       "start_year": {
         "type": "integer",
+        "description": "First year, YYYY; if only end_year is given this defaults to 1950",
         "minimum": 1950,
         "maximum": 2030
       },
       "end_year": {
         "type": "integer",
+        "description": "Last year, YYYY; if only start_year is given this defaults to the current year; omit both for the full history",
         "minimum": 1950,
         "maximum": 2030
       },
       "frequency": {
         "type": "string",
+        "description": "Frequency: A annual, Q quarterly",
         "enum": ["A", "Q"],
         "default": "A"
       }

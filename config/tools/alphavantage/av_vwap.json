@@ -1,7 +1,7 @@
 {
   "name": "av_vwap",
   "implementation": "sajha.tools.impl.alphavantage_tools.AVVWAPTool",
-  "description": "Get Volume Weighted Average Price from Alpha Vantage",
+  "description": "Volume-weighted average price for one stock from Alpha Vantage (VWAP), intraday only.\nReturns: {\"Meta Data\", \"Technical Analysis: VWAP\"} keyed by timestamp, each with VWAP. Alpha Vantage's JSON comes back unchanged, including its \"Error Message\" or \"Information\" notes; a network failure gives {\"error\": ...}.\nInputs (* required): symbol* (ticker); interval (1min, 5min, 15min, 30min or 60min; when omitted the tool sends 15min, although the schema default says daily, which Alpha Vantage rejects for VWAP); time_period (accepted by the schema but not sent).\nIntraday bars: av_stock_intraday; daily trend indicators: av_sma, av_ema.\nKey: ALPHA_VANTAGE_API_KEY (alpha_vantage.api.key); when unset the 'demo' key is sent, which only serves Alpha Vantage's documentation examples. Free tier: 25 requests/day.\nExample: {\"symbol\": \"IBM\", \"interval\": \"15min\"}",
   "version": "4.5.0",
   "enabled": true,
   "inputSchema": {
@@ -13,10 +13,12 @@
       },
       "interval": {
         "type": "string",
+        "description": "Intraday bar interval: 1min, 5min, 15min, 30min or 60min (VWAP is intraday only)",
         "default": "daily"
       },
       "time_period": {
         "type": "integer",
+        "description": "Not sent to Alpha Vantage by this tool",
         "default": 14
       }
     },

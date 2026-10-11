@@ -1,7 +1,7 @@
 {
   "name": "cg_coin_categories_list",
   "implementation": "sajha.tools.impl.coingecko_tools.CGCoinCategoriesListTool",
-  "description": "Get cryptocurrency category list from CoinGecko \u2014 DeFi, Gaming, Meme, Layer1, etc.",
+  "description": "All coin category names and ids on CoinGecko (coins/categories/list), such as decentralized-finance-defi or meme-token.\nReturns {categories: [{category_id, name}, ...]}.\nInputs: none.\nFor the same categories with market cap, volume and 24h change use cg_coin_categories_market.\nExample: {}\nNo API key is sent (CoinGecko public API, rate-limited by CoinGecko); a failed call returns {\"error\": ...}.",
   "version": "4.5.0",
   "enabled": true,
   "inputSchema": {

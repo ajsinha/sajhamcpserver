@@ -1,7 +1,7 @@
 {
   "name": "calc_irr",
   "implementation": "sajha.tools.impl.calc_tools.CalcIRRTool",
-  "description": "Calculate Internal Rate of Return (IRR) for a series of cash flows",
+  "description": "Internal rate of return of a cash flow series (the rate where NPV is zero), found by bisection between -50% and 500% per period. Computed locally in Python; no API key or network.\nReturns {cash_flows, irr}: irr in percent per period, 4 decimals.\nInputs (* required): cash_flows* (array of numbers, first flow at time 0; expects a negative investment followed by positive flows, a rate outside -50%..500% is not found).\nFor value at a known rate use calc_npv.\nExample: {\"cash_flows\": [-1000, 300, 400, 500]}",
   "version": "4.5.0",
   "enabled": true,
   "inputSchema": {
@@ -9,6 +9,7 @@
     "properties": {
       "cash_flows": {
         "type": "array",
+        "description": "Cash flows from time 0, usually a negative investment first",
         "items": {
           "type": "number"
         }

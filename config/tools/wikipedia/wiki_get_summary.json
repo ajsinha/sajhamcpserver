@@ -1,7 +1,7 @@
 {
   "name": "wiki_get_summary",
   "implementation": "sajha.tools.impl.wikipedia_tool.WikiGetSummaryTool",
-  "description": "Retrieve a concise summary of a Wikipedia article. Returns the lead section/introduction without the full article content. Ideal for quick overviews.",
+  "description": "The lead (introduction) of one Wikipedia article as plain text, with its short description, main image and coordinates.\nReturns {title, page_id, url, language, summary and extract (the same text), thumbnail ({url, width, height} or null), original_image (normally null: the request does not ask for it), coordinates ({latitude, longitude} or null), description, last_modified (page touched time), content_type, extract_html (empty), last_updated}.\nInputs (* required): query (string, title) or page_id (integer); one is needed, page_id wins. language (string, Wikipedia language code such as en, fr, de, zh; default en), sentences (integer 1-10, default 3), redirect (boolean, default true), include_image (boolean, default true).\nFor the full text with sections use wiki_get_page; to find a title wiki_search.\nExample: {\"query\": \"Black-Scholes model\", \"sentences\": 5}\nNo API key. A title that does not exist gives 'Page not found'.",
   "version": "2.9.8",
   "enabled": true,
   "inputSchema": {

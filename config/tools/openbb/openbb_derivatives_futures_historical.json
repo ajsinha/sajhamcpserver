@@ -1,7 +1,7 @@
 {
   "name": "openbb_derivatives_futures_historical",
   "implementation": "sajha.tools.impl.openbb_tools.OpenBBGenericTool",
-  "description": "Get historical futures prices via OpenBB",
+  "description": "Daily price history of a futures contract from Yahoo Finance through the OpenBB Platform (obb.derivatives.futures.historical), in OpenBB's default date window.\nReturns: {tool, data_points (total rows), data: first 100 rows as OpenBB returns them} or {tool, error}.\nInputs (* required): symbol* (Yahoo futures symbol, e.g. CL=F, GC=F, SI=F; default CL=F); provider (yfinance only; default yfinance, no key).\nTerm structure: openbb_derivatives_futures_curve; spot series: fred_oil_price, fred_gold_price. Keys: fmp, benzinga, fred, intrinio, polygon and tiingo need credentials in OpenBB's settings (~/.openbb_platform/user_settings.json), not supplied by SAJHA; yfinance, oecd, federal_reserve, sec, imf and government_us need none.\nExample: {\"symbol\": \"GC=F\", \"provider\": \"yfinance\"}",
   "version": "4.5.0",
   "enabled": true,
   "inputSchema": {
@@ -9,10 +9,12 @@
     "properties": {
       "symbol": {
         "type": "string",
+        "description": "Yahoo futures symbol, e.g. CL=F, GC=F",
         "default": "CL=F"
       },
       "provider": {
         "type": "string",
+        "description": "OpenBB data provider",
         "default": "yfinance"
       }
     },

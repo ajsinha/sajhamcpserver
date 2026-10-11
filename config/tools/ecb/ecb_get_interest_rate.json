@@ -1,7 +1,7 @@
 {
   "name": "ecb_get_interest_rate",
   "implementation": "sajha.tools.impl.european_central_bank_tool_refactored.ECBGetInterestRateTool",
-  "description": "Retrieve ECB interest rates including main refinancing rate, deposit facility rate, and money market rates (EONIA, €STR).",
+  "description": "ECB policy and euro money-market rates in percent: main refinancing operations rate, deposit facility rate, marginal lending facility rate, EONIA (discontinued in 2022) or the euro short-term rate (euro STR), from the ECB Data Portal API (data-api.ecb.europa.eu, no API key).\nReturns: flow, key, series_name, description, observation_count and observations (date, value) oldest first.\nInputs (* required): rate_type* (main_refinancing_rate, deposit_facility_rate, marginal_lending_rate, eonia, ester); start_date, end_date (YYYY-MM-DD); recent_periods (1-100; default 10): unless both dates are given only the last recent_periods observations are kept, and with no dates the look-back is recent_periods x 40 days.\nFor government bond yields use ecb_get_bond_yield; for an overview ecb_get_common_indicators.\nExample: {\"rate_type\": \"deposit_facility_rate\", \"start_date\": \"2022-01-01\"}",
   "version": "2.9.8",
   "enabled": true,
   "inputSchema": {

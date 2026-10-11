@@ -1,7 +1,7 @@
 {
   "name": "fbi_get_national_statistics",
   "implementation": "sajha.tools.impl.fbi_tool_refactored.FBIGetNationalStatisticsTool",
-  "description": "Nationwide US offense counts, rate per 100,000, clearances and reporting coverage for one year (FBI Crime Data Explorer)",
+  "description": "Nationwide US offense counts, rate per 100,000, clearances and reporting coverage for one year, from the FBI Crime Data Explorer (UCR summarized data).\nReturns: offense_type, year, national_data (total_incidents, total_cleared, clearance_rate_pct, rate_per_100k, population, population_coverage_pct, months_reported, participated_population), optional monthly (month YYYY-MM, incidents, rate_per_100k) and metadata (endpoint, refresh dates).\nInputs (* required): offense_type* (a UCR category such as violent_crime, property_crime, homicide, robbery, burglary; list in the schema); year (1985 to the current year; default last year); include_monthly (boolean; default false).\nFor one state use fbi_get_state_statistics, for several years fbi_get_crime_trend, for victim and offender detail fbi_get_offense_data. Key: api.data.gov key in FBI_API_KEY, else the rate-limited DEMO_KEY.\nExample: {\"offense_type\": \"violent_crime\", \"year\": 2023, \"include_monthly\": true}",
   "version": "3.0.0",
   "enabled": true,
   "inputSchema": {

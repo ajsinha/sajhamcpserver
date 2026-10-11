@@ -1,7 +1,7 @@
 {
   "name": "openbb_cash_flow",
   "implementation": "sajha.tools.impl.openbb_tools.OpenBBCashFlowTool",
-  "description": "Get cash flow statement via OpenBB \u2014 operating, investing, financing cash flows, free cash flow from multiple providers",
+  "description": "Cash flow statements (operating, investing, financing cash flow, free cash flow) for one company through the OpenBB Platform (obb.equity.fundamental.cash).\nReturns: {symbol, statements: [one record per period with period_ending, fiscal period and the line items]}.\nInputs (* required): symbol*; period (annual or quarter; default annual); limit (number of periods; default 5); provider (OpenBB 4.6 accepts fmp, intrinio, polygon, sec, yfinance; default yfinance, no key).\nRelated: openbb_income_statement, openbb_balance_sheet; other sources: yf_cash_flow, av_cash_flow. Keys: fmp, benzinga, fred, intrinio, polygon and tiingo need credentials in OpenBB's settings (~/.openbb_platform/user_settings.json), not supplied by SAJHA; yfinance, oecd, federal_reserve, sec, imf and government_us need none.\nExample: {\"symbol\": \"AAPL\", \"period\": \"quarter\", \"limit\": 4, \"provider\": \"yfinance\"}",
   "version": "4.5.0",
   "enabled": true,
   "inputSchema": {

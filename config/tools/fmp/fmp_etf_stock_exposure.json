@@ -1,7 +1,7 @@
 {
   "name": "fmp_etf_stock_exposure",
   "implementation": "sajha.tools.impl.fmp_tools.FMPGenericTool",
-  "description": "Get a stock's exposure across all ETFs from FMP",
+  "description": "ETFs that hold a given stock, with the stock's weight and shares in each, from Financial Modeling Prep (FMP).\nReturns {tool, endpoint, data}: data is FMP's JSON from /stable/etf-stock-exposure as returned (usually a list of records).\nInputs (* required): symbol* (stock ticker, sent as given, e.g. AAPL).\nFor the reverse view (what one ETF holds) use fmp_etf_holdings.\nNeeds an FMP API key (config fmp.api.key, env FMP_API_KEY); without one it returns a demo placeholder naming the endpoint instead of data.\nExample: {\"symbol\": \"AAPL\"}",
   "version": "4.5.0",
   "enabled": true,
   "inputSchema": {

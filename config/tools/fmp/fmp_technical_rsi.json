@@ -1,7 +1,7 @@
 {
   "name": "fmp_technical_rsi",
   "implementation": "sajha.tools.impl.fmp_tools.FMPGenericTool",
-  "description": "Get RSI technical indicator from FMP for a stock",
+  "description": "Daily relative strength index (RSI, 0-100 momentum oscillator) series for one stock from Financial Modeling Prep (FMP).\nReturns {tool, endpoint, data}: data is FMP's JSON from /stable/rsi as returned (usually a list of records).\nInputs (* required): symbol* (ticker, sent as given, e.g. AAPL), period (integer, look-back length in bars; sent only when given, schema default 14).\nOther indicators: the fmp_technical_* tools (sma, ema, wma, dema, tema, rsi, macd, bbands, stoch, adx, williams, stddev); raw prices: fmp_historical_price.\nNeeds an FMP API key (config fmp.api.key, env FMP_API_KEY); without one it returns a demo placeholder naming the endpoint instead of data.\nExample: {\"symbol\": \"AAPL\", \"period\": 14}",
   "version": "4.5.0",
   "enabled": true,
   "inputSchema": {
@@ -13,6 +13,7 @@
       },
       "period": {
         "type": "integer",
+        "description": "Look-back length in bars (sent only when given)",
         "default": 14
       }
     },

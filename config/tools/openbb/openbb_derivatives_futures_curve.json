@@ -1,7 +1,7 @@
 {
   "name": "openbb_derivatives_futures_curve",
   "implementation": "sajha.tools.impl.openbb_tools.OpenBBGenericTool",
-  "description": "Get futures curve via OpenBB \u2014 forward curve for commodities/futures",
+  "description": "Futures term structure (price by expiration month) for one commodity or financial future from Yahoo Finance through the OpenBB Platform (obb.derivatives.futures.curve).\nReturns: {tool, data_points (total rows), data: first 100 rows as OpenBB returns them} or {tool, error}.\nInputs (* required): symbol* (root symbol, e.g. CL for crude oil, GC for gold, ES for S&P 500 futures; default CL); provider (yfinance only; default yfinance, no key).\nPrice history of a contract: openbb_derivatives_futures_historical. Keys: fmp, benzinga, fred, intrinio, polygon and tiingo need credentials in OpenBB's settings (~/.openbb_platform/user_settings.json), not supplied by SAJHA; yfinance, oecd, federal_reserve, sec, imf and government_us need none.\nExample: {\"symbol\": \"CL\", \"provider\": \"yfinance\"}",
   "version": "4.5.0",
   "enabled": true,
   "inputSchema": {
@@ -9,10 +9,12 @@
     "properties": {
       "symbol": {
         "type": "string",
+        "description": "Futures root symbol, e.g. CL, GC, ES",
         "default": "CL"
       },
       "provider": {
         "type": "string",
+        "description": "OpenBB data provider",
         "default": "yfinance"
       }
     },

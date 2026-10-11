@@ -1,7 +1,7 @@
 {
   "name": "yf_sector_performance",
   "implementation": "sajha.tools.impl.yfinance_tools.YFSectorPerformanceTool",
-  "description": "Get sector ETF performance from Yahoo Finance \u2014 XLK, XLF, XLV, etc.",
+  "description": "Latest prices of the 11 SPDR sector ETFs from Yahoo Finance (XLK, XLF, XLV, XLY, XLP, XLE, XLI, XLB, XLU, XLRE, XLC). Takes no inputs.\nReturns: {sectors: [{sector, etf, price}]}; only the last price, no percentage change.\nFor returns over time use yf_multi_ticker_history with these ETFs; for index levels yf_market_summary. No API key; data comes from Yahoo Finance through the yfinance library.\nExample: {}",
   "version": "4.5.0",
   "enabled": true,
   "inputSchema": {

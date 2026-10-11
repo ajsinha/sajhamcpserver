@@ -1,7 +1,7 @@
 {
   "name": "boj_get_policy_rate",
   "implementation": "sajha.tools.impl.japan_central_bank.BoJGetPolicyRateTool",
-  "description": "Retrieve Bank of Japan policy interest rate and discount rate with historical data.",
+  "description": "Bank of Japan short-term rates in percent from FRED (Federal Reserve Bank of St. Louis): call_money is the overnight call money rate (IRSTCI01JPM156N, monthly), discount the basic discount/loan rate (INTDSRJPM193N).\nReturns: series_code (FRED id), series_id, label, source, observation_count and observations (date, value) oldest first, missing values dropped.\nInputs (* required): rate_type* (call_money or discount; schema default call_money); start_date, end_date (YYYY-MM-DD); recent_periods (1-100; the last N observations, with no dates looking back N x 45 days; when omitted the whole history in the date range is returned).\nFor JGB yields use boj_get_jgb_yield; all series: boj_list_series. Needs a FRED API key (FRED_API_KEY, config fred.api.key); without one the call fails with a message saying so.\nExample: {\"rate_type\": \"call_money\", \"recent_periods\": 24}",
   "version": "2.9.8",
   "enabled": true,
   "inputSchema": {

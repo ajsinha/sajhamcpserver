@@ -1,7 +1,7 @@
 {
   "name": "openbb_equity_fundamental_ratios",
   "implementation": "sajha.tools.impl.openbb_tools.OpenBBGenericTool",
-  "description": "Get financial ratios via OpenBB \u2014 PE, PB, ROE, current ratio, quick ratio",
+  "description": "Financial ratios for one company over several periods (valuation, profitability, liquidity such as current and quick ratio, leverage) through the OpenBB Platform (obb.equity.fundamental.ratios).\nReturns: {tool, data_points (total rows), data: first 100 rows as OpenBB returns them} or {tool, error}.\nInputs (* required): symbol*; provider (OpenBB 4.6 accepts fmp or intrinio; schema default fmp, but when omitted the tool sends yfinance, which this command rejects, so set it).\nHeadline metrics: openbb_equity_metrics; without a key: yf_stock_info. Keys: fmp, benzinga, fred, intrinio, polygon and tiingo need credentials in OpenBB's settings (~/.openbb_platform/user_settings.json), not supplied by SAJHA; yfinance, oecd, federal_reserve, sec, imf and government_us need none.\nExample: {\"symbol\": \"AAPL\", \"provider\": \"fmp\"}",
   "version": "4.5.0",
   "enabled": true,
   "inputSchema": {
@@ -13,6 +13,7 @@
       },
       "provider": {
         "type": "string",
+        "description": "OpenBB data provider",
         "default": "fmp"
       }
     },

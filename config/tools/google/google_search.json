@@ -1,7 +1,7 @@
 {
   "name": "google_search",
   "implementation": "sajha.tools.impl.google_search_tool_refactored.GoogleSearchTool",
-  "description": "Search the web using Google Custom Search API. Find web pages, images, and information across the internet with Google's powerful search technology.",
+  "description": "Web or image search through the Google Custom Search JSON API.\nReturns {query, totalResults (string), searchTime, count, results: [{title, link, snippet, displayLink, image {thumbnailLink, contextLink, height, width} for image searches}]}.\nInputs (* required): query* (string), num_results (integer 1-10, default 10), start (integer, default 1; 11 = second page), search_type (web | image; default web), site (string, domain to restrict to; added to the query as site:), date_restrict (string, e.g. d7, m3, y1), language (string, ISO 639-1 code; default en), safe_search (off | medium | high; default medium).\nTavily tools (tavily_web_search) return extracted page content and a generated answer.\nExample: {\"query\": \"LIBOR cessation\", \"site\": \"bankofengland.co.uk\", \"num_results\": 5}\nNeeds GOOGLE_API_KEY and GOOGLE_SEARCH_ENGINE_ID (config google.api.key, google.search.engine.id); without them it returns placeholder results with a demo-mode note.",
   "version": "2.9.8",
   "enabled": true,
   "api_key": "${google.api.key}",

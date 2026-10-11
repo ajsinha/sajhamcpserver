@@ -1,7 +1,7 @@
 {
   "name": "yf_mutual_fund_holders",
   "implementation": "sajha.tools.impl.yfinance_tools.YFMutualFundHoldersTool",
-  "description": "Get mutual fund holders from Yahoo Finance \u2014 which mutual funds hold this stock",
+  "description": "Largest mutual fund holders of one stock from Yahoo Finance (yfinance mutualfund_holders), usually the top 10.\nReturns: {symbol, holders: [{Date Reported, Holder, pctHeld, Shares, Value, pctChange}]}.\nInputs (* required): symbol* (Yahoo ticker, e.g. AAPL, BRK-B, 7203.T).\nInstitutions: yf_institutional_holders; ownership percentages: yf_major_holders. No API key; data comes from Yahoo Finance through the yfinance library.\nExample: {\"symbol\": \"AAPL\"}",
   "version": "4.5.0",
   "enabled": true,
   "inputSchema": {

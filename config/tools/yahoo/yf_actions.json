@@ -1,7 +1,7 @@
 {
   "name": "yf_actions",
   "implementation": "sajha.tools.impl.yfinance_tools.YFActionsTool",
-  "description": "Get all corporate actions from Yahoo Finance \u2014 dividends and splits combined",
+  "description": "Corporate actions (dividends and stock splits together) for one ticker from Yahoo Finance (yfinance actions).\nReturns: {symbol, actions: [{Date, Dividends, Stock Splits}]}, oldest first, at most the first 100 rows; a row has 0 in the column that does not apply.\nInputs (* required): symbol* (Yahoo ticker, e.g. AAPL, BRK-B, 7203.T).\nOne kind only: yf_dividends or yf_splits. No API key; data comes from Yahoo Finance through the yfinance library.\nExample: {\"symbol\": \"AAPL\"}",
   "version": "4.5.0",
   "enabled": true,
   "inputSchema": {

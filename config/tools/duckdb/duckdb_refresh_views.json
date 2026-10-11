@@ -1,7 +1,7 @@
 {
   "name": "duckdb_refresh_views",
   "implementation": "sajha.tools.impl.duckdb_olap_tools_refactored.DuckDbRefreshViewsTool",
-  "description": "Refresh materialized views or reload external data files into DuckDB",
+  "description": "Reloads the DuckDB sandbox from the data files and reports row counts per table. Each CSV, TSV, Parquet and JSON file in the DuckDB data folder (data.duckdb.dir, default data/duckdb) is a table named after the file (orders.csv is orders), in an in-memory sandbox with no file or URL access; changed files are reloaded automatically.\nReturns {refreshed_views, total_refreshed, external_files_reloaded}: each entry is {view_name, status, row_count, refresh_time_ms} or {view_name, status: failed, error_message}.\nInputs: reload_external_files (boolean; default false; true rebuilds every table from the files, false only recounts rows), view_name (one table to report; default all).\nUse after adding or changing files when the change is needed before the automatic reload; to see the files duckdb_list_files.\nExample: {\"reload_external_files\": true}",
   "version": "2.9.8",
   "enabled": true,
   "data_directory": "${data.duckdb.dir:./data/duckdb}",

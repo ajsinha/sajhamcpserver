@@ -1,7 +1,7 @@
 {
   "name": "yf_etf_info",
   "implementation": "sajha.tools.impl.yfinance_tools.YFETFInfoTool",
-  "description": "Get ETF info from Yahoo Finance \u2014 category, family, assets, yield, expense ratio, returns",
+  "description": "Key fund facts for one ETF or mutual fund from Yahoo Finance (a subset of yfinance Ticker.info).\nReturns: {symbol, etf_info} with whichever of shortName, longName, category, fundFamily, totalAssets, yield, ytdReturn, threeYearAverageReturn, fiveYearAverageReturn, expenseRatio Yahoo provides (returns and yield as fractions).\nInputs (* required): symbol* (fund ticker, e.g. SPY, QQQ, VTI).\nHoldings and sector weights: openbb_etf_holdings, openbb_etf_sectors; full info dictionary: yf_stock_info. No API key; data comes from Yahoo Finance through the yfinance library.\nExample: {\"symbol\": \"SPY\"}",
   "version": "4.5.0",
   "enabled": true,
   "inputSchema": {

@@ -1,7 +1,7 @@
 {
   "name": "cg_top_losers",
   "implementation": "sajha.tools.impl.coingecko_tools.CGTopLosersTool",
-  "description": "Get top crypto losers (24h) from CoinGecko",
+  "description": "Intended to list the 24-hour top losing coins from CoinGecko: it calls coins/markets in USD, 20 coins, with order=percent_change_24h_asc.\nReturns {coins: [{id, symbol, name, current_price, market_cap, price_change_percentage_24h, ...}]}, the same shape as cg_coin_markets.\nInputs: none.\nThat order value is not among CoinGecko's documented coins/markets orders (market_cap, volume, id), so check price_change_percentage_24h in the result rather than relying on the order. cg_top_gainers is the counterpart.\nExample: {}\nNo API key is sent (CoinGecko public API, rate-limited by CoinGecko); a failed call returns {\"error\": ...}.",
   "version": "4.5.0",
   "enabled": true,
   "inputSchema": {

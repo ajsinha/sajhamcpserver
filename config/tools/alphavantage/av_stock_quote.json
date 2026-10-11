@@ -1,7 +1,7 @@
 {
   "name": "av_stock_quote",
   "implementation": "sajha.tools.impl.alphavantage_tools.AVStockQuoteTool",
-  "description": "Get real-time stock quote from Alpha Vantage \u2014 price, change, volume",
+  "description": "Latest quote for one stock from Alpha Vantage (GLOBAL_QUOTE).\nReturns: {\"Global Quote\": numbered string fields \"01. symbol\" to \"10. change percent\" (open, high, low, price, volume, latest trading day, previous close, change)}. Alpha Vantage's JSON comes back unchanged, including its \"Error Message\" or \"Information\" notes; a network failure gives {\"error\": ...}.\nInputs (* required): symbol* (ticker, e.g. IBM, MSFT).\nFor a fuller snapshot use av_company_overview, yf_fast_info or yahoo_get_quote; for history av_stock_daily.\nKey: ALPHA_VANTAGE_API_KEY (alpha_vantage.api.key); when unset the 'demo' key is sent, which only serves Alpha Vantage's documentation examples. Free tier: 25 requests/day.\nExample: {\"symbol\": \"IBM\"}",
   "version": "4.5.0",
   "enabled": true,
   "inputSchema": {

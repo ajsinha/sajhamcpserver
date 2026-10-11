@@ -155,12 +155,14 @@ class BdFGetOATYieldTool(BanqueDeFranceBaseTool):
             "properties": {
                 "bond_term": {
                     "type": "string",
+                    "description": "Maturity",
                     "enum": ["2y", "5y", "10y", "30y"],
                     "default": "10y"
                 },
-                "start_date": {"type": "string"},
-                "end_date": {"type": "string"},
-                "recent_periods": {"type": "integer", "minimum": 1, "maximum": 100, "default": 10}
+                "start_date": {"type": "string", "description": "Start date, YYYY-MM-DD"},
+                "end_date": {"type": "string", "description": "End date, YYYY-MM-DD"},
+                "recent_periods": {"type": "integer", "minimum": 1, "maximum": 100, "default": 10,
+                                   "description": "Keep the last N observations (used only when no date is given)"}
             },
             "required": ["bond_term"]
         }
@@ -221,12 +223,14 @@ class BdFGetECBPolicyRateTool(BanqueDeFranceBaseTool):
             "properties": {
                 "rate_type": {
                     "type": "string",
+                    "description": "Which rate",
                     "enum": ["ecb_main_refi", "ecb_deposit", "ecb_marginal_lending"],
                     "default": "ecb_main_refi"
                 },
-                "start_date": {"type": "string"},
-                "end_date": {"type": "string"},
-                "recent_periods": {"type": "integer", "minimum": 1, "maximum": 100, "default": 10}
+                "start_date": {"type": "string", "description": "Start date, YYYY-MM-DD"},
+                "end_date": {"type": "string", "description": "End date, YYYY-MM-DD"},
+                "recent_periods": {"type": "integer", "minimum": 1, "maximum": 100, "default": 10,
+                                   "description": "Keep the last N observations (used only when no date is given)"}
             },
             "required": ["rate_type"]
         }
@@ -285,12 +289,14 @@ class BdFGetExchangeRateTool(BanqueDeFranceBaseTool):
             "properties": {
                 "currency_pair": {
                     "type": "string",
+                    "description": "Currency pair",
                     "enum": ["eur_usd", "eur_gbp", "eur_jpy", "eur_cny"],
                     "default": "eur_usd"
                 },
-                "start_date": {"type": "string"},
-                "end_date": {"type": "string"},
-                "recent_periods": {"type": "integer", "minimum": 1, "maximum": 100, "default": 10}
+                "start_date": {"type": "string", "description": "Start date, YYYY-MM-DD"},
+                "end_date": {"type": "string", "description": "End date, YYYY-MM-DD"},
+                "recent_periods": {"type": "integer", "minimum": 1, "maximum": 100, "default": 10,
+                                   "description": "Keep the last N observations (used only when no date is given)"}
             },
             "required": ["currency_pair"]
         }
@@ -349,12 +355,14 @@ class BdFGetFrenchEconomicIndicatorTool(BanqueDeFranceBaseTool):
             "properties": {
                 "indicator": {
                     "type": "string",
+                    "description": "Which indicator",
                     "enum": ["fr_cpi", "fr_gdp", "fr_unemployment"],
                     "default": "fr_cpi"
                 },
-                "start_date": {"type": "string"},
-                "end_date": {"type": "string"},
-                "recent_periods": {"type": "integer", "minimum": 1, "maximum": 100, "default": 10}
+                "start_date": {"type": "string", "description": "Start date, YYYY-MM-DD"},
+                "end_date": {"type": "string", "description": "End date, YYYY-MM-DD"},
+                "recent_periods": {"type": "integer", "minimum": 1, "maximum": 100, "default": 10,
+                                   "description": "Keep the last N observations (used only when no date is given)"}
             },
             "required": ["indicator"]
         }
@@ -413,12 +421,14 @@ class BdFGetEurozoneIndicatorTool(BanqueDeFranceBaseTool):
             "properties": {
                 "indicator": {
                     "type": "string",
+                    "description": "Which indicator",
                     "enum": ["ez_cpi", "ez_gdp", "m3"],
                     "default": "ez_cpi"
                 },
-                "start_date": {"type": "string"},
-                "end_date": {"type": "string"},
-                "recent_periods": {"type": "integer", "minimum": 1, "maximum": 100, "default": 10}
+                "start_date": {"type": "string", "description": "Start date, YYYY-MM-DD"},
+                "end_date": {"type": "string", "description": "End date, YYYY-MM-DD"},
+                "recent_periods": {"type": "integer", "minimum": 1, "maximum": 100, "default": 10,
+                                   "description": "Keep the last N observations (used only when no date is given)"}
             },
             "required": ["indicator"]
         }

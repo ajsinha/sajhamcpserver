@@ -1,7 +1,7 @@
 {
   "name": "openbb_equity_discovery_gainers",
   "implementation": "sajha.tools.impl.openbb_tools.OpenBBGenericTool",
-  "description": "Get top stock gainers via OpenBB",
+  "description": "Top gaining US stocks today through the OpenBB Platform (obb.equity.discovery.gainers).\nReturns: {tool, data_points (total rows), data: first 100 rows as OpenBB returns them} or {tool, error}.\nInputs (* required): symbol (accepted by the schema, ignored by this command); provider (fmp or yfinance; schema default fmp; when omitted the tool sends yfinance, which needs no key).\nCustom filters: openbb_equity_screener; other source: fmp_market_gainers. Keys: fmp, benzinga, fred, intrinio, polygon and tiingo need credentials in OpenBB's settings (~/.openbb_platform/user_settings.json), not supplied by SAJHA; yfinance, oecd, federal_reserve, sec, imf and government_us need none.\nExample: {\"provider\": \"yfinance\"}",
   "version": "4.5.0",
   "enabled": true,
   "inputSchema": {
@@ -13,6 +13,7 @@
       },
       "provider": {
         "type": "string",
+        "description": "OpenBB data provider",
         "default": "fmp"
       }
     },

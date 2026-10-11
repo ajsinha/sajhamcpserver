@@ -1,7 +1,7 @@
 {
   "name": "fred_gdp_growth",
   "implementation": "sajha.tools.impl.fred_tools.FREDGDPGrowthTool",
-  "description": "Get US GDP Growth Rate from FRED \u2014 quarterly annualized",
+  "description": "The US real GDP growth from FRED, the St. Louis Fed's economic database: series A191RL1Q225SBEA (percent change from the preceding quarter at an annual rate, quarterly).\nReturns {\"series\": \"A191RL1Q225SBEA\", \"data\": <FRED observations response>}; data.observations = [{date (YYYY-MM-DD), value (a string, \".\" if missing), realtime_start, realtime_end}], newest first; data is {\"error\": ...} if the call fails.\nInputs (* required): limit (integer, number of newest observations; omitted: 40, although the schema default says 30).\nRelated: fred_gdp (level), fred_real_gdp_per_capita; for any other FRED series use fred_custom_series.\nExample: {\"limit\": 12}\nAPI key: env FRED_API_KEY (config fred.api.key); when unset the placeholder DEMO_KEY is sent.",
   "version": "4.5.0",
   "enabled": true,
   "inputSchema": {

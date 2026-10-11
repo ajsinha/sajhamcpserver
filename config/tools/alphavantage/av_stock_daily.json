@@ -1,7 +1,7 @@
 {
   "name": "av_stock_daily",
   "implementation": "sajha.tools.impl.alphavantage_tools.AVStockDailyTool",
-  "description": "Get daily stock prices from Alpha Vantage \u2014 OHLCV time series",
+  "description": "Daily OHLCV price history for one stock from Alpha Vantage (TIME_SERIES_DAILY, not split or dividend adjusted).\nReturns: {\"Meta Data\", \"Time Series (Daily)\"} where each YYYY-MM-DD key holds open, high, low, close, volume. Alpha Vantage's JSON comes back unchanged, including its \"Error Message\" or \"Information\" notes; a network failure gives {\"error\": ...}.\nInputs (* required): symbol* (ticker); outputsize (compact = latest 100 days, full = 20+ years; default compact).\nCoarser bars: av_stock_weekly, av_stock_monthly; intraday: av_stock_intraday. Other sources: yf_stock_history, openbb_equity_price.\nKey: ALPHA_VANTAGE_API_KEY (alpha_vantage.api.key); when unset the 'demo' key is sent, which only serves Alpha Vantage's documentation examples. Free tier: 25 requests/day.\nExample: {\"symbol\": \"IBM\", \"outputsize\": \"compact\"}",
   "version": "4.5.0",
   "enabled": true,
   "inputSchema": {
@@ -13,6 +13,7 @@
       },
       "outputsize": {
         "type": "string",
+        "description": "compact = latest 100 days, full = the whole history",
         "default": "compact",
         "enum": [
           "compact",

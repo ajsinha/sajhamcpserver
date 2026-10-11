@@ -1,7 +1,7 @@
 {
   "name": "duckdb_list_tables",
   "implementation": "sajha.tools.impl.duckdb_olap_tools_refactored.DuckDbListTablesTool",
-  "description": "List all available tables and views in the DuckDB database",
+  "description": "Lists the tables in the DuckDB sandbox with row counts. Each CSV, TSV, Parquet and JSON file in the DuckDB data folder (data.duckdb.dir, default data/duckdb) is a table named after the file (orders.csv is orders), in an in-memory sandbox with no file or URL access; changed files are reloaded automatically.\nReturns {tables, total_count}: each table is {name, type (table or view), schema, row_count}.\nInputs: include_system_tables (boolean; default false; true adds tables outside the main schema).\nFor columns use duckdb_describe_table; for the files behind the tables duckdb_list_files.\nExample: {\"include_system_tables\": false}",
   "version": "2.9.8",
   "enabled": true,
   "data_directory": "${data.duckdb.dir:./data/duckdb}",

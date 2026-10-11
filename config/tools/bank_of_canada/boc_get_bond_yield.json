@@ -1,7 +1,7 @@
 {
   "name": "boc_get_bond_yield",
   "implementation": "sajha.tools.impl.bank_of_canada_tool_refactored.BoCGetBondYieldTool",
-  "description": "Retrieve Government of Canada benchmark bond yields for various maturities (2Y, 5Y, 10Y, 30Y) with historical data.",
+  "description": "Government of Canada benchmark bond yields in percent for a 2, 5, 10 or 30 year maturity, from the Bank of Canada Valet API (no API key).\nReturns: series_name, label, description, dimension, observation_count and observations (date, value) oldest first.\nInputs (* required): bond_term* (2y, 5y, 10y, 30y; schema default 10y); start_date, end_date (YYYY-MM-DD; either or both); recent_periods (1-100; default 10; the last N observations, used only when no date is given).\nFor policy and overnight rates use boc_get_interest_rate; for US Treasuries fed_get_series with treasury_10y or treasury_2y.\nExample: {\"bond_term\": \"5y\", \"start_date\": \"2024-01-01\", \"end_date\": \"2024-06-30\"}",
   "version": "2.9.8",
   "enabled": true,
   "inputSchema": {

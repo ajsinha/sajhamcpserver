@@ -2,7 +2,7 @@
   "name": "google_drive_search",
   "implementation": "sajha.accounts.tools.google.GoogleDriveSearchTool",
   "title": "Search my Google Drive",
-  "description": "Full-text search of the signed-in user's Google Drive (including shared drives they can see), through their connected Google account. Returns file names, types, owners, last-modified times and links.",
+  "description": "Full-text search of the signed-in user's Google Drive, including shared drives they can see, through their connected Google account (Drive API v3 files.list, read-only scope; trashed files excluded; newest modified first).\nReturns: query, count, files (id, name, mime_type, modified, url, owners) and next_page_token.\nInputs (* required): query* (1-300 characters, matched against file names and contents); mime_type (only this MIME type, e.g. application/vnd.google-apps.document or application/pdf); limit (1-100; default 10).\nFor SAJHA's own documentation use sajha_search_docs. Runs only for a signed-in SAJHA user; when the account is not linked, or lacks the scope, the call returns a request to connect it with a link instead of a result.\nExample: {\"query\": \"quarterly budget\", \"mime_type\": \"application/vnd.google-apps.spreadsheet\", \"limit\": 5}",
   "version": "1.0.0",
   "enabled": true,
   "auth": {

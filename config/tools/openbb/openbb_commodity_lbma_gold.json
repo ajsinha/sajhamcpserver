@@ -1,7 +1,7 @@
 {
   "name": "openbb_commodity_lbma_gold",
   "implementation": "sajha.tools.impl.openbb_tools.OpenBBGenericTool",
-  "description": "Get LBMA gold fixing prices via OpenBB",
+  "description": "Meant to give gold prices through OpenBB; despite the name it requests the GC=F futures series from obb.commodity.price.historical, not the LBMA fixing.\nReturns: {tool, data_points (total rows), data: first 100 rows as OpenBB returns them} or {tool, error}.\nInputs (* required): provider (schema default fmp; when omitted the tool sends yfinance); symbol (accepted by the schema, but passing it collides with the fixed symbol and fails).\nOpenBB 4.x (4.6 checked) has no obb.commodity.price.historical, so this tool currently returns an error object; alternatives: fred_gold_price, or openbb_derivatives_futures_historical with symbol GC=F.\nExample: {\"provider\": \"yfinance\"}",
   "version": "4.5.0",
   "enabled": true,
   "inputSchema": {
@@ -13,6 +13,7 @@
       },
       "provider": {
         "type": "string",
+        "description": "OpenBB data provider",
         "default": "fmp"
       }
     },

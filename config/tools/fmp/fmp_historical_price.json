@@ -1,7 +1,7 @@
 {
   "name": "fmp_historical_price",
   "implementation": "sajha.tools.impl.fmp_tools.FMPHistoricalPriceTool",
-  "description": "Get historical daily stock prices from FMP \u2014 open, high, low, close, volume, adjusted close for any date range",
+  "description": "Daily end-of-day prices for one stock from Financial Modeling Prep (FMP, /stable/historical-price-eod/full): open, high, low, close, volume and change per date.\nReturns {symbol, prices}: prices is FMP's list of daily records (with data_points added when FMP wraps them in a historical list).\nInputs (* required): symbol* (ticker, e.g. AAPL; upper-cased), from_date (YYYY-MM-DD), to_date (YYYY-MM-DD); without dates FMP's default range applies.\nFor the latest quote use fmp_stock_quote; for indexes, forex, crypto and commodities use fmp_index_historical, fmp_forex_historical, fmp_crypto_historical, fmp_commodity_historical.\nNeeds an FMP API key (config fmp.api.key, env FMP_API_KEY); without one it returns a demo placeholder naming the endpoint instead of data.\nExample: {\"symbol\": \"AAPL\", \"from_date\": \"2025-01-01\", \"to_date\": \"2025-03-31\"}",
   "version": "4.5.0",
   "enabled": true,
   "inputSchema": {

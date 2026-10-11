@@ -1,7 +1,7 @@
 {
   "name": "openbb_fixedincome_treasury_auctions",
   "implementation": "sajha.tools.impl.openbb_tools.OpenBBGenericTool",
-  "description": "Get US Treasury auction results via OpenBB",
+  "description": "US Treasury auction results (security type, CUSIP, dates, high yield or rate, bid-to-cover and more) from TreasuryDirect through the OpenBB Platform (obb.fixedincome.government.treasury_auctions).\nReturns: {tool, data_points (total rows), data: first 100 rows as OpenBB returns them} or {tool, error}.\nInputs (* required): provider (OpenBB 4.6 accepts government_us only; schema default federal_reserve (also rejected), but when omitted the tool sends yfinance, which this command rejects, so set it); government_us needs no key.\nMarket yields: av_treasury_yield, fred_10yr_treasury. Keys: fmp, benzinga, fred, intrinio, polygon and tiingo need credentials in OpenBB's settings (~/.openbb_platform/user_settings.json), not supplied by SAJHA; yfinance, oecd, federal_reserve, sec, imf and government_us need none.\nExample: {\"provider\": \"government_us\"}",
   "version": "4.5.0",
   "enabled": true,
   "inputSchema": {
@@ -9,6 +9,7 @@
     "properties": {
       "provider": {
         "type": "string",
+        "description": "OpenBB data provider",
         "default": "federal_reserve"
       }
     },

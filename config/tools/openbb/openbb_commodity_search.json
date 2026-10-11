@@ -1,7 +1,7 @@
 {
   "name": "openbb_commodity_search",
   "implementation": "sajha.tools.impl.openbb_tools.OpenBBGenericTool",
-  "description": "Search for commodities via OpenBB",
+  "description": "Meant to search commodity symbols through OpenBB (obb.commodity.search).\nReturns: {tool, data_points, data}; OpenBB 4.x (4.6 checked) has no obb.commodity.search, so data holds a single row whose text says \"not available\".\nInputs (* required): query* (default gold); provider (default yfinance).\nUse fmp_commodity_list for a list of commodity symbols and openbb_derivatives_futures_historical for prices.\nExample: {\"query\": \"gold\"}",
   "version": "4.5.0",
   "enabled": true,
   "inputSchema": {
@@ -9,10 +9,12 @@
     "properties": {
       "query": {
         "type": "string",
+        "description": "Search text",
         "default": "gold"
       },
       "provider": {
         "type": "string",
+        "description": "OpenBB data provider",
         "default": "yfinance"
       }
     },

@@ -1,7 +1,7 @@
 {
   "name": "openbb_crypto_price",
   "implementation": "sajha.tools.impl.openbb_tools.OpenBBCryptoPriceTool",
-  "description": "Get historical cryptocurrency prices via OpenBB \u2014 daily OHLCV for BTC, ETH, SOL, and other crypto assets",
+  "description": "Daily price history for one cryptocurrency pair through the OpenBB Platform (obb.crypto.price.historical).\nReturns: {symbol, data_points, start_date, end_date, prices: [{date, open, high, low, close, volume, ...}]}.\nInputs (* required): symbol* (pair, upper-cased, e.g. BTCUSD, ETHUSD; default BTCUSD); start_date (YYYY-MM-DD; default 90 days ago); end_date (YYYY-MM-DD; default today); provider (fmp, polygon, tiingo or yfinance; default yfinance, no key).\nOther sources: av_crypto_daily, yf_crypto_info, cg_coin_market_chart. Keys: fmp, benzinga, fred, intrinio, polygon and tiingo need credentials in OpenBB's settings (~/.openbb_platform/user_settings.json), not supplied by SAJHA; yfinance, oecd, federal_reserve, sec, imf and government_us need none.\nExample: {\"symbol\": \"ETHUSD\", \"start_date\": \"2026-01-01\"}",
   "version": "4.5.0",
   "enabled": true,
   "inputSchema": {

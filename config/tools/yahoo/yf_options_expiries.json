@@ -1,7 +1,7 @@
 {
   "name": "yf_options_expiries",
   "implementation": "sajha.tools.impl.yfinance_tools.YFOptionsExpiriesTool",
-  "description": "Get available options expiry dates from Yahoo Finance for a stock",
+  "description": "Listed option expiration dates for one underlying from Yahoo Finance (yfinance options).\nReturns: {symbol, expiries: [\"YYYY-MM-DD\", ...]} nearest first; an empty list when the symbol has no listed options.\nInputs (* required): symbol* (Yahoo ticker, e.g. AAPL, BRK-B, 7203.T).\nPass one of the dates to yf_options_chain as expiry. No API key; data comes from Yahoo Finance through the yfinance library.\nExample: {\"symbol\": \"SPY\"}",
   "version": "4.5.0",
   "enabled": true,
   "inputSchema": {

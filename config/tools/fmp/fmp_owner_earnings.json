@@ -1,7 +1,7 @@
 {
   "name": "fmp_owner_earnings",
   "implementation": "sajha.tools.impl.fmp_tools.FMPGenericTool",
-  "description": "Get owner earnings from FMP \u2014 Buffett's preferred metric",
+  "description": "Owner earnings for one company by period from Financial Modeling Prep (FMP): net income adjusted for depreciation, maintenance capex and working capital (Buffett's measure), with per-share values.\nReturns {tool, endpoint, data}: data is FMP's JSON from /stable/owner-earnings as returned (usually a list of records).\nInputs (* required): symbol* (ticker, sent as given, e.g. AAPL).\nFor reported cash flows use fmp_cash_flow.\nNeeds an FMP API key (config fmp.api.key, env FMP_API_KEY); without one it returns a demo placeholder naming the endpoint instead of data.\nExample: {\"symbol\": \"AAPL\"}",
   "version": "4.5.0",
   "enabled": true,
   "inputSchema": {

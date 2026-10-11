@@ -1,7 +1,7 @@
 {
   "name": "fmp_historical_market_cap",
   "implementation": "sajha.tools.impl.fmp_tools.FMPGenericTool",
-  "description": "Get historical market cap data from FMP",
+  "description": "Market capitalisation history for one company from Financial Modeling Prep (FMP), one value per date.\nReturns {tool, endpoint, data}: data is FMP's JSON from /stable/historical-market-cap as returned (usually a list of records).\nInputs (* required): symbol* (ticker, sent as given, e.g. AAPL), limit (integer; sent only when given).\nFor the current value use fmp_market_cap.\nNeeds an FMP API key (config fmp.api.key, env FMP_API_KEY); without one it returns a demo placeholder naming the endpoint instead of data.\nExample: {\"symbol\": \"AAPL\", \"limit\": 30}",
   "version": "4.5.0",
   "enabled": true,
   "inputSchema": {

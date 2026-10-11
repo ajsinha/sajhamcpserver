@@ -1,7 +1,7 @@
 {
   "name": "openbb_market_news",
   "implementation": "sajha.tools.impl.openbb_tools.OpenBBMarketNewsTool",
-  "description": "Get latest market and world news via OpenBB \u2014 aggregated headlines from Benzinga, FMP, and other providers",
+  "description": "Latest general market and world news through the OpenBB Platform (obb.news.world).\nReturns: {articles_count, articles: [records with date, title, text, url and provider extras]} or {error}.\nInputs (* required): limit (1-50; default 10); provider (schema enum benzinga, fmp, biztoc; default benzinga). OpenBB 4.6 accepts benzinga, fmp, intrinio and tiingo, all of which need a key; biztoc is not available.\nNews about one company: openbb_company_news or yf_news. Keys: fmp, benzinga, fred, intrinio, polygon and tiingo need credentials in OpenBB's settings (~/.openbb_platform/user_settings.json), not supplied by SAJHA; yfinance, oecd, federal_reserve, sec, imf and government_us need none.\nExample: {\"limit\": 10, \"provider\": \"fmp\"}",
   "version": "4.5.0",
   "enabled": true,
   "inputSchema": {

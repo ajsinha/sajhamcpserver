@@ -1,7 +1,7 @@
 {
   "name": "openbb_etf_holdings",
   "implementation": "sajha.tools.impl.openbb_tools.OpenBBETFHoldingsTool",
-  "description": "Get ETF holdings breakdown via OpenBB \u2014 top holdings, portfolio weights, sectors for SPY, QQQ, VTI, and other ETFs",
+  "description": "Holdings of one ETF through the OpenBB Platform (obb.etf.holdings).\nReturns: {symbol, holdings_count (all holdings), holdings: the first 50 records with symbol, name, weight, shares, value and provider extras}.\nInputs (* required): symbol* (ETF ticker, e.g. SPY, QQQ, VTI; default SPY); provider (fmp or intrinio, both need a key; default fmp).\nSector and country weights: openbb_etf_sectors, openbb_etf_countries; fund facts: yf_etf_info, openbb_etf_info. Keys: fmp, benzinga, fred, intrinio, polygon and tiingo need credentials in OpenBB's settings (~/.openbb_platform/user_settings.json), not supplied by SAJHA; yfinance, oecd, federal_reserve, sec, imf and government_us need none.\nExample: {\"symbol\": \"QQQ\", \"provider\": \"fmp\"}",
   "version": "4.5.0",
   "enabled": true,
   "inputSchema": {
@@ -14,6 +14,7 @@
       },
       "provider": {
         "type": "string",
+        "description": "OpenBB data provider",
         "default": "fmp"
       }
     },

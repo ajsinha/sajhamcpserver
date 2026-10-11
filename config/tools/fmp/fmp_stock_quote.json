@@ -1,7 +1,7 @@
 {
   "name": "fmp_stock_quote",
   "implementation": "sajha.tools.impl.fmp_tools.FMPStockQuoteTool",
-  "description": "Get real-time stock quote from FMP \u2014 current price, change, volume, day high/low, 52-week range, market cap, PE ratio",
+  "description": "Latest quote for one stock from Financial Modeling Prep (FMP, /stable/quote): price, change and change %, volume, day high/low, 52-week range, market cap, PE and similar fields.\nReturns {symbol, quote}: quote is FMP's first quote record.\nInputs (* required): symbol* (ticker, e.g. AAPL; upper-cased).\nFor daily price history use fmp_historical_price; for other assets fmp_index_quote, fmp_forex_quote, fmp_crypto_quote or fmp_commodity_quote.\nNeeds an FMP API key (config fmp.api.key, env FMP_API_KEY); without one it returns a demo placeholder naming the endpoint instead of data.\nExample: {\"symbol\": \"MSFT\"}",
   "version": "4.5.0",
   "enabled": true,
   "inputSchema": {

@@ -1,7 +1,7 @@
 {
   "name": "imf_get_ifs_data",
   "implementation": "sajha.tools.impl.imf_tool_refactored.IMFGetIFSDataTool",
-  "description": "Retrieve International Financial Statistics (IFS) data including exchange rates, interest rates, prices, monetary aggregates, reserves, and more.",
+  "description": "International Financial Statistics (IFS) series for one country by a friendly indicator name or an IFS code, from the IMF SDMX JSON data service (dataservices.imf.org, no API key).\nReturns: database, country_code, indicator_code, frequency, data (period, value) and count; a note when the series is empty.\nInputs (* required): country_code* (ISO 2-letter); indicator (e.g. exchange_rate, policy_rate, treasury_bill_rate, cpi, core_cpi, money_supply_m2, international_reserves, gdp_current, industrial_production, unemployment_rate; list in the schema) or indicator_code (IFS code, wins over indicator); one of the two is needed; start_year and end_year (1950-2030; omit both for the full history); frequency (A, Q or M; default M).\nFor forecasts and annual macro aggregates use imf_get_weo_data; other databases imf_get_data.\nExample: {\"country_code\": \"GB\", \"indicator\": \"policy_rate\", \"start_year\": 2020, \"end_year\": 2024}",
   "version": "2.9.8",
   "enabled": true,
   "inputSchema": {
@@ -22,16 +22,19 @@
       },
       "start_year": {
         "type": "integer",
+        "description": "First year, YYYY; if only end_year is given this defaults to 1950",
         "minimum": 1950,
         "maximum": 2030
       },
       "end_year": {
         "type": "integer",
+        "description": "Last year, YYYY; if only start_year is given this defaults to the current year; omit both for the full history",
         "minimum": 1950,
         "maximum": 2030
       },
       "frequency": {
         "type": "string",
+        "description": "Frequency: A annual, Q quarterly, M monthly",
         "enum": ["A", "Q", "M"],
         "default": "M"
       }

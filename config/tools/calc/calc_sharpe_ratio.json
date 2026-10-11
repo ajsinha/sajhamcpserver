@@ -1,7 +1,7 @@
 {
   "name": "calc_sharpe_ratio",
   "implementation": "sajha.tools.impl.calc_tools.CalcSharpeRatioTool",
-  "description": "Calculate Sharpe Ratio \u2014 risk-adjusted return measure",
+  "description": "Sharpe ratio: (portfolio return - risk-free rate) / volatility. Computed locally in Python; no API key or network.\nReturns {sharpe_ratio}, 4 decimals; 0 when volatility is 0.\nInputs (* required): portfolio_return*, risk_free_rate*, volatility* (all percent over the same period, e.g. annual).\nTo penalise only downside risk use calc_sortino_ratio.\nExample: {\"portfolio_return\": 12, \"risk_free_rate\": 4, \"volatility\": 15}",
   "version": "4.5.0",
   "enabled": true,
   "inputSchema": {

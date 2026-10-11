@@ -1,13 +1,14 @@
 {
   "name": "fred_5yr_treasury",
   "implementation": "sajha.tools.impl.fred_tools.FREDCustomSeriesTool",
-  "description": "Get 5-Year Treasury Yield from FRED (series: DGS5)",
+  "description": "The 5-year US Treasury constant-maturity yield from FRED, the St. Louis Fed's economic database: series DGS5 (percent, daily).\nReturns {\"series\": \"DGS5\", \"data\": <FRED observations response>}; data.observations = [{date (YYYY-MM-DD), value (a string, \".\" if missing), realtime_start, realtime_end}], newest first; data is {\"error\": ...} if the call fails.\nInputs (* required): series_id (string; the schema default DGS5 is not filled in by the server, so it has to be sent), limit (integer, number of newest observations; omitted: 60, although the schema default says 20).\nRelated: fred_2yr_treasury, fred_10yr_treasury, fred_30yr_treasury; fred_custom_series takes any series id.\nExample: {\"series_id\": \"DGS5\", \"limit\": 20}\nAPI key: env FRED_API_KEY (config fred.api.key); when unset the placeholder DEMO_KEY is sent.",
   "version": "4.5.0",
   "enabled": true,
   "inputSchema": {
     "type": "object",
     "properties": {
       "series_id": {
+        "description": "FRED series id; the default is this tool's series, which the server does not fill in, so it has to be sent",
         "type": "string",
         "default": "DGS5"
       },

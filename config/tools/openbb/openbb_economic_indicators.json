@@ -1,7 +1,7 @@
 {
   "name": "openbb_economic_indicators",
   "implementation": "sajha.tools.impl.openbb_tools.OpenBBEconomicIndicatorsTool",
-  "description": "Get economic indicators via OpenBB \u2014 unemployment rate, industrial production, retail sales, housing starts",
+  "description": "One economic indicator series for a country through the OpenBB Platform (obb.economy.indicators).\nReturns: {indicator, data: [records with date, symbol, country and value]} or {error}.\nInputs (* required): symbol (indicator code of the chosen provider; default UNRATE); country (default united_states); provider (OpenBB 4.6 accepts econdb or imf; the default fred is rejected by this command, so set it).\nCodes for each provider: openbb_economy_available_indicators. FRED series directly: fred_custom_series. Keys: fmp, benzinga, fred, intrinio, polygon and tiingo need credentials in OpenBB's settings (~/.openbb_platform/user_settings.json), not supplied by SAJHA; yfinance, oecd, federal_reserve, sec, imf and government_us need none.\nExample: {\"symbol\": \"CPI\", \"country\": \"united_states\", \"provider\": \"econdb\"}",
   "version": "4.5.0",
   "enabled": true,
   "inputSchema": {
@@ -9,6 +9,7 @@
     "properties": {
       "country": {
         "type": "string",
+        "description": "Country, lower case with underscores (e.g. united_states)",
         "default": "united_states"
       },
       "symbol": {
@@ -17,6 +18,7 @@
       },
       "provider": {
         "type": "string",
+        "description": "OpenBB data provider (econdb or imf)",
         "default": "fred"
       }
     },

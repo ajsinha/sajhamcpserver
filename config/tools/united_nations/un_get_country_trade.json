@@ -1,7 +1,7 @@
 {
   "name": "un_get_country_trade",
   "implementation": "sajha.tools.impl.united_nations_tool_refactored.UNGetCountryTradeTool",
-  "description": "Retrieve comprehensive trade summary (both imports and exports) for a specific country in a given year",
+  "description": "Goods trade summary for one country and year: total exports and imports, the top 10 partners for each and the trade balance, from UN Comtrade (HS, values in USD).\nReturns: country_code, year, exports and imports (each total_value and top_partners of partner_code, partner, value), trade_balance (exports minus imports) and a source note.\nInputs (* required): country_code* (ISO3 such as USA, or a numeric Comtrade code); year (1962-2030; default the current year minus 2).\nFor one partner or commodity group use un_get_trade_data; for the balance with one partner un_get_trade_balance; to rank countries un_compare_trade. Key: optional COMTRADE_API_KEY for the full Comtrade API; without it the keyless preview API (500 rows, rate limited).\nExample: {\"country_code\": \"BRA\", \"year\": 2022}",
   "version": "2.9.8",
   "enabled": true,
   "inputSchema": {

@@ -1,7 +1,7 @@
 {
   "name": "edgar_companies_by_sic",
   "implementation": "sajha.tools.impl.enhanced_edgar_tool.EDGARCompaniesBySICTool",
-  "description": "Search companies by Standard Industrial Classification (SIC) code for industry and sector analysis",
+  "description": "Companies in one industry, by 4-digit Standard Industrial Classification (SIC) code, from SEC EDGAR.\nReturns {sic_code, companies_count, companies: [{cik, name, sic, sicDescription, fiscalYearEnd}]}.\nInputs (* required): sic_code* (string, 4 digits, e.g. 7372 prepackaged software, 3674 semiconductors, 6022 state commercial banks), limit (integer 1-500, default 50).\nSlow: it reads each listed company's submissions file in turn (one request per company, 110 ms apart) until limit matches are found, so small limits return sooner. To read one company's SIC, edgar_company_submissions or sec_get_company_info is quicker.\nExample: {\"sic_code\": \"7372\", \"limit\": 10}\nNo API key needed (SEC data.sec.gov; 110 ms between requests).",
   "version": "2.9.8",
   "enabled": true,
   "inputSchema": {

@@ -1,7 +1,7 @@
 {
   "name": "rbi_get_gsec_yield",
   "implementation": "sajha.tools.impl.india_central_bank.RBIGetGSecYieldTool",
-  "description": "Retrieve Indian Government Securities yields for various maturities",
+  "description": "Indian Government Securities (G-Sec) yields in percent for a 1, 5, 10 or 30 year maturity, from the Reserve Bank of India's DBIE endpoint (rbi.org.in/Scripts/api/dbie, no API key).\nReturns: series_code, label, description, unit, frequency, observation_count and observations (date, value) as the endpoint orders them.\nInputs (* required): bond_term* (1y, 5y, 10y, 30y; schema default 10y); start_date, end_date (YYYY-MM-DD, passed through as fromDate and toDate); recent_periods (1-100; default 10; keeps the last N observations, only when no date is given).\nFor policy rates use rbi_get_policy_rate.\nExample: {\"bond_term\": \"10y\", \"recent_periods\": 20}",
   "version": "2.9.8",
   "enabled": true,
   "metadata": {

@@ -1,7 +1,7 @@
 {
   "name": "bdf_get_exchange_rate",
   "implementation": "sajha.tools.impl.france_central_bank.BdFGetExchangeRateTool",
-  "description": "Retrieve Euro exchange rates against major currencies",
+  "description": "Daily ECB euro reference rates: units of US dollar, pound sterling, Japanese yen or Chinese yuan per 1 EUR.\nReturns: series_code, label, unit, frequency (always reported as % and Daily), observation_count and observations (date, value).\nInputs (* required): currency_pair* (eur_usd, eur_gbp, eur_jpy, eur_cny; schema default eur_usd); start_date, end_date (YYYY-MM-DD); recent_periods (1-100; default 10; keeps the last N observations, only when no date is given).\necb_get_exchange_rate covers any currency the ECB quotes. Despite the bdf_ name, data comes from the legacy ECB statistical web service (sdw-wsrest.ecb.europa.eu), no API key; the ecb_ tools read the same ECB data from the current ECB Data Portal API.\nExample: {\"currency_pair\": \"eur_usd\", \"recent_periods\": 20}",
   "version": "2.9.8",
   "enabled": true,
   "metadata": {

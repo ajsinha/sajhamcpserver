@@ -1,7 +1,7 @@
 {
   "name": "fbi_get_offense_data",
   "implementation": "sajha.tools.impl.fbi_tool_refactored.FBIGetOffenseDataTool",
-  "description": "NIBRS incident breakdowns for an offense (victim and offender age/sex/race, weapons, locations, relationships), nationally or for a state",
+  "description": "NIBRS incident detail for one offense and year, nationally or for a state (victim and offender age, sex, race; weapons; locations; relationships), from the FBI Crime Data Explorer.\nReturns: offense_type, nibrs_offense_code, year, scope, state, total_offenses, rate_per_100k, nibrs_population_coverage_pct, metadata and breakdown {victim, offender, offense}: each category's largest non-zero buckets.\nInputs (* required): offense_type* (homicide, rape, robbery, aggravated_assault, simple_assault, burglary, motor_vehicle_theft, arson, kidnapping, identity_theft); state (two-letter code; omit for national); year (1985 to the current year; default last year); include_subcategories (breakdown on/off; default true); top_n (buckets kept, 1-100; default 10).\nFor summarized counts and rates use fbi_get_national_statistics or fbi_get_state_statistics. Key: api.data.gov key in FBI_API_KEY, else the rate-limited DEMO_KEY.\nExample: {\"offense_type\": \"robbery\", \"state\": \"CA\", \"year\": 2022, \"top_n\": 5}",
   "version": "3.0.0",
   "enabled": true,
   "inputSchema": {

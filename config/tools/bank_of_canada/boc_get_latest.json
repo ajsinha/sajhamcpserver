@@ -1,7 +1,7 @@
 {
   "name": "boc_get_latest",
   "implementation": "sajha.tools.impl.bank_of_canada_tool_refactored.BoCGetLatestTool",
-  "description": "Retrieve the most recent observation for any Bank of Canada data series. Optimized for single-value queries with minimal response payload.",
+  "description": "The most recent observation of one Bank of Canada Valet series, by series name or shorthand, from the Bank of Canada Valet API (no API key).\nReturns: series_name, label, description, date and value; an error when the series has no data.\nInputs: series_name (e.g. FXUSDCAD, POLICY_RATE, V122539; wins over indicator) or indicator (usd_cad, eur_cad, gbp_cad, jpy_cad, cny_cad, policy_rate, overnight_rate, prime_rate, bond_2y/5y/10y/30y, cpi, core_cpi, gdp); one is needed.\nFor several headline values at once use boc_get_common_indicators; for history boc_get_series.\nExample: {\"indicator\": \"policy_rate\"}",
   "version": "2.9.8",
   "enabled": true,
   "inputSchema": {

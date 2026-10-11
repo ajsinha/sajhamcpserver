@@ -1,7 +1,7 @@
 {
   "name": "openbb_fixedincome_ice_bofa",
   "implementation": "sajha.tools.impl.openbb_tools.OpenBBGenericTool",
-  "description": "Get ICE BofA corporate bond indices via OpenBB",
+  "description": "Meant to give ICE BofA corporate bond index yields through OpenBB (obb.fixedincome.corporate.ice_bofa).\nReturns: {tool, data_points (total rows), data: first 100 rows as OpenBB returns them} or {tool, error}.\nInputs (* required): provider (schema default fred; when omitted the tool sends yfinance).\nOpenBB 4.x (4.6 checked) has no obb.fixedincome.corporate.ice_bofa, so this tool currently returns an error object; alternatives: fred_high_yield_spread or fred_credit_spread.\nExample: {\"provider\": \"fred\"}",
   "version": "4.5.0",
   "enabled": true,
   "inputSchema": {
@@ -9,6 +9,7 @@
     "properties": {
       "provider": {
         "type": "string",
+        "description": "OpenBB data provider",
         "default": "fred"
       }
     },

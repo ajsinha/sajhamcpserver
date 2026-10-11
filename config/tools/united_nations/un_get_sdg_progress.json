@@ -1,7 +1,7 @@
 {
   "name": "un_get_sdg_progress",
   "implementation": "sajha.tools.impl.united_nations_tool_refactored.UNGetSDGProgressTool",
-  "description": "Track a country's progress towards Sustainable Development Goals with latest indicator values",
+  "description": "Placeholder for a country's progress towards the Sustainable Development Goals: it makes no API call and returns no indicator values yet.\nReturns: with sdg_code, the country_code, sdg_code, sdg_title, an empty indicators list and a note; without sdg_code, the country_code, a note and available_sdgs (the codes 1-17).\nInputs (* required): country_code* (ISO3, e.g. KEN); sdg_code (string \"1\" to \"17\"; optional).\nFor actual values use un_get_sdg_indicators to find an indicator, then un_get_sdg_data with the country.\nExample: {\"country_code\": \"KEN\", \"sdg_code\": \"6\"}",
   "version": "2.9.8",
   "enabled": true,
   "inputSchema": {

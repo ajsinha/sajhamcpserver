@@ -4,6 +4,50 @@ Newest first. The current version is `app.version` in `config/application.yml`.
 
 ## Unreleased
 
+## v8.7.0 (October 2026) — full tool descriptions, safer document and SQL tools
+
+### Changed
+
+- **Every tool has a full description** in the style of the qlrisk tools (about 510 tools in 32 folders):
+  what it does and its source, what it returns, every input with required ones marked and formats, units
+  and defaults, related tools, the API key it needs, and an example call checked against its input schema.
+  Where a tool's code and schema disagree, or a tool is broken upstream, the description says what the
+  tool actually does; the fixes are planned in wave 8, phase 8.1. Missing input descriptions were added, so
+  the tool lint reports no description warnings.
+- The SAJHA logo in the navigation bar always leads to the landing page, signed in or not; `/` no longer
+  redirects a signed-in visitor to the dashboard, and the landing page offers them Dashboard where a visitor
+  gets Sign In.
+- Wave 8 planned (Roadmap L21–L50; [Implementation Plan](docs/architecture/Implementation%20Plan.md)):
+  tool health and domain descriptions, open-data tools, business intelligence and reports, with designs in
+  [Open Data Tools](docs/architecture/Open%20Data%20Tools.md),
+  [Business Intelligence](docs/architecture/Business%20Intelligence.md) and [Reports](docs/architecture/Reports.md).
+
+### Fixed
+
+- **Security: `msdoc_*` path traversal.** A file argument was joined to the documents folder unchecked
+  (`../msd/sales.xlsx` was read). It is now resolved to its real path and refused when absolute, when it has
+  a `..` part, or when it (or a symbolic link) lies outside `docs_directory`; links out of the folder are
+  no longer listed. Shared helper `confined_path` in `sajha/core/storage.py`.
+- **Security: `sqlselect_*` file read and SQL injection.** The connection never disabled DuckDB's file
+  access (`SELECT read_text('/etc/passwd')` worked) and `sqlselect_count_rows` pasted `where_clause` and
+  the source name into SQL. Sources are now copied into tables, then `enable_external_access` is switched
+  off and the configuration locked (as the `duckdb_*` tools do); source names are quoted;
+  `sqlselect_execute_query` runs one parser-checked read-only statement; `where_clause` must have no `;`
+  or comment and parse as a single DuckDB expression. A changed data file is seen on the next tool load.
+  `duckdb` now needs 1.1 or later.
+- `sqlselect_execute_query` refused legitimate queries such as a column `created_at`: the write-keyword
+  check now matches whole words only.
+- `calc_bond_price` failed when `face_value` was omitted; the schema default 1000 is applied.
+- `calc_currency_converter` silently used rate 1 for an unknown target currency; it now returns an error.
+- `msdoc_read_excel` with `include_formulas` returned spreadsheet cell objects in `data`; it returns the
+  formula text (`=A2+B2`) and plain values.
+- The Word `msdoc_*` tools failed because `python-docx` was not installed: `python-docx` and `pypdf` are
+  now in `requirements.txt`.
+- `fmp_market_gainers`, `fmp_market_losers`, `fmp_most_active`, `fmp_senate_trading`, `fmp_sec_filings`,
+  `fmp_price_target` and `fmp_upgrades_downgrades` sent `limit` 20 or 10 when it was omitted; they send
+  the schema default, 5.
+- `duckdb_list_files` ignored `include_metadata`; `false` now drops each file's size and date.
+
 ## v8.6.0 (October 2026) — an HTTP proxy for tool fetches; documentation brought up to date
 
 ### Added

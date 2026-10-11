@@ -1,7 +1,7 @@
 {
   "name": "get_page_info",
   "implementation": "sajha.tools.impl.webcrawler_tool_refactored.GetPageInfoTool",
-  "description": "Get comprehensive information and statistics about a web page including metadata, structure, link/image counts, and content metrics",
+  "description": "Summary statistics of one web page: title, meta tags, heading counts and samples, link and image counts, size.\nReturns {url, status_code, content_type, title, meta_description, meta_keywords, headings: {h1_count, h2_count, h3_count, h1, h2, h3 (first 5 each)}, link_count, image_count, content_length (characters of HTML), retrieved_at}.\nInputs (* required): url* (string, absolute http(s) URL).\nFor the links themselves use extract_links; for text extract_content; for all headings extract_metadata.\nExample: {\"url\": \"https://example.com\"}\nFetches go through SAJHA's outbound fetch guard (loopback and cloud-metadata addresses refused; private networks too when tools.outbound.block_private_networks is on). No API key.",
   "version": "2.9.8",
   "enabled": true,
   "inputSchema": {

@@ -1,7 +1,7 @@
 {
   "name": "fred_retail_sales",
   "implementation": "sajha.tools.impl.fred_tools.FREDRetailSalesTool",
-  "description": "Get US Retail Sales from FRED",
+  "description": "The US advance retail and food services sales from FRED, the St. Louis Fed's economic database: series RSAFS (millions of dollars, monthly).\nReturns {\"series\": \"RSAFS\", \"data\": <FRED observations response>}; data.observations = [{date (YYYY-MM-DD), value (a string, \".\" if missing), realtime_start, realtime_end}], newest first; data is {\"error\": ...} if the call fails.\nInputs (* required): limit (integer, number of newest observations; omitted: 60, although the schema default says 30).\nRelated: fred_pce, fred_consumer_sentiment, fred_auto_sales; for any other FRED series use fred_custom_series.\nExample: {\"limit\": 12}\nAPI key: env FRED_API_KEY (config fred.api.key); when unset the placeholder DEMO_KEY is sent.",
   "version": "4.5.0",
   "enabled": true,
   "inputSchema": {

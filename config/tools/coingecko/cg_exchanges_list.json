@@ -1,13 +1,14 @@
 {
   "name": "cg_exchanges_list",
   "implementation": "sajha.tools.impl.coingecko_tools.CGExchangesListTool",
-  "description": "Get crypto exchanges list from CoinGecko \u2014 ranked by volume, trust score",
+  "description": "Spot cryptocurrency exchanges from CoinGecko (exchanges), ranked by trust score.\nReturns {exchanges: [{id, name, year_established, country, url, trust_score, trust_score_rank, trade_volume_24h_btc, ...}]}.\nInputs (* required): limit (integer, exchanges per page; default 20; CoinGecko allows up to 250).\nFor one exchange's details use cg_exchange_info (with the id from here); derivatives venues are in cg_derivatives_exchanges.\nExample: {\"limit\": 10}\nNo API key is sent (CoinGecko public API, rate-limited by CoinGecko); a failed call returns {\"error\": ...}.",
   "version": "4.5.0",
   "enabled": true,
   "inputSchema": {
     "type": "object",
     "properties": {
       "limit": {
+        "description": "Number of exchanges (CoinGecko allows up to 250)",
         "type": "integer",
         "default": 20
       }

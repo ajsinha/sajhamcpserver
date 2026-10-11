@@ -1,7 +1,7 @@
 {
   "name": "yf_multi_ticker_history",
   "implementation": "sajha.tools.impl.yfinance_tools.YFMultiTickerHistoryTool",
-  "description": "Get price history for multiple stocks at once from Yahoo Finance \u2014 compare up to 10 tickers",
+  "description": "Price history for several tickers in one call from Yahoo Finance (yfinance download).\nReturns: {symbols: [...], data: {SYMBOL: up to the first (oldest) 30 daily rows of {Date, Open, High, Low, Close, Volume}}}; prices are adjusted. With the default 1mo period all rows fit; longer periods are cut to their first 30 days.\nInputs (* required): symbols* (space-separated, e.g. \"AAPL MSFT GOOGL\"; commas are not split); period (1d, 5d, 1mo, 3mo, ...; default 1mo). The tool sets no ticker limit.\nOne ticker with up to 500 bars: yf_stock_history; fundamentals side by side: yf_compare_stocks. No API key; data comes from Yahoo Finance through the yfinance library.\nExample: {\"symbols\": \"AAPL MSFT GOOGL\", \"period\": \"5d\"}",
   "version": "4.5.0",
   "enabled": true,
   "inputSchema": {
@@ -13,6 +13,7 @@
       },
       "period": {
         "type": "string",
+        "description": "yfinance period, e.g. 5d, 1mo, 3mo",
         "default": "1mo"
       }
     },

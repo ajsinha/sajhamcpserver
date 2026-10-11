@@ -1,7 +1,7 @@
 {
   "name": "sajha_ask",
   "implementation": "sajha.ai.ask_tool.SajhaAskTool",
-  "description": "Answer a natural-language question by letting SAJHA pick and run its own tools; returns the answer with the tool calls it relied on and a confidence score. Pass conversation_id from a previous answer to ask a follow-up. Turned on and off by ai.ask.mcp_tool_enabled.",
+  "description": "Answers a natural-language question by letting SAJHA choose and run its own tools (Ask SAJHA as an LLM tool, mode answer). Inner calls run with the caller's own permissions; ai.ask.mcp_allowed_tools can narrow the tools it may use. Switched on and off by ai.ask.mcp_tool_enabled.\nReturns: answer, confidence, citations (the tool calls relied on), caveats, steps, models, planner, conversation_id and stopped_by (answer, a limit, needs_confirmation, needs_connection or error); pending lists destructive calls waiting for approval (with fingerprints) and connections lists accounts to link.\nInputs (* required): question*; model (model alias or provider/model; default the tool's model); conversation_id (follow-up within 24 hours, up to 20 turns); confirm (fingerprints from pending that the user approved).\nFor documentation questions sajha_search_docs or llm_docs_qa is cheaper.\nExample: {\"question\": \"Compare the Bank of Canada policy rate with the US federal funds rate.\"}",
   "version": "2.0.0",
   "enabled": false,
   "inputSchema": {

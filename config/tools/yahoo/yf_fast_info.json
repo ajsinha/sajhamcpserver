@@ -1,7 +1,7 @@
 {
   "name": "yf_fast_info",
   "implementation": "sajha.tools.impl.yfinance_tools.YFFastInfoTool",
-  "description": "Get quick stock snapshot from Yahoo Finance \u2014 market cap, price, averages, 52-week range",
+  "description": "Quick price snapshot for one ticker from Yahoo Finance (yfinance fast_info), lighter than yf_stock_info.\nReturns: {symbol, fast_info: {market_cap, last_price, fifty_day_average, two_hundred_day_average, year_high, year_low, shares_outstanding}}; a field is null when Yahoo lacks it.\nInputs (* required): symbol* (Yahoo ticker, e.g. AAPL, BRK-B, 7203.T).\nFull profile: yf_stock_info; side-by-side for several tickers: yf_compare_stocks. No API key; data comes from Yahoo Finance through the yfinance library.\nExample: {\"symbol\": \"MSFT\"}",
   "version": "4.5.0",
   "enabled": true,
   "inputSchema": {

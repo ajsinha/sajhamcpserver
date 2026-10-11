@@ -1,7 +1,7 @@
 {
   "name": "sec_get_mutual_fund_holdings",
   "implementation": "sajha.tools.impl.sec_edgar_tool_refactored.SECGetMutualFundHoldingsTool",
-  "description": "Retrieve institutional investment manager holdings reports (Form 13F-HR)",
+  "description": "Form 13F-HR institutional holdings filings of an investment manager, from SEC EDGAR. Despite the name, it lists 13F-HR filings, not mutual fund N-PORT reports.\nReturns {cik, name, filing_count, filings: [{accession_number, filing_date, report_date, form, primary_document, description}]}, newest first; filings only, not the positions.\nInputs (* required): cik or ticker (one is needed; managers rarely have tickers, so use the cik; cik, 10 digits or shorter, wins when both are given; a ticker is resolved through the SEC company-tickers file), limit (integer 1-20, default 5).\nedgar_institutional_holdings returns the same filings with document URLs; for N-PORT fund holdings use edgar_mutual_fund_holdings.\nExample: {\"cik\": \"0001067983\", \"limit\": 4}\nNo API key; SEC data.sec.gov (requests are not throttled; the SEC allows 10 per second).",
   "version": "2.9.8",
   "enabled": true,
   "inputSchema": {

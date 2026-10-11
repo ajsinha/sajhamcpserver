@@ -254,6 +254,53 @@ filed one folder per provider; list them with `python -m sajha.tools folders`.
   the notice; with `0` the check happens on reload only. The qlrisk tools use it
   ([QLRisk Tool Reference Guide](../tools/qlrisk/QLRisk%20Tool%20Reference%20Guide.md)).
 
+### Domain descriptions (planned)
+
+> **Status: planned, not built.** Wave 8, phase 8.1 of the
+> [Implementation Plan](Implementation%20Plan.md#7b-wave-8-tool-health-open-data-business-intelligence-and-reports)
+> (Roadmap L24). Today a folder is only a grouping, and nothing in it besides tool configs is read.
+
+A **domain description** tells a model what a tool folder as a whole is for, once, instead of
+repeating it in every tool's description. Examples: "World Bank open data: annual country
+indicators; country codes are ISO 3166 alpha-3; values lag one to two years", or "BIS statistics:
+cite 'Source: BIS'".
+
+- **The file.** An optional `<tools dir>/<folder>/domain.txt`, holding plain UTF-8 text with no
+  markup. It is read through the storage backend like the configs beside it.
+- **Size.** At most `tools.domain_description_max_chars` (default 600) characters after trimming. A
+  longer file is **refused, not truncated**, because a cut sentence can change its meaning. A
+  refused file raises the warning notice `tools.domain_description:<folder>`, and the folder's
+  tools are served without it until the file is fixed.
+- **Root.** A `domain.txt` at the root of the tools directory is ignored, with the info notice
+  `tools.domain_description_root`. Unfiled tools have no domain to describe.
+- **Where it appears.** When a tool is served, its description is the tool's own description, a
+  blank line, then the domain description. This applies on every surface that lists tools:
+  - `tools/list` in both eras and `/api/tools/list`;
+  - Ask SAJHA's tool search index;
+  - the OpenAI-compatible endpoint;
+  - SAJHA Net catalogs.
+
+  The text is **never written into tool JSON files**. Studio and the tool's configuration page edit
+  and show the tool's own description, with the domain text shown beside it, read-only. Generated
+  tools filed in the folder (data connectors, API Import) get it too.
+- **Not for every tool.** Proxied MCP server tools and remote SAJHA Net tools have no tool folder
+  here, so they get no domain description. A remote host composes the description itself before
+  publishing.
+- **Hot reload.** Adding, changing or removing the file changes the served description of every
+  tool in the folder. The registry publishes the catalog change (`list_changed`), as it does when a
+  tool file changes. SAJHA Net's contract hash covers schemas and annotations, not descriptions
+  (`contract_of` in `sajha/net/catalog.py`), so a description change does not quarantine a tool.
+- **The SAJHA Net 1024-character limit.** A member's catalog flags and cuts descriptions longer
+  than `limits.max_description_chars` (1024 by default; `sajha/net/catalog.py`). The rule is
+  explicit:
+  - when the tool's own description plus the domain description would exceed the limit, the
+    exported description **leaves the domain text out entirely**, so the tool's own words are never
+    cut;
+  - lint reports every such tool (`description-length`,
+    [Tool Quality §12.6](Tool%20Quality.md#126-lint-additions)).
+- **Shown on the Domains page.** Each domain card shows its description. The first sentence is
+  always visible and the rest expands. A folder with no file shows only its label, as today.
+
 ## 6. Composition
 
 Composite tools chain registered tools into one tool. They are defined in the

@@ -1,7 +1,7 @@
 {
   "name": "fmp_index_historical",
   "implementation": "sajha.tools.impl.fmp_tools.FMPGenericTool",
-  "description": "Get historical index data from FMP",
+  "description": "Daily end-of-day history of one market index from Financial Modeling Prep (FMP).\nReturns {tool, endpoint, data}: data is FMP's JSON from /stable/historical-price-eod/full as returned (usually a list of records).\nInputs (* required): symbol* (index symbol, e.g. ^GSPC).\nFor the latest level use fmp_index_quote; for symbols fmp_available_indexes.\nNeeds an FMP API key (config fmp.api.key, env FMP_API_KEY); without one it returns a demo placeholder naming the endpoint instead of data.\nExample: {\"symbol\": \"^DJI\"}",
   "version": "4.5.0",
   "enabled": true,
   "inputSchema": {
@@ -9,6 +9,7 @@
     "properties": {
       "symbol": {
         "type": "string",
+        "description": "Index symbol (e.g. ^GSPC)",
         "default": "^GSPC"
       }
     },

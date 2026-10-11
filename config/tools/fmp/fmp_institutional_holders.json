@@ -1,7 +1,7 @@
 {
   "name": "fmp_institutional_holders",
   "implementation": "sajha.tools.impl.fmp_tools.FMPInstitutionalHoldersTool",
-  "description": "Get institutional holders from FMP \u2014 major fund holders, shares held, portfolio weight, change in holdings",
+  "description": "Institutional holders of one stock from Financial Modeling Prep (FMP, /stable/institutional-holder): holder name, shares held, change in position and filing date.\nReturns {symbol, holders}: FMP's list of holder records.\nInputs (* required): symbol* (ticker, e.g. AAPL; upper-cased).\nFor mutual funds use fmp_mutual_fund_holders; for one fund's whole portfolio fmp_13f_filing; for insiders fmp_insider_trading.\nNeeds an FMP API key (config fmp.api.key, env FMP_API_KEY); without one it returns a demo placeholder naming the endpoint instead of data.\nExample: {\"symbol\": \"AAPL\"}",
   "version": "4.5.0",
   "enabled": true,
   "inputSchema": {

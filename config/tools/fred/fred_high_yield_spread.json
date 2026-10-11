@@ -1,13 +1,14 @@
 {
   "name": "fred_high_yield_spread",
   "implementation": "sajha.tools.impl.fred_tools.FREDCustomSeriesTool",
-  "description": "Get ICE BofA High Yield Spread from FRED (series: BAMLH0A0HYM2)",
+  "description": "The ICE BofA US High Yield Index option-adjusted spread from FRED, the St. Louis Fed's economic database: series BAMLH0A0HYM2 (percent, daily).\nReturns {\"series\": \"BAMLH0A0HYM2\", \"data\": <FRED observations response>}; data.observations = [{date (YYYY-MM-DD), value (a string, \".\" if missing), realtime_start, realtime_end}], newest first; data is {\"error\": ...} if the call fails.\nInputs (* required): series_id (string; the schema default BAMLH0A0HYM2 is not filled in by the server, so it has to be sent), limit (integer, number of newest observations; omitted: 60, although the schema default says 20).\nRelated: fred_credit_spread (investment grade), fred_vix; fred_custom_series takes any series id.\nExample: {\"series_id\": \"BAMLH0A0HYM2\", \"limit\": 20}\nAPI key: env FRED_API_KEY (config fred.api.key); when unset the placeholder DEMO_KEY is sent.",
   "version": "4.5.0",
   "enabled": true,
   "inputSchema": {
     "type": "object",
     "properties": {
       "series_id": {
+        "description": "FRED series id; the default is this tool's series, which the server does not fill in, so it has to be sent",
         "type": "string",
         "default": "BAMLH0A0HYM2"
       },

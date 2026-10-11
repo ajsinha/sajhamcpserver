@@ -1,7 +1,7 @@
 {
   "name": "tavily_news_search",
   "implementation": "sajha.tools.impl.tavily_tool_refactored.TavilyNewsSearchTool",
-  "description": "Search for recent news articles using Tavily with news-optimized results and recency prioritization",
+  "description": "Recent news search through the Tavily search API (topic news, basic depth).\nReturns {query, search_depth, topic, results_count, results: [{title, url, content (extract), score, published_date}], answer (when include_answer)}.\nInputs (* required): query* (string), max_results (integer 1-20, default 5), include_answer (boolean, default true; a generated summary of the coverage).\nFor general web results use tavily_web_search; for news from chosen outlets tavily_domain_search with include_domains.\nExample: {\"query\": \"ECB rate decision\", \"max_results\": 10}\nNeeds a Tavily API key (env TAVILY_API_KEY, config tavily.api.key); without one the tool returns placeholder example.com results with a note saying demo mode.",
   "version": "2.9.8",
   "enabled": true,
   "api_key": "${tavily.api.key}",

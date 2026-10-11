@@ -1,7 +1,7 @@
 {
   "name": "yf_analyst_price_targets",
   "implementation": "sajha.tools.impl.yfinance_tools.YFAnalystPriceTargetsTool",
-  "description": "Get analyst price targets from Yahoo Finance \u2014 low, mean, median, high targets",
+  "description": "Analyst 12-month price targets for one stock from Yahoo Finance (yfinance analyst_price_targets).\nReturns: {symbol, targets: {current, high, low, mean, median}}; an empty object when Yahoo has none.\nInputs (* required): symbol* (Yahoo ticker, e.g. AAPL, BRK-B, 7203.T).\nRatings: yf_recommendations, yf_upgrades_downgrades; other sources: fmp_price_target_summary. No API key; data comes from Yahoo Finance through the yfinance library.\nExample: {\"symbol\": \"NVDA\"}",
   "version": "4.5.0",
   "enabled": true,
   "inputSchema": {

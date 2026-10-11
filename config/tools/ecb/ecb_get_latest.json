@@ -1,7 +1,7 @@
 {
   "name": "ecb_get_latest",
   "implementation": "sajha.tools.impl.european_central_bank_tool_refactored.ECBGetLatestTool",
-  "description": "Retrieve the most recent observation for any European Central Bank data series. Optimized for single-value queries with minimal response payload.",
+  "description": "The most recent observation of one ECB series, by dataflow and key or shorthand indicator, from the ECB Data Portal API (data-api.ecb.europa.eu, no API key).\nReturns: flow, key, series_name, description, date and value; an error when nothing is found. It looks back about 40 days, so a monthly or quarterly series (HICP, GDP, M3, unemployment) can come back with no data; use ecb_get_series for those.\nInputs: flow and key together (e.g. FM and B.U2.EUR.4F.KR.DFR.LEV) or indicator (eur_usd, eur_gbp, eur_jpy, eur_cny, eur_chf, main_refinancing_rate, deposit_facility_rate, marginal_lending_rate, eonia, ester, bond_2y/5y/10y, hicp_overall/core/energy, gdp, m1, m2, m3, unemployment_rate); one form is needed.\nFor several headline values at once use ecb_get_common_indicators.\nExample: {\"indicator\": \"eur_usd\"}",
   "version": "2.9.8",
   "enabled": true,
   "inputSchema": {

@@ -1,7 +1,7 @@
 {
   "name": "duckdb_get_stats",
   "implementation": "sajha.tools.impl.duckdb_olap_tools_refactored.DuckDbGetStatsTool",
-  "description": "Get statistical summary for numeric columns in a table (count, mean, std, min, max, percentiles)",
+  "description": "Column statistics for one DuckDB table. Each CSV, TSV, Parquet and JSON file in the DuckDB data folder (data.duckdb.dir, default data/duckdb) is a table named after the file (orders.csv is orders), in an in-memory sandbox with no file or URL access; changed files are reloaded automatically.\nReturns {table_name, total_rows, column_statistics}: per column count, null_count, min, max, unique_count, data_type (numeric or non-numeric) and sql_type; numeric columns also mean, std_dev and, with percentiles, percentile_25, median, percentile_75.\nInputs (* required): table_name*, columns (array of names; default: all columns, numeric or not), include_percentiles (default true).\nFor grouped totals use duckdb_aggregate; for column types duckdb_describe_table.\nExample: {\"table_name\": \"orders\", \"columns\": [\"quantity\", \"unit_price\"]}",
   "version": "2.9.8",
   "enabled": true,
   "data_directory": "${data.duckdb.dir:./data/duckdb}",

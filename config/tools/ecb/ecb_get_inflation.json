@@ -1,7 +1,7 @@
 {
   "name": "ecb_get_inflation",
   "implementation": "sajha.tools.impl.european_central_bank_tool_refactored.ECBGetInflationTool",
-  "description": "Retrieve HICP (Harmonised Index of Consumer Prices) inflation measures for the Euro Area including overall, core, and energy inflation.",
+  "description": "Euro area HICP inflation, annual rate of change in percent, monthly: overall, core (excluding energy and food) or energy, from the ECB Data Portal API (data-api.ecb.europa.eu, no API key).\nReturns: flow, key, series_name, description, observation_count and observations (date, value) oldest first.\nInputs (* required): inflation_type* (overall, core, energy; schema default overall); start_date, end_date (YYYY-MM-DD); recent_periods (1-100; default 12): unless both dates are given only the last recent_periods observations are kept, and with no dates the look-back is recent_periods x 40 days.\nFor other series use ecb_get_series; for an overview ecb_get_common_indicators.\nExample: {\"inflation_type\": \"core\", \"recent_periods\": 24}",
   "version": "2.9.8",
   "enabled": true,
   "inputSchema": {

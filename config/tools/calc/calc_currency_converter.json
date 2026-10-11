@@ -1,7 +1,7 @@
 {
   "name": "calc_currency_converter",
   "implementation": "sajha.tools.impl.calc_tools.CalcCurrencyConverterTool",
-  "description": "Convert between currencies using live exchange rates (free API)",
+  "description": "Converts an amount between currencies at the latest rate from the open ExchangeRate-API endpoint (open.er-api.com); needs network access, no API key.\nReturns {from, to, amount, rate, converted} (converted to 4 decimals), or {error} if the rate service fails or a currency code is unknown.\nInputs: from (ISO 4217 code; default USD), to (ISO code; default EUR), amount (number; default 1).\nFor FX quotes and history use fmp_forex_quote or fmp_forex_historical.\nExample: {\"from\": \"USD\", \"to\": \"JPY\", \"amount\": 250}",
   "version": "4.5.0",
   "enabled": true,
   "inputSchema": {
@@ -9,14 +9,17 @@
     "properties": {
       "from": {
         "type": "string",
+        "description": "Source currency, ISO 4217 code",
         "default": "USD"
       },
       "to": {
         "type": "string",
+        "description": "Target currency, ISO 4217 code",
         "default": "EUR"
       },
       "amount": {
         "type": "number",
+        "description": "Amount in the source currency",
         "default": 1
       }
     },

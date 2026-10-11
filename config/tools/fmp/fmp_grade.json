@@ -1,7 +1,7 @@
 {
   "name": "fmp_grade",
   "implementation": "sajha.tools.impl.fmp_tools.FMPGenericTool",
-  "description": "Get company investment grade from FMP \u2014 overall financial grade",
+  "description": "Analyst grade history for one stock from Financial Modeling Prep (FMP): grading firm, previous and new grade, action and date.\nReturns {tool, endpoint, data}: data is FMP's JSON from /stable/grade as returned (usually a list of records).\nInputs (* required): symbol* (ticker, sent as given, e.g. AAPL).\nFor the consensus use fmp_upgrades_downgrades_consensus; for FMP's own rating fmp_rating.\nNeeds an FMP API key (config fmp.api.key, env FMP_API_KEY); without one it returns a demo placeholder naming the endpoint instead of data.\nExample: {\"symbol\": \"AAPL\"}",
   "version": "4.5.0",
   "enabled": true,
   "inputSchema": {

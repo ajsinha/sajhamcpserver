@@ -27,6 +27,24 @@ from typing import List, Optional, Callable, Dict, Any
 logger = logging.getLogger(__name__)
 
 
+def confined_path(root, name) -> Path:
+    """The real path of ``name`` inside the local folder ``root``, or ``ValueError``.
+
+    For a file name a caller passes to a tool that reads one folder: an absolute path, a ``..``
+    part, a NUL, or a symbolic link whose target lies outside ``root`` is refused (the check is
+    on the resolved real path, the same rule ``LocalStorageBackend.list_files`` applies)."""
+    if not isinstance(name, str) or not name.strip() or '\0' in name:
+        raise ValueError('a file name is required')
+    parts = name.replace('\\', '/').split('/')
+    if os.path.isabs(name) or name.startswith(('/', '\\')) or '..' in parts or (len(name) > 1 and name[1] == ':'):
+        raise ValueError(f'{name!r}: give a file name inside the documents folder, not a path out of it')
+    real_root = Path(root).resolve()
+    real = (real_root / name).resolve()
+    if not real.is_relative_to(real_root):
+        raise ValueError(f'{name!r}: resolves outside the documents folder; refused')
+    return real
+
+
 # ── Abstract Base ────────────────────────────────────────────
 
 class StorageBackend(ABC):

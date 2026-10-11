@@ -1,7 +1,7 @@
 {
   "name": "openbb_economy_leading",
   "implementation": "sajha.tools.impl.openbb_tools.OpenBBGenericTool",
-  "description": "Get Composite Leading Indicator via OpenBB \u2014 economic outlook signal",
+  "description": "OECD composite leading indicator for a country (turning-point signal; 100 = long-term trend) through the OpenBB Platform (obb.economy.composite_leading_indicator).\nReturns: {tool, data_points (total rows), data: first 100 rows as OpenBB returns them} or {tool, error}.\nInputs (* required): country (lower case with underscores, e.g. united_states, g20; default united_states); provider (OpenBB 4.6 accepts oecd only; schema default oecd, but when omitted the tool sends yfinance, which this command rejects, so set it); no key.\nUS Conference Board style index: fred_leading_index. Keys: fmp, benzinga, fred, intrinio, polygon and tiingo need credentials in OpenBB's settings (~/.openbb_platform/user_settings.json), not supplied by SAJHA; yfinance, oecd, federal_reserve, sec, imf and government_us need none.\nExample: {\"country\": \"united_states\", \"provider\": \"oecd\"}",
   "version": "4.5.0",
   "enabled": true,
   "inputSchema": {
@@ -9,10 +9,12 @@
     "properties": {
       "country": {
         "type": "string",
+        "description": "Country, lower case with underscores (e.g. united_states)",
         "default": "united_states"
       },
       "provider": {
         "type": "string",
+        "description": "OpenBB data provider (oecd)",
         "default": "oecd"
       }
     },

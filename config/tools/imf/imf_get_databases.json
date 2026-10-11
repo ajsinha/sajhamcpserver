@@ -1,7 +1,7 @@
 {
   "name": "imf_get_databases",
   "implementation": "sajha.tools.impl.imf_tool_refactored.IMFGetDatabasesTool",
-  "description": "List all available IMF databases including IFS, WEO, BOP, and more. Use this to discover what data sources are available.",
+  "description": "List the IMF databases these tools know, with their names (IFS International Financial Statistics, WEO World Economic Outlook, BOP Balance of Payments, DOT Direction of Trade and others). A fixed list; no network call.\nReturns: databases (code, name) and count.\nInputs: none.\nUse a code as the database argument of imf_get_dataflows, imf_get_data or imf_compare_countries.\nExample: {}",
   "version": "2.9.8",
   "enabled": true,
   "inputSchema": {

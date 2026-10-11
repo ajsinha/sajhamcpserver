@@ -1,13 +1,14 @@
 {
   "name": "fred_durable_goods",
   "implementation": "sajha.tools.impl.fred_tools.FREDCustomSeriesTool",
-  "description": "Get US Durable Goods Orders from FRED (series: DGORDER)",
+  "description": "The US manufacturers' new orders for durable goods from FRED, the St. Louis Fed's economic database: series DGORDER (millions of dollars, monthly).\nReturns {\"series\": \"DGORDER\", \"data\": <FRED observations response>}; data.observations = [{date (YYYY-MM-DD), value (a string, \".\" if missing), realtime_start, realtime_end}], newest first; data is {\"error\": ...} if the call fails.\nInputs (* required): series_id (string; the schema default DGORDER is not filled in by the server, so it has to be sent), limit (integer, number of newest observations; omitted: 60, although the schema default says 20).\nRelated: fred_industrial_production, fred_business_inventories; fred_custom_series takes any series id.\nExample: {\"series_id\": \"DGORDER\", \"limit\": 20}\nAPI key: env FRED_API_KEY (config fred.api.key); when unset the placeholder DEMO_KEY is sent.",
   "version": "4.5.0",
   "enabled": true,
   "inputSchema": {
     "type": "object",
     "properties": {
       "series_id": {
+        "description": "FRED series id; the default is this tool's series, which the server does not fill in, so it has to be sent",
         "type": "string",
         "default": "DGORDER"
       },

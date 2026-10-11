@@ -1,7 +1,7 @@
 {
   "name": "yf_earnings_dates",
   "implementation": "sajha.tools.impl.yfinance_tools.YFEarningsDatesTool",
-  "description": "Get earnings dates from Yahoo Finance \u2014 past and upcoming earnings announcement dates",
+  "description": "Past and upcoming earnings announcement dates for one company from Yahoo Finance (yfinance earnings_dates), about 25 rows.\nReturns: {symbol, dates: [{Earnings Date, EPS Estimate, Reported EPS, Surprise(%)}]}, upcoming dates first; Reported EPS is empty for future dates.\nInputs (* required): symbol* (Yahoo ticker, e.g. AAPL, BRK-B, 7203.T).\nSurprise detail for recent quarters: yf_earnings_history; the next event only: yf_calendar. No API key; data comes from Yahoo Finance through the yfinance library.\nExample: {\"symbol\": \"AAPL\"}",
   "version": "4.5.0",
   "enabled": true,
   "inputSchema": {

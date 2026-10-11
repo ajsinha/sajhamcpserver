@@ -1,7 +1,7 @@
 {
   "name": "wiki_search",
   "implementation": "sajha.tools.impl.wikipedia_tool.WikiSearchTool",
-  "description": "Search Wikipedia articles by keyword or phrase. Returns a list of matching article titles with brief descriptions.",
+  "description": "Search Wikipedia articles by keyword or phrase (MediaWiki search API).\nReturns {query, language, result_count, results: [{title, page_id, snippet (plain text), url, timestamp (last edit), word_count}], suggestion (spelling suggestion or null), last_updated}.\nInputs (* required): query* (string, 1-300 chars), limit (integer 1-20, default 5), language (string, Wikipedia language code such as en, fr, de, zh; default en).\nUse it to find the exact title or page_id, then wiki_get_summary for the lead or wiki_get_page for the whole article.\nExample: {\"query\": \"yield curve inversion\", \"limit\": 5}\nNo API key.",
   "version": "2.9.8",
   "enabled": true,
   "inputSchema": {

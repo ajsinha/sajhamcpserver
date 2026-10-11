@@ -1,7 +1,7 @@
 {
   "name": "fmp_upgrades_downgrades",
   "implementation": "sajha.tools.impl.fmp_tools.FMPUpgradesDowngradesTool",
-  "description": "Get analyst upgrades and downgrades from FMP \u2014 rating changes, firm, previous/new grade for a stock",
+  "description": "Analyst rating changes for one stock from Financial Modeling Prep (FMP, /stable/upgrades-downgrades): firm, action, previous and new grade, date.\nReturns {symbol, changes}: FMP's list of rating-change records.\nInputs (* required): symbol* (ticker, e.g. AAPL; upper-cased), limit (integer, number of records; default 5).\nFor the consensus rating use fmp_upgrades_downgrades_consensus; for price targets fmp_price_target.\nNeeds an FMP API key (config fmp.api.key, env FMP_API_KEY); without one it returns a demo placeholder naming the endpoint instead of data.\nExample: {\"symbol\": \"MSFT\", \"limit\": 5}",
   "version": "4.5.0",
   "enabled": true,
   "inputSchema": {

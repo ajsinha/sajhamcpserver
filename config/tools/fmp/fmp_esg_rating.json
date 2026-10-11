@@ -1,7 +1,7 @@
 {
   "name": "fmp_esg_rating",
   "implementation": "sajha.tools.impl.fmp_tools.FMPGenericTool",
-  "description": "Get ESG rating from FMP \u2014 environmental, social, governance scores",
+  "description": "ESG ratings for one company from Financial Modeling Prep (FMP): environmental, social and governance scores.\nReturns {tool, endpoint, data}: data is FMP's JSON from /stable/esg-rating as returned (usually a list of records).\nInputs (* required): symbol* (ticker, sent as given, e.g. AAPL).\nFor the company overview use fmp_company_profile.\nNeeds an FMP API key (config fmp.api.key, env FMP_API_KEY); without one it returns a demo placeholder naming the endpoint instead of data.\nExample: {\"symbol\": \"AAPL\"}",
   "version": "4.5.0",
   "enabled": true,
   "inputSchema": {

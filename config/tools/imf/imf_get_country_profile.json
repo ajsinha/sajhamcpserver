@@ -1,7 +1,7 @@
 {
   "name": "imf_get_country_profile",
   "implementation": "sajha.tools.impl.imf_tool_refactored.IMFGetCountryProfileTool",
-  "description": "Get a comprehensive economic profile for a country with key indicators including GDP growth, inflation, unemployment, current account, and public debt.",
+  "description": "Five-indicator macro snapshot of one country from the IMF World Economic Outlook: GDP growth, inflation, unemployment, current account (% of GDP) and general government gross debt (% of GDP), over the last five years, from the IMF SDMX JSON data service (dataservices.imf.org, no API key).\nReturns: country_code, country_name and indicators keyed by name, each with code, latest_value, latest_period and recent_data (up to the last three periods), or an error.\nInputs (* required): country_code* (ISO 2-letter, e.g. US, CN, DE).\nFor other indicators or a longer history use imf_get_weo_data; to compare countries imf_compare_countries.\nExample: {\"country_code\": \"BR\"}",
   "version": "2.9.8",
   "enabled": true,
   "inputSchema": {

@@ -1,7 +1,7 @@
 {
   "name": "duckdb_describe_table",
   "implementation": "sajha.tools.impl.duckdb_olap_tools_refactored.DuckDbDescribeTableTool",
-  "description": "Get detailed schema information for a specific table or view including column types and constraints",
+  "description": "Column definitions and row count of one DuckDB table, optionally with sample rows. Each CSV, TSV, Parquet and JSON file in the DuckDB data folder (data.duckdb.dir, default data/duckdb) is a table named after the file (orders.csv is orders), in an in-memory sandbox with no file or URL access; changed files are reloaded automatically.\nReturns {table_name, table_type, columns, row_count, sample_data (when asked)}: each column is {column_name, data_type, nullable, is_primary_key, default_value when set}.\nInputs (* required): table_name* (case-insensitive), include_sample_data (default false), sample_size (1-100; default 5).\nFor value distributions use duckdb_get_stats; to query duckdb_query.\nExample: {\"table_name\": \"orders\", \"include_sample_data\": true, \"sample_size\": 3}",
   "version": "2.9.8",
   "enabled": true,
   "data_directory": "${data.duckdb.dir:./data/duckdb}",

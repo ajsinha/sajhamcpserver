@@ -1,7 +1,7 @@
 {
   "name": "boc_search_series",
   "implementation": "sajha.tools.impl.bank_of_canada_tool_refactored.BoCSearchSeriesTool",
-  "description": "Search and discover available Bank of Canada economic data series organized by category. Helps users find the right data series for their needs.",
+  "description": "List the Bank of Canada series these tools have shorthands for, grouped by category, with their Valet series names. A built-in catalogue; no network call.\nReturns: categories (category name to a list of indicator, series_name, description) and total_series.\nInputs (none required): category (Exchange Rates, Interest Rates, Bond Yields, Economic Indicators or all; default all).\nPass an indicator or series_name to boc_get_series or boc_get_latest.\nExample: {\"category\": \"Bond Yields\"}",
   "version": "2.9.8",
   "enabled": true,
   "inputSchema": {

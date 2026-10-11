@@ -1,7 +1,7 @@
 {
   "name": "openbb_income_statement",
   "implementation": "sajha.tools.impl.openbb_tools.OpenBBIncomeStatementTool",
-  "description": "Get income statement via OpenBB \u2014 revenue, COGS, gross profit, operating income, net income, EPS from multiple providers",
+  "description": "Income statements (revenue, cost of revenue, gross profit, operating income, net income, EPS) for one company through the OpenBB Platform (obb.equity.fundamental.income).\nReturns: {symbol, statements: [one record per period with period_ending, fiscal period and the line items]}.\nInputs (* required): symbol*; period (annual or quarter; default annual); limit (number of periods; default 5); provider (OpenBB 4.6 accepts fmp, intrinio, polygon, sec, yfinance; default yfinance, no key).\nRelated: openbb_balance_sheet, openbb_cash_flow; other sources: yf_income_statement, av_income_statement. Keys: fmp, benzinga, fred, intrinio, polygon and tiingo need credentials in OpenBB's settings (~/.openbb_platform/user_settings.json), not supplied by SAJHA; yfinance, oecd, federal_reserve, sec, imf and government_us need none.\nExample: {\"symbol\": \"AAPL\", \"period\": \"quarter\", \"limit\": 4, \"provider\": \"yfinance\"}",
   "version": "4.5.0",
   "enabled": true,
   "inputSchema": {

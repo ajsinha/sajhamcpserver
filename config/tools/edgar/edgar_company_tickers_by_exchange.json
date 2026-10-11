@@ -1,7 +1,7 @@
 {
   "name": "edgar_company_tickers_by_exchange",
   "implementation": "sajha.tools.impl.enhanced_edgar_tool.EDGARCompanyTickersByExchangeTool",
-  "description": "Get all public companies listed on a specific stock exchange (NYSE, NASDAQ, AMEX, etc.)",
+  "description": "Companies listed on one stock exchange, filtered from the SEC company-tickers file.\nReturns {exchange, companies_count, companies: [{cik, ticker, title}]}.\nInputs (* required): exchange* (Nasdaq | NYSE | AMEX | BATS | OTC), limit (integer 1-5000, default 100).\nThe filter needs an exchange field in that file; when the file has none, the result is empty and edgar_company_search is the alternative.\nExample: {\"exchange\": \"NYSE\", \"limit\": 50}\nNo API key needed (SEC data.sec.gov; 110 ms between requests).",
   "version": "2.9.8",
   "enabled": true,
   "inputSchema": {

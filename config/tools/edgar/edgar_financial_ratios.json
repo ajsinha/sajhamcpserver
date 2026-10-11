@@ -1,7 +1,7 @@
 {
   "name": "edgar_financial_ratios",
   "implementation": "sajha.tools.impl.enhanced_edgar_tool.EDGARFinancialRatiosTool",
-  "description": "Calculate common financial ratios (profitability, liquidity, solvency) from XBRL data automatically",
+  "description": "Financial ratios computed from a company's us-gaap XBRL facts (EDGAR companyfacts) for one fiscal period.\nReturns {cik, entityName, fiscal_year, fiscal_period, profitability_ratios {gross_margin, operating_margin, net_margin, return_on_assets, return_on_equity} in percent, liquidity_ratios {current_ratio, quick_ratio, cash_ratio}, solvency_ratios {debt_to_equity, debt_to_assets, equity_multiplier}}. A ratio is omitted when an input is missing; debt = total liabilities.\nInputs (* required): cik* (string, SEC Central Index Key, up to 10 digits; from edgar_company_search), fiscal_year (integer 2009-2030; optional in the schema, but without it every ratio group is empty), fiscal_period (FY | Q1 | Q2 | Q3 | Q4; default FY).\nValues are matched on the facts' fy/fp tags. Raw numbers: edgar_company_concept.\nExample: {\"cik\": \"0000320193\", \"fiscal_year\": 2023, \"fiscal_period\": \"FY\"}\nNo API key needed (SEC data.sec.gov; 110 ms between requests).",
   "version": "2.9.8",
   "enabled": true,
   "inputSchema": {

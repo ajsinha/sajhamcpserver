@@ -430,4 +430,172 @@ JUnit), `tests/test_quality_lint.py`, `tests/test_quality_probes.py`,
 
 ---
 
+## 12. Planned: tool health (wave 8, phase 8.1)
+
+> **Status: planned, not built.** Phase 8.1 of the
+> [Implementation Plan](Implementation%20Plan.md#7b-wave-8-tool-health-open-data-business-intelligence-and-reports),
+> Roadmap items L21 to L23 and L25. Everything in sections 1 to 11 is built; nothing in this section is.
+> Domain descriptions, the other part of phase 8.1, belong to tool folders and are designed in
+> [Architecture §5](Architecture.md#domain-descriptions-planned).
+
+A review of every tool's description against its code found tools that cannot work and tools
+whose behaviour differs from what their schema promises. This section designs the fixes and the
+checks that keep them fixed.
+
+### 12.1 Schema defaults applied before a call
+
+**Today.** `BaseMCPTool._execute_tracked` calls `validate_arguments` and then `execute`
+(`sajha/tools/base_mcp_tool.py`). `validate_arguments` only validates. Nothing copies an
+`inputSchema` `default` into the arguments; the only code that reads defaults builds sample
+arguments for the contract-test runner (`sajha/core/tool_versioning.py`). Each implementation
+therefore applies its own default, and many disagree with the schema the client reads:
+
+- most `fred_*` tools advertise `limit` 30, while the code uses 40 or 60;
+- `av_sma`, `av_bbands` and `av_cci` advertise `time_period` 14, while the code uses 20;
+- `av_macd` and `av_stoch` advertise a `time_period` that the code never passes on;
+- the `boj_*` and `bdf_*` tools advertise `recent_periods` 10, but with no value the code returns
+  the full history;
+- some `openbb_*` tools advertise provider `fmp`, while the generic tool's default provider is
+  `yfinance`.
+
+**Rule.** One helper, `apply_schema_defaults(schema, arguments)`, runs before validation on every
+call path:
+
+- `_execute_tracked`, after version routing, so the arguments that are validated, cached, audited
+  and executed are the same ones;
+- the composite engine's direct `execute()` calls (`sajha/core/composition.py`);
+- the quality harness.
+
+The helper:
+
+1. **Fills absent keys only.** A key that is present is never replaced, even when its value is
+   `null`; validation then judges that `null`.
+2. **Never fills a `required` property.** A required property with a `default` is a contradiction.
+   Lint reports it (rule `required-default`, warning), and the call fails validation as it does
+   today.
+3. **Nested objects.** For a property of `type: object` that has its own `properties`, the helper
+   recurses only when the caller supplied that object. It never creates an object just to fill the
+   defaults inside it. A `default` on the object property itself fills the whole object when it is
+   absent.
+4. **No defaults through `oneOf`, `anyOf`, `allOf`, `if`/`then`, `$ref` or array `items`.** Which
+   branch applies is not known before validation. Lint reports such defaults as `unapplied-default`
+   (info).
+5. **Copies, never shares.** Defaults are deep-copied, so a tool that mutates its arguments cannot
+   change the schema.
+6. **Records what it filled.** The audit event and the trace span record the names of the filled
+   keys (`defaults_applied`). The result cache keys on the filled arguments, so `{}` and an
+   explicit `{"limit": 30}` share one entry.
+
+**Compatibility.** This changes behaviour wherever a code default differs from the schema default.
+Phase 8.1 decides each such tool: the schema is corrected when the code was right, and the code
+default is deleted when the schema was right. The CHANGELOG lists every tool whose effective
+default changed. `tools.apply_schema_defaults` (default `true`) turns the helper off for one
+release as an escape hatch; it is removed in the release after. A remote SAJHA Net host applies
+its own schema's defaults, and the contract hash (schemas and annotations) is unchanged.
+
+### 12.2 Broken tools: fix or remove
+
+Each finding below was confirmed against the code. The decision for each is to **fix** it when a
+documented upstream exists, and otherwise to **remove** the tool. A tool is never left returning
+an error or invented data. Removed tools go in the CHANGELOG with their replacement, if any.
+
+| Finding | Where | Decision |
+|---|---|---|
+| OpenBB commands absent in OpenBB 4.6 | `sajha/tools/impl/openbb_tools.py`: `openbb_treasury_rates`, `openbb_yield_curve`, `openbb_earnings`, `openbb_commodity_price`, `openbb_commodity_lbma_gold`, `openbb_commodity_lbma_silver`, `openbb_commodity_search`, `openbb_index_search`, `openbb_index_constituents` (the default `sp500` path), `openbb_equity_fundamental_overview`, `openbb_fixedincome_ice_bofa`, `openbb_fixedincome_moody`, `openbb_regulators_sec_filings`, `openbb_economy_interest_rate` | Fix where 4.6 has a successor: `fixedincome.government.treasury_rates`, `fixedincome.government.yield_curve`, `commodity.price.spot`, `index.constituents`, `economy.interest_rates`. Remove the rest. A load-time check refuses an OpenBB tool whose command path does not resolve in the installed OpenBB, with the info notice `tools.openbb_command:<tool>` |
+| Yahoo `quoteSummary` answers 401 | `yahoo_get_quote` (`sajha/tools/impl/yahoo_finance_tool.py`) | Fix: go through yfinance, which handles Yahoo's cookie and crumb |
+| `yf.Screener` no longer exists | `yf_screener` and `yf_trending_tickers` (`sajha/tools/impl/yfinance_tools.py`) | Fix: use `yf.screen` with `EquityQuery`. Remove `yf_trending_tickers` if no keyless equivalent exists |
+| Silent truncation of results | yfinance tools (`_df_to_records`, `limit=100`) and the generic OpenBB tool (`records[:100]`) | Fix: a `limit` argument in the schema, capped at a maximum, and `truncated: true` with the total row count whenever rows were cut |
+| Banque de France tools call a dead host | `bdf_*` (`sajha/tools/impl/france_central_bank.py`): `sdw-wsrest.ecb.europa.eu`, a dotted series path, a hard-coded series key in the parser, and one series for all four OAT tenors | Fix: use the shared SDMX client (12.3) on `data-api.ecb.europa.eu`, with a series per tenor, each verified live |
+| Reserve Bank of India API returns 418 | `rbi_*` (`sajha/tools/impl/india_central_bank.py`), an undocumented `rbi.org.in` endpoint | Remove. Re-add only from a documented source; FRED and the IMF carry some Indian series, and each re-added tool states its source |
+| Federal Reserve tools return demo data | `fed_*` (`sajha/tools/impl/fed_reserve_tool_refactored.py`): synthetic values when the key is `demo` | Fix: without a key, return a configuration error that names the key, never synthetic values. The principle "no tool returns invented data" becomes a review rule |
+| `un_get_sdg_progress` is a stub | `sajha/tools/impl/united_nations_tool_refactored.py` | Remove. `un_get_sdg_data` covers the indicator series |
+| IMF uses the legacy host | `sajha/tools/impl/imf_tool_refactored.py`: `http://dataservices.imf.org/REST/SDMX_JSON.svc` | Fix: move to the IMF's current SDMX API through the shared SDMX client, verified live in the phase (including whether it needs a subscription key) |
+| `NameError: logger` | `EDGARCompaniesBySICTool` (`edgar_companies_by_sic`, `sajha/tools/impl/enhanced_edgar_tool.py`): an error handler uses a `logger` that is never defined | Fix: use `self.logger`, and add a test that drives the error path |
+| CoinGecko `order` values that CoinGecko does not document | `cg_top_gainers`, `cg_top_losers` (`percent_change_24h_desc` and `_asc`); `cg_coin_markets` passes any `order` | Fix: fetch by market cap and sort by `price_change_percentage_24h` in SAJHA; give `cg_coin_markets.order` an `enum` of the documented values |
+| Options that do nothing | `wiki_get_page` (`sajha/tools/impl/wikipedia_tool.py`): `include_references` (ignored), `include_links` (always empty), `html_content` (always empty), `redirect: false` (MediaWiki treats any value as true) | Fix `include_links` with a bounded `prop=links` request; fix `redirect` by omitting the parameter; remove the other options from the schema |
+| Misnamed series | `boj` `trade_balance` (an OECD exports series); `pboc` `lending` and `deposit` (both one IMF discount-rate series), `prime_rate` (a CPI series), `eur_cny` (`EXCHUS`); `bdf` `m3` (a loans series) | Fix each to the series its label names, verified live; remove any label with no openly available series |
+
+A tool's description is rewritten in the same change as its fix, so that the description promises
+only what the code does.
+
+### 12.3 A shared SDMX client
+
+ECB, IMF and Banque de France each parse SDMX in their own way today. Phase 8.1 adds one client
+for SDMX 2.1 REST (`data/{flow}/{key}` with `startPeriod`, `endPeriod` and `lastNObservations`;
+SDMX-CSV and SDMX-JSON):
+
+- per-host settings: the flow-reference syntax (`AGENCY,ID,VERSION` or a bare id) and the CSV
+  selector (a `format=` value or an `Accept` header);
+- an empty result treated as "no data", including the 404 `NoRecordsFound` some servers send;
+- every fetch through the outbound fetch guard and HTTP proxy (`sajha/core/outbound.py`).
+
+The fixes above use it, and phase 8.2's BIS, Eurostat, OECD and ABS tools reuse it
+([Open Data Tools](Open%20Data%20Tools.md#3-one-sdmx-client)).
+
+### 12.4 The live tool check
+
+Probes (section 4) run only the cases someone wrote; today two tools have one. The **live tool
+check** calls every tool once and reports which tools are broken. It extends the probe machinery
+rather than adding a second scheduler.
+
+- **Arguments.** For each tool the check takes, in this order:
+  1. its `probe:` case, else its first test case;
+  2. else the first entry of its `inputSchema` `examples`;
+  3. else the `examples` or `default` of each required property.
+
+  It never parses prose in a description. A tool with no derivable arguments is reported as
+  `not_checked`, and lint gains the rule `missing-example` (warning). Phase 8.1 adds structured
+  examples to every shipped tool, taken from the reviewed descriptions.
+- **What it skips.** Tools without `readOnlyHint: true`, tools with `destructiveHint`, LLM tools
+  (cost), proxied and remote tools (their own servers' business), tools bound to per-user
+  credentials or connected accounts, and tools in `quality.check.exclude`. Each skip is reported
+  with its reason.
+- **Outcomes.**
+
+  | Outcome | Meaning |
+  |---|---|
+  | `ok` | The call succeeded |
+  | `empty` | The call succeeded but returned no rows where the output schema expects some |
+  | `error` | An upstream HTTP status, a timeout or an exception, recorded with its class |
+  | `schema_mismatch` | The result fails the tool's `outputSchema` |
+  | `not_configured` | A missing API key or setting: reported as configuration, not as breakage |
+  | `not_checked` / `skipped` | No derivable arguments, or skipped for the reason given |
+
+- **Load on upstreams.** One call at a time per tool folder (one provider), with a pause between
+  calls (`quality.check.pause_ms`) and a total time budget. A run is a few hundred calls spread
+  over minutes, not a burst.
+- **Running it.** `python -m sajha.quality check [--tool GLOB] [--folder NAME] [--json FILE]
+  [--junit FILE] [--save]`. The schedule is optional (`quality.check.cron`, off by default) and
+  uses the probe scheduler's single-fire claim, so one worker runs each slot.
+- **Notices.** A new `quality` notice source raises one warning notice per tool folder with broken
+  tools (`quality.check:<folder>`). The notice lists the tools and their outcomes, and clears when
+  the folder passes. One notice per folder keeps a provider outage from becoming a hundred notices.
+  The results also feed the Tool Health page and `quality_runs`.
+
+### 12.5 Tool Reference Guide tables, generated
+
+Five provider guides under `docs/tools/market-data/` (FRED, CoinGecko, OpenBB, Alpha Vantage, FMP)
+say that their tables are generated from the tool configs, but no generator exists. Phase 8.1
+builds one:
+
+- `python -m sajha.tools guides [--folder NAME] [--check]` rewrites only the region between
+  `<!-- generated:tools folder=<name> -->` and `<!-- /generated:tools -->` in a guide. The prose
+  stays hand-written.
+- Columns: tool, title, the first sentence of the description, required parameters, optional
+  parameters with their (schema) defaults, annotations, and the key the tool needs.
+- `--check` exits 1 when a region is stale. A test runs it, so a changed tool config fails the
+  suite until the guide is regenerated. Guides that are not generated lose the false claim.
+
+### 12.6 Lint additions
+
+- `required-default` (warning)
+- `unapplied-default` (info)
+- `missing-example` (warning)
+- `description-length` (warning): the tool's description plus its folder's domain description is
+  longer than SAJHA Net's catalog limit (`limits.max_description_chars`, 1024 by default,
+  `sajha/net/catalog.py`)
+- `openbb-command` (error)
+
+---
+
 Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.com

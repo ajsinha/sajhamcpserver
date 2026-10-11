@@ -1,7 +1,7 @@
 {
   "name": "pboc_list_series",
   "implementation": "sajha.tools.impl.china_central_bank.PBoCListSeriesTools",
-  "description": "List available Chinese economic data series from PBoC/FRED",
+  "description": "List the Chinese series the pboc_ tools read, with their shorthand id, FRED series code and label. A built-in list; no network call and no API key.\nReturns: category, count, source and series (id, fred_code, label).\nInputs (none required): category (rates, fx, money, prices, economy or all; default all).\nFetch a series with the matching tool: pboc_get_cgb_yield, pboc_get_policy_rate, pboc_get_exchange_rate, pboc_get_money_supply, pboc_get_inflation, pboc_get_economic_indicator.\nExample: {\"category\": \"prices\"}",
   "version": "2.9.8",
   "enabled": true,
   "metadata": {
