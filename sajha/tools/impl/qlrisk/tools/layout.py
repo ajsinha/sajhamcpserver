@@ -7,9 +7,10 @@ The handlers (tools/*.py) keep reading flat arguments in qlrisk's units; this mo
 schema from each handler's schema (``present``) and turns presented arguments back into handler arguments
 (``to_handler_args``). One table per tool (LAYOUTS): its essential fields, its renamed fields (a confidence
 level in percent, a recovery in percent) and its worked example. Trades inside any tool are in the units of
-the per-product tools (rates in percent, maturities as tenors); inputs.build_trades converts them.
-Calculator ``inputs`` / ``config`` objects (credit_risk, xva, ccr_exposure calculator mode) are qlrisk's own
-dataclass fields and stay in qlrisk's units (decimals), as their descriptions say.
+the per-product tools (rates in percent, maturities as tenors); inputs.build_trades converts them. Calculator
+``inputs`` / ``config`` objects (credit_risk, xva, ccr_exposure calculator mode), shocks, stylised stresses and
+liquidity spreads are in the same human units too; the handlers convert them with units.py from the table in
+generate.py (CALC_INPUTS, CALC_CONFIG, SHOCK_UNITS, STRESS_DEFINITION, LIQUIDITY).
 """
 
 from __future__ import annotations
@@ -63,10 +64,16 @@ LAYOUTS: Dict[str, Layout] = {
     "backtest": Layout(("trades", "mode", "confidence_pct", "test_days"), (CONF, ES_CONF),
                        example={"trades": [SWAP, PUT], "confidence_pct": 99}),
     "pnl_explain": Layout(("trades", "end_shocks", "end_valuation_date"),
-                          example={"trades": [PUT], "end_shocks": [{"factor": "EQ.SPX", "size": -0.05,
+                          example={"trades": [PUT], "end_shocks": [{"factor": "EQ.SPX", "size_pct": -5,
                                                                      "shock_type": "relative"}]}),
     "stress_test": Layout(("trades", "mode", "scenarios", "custom_scenarios", "target_loss"),
-                          example={"trades": [SWAP, PUT], "mode": "library"}),
+                          example={"trades": [SWAP, PUT], "mode": "custom", "custom_scenarios": [
+                              {"name": "rates +100bp", "shocks": [{"risk_classes": ["IR"], "shape": "parallel",
+                                                                   "size_bp": 100}]},
+                              {"name": "SPX -20%", "shocks": [{"factor": "EQ.SPX", "shock_type": "relative",
+                                                               "size_pct": -20}]},
+                              {"name": "risk off", "definition": {"equity_pct": -20, "vol_pct": 50, "credit_pct": 50,
+                                                                  "rates_bp": -50}}]}),
     "frtb_sa_capital": Layout(("trades", "mode"),
                               example={"trades": [SWAP, BOND, PUT],
                                        "advanced": {"credit_buckets": {"ACME": 4}, "equity_buckets": {"SPX": 12},
@@ -88,13 +95,13 @@ LAYOUTS: Dict[str, Layout] = {
                                                                        "remaining_maturity": 5,
                                                                        "delta_sensitivities": {"5y": 4500}}]}),
     "credit_risk": Layout(("measure", "inputs", "config"),
-                          example={"measure": "el", "inputs": {"pd": 0.02, "lgd": 0.45, "ead": 1_000_000}}),
+                          example={"measure": "el", "inputs": {"pd_pct": 2, "lgd_pct": 45, "ead": 1_000_000}}),
     "xva": Layout(("measure", "inputs", "counterparty", "time_grid", "expected_exposure", "recovery_pct"),
                   (Unit("recovery", "recovery_pct", "Recovery rate (%)", "sa_cva / ba_cva: counterparty recovery in "
                         "percent: 40 means 40%.", minimum=0.0, maximum=99.0),),
                   example={"measure": "cva", "inputs": {"ee_profile": [400_000, 600_000, 700_000, 650_000, 500_000],
-                                                        "time_grid": [1, 2, 3, 4, 5], "credit_spread": 0.01,
-                                                        "recovery_rate": 0.4}}),
+                                                        "time_grid": [1, 2, 3, 4, 5], "credit_spread_bp": 100,
+                                                        "recovery_pct": 40}}),
     "simulate_paths": Layout(("process", "initial_value", "drift", "volatility", "maturity", "num_paths"),
                              example={"process": "gbm", "initial_value": 100, "drift": 0.05, "volatility": 0.2,
                                       "maturity": 1, "num_paths": 10000}),
@@ -130,9 +137,10 @@ TITLES: Dict[str, Tuple[str, str]] = {
     "multiplier": ("Multiplier", ""), "exceptions": ("Backtest exceptions", "Exceptions in the last 250 days."),
     "var_series": ("VaR series", "Daily 10-day VaR figures (positive losses), oldest first."),
     "svar_series": ("Stressed VaR series", "Daily 10-day stressed VaR figures (positive losses), oldest first."),
-    "inputs": ("Calculator inputs", "qlrisk calculator fields in qlrisk's units: rates, spreads, probabilities and "
-               "recoveries as decimals (0.02 = 2%), times in years."),
-    "config": ("Calculator configuration", "qlrisk's units (decimals, years)."),
+    "inputs": ("Calculator inputs", "Probabilities, LGDs, recoveries, rates, haircuts and volatilities in percent "
+               "(pd_pct 2 = 2%), spreads in basis points (credit_spread_bp 120 = 1.2%), maturities in years, margin "
+               "periods in business days."),
+    "config": ("Calculator configuration", "Same units as the inputs (confidence_pct 99.9 = 99.9%)."),
     "target_loss": ("Target loss", "reverse: the loss to reach, positive, in the reporting currency."),
 }
 

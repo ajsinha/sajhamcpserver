@@ -97,7 +97,9 @@ class QlriskTool(BaseMCPTool):
         from .inputs import InvalidInput
         from .tools import Ctx
         from .tools.layout import to_handler_args
+        from .units import end_received, start_received
         ctx = Ctx(self.limits)
+        token = start_received()
         try:
             structured, summary = self.tool_def.handler(to_handler_args(self.TOOL, dict(arguments or {})), ctx)
         except InvalidInput as exc:
@@ -105,6 +107,10 @@ class QlriskTool(BaseMCPTool):
         except Exception as exc:                          # a qlrisk failure on valid-looking input
             log.exception("tool %s failed", self.name)
             raise RuntimeError(f"{self.name} failed inside qlrisk: {type(exc).__name__}: {exc}") from None
+        finally:
+            received = end_received(token)
+        if received:                                       # what qlrisk was given, in its names and units
+            structured = {**structured, "qlrisk_inputs": received}
         if ctx.warnings:
             structured = {**structured, "warnings": list(structured.get("warnings", [])) + ctx.warnings}
         out = QlriskResult(json.loads(json.dumps(structured, default=str)))     # plain JSON for every caller

@@ -2,7 +2,7 @@
   "name": "qlrisk_check_limits",
   "implementation": "sajha.tools.impl.qlrisk.qlrisk_tools.QlriskCheckLimitsTool",
   "title": "Limit monitoring",
-  "description": "Check risk numbers against limits with qlrisk's limit monitor: utilisation and a status per limit (green, amber, red, breach; amber and red thresholds as fractions of the limit), headline metrics under node 'ALL' or per hierarchy node. Use it for figures you already have; qlrisk_risk_report checks limits on the figures it computes. Inputs: metrics, limits; the rest (by_node, currency) in the optional `advanced` object. Inputs: metrics, limits; the rest (by_node, currency) in the optional `advanced` object. Example: {\"metrics\": {\"var.1d\": 420000}, \"limits\": [{\"name\": \"Firm VaR\", \"metric\": \"var.1d\", \"limit\": 500000}]} gives 1 limit(s) checked: 1 amber.",
+  "description": "Check risk numbers against limits with qlrisk's limit monitor: utilisation and a status per limit (green, amber, red, breach; amber and red thresholds as fractions of the limit), headline metrics under node 'ALL' or per hierarchy node. Use it for figures you already have; qlrisk_risk_report checks limits on the figures it computes. Inputs: metrics, limits; the rest (by_node, currency) in the optional `advanced` object. Example: {\"metrics\": {\"var.1d\": 420000}, \"limits\": [{\"name\": \"Firm VaR\", \"metric\": \"var.1d\", \"limit\": 500000}]} gives 1 limit(s) checked: 1 amber.",
   "version": "1.0.0",
   "enabled": true,
   "requires": [

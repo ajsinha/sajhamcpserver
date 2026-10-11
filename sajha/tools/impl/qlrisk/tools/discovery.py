@@ -46,14 +46,24 @@ def _catalog(args: Dict[str, Any], ctx: Ctx):
         return {"count": len(rows), "categories": cats, "products": rows}, \
             f"{len(rows)} qlrisk products in {len(cats)} categories"
     if topic == "calculators":
+        from ..generate import CALC_INPUTS
+        from ..units import calc_config_schema, calc_inputs_schema
+
+        def summary(m):
+            """qlrisk's calculator, with its inputs and config in the tools' names and units where they convert."""
+            s = I.calculator_summary(m)
+            if m in CALC_INPUTS:
+                s["input_schema"] = calc_inputs_schema(m)
+                s["config"] = calc_config_schema(m)["properties"]
+            return s
         if name:
             if name not in I.CALCULATORS:
                 raise InvalidInput(f"name {name!r} is not a calculator measure; choose from {sorted(I.CALCULATORS)}")
-            s = I.calculator_summary(name)
+            s = summary(name)
             return s, f"{name}: {s['calculator']} ({s['calculator_type']})"
         rows = []
         for m in I.CALCULATORS:
-            s = I.calculator_summary(m)
+            s = summary(m)
             rows.append({"measure": m, "calculator_type": s["calculator_type"], "calculator": s["calculator"],
                          "description": s["description"], "inputs": list(s["input_schema"]["properties"]),
                          "required": s["input_schema"].get("required", []), "config": s["config"]})
@@ -62,8 +72,12 @@ def _catalog(args: Dict[str, Any], ctx: Ctx):
                  "qlrisk_xva": ["cva", "dva", "fva", "kva", "mva"], "qlrisk_initial_margin": ["initial_margin"], "qlrisk_saccr": ["saccr"]}
         return {"count": len(rows), "calculators": rows, "tool_for_measure": tools}, f"{len(rows)} qlrisk calculators"
     if topic == "stress_scenarios":
-        lib = I.stress_library()
-        return {"scenarios": lib, "definition_schema": I.stress_definition_schema()}, \
+        from ..generate import STRESS_DEFINITION
+        from ..units import from_qlrisk, stress_definition_schema
+        lib = {k: from_qlrisk(STRESS_DEFINITION, v) for k, v in I.stress_library().items()}
+        return {"scenarios": lib, "definition_schema": stress_definition_schema(),
+                "units": "equity_pct, vol_pct, credit_pct, commodity_pct, fx_usd_pct, fx_pct: relative moves in percent; "
+                         "rates_bp: absolute, in basis points (two numbers: a 2y-10y twist)"}, \
             f"{len(lib)} historical stress scenarios: {', '.join(lib)}"
     if topic == "report_measures":
         m = I.report_measures()
@@ -74,7 +88,7 @@ def _catalog(args: Dict[str, Any], ctx: Ctx):
             f"{len(I.supported_processes())} stochastic processes: {', '.join(I.supported_processes())}"
     if topic == "market_data":
         from qlrisk.riskfactors import enumerate_risk_factors
-        md = build_market_data(args.get("market_data"), None)
+        md = build_market_data(args.get("market_data"), None, ctx.warnings)
         factors = [str(f) for f in enumerate_risk_factors(md)]
         snapshot = {k: to_jsonable(getattr(md, k)) for k in I.market_data_fields() if k != "correlation_matrix"}
         return {"fields": I.market_data_fields(), "snapshot": snapshot, "risk_factors": factors}, \

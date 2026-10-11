@@ -82,7 +82,7 @@ def _report(args: Dict[str, Any], ctx: Ctx):
         if args.get("trades"):
             raise InvalidInput("give trades or use_demo_book, not both")
     else:
-        md = build_market_data(args.get("market_data"))
+        md = build_market_data(args.get("market_data"), None, ctx.warnings)
         trades = build_trades(args.get("trades") or [], md, ctx.limits, ctx.warnings)
         hist = build_history(args.get("history"), md, ctx.limits)
     if args.get("hierarchy"):

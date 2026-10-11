@@ -35,7 +35,7 @@ def _frtb_sa(args: Dict[str, Any], ctx: Ctx):
         r = drc_charge(ps)
         return {"mode": mode, "drc": to_jsonable(r)}, f"FRTB SA DRC {rounded(r.total)}"
     ccy = args.get("reporting_currency", "USD")
-    md = build_market_data(args.get("market_data"))
+    md = build_market_data(args.get("market_data"), None, ctx.warnings)
     trades = build_trades(args.get("trades") or [], md, ctx.limits, ctx.warnings)
     kw = {k: args[k] for k in ("curve_currency", "credit_buckets", "equity_buckets", "commodity_buckets",
                                "vol_underlyings", "ratings", "seniority", "exotic", "other_residual",
@@ -96,7 +96,7 @@ def _ima(args: Dict[str, Any], ctx: Ctx):
 
     from qlrisk.engine import MarketRiskEngine
     ccy = args.get("reporting_currency", "USD")
-    md = build_market_data(args.get("market_data"))
+    md = build_market_data(args.get("market_data"), None, ctx.warnings)
     if mode == "liquidity_horizons":
         from qlrisk.riskfactors import enumerate_risk_factors
         lh = {str(k): default_liquidity_horizon(k, ccy, args.get("small_caps", ()), args.get("high_yield", ()))
@@ -153,7 +153,7 @@ def _basel25(args: Dict[str, Any], ctx: Ctx):
         from qlrisk.engine import MarketRiskEngine
         from qlrisk.scenarios import historical_scenarios
         ccy = args.get("reporting_currency", "USD")
-        md = build_market_data(args.get("market_data"))
+        md = build_market_data(args.get("market_data"), None, ctx.warnings)
         trades = build_trades(args["trades"], md, ctx.limits, ctx.warnings)
         hist = build_history(args.get("history"), md, ctx.limits)
         if len(hist) < 520:

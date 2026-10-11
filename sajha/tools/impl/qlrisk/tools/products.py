@@ -125,6 +125,9 @@ def _exposed(product: str, pricer: str, qname: str, qschema: Dict[str, Any], qre
     if qname == "notional":
         name, title, default, desc = notional_spec(product, pricer)
         s: Dict[str, Any] = {"type": "number", "exclusiveMinimum": 0, "default": default}
+    elif f.nested is not None:                     # a qlrisk object whose fields have their own units
+        from ..units import field_schema
+        s = {k: v for k, v in field_schema(f, qschema).items() if k not in ("title", "description")}
     elif labels:
         s = {"type": "string", "enum": list(labels)}
         if f.default is not _NO:
@@ -219,6 +222,9 @@ def product_tool(product: str, limits) -> ToolDef:
 def _check(e: Exposed, value: Any, valuation: date, warnings: List[str]) -> Any:
     """Validate one input (exposed units) and return qlrisk's value."""
     f, what = e.spec, e.name
+    if f.nested is not None:
+        from ..units import convert
+        return convert(f, e.schema, value, what, warnings)
     if e.labels:
         if value not in e.labels:
             raise InvalidInput(f"{what}: {value!r} is not one of {list(e.labels)}")

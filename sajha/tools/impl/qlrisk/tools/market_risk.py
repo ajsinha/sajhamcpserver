@@ -11,6 +11,10 @@ from ..inputs import (InvalidInput, apply_shock_list, build_history, build_marke
 from ..jsonable import rounded, to_jsonable
 from . import Ctx, ToolDef, obj, portfolio_props
 
+# the liquidity object in qlrisk's terms; the presented one (spreads_bp) comes from generate.LIQUIDITY
+LIQUIDITY_Q = {"type": "object", "properties": {"spreads": {"type": "object", "additionalProperties": {"type": "number"}},
+                                                "horizon_days": {"type": "integer", "minimum": 1, "default": 1}},
+               "required": ["spreads"]}
 VAR_METHODS = ["historical", "age_weighted", "filtered_historical", "monte_carlo", "parametric"]
 
 
@@ -53,7 +57,7 @@ def _var(args: Dict[str, Any], ctx: Ctx):
 
     from qlrisk.scenarios import (filtered_historical_scenarios, historical_scenarios, monte_carlo_scenarios)
     ccy = args.get("reporting_currency", "USD")
-    md = build_market_data(args.get("market_data"))
+    md = build_market_data(args.get("market_data"), None, ctx.warnings)
     trades = build_trades(args.get("trades") or [], md, ctx.limits, ctx.warnings)
     hist = build_history(args.get("history"), md, ctx.limits)
     lookback = int(args.get("lookback", 250))
@@ -105,12 +109,15 @@ def _var(args: Dict[str, Any], ctx: Ctx):
     liq = args.get("liquidity")
     if liq:
         from qlrisk.calculator.python.liquidity_var import liquidity_adjusted_var, liquidity_cost
+        from ..units import liquidity_to_qlrisk, note_received
         values = {t.trade_id: pv_in(t, md, ccy)[2] for t in trades}
-        spreads = {k: float(v) for k, v in (liq.get("spreads") or {}).items()}
+        q_liq = liquidity_to_qlrisk(liq, LIQUIDITY_Q, "liquidity", ctx.warnings)
+        spreads = {k: float(v) for k, v in (q_liq.get("spreads") or {}).items()}
         unknown = set(spreads) - set(values)
         if unknown:
-            raise InvalidInput(f"liquidity.spreads: unknown trade ids {sorted(unknown)}")
-        lh = int(liq.get("horizon_days", 1))
+            raise InvalidInput(f"liquidity.spreads_bp: unknown trade ids {sorted(unknown)}")
+        note_received("liquidity", q_liq)
+        lh = int(q_liq.get("horizon_days", 1))
         out["liquidity"] = {"liquidation_cost": liquidity_cost(values, spreads), "horizon_days": lh,
                             "liquidity_adjusted_var": liquidity_adjusted_var(out["var"]["value"], values, spreads, lh)}
     s = f"{method} VaR {conf:.1%} {horizon}d {rounded(out['var']['value'])} {ccy}; ES {esc:.1%} {rounded(out['es']['value'])}"
@@ -151,7 +158,7 @@ def _backtest(args: Dict[str, Any], ctx: Ctx):
         r = pla_test(hpl, rtpl)
         return {"mode": mode, "pla": to_jsonable(r)}, f"PLA test: Spearman {r.spearman:.3f}, KS {r.ks_statistic:.3f}, {r.zone} zone"
     ccy = args.get("reporting_currency", "USD")
-    md = build_market_data(args.get("market_data"))
+    md = build_market_data(args.get("market_data"), None, ctx.warnings)
     trades = build_trades(args.get("trades") or [], md, ctx.limits, ctx.warnings)
     hist = build_history(args.get("history"), md, ctx.limits)
     test_days, lookback = int(args.get("test_days", 250)), int(args.get("lookback", 250))
@@ -169,14 +176,14 @@ def _backtest(args: Dict[str, Any], ctx: Ctx):
 
 def _explain(args: Dict[str, Any], ctx: Ctx):
     ccy = args.get("reporting_currency", "USD")
-    md0 = build_market_data(args.get("market_data"))
+    md0 = build_market_data(args.get("market_data"), None, ctx.warnings)
     trades = build_trades(args["trades"], md0, ctx.limits, ctx.warnings)
     if args.get("end_market_data"):
-        md1 = build_market_data(args["end_market_data"], md0.valuation_date)
+        md1 = build_market_data(args["end_market_data"], md0.valuation_date, ctx.warnings, "end_market_data")
     else:
         if not args.get("end_shocks") and not args.get("end_valuation_date"):
             raise InvalidInput("give end_market_data, or end_shocks and/or end_valuation_date, to define the end of the period")
-        md1 = apply_shock_list(md0, args.get("end_shocks") or [], "end_shocks")
+        md1 = apply_shock_list(md0, args.get("end_shocks") or [], "end_shocks", ctx.warnings)
         if md1 is md0:
             import copy
             md1 = copy.deepcopy(md0)
@@ -200,9 +207,10 @@ def _explain(args: Dict[str, Any], ctx: Ctx):
 
 def _stress(args: Dict[str, Any], ctx: Ctx):
     from qlrisk.scenarios import STRESS_LIBRARY, StressDefinition, historical_stress_scenarios, stress_shocks
+    from ..units import human_shock, note_received, stress_definition_to_qlrisk
     mode = args.get("mode", "library")
     ccy = args.get("reporting_currency", "USD")
-    md = build_market_data(args.get("market_data"))
+    md = build_market_data(args.get("market_data"), None, ctx.warnings)
     trades = build_trades(args["trades"], md, ctx.limits, ctx.warnings)
     eng = _engine(ccy)
     if mode == "reverse":
@@ -215,8 +223,7 @@ def _stress(args: Dict[str, Any], ctx: Ctx):
         out = {"mode": mode, "reporting_currency": ccy, "target_loss": r.target_loss, "achieved_loss": r.achieved_loss,
                "scale": r.scale, "sigma_distance": r.sigma_distance,
                "top_moves": {str(k): v for k, v in r.top_moves.items()},
-               "shocks": [{"factor": str(s.factor), "size": s.size, "shock_type": s.shock_type.value}
-                          for s in sorted(r.shocks, key=lambda s: -abs(s.size))[: int(args.get("top_n", 10))]]}
+               "shocks": [human_shock(s) for s in sorted(r.shocks, key=lambda s: -abs(s.size))[: int(args.get("top_n", 10))]]}
         return out, (f"Reverse stress: a loss of {rounded(r.achieved_loss)} {ccy} is {r.sigma_distance:.2f} sigma away "
                      f"(most plausible scenario, scale {r.scale:.2f})")
     base = {t.trade_id: pv_in(t, md, ccy)[2] for t in trades}
@@ -238,16 +245,20 @@ def _stress(args: Dict[str, Any], ctx: Ctx):
             raise InvalidInput("custom mode needs custom_scenarios: [{name, shocks: [...]} or {name, definition: {...}}]")
         for i, sc in enumerate(items):
             name = sc.get("name") or f"scenario_{i + 1}"
+            if sc.get("definition") and sc.get("shocks"):
+                raise InvalidInput(f"custom_scenarios[{i}]: give 'shocks' or 'definition', not both")
             if sc.get("definition"):
-                d = dict(sc["definition"])
+                where = f"custom_scenarios[{i}].definition"
+                d = stress_definition_to_qlrisk(sc["definition"], where, ctx.warnings)
                 try:
                     sdef = StressDefinition(name=name, description=d.pop("description", name), **d)
                 except TypeError as exc:
-                    raise InvalidInput(f"custom_scenarios[{i}].definition: {exc}") from None
+                    raise InvalidInput(f"{where}: {exc}") from None
+                note_received(where, {k: (list(v) if isinstance(v, tuple) else v) for k, v in vars(sdef).items()})
                 from qlrisk.riskfactors import apply_shocks
                 md_s = apply_shocks(md, stress_shocks(md, sdef))
             elif sc.get("shocks"):
-                md_s = apply_shock_list(md, sc["shocks"], f"custom_scenarios[{i}].shocks")
+                md_s = apply_shock_list(md, sc["shocks"], f"custom_scenarios[{i}].shocks", ctx.warnings)
             else:
                 raise InvalidInput(f"custom_scenarios[{i}] needs 'shocks' or 'definition'")
             by_trade = {t.trade_id: pv_in(t, md_s, ccy)[2] - base[t.trade_id] for t in trades}
@@ -265,7 +276,8 @@ def tools(limits) -> List[ToolDef]:
     conf = {"type": "number", "minimum": 0.5, "exclusiveMaximum": 1, "default": 0.99}
     esc = {"type": "number", "minimum": 0.5, "exclusiveMaximum": 1, "default": 0.975}
     series = {"type": "array", "items": {"type": "number"}}
-    defn = I.stress_definition_schema()
+    from ..units import liquidity_schema, stress_definition_schema
+    defn = stress_definition_schema()
     return [
         ToolDef(
             name="value_at_risk",
@@ -298,9 +310,9 @@ def tools(limits) -> List[ToolDef]:
                 "include_stressed_var": {"type": "boolean", "default": False},
                 "stress_window": {"type": "integer", "minimum": 20, "default": 250},
                 "svar_horizon_days": {"type": "integer", "minimum": 1, "default": 10},
-                "liquidity": obj({"spreads": {"type": "object", "additionalProperties": {"type": "number"},
-                                              "description": "trade_id -> proportional bid-ask spread (0.002 = 20bp)."},
-                                  "horizon_days": {"type": "integer", "minimum": 1, "default": 1}}, ["spreads"]),
+                "liquidity": {**liquidity_schema(LIQUIDITY_Q), "title": "Liquidity",
+                              "description": "Liquidity-adjusted VaR: spreads_bp (trade id -> bid-ask spread in basis "
+                                             "points) and horizon_days."},
                 "pnl": {**series, "description": "pnl_series: P&L observations, gains positive."},
                 "weights": {**series, "description": "pnl_series: optional scenario weights."},
             }),
@@ -336,8 +348,9 @@ def tools(limits) -> List[ToolDef]:
                 "Explain a book's P&L between two market states: actual full-revaluation P&L per trade split into theta "
                 "(time decay), per-risk-class and per-factor Taylor contributions, and the unexplained remainder. The end "
                 "state is end_market_data, or the start market plus end_shocks, and end_valuation_date for the time roll. "
-                "Example: {\"trades\": [...], \"end_shocks\": [{\"factor\": \"EQ.SPX\", \"size\": -0.05, \"shock_type\": "
-                "\"relative\"}], \"end_valuation_date\": \"2026-10-12\"}."),
+                "Shocks take their unit from the size field: size_bp (basis points), size_pct (percent) or size "
+                "(price units). Example: {\"trades\": [...], \"end_shocks\": [{\"factor\": \"EQ.SPX\", \"size_pct\": -5, "
+                "\"shock_type\": \"relative\"}], \"end_valuation_date\": \"2026-10-12\"}."),
             input_schema=obj({
                 **portfolio_props(limits),
                 "end_market_data": {"type": "object", "description": "End-of-period market data (same shape as market_data)."},
@@ -352,11 +365,15 @@ def tools(limits) -> List[ToolDef]:
             description=(
                 "Stress a book. mode='library' revalues it under qlrisk's historical crisis scenarios (" + ", ".join(lib) + ") "
                 "or a chosen subset; mode='custom' under your scenarios, each a list of shocks (factor or curve twist / "
-                "butterfly / parallel) or a stylised definition (equity, vol, rates, credit, fx_usd, commodity moves); "
+                "butterfly / parallel; the size field names its unit: size_bp for absolute rate, spread and dividend "
+                "shocks, size_pct for relative and log shocks and absolute vol-point shocks, size for absolute price "
+                "and FX spot shocks) or a stylised definition (equity_pct, vol_pct, credit_pct, commodity_pct, "
+                "fx_usd_pct, fx_pct relative moves in percent; rates_bp absolute in basis points, or [short, long] "
+                "for a 2y-10y twist); "
                 "mode='reverse' finds the most plausible market move (minimum Mahalanobis distance) that loses target_loss. "
                 "Returns P&L per scenario and per trade, worst first. Example: {\"trades\": [...], \"mode\": \"custom\", "
                 "\"custom_scenarios\": [{\"name\": \"rates +100bp\", \"shocks\": [{\"risk_classes\": [\"IR\"], \"shape\": "
-                "\"parallel\", \"size\": 0.01}]}]}."),
+                "\"parallel\", \"size_bp\": 100}]}]}."),
             input_schema=obj({
                 **portfolio_props(limits, history=True),
                 "mode": {"type": "string", "enum": ["library", "custom", "reverse"], "default": "library"},
@@ -364,7 +381,9 @@ def tools(limits) -> List[ToolDef]:
                 "custom_scenarios": {"type": "array", "items": obj({
                     "name": {"type": "string"},
                     "shocks": {"type": "array", "items": shock_schema()},
-                    "definition": {**defn, "description": "Stylised scenario: equity/commodity relative moves, rates/credit absolute, vol relative, fx_usd and per-currency fx."},
+                    "definition": {**defn, "title": "Stylised scenario",
+                                   "description": "Relative moves in percent (equity_pct, vol_pct, credit_pct, commodity_pct, "
+                                                  "fx_usd_pct, fx_pct) and an absolute rates move in basis points (rates_bp)."},
                 })},
                 "target_loss": {"type": "number", "exclusiveMinimum": 0, "description": "reverse: loss to reach, positive."},
                 "lookback": {"type": "integer", "minimum": 20, "default": 250},

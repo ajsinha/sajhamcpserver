@@ -169,9 +169,9 @@ function renderField(key, property, isRequired, prefix, exampleValue) {
     }
     const attrId = escapeHtml(id);
     const required = isRequired ? 'required' : '';
-    // the default, else the worked example's value (so Execute runs the example as is)
-    const initial = property.default !== undefined ? property.default
-        : (exampleValue !== undefined && typeof exampleValue !== 'object' ? exampleValue : undefined);
+    // the worked example's value, else the default (so Execute runs the example as is)
+    const initial = exampleValue !== undefined && typeof exampleValue !== 'object' ? exampleValue
+        : property.default;
     const def = initial !== undefined ? escapeHtml(initial) : undefined;
     const hint = Array.isArray(property.examples) && property.examples.length
         ? `placeholder="e.g. ${escapeHtml(property.examples.join(', '))}"` : '';

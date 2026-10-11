@@ -99,7 +99,9 @@ Design choices:
   a text block holding a one-line summary, a newline and the same JSON (cut at `max_text_chars`; the
   structured result is never cut). REST callers get the same object as `result`: the REST `result` and the
   MCP `structuredContent` are identical, including `warnings` (values outside the usual range, ignored
-  inputs) and, for the per-product tools, `qlrisk_terms`.
+  inputs), `qlrisk_inputs` (calculator inputs and configuration, shocks, stylised stresses and liquidity
+  spreads exactly as qlrisk received them, keyed by where they were sent) and, for the per-product tools,
+  `qlrisk_terms`.
 - **Off the event loop.** qlrisk is synchronous and CPU-bound; SAJHA runs tool calls in a worker thread on
   `/mcp` and on `POST /api/tools/execute`.
 
@@ -153,14 +155,22 @@ filled with the tool's worked example, so **Execute** runs it as is. The layout 
 fields, worked example) is one table, `sajha/tools/impl/qlrisk/tools/layout.py`; the schema's `examples`
 holds the example.
 
-**Units.** The same field means the same unit everywhere: rates and coupons in percent (`coupon_pct` 3 =
-3%), spreads in basis points, confidence levels in percent (`confidence_pct` 99, `es_confidence_pct` 97.5,
-`drc_confidence_pct` 99.9), recoveries in percent (`recovery_pct` 40), horizons in days where the name says
-`_days` and in years otherwise (`time_horizon`, `maturity` of a simulation). A confidence of 0.99 is
-rejected with a hint. Three kinds of input keep qlrisk's own units and say so: shock sizes (decimals,
-below), calculator `inputs` and `config` (`credit_risk`, `xva`, `ccr_exposure` calculator mode: rates,
-spreads, probabilities and recoveries as decimals, times in years) and simulation parameters
-(`drift`, `volatility` as decimals per year).
+**Units.** The same field means the same unit everywhere, and the name says which: rates, coupons,
+probabilities, LGDs, recoveries, haircuts, margins and volatilities in percent (`*_pct`: `coupon_pct` 3 =
+3%, `pd_pct` 2 = 2%), spreads and fees in basis points (`*_bp`: `credit_spread_bp` 120 = 1.2%), confidence
+levels in percent (`confidence_pct` 99), horizons in days where the name says `_days` and in years where it
+says `_years` or the title does (`time_horizon`, `time_grid`). qlrisk itself takes decimals; the tools
+convert, and every result shows what qlrisk received (`qlrisk_inputs`, `qlrisk_terms`). Values outside hard
+bounds are rejected with the field named (`inputs (el).pd_pct: 200 is outside 0 to 100 percent (it is in
+percent: 2 means 2%)`); a qlrisk name that was renamed is refused with the new one (`pd is now pd_pct
+(percent)`); plausible but unusual values run with a warning (`pd_pct = 0.02 means 0.02%; for 2% send 2`).
+This covers trades, calculator `inputs` and `config` (`credit_risk`, `xva`, `ccr_exposure` calculator
+mode), shocks, stylised stresses, liquidity spreads and nested product terms; the full list is
+[Units of qlrisk's own objects](#units-of-qlrisks-own-objects). What still takes qlrisk's decimals:
+market-data levels you overlay (`market_data` curves and vol surfaces, as `qlrisk_catalog` topic
+`market_data` shows them), simulation parameters (`drift`, `volatility`, rate `initial_value` of
+`qlrisk_simulate_paths`), `qlrisk_initial_margin` positions, the SA-CCR calculator input, CSA terms, FRTB
+sensitivity risk weights and BA-CVA counterparties.
 
 ### trades
 
@@ -202,11 +212,151 @@ overlays the sample; `base: "empty"` uses only what you send. Fields (read from 
 
 ### shocks
 
-One factor: `{"factor": "EQ.SPX", "size": -0.2, "shock_type": "relative"}` (`shock_type`: `absolute`,
-`relative`, `log`; rates and spreads in decimals, so `0.0025` is 25bp). A curve shape:
-`{"curve_field": "forward_curves", "curve_name": "SOFR", "shape": "twist", "short_end": -0.0025, "long_end": 0.0025}`,
-`shape` `parallel` (`size`), `twist` (`short_end`, `long_end`) or `butterfly` (`wings`, `belly`); or
-`"risk_classes": ["IR"]` to shape every tenored curve of a risk class.
+The same shape in `market_data.shocks`, `qlrisk_pnl_explain` `end_shocks` and `qlrisk_stress_test` custom
+scenarios. `shock_type` is `absolute` (adds the size; the default), `relative` (multiplies by 1 + size) or
+`log` (by exp(size)). The size field names its unit, which depends on what the factor is and the shock type:
+
+| Factor (qlrisk kind) | `absolute` | `relative`, `log` |
+|---|---|---|
+| Rates (`IR.*`), credit spreads (`CR.*`), dividend yields (`DIV.*`) | `size_bp`: basis points added, 25 = +0.25% | `size_pct`: -10 = the level x 0.90 (log: x exp(-0.10)) |
+| Volatilities (`VOL.*`) | `size_pct`: vol points added, 5 = 20% -> 25% | `size_pct` |
+| Prices (`EQ.*`, `CMDTY.*`, `BOND.*`), FX spots (`FX.*`), other scalars | `size`: the factor's own units, `EQ.SPX` -250 = 250 points down | `size_pct` |
+
+One factor: `{"factor": "EQ.SPX", "shock_type": "relative", "size_pct": -20}`;
+`{"factor": "IR.FWD.SOFR.5Y", "size_bp": 25}`. A curve shape takes the same suffix on its sizes:
+`{"curve_field": "forward_curves", "curve_name": "SOFR", "shape": "twist", "short_end_bp": -25, "long_end_bp": 25}`,
+`shape` `parallel` (`size_*`), `twist` (`short_end_*` at 2y and in, `long_end_*` at 10y and out) or
+`butterfly` (`wings_*`, `belly_*` at 5y); or `"risk_classes": ["IR"]` to shape every tenored curve of a risk
+class. A curve shock moves the factors its unit fits: `{"risk_classes": ["IR"], "size_bp": 100}` moves every
+rate curve by 100bp and leaves the IR volatility surfaces alone (move those with a `size_pct` shock on
+`curve_field` `volatility_surfaces`). The wrong field is an error naming the shock and what to send
+(`custom_scenarios[0].shocks[0]: a relative shock to a price takes size_pct (percent of the level: -10 means
+the level x 0.90), not size`); a relative move below -100%, or beyond +/-5,000bp on a rate, is refused;
+moves beyond 50% or 1,000bp, and sizes like `size_bp` 0.01 that look like decimals, run with a warning.
+
+### Units of qlrisk's own objects
+
+Every field the tools rename or convert, from the table in `sajha/tools/impl/qlrisk/generate.py` (`CALC_INPUTS`, `CALC_CONFIG`, `STRESS_DEFINITION`, `LIQUIDITY`, `NESTED_*`; product fields are in [Per-product pricing tools](#per-product-pricing-tools)). "qlrisk receives" is the conversion of the value x you send. Fields not listed (amounts, prices, counts, flags, names, correlations from -1 to 1 or 0 to 1, time grids in years) pass unchanged. Some fields qlrisk declares but its calculator does not read (the PFE calculator's `credit_spread` and `fx_rate`, EL's `maturity`); their descriptions say so.
+
+**Calculators: `qlrisk_credit_risk`** (`inputs` and `config` per measure)
+
+| Field | qlrisk field | Unit | qlrisk receives | Where |
+|---|---|---|---|---|
+| `asset_volatility_pct` | `asset_volatility` | % | x / 100 | pd |
+| `risk_free_rate_pct` | `risk_free_rate` | % | x / 100 | pd |
+| `time_horizon_years` | `time_horizon` | years | as is | pd, pd config, el, el config, economic_capital |
+| `hazard_rate_pct` | `hazard_rate` | % | x / 100 | pd |
+| `rating_pd_pct` | `rating_pd` | % | x / 100 | pd |
+| `recovery_pct` | `recovery_rate` | % | x / 100 | lgd, el |
+| `haircut_pct` | `haircut` | % | x / 100 | lgd collateral[] |
+| `recovery_history_pct` | `recovery_history` | % | x / 100 | lgd |
+| `lgd_mean_pct` | `lgd_mean` | % | x / 100 | lgd |
+| `lgd_std_pct` | `lgd_std` | % | x / 100 | lgd |
+| `default_lgd_pct` | `default_lgd` | % | x / 100 | lgd config |
+| `floor_pct` | `floor` | % | x / 100 | lgd config |
+| `cap_pct` | `cap` | % | x / 100 | lgd config |
+| `credit_conversion_factor_pct` | `credit_conversion_factor` | % | x / 100 | ead |
+| `add_on_factor_pct` | `add_on_factor` | % | x / 100 | ead |
+| `collateral_haircut_pct` | `collateral_haircut` | % | x / 100 | ead |
+| `netting_benefit_pct` | `netting_benefit` | % | x / 100 | ead |
+| `margin_period_of_risk_days` | `margin_period_of_risk` | business days | x / 252 (years) | ead |
+| `pd_pct` | `pd` | % | x / 100 | el, economic_capital |
+| `lgd_pct` | `lgd` | % | x / 100 | el, economic_capital |
+| `maturity_years` | `maturity` | years | as is | el |
+| `pd_term_structure_pct` | `pd_term_structure` | % | x / 100 | el |
+| `pds_pct` | `pds` | % | x / 100 | economic_capital |
+| `lgds_pct` | `lgds` | % | x / 100 | economic_capital |
+| `confidence_pct` | `confidence_level` | % | x / 100 | economic_capital, economic_capital config |
+| `tax_rate_pct` | `tax_rate` | % | x / 100 | raroc |
+| `hurdle_rate_pct` | `hurdle_rate` | % | x / 100 | raroc, raroc config |
+
+**Calculators: `qlrisk_ccr_exposure`, mode `calculator`**
+
+| Field | qlrisk field | Unit | qlrisk receives | Where |
+|---|---|---|---|---|
+| `collateral_haircut_pct` | `collateral_haircut` | % | x / 100 | ce |
+| `remaining_maturity_years` | `remaining_maturity` | years | as is | ee, eee, pfe, peak, stressed |
+| `volatility_pct` | `volatility` | % | x / 100 | ee, eee, pfe, peak, stressed |
+| `margin_period_of_risk_days` | `margin_period_of_risk` | business days | x / 252 (years) | ee, eee, pfe |
+| `interest_rate_pct` | `interest_rate` | % | x / 100 | ee, eee, pfe |
+| `drift_pct` | `drift` | % | x / 100 | ee, eee |
+| `credit_spread_bp` | `credit_spread` | bp | x / 10,000 | pfe |
+| `time_horizon_years` | `time_horizon` | years | as is | pfe config |
+| `confidence_pct` | `confidence_level` | % | x / 100 | pfe config, peak |
+| `rate_shock_bp` | `rate_shock` | bp | as is | stressed |
+| `fx_shock_pct` | `fx_shock` | % | x / 100 | stressed |
+| `credit_shock_bp` | `credit_shock` | bp | as is | stressed |
+| `volatility_shock_pct` | `volatility_shock` | % | 1 + x / 100 | stressed |
+
+**Calculators: `qlrisk_xva`** (`cva` ... `mva`, and each part of `total`)
+
+| Field | qlrisk field | Unit | qlrisk receives | Where |
+|---|---|---|---|---|
+| `credit_spread_bp` | `credit_spread` | bp | x / 10,000 | cva |
+| `recovery_pct` | `recovery_rate` | % | x / 100 | cva |
+| `spread_term_structure_bp` | `spread_term_structure` | bp | x / 10,000 | cva |
+| `discount_rates_pct` | `discount_rates` | % | x / 100 | cva |
+| `risk_free_rate_pct` | `risk_free_rate` | % | x / 100 | cva |
+| `own_credit_spread_bp` | `own_credit_spread` | bp | x / 10,000 | cva |
+| `own_recovery_pct` | `own_recovery_rate` | % | x / 100 | cva |
+| `own_pd_curve_pct` | `own_pd_curve` | % | x / 100 | dva |
+| `own_lgd_pct` | `own_lgd` | % | x / 100 | dva |
+| `discount_curve_pct` | `discount_curve` | % | x / 100 | dva, fva, kva, mva |
+| `funding_spread_bp` | `funding_spread` | bp | x / 10,000 | fva, mva |
+| `counterparty_survival_curve_pct` | `counterparty_survival_curve` | % | x / 100 | fva |
+| `counterparty_pd_pct` | `counterparty_pd` | % | x / 100 | kva |
+| `counterparty_lgd_pct` | `counterparty_lgd` | % | x / 100 | kva |
+| `cost_of_capital_pct` | `cost_of_capital` | % | x / 100 | kva |
+| `capital_floor_pct` | `capital_floor` | % | x / 100 | kva |
+
+**Stylised stresses and liquidity** (`qlrisk_stress_test` `definition`, `qlrisk_value_at_risk` `liquidity`)
+
+| Field | qlrisk field | Unit | qlrisk receives | Where |
+|---|---|---|---|---|
+| `equity_pct` | `equity` | % | x / 100 | definition |
+| `vol_pct` | `vol` | % | x / 100 | definition |
+| `rates_bp` | `rates` | bp | x / 10,000 | definition |
+| `credit_pct` | `credit` | % | x / 100 | definition |
+| `fx_usd_pct` | `fx_usd` | % | x / 100 | definition |
+| `commodity_pct` | `commodity` | % | x / 100 | definition |
+| `fx_pct` | `fx` | % | x / 100 | definition |
+| `spreads_bp` | `spreads` | bp | x / 10,000 | liquidity |
+
+**Nested product terms** (per-product tools and trades in any tool)
+
+| Field | qlrisk field | Unit | qlrisk receives | Where |
+|---|---|---|---|---|
+| `haircut_pct` | `haircut` | % | x / 100 | MarginLending collateral_positions, CollateralSwap receive_leg, CollateralSwap deliver_leg, MarginLoan terms.collateral_positions[], PrimeBrokerage terms.positions[], StockLoan terms, TriPartyRepo terms, SecuritiesBorrowing borrowed_securities |
+| `concentration_limit_pct` | `concentration_limit` | % | x / 100 | MarginLending collateral_positions, PrimeBrokerage terms |
+| `volatility_pct` | `volatility` | % | x / 100 | MarginLending collateral_positions, CollateralSwap receive_leg, CollateralSwap deliver_leg, SecuritiesBorrowing borrowed_securities |
+| `coupon_rate_pct` | `coupon_rate` | % | x / 100 | BondTRS terms |
+| `spread_over_benchmark_bp` | `spread_over_benchmark` | bp | as is | BondTRS terms |
+| `financing_spread_bp` | `financing_spread` | bp | as is | BondTRS terms, EquityTRS terms |
+| `recovery_pct` | `recovery_rate` | % | x / 100 | BondTRS terms |
+| `dividend_yield_pct` | `dividend_yield` | % | x / 100 | EquityTRS terms, StockLoan terms, SecuritiesBorrowing borrowed_securities |
+| `storage_cost_pct` | `storage_cost` | % | x / 100 | CommodityFuture terms |
+| `convenience_yield_pct` | `convenience_yield` | % | x / 100 | CommodityFuture terms |
+| `interest_spread_bp` | `interest_spread` | bp | as is | MarginLoan terms |
+| `initial_margin_pct` | `initial_margin_pct` | % | x / 100 | MarginLoan terms |
+| `maintenance_margin_pct` | `maintenance_margin_pct` | % | x / 100 | MarginLoan terms |
+| `current_ltv_pct` | `current_ltv` | % | x / 100 | MarginLoan terms |
+| `financing_rate_spread_bp` | `financing_rate_spread` | bp | as is | PrimeBrokerage terms |
+| `short_rebate_spread_bp` | `short_rebate_spread` | bp | as is | PrimeBrokerage terms |
+| `initial_margin_requirement_pct` | `initial_margin_requirement` | % | x / 100 | PrimeBrokerage terms |
+| `maintenance_margin_pct` | `maintenance_margin` | % | x / 100 | PrimeBrokerage terms |
+| `house_margin_excess_pct` | `house_margin_excess` | % | x / 100 | PrimeBrokerage terms |
+| `rehypothecation_limit_pct` | `rehypothecation_limit` | % | x / 100 | PrimeBrokerage terms |
+| `custody_fee_bps` | `custody_fee_bps` | bp | as is | PrimeBrokerage terms |
+| `execution_fee_bps` | `execution_fee_bps` | bp | as is | PrimeBrokerage terms |
+| `collateral_margin_pct` | `collateral_margin` | % | x / 100 | StockLoan terms |
+| `rebate_rate_bp` | `rebate_rate` | bp | x / 10,000 | StockLoan terms |
+| `lending_fee_bp` | `lending_fee` | bp | x / 10,000 | StockLoan terms |
+| `stock_volatility_pct` | `stock_volatility` | % | x / 100 | StockLoan terms |
+| `repo_rate_pct` | `repo_rate` | % | x / 100 | TriPartyRepo terms |
+| `floating_spread_bp` | `floating_spread` | bp | as is | TriPartyRepo terms |
+| `special_rate_pct` | `special_rate` | % | x / 100 | SecuritiesBorrowing borrowed_securities |
+
+Shock sizes are in [shocks](#shocks).
 
 ### history
 
@@ -296,7 +446,8 @@ ladders: forward_curves/SOFR dv01 {"2.0": 78.28, "3.0": 183.89, "5.0": 4217.99, 
 optional `weights`), `lookback` (250), `revaluation` (`full`, `taylor`), `age_decay` (0.98),
 `ewma_lambda`, `mc_paths` (5000), `mc_distribution` (`normal`, `student_t`), `mc_dof` (5), `seed` (7),
 `decomposition` (true), `group_by` (trade id → group), `include_stressed_var`, `stress_window` (250),
-`svar_horizon_days` (10), `liquidity` (`spreads`: trade id → proportional spread; `horizon_days`).
+`svar_horizon_days` (10), `liquidity` (`spreads_bp`: trade id → the full bid-ask spread in basis points
+of the position value, of which qlrisk charges half as the exit cost; `horizon_days`).
 
 **Outputs:** `var` and `es` (`measure`, `value` as a positive loss, `confidence`, `horizon_days`,
 `method`, `n_scenarios`, `contributions`, `tail_scenarios`), `decomposition` (`component`, `incremental`,
@@ -313,6 +464,11 @@ in `pnl_series` mode `var`, `es`, `var_1d`, `es_1d`.
 historical VaR 99.0% 10d 204,153.91 USD; ES 97.5% 193,288.73; SVaR 561,570.24
 var.contributions {"IRS-5Y": 186413.37, "SPX-P": 17740.54}
 ```
+
+Liquidity-adjusted, the 5m ACME bond with a 40bp bid-ask spread and a 5-day exit
+(`"liquidity": {"spreads_bp": {"ACME-5Y": 40}, "horizon_days": 5}`, valued 2026-10-09): 1-day VaR
+29,037.60 USD, `liquidation_cost` 9,773.63 (half of 0.40% of the bond's value), `liquidity_adjusted_var`
+74,703.67; `qlrisk_inputs.liquidity` shows `{"spreads": {"ACME-5Y": 0.004}, "horizon_days": 5}`.
 
 ### qlrisk_backtest
 
@@ -348,7 +504,7 @@ Backtest over 250 days: 1 VaR exceptions (green, multiplier 3.0); ES green; PLA 
 
 ```json
 {"trades": [{"product": "EquityOption", "trade_id": "SPX-P", "maturity": "6M", "notional": 1000000, "ticker": "SPX", "strike": 5000, "option_type": "put"}],
- "end_shocks": [{"factor": "EQ.SPX", "size": -0.05, "shock_type": "relative"}], "end_valuation_date": "2026-10-12"}
+ "end_shocks": [{"factor": "EQ.SPX", "size_pct": -5, "shock_type": "relative"}], "end_valuation_date": "2026-10-12"}
 ```
 
 ```text
@@ -363,19 +519,34 @@ P&L 2026-10-09 -> 2026-10-12: actual 20,107.87 USD, theta -257.87, unexplained 2
 historical crises, all or `scenarios`: `1987_black_monday`, `1998_ltcm_russia`, `2008_gfc_lehman`,
 `2010_euro_crisis`, `2013_taper_tantrum`, `2016_brexit`, `2020_covid`, `2022_rates_shock`,
 `2023_regional_banks` in qlrisk today; the schema reads them from qlrisk), `custom` (`custom_scenarios`:
-`{name, shocks}` or `{name, definition}` with `equity`, `vol`, `rates`, `credit`, `fx_usd`, `commodity`,
-`fx`), `reverse` (`target_loss`, `history`, `lookback`, `top_n`).
+`{name, shocks}` with [shocks](#shocks), or `{name, definition}`, a stylised stress: `equity_pct`,
+`vol_pct`, `credit_pct`, `commodity_pct`, `fx_usd_pct` (every currency against USD; -10 = USD 10%
+stronger) and `fx_pct` (currency → move) as relative moves in percent, and `rates_bp` as an absolute move
+in basis points, or `[short_end, long_end]` for a 2y-10y twist; qlrisk moves credit spreads relatively, so
+`credit_pct` 100 doubles them), `reverse` (`target_loss`, `history`, `lookback`, `top_n`). `qlrisk_catalog`
+topic `stress_scenarios` shows the library in the same units (`2008_gfc_lehman`: `equity_pct` -40,
+`vol_pct` 200, `rates_bp` [-200, -100], `credit_pct` 200, `fx_usd_pct` -12, `commodity_pct` -45).
 
-**Outputs:** `base_pv`, `results` worst first (`scenario`, `pnl`, `by_trade`, `description`), `worst`;
-reverse: `target_loss`, `achieved_loss`, `scale`, `sigma_distance`, `top_moves`, `shocks`.
+**Outputs:** `base_pv`, `results` worst first (`scenario`, `pnl`, `by_trade`, `description`), `worst`,
+`qlrisk_inputs` (each scenario's shocks or definition as qlrisk received them); reverse: `target_loss`,
+`achieved_loss`, `scale`, `sigma_distance`, `top_moves`, `shocks` (in the units above, plus `qlrisk_size`,
+so one can be sent back as a custom shock).
 
 ```json
-{"trades": [{"product": "InterestRateSwap", "trade_id": "IRS-5Y", "maturity": "5Y", "notional": 10000000, "fixed_rate_pct": 4.4}],
- "mode": "custom", "custom_scenarios": [{"name": "rates +100bp", "shocks": [{"risk_classes": ["IR"], "shape": "parallel", "size": 0.01}]}]}
+{"trades": [{"product": "InterestRateSwap", "trade_id": "IRS-5Y", "maturity": "5Y", "notional": 10000000, "fixed_rate_pct": 4.4},
+            {"product": "EquityOption", "trade_id": "SPX-P", "maturity": "6M", "notional": 1000000, "ticker": "SPX", "strike": 5000, "option_type": "put"}],
+ "mode": "custom", "custom_scenarios": [
+   {"name": "rates +100bp", "shocks": [{"risk_classes": ["IR"], "shape": "parallel", "size_bp": 100}]},
+   {"name": "SPX -20%", "shocks": [{"factor": "EQ.SPX", "shock_type": "relative", "size_pct": -20}]},
+   {"name": "risk off", "definition": {"equity_pct": -20, "vol_pct": 50, "credit_pct": 50, "rates_bp": -50}}]}
 ```
 
 ```text
-1 stress scenario(s); worst rates +100bp P&L 445,355.39 USD
+3 stress scenario(s); worst risk off P&L -87,108.25 USD
+risk off      -87,108.25   (IRS-5Y -230,866.48, SPX-P 143,758.23)
+SPX -20%      126,050.07   (SPX-P 126,050.07)
+rates +100bp  443,545.84   (IRS-5Y 445,355.39, SPX-P -1,809.55)
+qlrisk_inputs["custom_scenarios[2].definition"] {"equity": -0.2, "vol": 0.5, "rates": -0.005, "credit": 0.5, ...}
 ```
 
 With the swap and the SPX put and no `mode`, the library's worst is `2008_gfc_lehman` (-423,260.25 USD); a
@@ -465,12 +636,19 @@ calculator's result), `headline`; wrong-way: `base_exposure`, `conditional_expos
 then carries a warning pointing to `qlrisk_xva`.
 
 ```json
-{"mode": "calculator", "measure": "pfe", "inputs": {"current_mtm": 100000, "notional": 10000000, "remaining_maturity": 5, "volatility": 0.01}}
+{"mode": "calculator", "measure": "pfe", "inputs": {"current_mtm": 100000, "notional": 10000000, "remaining_maturity_years": 5, "volatility_pct": 1}}
 ```
 
 ```text
-PFE: 212,925.17
+PFE: 212,925.17      (qlrisk_inputs.inputs: remaining_maturity 5, volatility 0.01)
 ```
+
+Calculator inputs are in the tools' units ([table](#units-of-qlrisks-own-objects)): `volatility_pct` is the
+annual volatility of the MTM in percent of notional, `margin_period_of_risk_days` business days (10 by
+default), the stressed calculator's `rate_shock_bp` and `credit_shock_bp` basis points, `fx_shock_pct`
+percent and `volatility_shock_pct` a relative change (150 = volatility x 2.5). `config.confidence_pct`
+sets the PFE confidence (qlrisk reads it in a base class the schema reader misses, so the tool adds it):
+99 gives `PFE: 270,070.20` for the example.
 
 ### qlrisk_saccr
 
@@ -525,10 +703,12 @@ Initial margin (simm): 252,000.00      (5y risk weight 56bp x DV01 4,500)
 
 **Inputs:** `measure` (`pd`, `lgd`, `ead`, `el`, `economic_capital`, `raroc`), `inputs`, `config`. The
 fields and configuration of each come from the qlrisk calculator and are in the tool description and in
-`qlrisk_catalog` topic `calculators`; for example `pd` takes `credit_rating`, or `asset_value`, `debt_value`,
-`asset_volatility`, `risk_free_rate`, or `hazard_rate`, with `config.model` one of `structural`,
-`reduced_form`, `transition_matrix`, `logistic`, `historical`. The calculator fields are qlrisk's own and in
-its units: probabilities, rates and LGDs as decimals (`pd` 0.02 = 2%), times in years.
+`qlrisk_catalog` topic `calculators` (both in the tools' names and units); for example `pd` takes
+`credit_rating`, or `asset_value`, `debt_value`, `asset_volatility_pct`, `risk_free_rate_pct`, or
+`hazard_rate_pct`, with `config.model` one of `structural`, `reduced_form`, `transition_matrix`,
+`logistic`, `historical`. Probabilities, LGDs, recoveries, rates and haircuts are in percent (`pd_pct` 2 =
+2%), horizons in years (`time_horizon_years`); the [table](#units-of-qlrisks-own-objects) lists every field.
+The result's `qlrisk_inputs` shows the decimals qlrisk received.
 
 **Outputs:** `measure`, `result`, `headline` (PD and LGD are the result itself; others the main field,
 e.g. `expected_loss`, `economic_capital`, `raroc`).
@@ -541,32 +721,37 @@ e.g. `expected_loss`, `economic_capital`, `raroc`).
 PD: 0.004
 ```
 
-`{"measure": "el", "inputs": {"pd": 0.02, "lgd": 0.45, "ead": 1000000}}` gives `EL: 9,000.00`.
+`{"measure": "el", "inputs": {"pd_pct": 2, "lgd_pct": 45, "ead": 1000000}}` gives `EL: 9,000.00` (qlrisk
+received `{"pd": 0.02, "lgd": 0.45, "ead": 1000000}`); `pd_pct` 0.02 gives `EL: 90.00` with the warning
+`inputs (el).pd_pct = 0.02 means 0.02%; for 2% send 2`. The structural PD for assets 120, debt 100,
+`asset_volatility_pct` 25 and `risk_free_rate_pct` 4 is `PD: 0.222348` (the headline is qlrisk's
+probability, a fraction).
 
 ### qlrisk_xva
 
 **Purpose:** valuation adjustments and CVA capital.
 
-**Inputs:** `measure`: `cva`, `dva`, `fva`, `kva`, `mva` (`inputs`, `config` from the qlrisk calculator;
-e.g. `cva`: `ee_profile`, `time_grid`, `credit_spread`, `recovery_rate`, ...); `total` (`inputs`: one
+**Inputs:** `measure`: `cva`, `dva`, `fva`, `kva`, `mva` (`inputs`, `config` from the qlrisk calculator, in
+the tools' units; e.g. `cva`: `ee_profile`, `time_grid` (years), `credit_spread_bp`, `recovery_pct`,
+`risk_free_rate_pct`, ...; `dva`: `own_pd_curve_pct` and `discount_curve_pct` as tenor → percent); `total` (`inputs`: one
 object per adjustment plus `colva` as a number); `sa_cva` (`counterparty` (a credit curve in the market
 data), `time_grid`, `expected_exposure`, `recovery_pct` (40), `counterparty_buckets`: name → [MAR50 bucket,
 investment grade], `hedges` (trades), `m_cva`, `reference_buckets`, `market_data`, `reporting_currency`);
 `ba_cva` (`counterparties`: `name`, `sector`, `investment_grade`, `netting_sets` as [EAD, maturity],
 `hedges`; `index_hedges`). Essentials are `measure`, `inputs`, `counterparty`, `time_grid`,
-`expected_exposure` and `recovery_pct`; the rest is in `advanced`. Calculator `inputs` are in qlrisk's units
-(`credit_spread` 0.012 = 120bp, `recovery_rate` 0.4); give `notional` there for a meaningful `cva_pct`.
+`expected_exposure` and `recovery_pct`; the rest is in `advanced`. Give `notional` in the CVA inputs for a
+meaningful `cva_pct`.
 
 **Outputs:** calculators: `result`, `headline`; total: `components` (`cva`, `dva`, `fva`, `kva`, `mva`,
 `colva`, `total_xva`), `details`, `convention`; sa_cva: `cva`, `capital`, `by_component`, `by_bucket`;
 ba_cva: `result` (`k_reduced`, `capital_reduced`, `scva`, `capital`, ...).
 
 ```json
-{"measure": "cva", "inputs": {"ee_profile": [2e6, 3e6, 3.5e6, 3e6, 2e6, 1e6], "time_grid": [0.5, 1, 2, 3, 4, 5], "credit_spread": 0.012}}
+{"measure": "cva", "inputs": {"ee_profile": [2e6, 3e6, 3.5e6, 3e6, 2e6, 1e6], "time_grid": [0.5, 1, 2, 3, 4, 5], "credit_spread_bp": 120}}
 ```
 
 ```text
-CVA: 118,737.19
+CVA: 118,737.19      (qlrisk_inputs.inputs.credit_spread 0.012)
 ```
 
 The same profile as SA-CVA on ACME (`"advanced": {"counterparty_buckets": {"ACME": ["3", true]}}`): CVA 115,136.81 and
@@ -663,13 +848,19 @@ only for **that product's economic terms, in human units**, and keeps everything
 | `advanced` | Optional: trade id and dates, counterparty, `issuer` (its credit curve adds a spread), `position` (`long`/`short`) and the other direction flags, day counts, fallback spots, `market_data`, `reporting_currency`, `include_cash_flows` |
 
 Prices, FX rates, quantities and ratios keep their natural units (an equity strike is a price, an FX strike
-a rate). A field qlrisk gives as a nested object (a TRS's `terms`, an SFT's collateral) is passed as is, in
-qlrisk's own units (rates as decimals). Values outside hard bounds are rejected with the field named (for
+a rate). Fields qlrisk gives as a nested object (a TRS's or SFT's `terms`, collateral positions and legs,
+borrowed securities) take the same units, field by field ([table](#units-of-qlrisks-own-objects)): a stock
+loan's `terms` `{"collateral_margin_pct": 105, "rebate_rate_bp": 50, "haircut_pct": 2,
+"stock_volatility_pct": 30, ...}` reach qlrisk as `collateral_margin` 1.05, `rebate_rate` 0.005, `haircut`
+0.02, `stock_volatility` 0.3 (in `qlrisk_terms`). Some qlrisk term fields are already in basis points
+(`financing_spread`, `interest_spread`, `floating_spread`, `custody_fee_bps`); they get a `_bp` name and pass
+unchanged. A margin loan's `initial_margin_pct` and `maintenance_margin_pct` keep their qlrisk names but are
+now percent (50, not 0.50). Values outside hard bounds are rejected with the field named (for
 example `coupon_pct` above 100, a recovery of 100%, a non-positive face value, a maturity in the past, a
 detachment below the attachment, a tenor like `3X`); values outside the usual range (a coupon above 20%, a
 rate of 0.03 that probably meant 3%) price but add a line to `warnings`. The names, units, conversions,
 bounds and defaults are one table in `sajha/tools/impl/qlrisk/generate.py` (`FIELDS`, `OVERRIDES`,
-`NOTIONAL`); a qlrisk field it does not name is passed as is and documented as taking qlrisk's units.
+`NOTIONAL`, `NESTED_*`); a qlrisk field it does not name is passed as is and documented as taking qlrisk's units.
 
 Each description has three lines: what it prices; the inputs with units and defaults; a worked example
 with its real result on the sample market. The result is the trade's row of `qlrisk_price_trades` with

@@ -157,13 +157,20 @@ Revalue the book under qlrisk's crisis library, then under a scenario of your ow
 
 ```bash
 call qlrisk_stress_test "{\"trades\": [$SWAP, $PUT], \"advanced\": $ADV}"
-call qlrisk_stress_test "{\"trades\": [$SWAP], \"advanced\": $ADV, \"mode\": \"custom\", \"custom_scenarios\": [{\"name\": \"rates +100bp\", \"shocks\": [{\"risk_classes\": [\"IR\"], \"shape\": \"parallel\", \"size\": 0.01}]}]}"
+call qlrisk_stress_test "{\"trades\": [$SWAP], \"advanced\": $ADV, \"mode\": \"custom\", \"custom_scenarios\": [{\"name\": \"rates +100bp\", \"shocks\": [{\"risk_classes\": [\"IR\"], \"shape\": \"parallel\", \"size_bp\": 100}]}]}"
 ```
 
 ```text
 9 stress scenario(s); worst 2008_gfc_lehman P&L -423,260.25 USD
 1 stress scenario(s); worst rates +100bp P&L 445,355.39 USD
 ```
+
+A shock's size field names its unit: `size_bp` for an absolute move of rates or spreads (100 = +1%),
+`size_pct` for a relative move (`{"factor": "EQ.SPX", "shock_type": "relative", "size_pct": -20}`), `size`
+for an absolute move of a price in its own units. A stylised scenario takes relative moves in percent and
+rates in basis points: `{"name": "risk off", "definition": {"equity_pct": -20, "vol_pct": 50, "credit_pct":
+50, "rates_bp": -50}}`. The result's `qlrisk_inputs` shows each scenario as qlrisk received it (`"size":
+0.01`).
 
 `results` lists every scenario, worst first, with the P&L of each trade. `"mode": "reverse"` with
 `"target_loss": 500000` asks the opposite question: the most plausible market move that loses that much.
@@ -185,16 +192,20 @@ multiplier of 0.84, from the negative MTM; EAD = 1.4 × (RC + multiplier × add-
 
 ### 8. CVA
 
-From an expected-exposure profile and a 120bp credit spread (calculator inputs are qlrisk's own fields,
-in its units: `credit_spread` 0.012 is 120bp):
+From an expected-exposure profile and a 120bp credit spread (calculator inputs take the same units as
+everything else: spreads in basis points, probabilities, recoveries and rates in percent):
 
 ```bash
-call qlrisk_xva '{"measure": "cva", "inputs": {"ee_profile": [2e6, 3e6, 3.5e6, 3e6, 2e6, 1e6], "time_grid": [0.5, 1, 2, 3, 4, 5], "credit_spread": 0.012}}'
+call qlrisk_xva '{"measure": "cva", "inputs": {"ee_profile": [2e6, 3e6, 3.5e6, 3e6, 2e6, 1e6], "time_grid": [0.5, 1, 2, 3, 4, 5], "credit_spread_bp": 120}}'
 ```
 
 ```text
 CVA: 118,737.19
 ```
+
+`qlrisk_inputs.inputs` in the result shows `"credit_spread": 0.012`, what qlrisk received. A recovery is
+`recovery_pct` (40 by default); `qlrisk_credit_risk` reads the same way (`{"measure": "el", "inputs":
+{"pd_pct": 2, "lgd_pct": 45, "ead": 1000000}}` gives `EL: 9,000.00`).
 
 The same tool gives DVA, FVA, KVA and MVA, their total, and CVA capital: `"measure": "sa_cva"` (the
 counterparty's credit curve from the market data, optional hedges) or `"ba_cva"`.

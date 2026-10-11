@@ -55,25 +55,32 @@ def market_data_schema() -> Dict[str, Any]:
 
 
 def shock_schema(compact: bool = False) -> Dict[str, Any]:
+    """One shock. The size field names its unit (generate.SHOCK_UNITS): size_bp for absolute shocks to rates, credit
+    spreads and dividend yields, size_pct for relative and log shocks and absolute volatility shocks, size for an
+    absolute shock to a price or FX spot in its own units; curve shapes take short_end / long_end / wings / belly
+    with the same suffix."""
+    from .units import shock_size_props
     d = (lambda text: {}) if compact else (lambda text: {"description": text})
     return {
         "type": "object",
         "properties": {
-            "factor": {"type": "string", **d("Risk-factor key, e.g. 'EQ.SPX', 'FX.EURUSD', 'IR.FWD.SOFR.5Y', 'CR.ACME.5Y' (qlrisk_catalog topic 'market_data' lists them).")},
-            "size": {"type": "number", **d("Absolute shocks in decimals (0.0025 = 25bp); relative 0.1 = +10%.")},
-            "shock_type": {"type": "string", "enum": I.enum_values("ShockType"), "default": "absolute"},
+            "factor": {"type": "string", "title": "Risk factor", **d("Risk-factor key, e.g. 'EQ.SPX', 'FX.EURUSD', 'IR.FWD.SOFR.5Y', 'CR.ACME.5Y' (qlrisk_catalog topic 'market_data' lists them).")},
+            "shock_type": {"type": "string", "enum": I.enum_values("ShockType"), "default": "absolute", "title": "Shock type",
+                           **d("absolute adds the size; relative multiplies by 1 + size; log by exp(size).")},
             "curve_field": {"type": "string", "enum": [k for k, v in I.market_data_fields().items() if v in ("curve", "named_curves", "surfaces")],
-                            **d("Shock a whole curve (with curve_name and shape) instead of one factor.")},
-            "curve_name": {"type": "string", **d("Curve within curve_field, e.g. 'SOFR'.")},
-            "risk_classes": {"type": "array", "items": {"type": "string", "enum": I.enum_values("RiskClass")},
+                            "title": "Curve field", **d("Shock a whole curve (with curve_name and shape) instead of one factor.")},
+            "curve_name": {"type": "string", "title": "Curve name", **d("Curve within curve_field, e.g. 'SOFR'.")},
+            "risk_classes": {"type": "array", "items": {"type": "string", "enum": I.enum_values("RiskClass")}, "title": "Risk classes",
                              **d("Shock every tenored curve of these risk classes with the shape.")},
-            "shape": {"type": "string", "enum": ["parallel", "twist", "butterfly"], "default": "parallel"},
-            "short_end": {"type": "number"}, "long_end": {"type": "number"},
-            "wings": {"type": "number"}, "belly": {"type": "number"},
+            "shape": {"type": "string", "enum": ["parallel", "twist", "butterfly"], "default": "parallel", "title": "Curve shape"},
+            **shock_size_props(compact),
         },
         "additionalProperties": False,
-        **d("One factor (factor, size) or a curve shape: parallel (size), twist (short_end, long_end at 2y/10y), "
-            "butterfly (wings, belly)."),
+        **d("One factor (factor and a size) or a curve shape: parallel (size), twist (short_end and long_end, at 2y "
+            "and 10y), butterfly (wings and belly). Units by the field's suffix: _bp basis points (absolute shocks to "
+            "rates, credit spreads, dividend yields: 25 = +0.25%), _pct percent (relative and log shocks: -10 = -10%; "
+            "absolute volatility shocks in vol points: 5 = +5), no suffix the factor's own units (absolute price and "
+            "FX spot shocks)."),
     }
 
 
@@ -155,7 +162,8 @@ def _curve(value: Any, what: str) -> Dict[float, float]:
     return {parse_tenor(k): float(v) for k, v in value.items()}
 
 
-def build_market_data(spec: Optional[Dict[str, Any]], default_date: Optional[date] = None):
+def build_market_data(spec: Optional[Dict[str, Any]], default_date: Optional[date] = None,
+                      warnings: Optional[List[str]] = None, where: str = "market_data"):
     """MarketData from the request (sample snapshot overlaid by what was sent, then shocked)."""
     import numpy as np
     from qlrisk.data import create_sample_market_data
@@ -188,57 +196,60 @@ def build_market_data(spec: Optional[Dict[str, Any]], default_date: Optional[dat
         elif shape == "matrix":
             md.correlation_matrix = np.array(value, dtype=float)
     if spec.get("shocks"):
-        md = apply_shock_list(md, spec["shocks"], "market_data.shocks")
+        md = apply_shock_list(md, spec["shocks"], f"{where}.shocks", warnings)
     return md
 
 
-def parse_shocks(md, items: Sequence[Dict[str, Any]], where: str = "shocks") -> list:
-    """Shock objects (single-factor or whole-curve) for a market snapshot."""
+def parse_shocks(md, items: Sequence[Dict[str, Any]], where: str = "shocks", warnings: Optional[List[str]] = None) -> list:
+    """Shock objects (single-factor or whole-curve) for a market snapshot, from shocks in the tools' units."""
     from qlrisk.riskfactors import RiskClass, Shock, ShockType, as_key, butterfly, curve_shocks, parallel, twist
+    from .units import note_received, qlrisk_shock, shock_kinds, shock_values
+    warnings = warnings if warnings is not None else []
     out = []
     for i, item in enumerate(items or []):
         w = f"{where}[{i}]"
+        if not isinstance(item, dict):
+            raise InvalidInput(f"{w}: each shock is an object")
         try:
             st = ShockType(item.get("shock_type", "absolute"))
         except ValueError:
             raise InvalidInput(f"{w}.shock_type must be one of {I.enum_values('ShockType')}") from None
         if item.get("factor"):
-            if "size" not in item:
-                raise InvalidInput(f"{w}: a factor shock needs 'size'")
             try:
                 key = as_key(item["factor"])
             except Exception as exc:
                 raise InvalidInput(f"{w}.factor {item['factor']!r} is not a risk-factor key ({exc})") from None
-            out.append(Shock(key, float(item["size"]), st))
+            sizes, _ = shock_values(item, [key.kind.value], st.value, ("size",), w, warnings)
+            out.append(Shock(key, sizes["size"], st))
             continue
         if not (item.get("curve_field") or item.get("risk_classes")):
             raise InvalidInput(f"{w}: give 'factor' (one factor) or 'curve_field' / 'risk_classes' (a curve shape)")
         shape = item.get("shape", "parallel")
-        if shape == "parallel":
-            if "size" not in item:
-                raise InvalidInput(f"{w}: a parallel shock needs 'size'")
-            fn = parallel(float(item["size"]))
-        elif shape == "twist":
-            if "short_end" not in item or "long_end" not in item:
-                raise InvalidInput(f"{w}: a twist needs 'short_end' and 'long_end'")
-            fn = twist(float(item["short_end"]), float(item["long_end"]))
-        elif shape == "butterfly":
-            if "wings" not in item or "belly" not in item:
-                raise InvalidInput(f"{w}: a butterfly needs 'wings' and 'belly'")
-            fn = butterfly(float(item["wings"]), float(item["belly"]))
-        else:
+        needs = {"parallel": ("size",), "twist": ("short_end", "long_end"), "butterfly": ("wings", "belly")}.get(shape)
+        if needs is None:
             raise InvalidInput(f"{w}.shape must be parallel, twist or butterfly")
-        rcs = [RiskClass(r) for r in item["risk_classes"]] if item.get("risk_classes") else None
-        shocks = curve_shocks(md, item.get("curve_field"), item.get("curve_name"), fn, st, risk_classes=rcs)
-        if not shocks:
+        try:
+            rcs = [RiskClass(r) for r in item["risk_classes"]] if item.get("risk_classes") else None
+        except ValueError:
+            raise InvalidInput(f"{w}.risk_classes: each is one of {I.enum_values('RiskClass')}") from None
+        keys = [s.factor for s in curve_shocks(md, item.get("curve_field"), item.get("curve_name"), parallel(1.0), st,
+                                               risk_classes=rcs)]
+        if not keys:
             raise InvalidInput(f"{w}: no factors match curve_field={item.get('curve_field')!r} curve_name={item.get('curve_name')!r}")
-        out.extend(shocks)
+        kinds = shock_kinds(item, sorted({k.kind.value for k in keys}), st.value, w)
+        sizes, _ = shock_values(item, kinds, st.value, needs, w, warnings)
+        fn = (parallel(sizes["size"]) if shape == "parallel" else twist(sizes["short_end"], sizes["long_end"])
+              if shape == "twist" else butterfly(sizes["wings"], sizes["belly"]))
+        out.extend(s for s in curve_shocks(md, item.get("curve_field"), item.get("curve_name"), fn, st, risk_classes=rcs)
+                   if s.factor.kind.value in kinds)
+    if out:
+        note_received(where, [qlrisk_shock(s) for s in out])
     return out
 
 
-def apply_shock_list(md, items, where="shocks"):
+def apply_shock_list(md, items, where="shocks", warnings: Optional[List[str]] = None):
     from qlrisk.riskfactors import apply_shocks
-    shocks = parse_shocks(md, items, where)
+    shocks = parse_shocks(md, items, where, warnings)
     if not shocks:
         return md
     try:

@@ -25,6 +25,27 @@ Newest first. The current version is `app.version` in `config/application.yml`.
   JSON boxes, and each description ends with that example and its real result (kept true by a test). The
   layout is one table, `sajha/tools/impl/qlrisk/tools/layout.py`; `qlrisk_catalog` topic `products` lists
   each product's inputs.
+- Changed (breaking for callers sending qlrisk's decimals): remaining qlrisk calculator inputs and stress
+  shocks in human units (percent, bp). Calculator `inputs` and `config` of `qlrisk_credit_risk`,
+  `qlrisk_xva` and `qlrisk_ccr_exposure` (mode `calculator`) take probabilities, LGDs, recoveries, rates,
+  haircuts and volatilities in percent (`pd_pct` 2, `recovery_pct` 40, `volatility_pct` 1), spreads in
+  basis points (`credit_spread_bp` 120, `funding_spread_bp`), horizons in years (`remaining_maturity_years`,
+  `time_horizon_years`) and margin periods in business days (`margin_period_of_risk_days` 10); shocks in
+  `market_data.shocks`, `qlrisk_pnl_explain` and `qlrisk_stress_test` name their unit (`size_bp` for
+  absolute rate, spread and dividend moves, `size_pct` for relative and log moves and vol points, `size` for
+  absolute price moves; curve shapes `short_end_bp` ...), and a rates-in-bp curve shock no longer also
+  bumps that risk class's volatility surfaces; stylised stresses take `equity_pct`, `vol_pct`,
+  `credit_pct` (relative, as qlrisk applies it), `fx_usd_pct`, `commodity_pct`, `fx_pct` and `rates_bp`
+  (a 2y-10y twist as two numbers now works); VaR `liquidity.spreads_bp`; the nested terms of TRS and SFT
+  products (`terms`, collateral positions and legs, borrowed securities) take `*_pct` / `*_bp` fields
+  (a margin loan's `initial_margin_pct` is now 50, not 0.50). One table in `generate.py` (`CALC_INPUTS`,
+  `CALC_CONFIG`, `SHOCK_UNITS`, `STRESS_DEFINITION`, `LIQUIDITY`, `NESTED_*`) holds every conversion over
+  the schemas read from qlrisk; a decimal name is refused with its new one (`pd is now pd_pct`),
+  impossible values are errors naming the field and decimal-looking ones run with a warning (`pd_pct = 0.02
+  means 0.02%; for 2% send 2`); results carry `qlrisk_inputs` (what qlrisk received); `qlrisk_catalog`
+  shows calculators and the stress library in the same units; `config.confidence_pct` now reaches the PFE
+  calculator. Figures are unchanged for the same economic input (tests compare against qlrisk given
+  decimals) ([QLRisk Tool Reference Guide](docs/tools/qlrisk/QLRisk%20Tool%20Reference%20Guide.md#units-of-qlrisks-own-objects)).
 - Fixed: `qlrisk_initial_margin` SIMM took rate sensitivities in qlrisk's per-unit-rate convention and
   silently weighted an unknown bucket key (the guide's `USD-5Y`) at 10%, so a 4,500 DV01 swap gave IM 450;
   it now takes DV01 / CS01 per 1bp with qlrisk's bucket names (`5y`) and rejects unknown buckets (IM

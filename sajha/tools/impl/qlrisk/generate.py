@@ -12,12 +12,20 @@ example cannot be priced standalone is skipped and listed with the reason. Every
 tests/tools/test_qlrisk_tools.py fails when the files on disk differ from what this would write now
 (a qlrisk upgrade that changes products): run it again to regenerate.
 
-This module also holds the one table that turns qlrisk's fields into the tools' human inputs (FIELDS,
-OVERRIDES, NOTIONAL): which name a field is shown under, its unit (rates in percent, spreads in basis
-points), the conversion to qlrisk's own units (qlrisk takes decimals: 0.03 is 3%), bounds, defaults and
-whether it sits in the tool's optional ``advanced`` object. tools/products.py builds the schemas and
-converts the arguments from it; a qlrisk field the table does not name is passed as is and documented
-as taking qlrisk's own units.
+This module also holds the one table that turns qlrisk's fields into the tools' human inputs: which name a
+field is shown under, its unit (rates, probabilities, haircuts and volatilities in percent, spreads in basis
+points, horizons in years or days), the conversion to qlrisk's own units (qlrisk takes decimals: 0.03 is 3%),
+bounds, warnings, defaults and whether it sits in the tool's optional ``advanced`` object:
+
+    FIELDS / OVERRIDES / NOTIONAL     product fields of the per-product tools (and of trades in every tool)
+    NESTED_*                          nested product objects (TRS / SFT terms, collateral), set in OVERRIDES
+    CALC_INPUTS / CALC_CONFIG         calculator fields of qlrisk_credit_risk, qlrisk_xva, qlrisk_ccr_exposure
+    SHOCK_UNITS / SHOCK_SIZES         shock sizes by factor kind and shock type (size_bp, size_pct, size)
+    STRESS_DEFINITION, LIQUIDITY      stylised stresses (qlrisk_stress_test) and liquidity spreads (VaR)
+
+tools/products.py and units.py build the schemas (from qlrisk's, read at load time) and convert the
+arguments from it; a qlrisk field the table does not name is passed as is and documented as taking qlrisk's
+own units (tests/tools/test_qlrisk_tools.py fails when a calculator field is not named).
 """
 
 from __future__ import annotations
@@ -65,6 +73,10 @@ class F:
     future: bool = False             # must fall after the valuation date
     hidden: bool = False
     example: Any = _NO               # example value when the field is required
+    offset: float = 0.0              # qlrisk value = exposed value x scale + offset (a multiplier shown as a % change)
+    tiny: Optional[float] = None     # 0 < |value| < tiny prices with a "did you mean" warning (default: 0.2 for
+                                     # percent, 0.5 for basis points; 0 turns it off)
+    nested: Optional[Dict[str, "F"]] = None     # an object (or list of objects) whose own fields are in this table
 
 
 def _rate(name, title, desc, example=4, lo=-10.0, hi=100.0, warn=(-2.0, 20.0), **kw):
@@ -181,8 +193,9 @@ FIELDS: Dict[str, F] = {
                                   "call: 1.25 = 125%.", positive=True),
     "margin_ratio": F(title="Margin ratio", desc="Collateral / securities value: 1.02 = 102%.", positive=True),
     "minimum_margin": F(title="Minimum margin ratio", desc="1.00 = 100%.", positive=True),
-    # nested qlrisk objects: passed as is
-    **{k: F(title=t, desc=f"{t}: qlrisk's own object, passed as is in qlrisk's units (rates as decimals: 0.03 = 3%).")
+    # nested qlrisk objects: their fields are in NESTED_* below (set per product in OVERRIDES)
+    **{k: F(title=t, desc=f"{t}: rates, haircuts and margins in percent, spreads and fees in basis points (each "
+            "field's title gives its unit).")
        for k, t in (("terms", "Contract terms"), ("collateral_positions", "Collateral positions"),
                     ("borrowed_securities", "Borrowed securities"), ("receive_leg", "Collateral received"),
                     ("deliver_leg", "Collateral delivered"))},
@@ -260,6 +273,158 @@ _DEPOSIT_PRODUCTS = ("BankersAcceptance", "BuySellBack", "CertificateOfDeposit",
                      "EurodollarDeposit", "FederalFunds", "Repo", "ReverseRepo", "SecuritiesLending", "TimeDeposit",
                      "TreasuryBill")
 
+# ── nested qlrisk objects of the per-product tools (TRS / SFT terms, collateral) ──
+# Each maps the object's qlrisk fields to the tools' names and units; a field it does not name is passed as is
+# (titles say so). qlrisk's own units are in the comments of its dataclasses (bond_trs, equity_trs, sft/*).
+
+
+def _p(name, title, desc, lo=0.0, hi=100.0, warn=None, **kw) -> F:
+    """A percent field: qlrisk takes the decimal (0.25 = 25%)."""
+    return F(name=name, title=f"{title} (%)", desc=desc, unit="percent", scale=PCT, minimum=lo, maximum=hi,
+             warn=warn, **kw)
+
+
+def _b(name, title, desc, lo=-10000.0, hi=10000.0, warn=(-500.0, 2000.0), scale=BP, **kw) -> F:
+    """A basis-point field (scale BP: qlrisk takes the decimal; scale 1: qlrisk already takes basis points)."""
+    return F(name=name, title=f"{title} (bp)", desc=desc, unit="basis points", scale=scale, minimum=lo, maximum=hi,
+             warn=warn, **kw)
+
+
+def _amt(title, desc="") -> F:
+    return F(title=title, desc=desc or "An amount in the trade currency.", unit="amount")
+
+
+def _same(title, desc="") -> F:
+    return F(title=title, desc=desc)
+
+
+_HAIRCUT = _p("haircut_pct", "Haircut", "Haircut on the market value in percent: 15 means the collateral counts "
+              "at 85%.", warn=(0.0, 60.0))
+_SEC_VOL = _p("volatility_pct", "Volatility", "Annual price volatility in percent: 25 means 25% a year.", lo=0.0,
+              hi=500.0, warn=(1.0, 150.0))
+_DIV_YIELD = _p("dividend_yield_pct", "Dividend yield", "Annual dividend yield in percent: 2 means 2%.", hi=50.0,
+                warn=(0.0, 15.0))
+_PRICE100 = "Price per 100 of face value (percent of par, not a decimal)."
+NESTED_BOND_TRS = {
+    "initial_price": F(title="Initial price (per 100)", desc=_PRICE100, unit="per 100 face"),
+    "current_price": F(title="Current price (per 100)", desc=_PRICE100, unit="per 100 face"),
+    "coupon_rate": _p("coupon_rate_pct", "Coupon rate", "Annual coupon of the bond underlying in percent: 5 means 5%.",
+                      warn=(0.0, 20.0)),
+    "spread_over_benchmark": _b("spread_over_benchmark_bp", "Spread over benchmark", "Bond spread over its benchmark "
+                                "in basis points (qlrisk takes basis points; its pricer does not read it).", scale=1.0),
+    "modified_duration": F(title="Modified duration (years)", unit="years", minimum=0.0,
+                           desc="Modified duration of the underlying in years."),
+    "dv01": _amt("DV01", "Value change per 1bp in the trade currency; 0 = notional x duration x 0.0001."),
+    "financing_spread": _b("financing_spread_bp", "Financing spread", "Spread paid over the financing index in basis "
+                           "points: 75 means index + 0.75% (qlrisk takes basis points).", scale=1.0),
+    "initial_margin": _amt("Initial margin"), "variation_margin": _amt("Variation margin"),
+    "recovery_rate": _p("recovery_pct", "Recovery rate", "Recovery on a credit event in percent: 40 means 40%.",
+                        hi=99.0, warn=(5.0, 80.0)),
+}
+NESTED_EQUITY_TRS = {
+    "initial_price": F(title="Initial price", desc="Underlying price at inception, in its price units.", unit="price"),
+    "current_price": F(title="Current price", desc="Underlying price now; 0 = the market data's price.", unit="price"),
+    "dividend_yield": _DIV_YIELD,
+    "financing_spread": _b("financing_spread_bp", "Financing spread", "Spread paid over the financing index in basis "
+                           "points: 50 means index + 0.50% (qlrisk takes basis points).", scale=1.0),
+    "initial_margin": _amt("Initial margin"), "variation_margin": _amt("Variation margin"),
+}
+NESTED_COMMODITY_FUTURE = {
+    "contract_size": F(title="Contract size", desc="Units per contract (1000 barrels for WTI).", unit="units"),
+    "futures_price": F(title="Futures price", desc="Agreed futures price per unit; 0 = fair.", unit="price"),
+    "spot_price": F(title="Spot price", desc="Spot price per unit; empty = the market data's price.", unit="price"),
+    "storage_cost": _p("storage_cost_pct", "Storage cost", "Annual storage cost in percent of the price (added to "
+                       "the carry): 2 means 2% a year.", lo=-50.0, warn=(0.0, 20.0)),
+    "convenience_yield": _p("convenience_yield_pct", "Convenience yield", "Annual convenience yield in percent "
+                            "(subtracted from the carry).", lo=-50.0, warn=(-10.0, 30.0)),
+    "margin_initial": _amt("Initial margin per contract"), "margin_maintenance": _amt("Maintenance margin per contract"),
+}
+NESTED_MARGIN_LOAN_COLLATERAL = {
+    "quantity": F(title="Quantity", type="number"), "market_value": _amt("Market value"),
+    "haircut": _p("haircut_pct", "Haircut", "Haircut in percent; empty = qlrisk's default for the category.",
+                  warn=(0.0, 60.0)),
+}
+NESTED_MARGIN_LOAN = {
+    "loan_amount": _amt("Loan amount"),
+    "interest_spread": _b("interest_spread_bp", "Interest spread", "Spread over the rate index in basis points: 150 "
+                          "means index + 1.50% (qlrisk takes basis points).", scale=1.0),
+    "collateral_positions": F(title="Collateral positions", nested=NESTED_MARGIN_LOAN_COLLATERAL,
+                              desc="Pledged positions: security_id, security_name, category, quantity, market_value, "
+                                   "haircut_pct, currency."),
+    "total_collateral_value": _amt("Total collateral value"),
+    "initial_margin_pct": _p("initial_margin_pct", "Initial margin", "Initial margin requirement in percent of the "
+                             "collateral: 50 means 50% (qlrisk takes 0.50).", warn=(5.0, 90.0)),
+    "maintenance_margin_pct": _p("maintenance_margin_pct", "Maintenance margin", "Maintenance margin requirement in "
+                                 "percent: 35 means 35% (qlrisk takes 0.35).", warn=(5.0, 90.0)),
+    "current_ltv": _p("current_ltv_pct", "Current loan-to-value", "Loan / collateral value in percent.", hi=1000.0),
+    "margin_excess": _amt("Margin excess", "Excess margin (positive) or deficit, in the trade currency."),
+}
+NESTED_PB_POSITION = {"quantity": F(title="Quantity", type="number"), "market_value": _amt("Market value"),
+                      "haircut": _HAIRCUT}
+NESTED_PRIME_BROKERAGE = {
+    "financing_rate_spread": _b("financing_rate_spread_bp", "Financing spread", "Long financing spread over the "
+                                "benchmark rate in basis points (qlrisk takes basis points).", scale=1.0),
+    "short_rebate_spread": _b("short_rebate_spread_bp", "Short rebate spread", "Short rebate spread over the benchmark "
+                              "in basis points; negative is a cost (qlrisk takes basis points).", scale=1.0),
+    "initial_margin_requirement": _p("initial_margin_requirement_pct", "Initial margin requirement", "In percent of "
+                                     "the position value: 50 means 50% (Reg T).", warn=(5.0, 100.0)),
+    "maintenance_margin": _p("maintenance_margin_pct", "Maintenance margin", "In percent: 25 means 25%.",
+                             warn=(5.0, 100.0)),
+    "house_margin_excess": _p("house_margin_excess_pct", "House margin excess", "Extra house requirement in percent of "
+                              "the gross market value: 5 means 5%.", warn=(0.0, 50.0)),
+    "positions": F(title="Positions", nested=NESTED_PB_POSITION, desc="Positions: security_id, security_type, quantity, "
+                   "market_value, haircut_pct, is_long, is_rehypothecatable."),
+    "gross_exposure_limit": _amt("Gross exposure limit"), "net_exposure_limit": _amt("Net exposure limit"),
+    "concentration_limit": _p("concentration_limit_pct", "Concentration limit", "Largest share of one security in "
+                              "percent: 10 means 10%."),
+    "rehypothecation_limit": _p("rehypothecation_limit_pct", "Rehypothecation limit", "In percent of the debit "
+                                "balance: 140 means 140%.", hi=1000.0),
+    "custody_fee_bps": _b("custody_fee_bps", "Custody fee", "Annual custody fee in basis points of the gross value "
+                          "(qlrisk takes basis points).", lo=0.0, scale=1.0, warn=(0.0, 100.0)),
+    "execution_fee_bps": _b("execution_fee_bps", "Execution fee", "Execution fee in basis points (qlrisk takes basis "
+                            "points).", lo=0.0, scale=1.0, warn=(0.0, 100.0)),
+}
+NESTED_STOCK_LOAN = {
+    "quantity": F(title="Quantity (shares)"), "loan_value": _amt("Loan value", "Market value of the loaned stock."),
+    "collateral_value": _amt("Collateral value"),
+    "collateral_margin": _p("collateral_margin_pct", "Collateral margin", "Collateral in percent of the loan value: "
+                            "102 means 102% (qlrisk takes 1.02).", lo=0.0, hi=1000.0, warn=(100.0, 150.0)),
+    "rebate_rate": _b("rebate_rate_bp", "Rebate rate", "Annual rate paid on cash collateral in basis points; may be "
+                      "negative."),
+    "lending_fee": _b("lending_fee_bp", "Lending fee", "Annual lending fee in basis points of the stock value (non-cash "
+                      "collateral); 0 with a 0 rebate lets qlrisk pick it by loan type.", lo=0.0, warn=(0.0, 5000.0)),
+    "haircut": _p("haircut_pct", "Collateral haircut", "Haircut in percent; 0 lets qlrisk pick the regulatory one.",
+                  warn=(0.0, 60.0)),
+    "stock_volatility": _p("stock_volatility_pct", "Stock volatility", "Annual volatility in percent: 25 means 25%.",
+                           lo=0.0, hi=500.0, warn=(1.0, 150.0)),
+    "dividend_yield": _DIV_YIELD,
+    "minimum_term_days": F(title="Minimum term (days)", unit="days"),
+    "recall_notice_days": F(title="Recall notice (days)", unit="days"),
+}
+NESTED_TRI_PARTY = {
+    "cash_amount": _amt("Cash amount"),
+    "repo_rate": _p("repo_rate_pct", "Repo rate", "Fixed annual repo rate in percent: 4 means 4%.", lo=-10.0,
+                    warn=(-2.0, 20.0)),
+    "floating_spread": _b("floating_spread_bp", "Floating spread", "Spread over the floating index in basis points "
+                          "(qlrisk takes basis points).", scale=1.0),
+    "collateral_value": _amt("Collateral value"),
+    "haircut": _p("haircut_pct", "Haircut", "Haircut in percent overriding the schedule's; empty = the schedule's.",
+                  warn=(0.0, 60.0)),
+}
+NESTED_ML_COLLATERAL = {
+    "quantity": F(title="Quantity"), "market_value": _amt("Market value"), "haircut": _HAIRCUT,
+    "concentration_limit": _p("concentration_limit_pct", "Concentration limit", "Largest share of this security in "
+                              "percent: 30 means 30%."),
+    "volatility": _SEC_VOL,
+}
+NESTED_BORROWED = {
+    "quantity": F(title="Quantity"), "market_value": _amt("Market value"), "haircut": _HAIRCUT,
+    "volatility": _SEC_VOL, "dividend_yield": _DIV_YIELD,
+    "special_rate": _p("special_rate_pct", "Special rate", "Borrow rate when hard to borrow, annual, in percent "
+                       "(qlrisk's pricer does not read it).", lo=-10.0, hi=1000.0),
+}
+NESTED_COLLATERAL_LEG = {"market_value": _amt("Market value"), "haircut": _HAIRCUT, "volatility": _SEC_VOL}
+
 # per pricer or per product: changes to the generic entry (a dict of F attributes), or hidden
 OVERRIDES: Dict[str, Dict[str, Dict[str, Any]]] = {
     "price_fixed_bond": {"coupon": {"required": True}, "frequency": {"default": "semi-annual"}},
@@ -324,10 +489,19 @@ OVERRIDES: Dict[str, Dict[str, Dict[str, Any]]] = {
     "FXForward": {"settlement_date": {"name": "maturity", "title": "Maturity (settlement)",
                                       "desc": "Settlement: a tenor (3M, 1Y) or a date YYYY-MM-DD."}},
     "MarginLending": {"spread": {"desc": "Spread over the reference rate in basis points.", "example": 200}},
-    "CollateralSwap": {},
+    "CollateralSwap": {"receive_leg": {"nested": NESTED_COLLATERAL_LEG}, "deliver_leg": {"nested": NESTED_COLLATERAL_LEG}},
+    "BondTRS": {"terms": {"nested": NESTED_BOND_TRS}},
+    "EquityTRS": {"terms": {"nested": NESTED_EQUITY_TRS}},
+    "CommodityFuture": {"terms": {"nested": NESTED_COMMODITY_FUTURE}},
+    "MarginLoan": {"terms": {"nested": NESTED_MARGIN_LOAN}},
+    "PrimeBrokerage": {"terms": {"nested": NESTED_PRIME_BROKERAGE}},
+    "StockLoan": {"terms": {"nested": NESTED_STOCK_LOAN}},
+    "TriPartyRepo": {"terms": {"nested": NESTED_TRI_PARTY}},
+    "MarginLending": {"collateral_positions": {"nested": NESTED_ML_COLLATERAL}},
+    "SecuritiesBorrowing": {"borrowed_securities": {"nested": NESTED_BORROWED}},
 }
-for _p, (_ccy, _freq) in _BOND_MARKET.items():
-    OVERRIDES[_p] = {"currency": {"default": _ccy}, "frequency": {"default": _freq}}
+for _prod, (_ccy, _freq) in _BOND_MARKET.items():
+    OVERRIDES[_prod] = {"currency": {"default": _ccy}, "frequency": {"default": _freq}}
 
 # the owner-facing example per product, where the generic one is not the clearest
 EXAMPLES: Dict[str, Dict[str, Any]] = {
@@ -348,6 +522,330 @@ EXAMPLE_EXTRA: Dict[str, Dict[str, Any]] = {
                               "price_fx_ndf", "price_commodity_option", "price_commodity_forward",
                               "price_variance_swap", "price_vix_future", "price_ir_future", "price_bond_future",
                               "price_dividend_swap")},
+}
+
+
+# ── calculator fields: qlrisk_credit_risk, qlrisk_xva, qlrisk_ccr_exposure (mode calculator) ──
+# qlrisk's calculator dataclass fields (CALC_INPUTS) and configuration keys (CALC_CONFIG), by measure. The schemas
+# are read from qlrisk when the tools load (introspect.calculator_input_class / calculator_config); this says
+# which name, unit and conversion each field gets. Lists and tenor -> value objects convert element by element.
+# A qlrisk field the table does not name is passed as is (and documented so); the tests fail when one appears.
+# Semantics are from qlrisk's calculator code (calculator/python/*.py), noted where they matter.
+
+_YRS = dict(unit="years", minimum=0.0)
+_MPOR = F(name="margin_period_of_risk_days", title="Margin period of risk (business days)", unit="business days",
+          scale=1 / 252, minimum=0.0, maximum=252.0, desc="Margin period of risk in business days: 10 means ten "
+          "business days (qlrisk takes years, days / 252).")
+_TIME_GRID = F(title="Time grid (years)", desc="Times in years from today, ascending, one per profile point.", **_YRS)
+_NOT_READ = " (qlrisk's calculator declares it but does not read it.)"
+_RECOVERY = _p("recovery_pct", "Recovery rate", "Recovery in percent of the exposure: 40 means 40% (not 0.4).",
+               warn=(5.0, 80.0))
+_PD = _p("pd_pct", "Probability of default", "Probability of default over the horizon in percent: 2 means 2% "
+         "(not 0.02).")
+_LGD = _p("lgd_pct", "Loss given default", "Loss given default in percent of EAD: 45 means 45%.")
+_CONF = lambda d: _p("confidence_pct", "Confidence", f"Confidence level in percent: {d} means {d}%.", lo=50.0,
+                     hi=99.999)
+_EXPO_COMMON = {
+    "current_mtm": _amt("Current mark-to-market", "Current MTM of the trade or netting set, in its currency."),
+    "notional": _amt("Notional"),
+    "remaining_maturity": F(name="remaining_maturity_years", title="Remaining maturity (years)", desc="Remaining "
+                            "life in years; the profile runs to it.", positive=True, **_YRS),
+    "volatility": _p("volatility_pct", "Exposure volatility", "Annual volatility of the MTM in percent of notional "
+                     "(parametric: sigma(t) = volatility x notional x sqrt(t); Monte Carlo: the MTM's lognormal "
+                     "volatility): 1 means 1% a year.", hi=500.0, warn=(0.0, 100.0)),
+    "product_type": _same("Product type", "irs, fra, cds, fx_forward, fx_option, equity, commodity (sets the "
+                          "profile shape)."),
+    "collateral_held": _amt("Collateral held", "Collateral held against the exposure, in its currency."),
+    "margin_period_of_risk": _MPOR,
+    "num_simulations": _same("Monte Carlo paths"),
+    "time_grid": _TIME_GRID,
+    "exposure_paths": _amt("Exposure paths", "Your own simulated MTM paths (one list per path, one value per time "
+                           "point); replaces the simulation."),
+}
+_EE = {**_EXPO_COMMON,
+       "interest_rate": _p("interest_rate_pct", "Interest rate", "Annual rate in percent." + _NOT_READ, lo=-10.0,
+                           warn=(-2.0, 20.0)),
+       "drift": _p("drift_pct", "Drift", "Annual drift of the MTM in percent (Monte Carlo): 2 means 2% a year.",
+                   lo=-100.0, warn=(-20.0, 20.0))}
+_DISCOUNT = _p("discount_curve_pct", "Discount curve", "Tenor -> zero rate in percent, continuously compounded: "
+               "{\"1Y\": 4, \"5Y\": 4.2}; empty = 5% flat.", lo=-10.0, warn=(-2.0, 20.0))
+_FUNDING = _b("funding_spread_bp", "Funding spread", "Own funding spread over the risk-free rate in basis points a "
+              "year: 100 means 1%.", lo=-1000.0, warn=(-100.0, 1000.0))
+
+CALC_INPUTS: Dict[str, Dict[str, F]] = {
+    "pd": {
+        "asset_value": _amt("Asset value", "Market value of the firm's assets (structural model)."),
+        "debt_value": _amt("Debt value", "Debt due at the horizon (structural model)."),
+        "asset_volatility": _p("asset_volatility_pct", "Asset volatility", "Annual volatility of the asset value in "
+                               "percent (structural model): 25 means 25% a year.", hi=500.0, warn=(1.0, 150.0)),
+        "risk_free_rate": _p("risk_free_rate_pct", "Risk-free rate", "Annual risk-free rate in percent, continuously "
+                             "compounded (structural model): 4 means 4%.", lo=-10.0, warn=(-2.0, 20.0)),
+        "time_horizon": F(name="time_horizon_years", title="Horizon (years)", desc="PD horizon in years.",
+                          positive=True, **_YRS),
+        "hazard_rate": _p("hazard_rate_pct", "Hazard rate", "Constant default intensity in percent a year (reduced "
+                          "form: PD = 1 - exp(-hazard x T)): 2 means 2% a year.", hi=1000.0, warn=(0.0, 50.0)),
+        "credit_rating": _same("Credit rating", "AAA, AA, A, BBB, BB, B or CCC (transition-matrix model)."),
+        "rating_pd": _p("rating_pd_pct", "Rating PD", "A known probability of default in percent: 2 means 2%."),
+        "financial_ratios": _same("Financial ratios", "Ratio name -> value (logistic model), passed as is."),
+        "model_coefficients": _same("Model coefficients", "Coefficient name -> value (logistic model), passed as is."),
+    },
+    "lgd": {
+        "exposure": _amt("Exposure", "Exposure at default, in its currency."),
+        "recovery_rate": _RECOVERY,
+        "collateral": F(title="Collateral", nested={"value": _amt("Value"), "haircut": _HAIRCUT},
+                        desc="Collateral items: collateral_type, value, haircut_pct, currency."),
+        "recovery_history": _p("recovery_history_pct", "Historical recoveries", "Observed recovery rates in percent, "
+                               "one per default (workout model): [35, 42, 50]."),
+        "bond_price": F(title="Defaulted bond price (per 100)", unit="per 100 of par", minimum=0.0, maximum=200.0,
+                        desc="Market price of the defaulted bond per 100 of par (market model: recovery = price / 100)."),
+        "lgd_mean": _p("lgd_mean_pct", "Mean LGD", "Mean LGD in percent (stochastic model)."),
+        "lgd_std": _p("lgd_std_pct", "LGD standard deviation", "Standard deviation of the LGD in percentage points "
+                      "(stochastic model)."),
+        "is_senior": _same("Senior"), "is_secured": _same("Secured"),
+    },
+    "ead": {
+        "current_exposure": _amt("Current exposure"), "notional": _amt("Notional"),
+        "credit_conversion_factor": _p("credit_conversion_factor_pct", "Credit conversion factor", "CCF in percent: "
+                                       "100 means the full amount counts."),
+        "add_on_factor": _p("add_on_factor_pct", "Add-on factor", "Potential future exposure add-on in percent of "
+                            "notional (CEM): 0.5 means 0.5%.", warn=(0.0, 15.0), tiny=0.0),
+        "collateral_value": _amt("Collateral value"),
+        "collateral_haircut": _p("collateral_haircut_pct", "Collateral haircut", "Haircut on the collateral in "
+                                 "percent: 10 means it counts at 90%."),
+        "netting_benefit": _p("netting_benefit_pct", "Netting benefit", "Share of the gross exposure removed by netting, "
+                              "in percent: 30 means 30%."),
+        "margin_period_of_risk": _MPOR,
+        "replacement_cost": _amt("Replacement cost"), "pfe_add_on": _amt("PFE add-on"),
+    },
+    "el": {
+        "pd": _PD, "lgd": _LGD, "ead": _amt("Exposure at default"),
+        "time_horizon": F(name="time_horizon_years", title="Horizon (years)", desc="EL horizon in years; with "
+                          "annualize the EL is also given per year.", positive=True, **_YRS),
+        "maturity": F(name="maturity_years", title="Maturity (years)", desc="Maturity in years." + _NOT_READ, **_YRS),
+        "recovery_rate": _RECOVERY,
+        "pd_term_structure": _p("pd_term_structure_pct", "PD term structure", "Marginal PD of each period in percent, "
+                                "one per time point (with config use_term_structure)."),
+        "time_points": F(title="Time points (years)", desc="End of each PD period in years.", **_YRS),
+    },
+    "economic_capital": {
+        "exposures": _amt("Exposures", "EAD per obligor."),
+        "pds": _p("pds_pct", "PDs", "One-year PD per obligor in percent: [1, 2] means 1% and 2%."),
+        "lgds": _p("lgds_pct", "LGDs", "LGD per obligor in percent: [45, 45]."),
+        "asset_correlation": F(title="Asset correlation (0 to 1)", unit="0 to 1", minimum=0.0, maximum=1.0,
+                               desc="Vasicek asset correlation: 0.2 means 20%."),
+        "correlation_matrix": _same("Correlation matrix", "Obligor correlations (0 to 1)." + _NOT_READ),
+        "ead": _amt("Exposure at default (single obligor)"),
+        "pd": _p("pd_pct", "PD (single obligor)", "In percent: 2 means 2%."),
+        "lgd": _p("lgd_pct", "LGD (single obligor)", "In percent: 45 means 45%."),
+        "confidence_level": _CONF("99.9"),
+        "time_horizon": F(name="time_horizon_years", title="Horizon (years)", desc="Horizon in years." + _NOT_READ,
+                          **_YRS),
+    },
+    "raroc": {
+        **{k: _amt(k.replace("_", " ").capitalize()) for k in (
+            "revenue", "fee_income", "spread_income", "trading_income", "operating_cost", "funding_cost",
+            "hedging_cost", "expected_loss", "economic_capital", "regulatory_capital", "cva", "fva", "kva")},
+        "tax_rate": _p("tax_rate_pct", "Tax rate", "Tax rate in percent: 25 means 25%."),
+        "hurdle_rate": _p("hurdle_rate_pct", "Hurdle rate", "Required return on capital in percent a year: 15 means "
+                          "15%; empty = config hurdle_rate_pct.", lo=-100.0, hi=1000.0, warn=(0.0, 50.0)),
+    },
+    "ce": {
+        "mark_to_market": _amt("Mark-to-market"), "collateral_held": _amt("Collateral held"),
+        "collateral_posted": _amt("Collateral posted"),
+        "collateral_haircut": _p("collateral_haircut_pct", "Collateral haircut", "Haircut on collateral held in "
+                                 "percent: 10 means it counts at 90%."),
+        "threshold": _amt("Threshold"),
+        "minimum_transfer_amount": _amt("Minimum transfer amount", "Minimum transfer amount." + _NOT_READ),
+        "independent_amount": _amt("Independent amount"),
+        "netting_set_id": _same("Netting set id", "Netting set id." + _NOT_READ),
+        "trades_in_netting_set": _amt("Trade MTMs in the netting set", "One MTM per trade, netted when config "
+                                      "apply_netting is true."),
+    },
+    "ee": _EE,
+    "eee": _EE,
+    "pfe": {**_EXPO_COMMON,
+            "interest_rate": _p("interest_rate_pct", "Interest rate", "Annual rate in percent, the Monte Carlo drift: "
+                                "5 means 5%.", lo=-10.0, warn=(-2.0, 20.0)),
+            "fx_rate": _same("FX rate", "FX rate." + _NOT_READ),
+            "credit_spread": _b("credit_spread_bp", "Credit spread", "Counterparty credit spread in basis points."
+                                + _NOT_READ, lo=0.0, warn=(0.0, 2000.0))},
+    "peak": {**{k: _EXPO_COMMON[k] for k in ("current_mtm", "notional", "remaining_maturity", "volatility",
+                                             "product_type", "num_simulations", "time_grid", "collateral_held")},
+             "ee_profile": _amt("EE profile", "Expected exposure per time point (ee_based)."),
+             "pfe_profile": _amt("PFE profile", "PFE per time point (pfe_based)."),
+             "confidence_level": _CONF("95")},
+    "stressed": {**{k: _EXPO_COMMON[k] for k in ("current_mtm", "notional", "remaining_maturity", "volatility",
+                                                 "product_type")},
+                 "stress_type": _same("Stress type", "historical (a named scenario, or the shocks below when "
+                                      "stress_scenario is not one), hypothetical (the shocks below; zeros take "
+                                      "qlrisk's regulatory defaults) or reverse."),
+                 "stress_scenario": _same("Stress scenario", "2008_crisis, covid_2020, ... (qlrisk's exposure "
+                                          "scenarios); empty = config default_scenario."),
+                 "rate_shock": _b("rate_shock_bp", "Rate shock", "Absolute rate move in basis points: -200 means "
+                                  "-2% (affects irs and fra; qlrisk takes basis points).", lo=-5000.0, hi=5000.0,
+                                  warn=(-1000.0, 1000.0), scale=1.0),
+                 "fx_shock": _p("fx_shock_pct", "FX shock", "Relative FX move in percent: 20 means 20% (affects "
+                                "fx_forward and fx_option).", lo=-100.0, hi=1000.0, warn=(-50.0, 100.0)),
+                 "credit_shock": _b("credit_shock_bp", "Credit shock", "Absolute credit-spread move in basis points: "
+                                    "300 means +3% (affects cds; qlrisk takes basis points).", lo=-5000.0,
+                                    warn=(-1000.0, 3000.0), scale=1.0),
+                 "volatility_shock": _p("volatility_shock_pct", "Volatility shock", "Relative volatility move in "
+                                        "percent: 150 means volatility x 2.5 (qlrisk takes the multiplier, 1 + "
+                                        "percent / 100); omit for qlrisk's default.", lo=-100.0, hi=1000.0,
+                                        warn=(0.0, 500.0), offset=1.0, default=None),
+                 "correlation_shock": F(title="Correlation shock (-1 to 1)", unit="-1 to 1", minimum=-1.0,
+                                        maximum=1.0, desc="Absolute change in correlation: 0.3 means +0.3."),
+                 "historical_returns": _same("Historical returns", "Return series." + _NOT_READ),
+                 "lookback_period": F(title="Lookback (days)", unit="days", desc="Lookback in days." + _NOT_READ)},
+    "cva": {
+        "ee_profile": _amt("EE profile", "Expected (positive) exposure per time point, in the trade currency."),
+        "time_grid": _TIME_GRID,
+        "credit_spread": _b("credit_spread_bp", "Credit spread", "Counterparty credit spread in basis points a year: "
+                            "120 means 1.2% (hazard = spread / (1 - recovery)).", lo=0.0, warn=(0.0, 2000.0)),
+        "recovery_rate": _RECOVERY,
+        "spread_term_structure": _b("spread_term_structure_bp", "Spread term structure", "Credit spread per time point "
+                                    "in basis points, overriding credit_spread_bp.", lo=0.0, warn=(0.0, 2000.0)),
+        "discount_rates": _p("discount_rates_pct", "Discount rates", "Zero rate per time point in percent, continuously "
+                             "compounded; empty = risk_free_rate_pct.", lo=-10.0, warn=(-2.0, 20.0)),
+        "risk_free_rate": _p("risk_free_rate_pct", "Risk-free rate", "Flat zero rate in percent, continuously "
+                             "compounded: 5 means 5%.", lo=-10.0, warn=(-2.0, 20.0)),
+        "own_credit_spread": _b("own_credit_spread_bp", "Own credit spread", "Own spread in basis points (bilateral "
+                                "CVA, with config bilateral).", lo=0.0, warn=(0.0, 2000.0)),
+        "own_recovery_rate": _p("own_recovery_pct", "Own recovery rate", "Own recovery in percent (bilateral CVA).",
+                                warn=(5.0, 80.0)),
+        "notional": _amt("Notional", "Notional for cva_pct (CVA as a percentage of it)."),
+    },
+    "dva": {
+        "exposure_profile": _amt("Exposure profile", "Exposure per time point; negative values (what we owe) give DVA."),
+        "time_grid": _TIME_GRID,
+        "own_pd_curve": _p("own_pd_curve_pct", "Own default curve", "Tenor -> own default probability per year in "
+                           "percent (an intensity): {\"1Y\": 1, \"5Y\": 1.5}; empty = 1% a year."),
+        "own_lgd": _p("own_lgd_pct", "Own LGD", "Own loss given default in percent: 60 means 60%."),
+        "discount_curve": _DISCOUNT,
+    },
+    "fva": {
+        "exposure_profile": _amt("Exposure profile", "Exposure per time point: positive is funded (cost), negative "
+                                 "gives a benefit."),
+        "time_grid": _TIME_GRID, "funding_spread": _FUNDING, "discount_curve": _DISCOUNT,
+        "counterparty_survival_curve": _p("counterparty_survival_curve_pct", "Counterparty survival curve",
+                                          "Tenor -> counterparty survival probability in percent: {\"5Y\": 95}; "
+                                          "empty = 99%.", tiny=0.0),
+    },
+    "kva": {
+        "ead_profile": _amt("EAD profile", "Exposure at default per time point."),
+        "time_grid": _TIME_GRID,
+        "counterparty_pd": _p("counterparty_pd_pct", "Counterparty PD", "One-year PD in percent: 1 means 1%."),
+        "counterparty_lgd": _p("counterparty_lgd_pct", "Counterparty LGD", "LGD in percent: 45 means 45%."),
+        "cost_of_capital": _p("cost_of_capital_pct", "Cost of capital", "Annual cost of capital in percent: 10 means 10%.",
+                              warn=(0.0, 30.0)),
+        "discount_curve": _DISCOUNT,
+        "capital_floor": _p("capital_floor_pct", "Capital floor", "Minimum capital in percent of EAD: 0.03 means 0.03%.",
+                            tiny=0.0),
+    },
+    "mva": {
+        "initial_margin_profile": _amt("Initial margin profile", "Initial margin posted per time point."),
+        "time_grid": _TIME_GRID, "funding_spread": _FUNDING, "discount_curve": _DISCOUNT,
+    },
+}
+_HORIZON_CFG = F(name="time_horizon_years", title="Horizon (years)", desc="Horizon in years.", positive=True, **_YRS)
+CALC_CONFIG: Dict[str, Dict[str, F]] = {
+    "pd": {"model": _same("Model"), "time_horizon": _HORIZON_CFG},
+    "lgd": {"model": _same("Model"),
+            "default_lgd": _p("default_lgd_pct", "Default LGD", "LGD in percent when the model has no inputs."),
+            "floor": _p("floor_pct", "LGD floor", "Lowest LGD in percent."),
+            "cap": _p("cap_pct", "LGD cap", "Highest LGD in percent.")},
+    "ead": {"method": _same("Method"), "alpha": _same("Alpha", "EAD multiplier; Basel uses 1.4."),
+            "include_margin": _same("Include margin")},
+    "el": {"time_horizon": _HORIZON_CFG, "annualize": _same("Annualize"),
+           "use_term_structure": _same("Use the PD term structure")},
+    "economic_capital": {"method": _same("Method"), "confidence_level": _CONF("99.9"),
+                         "num_simulations": _same("Monte Carlo paths")},
+    "raroc": {"hurdle_rate": _p("hurdle_rate_pct", "Hurdle rate", "Required return on capital in percent: 15 means "
+                                "15%.", lo=-100.0, hi=1000.0, warn=(0.0, 50.0)),
+              "include_xva": _same("Include XVA"), "use_regulatory_capital": _same("Use regulatory capital")},
+    "ce": {"apply_netting": _same("Apply netting"), "apply_collateral": _same("Apply collateral"),
+           "include_threshold": _same("Include threshold")},
+    "ee": {"method": _same("Method"), "num_simulations": _same("Monte Carlo paths"),
+           "calculate_effective": _same("Calculate effective EE")},
+    "pfe": {"method": _same("Method"), "num_simulations": _same("Monte Carlo paths"), "time_horizon": _HORIZON_CFG,
+            "confidence_level": _CONF("95")},
+    "peak": {"method": _same("Method"), "num_simulations": _same("Monte Carlo paths")},
+    "stressed": {"stress_type": _same("Stress type"), "default_scenario": _same("Default scenario")},
+    "cva": {"method": _same("Method"), "bilateral": _same("Bilateral"), "wrong_way_risk": _same("Wrong-way risk"),
+            "wwr_correlation": F(title="Wrong-way correlation (-1 to 1)", unit="-1 to 1", minimum=-1.0, maximum=1.0)},
+}
+CALC_CONFIG["eee"] = CALC_CONFIG["ee"]
+# configuration keys qlrisk reads in a base class, which introspect.calculator_config (the subclass __init__) misses:
+# ExposureCalculator reads confidence_level (default 0.95); of the exposure calculators only PFE uses it.
+CALC_CONFIG_EXTRA: Dict[str, Dict[str, Dict[str, Any]]] = {
+    "pfe": {"confidence_level": {"type": "number", "default": 0.95}},
+}
+
+# ── shocks: market_data.shocks, qlrisk_pnl_explain end_shocks, qlrisk_stress_test custom scenarios ──
+# A shock's size is in the unit its factor's kind and shock type call for, and the field name says which:
+# size_bp (basis points), size_pct (percent) or size (the factor's own units). Keyed by qlrisk's FactorKind and
+# ShockType values (riskfactors/taxonomy.py, shocks.py): absolute is v + s, relative v x (1 + s), log v x exp(s).
+
+
+@dataclass(frozen=True)
+class ShockUnit:
+    suffix: str                      # "_bp", "_pct" or "" (the factor's own units)
+    scale: float                     # qlrisk size = exposed size x scale
+    meaning: str                     # how the number applies, for descriptions and errors
+    limit: Optional[float] = None    # |size| above it is an error (exposed units)
+    usual: Optional[float] = None    # |size| above it prices with a warning
+    floor: Optional[float] = None    # sizes below it are an error (a relative move below -100%)
+
+
+FACTOR_KINDS = {"rate": "a rate", "spread": "a credit spread", "dividend": "a dividend yield", "vol": "a volatility",
+                "spot": "an FX spot", "price": "a price", "scalar": "a scalar"}
+_REL = ShockUnit("_pct", PCT, "percent of the level: -10 means the level x 0.90", 1000.0, 50.0, floor=-100.0)
+_LOG = ShockUnit("_pct", PCT, "a log move in percent: -10 means the level x exp(-0.10)", 500.0, 50.0)
+SHOCK_UNITS: Dict[Tuple[str, str], ShockUnit] = {
+    ("rate", "absolute"): ShockUnit("_bp", BP, "basis points added to the rate: 25 means +0.25%", 5000.0, 1000.0),
+    ("spread", "absolute"): ShockUnit("_bp", BP, "basis points added to the spread: 100 means +1%", 10000.0, 3000.0),
+    ("dividend", "absolute"): ShockUnit("_bp", BP, "basis points added to the dividend yield", 5000.0, 1000.0),
+    ("vol", "absolute"): ShockUnit("_pct", PCT, "volatility points in percent, added: 5 means 20% -> 25%", 200.0, 50.0),
+    ("spot", "absolute"): ShockUnit("", 1.0, "quote currency per base unit, added to the spot"),
+    ("price", "absolute"): ShockUnit("", 1.0, "price units, added to the price"),
+    ("scalar", "absolute"): ShockUnit("", 1.0, "the factor's own units, added"),
+    **{(k, "relative"): _REL for k in FACTOR_KINDS},
+    **{(k, "log"): _LOG for k in FACTOR_KINDS},
+}
+SHOCK_SIZES = {"size": "Size", "short_end": "Short end (2y and in)", "long_end": "Long end (10y and out)",
+               "wings": "Wings (2y and 10y)", "belly": "Belly (5y)"}
+
+# a stylised stress (qlrisk StressDefinition; scenarios/stress_library.py stress_shocks): rates move every rate
+# factor absolutely (a twist when two numbers), credit and vol move spreads and vols relatively, equity / commodity
+# prices and FX spots relatively.
+STRESS_DEFINITION: Dict[str, F] = {
+    "description": _same("Description", "Defaults to the scenario name."),
+    "equity": _p("equity_pct", "Equity move", "Relative move of every equity price in percent: -20 means -20%.",
+                 lo=-100.0, hi=1000.0, warn=(-80.0, 100.0)),
+    "vol": _p("vol_pct", "Volatility move", "Relative move of every implied volatility in percent: 100 means "
+              "volatilities double.", lo=-100.0, hi=1000.0, warn=(-80.0, 400.0)),
+    "rates": F(name="rates_bp", title="Rates move (bp)", unit="basis points", scale=BP, minimum=-5000.0, maximum=5000.0,
+               warn=(-1000.0, 1000.0), desc="Absolute move of every interest rate in basis points: -50 means -0.50% "
+               "at every tenor; or [short_end, long_end] for a twist from 2y to 10y."),
+    "credit": _p("credit_pct", "Credit spread move", "Relative move of every credit spread in percent: 100 means "
+                 "spreads double (qlrisk moves spreads relatively, not by basis points).", lo=-100.0, hi=2000.0,
+                 warn=(-80.0, 500.0)),
+    "fx_usd": _p("fx_usd_pct", "FX move against USD", "Relative move of every currency against USD in percent: -10 "
+                 "means each currency loses 10% against USD (USD strengthens).", lo=-100.0, hi=1000.0,
+                 warn=(-50.0, 100.0)),
+    "commodity": _p("commodity_pct", "Commodity move", "Relative move of every commodity price in percent: -30 means "
+                    "-30%.", lo=-100.0, hi=1000.0, warn=(-80.0, 200.0)),
+    "fx": _p("fx_pct", "FX move by currency", "Currency -> relative move against USD in percent, overriding "
+             "fx_usd_pct: {\"EUR\": -14}.", lo=-100.0, hi=1000.0, warn=(-50.0, 100.0)),
+}
+
+# liquidity-adjusted VaR (calculator/python/liquidity_var.py: cost = 0.5 x |value| x proportional spread)
+LIQUIDITY: Dict[str, F] = {
+    "spreads": F(name="spreads_bp", title="Bid-ask spreads (bp)", unit="basis points", scale=BP, minimum=0.0,
+                 maximum=10000.0, warn=(0.0, 2000.0), desc="Trade id -> full bid-ask spread in basis points of the "
+                 "position value: 20 means 0.20%; the exit cost is half the spread."),
+    "horizon_days": F(title="Liquidity horizon (days)", unit="days", desc="Days to exit; VaR is scaled by its square "
+                      "root."),
 }
 
 

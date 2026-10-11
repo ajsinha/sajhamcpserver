@@ -38,19 +38,31 @@ def _float_keys(value, tp):
     return value
 
 
-def run_calculator(measure: str, inputs: Dict[str, Any], config: Dict[str, Any], ctx: Ctx) -> Tuple[Any, List[str]]:
+def run_calculator(measure: str, inputs: Dict[str, Any], config: Dict[str, Any], ctx: Ctx,
+                   where: str = "inputs", cwhere: str = "config") -> Tuple[Any, List[str]]:
+    """Run one qlrisk calculator. For the measures in generate.CALC_INPUTS (credit_risk, xva, ccr_exposure) inputs and
+    config are in the tools' units (percent, basis points, days) and are converted first; what qlrisk received is
+    recorded for the result's qlrisk_inputs. saccr and initial_margin pass qlrisk's fields as they are."""
     import typing
+    from ..generate import CALC_INPUTS
+    from ..units import calc_to_qlrisk, note_received
     _, cls = I.calculator_class(measure)
     inp_cls = I.calculator_input_class(measure)
     if not isinstance(inputs, dict):
         raise InvalidInput(f"inputs for {measure} must be an object; fields: {I.field_summary(inp_cls)}")
-    known_cfg = I.calculator_config(measure)
-    unknown = set(config or {}) - set(known_cfg)
-    if unknown:
-        raise InvalidInput(f"config for {measure}: unknown key(s) {sorted(unknown)}; known: {sorted(known_cfg) or 'none'}")
-    for k, spec in known_cfg.items():
-        if k in (config or {}) and "enum" in spec and str(config[k]) not in spec["enum"]:
-            raise InvalidInput(f"config.{k} must be one of {spec['enum']}")
+    if measure in CALC_INPUTS:
+        inputs, config = calc_to_qlrisk(measure, inputs, config, ctx.warnings, where, cwhere)
+        note_received(where, to_jsonable(inputs))
+        if config:
+            note_received(cwhere, to_jsonable(config))
+    else:
+        known_cfg = I.calculator_config(measure)
+        unknown = set(config or {}) - set(known_cfg)
+        if unknown:
+            raise InvalidInput(f"config for {measure}: unknown key(s) {sorted(unknown)}; known: {sorted(known_cfg) or 'none'}")
+        for k, spec in known_cfg.items():
+            if k in (config or {}) and "enum" in spec and str(config[k]) not in spec["enum"]:
+                raise InvalidInput(f"config.{k} must be one of {spec['enum']}")
     for where in (inputs, config or {}):
         if "num_simulations" in where:
             check_paths(where["num_simulations"], ctx.limits, f"{measure} num_simulations")
@@ -104,7 +116,7 @@ def _ccr(args: Dict[str, Any], ctx: Ctx):
             value = {k: v for k, v in value.items() if k in ("eee_profile", "effective_epe", "epe", "ee_profile", "time_points", "time_grid", "components") or "eff" in k}
         return _calc_tool_result(m, value, warns, m.upper())
     ccy = args.get("reporting_currency", "USD")
-    md = build_market_data(args.get("market_data"))
+    md = build_market_data(args.get("market_data"), None, ctx.warnings)
     trades = build_trades(args.get("trades") or [], md, ctx.limits, ctx.warnings)
     if mode == "wrong_way":
         from qlrisk.scenarios import wrong_way_exposure
@@ -151,7 +163,7 @@ def _saccr(args: Dict[str, Any], ctx: Ctx):
         value, warns = run_calculator("saccr", args.get("calculator_input") or {}, {}, ctx)
         return _calc_tool_result("saccr", value, warns, "SA-CCR EAD (calculator)")
     ccy = args.get("reporting_currency", "USD")
-    md = build_market_data(args.get("market_data"))
+    md = build_market_data(args.get("market_data"), None, ctx.warnings)
     trades = build_trades(args.get("trades") or [], md, ctx.limits, ctx.warnings)
     if mode == "trades":
         rows = []
@@ -250,7 +262,8 @@ def _xva(args: Dict[str, Any], ctx: Ctx):
         res, details = TotalXVAResult(), {}
         for name in XVA_CALC:
             if name in parts:
-                value, _ = run_calculator(name, parts[name], (args.get("config") or {}).get(name, {}), ctx)
+                value, _ = run_calculator(name, parts[name], (args.get("config") or {}).get(name, {}), ctx,
+                                          f"inputs.{name}", f"config.{name}")
                 details[name] = value
                 setattr(res, name, float(_headline(name, value) or 0.0))
         res.colva = float(parts.get("colva", 0.0))
@@ -267,12 +280,14 @@ def _xva(args: Dict[str, Any], ctx: Ctx):
         if len(args["time_grid"]) != len(args["expected_exposure"]):
             raise InvalidInput("time_grid and expected_exposure must have the same length")
         ccy = args.get("reporting_currency", "USD")
-        md = build_market_data(args.get("market_data"))
+        md = build_market_data(args.get("market_data"), None, ctx.warnings)
         if args["counterparty"] not in md.credit_curves:
             raise InvalidInput(f"counterparty {args['counterparty']!r} has no credit curve in the market data "
                                f"(have {sorted(md.credit_curves)}); add market_data.credit_curves")
         hedges = build_trades(args["hedges"], md, ctx.limits, ctx.warnings) if args.get("hedges") else []
         fn = cva_from_profile(args["counterparty"], args["time_grid"], args["expected_exposure"], float(args.get("recovery", 0.4)))
+        from ..units import note_received
+        note_received("recovery", float(args.get("recovery", 0.4)))
         buckets = {k: (str(v[0]), bool(v[1])) for k, v in args["counterparty_buckets"].items()}
         kw = {k: args[k] for k in ("reference_buckets", "equity_buckets", "commodity_buckets", "curve_currency") if k in args}
         r = sa_cva_capital(fn, md, buckets, hedges=hedges, m_cva=float(args.get("m_cva", 1.0)), reporting_currency=ccy, **kw)
@@ -297,16 +312,35 @@ def _xva(args: Dict[str, Any], ctx: Ctx):
 
 
 def _measure_doc(measures: List[str]) -> str:
-    return " ".join(f"{m}: {I.field_summary(I.calculator_input_class(m))}." for m in measures)
+    """Each measure's input fields under the tools' names, with units (* required)."""
+    from ..units import calc_inputs_schema, fields_doc
+    return " ".join(f"{m}: {fields_doc(calc_inputs_schema(m))}." for m in measures)
 
 
 def _config_doc(measures: List[str]) -> str:
+    from ..units import calc_config_schema
     parts = []
     for m in measures:
-        c = I.calculator_config(m)
+        c = calc_config_schema(m)["properties"]
         if c:
             parts.append(f"{m}: " + ", ".join(f"{k}" + (f" ({'|'.join(v['enum'])})" if "enum" in v else "") for k, v in c.items()))
     return "; ".join(parts)
+
+
+_UNITS = ("Units: probabilities, LGDs, recoveries, rates, haircuts and volatilities in percent (pd_pct 2 = 2%), "
+          "spreads in basis points (credit_spread_bp 120 = 1.2%), maturities and horizons in years, margin periods "
+          "in business days; amounts in the trade currency. ")
+
+
+def _inputs_prop(measures: List[str], what: str) -> Dict[str, Any]:
+    return {"type": "object", "title": "Calculator inputs",
+            "description": f"{what}: the measure's input fields in the tools' units (see the tool description); "
+                           "qlrisk_inputs in the result shows what qlrisk received."}
+
+
+def _config_prop() -> Dict[str, Any]:
+    return {"type": "object", "title": "Calculator configuration",
+            "description": "The measure's configuration keys (see the tool description), in the same units."}
 
 
 def tools(limits) -> List[ToolDef]:
@@ -333,16 +367,16 @@ def tools(limits) -> List[ToolDef]:
                 "market data: EE, PFE, effective EE (EEE), EPE, effective EPE, peak PFE and a CVA where qlrisk's product model gives one (a warning says when it does not). "
                 "mode='calculator' runs a qlrisk exposure calculator from summary inputs: measure ce (current exposure, "
                 "collateral-adjusted), ee, eee, pfe, peak, stressed (crisis scenarios). mode='wrong_way' measures wrong-way "
-                "risk: exposure conditional on the counterparty's credit spread widening by shock_sigmas. Calculator fields: "
-                + _measure_doc(EXPOSURE) + " Config: " + _config_doc(EXPOSURE) + ". Example: {\"mode\": \"calculator\", "
-                "\"measure\": \"pfe\", \"inputs\": {\"current_mtm\": 100000, \"notional\": 10000000, \"remaining_maturity\": 5, "
-                "\"volatility\": 0.01}}."),
+                "risk: exposure conditional on the counterparty's credit spread widening by shock_sigmas. " + _UNITS
+                + "Calculator fields: " + _measure_doc(EXPOSURE) + " Config: " + _config_doc(EXPOSURE) + ". Example: "
+                "{\"mode\": \"calculator\", \"measure\": \"pfe\", \"inputs\": {\"current_mtm\": 100000, \"notional\": "
+                "10000000, \"remaining_maturity_years\": 5, \"volatility_pct\": 1}}."),
             input_schema=obj({
                 **portfolio_props(limits, history=True),
                 "mode": {"type": "string", "enum": ["trade_profiles", "calculator", "wrong_way"]},
                 "measure": {"type": "string", "enum": EXPOSURE},
-                "inputs": {"type": "object", "description": "calculator: the measure's input fields (see description)."},
-                "config": {"type": "object", "description": "calculator: the measure's configuration (see description)."},
+                "inputs": _inputs_prop(EXPOSURE, "calculator mode"),
+                "config": _config_prop(),
                 "time_horizon": {"type": "number", "exclusiveMinimum": 0, "default": 5.0},
                 "num_scenarios": {"type": "integer", "minimum": 100, "maximum": limits.max_mc_paths, "default": 2000},
                 "confidence_level": {"type": "number", "default": 0.95},
@@ -401,13 +435,13 @@ def tools(limits) -> List[ToolDef]:
                 "Credit-risk calculators: pd (probability of default: structural Merton, reduced form, rating transition "
                 "matrix, logistic, historical), lgd (fixed, collateral, workout, market, stochastic), ead, el (expected loss "
                 "= PD x LGD x EAD), economic_capital (Vasicek, Gordy, Monte Carlo; also EL, VaR and ES of the loss "
-                "distribution) and raroc (risk-adjusted return on capital vs a hurdle). Fields per measure: "
+                "distribution) and raroc (risk-adjusted return on capital vs a hurdle). " + _UNITS + "Fields per measure: "
                 + _measure_doc(CREDIT) + " Config: " + _config_doc(CREDIT) + ". Example: {\"measure\": \"pd\", \"inputs\": "
                 "{\"credit_rating\": \"BBB\"}, \"config\": {\"model\": \"transition_matrix\"}}."),
             input_schema=obj({
                 "measure": {"type": "string", "enum": CREDIT},
-                "inputs": {"type": "object", "description": "The measure's input fields (see description)."},
-                "config": {"type": "object", "description": "The measure's configuration (see description)."},
+                "inputs": _inputs_prop(CREDIT, "The measure"),
+                "config": _config_prop(),
             }, ["measure", "inputs"]),
             handler=_credit,
         ),
@@ -419,13 +453,17 @@ def tools(limits) -> List[ToolDef]:
                 "optional wrong-way), dva, fva, kva, mva run qlrisk's calculators on an exposure profile; 'total' runs any "
                 "of them together (inputs: {cva: {...}, dva: {...}, ..., colva: number}) and sums them; 'sa_cva' is the "
                 "MAR50 standardised CVA capital from an expected-exposure profile and the counterparty's credit curve, with "
-                "optional hedge trades; 'ba_cva' is the basic approach (reduced, or full with hedges). Fields: "
+                "optional hedge trades; 'ba_cva' is the basic approach (reduced, or full with hedges). " + _UNITS + "Fields: "
                 + _measure_doc(XVA_CALC) + " Config: " + _config_doc(XVA_CALC) + ". Example: {\"measure\": \"cva\", \"inputs\": "
-                "{\"ee_profile\": [2e6, 3e6, 3.5e6, 3e6, 2e6, 1e6], \"time_grid\": [0.5, 1, 2, 3, 4, 5], \"credit_spread\": 0.012}}."),
+                "{\"ee_profile\": [2e6, 3e6, 3.5e6, 3e6, 2e6, 1e6], \"time_grid\": [0.5, 1, 2, 3, 4, 5], \"credit_spread_bp\": 120}}."),
             input_schema=obj({
                 "measure": {"type": "string", "enum": XVA_CALC + ["total", "sa_cva", "ba_cva"]},
-                "inputs": {"type": "object", "description": "cva / dva / fva / kva / mva: the calculator's fields; total: one object per adjustment plus colva."},
-                "config": {"type": "object"},
+                "inputs": {**_inputs_prop(XVA_CALC, "cva / dva / fva / kva / mva"),
+                           "description": "cva / dva / fva / kva / mva: the calculator's fields in the tools' units (see "
+                                          "the tool description); total: one object per adjustment plus colva (an "
+                                          "amount). qlrisk_inputs in the result shows what qlrisk received."},
+                "config": {**_config_prop(), "description": "cva: its configuration keys; total: one object per "
+                                                            "adjustment."},
                 "market_data": portfolio_props(limits)["market_data"],
                 "reporting_currency": portfolio_props(limits)["reporting_currency"],
                 "counterparty": {"type": "string", "description": "sa_cva: credit-curve name of the counterparty (e.g. 'ACME')."},

@@ -144,7 +144,7 @@ def test_bounds_are_enforced(call, monkeypatch):
     from sajha.tools.impl.qlrisk.options import Limits
     assert "maximum of 2500" in call("value_at_risk", {"trades": [SWAP], "history": {"num_days": 9999}}, ok=False)
     assert "max_mc_paths" in call("ccr_exposure", {"mode": "calculator", "measure": "pfe", "inputs": {
-        "current_mtm": 1, "notional": 1, "remaining_maturity": 1, "volatility": 0.1, "num_simulations": 10**7}}, ok=False)
+        "current_mtm": 1, "notional": 1, "remaining_maturity_years": 1, "volatility_pct": 10, "num_simulations": 10**7}}, ok=False)
     monkeypatch.setenv("SAJHA_QLRISK_MAX_MC_PATHS", "500")
     lim = Limits.from_config({"max_trades": 3})
     assert lim.max_mc_paths == 500 and lim.max_trades == 3
@@ -198,8 +198,8 @@ def test_price_trades(call):
 def test_price_with_market_overrides_and_shocks(call):
     base = call("price_trades", {"trades": [SWAP]})["total_npv"]
     up = call("price_trades", {"trades": [SWAP], "market_data": {"shocks": [
-        {"curve_field": "forward_curves", "curve_name": "SOFR", "shape": "parallel", "size": 0.01},
-        {"curve_field": "discount_curve", "shape": "parallel", "size": 0.01}]}})["total_npv"]
+        {"curve_field": "forward_curves", "curve_name": "SOFR", "shape": "parallel", "size_bp": 100},
+        {"curve_field": "discount_curve", "shape": "parallel", "size_bp": 100}]}})["total_npv"]
     assert up > base                                       # payer swap gains when rates rise
     custom = call("price_trades", {"trades": [SWAP], "market_data": {"valuation_date": "2026-10-09",
                                                                      "forward_curves": {"SOFR": {"1Y": 0.05, "10Y": 0.05}}}})
@@ -228,7 +228,7 @@ def test_value_at_risk_methods(call, method):
 def test_value_at_risk_extras(call):
     out = call("value_at_risk", {"trades": [SWAP, EQO, BOND], "horizon_days": 10, "include_stressed_var": True,
                                  "revaluation": "taylor", "group_by": {"IRS-5Y": "rates", "SPX-P": "equity", "ACME-5Y": "credit"},
-                                 "liquidity": {"spreads": {"ACME-5Y": 0.004}, "horizon_days": 5}})
+                                 "liquidity": {"spreads_bp": {"ACME-5Y": 40}, "horizon_days": 5}})
     assert out["stressed_var"]["value"] > 0
     assert set(out["decomposition"]["component"]) == {"IRS-5Y", "SPX-P", "ACME-5Y"}
     assert set(out["decomposition"]["by_group"]) == {"rates", "equity", "credit"}
@@ -256,7 +256,7 @@ def test_backtest_modes(call):
 
 
 def test_pnl_explain(call):
-    out = call("pnl_explain", {"trades": [EQO, SWAP], "end_shocks": [{"factor": "EQ.SPX", "size": -0.05, "shock_type": "relative"}],
+    out = call("pnl_explain", {"trades": [EQO, SWAP], "end_shocks": [{"factor": "EQ.SPX", "size_pct": -5, "shock_type": "relative"}],
                                "end_valuation_date": (date.today() + timedelta(days=1)).isoformat()})
     eq = next(t for t in out["trades"] if t["trade_id"] == "SPX-P")
     assert eq["actual"] > 0 and eq["by_risk_class"]["EQ"] > 0             # a long put gains when SPX falls
@@ -270,10 +270,10 @@ def test_stress_modes(call):
     sub = call("stress_test", {"trades": BOOK, "scenarios": ["2020_covid"]})
     assert [r["scenario"] for r in sub["results"]] == ["2020_covid"]
     cus = call("stress_test", {"trades": [SWAP], "mode": "custom", "custom_scenarios": [
-        {"name": "rates +100bp", "shocks": [{"risk_classes": ["IR"], "shape": "parallel", "size": 0.01}]},
+        {"name": "rates +100bp", "shocks": [{"risk_classes": ["IR"], "shape": "parallel", "size_bp": 100}]},
         {"name": "steepener", "shocks": [{"curve_field": "forward_curves", "curve_name": "SOFR", "shape": "twist",
-                                          "short_end": -0.0025, "long_end": 0.0025}]},
-        {"name": "risk off", "definition": {"equity": -0.2, "credit": 0.5, "rates": -0.005}}]})
+                                          "short_end_bp": -25, "long_end_bp": 25}]},
+        {"name": "risk off", "definition": {"equity_pct": -20, "credit_pct": 50, "rates_bp": -50}}]})
     assert {r["scenario"] for r in cus["results"]} == {"rates +100bp", "steepener", "risk off"}
     rev = call("stress_test", {"trades": [SWAP, EQO], "mode": "reverse", "target_loss": 500_000, "history": SHORT_HISTORY})
     assert rev["achieved_loss"] == pytest.approx(500_000, rel=0.05) and rev["sigma_distance"] > 0
@@ -333,11 +333,11 @@ def test_ccr_exposure_modes(call):
     assert row["peak_exposure"] >= 0 and len(row["expected_exposure"]) == len(row["time_grid"])
     for m, inputs in {
         "ce": {"mark_to_market": 1.5e6, "collateral_held": 5e5},
-        "ee": {"current_mtm": 1e5, "notional": 1e7, "remaining_maturity": 5, "volatility": 0.01},
-        "eee": {"current_mtm": 1e5, "notional": 1e7, "remaining_maturity": 5, "volatility": 0.01},
-        "pfe": {"current_mtm": 1e5, "notional": 1e7, "remaining_maturity": 5, "volatility": 0.01},
-        "peak": {"current_mtm": 1e5, "notional": 1e7, "remaining_maturity": 5, "volatility": 0.01},
-        "stressed": {"current_mtm": 1e5, "notional": 1e7, "remaining_maturity": 5, "volatility": 0.01},
+        "ee": {"current_mtm": 1e5, "notional": 1e7, "remaining_maturity_years": 5, "volatility_pct": 1},
+        "eee": {"current_mtm": 1e5, "notional": 1e7, "remaining_maturity_years": 5, "volatility_pct": 1},
+        "pfe": {"current_mtm": 1e5, "notional": 1e7, "remaining_maturity_years": 5, "volatility_pct": 1},
+        "peak": {"current_mtm": 1e5, "notional": 1e7, "remaining_maturity_years": 5, "volatility_pct": 1},
+        "stressed": {"current_mtm": 1e5, "notional": 1e7, "remaining_maturity_years": 5, "volatility_pct": 1},
     }.items():
         out = call("ccr_exposure", {"mode": "calculator", "measure": m, "inputs": inputs, "config": {}})
         assert out["measure"] == m and finite(out["headline"]), (m, out)
@@ -375,11 +375,11 @@ def test_initial_margin(call):
 
 @pytest.mark.parametrize("measure,inputs,config", [
     ("pd", {"credit_rating": "BBB"}, {"model": "transition_matrix"}),
-    ("pd", {"asset_value": 120, "debt_value": 100, "asset_volatility": 0.25, "risk_free_rate": 0.04}, {"model": "structural"}),
-    ("lgd", {"exposure": 1e6, "recovery_rate": 0.4}, {"model": "fixed"}),
+    ("pd", {"asset_value": 120, "debt_value": 100, "asset_volatility_pct": 25, "risk_free_rate_pct": 4}, {"model": "structural"}),
+    ("lgd", {"exposure": 1e6, "recovery_pct": 40}, {"model": "fixed"}),
     ("ead", {"current_exposure": 1e6, "notional": 1e7}, {}),
-    ("el", {"pd": 0.02, "lgd": 0.45, "ead": 1e6}, {}),
-    ("economic_capital", {"exposures": [1e6, 2e6], "pds": [0.01, 0.02], "lgds": [0.45, 0.45]}, {"method": "vasicek"}),
+    ("el", {"pd_pct": 2, "lgd_pct": 45, "ead": 1e6}, {}),
+    ("economic_capital", {"exposures": [1e6, 2e6], "pds_pct": [1, 2], "lgds_pct": [45, 45]}, {"method": "vasicek"}),
     ("raroc", {"revenue": 5e5, "operating_cost": 1e5, "expected_loss": 2e4, "economic_capital": 1e6}, {}),
 ])
 def test_credit_risk(call, measure, inputs, config):
@@ -395,15 +395,15 @@ def test_credit_risk_errors(call):
 
 def test_xva(call):
     for m, inputs in {
-        "cva": {"ee_profile": EE, "time_grid": TG, "credit_spread": 0.012},
-        "dva": {"exposure_profile": [-x for x in EE], "time_grid": TG, "own_pd_curve": {"1": 0.01, "5Y": 0.015}},
-        "fva": {"exposure_profile": EE, "time_grid": TG, "funding_spread": 0.01},
+        "cva": {"ee_profile": EE, "time_grid": TG, "credit_spread_bp": 120},
+        "dva": {"exposure_profile": [-x for x in EE], "time_grid": TG, "own_pd_curve_pct": {"1": 1, "5Y": 1.5}},
+        "fva": {"exposure_profile": EE, "time_grid": TG, "funding_spread_bp": 100},
         "kva": {"ead_profile": EE, "time_grid": TG},
         "mva": {"initial_margin_profile": EE, "time_grid": TG},
     }.items():
         out = call("xva", {"measure": m, "inputs": inputs})
         assert out["headline"] > 0, (m, out)
-    total = call("xva", {"measure": "total", "inputs": {"cva": {"ee_profile": EE, "time_grid": TG, "credit_spread": 0.012},
+    total = call("xva", {"measure": "total", "inputs": {"cva": {"ee_profile": EE, "time_grid": TG, "credit_spread_bp": 120},
                                                         "fva": {"exposure_profile": EE, "time_grid": TG}, "colva": 1500.0}})
     c = total["components"]
     assert c["total_xva"] == pytest.approx(c["cva"] + c["fva"] + 1500.0)
@@ -788,8 +788,8 @@ def test_cva_is_near_the_rough_estimate(call):
     """CVA ~ LGD x sum(EE x DF x marginal PD), PD from the spread over 1 - recovery."""
     from math import exp
     ee, tg, spread, rec, r = [400_000, 600_000, 700_000, 650_000, 500_000], [1, 2, 3, 4, 5], 0.01, 0.4, 0.05
-    out = call("xva", {"measure": "cva", "inputs": {"ee_profile": ee, "time_grid": tg, "credit_spread": spread,
-                                                     "recovery_rate": rec, "notional": 10_000_000}})
+    out = call("xva", {"measure": "cva", "inputs": {"ee_profile": ee, "time_grid": tg, "credit_spread_bp": 100,
+                                                     "recovery_pct": 40, "notional": 10_000_000}})
     h, prev, rough = spread / (1 - rec), 0.0, 0.0
     for e, t in zip(ee, tg):
         rough += (1 - rec) * e * exp(-r * t) * (exp(-h * prev) - exp(-h * t))
@@ -801,7 +801,7 @@ def test_cva_is_near_the_rough_estimate(call):
 def test_stress_moves_a_stock_by_the_shock(call):
     out = call("stress_test", {"trades": [{"product": "CommonStock", "position_value": 1_000_000, "ticker": "SPX"}],
                                "market_data": CORE_MD, "mode": "custom",
-                               "custom_scenarios": [{"name": "eq -10%", "shocks": [{"factor": "EQ.SPX", "size": -0.1,
+                               "custom_scenarios": [{"name": "eq -10%", "shocks": [{"factor": "EQ.SPX", "size_pct": -10,
                                                                                    "shock_type": "relative"}]}]})
     assert out["results"][0]["pnl"] == pytest.approx(-100_000, rel=1e-6)
 
@@ -809,7 +809,7 @@ def test_stress_moves_a_stock_by_the_shock(call):
 def test_capital_and_credit_formulas(call):
     b = call("basel25_capital", {"var_series": [1_000_000], "svar_series": [2_000_000], "exceptions": 3})
     assert b["result"]["capital"] == pytest.approx(max(1e6, 3 * 1e6) + max(2e6, 3 * 2e6))       # green zone: m = 3
-    el = call("credit_risk", {"measure": "el", "inputs": {"pd": 0.02, "lgd": 0.45, "ead": 1_000_000}})
+    el = call("credit_risk", {"measure": "el", "inputs": {"pd_pct": 2, "lgd_pct": 45, "ead": 1_000_000}})
     assert el["headline"] == pytest.approx(0.02 * 0.45 * 1_000_000)
     sa = call("frtb_sa_capital", {"trades": [SWAP, BOND, EQO], "market_data": CORE_MD, "credit_buckets": {"ACME": 4},
                                   "equity_buckets": {"SPX": 12}, "ratings": {"ACME": "BBB"}, "vol_underlyings": {"eq_vol": "SPX"}})
@@ -838,7 +838,7 @@ def test_exposure_simulation_and_limits_are_consistent(call):
 
 def test_pnl_explain_adds_up_and_report_is_coherent(call):
     out = call("pnl_explain", {"trades": [EQO], "market_data": CORE_MD,
-                               "end_shocks": [{"factor": "EQ.SPX", "size": -0.05, "shock_type": "relative"}]})
+                               "end_shocks": [{"factor": "EQ.SPX", "size_pct": -5, "shock_type": "relative"}]})
     t = out["total"]
     explained = sum(v for k, v in t.items() if k not in ("actual", "theta", "unexplained"))
     assert t["actual"] == pytest.approx(t["theta"] + explained + t["unexplained"], rel=1e-9)
@@ -870,3 +870,360 @@ def test_core_descriptions_carry_their_worked_example_and_its_real_result(tools)
         if "market_data" in json.dumps(tool.input_schema):
             args.setdefault("advanced", {})["market_data"] = CORE_MD
         assert tool.execute_with_tracking(args).summary in desc, name
+
+
+# ── the unit layer over qlrisk's own objects (calculators, shocks, stresses, liquidity, nested terms) ──
+
+CREDIT_M = ["pd", "lgd", "ead", "el", "economic_capital", "raroc"]
+EXPOSURE_M = ["ce", "ee", "eee", "pfe", "peak", "stressed"]
+XVA_M = ["cva", "dva", "fva", "kva", "mva"]
+
+
+def _numeric(f):
+    return f.scale != 1.0 or f.offset or f.minimum is not None or f.maximum is not None or f.positive
+
+
+def _sample(f):
+    """A value inside the field's bounds (exposed units)."""
+    lo = f.minimum if f.minimum is not None else -1e9
+    hi = f.maximum if f.maximum is not None else 1e9
+    for v in (10.0, 5.0, 1.0, 0.5):
+        if lo <= v <= hi and (not f.positive or v > 0):
+            return v
+    return (lo + hi) / 2
+
+
+def test_every_calculator_field_and_config_key_is_in_the_unit_table():
+    """A qlrisk upgrade that adds or renames a calculator field fails here until the table names it."""
+    from sajha.tools.impl.qlrisk import introspect as I
+    from sajha.tools.impl.qlrisk.generate import CALC_CONFIG, CALC_CONFIG_EXTRA, CALC_INPUTS
+    import dataclasses
+    for m in CREDIT_M + EXPOSURE_M + XVA_M:
+        fields = {f.name for f in dataclasses.fields(I.calculator_input_class(m))}
+        assert set(CALC_INPUTS[m]) == fields, (m, fields ^ set(CALC_INPUTS[m]))
+        keys = set(I.calculator_config(m)) | set(CALC_CONFIG_EXTRA.get(m, {}))
+        assert set(CALC_CONFIG.get(m, {})) == keys, (m, keys ^ set(CALC_CONFIG.get(m, {})))
+
+
+def test_every_nested_table_field_exists_in_qlrisk():
+    from sajha.tools.impl.qlrisk import introspect as I
+    from sajha.tools.impl.qlrisk.generate import OVERRIDES
+    for product, changes in OVERRIDES.items():
+        for qname, change in changes.items():
+            if "nested" not in change:
+                continue
+            spec = I.product_spec(product)
+            qs = spec["parameters"].get(qname) or spec["terms"].get(qname)
+            obj = qs.get("items", qs)
+            assert set(change["nested"]) <= set(obj["properties"]), (product, qname, set(change["nested"]) - set(obj["properties"]))
+
+
+@pytest.mark.parametrize("measure", CREDIT_M + EXPOSURE_M + XVA_M)
+def test_calculator_units_convert_field_by_field(measure):
+    """Each converted field: the qlrisk value is the shown value x scale (+ offset), in every shape it comes in."""
+    from sajha.tools.impl.qlrisk.generate import CALC_CONFIG, CALC_INPUTS
+    from sajha.tools.impl.qlrisk.units import calc_config_schema, calc_inputs_schema, to_qlrisk
+    for table, schema, slot in ((CALC_INPUTS[measure], calc_inputs_schema(measure), "inputs"),
+                                (CALC_CONFIG.get(measure, {}), calc_config_schema(measure), "config")):
+        for q, f in table.items():
+            if not _numeric(f) or f.nested:
+                continue
+            name = f.name or q
+            s = schema["properties"][name]
+            v = _sample(f)
+            shown = [v] if s.get("type") == "array" else {"1Y": v} if s.get("type") == "object" else v
+            one = {**schema, "required": []}
+            got = to_qlrisk(table, one, {name: shown}, slot, [])[q]
+            want = round(v * f.scale + f.offset, 12)
+            got = got[0] if isinstance(got, list) else got["1Y"] if isinstance(got, dict) else got
+            assert got == pytest.approx(want, rel=1e-12, abs=1e-15), (measure, slot, name, got, want)
+
+
+def test_calculator_schemas_show_units_and_carry_no_qlrisk_decimal_names(tools):
+    from sajha.tools.impl.qlrisk.units import calc_inputs_schema
+    s = calc_inputs_schema("cva")["properties"]
+    assert s["credit_spread_bp"]["title"] == "Credit spread (bp)" and s["recovery_pct"]["default"] == 40
+    assert s["risk_free_rate_pct"]["default"] == 5 and "credit_spread" not in s
+    p = calc_inputs_schema("pfe")["properties"]
+    assert p["margin_period_of_risk_days"]["default"] == 10 and p["volatility_pct"]["title"].endswith("(%)")
+    assert "volatility_shock_pct" in calc_inputs_schema("stressed")["properties"]
+    assert "default" not in calc_inputs_schema("stressed")["properties"]["volatility_shock_pct"]
+    for name in ("credit_risk", "xva", "ccr_exposure"):
+        desc = tools["qlrisk_" + name].config["description"]
+        assert "_pct" in desc and "(not 0.4)" not in desc
+    assert "pd_pct*" in tools["qlrisk_credit_risk"].config["description"]
+    assert "credit_spread_bp*" in tools["qlrisk_xva"].config["description"]
+
+
+@pytest.mark.parametrize("measure,inputs,error", [
+    ("el", {"pd_pct": 200, "lgd_pct": 45}, "inputs (el).pd_pct: 200 is outside 0 to 100 percent"),
+    ("el", {"pd": 0.02, "lgd": 0.45}, "pd is now pd_pct (percent)"),
+    ("el", {"lgd_pct": 45}, "inputs (el): missing ['pd_pct']"),
+    ("el", {"pd_pct": "two"}, "inputs (el).pd_pct: expected a number"),
+    ("economic_capital", {"exposures": [1e6], "pds_pct": [1, 120], "lgds_pct": [45]}, "pds_pct[1]: 120 is outside"),
+    ("lgd", {"exposure": 1e6, "collateral": [{"collateral_type": "cash", "value": 1e5, "haircut_pct": 150}]},
+     "collateral[0].haircut_pct: 150 is outside 0 to 100"),
+])
+def test_credit_unit_errors_name_the_field(call, measure, inputs, error):
+    assert error in call("credit_risk", {"measure": measure, "inputs": inputs}, ok=False)
+
+
+def test_unit_errors_on_xva_and_exposure(call):
+    assert "credit_spread_bp: -5 is outside 0 to 10000 basis points" in call(
+        "xva", {"measure": "cva", "inputs": {"ee_profile": EE, "time_grid": TG, "credit_spread_bp": -5}}, ok=False)
+    assert "credit_spread is now credit_spread_bp (basis points)" in call(
+        "xva", {"measure": "cva", "inputs": {"ee_profile": EE, "time_grid": TG, "credit_spread": 0.012}}, ok=False)
+    assert "confidence_pct: 0.95 is outside 50 to 99.999 percent" in call(
+        "ccr_exposure", {"mode": "calculator", "measure": "pfe", "inputs": {"current_mtm": 1, "notional": 1,
+                         "remaining_maturity_years": 1, "volatility_pct": 1}, "config": {"confidence_pct": 0.95}}, ok=False)
+    assert "unknown key" in call("credit_risk", {"measure": "lgd", "inputs": {"exposure": 1},
+                                                 "config": {"default_lgd": 0.45}}, ok=False)
+
+
+def test_plausible_but_unusual_values_price_with_a_warning(call):
+    out = call("credit_risk", {"measure": "el", "inputs": {"pd_pct": 0.02, "lgd_pct": 45, "ead": 1_000_000}})
+    assert out["headline"] == pytest.approx(0.0002 * 0.45 * 1_000_000)
+    assert any("pd_pct = 0.02 means 0.02%; for 2% send 2" in w for w in out["warnings"])
+    cva = call("xva", {"measure": "cva", "inputs": {"ee_profile": EE, "time_grid": TG, "credit_spread_bp": 0.012}})
+    assert any("credit_spread_bp = 0.012 means 0.012bp; for 120bp send 120" in w for w in cva["warnings"])
+    st = call("stress_test", {"trades": [SWAP], "mode": "custom", "market_data": CORE_MD, "custom_scenarios": [
+        {"name": "tiny", "shocks": [{"risk_classes": ["IR"], "size_bp": 0.01}]}]})
+    assert any("size_bp = 0.01 means 0.01bp; for 100bp send 100" in w for w in st["warnings"])
+
+
+def test_calculator_results_show_what_qlrisk_received(call):
+    out = call("credit_risk", {"measure": "el", "inputs": {"pd_pct": 2, "lgd_pct": 45, "ead": 1_000_000}})
+    assert out["qlrisk_inputs"]["inputs"] == {"pd": 0.02, "lgd": 0.45, "ead": 1_000_000}
+    pfe = call("ccr_exposure", {"mode": "calculator", "measure": "pfe", "config": {"confidence_pct": 99},
+                                "inputs": {"current_mtm": 1e5, "notional": 1e7, "remaining_maturity_years": 5,
+                                           "volatility_pct": 1, "margin_period_of_risk_days": 20}})
+    assert pfe["qlrisk_inputs"]["config"] == {"confidence_level": 0.99}
+    assert pfe["qlrisk_inputs"]["inputs"]["margin_period_of_risk"] == pytest.approx(20 / 252)
+    assert pfe["result"]["confidence_level"] == 0.99                     # the PFE confidence reaches qlrisk
+    st = call("ccr_exposure", {"mode": "calculator", "measure": "stressed", "inputs": {
+        "current_mtm": 1e5, "notional": 1e7, "remaining_maturity_years": 5, "volatility_pct": 1,
+        "stress_type": "hypothetical", "volatility_shock_pct": 150, "fx_shock_pct": 20}})
+    assert st["qlrisk_inputs"]["inputs"]["volatility_shock"] == 2.5 and st["qlrisk_inputs"]["inputs"]["fx_shock"] == 0.2
+
+
+def _direct(measure, inputs, config=None):
+    """The figure qlrisk gives for the same economics in its own decimal units (no SAJHA layer)."""
+    from sajha.tools.impl.qlrisk import introspect as I
+    from sajha.tools.impl.qlrisk.inputs import _coerce
+    from sajha.tools.impl.qlrisk.tools.counterparty import _float_keys
+    from sajha.tools.impl.qlrisk.jsonable import to_jsonable
+    import typing
+    _, cls = I.calculator_class(measure)
+    inp = I.calculator_input_class(measure)
+    hints = typing.get_type_hints(inp)
+    typed = _coerce({k: _float_keys(v, hints.get(k)) for k, v in inputs.items()}, inp, "direct")
+    return to_jsonable(cls("direct", dict(config or {})).calculate(typed).value)
+
+
+@pytest.mark.parametrize("tool,measure,human,decimal,config_h,config_d,key", [
+    ("credit_risk", "el", {"pd_pct": 2, "lgd_pct": 45, "ead": 1e6}, {"pd": 0.02, "lgd": 0.45, "ead": 1e6}, {}, {},
+     "expected_loss"),
+    ("credit_risk", "pd", {"asset_value": 120, "debt_value": 100, "asset_volatility_pct": 25, "risk_free_rate_pct": 4},
+     {"asset_value": 120, "debt_value": 100, "asset_volatility": 0.25, "risk_free_rate": 0.04},
+     {"model": "structural"}, {"model": "structural"}, None),
+    ("credit_risk", "economic_capital", {"exposures": [1e6, 2e6], "pds_pct": [1, 2], "lgds_pct": [45, 45]},
+     {"exposures": [1e6, 2e6], "pds": [0.01, 0.02], "lgds": [0.45, 0.45]},
+     {"confidence_pct": 99.9}, {"confidence_level": 0.999}, "economic_capital"),
+    ("xva", "cva", {"ee_profile": EE, "time_grid": TG, "credit_spread_bp": 120, "recovery_pct": 40, "risk_free_rate_pct": 3},
+     {"ee_profile": EE, "time_grid": TG, "credit_spread": 0.012, "recovery_rate": 0.4, "risk_free_rate": 0.03}, {}, {}, "cva"),
+    ("xva", "kva", {"ead_profile": EE, "time_grid": TG, "counterparty_pd_pct": 1, "cost_of_capital_pct": 10,
+                    "discount_curve_pct": {"1Y": 4, "5Y": 4.5}},
+     {"ead_profile": EE, "time_grid": TG, "counterparty_pd": 0.01, "cost_of_capital": 0.1,
+      "discount_curve": {"1Y": 0.04, "5Y": 0.045}}, {}, {}, "kva"),
+    ("ccr_exposure", "pfe", {"current_mtm": 1e5, "notional": 1e7, "remaining_maturity_years": 5, "volatility_pct": 1},
+     {"current_mtm": 1e5, "notional": 1e7, "remaining_maturity": 5, "volatility": 0.01},
+     {"confidence_pct": 99}, {"confidence_level": 0.99}, "pfe"),
+])
+def test_figures_are_unchanged_for_the_same_economic_input(call, tool, measure, human, decimal, config_h, config_d, key):
+    args = {"measure": measure, "inputs": human, "config": config_h}
+    if tool == "ccr_exposure":
+        args["mode"] = "calculator"
+    out = call(tool, args)
+    want = _direct(measure, decimal, config_d)
+    got = out["result"]
+    assert (got[key] if key else got) == pytest.approx(want[key] if key else want, rel=1e-12)
+
+
+def test_shock_units_cover_every_factor_kind_and_shock_type():
+    from qlrisk.riskfactors import ShockType
+    from qlrisk.riskfactors.taxonomy import FactorKind
+    from sajha.tools.impl.qlrisk.generate import SHOCK_UNITS
+    assert set(SHOCK_UNITS) == {(k.value, t.value) for k in FactorKind for t in ShockType}
+
+
+@pytest.mark.parametrize("shock,factor,size", [
+    ({"factor": "IR.FWD.SOFR.5Y", "size_bp": 25}, "IR.FWD.SOFR.5Y", 0.0025),
+    ({"factor": "CR.ACME.5Y", "size_bp": 100}, "CR.ACME.5Y", 0.01),
+    ({"factor": "VOL.eq_vol.1Y", "size_pct": 5}, "VOL.eq_vol.1Y", 0.05),
+    ({"factor": "VOL.eq_vol.1Y", "size_pct": 50, "shock_type": "relative"}, "VOL.eq_vol.1Y", 0.5),
+    ({"factor": "EQ.SPX", "size_pct": -10, "shock_type": "relative"}, "EQ.SPX", -0.1),
+    ({"factor": "EQ.SPX", "size_pct": -10, "shock_type": "log"}, "EQ.SPX", -0.1),
+    ({"factor": "EQ.SPX", "size": -250}, "EQ.SPX", -250),
+    ({"factor": "FX.EURUSD", "size_pct": 5, "shock_type": "relative"}, "FX.EURUSD", 0.05),
+    ({"factor": "FX.EURUSD", "size": 0.02}, "FX.EURUSD", 0.02),
+])
+def test_shock_sizes_convert_by_factor_kind_and_type(shock, factor, size):
+    from datetime import date as _d
+    from qlrisk.data import create_sample_market_data
+    from sajha.tools.impl.qlrisk.inputs import parse_shocks
+    (s,) = parse_shocks(create_sample_market_data(_d(2026, 10, 9)), [shock])
+    assert str(s.factor) == factor and s.size == pytest.approx(size, rel=1e-12)
+
+
+def test_curve_shocks_convert_and_move_only_the_factors_their_unit_fits():
+    from datetime import date as _d
+    from qlrisk.data import create_sample_market_data
+    from sajha.tools.impl.qlrisk.inputs import parse_shocks
+    md = create_sample_market_data(_d(2026, 10, 9))
+    rates = parse_shocks(md, [{"risk_classes": ["IR"], "size_bp": 100}])
+    assert rates and all(s.factor.kind.value == "rate" and s.size == pytest.approx(0.01) for s in rates)
+    tw = parse_shocks(md, [{"curve_field": "forward_curves", "curve_name": "SOFR", "shape": "twist",
+                            "short_end_bp": -25, "long_end_bp": 25}])
+    by = {s.factor.tenor: s.size for s in tw}
+    assert by[min(by)] == pytest.approx(-0.0025) and by[max(by)] == pytest.approx(0.0025)
+    vols = parse_shocks(md, [{"curve_field": "volatility_surfaces", "size_pct": 2}])
+    assert vols and all(s.size == pytest.approx(0.02) for s in vols)
+
+
+@pytest.mark.parametrize("shock,error", [
+    ({"risk_classes": ["IR"], "shape": "parallel", "size": 0.01}, "size fits none of the factors"),
+    ({"factor": "EQ.SPX", "size": -0.1, "shock_type": "relative"}, "a relative shock to a price takes size_pct"),
+    ({"factor": "IR.FWD.SOFR.5Y", "size_pct": 1}, "takes size_bp"),
+    ({"factor": "EQ.SPX", "size_pct": -150, "shock_type": "relative"}, "size_pct: -150% is below -100%"),
+    ({"factor": "IR.FWD.SOFR.5Y", "size_bp": 9000}, "size_bp: 9000bp is beyond +/-5000bp"),
+    ({"curve_field": "forward_curves", "shape": "twist", "short_end_bp": 10}, "takes short_end_bp and long_end_bp"),
+])
+def test_shock_errors_name_the_field_and_the_unit(call, shock, error):
+    msg = call("stress_test", {"trades": [SWAP], "mode": "custom", "custom_scenarios": [{"name": "x", "shocks": [shock]}]},
+               ok=False)
+    assert "custom_scenarios[0].shocks[0]" in msg and error in msg, msg
+
+
+def test_stress_pnl_is_unchanged_for_the_same_economic_shock(call):
+    """The tool's custom-scenario P&L equals qlrisk's own revaluation under the same shocks given in decimals."""
+    from datetime import date as _d
+    from qlrisk.data import create_sample_market_data
+    from qlrisk.riskfactors import RiskClass, Shock, ShockType, apply_shocks, curve_shocks, parallel
+    from qlrisk.scenarios import StressDefinition, stress_shocks
+    from qlrisk.riskfactors.taxonomy import FactorKind
+    stock = {"product": "CommonStock", "trade_id": "SPX-1M", "position_value": 1_000_000, "ticker": "SPX"}
+    out = call("stress_test", {"trades": [SWAP, stock], "market_data": CORE_MD, "mode": "custom", "custom_scenarios": [
+        {"name": "rates", "shocks": [{"risk_classes": ["IR"], "size_bp": 100}]},
+        {"name": "spx", "shocks": [{"factor": "EQ.SPX", "shock_type": "relative", "size_pct": -20}]},
+        {"name": "risk off", "definition": {"equity_pct": -20, "vol_pct": 50, "credit_pct": 50, "rates_bp": [-50, -25]}}]})
+    res = {r["scenario"]: r for r in out["results"]}
+    md = create_sample_market_data(_d(2026, 10, 9))
+    priced = call("price_trades", {"trades": [SWAP, stock], "market_data": CORE_MD})
+    base = sum(t["npv_reporting"] for t in priced["trades"])
+    from sajha.tools.impl.qlrisk.inputs import build_trades
+    from sajha.tools.impl.qlrisk.options import Limits
+    trades = build_trades([SWAP, stock], md, Limits())
+
+    def pv(m):
+        return sum(t.price(m).npv for t in trades)
+    rate_shocks = [s for s in curve_shocks(md, None, None, parallel(0.01), ShockType.ABSOLUTE,
+                                           risk_classes=[RiskClass.INTEREST_RATE]) if s.factor.kind is FactorKind.RATE]
+    assert res["rates"]["pnl"] == pytest.approx(pv(apply_shocks(md, rate_shocks)) - base, rel=1e-12)
+    assert res["spx"]["pnl"] == pytest.approx(pv(apply_shocks(md, [Shock("EQ.SPX", -0.2, ShockType.RELATIVE)])) - base,
+                                              rel=1e-12)
+    sdef = StressDefinition("risk off", "risk off", equity=-0.2, vol=0.5, credit=0.5, rates=(-0.005, -0.0025))
+    assert res["risk off"]["pnl"] == pytest.approx(pv(apply_shocks(md, stress_shocks(md, sdef))) - base, rel=1e-12)
+    received = out["qlrisk_inputs"]
+    assert received["custom_scenarios[1].shocks"] == [{"factor": "EQ.SPX", "size": -0.2, "shock_type": "relative"}]
+    assert received["custom_scenarios[2].definition"]["rates"] == [-0.005, -0.0025]
+    assert received["custom_scenarios[2].definition"]["credit"] == 0.5
+
+
+def test_stress_definition_and_reverse_output_in_human_units(call):
+    assert "'equity' was unexpected" in call("stress_test", {"trades": [SWAP], "mode": "custom",
+        "custom_scenarios": [{"name": "x", "definition": {"equity": -0.2}}]}, ok=False)
+    assert "rates_bp': [1, 2, 3] is not valid" in call("stress_test", {"trades": [SWAP], "mode": "custom",
+        "custom_scenarios": [{"name": "x", "definition": {"rates_bp": [1, 2, 3]}}]}, ok=False)
+    rev = call("stress_test", {"trades": [SWAP, EQO], "mode": "reverse", "target_loss": 500_000, "history": SHORT_HISTORY,
+                               "market_data": CORE_MD, "top_n": 3})
+    s = rev["shocks"][0]
+    unit = next(k for k in s if k.startswith("size"))
+    assert s[unit] * {"size_bp": 1e-4, "size_pct": 1e-2, "size": 1}[unit] == pytest.approx(s["qlrisk_size"], rel=1e-6)
+
+
+def test_liquidity_spreads_in_basis_points_give_the_same_cost(call):
+    base = {"trades": [BOND], "market_data": CORE_MD, "horizon_days": 1}
+    out = call("value_at_risk", {**base, "liquidity": {"spreads_bp": {"ACME-5Y": 40}, "horizon_days": 5}})
+    pv = call("price_trades", {"trades": [BOND], "market_data": CORE_MD})["trades"][0]["npv_reporting"]
+    assert out["liquidity"]["liquidation_cost"] == pytest.approx(0.5 * abs(pv) * 0.004, rel=1e-12)
+    assert out["qlrisk_inputs"]["liquidity"]["spreads"] == {"ACME-5Y": 0.004}
+    assert "spreads_bp" in call("value_at_risk", {**base, "liquidity": {"spreads": {"ACME-5Y": 0.004}}},
+                                               ok=False)
+
+
+def test_pnl_explain_and_market_shocks_use_the_same_units(call):
+    out = call("pnl_explain", {"trades": [EQO], "market_data": CORE_MD,
+                               "end_shocks": [{"factor": "EQ.SPX", "size_pct": -5, "shock_type": "relative"}]})
+    assert out["qlrisk_inputs"]["end_shocks"] == [{"factor": "EQ.SPX", "size": -0.05, "shock_type": "relative"}]
+    assert "takes size_pct" in call("pnl_explain", {"trades": [EQO], "end_shocks": [
+        {"factor": "EQ.SPX", "size": -0.05, "shock_type": "relative"}]}, ok=False)
+
+
+@pytest.mark.parametrize("product,terms_field,human,qlrisk", [
+    ("StockLoan", "terms", {"collateral_margin_pct": 105, "rebate_rate_bp": 50, "haircut_pct": 2, "stock_volatility_pct": 30},
+     {"collateral_margin": 1.05, "rebate_rate": 0.005, "haircut": 0.02, "stock_volatility": 0.3}),
+    ("BondTRS", "terms", {"coupon_rate_pct": 5, "financing_spread_bp": 75, "recovery_pct": 40},
+     {"coupon_rate": 0.05, "financing_spread": 75, "recovery_rate": 0.4}),
+    ("EquityTRS", "terms", {"dividend_yield_pct": 2, "financing_spread_bp": 50},
+     {"dividend_yield": 0.02, "financing_spread": 50}),
+    ("TriPartyRepo", "terms", {"repo_rate_pct": 4.5, "floating_spread_bp": 10, "haircut_pct": 2},
+     {"repo_rate": 0.045, "floating_spread": 10, "haircut": 0.02}),
+    ("MarginLoan", "terms", {"interest_spread_bp": 150, "initial_margin_pct": 50,
+                             "collateral_positions": [{"security_id": "A", "security_name": "A", "category": "equity",
+                                                       "quantity": 10, "market_value": 1000, "haircut_pct": 30}]},
+     {"interest_spread": 150, "initial_margin_pct": 0.5,
+      "collateral_positions": [{"security_id": "A", "security_name": "A", "category": "equity", "quantity": 10,
+                                "market_value": 1000, "haircut": 0.3}]}),
+    ("PrimeBrokerage", "terms", {"financing_rate_spread_bp": 40, "maintenance_margin_pct": 25, "custody_fee_bps": 5},
+     {"financing_rate_spread": 40, "maintenance_margin": 0.25, "custody_fee_bps": 5}),
+    ("CommodityFuture", "terms", {"storage_cost_pct": 2, "convenience_yield_pct": 1},
+     {"storage_cost": 0.02, "convenience_yield": 0.01}),
+])
+def test_nested_terms_convert_to_qlrisk_units(product, terms_field, human, qlrisk):
+    from sajha.tools.impl.qlrisk.tools.products import exposed_fields
+    from sajha.tools.impl.qlrisk.units import convert
+    e = next(x for x in exposed_fields(product) if x.qname == terms_field)
+    got = convert(e.spec, e.schema, human, terms_field, [])
+    assert got == qlrisk
+    old = next(iter(qlrisk))                    # the qlrisk name (decimal) is refused with the new name
+    if old not in human:
+        with pytest.raises(Exception, match=f"{old} is now"):
+            convert(e.spec, e.schema, {old: 1}, terms_field, [])
+
+
+def test_nested_terms_price_the_same_as_qlrisk_given_decimals(product_tools):
+    """A stock loan priced through its tool with terms in percent / bp equals qlrisk's price for the decimal terms."""
+    from datetime import date as _d
+    from qlrisk.data import create_sample_market_data
+    from sajha.tools.impl.qlrisk.inputs import build_trades
+    from sajha.tools.impl.qlrisk.options import Limits
+    tool, cfg = product_tools["qlrisk_price_stock_loan"]
+    args = json.loads(json.dumps(cfg["metadata"]["example"]))
+    terms_h = {"stock_ticker": "AAPL", "quantity": 1000, "loan_value": 200_000, "collateral_value": 210_000,
+               "collateral_margin_pct": 105, "rebate_rate_bp": 50, "haircut_pct": 2, "stock_volatility_pct": 30}
+    terms_q = {"stock_ticker": "AAPL", "quantity": 1000, "loan_value": 200_000, "collateral_value": 210_000,
+               "collateral_margin": 1.05, "rebate_rate": 0.005, "haircut": 0.02, "stock_volatility": 0.3}
+    e_adv = "terms" in tool.input_schema["properties"].get("advanced", {}).get("properties", {})
+    adv = {**args.get("advanced", {}), "market_data": CORE_MD}
+    if e_adv:
+        adv["terms"] = terms_h
+    else:
+        args["terms"] = terms_h
+    args["advanced"] = adv
+    out = tool.execute_with_tracking(args)
+    assert out["qlrisk_terms"]["terms"]["collateral_margin"] == 1.05
+    q = dict(out["qlrisk_terms"])
+    q["terms"] = terms_q
+    (direct,) = build_trades([{"product": "StockLoan", **q}], create_sample_market_data(_d(2026, 10, 9)), Limits(),
+                             human=False)
+    assert out["npv"] == pytest.approx(direct.price(create_sample_market_data(_d(2026, 10, 9))).npv, rel=1e-12)
