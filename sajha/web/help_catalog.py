@@ -175,6 +175,16 @@ CATALOG: List[dict] = [
             _g('Workflows', 'Workflows.md', 'bi-diagram-3',
                'DAGs of tools, composites and Ask SAJHA steps; cron, webhook, file and event triggers; '
                'durable runs that resume after a crash, re-run from a step, publish as a tool.'),
+            _g('Per-User Sign-In for Proxied Servers', 'Per-User Sign-In for Proxied Servers.md', 'bi-person-lock',
+               'Design: proxied MCP servers acting as each user with their own vendor account — credential '
+               'modes, connect prompts, sessions, SAJHA Net and security rules.'),
+            _g('GitHub Integration', 'GitHub Integration.md', 'bi-github',
+               'Proposal: GitHub\'s official MCP server proxied per user (issues, pull requests, code, Actions).'),
+            _g('Atlassian Integration', 'Atlassian Integration.md', 'bi-kanban',
+               'Proposal: Jira and Confluence via Atlassian\'s Rovo MCP server (Cloud) or a self-hosted server.'),
+            _g('Google Integration', 'Google Integration.md', 'bi-google',
+               'Proposal: proxy Google Workspace MCP servers (Gmail, Drive, Calendar) and other public MCP '
+               'servers once proxied servers support each user\'s own sign-in.'),
             _g('Adversarial QA Plan', 'Adversarial QA Plan.md', 'bi-bug',
                'How to attack SAJHA on purpose: every surface, what to try, the safe behaviour expected, '
                'priorities, automation and the tests that already cover each item.'),

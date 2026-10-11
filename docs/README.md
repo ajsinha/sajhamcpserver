@@ -73,6 +73,10 @@ alone. Definitions live in the root [GLOSSARY](../GLOSSARY.md); release history 
 - [Scaling and State](architecture/Scaling%20and%20State.md): several workers or hosts; the state store (memory, Redis, database), durable tasks, and what stays per process
 - [Observability](architecture/Observability.md): Prometheus `/metrics`, OpenTelemetry traces over OTLP, the usage and cost dashboard, alert rules
 - [Workflows](architecture/Workflows.md): DAGs of tools, composites and Ask SAJHA steps; cron, webhook, file and event triggers; durable runs that resume after a crash; re-run from a step; publish as a tool
+- [Per-User Sign-In for Proxied Servers](architecture/Per-User%20Sign-In%20for%20Proxied%20Servers.md): design — proxied MCP servers' tools running as each user with their own vendor account (OAuth or personal tokens), connect prompts, sessions, SAJHA Net, security
+- [GitHub Integration](architecture/GitHub%20Integration.md): proposal — proxying GitHub's official MCP server per user
+- [Atlassian Integration](architecture/Atlassian%20Integration.md): proposal — Jira and Confluence through Atlassian's Rovo MCP server (Cloud) or a self-hosted server (Data Center)
+- [Google Integration](architecture/Google%20Integration.md): proposal — proxying Google's Workspace MCP servers (Gmail, Drive, Calendar) and other public MCP servers, after per-user OAuth for proxied servers
 - [Adversarial QA Plan](architecture/Adversarial%20QA%20Plan.md): how to attack SAJHA on purpose — every surface, what to try, the safe behaviour expected, priorities, automation and existing coverage
 - [Tool Quality](architecture/Tool%20Quality.md): test cases with recorded HTTP cassettes and JUnit output, the schema linter, health probes, evals for Ask SAJHA, tool versions with canary routing, rollback and sunset dates
 - [Policy and Audit](architecture/Policy%20and%20Audit.md): declarative rules on every tool call (deny, approval, argument constraints, rate limits, quotas, redaction, injection screening); the hash-chained, signed audit and SIEM export

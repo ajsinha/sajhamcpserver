@@ -4,6 +4,39 @@ Newest first. The current version is `app.version` in `config/application.yml`.
 
 ## Unreleased
 
+Nothing yet.
+
+## v8.3.0 (October 2026) — qlrisk risk analytics, tool domains
+
+qlrisk, the owner's QuantLib-based risk library, arrives as native SAJHA tools: core risk tools (VaR and
+ES, sensitivities, backtesting, P&L explain, stress testing, FRTB SA and IMA, Basel 2.5, counterparty
+exposure, SA-CCR, initial margin, credit risk, XVA, Monte Carlo paths, the RiskEngine report and limits)
+and one pricing tool per qlrisk product, generated from qlrisk's product registry — all in human units
+(percent, basis points, tenors like 3Y) with short forms and checked against independent estimates.
+Tools are browsable by domain (the Domains page and the landing page's "Out of the box" strip, both live
+from the tool folders). The Adversarial QA Plan joins the docs.
+
+### Upgrading from 8.2.0
+
+- **qlrisk (optional):** install the wheel into SAJHA's environment (`requirements-qlrisk.txt`); without
+  it the qlrisk tools are skipped quietly with one notice. Tool configs may declare `"requires"`.
+- **Breaking for qlrisk callers sending decimals:** rates, recoveries, PDs, LGDs, haircuts and
+  volatilities are in percent, spreads and rate shocks in basis points, confidence in percent; old
+  decimal field names are refused with their replacement.
+- **Creators:** the Folder field defaults to Unfiled (the tools base folder); a new folder name creates
+  the folder. The tools base folder follows `config.tools.dir` everywhere.
+- **`POST /api/tools/execute`** runs tools in a worker thread.
+- **Dependencies:** the OpenBB line in `requirements.txt` lists only the extras that still exist.
+- **Database:** no schema change since 8.2.0.
+
+### Docs
+
+- [Google Integration](docs/architecture/Google%20Integration.md) (proposal): proxy Google's Workspace MCP servers and
+  other public MCP servers once proxied servers support per-user sign-in (Roadmap L18).
+- [Per-User Sign-In for Proxied Servers](docs/architecture/Per-User%20Sign-In%20for%20Proxied%20Servers.md) (design,
+  Roadmap L18), with proposals for [GitHub](docs/architecture/GitHub%20Integration.md) and
+  [Atlassian](docs/architecture/Atlassian%20Integration.md) (Jira, Confluence).
+
 - Fixed: qlrisk per-product pricing tools take rates in percent and maturities like 3Y, with a short form.
   `qlrisk_price_<product>` asked for qlrisk's raw fields, so a coupon of 3 meant 300% (a 3-year treasury
   priced at about 1,074 per 100 face instead of 97.85), "3Y" was not a maturity and the form listed fifteen

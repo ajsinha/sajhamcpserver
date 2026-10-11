@@ -17,18 +17,19 @@ from prose import js, listing, plain, wrap
 # Tool groups, by what they are for. A group the live registry has and this map does not
 # fails the build, so a new provider cannot silently drop off the slide.
 CATEGORIES = [
-    ("Markets and equities", ("fmp", "openbb", "av", "yf", "yahoo", "cg"), "Quotes, statements, crypto, indices"),
-    ("Central banks", ("fred", "fed", "ecb", "boc", "boj", "pboc", "rbi", "bdf"),
+    ("Markets and equities", ("fmp", "openbb", "av", "alphavantage", "yf", "yahoo", "cg", "coingecko"), "Quotes, statements, crypto, indices"),
+    ("Central banks", ("fred", "fed", "federal_reserve", "ecb", "boc", "bank_of_canada", "boj", "bank_of_japan",
+              "pboc", "peoples_bank_of_china", "rbi", "reserve_bank_of_india", "bdf", "banque_de_france"),
      "Policy rates, yields, money supply"),
-    ("International bodies", ("imf", "wb", "un"), "Outlooks, development and trade data"),
-    ("Filings and reports", ("edgar", "sec", "ir"), "Filings, facts, insider trades, reports"),
+    ("Public data", ("imf", "wb", "worldbank", "un", "united_nations", "fbi"), "Outlooks, development, trade, crime data"),
+    ("Filings and reports", ("edgar", "sec", "ir", "investor_relations"), "Filings, facts, insider trades, reports"),
     ("Analytics and SQL", ("duckdb", "olap", "sqlselect", "customer", "calc"),
      "SQL over files, pivots, financial calculators"),
-    ("Search and the web", ("tavily", "wiki", "crawl", "extract", "check", "get"),
+    ("Search and the web", ("tavily", "wiki", "wikipedia", "crawl", "extract", "check", "get", "webcrawler"),
      "Web and news search, extraction, crawling"),
     ("Documents", ("msdoc", "sharepoint", "sajha"), "Word and Excel, SharePoint, SAJHA's own guides"),
-    ("Connected accounts", ("github", "google", "ms365", "slack", "connected"), "Act as the user in SaaS apps"),
-    ("Public statistics", ("fbi",), "Crime statistics"),
+    ("Connected accounts", ("github", "google", "ms365", "slack", "connected", "connected_accounts"), "Act as the user in SaaS apps"),
+    ("Risk analytics", ("qlrisk",), "Pricing, VaR, FRTB, SA-CCR, XVA (qlrisk)"),
     ("LLM tools", ("llm",), "Example LLM tools: assistant, summariser, triage, docs Q&A (disabled by default)"),
 ]
 
@@ -135,7 +136,7 @@ def _overview_canvas(F: dict[str, Any], catalog_src: str, n_versions: int) -> di
 
 def _tools_bars(F: dict[str, Any], catalog_src: str) -> dict[str, Any]:
     """Tools per category as native bars, longest first as the registry has them."""
-    rows = _categories(F)[1:]
+    rows = sorted(_categories(F)[1:], key=lambda r: -int(r[2]))       # longest first
     top = max(int(r[2]) for r in rows)
     rh = 1.0 / len(rows)
     nodes, texts = [], []
@@ -145,7 +146,7 @@ def _tools_bars(F: dict[str, Any], catalog_src: str) -> dict[str, Any]:
                       "color": "INK", "size": 14, "floor": 11})
         nodes.append({"id": f"b{i}", "text": n, "x": 0.24, "y": y + rh * 0.14, "w": max(0.04, 0.32 * int(n) / top),
                       "h": rh * 0.72, "style": "accent", "size": 12})
-        texts.append({"x": 0.59, "y": y + rh * 0.08, "w": 0.41, "h": rh * 0.84, "text": f"{what}  ·  {groups}",
+        texts.append({"x": 0.59, "y": y + rh * 0.08, "w": 0.41, "h": rh * 0.84, "text": what,
                       "size": 11.5, "floor": 11, "color": "SLATE"})
     cat = F["catalog"]
     return {
