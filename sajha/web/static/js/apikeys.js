@@ -110,6 +110,9 @@
       data.persistent = !!(form.querySelector('[name="persistent"]') || {}).checked;
       data.tool_list = (data.tool_list || '').split(/[\n,]/).map(function (s) { return s.trim(); }).filter(Boolean);
       if (data.tool_access_mode === 'all') { data.tool_list = []; }
+      ['prompt_list', 'resource_list'].forEach(function (k) {
+        data[k] = (data[k] || '').split(/[\n,]/).map(function (s) { return s.trim(); }).filter(Boolean);
+      });
       var submit = form.querySelector('[type="submit"]');
       if (submit) { submit.disabled = true; }
       send('POST', form.getAttribute('data-url'), data)

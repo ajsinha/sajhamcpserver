@@ -345,6 +345,12 @@ def test_default_key_is_created_encrypted_and_cannot_be_deleted(app):
 
 def test_self_service_create_rotate_revoke_over_http(app):
     c, users, _ = app
+    from sajha.auth import apikeys as svc
+    db = _db()
+    try:
+        svc.ensure_default_keys(db)        # the fixture's users were made after start-up (any test order)
+    finally:
+        db.close()
     token = _login(c, users['user'])
     h = _bearer(token)
     r = c.post('/api/account/apikeys', json={'name': 'laptop', 'tool_access_mode': 'allowlist',
@@ -410,10 +416,10 @@ def test_persistent_key_file_holds_the_raw_key_and_survives_a_lost_row(app):
     _, users, keyfile = app
     kid, raw = _new_key(users['user'], persistent=True, name='break-glass')
     text = keyfile.read_text()
-    assert json.loads(text)['keys'][0]['key'] == raw
+    rec = next(r for r in json.loads(text)['keys'] if r['id'] == kid)     # other tests' keys may share the file
+    assert rec['key'] == raw
     if os.name == 'posix':
         assert stat.S_IMODE(keyfile.stat().st_mode) == 0o600
-    rec = json.loads(text)['keys'][0]
     assert rec['owner'] == users['user'] and rec['roles'] == ['user'] and rec['enabled'] is True
     # the database loses the row (not a deletion through SAJHA): the file still signs it in
     db = _db()

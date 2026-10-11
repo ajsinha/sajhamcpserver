@@ -76,11 +76,11 @@ whether the decisions are wise.
 
 | Attack | Safe behaviour | Automate | P | Existing coverage |
 |---|---|---|---|---|
-| Precedence: the same key in `config/apikeys.json`, the database and `config/apikeys_db.json` with different states | The keys file wins, then the database, then the dump, exactly | Matrix of states across the three stores | P0 | `test_credential_files.py`, `test_api_keys_identity.py` |
-| Test admin key with `sajhanet.test_admin_key.enabled: false` on the host but on at the home | Refused at the host; never published to the key directory | Two instances, mixed switches | P0 | `test_credential_files.py`, `test_net_three_instances.py` |
+| Precedence: the same key in `config/apikeys.json`, the database and `config/apikeys_db.json` with different states | The keys file wins, then the database, then the dump, exactly | Matrix of states across the three stores | P0 | `adversarial/test_credentials.py` (the full matrix), `test_credential_files.py`, `test_api_keys_identity.py` |
+| Test admin key with `sajhanet.test_admin_key.enabled: false` on the host but on at the home | Refused at the host; never published to the key directory | Two instances, mixed switches | P0 | `adversarial/test_credentials.py`, `test_credential_files.py`, `test_net_three_instances.py` |
 | `config/users.json` hand edit with an unknown role, a duplicate id, invalid JSON | Reported as a notice; never applied half-way | Mutation set | P1 | `test_credential_files.py` |
 | Password brute force and lockout across several workers | Lockout holds across workers with a shared state store | Parallel attempts against two workers | P1 | `test_auth.py` |
-| JWT `alg: none`, wrong key, expired, revoked after sign-out | Refused | Token mutation set | P0 | `test_auth.py`, `test_api_keys_identity.py` |
+| JWT `alg: none`, wrong key, expired, revoked after sign-out | Refused | Token mutation set | P0 | `adversarial/test_credentials.py` (also another HMAC algorithm; console API and `/mcp`), `test_auth.py`, `test_api_keys_identity.py` |
 | SSO: replayed `state`, wrong `nonce`, `at_hash` mismatch, email-claim account takeover, open redirect on return | Refused; linking only as configured | Fake identity provider (as in `tests/test_sso.py`) | P0 | `test_sso.py` |
 | CSRF on every state-changing console and JSON route | 403 for a foreign Origin or missing token | Route enumeration | P0 | `test_browser_hardening.py` |
 | Credential file pages: reveal without being admin, reveal not audited | Refused; every reveal audited | As a user and an admin | P0 | `test_credential_files.py` |
@@ -89,7 +89,7 @@ whether the decisions are wise.
 
 | Attack | Safe behaviour | Automate | P | Existing coverage |
 |---|---|---|---|---|
-| Reach a denied tool through another name: plain alias, qualified `net__instance__tool`, published `vendor__tool`, renamed name, a composite or workflow that wraps it | The same decision under every name | Generate every name form for each denied tool | P0 | `test_net_vendors.py` (either name), `test_policy.py` |
+| Reach a denied tool through another name: plain alias, qualified `net__instance__tool`, published `vendor__tool`, renamed name, a composite or workflow that wraps it | The same decision under every name | Generate every name form for each denied tool | P0 | `adversarial/test_name_forms.py` (findings F1 and F2, fixed), `test_net_vendors.py` (either name), `test_policy.py`, `test_api_keys_identity.py` (composite steps), `test_workflows.py` (run-as) |
 | An API key's tool list bypassed through Ask SAJHA, planners, LLM tools or the OpenAI-compatible endpoint | The key's ceiling applies inside every inner call | Key limited to one tool asks for another | P0 | `tests/ai/` |
 | Approval bypass by retrying, by another worker, by a forwarded call | Approval required every time; forwarded calls refused | Retry loop, two workers | P1 | `test_policy.py` |
 | Rate limits and quotas split across workers on the `memory` state backend | Documented as per process; exact with `redis` or `database` | Two workers each backend | P1 | `test_state_multiworker.py` |
@@ -113,18 +113,18 @@ whether the decisions are wise.
 
 | Attack | Safe behaviour | Automate | P | Existing coverage |
 |---|---|---|---|---|
-| Malicious upstream: prompt injection in tool descriptions, schema bombs, huge or slow-drip results, protocol violations | Descriptions screened and flagged; limits and timeouts hold; the breaker opens | A deliberately hostile fake MCP server | P0 | `test_federation.py` |
+| Malicious upstream: prompt injection in tool descriptions, schema bombs, huge or slow-drip results, protocol violations | Descriptions screened and flagged; limits and timeouts hold; the breaker opens. Gap: federation does not cap a result's size; it reaches the caller whole (Ask SAJHA and LLM tools cap what a model reads, `max_result_chars`) | A deliberately hostile fake MCP server | P0 | `adversarial/test_hostile_upstream.py`, `test_federation.py` |
 | Name games: an upstream naming its tools with `__`, a prefix equal to a local tool or another upstream | Prefix clash notice; names namespaced; nothing shadowed | Hostile configs | P1 | `test_federation_mcp_servers.py` |
 | Proxy cycles through a server that is not SAJHA (it ignores the chain budget) | Bounded by timeouts (documented) | Two proxies pointing at each other through a plain server | P1 | `test_federation.py` (SAJHA cycle) |
 | stdio command injection through `config/mcp_servers.json` arguments or environment | No shell interpretation; `allow_stdio` required | Hostile argument strings | P0 | `test_federation_mcp_servers.py` |
-| Credentials in headers leaking into logs, audit, errors or the console | Never logged; raw secrets only raise a notice | Grep every output channel for a canary secret | P0 | none — add |
+| Credentials in headers leaking into logs, audit, errors or the console | Never logged; raw secrets only raise a notice | Grep every output channel for a canary secret | P0 | `adversarial/test_hostile_upstream.py` (finding F3, fixed) |
 
 ### 3.7 Tool folders and configuration loading
 
 | Attack | Safe behaviour | Automate | P | Existing coverage |
 |---|---|---|---|---|
 | **Disable a tool by dropping a duplicate file** anywhere under `config/tools/` | Both copies disabled with a critical notice (owner rule): confirm the notice reaches operators and who may write the folder is controlled | Write a duplicate, watch the notice and the catalog | P1 | `test_tool_folders.py` |
-| Folder names with `..`, symlinks, absolute paths, deeper nesting, unusual Unicode | Never loaded outside `config/tools`; deeper files ignored with a notice | Hostile tree in a temp dir | P0 | `test_tool_folders.py` (nesting) — add traversal and symlinks |
+| Folder names with `..`, symlinks, absolute paths, deeper nesting, unusual Unicode, tool names with path separators | Never loaded or written outside `config/tools`; deeper files ignored with a notice | Hostile tree in a temp dir | P0 | `adversarial/test_tool_folder_traversal.py` (findings F4 and F5, fixed), `test_tool_folders.py` (nesting) |
 | Malformed, huge or endlessly nested JSON in a tool file | That tool fails with an error; the rest load | Mutation set | P1 | `test_tool_folders.py` |
 | Hot reload during a write, object stores with delayed listing | No half-loaded tool; converges on the next check | Concurrent writer | P2 | `test_tool_folders.py` |
 | A failing tool retried forever | Back-off up to the cap; no log flood | Permanently broken tool for an hour | P2 | `test_tool_folders.py` |
@@ -152,7 +152,7 @@ whether the decisions are wise.
 
 | Attack | Safe behaviour | Automate | P | Existing coverage |
 |---|---|---|---|---|
-| XSS through tool names, descriptions, notice text, glossary, page help, upstream descriptions, remote catalogs | Escaped everywhere; CSP blocks inline script | Hostile strings in every field, Playwright looks for execution | P0 | `test_csp_handlers.py`, `test_browser_hardening.py` |
+| XSS through tool names, descriptions, notice text, glossary, page help, upstream descriptions, remote catalogs | Escaped everywhere; CSP blocks inline script | Hostile strings in every field, Playwright looks for execution | P0 | `adversarial/test_xss.py` (server-rendered pages, the notice and federation renderers, CSP on every page; no browser yet), `test_csp_handlers.py`, `test_browser_hardening.py` |
 | Clickjacking, mixed content, cookie flags | `frame-ancestors`, Secure/HttpOnly/SameSite as configured | Header assertions | P1 | `test_browser_hardening.py` |
 | Open redirects after sign-in or SSO | Only same-origin targets | Redirect corpus | P1 | `test_sso.py` |
 
@@ -160,7 +160,7 @@ whether the decisions are wise.
 
 | Attack | Safe behaviour | Automate | P | Existing coverage |
 |---|---|---|---|---|
-| Fetch, crawler and REST tools pointed at the cloud metadata address, localhost, private ranges | Refused by the network guard where it applies; documented where it does not | URL corpus | P0 | `test_hardening.py` |
+| Fetch, crawler and REST tools pointed at the cloud metadata address, localhost, private ranges | Refused by the network guard where it applies (federation upstreams, API import and its tools, OAuth CIMD, webhooks, alert webhooks; SAJHA Net peers by their own rule); documented where it does not: the web crawler tools fetch any URL the caller names (finding F6, open) and Studio REST tools call their author's endpoint unchecked | URL corpus | P0 | `adversarial/test_ssrf.py`, `test_hardening.py` |
 | Connector queries reading outside their allowlist | Refused | Hostile queries | P0 | connector tests |
 | DuckDB reading local files | Refused | File path corpus | P0 | `test_duckdb_tools_sandbox.py` |
 
@@ -176,11 +176,11 @@ whether the decisions are wise.
 
 | Attack | Safe behaviour | Automate | P | Existing coverage |
 |---|---|---|---|---|
-| Random test order | Same results | `pytest -p randomly` in a nightly job | P1 | none — add |
-| Clock shifted by days and months | Same results | Freeze time at future dates | P1 | none — add |
-| A dependency missing from the environment | The gate fails instead of skipping the area | Assert the expected test modules ran | P1 | none — add |
-| Tests writing the developer's files | Never: tests use temporary paths | Watch `data/` and `config/` timestamps during the run | P1 | `tests/conftest.py` defaults |
-| Clean install from `requirements.txt` | Resolves and starts | Fresh virtualenv in CI | P1 | none — add |
+| Random test order | Same results | pytest-randomly on every run (CI `pytest` job, seeded with the run id) | P1 | `.github/workflows/tests.yml`; order-dependent tests fixed (finding F7) |
+| Clock shifted by days and months | Same results | `SAJHA_TEST_CLOCK_SHIFT_DAYS` moves the clock ahead (time-machine, ticking) | P1 | `tests/suite_integrity.py`, CI `shifted-clock` job |
+| A dependency missing from the environment | The gate fails instead of skipping the area | A test in a module listed in `REQUIRED` skipped for a missing import fails the session (`SAJHA_TEST_ALLOW_MISSING` allows named modules) | P1 | `tests/suite_integrity.py` |
+| Tests writing the developer's files | Never: tests use temporary paths | Every file under `data/` and `config/` fingerprinted at the start and compared at the end; a change fails the session (`SAJHA_TEST_ALLOW_REPO_WRITES=1` warns instead) | P1 | `tests/suite_integrity.py`, `tests/conftest.py` defaults |
+| Clean install from `requirements.txt` | Resolves and starts | Fresh virtualenv in CI | P1 | CI `clean-install` job (`pip install`, `pip check`, the app starts) |
 
 ## 4. Execution
 
@@ -195,8 +195,27 @@ whether the decisions are wise.
 4. **Every release:** the P0 and P1 automated items, MCP conformance, the SAJHA Net conformance runner
    (`python -m sajha.net.conformance`), the console and mobile checks, and a clean install.
 
+**Running the integrity checks locally:** the suite runs in random order whenever pytest-randomly is
+installed (`requirements-dev.txt`; the seed is in the header, `--randomly-seed=N` repeats an order,
+`-p no:randomly` turns it off); `SAJHA_TEST_CLOCK_SHIFT_DAYS=400` runs it with the clock moved ahead. The
+required-module list, the file watch and the clock live in `tests/suite_integrity.py`.
+
 **Exit criteria for a release:** no open P0 finding; every P1 finding fixed or recorded in the
 [Roadmap](Roadmap.md) with the owner's decision; every fixed finding has its regression test.
+
+## 5. Findings
+
+Each finding has its regression test (named in the coverage column above).
+
+| Id | Surface | Finding | Severity | State |
+|---|---|---|---|---|
+| F1 | 3.4 | A policy rule naming a SAJHA Net tool's plain alias did not match a call by its qualified name (or the reverse), so `deny find` was bypassed through `<net>__<instance>__find` | P0 | Fixed: rules match every name of a tool (`sajha/policy/engine.py`, `tool_aliases`) |
+| F2 | 3.4 | Caller tool access (role and API-key lists) matched only the name called: an API-key deny list naming an alias did not cover the qualified name | P0 | Fixed: access patterns match every name of a tool (`sajha/auth/access.py`, `ToolPolicy`) |
+| F3 | 3.6 | An upstream's status (console and admin API) showed a raw credential header value from its definition | P1 | Fixed: credential-named header and environment values masked (`sajha/federation/manager.py`) |
+| F4 | 3.7 | A symbolic link dropped into `config/tools` loaded a tool config from anywhere on the disk | P1 | Fixed: links that leave the listed directory are not listed (`sajha/core/storage.py`) |
+| F5 | 3.7 | Import JSON accepted a tool name with path separators (`../../x`) and wrote outside the tools directory (administrators only) | P1 | Fixed: `tool_files.name_path_problem`, refused by every writer |
+| F6 | 3.11 | The web crawler tools fetch any URL the caller names, cloud metadata and private addresses included | P0 | Open, documented: strict xfail in `adversarial/test_ssrf.py` |
+| F7 | 3.13 | Order-dependent tests: a test relying on files or keys another test made, a CLI test needing the state of the test before it, the tool monitor following a test's temporary storage and dropping every tool. Date-dependent: a SAJHA Net test moved its fixed net clock to the real date (it would have failed once the calendar passed the instances' certificate lifetime), a TLS test certificate valid for one day. Developer files written: the multi-worker tests' servers wrote `config/apikeys_db.json`, tests wrote `data/cache` | P1 | Fixed in the tests (and the monitor, which now ignores a storage it did not start on) |
 
 ---
 

@@ -894,7 +894,13 @@ class ToolsRegistry:
         if not hasattr(self, '_module_timestamps'):
             self._module_timestamps = {}
         
-        while not self._stop_monitor.wait(5):  # Check every 5 seconds
+        def where():
+            st = get_storage()
+            return type(st), str(getattr(st, 'base_dir', ''))
+        watched = where()              # the directory this monitor watches: a scan never follows a backend
+        while not self._stop_monitor.wait(5):  # pointed elsewhere (as tests do; that is not every file deleted)
+            if where() != watched:
+                continue
             with self.bulk():          # one notification per scan, whatever it found
                 self._scan_once()
 

@@ -127,7 +127,7 @@ Authenticated endpoints accept a browser session, `Authorization: Bearer <token>
 
 | Method | Path | Auth | Purpose |
 |--------|------|------|---------|
-| GET | `/api/prompts/list` | Optional | Summary of every prompt the caller may see (all for a signed-in caller; anonymous callers only `mcp.anonymous.prompts`, none by default): `name`, `description`, `category`, `tags`, `author`, `version`, `argument_count`, `usage_count`, `last_used`. |
+| GET | `/api/prompts/list` | Optional | Summary of every prompt the caller may see (a signed-in caller: what its roles and API key allow, see [Tool access](../../security/Security%20Model.md#tool-access); anonymous callers only `mcp.anonymous.prompts`, none by default): `name`, `description`, `category`, `tags`, `author`, `version`, `argument_count`, `usage_count`, `last_used`. |
 | GET | `/api/prompts/{name}` | Optional | Full prompt: `name`, `description`, `template`, `arguments`, `metadata`. 404 if unknown or hidden from the caller. |
 | POST | `/api/prompts/{name}/render` | User | Body `{"arguments": {...}}`. Returns `{"success": true, "rendered": "..."}`, or 400 with `error`. |
 | POST | `/api/prompts/create` | Admin | Body: `name` plus the prompt fields. Writes `<name>.json` to the prompts directory. |

@@ -218,6 +218,10 @@ gateway. The arrangement nests and expands without limit:
 Prompts follow the same rule (`<prefix>__<prompt>`). Resource URIs are rewritten to
 `sajha-federation://<upstream id>/<the original URI, percent-encoded>` so they cannot
 collide with SAJHA's own `sajha://` resources, and `resources/read` routes them back.
+Who may see a federated prompt or resource is SAJHA's own prompt and data-resource rule,
+applied to the namespaced name or the rewritten URI (role `prompt` / `resource` permissions,
+API-key `prompt:` / `resource:` entries, `mcp.anonymous.prompts` / `mcp.anonymous.resources`;
+[Security Model](../security/Security%20Model.md#tool-access)).
 
 ## 5. Discovery and refresh
 
@@ -502,8 +506,6 @@ is in the [API Reference](../protocol/API%20Reference.md#416-federation-federati
   declined; client input reaches upstreams only through 2026-07-28 MRTR (section 7).
 * Resource templates, completions, `resources/subscribe` and upstream tasks are not
   federated; an upstream's MCP Apps views (`ui://`) are not carried over.
-* Federated prompts and resources have no per-caller policy, like SAJHA's own: every
-  caller who can list prompts sees the approved ones.
 * Connection state, the event loop and the circuit breaker are per process; the store
   (upstreams and approvals) is shared by every process that shares the storage backend,
   and `max_calls_per_minute` counts in the state store

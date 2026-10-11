@@ -89,6 +89,11 @@ Guide: docs/security/Security Model.md (API keys, Revocable sign-in)
               </select></div>
             <div class="col-sm-6" data-patterns><label class="form-label small" for="nkTools">Patterns (one per line)</label>
               <textarea class="form-control form-control-sm font-monospace" id="nkTools" name="tool_list" rows="2" placeholder="wiki_*"></textarea></div>
+            <div class="col-sm-6"><label class="form-label small" for="nkPrompts">Prompts (patterns, one per line)</label>
+              <textarea class="form-control form-control-sm font-monospace" id="nkPrompts" name="prompt_list" rows="2" placeholder="research_*"></textarea></div>
+            <div class="col-sm-6"><label class="form-label small" for="nkResources">Data resources (URI patterns, one per line)</label>
+              <textarea class="form-control form-control-sm font-monospace" id="nkResources" name="resource_list" rows="2" placeholder="sajha://data/*.csv"></textarea></div>
+            <div class="col-12"><small class="text-muted">Prompts and data resources left empty: everything you may use, or none when tools are limited to "Only these" or regular expressions.</small></div>
             <div class="col-12"><button type="submit" class="btn btn-sm btn-primary"><i class="bi bi-key me-1" aria-hidden="true"></i>Create key</button>
               <small class="text-muted ms-2">Up to {{ max_per_user }} keys besides your default key.</small></div>
           </form>

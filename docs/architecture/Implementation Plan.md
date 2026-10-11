@@ -1,6 +1,6 @@
 # Implementation Plan
 
-> **Status: waves 1 to 6 done (8.2.0)** (the Status column of
+> **Status: waves 1 to 6 done (8.3.0 shipped qlrisk and tool domains between waves); wave 7 in progress** (the Status column of
 > section 2 is the per-wave record). This is the build order for the two features,
 > [LLM Tools](LLM%20Tools.md) (with the [Planner Reference](Planner%20Reference.md)) and
 > [SAJHA Net](SAJHA%20Net.md) (with the [SAJHA Net Protocol](../protocol/SAJHA%20Net%20Protocol.md)),
@@ -63,6 +63,7 @@ streams, what each phase waits for, and its status.
 | 4 | 8.0.0 | SAJHA Net core | Named nets (several per server), membership with required seeds, CA, signed requests on one port, catalogs and proxy tools, resolution order and preferences, offline removal, one name one contract, waterfall fallback, identity across instances, blocks, the Instances page | 1 (3 for remote LLM tools) | done (8.0.0) |
 | 5 | 8.1.0 | Sovereignty, console, other MCP servers | Residency, locality-aware planners, re-export, the full SAJHA Net console, sponsored servers, the agent and library, the extension's conformance suite | 4 | done (8.1.0) |
 | 6 | 8.2.0 | Protocol uniformity between servers, and its security | Server to server on the same streaming MCP as client to server: progress, partial results, cancellation and input requests relayed to the client on its own transport, tasks at the home wrapping forwarded calls (Roadmap L17a; host-side tasks are L19), with security per event: signing, replay protection, residency on partial results (L17b) | 5 | done (8.2.0) |
+| 7 | 8.4.0 | Per-user sign-in, access to prompts and resources, a hardened test suite | Roadmap X3 (prompts and data resources under the same allow/deny rules as tools), the Adversarial QA Plan's first automation (suite integrity and P0 attacks), Roadmap L18 (proxied MCP servers acting as each user: personal tokens, then OAuth; per-user sessions; the SAJHA Net connect relay), with GitHub and Atlassian as the first integrations | 6 | in progress |
 Wave 4 is a major version because it adds a new table (`sajhanet_api_keys`), new columns on
 `api_keys` and a new signed protocol surface; operators must apply schema changes on PostgreSQL by
 hand, as for every schema change.
@@ -235,6 +236,17 @@ to servers that are not SAJHA.
 server) passes the conformance suite and the end-to-end residency tests.
 
 ---
+
+## 7a. Wave 7: per-user sign-in, access to prompts and resources, a hardened test suite
+
+Owner decision, 2026-10-10, after release 8.3.0. Design for the main item:
+[Per-User Sign-In for Proxied Servers](Per-User%20Sign-In%20for%20Proxied%20Servers.md).
+
+| Phase | Streams, in parallel | Depends on | Status |
+|---|---|---|---|
+| 7.1 | A: Roadmap X3 — prompts and data resources under the same allow/deny rules as tools, for API keys, roles and remote callers ‖ B: the [Adversarial QA Plan](Adversarial%20QA%20Plan.md)'s first automation — random test order, a shifted clock, failing on unexpected skips, a clean install in CI, and its P0 attack tests | 8.3.0 | done |
+| 7.2 | L18 part 1: credential modes, the vault lookup at call time, `token_user` (personal tokens) end to end, the "connect your account" answers on every transport, the Connections view | 7.1 | in progress |
+| 7.3 | L18 part 2: `oauth_user` (discovery, PKCE, refresh, resource indicators), per-user sessions and discovery, the SAJHA Net connect relay, audit and revocation; GitHub and Atlassian templates and guides updated from proposal to built; a tutorial; release 8.4.0 | 7.2 | pending |
 
 ## 8. After wave 5
 

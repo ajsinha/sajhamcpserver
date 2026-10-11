@@ -48,7 +48,7 @@ def suggested_folder(cfg: Dict[str, Any]) -> str:
 def check(cfg: Dict[str, Any], folder: Optional[str]) -> Tuple[Dict[str, Any], str, List[str]]:
     """(the config to save, the folder, the problems) for a config and a chosen folder (None: suggested)."""
     from sajha.tools.naming import reserved_name_problem
-    from sajha.tools.tool_files import clean_folder, folder_problem, name_taken
+    from sajha.tools.tool_files import clean_folder, folder_problem, name_path_problem, name_taken
     errors: List[str] = []
     target = suggested_folder(cfg) if folder is None else clean_folder(folder)
     why = folder_problem(target)
@@ -60,7 +60,7 @@ def check(cfg: Dict[str, Any], folder: Optional[str]) -> Tuple[Dict[str, Any], s
         errors.append('the config has no "name"')
         name = ''
     else:
-        why = reserved_name_problem(name)
+        why = name_path_problem(name) or reserved_name_problem(name)
         if why:
             errors.append(why)
         where = name_taken(name)
@@ -77,7 +77,8 @@ def preview(data: Dict[str, Any]) -> Dict[str, Any]:
     cfg = parse(data)
     folder = data.get('folder') if isinstance(data.get('folder'), str) else None
     out, target, errors = check(cfg, folder)
-    from sajha.tools.tool_files import get_index
+    from sajha.tools.tool_files import get_index, name_path_problem
+    name = out.get('name') if not name_path_problem(out.get('name')) else '<name>'
     return {'config': out, 'folder': target, 'suggested_folder': suggested_folder(cfg),
-            'path': get_index().new_path(out.get('name') or '<name>', target), 'errors': errors,
+            'path': get_index().new_path(name, target), 'errors': errors,
             'folders': get_index().refresh().folders()}

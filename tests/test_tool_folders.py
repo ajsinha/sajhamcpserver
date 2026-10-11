@@ -475,6 +475,7 @@ def test_import_json_files_the_tool_where_asked(admin):
     # the Tools page groups it under its folder
     page = c.get('/tools', headers=h).text
     assert '"zz_test_folder_a"' in page and 'Unfiled' in page
+    _studio_delete(c, h, 'zz_test_fold_json')          # leave config/tools as found (any test order)
 
 
 def test_import_json_folder_from_category_or_the_root(admin):
@@ -493,6 +494,12 @@ def test_import_json_folder_from_category_or_the_root(admin):
     bad = c.post('/admin/studio/json/deploy', json={'config': _cfg('zz_test_fold_x'), 'folder': 'Not OK'},
                  headers=h).json()
     assert not bad['success'] and 'folder name' in bad['error']
+    _studio_delete(c, h, 'zz_test_fold_cat', 'zz_test_fold_root')   # no root leftovers for the migration test
+
+
+def _studio_delete(c, h, *names):
+    for name in names:
+        assert c.post('/admin/studio/delete', json={'tool_name': name}, headers=h).json()['success'], name
 
 
 def test_a_creator_honours_the_folder_and_refuses_names_taken_in_a_folder(admin):
@@ -503,8 +510,9 @@ def test_a_creator_honours_the_folder_and_refuses_names_taken_in_a_folder(admin)
     r = c.post('/admin/studio/rest/deploy', json=body, headers=h).json()
     assert r['success'], r
     assert tools_registry.tool_path('zz_test_fold_rest') == 'config/tools/zz_test_folder_b/zz_test_fold_rest.json'
-    v = c.post('/admin/studio/validate-name', json={'tool_name': 'zz_test_fold_json'}, headers=h).json()
-    assert not v['valid'] and 'zz_test_folder_a' in v['error']
+    # the name is taken in a folder now: refused, naming the folder (self-contained, any test order)
+    v = c.post('/admin/studio/validate-name', json={'tool_name': 'zz_test_fold_rest'}, headers=h).json()
+    assert not v['valid'] and 'zz_test_folder_b' in v['error']
     d = c.post('/admin/studio/delete', json={'tool_name': 'zz_test_fold_rest'}, headers=h).json()
     assert d['success'] and not (TOOLS / 'zz_test_folder_b').exists()
 

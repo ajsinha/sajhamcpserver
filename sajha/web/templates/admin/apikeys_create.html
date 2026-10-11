@@ -52,6 +52,12 @@ Guide: docs/security/Security Model.md (API keys)
         <div class="col-md-6" data-patterns><label class="form-label" for="ckTools">Patterns (one per line)</label>
           <textarea class="form-control font-monospace" id="ckTools" name="tool_list" rows="3" placeholder="wiki_*"></textarea>
           <small class="text-muted">{{ available_tools|length }} tools loaded; for example {{ available_tools[:3]|join(', ') }}.</small></div>
+        <div class="col-md-6"><label class="form-label" for="ckPrompts">Prompts the key may use (patterns, one per line)</label>
+          <textarea class="form-control font-monospace" id="ckPrompts" name="prompt_list" rows="2" placeholder="research_*"></textarea>
+          <small class="text-muted">Empty: every prompt the owner may use, or none when tools are limited to "Only these" or regular expressions.</small></div>
+        <div class="col-md-6"><label class="form-label" for="ckResources">Data resources the key may read (URI patterns, one per line)</label>
+          <textarea class="form-control font-monospace" id="ckResources" name="resource_list" rows="2" placeholder="sajha://data/products.csv"></textarea>
+          <small class="text-muted">Empty: as for prompts.</small></div>
         <div class="col-md-6"><label class="form-label" for="ckExp">Expires after (days)</label>
           <input class="form-control" id="ckExp" name="expires_in_days" type="number" min="1" max="3650" placeholder="never"></div>
         <div class="col-md-6 d-flex align-items-end">

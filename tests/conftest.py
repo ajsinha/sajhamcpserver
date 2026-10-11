@@ -33,7 +33,14 @@ os.environ.setdefault('SAJHA_SAJHANET_TEST_ADMIN_KEY_ENABLED', 'false')
 os.environ.setdefault('SAJHA_SAJHANET_CA_AUTO_INIT', 'false')
 # The suite exercises the CA through the shipped config; open mode (the shipped admission) has its own tests.
 os.environ.setdefault('SAJHA_SAJHANET_PLUGINS_ADMISSION', 'builtin_ca')
+# The tool result cache (cache.dir, default data/cache) goes to the session's temp directory too.
+os.environ.setdefault('SAJHA_CACHE_DIR', str(_DUCKDB_TMP / 'cache'))
 
+# Suite integrity (docs/architecture/Adversarial QA Plan.md §3.13): required modules never skipped for a
+# missing import, data/ and config/ untouched, the optional shifted clock. The hooks are imported here.
+from tests.suite_integrity import (start_shifted_clock, pytest_sessionstart, pytest_collectreport,  # noqa: F401,E402
+                                   pytest_runtest_logreport, pytest_sessionfinish)
+_SHIFTED_CLOCK = start_shifted_clock()
 
 import pytest
 

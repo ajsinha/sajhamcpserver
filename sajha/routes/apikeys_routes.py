@@ -66,11 +66,20 @@ def _user_ctx(auth: AuthContext) -> dict:
     return {'user_id': auth.user_id, 'user_name': auth.user_name, 'roles': auth.roles}
 
 
-def _tool_list(data: dict) -> list:
-    raw = data.get('tool_list', data.get('tools', []))
+def _patterns(raw) -> list:
     if isinstance(raw, str):
         raw = [p for line in raw.splitlines() for p in line.split(',')]
     return [str(p).strip() for p in (raw or []) if str(p).strip()]
+
+
+def _tool_list(data: dict) -> list:
+    """The key's access list: tool patterns, then ``prompt:`` and ``resource:`` entries
+    (from ``prompt_list`` / ``resource_list``, or written into ``tool_list`` directly)."""
+    from sajha.auth.access import PROMPT_PREFIX, RESOURCE_PREFIX
+    out = _patterns(data.get('tool_list', data.get('tools', [])))
+    out += [PROMPT_PREFIX + p for p in _patterns(data.get('prompt_list'))]
+    out += [RESOURCE_PREFIX + p for p in _patterns(data.get('resource_list'))]
+    return out
 
 
 def _bad(e: Exception, status: int = 400) -> JSONResponse:

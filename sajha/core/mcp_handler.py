@@ -294,8 +294,9 @@ class MCPHandler:
     # ── catalog visibility (sajha/auth/access.py) ──────────────────
 
     def can_see_prompt(self, session: Optional[Dict], name: str) -> bool:
-        """Prompts follow the anonymous policy like tools: every prompt for a signed-in
-        caller, ``mcp.anonymous.prompts`` for an anonymous one (no auth_manager: all)."""
+        """Prompts follow sajha/auth/access.py ``can_see_prompt``: the caller's prompt rules
+        (roles, API key entries), ``mcp.anonymous.prompts`` for an anonymous one (no
+        auth_manager: all)."""
         if not self.auth_manager:
             return True
         check = getattr(self.auth_manager, 'can_see_prompt', None)
@@ -303,6 +304,14 @@ class MCPHandler:
             from sajha.auth.access import can_see_prompt
             return can_see_prompt(session, name)
         return check(session, name)
+
+    def can_read_resource(self, session: Optional[Dict], uri: str) -> bool:
+        """Federated resources follow sajha/auth/access.py ``can_read_resource`` (the data
+        resource rule) by their ``sajha-federation://`` URI (no auth_manager: all)."""
+        if not self.auth_manager:
+            return True
+        from sajha.auth.access import can_read_resource
+        return can_read_resource(session, uri)
 
     def can_see_tool(self, session: Optional[Dict], name: str) -> bool:
         if not self.auth_manager or self.auth_manager.is_unrestricted(session):
@@ -818,7 +827,8 @@ class MCPHandler:
 
         federation = self._federation()
         if federation is not None:
-            resources.extend(federation.resource_definitions())
+            resources.extend(r for r in federation.resource_definitions()
+                             if self.can_read_resource(session, r.get('uri')))
 
         fixtures = self._fixtures()
         if fixtures:
@@ -846,6 +856,8 @@ class MCPHandler:
 
         federation = self._federation()
         if federation is not None and federation.owns_resource(uri):
+            if not self.can_read_resource(session, uri):     # hidden == missing
+                raise MCPError(-32002, 'Resource not found', {'uri': uri})
             try:
                 return federation.read_resource(uri)
             except MCPError:

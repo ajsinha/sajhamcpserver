@@ -117,11 +117,19 @@ class LocalStorageBackend(StorageBackend):
         # Recursive listing with the pattern matched against the *filename*, to match
         # S3StorageBackend semantics (object stores have no directories, so listing is
         # always recursive). For flat dirs this is identical to a top-level glob.
-        return sorted(
-            str(f.relative_to(self.base_dir))
-            for f in p.rglob('*')
-            if f.is_file() and fnmatch.fnmatch(f.name, pattern)
-        )
+        # A symbolic link whose target lies outside the listed directory is not listed, so a link
+        # dropped into config/tools never loads a file from elsewhere (Adversarial QA Plan 3.7);
+        # links inside it (a Kubernetes ConfigMap mount's ..data) still are.
+        real = p.resolve()
+        out = []
+        for f in p.rglob('*'):
+            if not (f.is_file() and fnmatch.fnmatch(f.name, pattern)):
+                continue
+            if not f.resolve().is_relative_to(real):
+                logger.warning(f'{f}: a link to {f.resolve()}, outside {p}; not listed')
+                continue
+            out.append(str(f.relative_to(self.base_dir)))
+        return sorted(out)
 
     def read_bytes(self, path: str) -> bytes:
         return self._resolve(path).read_bytes()

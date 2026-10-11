@@ -4,7 +4,52 @@ Newest first. The current version is `app.version` in `config/application.yml`.
 
 ## Unreleased
 
-Nothing yet.
+### Upgrading
+
+- **API keys limited to a list of tools lose prompts and data files they were not granted.** A key whose
+  tool access mode is `allowlist` or `regex` now reaches no prompt and no data resource (`sajha://data/*`,
+  federated `sajha-federation://*`) unless its access list carries `prompt:<pattern>` /
+  `resource:<uri pattern>` entries (the key forms have Prompts and Data resources fields; `prompt:*`
+  restores the old behaviour for a key). Keys in mode `all` or `denylist`, users and roles keep what they
+  had until a role is given `prompt` / `resource` permission rows. Anonymous callers are unchanged, except
+  that federated resources now also need `mcp.anonymous.resources`.
+- **Database:** no schema change; prompt and resource entries live in the existing `tool_access_list`.
+
+### Added
+
+- **Adversarial QA, first automation** ([Adversarial QA Plan](docs/architecture/Adversarial%20QA%20Plan.md)):
+  `tests/adversarial/` attacks the P0 surfaces: a denied tool under every name (plain, qualified, published,
+  renamed, composite step), the API-key precedence matrix across the keys file, the database and the dump,
+  the test admin key, forged and revoked JWTs, hostile strings on console pages and the CSP, tool-folder
+  traversal and links, a hostile upstream MCP server (screened descriptions, timeouts, a canary secret in
+  every output channel) and the outbound SSRF guard with its documented gaps.
+- **Suite integrity** (`tests/suite_integrity.py`): random test order on every run (pytest-randomly, now in
+  `requirements-dev.txt` with time-machine); `SAJHA_TEST_CLOCK_SHIFT_DAYS` runs the suite with the clock
+  moved ahead; a required test module skipped for a missing dependency fails the run
+  (`SAJHA_TEST_ALLOW_MISSING` names exceptions); a test that changes a file under `data/` or `config/` fails
+  the run. CI (`.github/workflows/tests.yml`) runs the suite in random order and adds `shifted-clock` and
+  `clean-install` jobs; the OpenAI SDK is installed for the tests again.
+
+### Fixed
+
+- Per-caller access to prompts and data resources (Roadmap X3): roles limit prompts and data resources
+  through `prompt` / `resource` permission rows, API keys through `prompt:` / `resource:` entries; one rule
+  for `prompts/list`, `prompts/get`, prompt completion, `resources/list` and `resources/read` on both MCP
+  eras, the REST prompt and resource endpoints and the console's prompt pages. Federated prompts and
+  resources follow it by their namespaced names and URIs ([Security Model](docs/security/Security%20Model.md#tool-access)).
+- Policy rules and caller tool access (role permissions, API-key allow and deny lists) now match every
+  name a SAJHA Net tool answers to (its qualified `<net>__<instance>__<tool>` name and its plain alias), so a
+  rule or a deny list naming one name is no longer bypassed through the other.
+- A symbolic link in `config/tools` that points outside it is no longer loaded; a tool name with a path
+  separator or a leading dot is refused by Import JSON and every tool-config writer instead of being written
+  outside the tools directory.
+- An upstream's status (federation console and admin API) masks credential-named header and environment
+  values instead of showing them.
+- The tool-config monitor no longer acts on a storage backend it did not start on (tests that point the
+  storage at a temporary directory made the live catalog drop every tool for a moment).
+- Order- and date-dependent tests fixed (they relied on files, keys or net state made by another test, or
+  on the calendar); tests no longer write `config/apikeys_db.json` (the multi-worker servers) or the tool
+  result cache under `data/cache`.
 
 ## v8.3.0 (October 2026) — qlrisk risk analytics, tool domains
 

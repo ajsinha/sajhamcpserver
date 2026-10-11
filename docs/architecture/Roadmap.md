@@ -40,9 +40,8 @@ judgement. They are collected in [section 5](#5-decisions-needed).
 
 ## 2. Now
 
-Nothing open. The release hygiene items (N2 to N5) shipped in wave 1 of the
-[Implementation Plan](Implementation%20Plan.md); what the release in progress still needs is
-that plan's open phases.
+Being built in wave 7 of the [Implementation Plan](Implementation%20Plan.md): L18 (per-user sign-in for proxied servers) and the
+[Adversarial QA Plan](Adversarial%20QA%20Plan.md)'s first automation.
 
 ---
 
@@ -52,7 +51,6 @@ that plan's open phases.
 
 | ID | Item | Why it matters | Current state | Proposed approach | Size | Depends on |
 |---|---|---|---|---|---|---|
-| X3 | Per-user access to prompts and data resources | An API key limited to a few tools can still read every prompt and data file | Only anonymous callers are filtered (`mcp.anonymous.prompts`, `mcp.anonymous.resources`); federated prompts and resources likewise ([Security Model](../security/Security%20Model.md#8-known-limitations), [Federation](Federation.md#12-limits)) | Extend the tool allow and deny patterns of `sajha/auth/access.py` to prompts and resources, so `prompts/list`, `resources/list` and reads use one policy | M | none |
 | X7 | Ask SAJHA over MCP, finished | `sajha_ask` is the one tool most clients will call | Destructive-tool confirmation comes back as `needs_confirmation`, not as a Multi Round-Trip Request; history is not trimmed on `ContextTooLong`; freshness and agreement are not in the confidence score ([Intelligence Layer](Intelligence%20Layer.md#9-not-built-yet)) | Confirmation as MRTR on 2026-07-28; trim oldest turns before falling back to a larger model | M | none |
 | X8 | Document connectors as RAG sources | Answers grounded in SharePoint, Drive or Confluence are what most people ask an assistant for | A source is a folder in the storage backend, or an upload; PDF and Word are read, scanned PDFs are not (no OCR) ([Intelligence Layer](Intelligence%20Layer.md#9-not-built-yet)) | Sources that read through connected accounts, so a user's index respects their own access; incremental re-index; optional OCR | M | none |
 | X9 | LLM providers: the last synchronous paths | Thread-pool wrappers limit concurrency under load | Bedrock (boto3 is synchronous) and embeddings run in a worker thread; Bedrock refuses `reasoning_effort` (`sajha/ai/llm/providers/bedrock.py`; [Intelligence Layer](Intelligence%20Layer.md#9-not-built-yet)) | An async Bedrock client; native async embeddings on the HTTP providers; `reasoning_effort` through `additionalModelRequestFields` per model | S | none |

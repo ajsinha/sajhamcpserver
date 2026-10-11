@@ -124,7 +124,7 @@ def node(svc):
     return svc.runtimes[NET].node
 
 
-def test_the_net_in_one_process(fabric, monkeypatch):
+def test_the_net_in_one_process(fabric, monkeypatch, capsys):
     f, conn, tmp = fabric, fabric['conn'], fabric['tmp']
     a = f['a']
     st = _api(f, 'GET', '/api/sajhanet/status').json()
@@ -230,6 +230,10 @@ def test_the_net_in_one_process(fabric, monkeypatch):
     text = exposition()
     assert 'sajha_net_joined{net="acme-net"} 1' in text and 'sajha_net_members' in text
 
+    # the command line against the net built above (here, not in a test of its own: it needs this state,
+    # and a separate test would depend on running after this one)
+    _check_cli_net_commands(f, monkeypatch, capsys)
+
 
 def test_net_paths_refuse_browsers_and_cors(fabric):
     c = fabric['c']
@@ -250,7 +254,7 @@ def test_admin_api_is_admin_only(fabric):
     assert c.post(f'/api/sajhanet/nets/{NET}/peers', json={'address': '10.0.0.1:3002'}).status_code in (401, 403)
 
 
-def test_cli_net_commands(fabric, monkeypatch, capsys):
+def _check_cli_net_commands(fabric, monkeypatch, capsys):
     sys.path.insert(0, str(Path(__file__).resolve().parents[2] / 'clientsdk'))
     import importlib
     cli = importlib.import_module("sajhaclient.cli.main")

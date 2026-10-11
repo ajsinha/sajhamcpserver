@@ -338,8 +338,9 @@ These behave the same on both paths:
   A tool whose schema is not itself valid JSON Schema logs a warning and is checked for
   `required` only. (`sajha/core/mcp_handler.py`, the `ToolArgumentError` branch of
   `tools/call`.)
-- **Prompts** list their arguments; `prompts/get` returns messages. Anonymous callers
-  see only the prompts in `mcp.anonymous.prompts` (none by default; see §6).
+- **Prompts** list their arguments; `prompts/get` returns messages. Each caller sees the
+  prompts its roles and API key allow; anonymous callers only those in
+  `mcp.anonymous.prompts` (none by default; see §6).
 - **Resources** include the tool and prompt catalogs (`sajha://tools/catalog`,
   `sajha://prompts/catalog`) and resource templates; `completion/complete` completes
   prompt arguments and tool enum values. The catalogs and completions cover only the
@@ -366,7 +367,7 @@ built-in authorization server and external identity providers are in the
 [OAuth Guide](OAuth%20Guide.md); the wider picture is in the
 [Security Model](../security/Security%20Model.md).
 
-`tools/list` and `tools/call` apply the caller's tool access on both eras and every transport (`sajha/auth/access.py`): users by their roles, API keys by their tool access mode, anonymous callers by `mcp.anonymous.*` (no registry tools by default; `mcp.anonymous.enabled: false` demands credentials). A refused call is `-32002` on 2025-11-25 and `-32010` on 2026-07-28, and an authenticated caller's `tools/list` is `cacheScope: private`. The conformance fixtures are callable by anyone when enabled. The same policy covers the rest of the catalog: the `sajha://tools/catalog` resource, tool completions and the `tool/schema`-style methods show only visible tools; signed-in callers see every prompt and anonymous callers only `mcp.anonymous.prompts` (`prompts/list`, `prompts/get`, prompt completions, `sajha://prompts/catalog`; a hidden prompt is `-32602` Unknown prompt). See [Tool access](../security/Security%20Model.md#tool-access).
+`tools/list` and `tools/call` apply the caller's tool access on both eras and every transport (`sajha/auth/access.py`): users by their roles, API keys by their tool access mode, anonymous callers by `mcp.anonymous.*` (no registry tools by default; `mcp.anonymous.enabled: false` demands credentials). A refused call is `-32002` on 2025-11-25 and `-32010` on 2026-07-28, and an authenticated caller's `tools/list` is `cacheScope: private`. The conformance fixtures are callable by anyone when enabled. The same policy covers the rest of the catalog: the `sajha://tools/catalog` resource, tool completions and the `tool/schema`-style methods show only visible tools; prompts and data resources follow the caller's roles (`prompt` / `resource` permission rows) and API key (`prompt:` / `resource:` entries; none by default for an `allowlist` or `regex` key), anonymous callers `mcp.anonymous.prompts` / `mcp.anonymous.resources` (`prompts/list`, `prompts/get`, prompt completions, `sajha://prompts/catalog`, `resources/list`, `resources/read`, federated prompts and resources included; a hidden prompt is `-32602` Unknown prompt, a hidden resource `-32002`). See [Tool access](../security/Security%20Model.md#tool-access).
 
 ---
 

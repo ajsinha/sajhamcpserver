@@ -183,7 +183,7 @@ def test_call_02_03_04_05_identity_refusals(fab):
     fab.a.user('alice')
     fab.b.user('alice')
     kid, raw = fab.a.key('alice')
-    _, expiring = fab.a.key('alice', expires_in_days=1)
+    exp_kid, expiring = fab.a.key('alice', expires_in_days=1)
     sync(fab)
 
     def reason(headers, sender='risk-eu', **kw):
@@ -195,10 +195,20 @@ def test_call_02_03_04_05_identity_refusals(fab):
     assert reason(fab.b.headers(raw, authorization='Bearer x')) == 'ambiguous_credentials'  # CALL-05
     assert reason(fab.b.headers(raw), secure=False) == 'https_required'                    # CALL-04 (host)
     assert reason(fab.b.headers(raw, net='other-net')) == 'key_unknown'                    # NET-06
-    # expired: the key's expiry is set from the real date, the net's clock is a fixed test clock, so
-    # move the net clock two days past the real now (a fixed advance broke once the calendar moved on)
-    import time as _time
-    fab.n.clock.advance(max(0.0, _time.time() - fab.b.authz._state(NET).now()) + 2 * 86400)
+    # expired: the net runs on a fixed test clock, so the key's expiry is put an hour before the net's now
+    # (moving the net clock to the real date instead broke once the calendar, or a shifted clock, moved
+    # far enough on for the instances' certificates to expire on the net clock)
+    from datetime import datetime, timezone
+    from sajha.db.models import ApiKey
+    db = fab.a.db()
+    try:
+        net_now = fab.b.authz._state(NET).now()
+        row = db.query(ApiKey).filter(ApiKey.id == exp_kid).first()
+        row.expires_at = datetime.fromtimestamp(net_now - 3600, timezone.utc).replace(tzinfo=None)
+        db.commit()
+    finally:
+        db.close()
+    sync(fab)
     assert reason(fab.b.headers(expiring)) == 'key_expired'
     # disabled at the home, then revoked
     db = fab.a.db()

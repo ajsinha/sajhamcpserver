@@ -178,8 +178,8 @@ These take a JSON-RPC-like body (`{"params": {...}}`) and return a JSON-RPC-shap
 
 | Method | Path | Auth | Purpose |
 |---|---|---|---|
-| POST | `/api/resources/list` | user | Tool catalog resource (counting the caller's visible tools) plus files in `data/duckdb`. |
-| POST | `/api/resources/read` | user | Reads `sajha://tools/catalog` (`params.uri`): the caller's visible tools. |
+| POST | `/api/resources/list` | user | Tool catalog resource (counting the caller's visible tools) plus the data files (`sajha://data/*`) the caller may read ([Security Model](../security/Security%20Model.md#tool-access)). |
+| POST | `/api/resources/read` | user | Reads `sajha://tools/catalog` (`params.uri`: the caller's visible tools) or a data file the caller may read (`-32002` otherwise). |
 | POST | `/api/completion/complete` | user | Enum completion for an argument of a tool the caller may see (`params.ref`, `params.argument`). |
 | POST | `/api/logging/setLevel` | admin | Sets the server's root log level (`params.level`). |
 
@@ -292,7 +292,7 @@ Your own keys:
 |---|---|---|---|
 | GET | `/account/apikeys` | user | The My API keys page (user menu): your keys, a new-key form, "Sign out everywhere". |
 | GET | `/api/account/apikeys` | user | `{"apikeys": [...]}`: your keys, the default key included. |
-| POST | `/api/account/apikeys` | user | Create a key that signs in as you: `name`, `description`, `tool_access_mode` (`all`, `allowlist`, `denylist`, `regex`), `tool_list`, `expires_in_days`. At most `auth.api_keys.max_per_user` besides the default key. |
+| POST | `/api/account/apikeys` | user | Create a key that signs in as you: `name`, `description`, `tool_access_mode` (`all`, `allowlist`, `denylist`, `regex`), `tool_list`, `prompt_list`, `resource_list` (stored as `prompt:` / `resource:` entries of the list), `expires_in_days`. At most `auth.api_keys.max_per_user` besides the default key. |
 | POST | `/api/account/apikeys/{key_id}/rotate` | user | New value for your key (the old one stops working); returned once. |
 | POST | `/api/account/apikeys/{key_id}/revoke` | user | Revoke your key for good (not the default key: 400). |
 
@@ -320,7 +320,7 @@ Every key (administrators):
 | GET | `/admin/apikeys/create` | admin | The new-key page. |
 | GET | `/admin/apikeys/{key_id}/view` | admin | One key, with its actions. |
 | GET | `/api/admin/apikeys` | admin | `{"apikeys": [...]}`; `?owner=<user ID>` or `?owner=-` (no owner). |
-| POST | `/api/admin/apikeys` | admin | Create a key: `name`, `description`, `owner` (a user ID; empty for a key without an owner), `tool_access_mode`, `tool_list`, `expires_in_days`, `persistent`. |
+| POST | `/api/admin/apikeys` | admin | Create a key: `name`, `description`, `owner` (a user ID; empty for a key without an owner), `tool_access_mode`, `tool_list`, `prompt_list`, `resource_list`, `expires_in_days`, `persistent`. |
 | POST | `/admin/apikeys/create` | admin | The older path of `POST /api/admin/apikeys`. |
 | POST | `/api/admin/apikeys/{key_id}/rotate` | admin | New value for any key; returned once. |
 | POST | `/api/admin/apikeys/{key_id}/revoke` | admin | Revoke for good (`revoked_at`, `revoked_by`); not a default key. |
@@ -328,7 +328,7 @@ Every key (administrators):
 | POST | `/admin/apikeys/{key_id}/toggle` | admin | The older enable/disable switch (flips `enabled`). |
 | POST | `/api/admin/apikeys/{key_id}/owner` | admin | `{"owner": "<user ID>"}`: give a key without an owner one; it then signs in as that user. |
 | POST | `/api/admin/apikeys/{key_id}/persistent` | admin | `{"persistent": true}` or `false`: keep (or stop keeping) the key's hashed record in `config.apikeys.path`. |
-| POST | `/api/admin/apikeys/{key_id}/access` | admin | `{"tool_access_mode", "tool_list"}`: the key's own tool access. |
+| POST | `/api/admin/apikeys/{key_id}/access` | admin | `{"tool_access_mode", "tool_list", "prompt_list", "resource_list"}`: the key's own tool, prompt and data-resource access. |
 | DELETE | `/api/admin/apikeys/{key_id}` | admin | Delete a key and its record (not a default key; prefer revoke). |
 | DELETE | `/admin/apikeys/{key_id}/delete` | admin | The older path of the delete. |
 
@@ -343,12 +343,12 @@ curl -X POST http://localhost:3002/api/account/apikeys \
 
 | Method | Path | Auth | Purpose |
 |---|---|---|---|
-| GET | `/api/prompts/list` | optional | The prompts the caller may see: all for a signed-in caller, `mcp.anonymous.prompts` for an anonymous one; 401 where `/mcp` would answer one. |
+| GET | `/api/prompts/list` | optional | The prompts the caller may see: for a signed-in caller its roles' `prompt` permissions and its API key's `prompt:` entries ([Security Model](../security/Security%20Model.md#tool-access)), `mcp.anonymous.prompts` for an anonymous one; 401 where `/mcp` would answer one. |
 | GET | `/api/prompts/{prompt_name}` | optional | One prompt, under the same rule (404 when hidden or unknown). |
 | POST | `/api/prompts/create` | admin | Create: `name` (letters, digits, `_`, `-`; max 100), `prompt_template` (or `template`), `description`, `arguments`, `metadata`. |
 | POST | `/api/prompts/{prompt_name}/update` | admin | Update the same fields. |
 | POST | `/api/prompts/{prompt_name}/delete` | admin | Delete. |
-| POST | `/api/prompts/{prompt_name}/render` | user | Render with `{"arguments": {...}}`; returns `{"success": true, "rendered": ...}`. |
+| POST | `/api/prompts/{prompt_name}/render` | user | Render with `{"arguments": {...}}`; returns `{"success": true, "rendered": ...}` (404 for a prompt the caller may not see). |
 
 ### 4.6 Composite tools (`composite_routes.py`)
 

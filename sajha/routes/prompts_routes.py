@@ -16,10 +16,23 @@ from sajha.app import render
 router = APIRouter(tags=['prompts'])
 
 
+def _visible(auth, prompts):
+    """Only the prompts this caller may see (sajha/auth/access.py ``can_see_prompt``: the
+    caller's roles and API key entries), as MCP ``prompts/list`` shows them."""
+    from sajha.auth.access import can_see_prompt, mcp_session_for
+    session = mcp_session_for(auth)
+    return [p for p in prompts if can_see_prompt(session, p.get('name'))]
+
+
+def _may_see(auth, name: str) -> bool:
+    from sajha.auth.access import can_see_prompt, mcp_session_for
+    return can_see_prompt(mcp_session_for(auth), name)
+
+
 @router.get('/prompts')
 async def prompts_list(request: Request, auth: AuthContext = Depends(require_auth)):
     from sajha.app import prompts_registry
-    prompts = prompts_registry.get_all_prompts() if prompts_registry else []
+    prompts = _visible(auth, prompts_registry.get_all_prompts() if prompts_registry else [])
     categories = prompts_registry.get_categories() if prompts_registry else []
     tags = prompts_registry.get_tags() if prompts_registry else []
     return render(request, 'prompts/prompts_list.html', {
@@ -43,7 +56,7 @@ async def prompt_create_page(request: Request, auth: AuthContext = Depends(requi
 async def prompt_detail(prompt_name: str, request: Request, auth: AuthContext = Depends(require_auth)):
     from sajha.app import prompts_registry
     prompt = prompts_registry.get_prompt(prompt_name) if prompts_registry else None
-    if not prompt:
+    if not prompt or not _may_see(auth, prompt_name):      # hidden == missing
         return render(request, 'common/error.html', {
             'error': 'Prompt Not Found',
             'message': f'Prompt "{prompt_name}" does not exist',
@@ -65,7 +78,7 @@ async def prompt_detail(prompt_name: str, request: Request, auth: AuthContext = 
 async def prompt_test(prompt_name: str, request: Request, auth: AuthContext = Depends(require_auth)):
     from sajha.app import prompts_registry
     prompt = prompts_registry.get_prompt(prompt_name) if prompts_registry else None
-    if not prompt:
+    if not prompt or not _may_see(auth, prompt_name):      # hidden == missing
         return render(request, 'common/error.html', {
             'error': 'Prompt Not Found',
             'message': f'Prompt "{prompt_name}" does not exist',
@@ -82,7 +95,7 @@ async def prompt_test(prompt_name: str, request: Request, auth: AuthContext = De
 @router.get('/prompts/category/{category}')
 async def prompts_by_category(category: str, request: Request, auth: AuthContext = Depends(require_auth)):
     from sajha.app import prompts_registry
-    prompts = prompts_registry.get_prompts_by_category(category) if prompts_registry else []
+    prompts = _visible(auth, prompts_registry.get_prompts_by_category(category) if prompts_registry else [])
     categories = prompts_registry.get_categories() if prompts_registry else []
     tags = prompts_registry.get_tags() if prompts_registry else []
     return render(request, 'prompts/prompts_list.html', {
@@ -98,7 +111,7 @@ async def prompts_by_category(category: str, request: Request, auth: AuthContext
 @router.get('/prompts/tag/{tag}')
 async def prompts_by_tag(tag: str, request: Request, auth: AuthContext = Depends(require_auth)):
     from sajha.app import prompts_registry
-    prompts = prompts_registry.get_prompts_by_tag(tag) if prompts_registry else []
+    prompts = _visible(auth, prompts_registry.get_prompts_by_tag(tag) if prompts_registry else [])
     categories = prompts_registry.get_categories() if prompts_registry else []
     tags = prompts_registry.get_tags() if prompts_registry else []
     return render(request, 'prompts/prompts_list.html', {
@@ -116,13 +129,14 @@ async def prompts_by_tag(tag: str, request: Request, auth: AuthContext = Depends
 async def _prompt_caller(request: Request, db: Session):
     """(session, error response) for the REST prompt catalog: the same gate as MCP
     ``prompts/list`` (401 where ``/mcp`` would answer one) and the same visibility
-    (sajha/auth/access.py ``can_see_prompt``): every prompt for a signed-in caller,
-    ``mcp.anonymous.prompts`` for an anonymous one."""
+    (sajha/auth/access.py ``can_see_prompt``): the caller's prompt rules (roles, API key
+    entries), ``mcp.anonymous.prompts`` for an anonymous one."""
     from sajha.auth.oauth.resource_server import authorize_mcp
     auth, err = await authorize_mcp(request, db, 'prompts/list')
     if err is not None:
         return None, err
-    return {'authenticated': bool(auth is not None and auth.authenticated)}, None
+    from sajha.auth.access import mcp_session_for
+    return mcp_session_for(auth), None
 
 
 @router.get('/api/prompts/list')
@@ -222,7 +236,7 @@ async def api_prompt_render(prompt_name: str, request: Request, auth: AuthContex
     from sajha.app import prompts_registry
     if not prompts_registry:
         return JSONResponse({'success': False, 'error': 'Prompts registry unavailable'}, status_code=503)
-    if not prompts_registry.get_prompt(prompt_name):
+    if not prompts_registry.get_prompt(prompt_name) or not _may_see(auth, prompt_name):
         return JSONResponse({'success': False, 'error': f"Prompt '{prompt_name}' not found"}, status_code=404)
     data = await request.json()
     ok, out = prompts_registry.render_prompt(prompt_name, data.get('arguments') or {})

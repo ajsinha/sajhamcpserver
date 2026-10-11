@@ -1127,7 +1127,7 @@ class FederationManager:
             'calls': up.calls, 'failures': up.failures,
             'avg_ms': round(up.total_ms / up.calls, 1) if up.calls else None,
             'counts': counts, 'items': items, 'breaker': breaker,
-            'definition': cfg.to_dict(),
+            'definition': _masked_definition(cfg.to_dict(), secrets),
         }
 
     def summary(self) -> Dict[str, Any]:
@@ -1174,3 +1174,17 @@ def shutdown_federation() -> None:
         m, _manager = _manager, None
     if m is not None:
         m.stop()
+
+
+def _masked_definition(d: Dict[str, Any], secrets=None) -> Dict[str, Any]:
+    """An upstream's definition as status shows it (console, admin API): credential-named header and
+    environment values given raw (the owner's intranet stance allows them) are masked, every other value
+    redacted like an error message, so the status never shows a credential (Adversarial QA Plan 3.6)."""
+    from sajha.federation.mcp_servers import _SECRET_HEADER
+    out = dict(d)
+    for field_name in ('headers', 'env'):
+        values = out.get(field_name)
+        if isinstance(values, dict) and values:
+            out[field_name] = {k: ('********' if _SECRET_HEADER.search(str(k)) and '${' not in str(v)
+                                   else redact(v, secrets)) for k, v in values.items()}
+    return out

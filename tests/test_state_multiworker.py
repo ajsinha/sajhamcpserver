@@ -79,6 +79,14 @@ def _env(tmp, backend, prefix):
         "SAJHA_STATE_DATABASE_POLL_INTERVAL_MS": "100",
         "SAJHA_MCP_CONFORMANCE_FIXTURES": "true",
         "SAJHA_AI_RAG_PERSIST": "false",            # never write the document index under data/
+        # never the developer's credential files or caches (tests/conftest.py does the same in process)
+        "SAJHA_AUTH_USERS_FILE_PATH": str(tmp / "users.json"),
+        "SAJHA_AUTH_API_KEYS_DB_DUMP_PATH": str(tmp / "apikeys_db.json"),
+        "SAJHA_CONFIG_APIKEYS_PATH": str(tmp / "apikeys.json"),
+        "SAJHA_CACHE_DIR": str(tmp / "cache"),
+        "SAJHA_SNAPSHOTS_ENABLED": "false",
+        "SAJHA_SAJHANET_TEST_ADMIN_KEY_ENABLED": "false",
+        "SAJHA_AI_RAG_STORES_SQLITE_VEC_PATH": str(tmp / "vectors.db"),
         "SAJHA_AI_RAG_BUILD_ON_START": "false",
         "SAJHA_MCP_AUTH_MODE": "optional",
         "SAJHA_MCP_AUTH_PUBLIC_URL": PUBLIC,

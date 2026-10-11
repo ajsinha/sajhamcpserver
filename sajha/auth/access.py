@@ -25,11 +25,25 @@ Who gets what:
 * **Anonymous** callers (no credentials, possible while ``mcp.auth.mode`` is ``off`` or
   ``optional``): ``mcp.anonymous.tools`` (fnmatch allowlist, default empty) plus the tool
   permissions of ``mcp.anonymous.role``; refused entirely when ``mcp.anonymous.enabled``
-  is false.  Prompts follow :func:`can_see_prompt`: every prompt for a signed-in caller,
-  ``mcp.anonymous.prompts`` (fnmatch allowlist, default empty) for an anonymous one.
-  Data resources (``sajha://data/*``) follow :func:`can_read_resource`: every one for a
-  signed-in caller, ``mcp.anonymous.resources`` (fnmatch over the URI, default empty) for
-  an anonymous one.
+  is false.
+
+Prompts and data resources (:func:`can_see_prompt`, :func:`can_read_resource`; data
+resources are ``sajha://data/<file>`` and federated ``sajha-federation://...`` URIs):
+
+* **Anonymous** callers: ``mcp.anonymous.prompts`` / ``mcp.anonymous.resources`` (fnmatch,
+  default empty).
+* **Roles**: ``permissions`` rows with resource_type ``prompt`` (resource_name: a prompt name
+  pattern) or ``resource`` (resource_name: a URI pattern), any action. A role with no such
+  rows grants every prompt (resource), as before; a caller passes if any of their roles does.
+* **API keys**: entries ``prompt:<pattern>`` and ``resource:<uri pattern>`` in the key's
+  access list (``tool_access_list``) are the prompts and resources the key may reach (a
+  ceiling, like the tool list). A key without such entries: no extra limit when its tool
+  access mode is ``all`` or ``denylist``; **nothing** when it is ``allowlist`` or ``regex``
+  (a key limited to a few tools reaches no prompt or data file it was not granted).
+* **admin** role: everything (an admin's key: still capped by the key's entries).
+
+The rules travel in the session dict as ``prompt_rules`` / ``resource_rules``: lists of
+pattern lists, every one of which a name must match (absent: no limit).
 
 The policy travels inside the MCP "session" dict (``mcp_session_for``), so the MCP handler
 needs no database access to apply it.
@@ -95,6 +109,39 @@ def matches(name: str, patterns: Iterable[str]) -> bool:
     return False
 
 
+PROMPT_PREFIX = 'prompt:'
+RESOURCE_PREFIX = 'resource:'
+
+
+def _access_entries(access_list) -> List[str]:
+    if isinstance(access_list, str):
+        try:
+            access_list = json.loads(access_list or '[]')
+        except ValueError:
+            access_list = []
+    if not isinstance(access_list, (list, tuple)):
+        return []
+    return [str(p).strip() for p in access_list if str(p).strip()]
+
+
+def split_access_list(access_list) -> Tuple[List[str], List[str], List[str]]:
+    """(tool patterns, prompt patterns, resource patterns) of an API key's access list:
+    ``prompt:<pattern>`` and ``resource:<uri pattern>`` entries are not tool patterns."""
+    tools: List[str] = []
+    prompts: List[str] = []
+    resources: List[str] = []
+    for entry in _access_entries(access_list):
+        if entry.startswith(PROMPT_PREFIX):
+            if entry[len(PROMPT_PREFIX):].strip():
+                prompts.append(entry[len(PROMPT_PREFIX):].strip())
+        elif entry.startswith(RESOURCE_PREFIX):
+            if entry[len(RESOURCE_PREFIX):].strip():
+                resources.append(entry[len(RESOURCE_PREFIX):].strip())
+        else:
+            tools.append(entry)
+    return tools, prompts, resources
+
+
 def _actions(perm) -> set:
     return {a.strip() for a in (perm.actions or '').split(',') if a.strip()}
 
@@ -156,13 +203,18 @@ class ToolPolicy:
     def everything(cls) -> 'ToolPolicy':
         return cls(['*'], ['*'])
 
-    def can_execute(self, tool_name: str) -> bool:
-        return (matches(tool_name, self.execute) and not matches(tool_name, self.deny)
-                and (self.ceiling is None or self.ceiling.can_execute(tool_name)))
+    # A tool that answers to several names (a SAJHA Net tool's qualified name and plain alias) gets one
+    # decision under all of them: a pattern naming any of its names applies (Adversarial QA Plan 3.4).
 
-    def can_see(self, tool_name: str) -> bool:
-        return (matches(tool_name, self.visible) and not matches(tool_name, self.deny)
-                and (self.ceiling is None or self.ceiling.can_see(tool_name)))
+    def can_execute(self, tool_name: str, aliases: Optional[List[str]] = None) -> bool:
+        names = _names_of(tool_name, aliases)
+        return (any(matches(n, self.execute) for n in names) and not any(matches(n, self.deny) for n in names)
+                and (self.ceiling is None or self.ceiling.can_execute(tool_name, names[1:])))
+
+    def can_see(self, tool_name: str, aliases: Optional[List[str]] = None) -> bool:
+        names = _names_of(tool_name, aliases)
+        return (any(matches(n, self.visible) for n in names) and not any(matches(n, self.deny) for n in names)
+                and (self.ceiling is None or self.ceiling.can_see(tool_name, names[1:])))
 
     def unrestricted(self) -> bool:
         return ('*' in self.visible and '*' in self.execute and not self.deny
@@ -193,13 +245,25 @@ class ToolPolicy:
                    cls.from_session(ceiling) if isinstance(ceiling, dict) else None)
 
 
-def apikey_policy(mode: Optional[str], access_list) -> ToolPolicy:
-    if isinstance(access_list, str):
+def _names_of(tool_name: str, aliases: Optional[List[str]] = None) -> List[str]:
+    """``tool_name`` and the other names of the same tool: ``aliases`` when given, else those of the tool
+    of that name in the live registry (``sajha.policy.engine.tool_aliases``)."""
+    if aliases is None:
+        aliases = []
         try:
-            access_list = json.loads(access_list or '[]')
-        except ValueError:
-            access_list = []
-    patterns = [str(p) for p in (access_list or []) if str(p).strip()]
+            from sajha.tools.tools_registry import ToolsRegistry
+            reg = ToolsRegistry._instance
+            tool = reg.get_tool(tool_name) if reg is not None else None
+            if tool is not None:
+                from sajha.policy.engine import tool_aliases
+                aliases = tool_aliases(tool)
+        except Exception:
+            aliases = []
+    return [tool_name] + [a for a in aliases if a and a != tool_name]
+
+
+def apikey_policy(mode: Optional[str], access_list) -> ToolPolicy:
+    patterns = split_access_list(access_list)[0]
     mode = (mode or 'all').lower()
     if mode == 'all':
         return ToolPolicy.everything()
@@ -239,6 +303,11 @@ def anonymous_policy(db=None) -> ToolPolicy:
     return ToolPolicy(execute, visible)
 
 
+def _caller_roles(auth) -> list:
+    user = getattr(auth, '_user', None)
+    return user.roles if user is not None else _roles_by_name(getattr(auth, '_db', None), auth.roles)
+
+
 def policy_for(auth) -> ToolPolicy:
     """The ToolPolicy of an AuthContext (unauthenticated -> the anonymous policy)."""
     if auth is None or not getattr(auth, 'authenticated', False):
@@ -250,10 +319,70 @@ def policy_for(auth) -> ToolPolicy:
         return key_policy           # an unowned key: its own lists only (the older behaviour)
     if auth.is_admin:
         return ToolPolicy.everything().capped_by(key_policy)
-    user = getattr(auth, '_user', None)
-    roles = user.roles if user is not None else _roles_by_name(getattr(auth, '_db', None), auth.roles)
-    execute, visible = _patterns_from_permissions(_role_permissions(roles))
+    execute, visible = _patterns_from_permissions(_role_permissions(_caller_roles(auth)))
     return ToolPolicy(execute, visible).capped_by(key_policy)
+
+
+# ── prompts and data resources ──────────────────────────────────────
+
+def apikey_catalog_rules(mode: Optional[str], access_list) -> Tuple[Optional[List[str]], Optional[List[str]]]:
+    """(prompt patterns, resource patterns) an API key limits its caller to; None: no limit.
+    Explicit ``prompt:`` / ``resource:`` entries win; without them a key whose tool access
+    is ``allowlist`` or ``regex`` (or an unknown mode) reaches none, an ``all`` or
+    ``denylist`` key is not limited."""
+    _, prompts, resources = split_access_list(access_list)
+    closed = (mode or 'all').lower() not in ('all', 'denylist')
+    default = [] if closed else None
+    return (prompts or default), (resources or default)
+
+
+def _role_catalog_patterns(roles, kind: str) -> Optional[List[str]]:
+    """The prompt (``kind='prompt'``) or resource patterns a caller's roles grant; None when
+    they grant everything (some role has no rows of that kind, or a ``*`` pattern)."""
+    granted: List[str] = []
+    for role in roles or ():
+        rows = [p for p in (getattr(role, 'permissions', None) or ()) if p.resource_type == kind]
+        if not rows:
+            return None
+        granted.extend((p.resource_name or '*') for p in rows)
+    if not granted or '*' in granted:
+        return None
+    return granted
+
+
+def catalog_rules_for(auth) -> Dict[str, list]:
+    """``{'prompt_rules': [...], 'resource_rules': [...]}`` for a signed-in AuthContext (keys
+    only when limited); every pattern list in a rule must match. Anonymous callers: ``{}``
+    (they follow ``mcp.anonymous.prompts`` / ``mcp.anonymous.resources``)."""
+    if auth is None or not getattr(auth, 'authenticated', False):
+        return {}
+    prompt_rules: List[List[str]] = []
+    resource_rules: List[List[str]] = []
+    is_key = auth.auth_type == 'apikey'
+    if is_key:
+        kp, kr = apikey_catalog_rules(getattr(auth, 'api_key_mode', None), getattr(auth, 'api_key_tools', None))
+        if kp is not None:
+            prompt_rules.append(kp)
+        if kr is not None:
+            resource_rules.append(kr)
+    if not auth.is_admin and not (is_key and not getattr(auth, 'api_key_owned', False)):
+        roles = _caller_roles(auth)
+        for kind, rules in (('prompt', prompt_rules), ('resource', resource_rules)):
+            granted = _role_catalog_patterns(roles, kind)
+            if granted is not None:
+                rules.append(granted)
+    out: Dict[str, list] = {}
+    if prompt_rules:
+        out['prompt_rules'] = prompt_rules
+    if resource_rules:
+        out['resource_rules'] = resource_rules
+    return out
+
+
+def _passes(rules, name: str) -> bool:
+    if not isinstance(rules, list):
+        return True
+    return all(isinstance(r, list) and matches(name, r) for r in rules)
 
 
 def mcp_session_for(auth) -> Dict:
@@ -276,6 +405,7 @@ def mcp_session_for(auth) -> Dict:
         session = {'user_id': ANONYMOUS_USER_ID, 'user_name': 'Anonymous', 'roles': [],
                    'is_admin': False, 'auth_type': None, 'authenticated': False}
     session.update(policy.to_session())
+    session.update(catalog_rules_for(auth))
     return session
 
 
@@ -293,21 +423,25 @@ def session_is_authenticated(session: Optional[Dict]) -> bool:
 
 def can_see_prompt(session: Optional[Dict], prompt_name: str) -> bool:
     """
-    May this caller see (list, get, complete) a prompt?  Signed-in callers see every
-    prompt; anonymous callers only those matching ``mcp.anonymous.prompts`` (fnmatch,
-    default empty), and none when ``mcp.anonymous.enabled`` is false.  The same rule
+    May this caller see (list, get, complete) a prompt?  Signed-in callers: the session's
+    ``prompt_rules`` (their roles' ``prompt`` permissions and their key's ``prompt:`` entries;
+    see :func:`catalog_rules_for`); anonymous callers only those matching
+    ``mcp.anonymous.prompts`` (fnmatch, default empty), and none when
+    ``mcp.anonymous.enabled`` is false.  Federated prompts are matched by their namespaced name.  The same rule
     applies to prompts/list, prompts/get, completion/complete, the ``sajha://prompts/catalog``
     resource and the REST prompt endpoints.
     """
     if session_is_authenticated(session):
-        return True
+        return _passes(session.get('prompt_rules'), prompt_name)
     return anonymous_enabled() and matches(prompt_name, anonymous_prompt_patterns())
 
 
 def can_read_resource(session: Optional[Dict], uri: str) -> bool:
     """
-    May this caller see (list) and read a server data resource (``sajha://data/<file>``)?
-    Signed-in callers: yes. Anonymous callers: only URIs matching
+    May this caller see (list) and read a data resource (``sajha://data/<file>``, or a
+    federated ``sajha-federation://<upstream>/<uri>``)?  Signed-in callers: the session's
+    ``resource_rules`` (their roles' ``resource`` permissions and their key's ``resource:``
+    entries; see :func:`catalog_rules_for`). Anonymous callers: only URIs matching
     ``mcp.anonymous.resources`` (fnmatch over the full URI, e.g. ``sajha://data/products.csv``
     or ``sajha://data/*``; default empty), and none when ``mcp.anonymous.enabled`` is false.
     Applies to resources/list and resources/read in both protocol eras and to
@@ -315,7 +449,7 @@ def can_read_resource(session: Optional[Dict], uri: str) -> bool:
     rules instead.
     """
     if session_is_authenticated(session):
-        return True
+        return _passes(session.get('resource_rules'), uri)
     return anonymous_enabled() and matches(uri, anonymous_resource_patterns())
 
 

@@ -124,6 +124,16 @@ def default_prefix() -> str:
         return DEFAULT_PREFIX
 
 
+def name_path_problem(name) -> Optional[str]:
+    """Why ``name`` cannot be a tool file's stem (None: it can): a path separator, a NUL or a leading dot
+    would put the file outside its folder (``../../x``) or hide it (Adversarial QA Plan 3.7)."""
+    if not isinstance(name, str) or not name:
+        return 'a tool name must be text'
+    if any(c in name for c in '/\\\0') or name.startswith('.'):
+        return f'tool name {name!r} may not contain "/", "\\" or NUL, or start with "."'
+    return None
+
+
 def _name_of(config, rel: str) -> str:
     name = config.get('name') if isinstance(config, dict) else None
     return name if isinstance(name, str) and name else PurePosixPath(rel).stem
@@ -157,6 +167,9 @@ class ToolFileIndex:
         return None, False
 
     def new_path(self, name: str, folder: str = '') -> str:
+        why = name_path_problem(name)
+        if why:
+            raise ValueError(why)
         folder = clean_folder(folder)
         return f'{self.prefix}/{folder}/{name}.json' if folder else f'{self.prefix}/{name}.json'
 

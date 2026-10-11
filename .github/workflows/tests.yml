@@ -1,8 +1,16 @@
-# Runs the whole test suite (tests/ and clientsdk/tests/) on every push and pull request to
-# develop and main, beside the conformance workflow (mcp-conformance.yml). A PostgreSQL service
-# lets tests/test_db_schema.py and tests/test_db_upgrade_sql.py apply the real PostgreSQL schema
-# file. Tests that need a live SAJHA server, a browser or an outside service skip themselves
-# when their variables are not set; none are set here. Roadmap N3.
+# Runs the whole test suite (tests/, clientsdk/tests/, sajhanet_agent/tests/) on every push and pull
+# request to develop and main, beside the conformance workflow (mcp-conformance.yml). A PostgreSQL
+# service lets tests/test_db_schema.py and tests/test_db_upgrade_sql.py apply the real PostgreSQL schema
+# file. Tests that need a live SAJHA server, a browser or an outside service skip themselves when their
+# variables are not set; none are set here. Roadmap N3.
+#
+# Suite integrity (docs/architecture/Adversarial QA Plan.md §3.13; tests/suite_integrity.py):
+#   pytest         random test order (pytest-randomly, seeded with the run id so a failure can be
+#                  replayed with --randomly-seed=<run id>); a required test module skipped for a missing
+#                  dependency, or a test that changes data/ or config/, fails the run
+#   shifted-clock  the suite again with the clock moved ahead (SAJHA_TEST_CLOCK_SHIFT_DAYS)
+#   clean-install  requirements.txt and requirements-dev.txt, unfiltered, into a fresh virtual
+#                  environment; the dependency set must resolve and the app must import and start
 name: Tests
 
 on:
@@ -48,8 +56,66 @@ jobs:
         # requirements.txt without the data-provider and LLM vendor SDKs, which the tests never
         # import (they are optional at run time); requirements-dev.txt adds the test-only packages.
         run: |
-          grep -vE '^(openbb|yfinance|anthropic|openai|together|ollama)\b' requirements.txt > ci-requirements.txt
+          grep -vE '^(openbb|yfinance|anthropic|together|ollama)\b' requirements.txt > ci-requirements.txt
           python -m pip install --upgrade pip
           pip install -r ci-requirements.txt -r requirements-dev.txt
-      - name: Test suite
-        run: python -m pytest -q -p no:randomly tests clientsdk/tests
+      - name: Test suite (random order)
+        env:
+          # qlrisk is a private wheel (requirements-qlrisk.txt), not installable here
+          SAJHA_TEST_ALLOW_MISSING: tests/tools/test_qlrisk_tools.py
+        run: python -m pytest -q -p randomly --randomly-seed=${{ github.run_id }} tests clientsdk/tests sajhanet_agent/tests
+
+  shifted-clock:
+    # The date-sensitive areas (sign-in expiry, API keys, certificates and the SAJHA Net CA, signed
+    # requests and their clocks, schedules, approvals, snapshots, notices) with the clock 400 days ahead.
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      SAJHA_TEST_WAIT: '0'
+      PYTHONDONTWRITEBYTECODE: '1'
+      SAJHA_TEST_CLOCK_SHIFT_DAYS: '400'
+      SAJHA_TEST_ALLOW_MISSING: tests/tools/test_qlrisk_tools.py
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+          cache: pip
+          cache-dependency-path: |
+            requirements.txt
+            requirements-dev.txt
+      - name: Install the server and test dependencies
+        run: |
+          grep -vE '^(openbb|yfinance|anthropic|together|ollama)\b' requirements.txt > ci-requirements.txt
+          python -m pip install --upgrade pip
+          pip install -r ci-requirements.txt -r requirements-dev.txt
+      - name: Test suite, clock shifted
+        run: python -m pytest -q -p no:randomly tests clientsdk/tests sajhanet_agent/tests
+
+  clean-install:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+      - name: Install every requirement into a fresh virtual environment
+        run: |
+          python -m venv /tmp/clean
+          /tmp/clean/bin/python -m pip install --upgrade pip
+          /tmp/clean/bin/pip install -r requirements.txt -r requirements-dev.txt
+          /tmp/clean/bin/pip check
+      - name: Import and start the app
+        env:
+          SAJHA_DB_PATH: /tmp/clean/sajha.db
+          SAJHA_CACHE_DIR: /tmp/clean/cache
+        run: |
+          /tmp/clean/bin/python -c "
+          from fastapi.testclient import TestClient
+          from sajha.app import create_app
+          with TestClient(create_app()) as c:
+              r = c.get('/health')
+              assert r.status_code == 200, r.text
+              print('started:', r.json())
+          "

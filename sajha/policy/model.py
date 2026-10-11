@@ -365,10 +365,10 @@ class Match:
         return m
 
     def matches(self, call) -> bool:
-        name = call.tool
-        if self.tools and not any(fnmatch.fnmatchcase(name, p) for p in self.tools):
+        names = [call.tool] + [a for a in (getattr(call, 'aliases', None) or ()) if a != call.tool]
+        if self.tools and not any(fnmatch.fnmatchcase(n, p) for n in names for p in self.tools):
             return False
-        if self.exclude_tools and any(fnmatch.fnmatchcase(name, p) for p in self.exclude_tools):
+        if self.exclude_tools and any(fnmatch.fnmatchcase(n, p) for n in names for p in self.exclude_tools):
             return False
         if self.groups and call.group not in self.groups:
             return False

@@ -78,10 +78,29 @@ class Call:
     destination: Optional[Dict[str, Any]] = None     # {net, instance, region, labels, here}
     here: Optional[Dict[str, Any]] = None            # the same facts of this instance
     result_marks: Optional[Dict[str, List[str]]] = None   # outputSchema marks, for field redaction
+    # the other names the same tool answers to (a SAJHA Net tool's qualified name and plain alias): a rule
+    # naming any of them decides for all, so a denied tool is not reachable under another name
+    aliases: List[str] = field(default_factory=list)
 
     @property
     def group(self) -> str:
         return _m.tool_group(self.tool)
+
+
+def tool_aliases(tool) -> List[str]:
+    """The names other than ``tool.name`` that the same tool is called by: a SAJHA Net tool's qualified
+    name (``<net>__<instance>__<tool>``) and plain alias (Adversarial QA Plan 3.4: one decision under
+    every name)."""
+    meta = getattr(tool, 'meta', None)
+    if not isinstance(meta, dict):
+        return []
+    name = getattr(tool, 'name', None)
+    out = []
+    for key in ('qualified_name', 'alias'):
+        v = meta.get(key)
+        if isinstance(v, str) and v and v != name and v not in out:
+            out.append(v)
+    return out
 
 
 @dataclass
@@ -286,7 +305,7 @@ class PolicyEngine:
         cfg = getattr(tool, 'config', None) or {}
         ann = cfg.get('annotations') if isinstance(cfg, dict) else None
         call = Call(name, arguments if isinstance(arguments, dict) else {}, current(), context.source(),
-                    ann if isinstance(ann, dict) else {}, confirmed=context.confirmed())
+                    ann if isinstance(ann, dict) else {}, confirmed=context.confirmed(), aliases=tool_aliases(tool))
         if any(r.match.data_classes or (r.redact and r.redact.data_classes) for r in self.rules()):
             try:
                 from sajha.net.integration.residency import tool_classes

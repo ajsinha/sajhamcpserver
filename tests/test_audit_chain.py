@@ -339,8 +339,9 @@ def _self_signed(tmp_path):
     name = x509.Name([x509.NameAttribute(NameOID.COMMON_NAME, 'localhost')])
     now = dt.datetime.now(dt.timezone.utc)
     cert = (x509.CertificateBuilder().subject_name(name).issuer_name(name).public_key(k.public_key())
-            .serial_number(x509.random_serial_number()).not_valid_before(now - dt.timedelta(minutes=1))
-            .not_valid_after(now + dt.timedelta(days=1))
+            .serial_number(x509.random_serial_number()).not_valid_before(now - dt.timedelta(days=3650))
+            .not_valid_after(now + dt.timedelta(days=3650))   # wide: OpenSSL checks it on the real clock
+                                                                # even when the suite's clock is shifted
             .add_extension(x509.SubjectAlternativeName([x509.DNSName('localhost')]), critical=False)
             .sign(k, hashes.SHA256()))
     cp, kp = tmp_path / 'c.pem', tmp_path / 'k.pem'

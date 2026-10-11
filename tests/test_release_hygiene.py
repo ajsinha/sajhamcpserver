@@ -52,7 +52,12 @@ def test_ci_runs_the_full_suite():
     assert set(on['push']['branches']) == {'develop', 'main'}
     steps = wf['jobs']['pytest']['steps']
     runs = ' '.join(s.get('run', '') for s in steps)
-    assert 'python -m pytest -q -p no:randomly tests clientsdk/tests' in runs
+    # random order, seeded with the run id (Adversarial QA Plan 3.13), over every test folder
+    assert 'python -m pytest -q -p randomly --randomly-seed=${{ github.run_id }} tests clientsdk/tests sajhanet_agent/tests' in runs
+    assert {'shifted-clock', 'clean-install'} <= set(wf['jobs'])
+    assert wf['jobs']['shifted-clock']['env']['SAJHA_TEST_CLOCK_SHIFT_DAYS']
+    clean = ' '.join(s.get('run', '') for s in wf['jobs']['clean-install']['steps'])
+    assert 'pip install -r requirements.txt -r requirements-dev.txt' in clean and 'pip check' in clean
     assert 'SAJHA_TEST_POSTGRES_URL' in wf['jobs']['pytest']['env']
     assert any(s.get('with', {}).get('cache') == 'pip' for s in steps)
 
