@@ -60,9 +60,20 @@ PAGE_HELP: dict = {
                   'Hot-reload', 'Enabled / Tool Status'],
         'guide': 'TUTORIAL_02_create_a_custom_tool.md'},
     'reports_dashboard': {
-        'what': 'Usage and performance reports: calls, errors and latency over time, by tool and by user.',
+        'what': 'Usage (the usage dashboard; "Usage" in the menu): tool calls, errors and latency over time, by tool '
+                'and by user. Report definitions and their runs are on Reports (/reports/library).',
         'terms': ['Execution count', 'Error rate', 'Latency', 'User activity', 'Audit log'],
         'guide': 'Observability.md'},
+    'report_library_page': {
+        'what': 'The reports you may run: Run opens the report\'s tool with its parameters; History and files lists '
+                'your runs (every run for administrators) and downloads their rendered files.',
+        'terms': ['Report definition', 'Report library', 'Report run', 'Numbers check', 'Provenance appendix'],
+        'guide': 'Reports.md'},
+    'report_library_detail': {
+        'what': 'One report: its parameters and sections, and the runs you may see with a download link for each '
+                'rendered file.',
+        'terms': ['Report definition', 'Report run', 'Provenance appendix', 'Numbers check'],
+        'guide': 'Reports.md'},
     # ── Prompts ──────────────────────────────────────────────────────────────
     'prompts_list': {
         'what': 'The prompt library: reusable templates that MCP clients list and fill in.',

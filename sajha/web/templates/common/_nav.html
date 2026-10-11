@@ -14,7 +14,8 @@
       + ([(url_for('playground_page'), 'filetype-py', 'Python Playground', 'Python in your browser; call tools with import sajha')]
          if playground_enabled is defined and playground_enabled() else []) + [
       (url_for('workflows_page'), 'diagram-3', 'Workflows', 'Schedules, triggers and run history for DAGs of tools'),
-      (url_for('reports_dashboard'), 'bar-chart-line', 'Reports', 'Usage and performance reports')]),
+      (url_for('report_library_page'), 'file-earmark-bar-graph', 'Reports', 'Run reports, see their runs and download their files'),
+      (url_for('reports_dashboard'), 'bar-chart-line', 'Usage', 'Tool calls, errors and latency by tool and user')]),
     ('Monitor', [
       (url_for('monitoring_tools'), 'graph-up', 'Tool metrics', 'Calls, latency and errors per tool'),
       (url_for('monitoring_usage'), 'cash-coin', 'Usage & cost', 'Tokens, spend, tool calls and budgets')]

@@ -1,0 +1,50 @@
+# SAJHA shipped report: works offline (calendar rules and a bond calculator; no network, no key).
+# The tool is report_desk_calendar. Design: docs/architecture/Reports.md.
+name: desk_calendar
+title: Desk calendar and bond sheet
+description: Settlement dates for today's trades, the market's holidays this year, and a bond priced from its yield.
+owner: admin
+enabled: true
+tags: [calendar, fixed-income, offline]
+parameters:
+  market: {type: string, default: XNYS, description: "Market (ISO 10383: XNYS, XNAS, XLON, XTSE or XECB)"}
+  face_value: {type: number, default: 1000, minimum: 0, description: Bond face value}
+  coupon_rate: {type: number, default: 5, minimum: 0, description: Annual coupon rate in percent}
+  yield_rate: {type: number, default: 4.5, minimum: 0, description: Yield to maturity in percent}
+  years: {type: integer, default: 10, minimum: 1, maximum: 100, description: Years to maturity}
+sections:
+  - id: settlement
+    kind: kpis
+    title: Settlement of a trade made today
+    call: {tool: cal_settlement_date, arguments: {trade_date: $run.date, convention: T+1, calendars: [$params.market]}}
+    values:
+      - {label: "T+1 settlement date", path: $.settlement_date, format: date}
+      - {label: "Settlement weekday", path: $.weekday, format: text}
+      - {label: "Trade date is a business day", path: $.trade_date_is_business_day, format: text}
+  - id: settlement_t2
+    kind: kpis
+    title: T+2 settlement
+    call: {tool: cal_settlement_date, arguments: {trade_date: $run.date, convention: T+2, calendars: [$params.market]}}
+    values:
+      - {label: "T+2 settlement date", path: $.settlement_date, format: date}
+  - id: holidays
+    kind: table
+    title: Holidays this year
+    call: {tool: cal_holidays, arguments: {market: $params.market, year: $run.year}}
+    rows: $.holidays[*]
+    columns: [{key: date, label: Date}, {key: name, label: Holiday}, {key: weekday, label: Weekday}]
+    key: date
+  - id: bond
+    kind: kpis
+    title: Bond priced from its yield
+    call: {tool: calc_bond_price, arguments: {face_value: $params.face_value, coupon_rate: $params.coupon_rate, yield_rate: $params.yield_rate, years: $params.years}}
+    values:
+      - {label: Price, path: $.price, format: currency}
+      - {label: Coupon rate, path: $.coupon_rate, format: percent}
+      - {label: Yield, path: $.yield, format: percent}
+  - id: note
+    kind: text
+    title: Notes
+    text: "Calendars follow the rules of the holidays package for ${params.market}; a market's ad hoc closures are not known in advance. The bond price assumes annual coupons."
+formats: [markdown, html, pdf, xlsx]
+classification: internal

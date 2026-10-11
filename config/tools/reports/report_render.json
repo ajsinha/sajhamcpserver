@@ -1,0 +1,83 @@
+{
+  "name": "report_render",
+  "implementation": "sajha.reports.tools.ReportRenderTool",
+  "title": "Render a past run to another format",
+  "description": "Renders a stored run to another file format without calling any tool again (a report is a snapshot). Only your own runs, or any run for an administrator.\nReturns: run_id, format, path (in the storage backend), bytes; content too for markdown.\nInputs (* required): run_id*; format* (markdown, html, pdf, xlsx, pptx, docx; a format whose package is not installed fails saying which).\nExample: {\"run_id\": \"desk_calendar-20261011T120000000-a1b2c3\", \"format\": \"html\"}",
+  "version": "1.0.0",
+  "enabled": true,
+  "inputSchema": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "run_id",
+      "format"
+    ],
+    "properties": {
+      "run_id": {
+        "type": "string",
+        "description": "A run id as report_<name>, report_run or report_history return it",
+        "pattern": "^[a-z][a-z0-9_]{0,47}-\\d{8}T\\d{9}-[0-9a-f]{6}$"
+      },
+      "format": {
+        "type": "string",
+        "enum": [
+          "markdown",
+          "html",
+          "pdf",
+          "xlsx",
+          "pptx",
+          "docx"
+        ],
+        "description": "The file format"
+      }
+    },
+    "examples": [
+      {
+        "run_id": "desk_calendar-20261011T120000000-a1b2c3",
+        "format": "html"
+      }
+    ]
+  },
+  "outputSchema": {
+    "type": "object",
+    "required": [
+      "run_id",
+      "format",
+      "path"
+    ],
+    "properties": {
+      "run_id": {
+        "type": "string"
+      },
+      "format": {
+        "type": "string"
+      },
+      "path": {
+        "type": "string"
+      },
+      "bytes": {
+        "type": "integer"
+      },
+      "content": {
+        "type": "string"
+      }
+    }
+  },
+  "annotations": {
+    "readOnlyHint": true,
+    "destructiveHint": false,
+    "idempotentHint": true,
+    "openWorldHint": false,
+    "title": "Render a past run to another format"
+  },
+  "metadata": {
+    "author": "Ashutosh Sinha",
+    "email": "ajsinha@gmail.com",
+    "copyright": "Copyright All rights Reserved 2025-2030, Ashutosh Sinha",
+    "category": "Reports",
+    "tags": [
+      "report",
+      "reports"
+    ]
+  }
+}

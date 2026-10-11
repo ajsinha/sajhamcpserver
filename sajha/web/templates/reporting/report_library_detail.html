@@ -1,0 +1,66 @@
+{% extends "common/base.html" %}
+{# Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.com #}
+{# Reports > one report (docs/architecture/Reports.md §9): its parameters and sections, and the runs the
+   viewer may see (the runner's own, or every run for an administrator) with their files.
+   sajha/routes/report_library_routes.py. #}
+{% block title %}{{ report.title }} - Reports - SAJHA MCP Server{% endblock %}
+
+{% block extra_css %}
+<style>
+    .rep-head .btn { min-height: 40px; display: inline-flex; align-items: center; }
+    .rep-files a { min-height: 40px; display: inline-flex; align-items: center; white-space: nowrap; }
+    .rep-desc { color: var(--sajha-slate); overflow-wrap: anywhere; }
+    .rep-params td, .rep-runs td { overflow-wrap: break-word; }
+    .rep-params td:last-child { min-width: 10rem; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <nav aria-label="breadcrumb"><ol class="breadcrumb mb-2">
+        <li class="breadcrumb-item"><a href="/reports/library">Reports</a></li>
+        <li class="breadcrumb-item active" aria-current="page">{{ report.title }}</li></ol></nav>
+    <div class="rep-head d-flex flex-wrap justify-content-between align-items-start gap-2 mb-2">
+        <div>
+            <h1 class="h3 mb-1">{{ report.title }}</h1>
+            <div class="small text-muted"><code>{{ report.tool }}</code>{% if report.owner %} · owner {{ report.owner }}{% endif %} · {{ report.classification }}</div>
+        </div>
+        {% if report.run_href %}<a class="btn btn-primary" href="{{ report.run_href }}"><i class="bi bi-play-fill me-1" aria-hidden="true"></i>Run</a>{% endif %}
+    </div>
+    {% if report.description %}<p class="rep-desc">{{ report.description }}</p>{% endif %}
+
+    <div class="row g-3">
+        <div class="col-12 col-lg-5">
+            <div class="card h-100"><div class="card-header">Parameters</div><div class="card-body">
+                {% if parameters %}
+                <div class="table-responsive"><table class="table table-sm rep-params mb-0">
+                    <thead><tr><th scope="col">Name</th><th scope="col">Type</th><th scope="col">Description</th></tr></thead>
+                    <tbody>{% for p in parameters %}<tr>
+                        <td><code>{{ p.name }}</code>{% if p.required %} <span class="badge text-bg-warning">required</span>{% endif %}</td>
+                        <td>{{ p.type }}</td>
+                        <td>{{ p.description }}{% if p.default is not none %} <span class="text-muted">(default {{ p.default }})</span>{% endif %}</td>
+                    </tr>{% endfor %}</tbody>
+                </table></div>
+                {% else %}<p class="text-muted mb-0">This report takes no parameters.</p>{% endif %}
+                <h2 class="h6 mt-3">Sections</h2>
+                <ul class="mb-0">{% for s in sections %}<li>{{ s.title }} <span class="text-muted small">({{ s.kind }})</span></li>{% endfor %}</ul>
+            </div></div>
+        </div>
+        <div class="col-12 col-lg-7">
+            <div class="card h-100"><div class="card-header">Runs {% if is_admin %}(every runner){% else %}(yours){% endif %}</div><div class="card-body">
+                {% if runs %}
+                <div class="table-responsive"><table class="table table-sm rep-runs mb-0">
+                    <thead><tr><th scope="col">Started</th><th scope="col">Status</th>{% if is_admin %}<th scope="col">Runner</th>{% endif %}<th scope="col">Files</th></tr></thead>
+                    <tbody>{% for r in runs %}<tr>
+                        <td><span title="{{ r.run_id }}">{{ (r.started_at or '')[:19]|replace('T', ' ') }}</span></td>
+                        <td>{{ r.status }}{% if r.warnings %} <span class="badge text-bg-warning" title="warnings">{{ r.warnings }}</span>{% endif %}</td>
+                        {% if is_admin %}<td>{{ r.runner }}</td>{% endif %}
+                        <td class="rep-files">{% for f in r.files %}<a class="me-2" href="{{ f.href }}" download><i class="bi bi-download me-1" aria-hidden="true"></i>{{ f.label }}</a>{% else %}<span class="text-muted">none</span>{% endfor %}</td>
+                    </tr>{% endfor %}</tbody>
+                </table></div>
+                {% else %}<p class="text-muted mb-0">No runs yet.{% if report.run_href %} Run the report to see it here.{% endif %}</p>{% endif %}
+            </div></div>
+        </div>
+    </div>
+</div>
+{% endblock %}

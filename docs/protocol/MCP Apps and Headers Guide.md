@@ -59,7 +59,9 @@ the host through the MCP Apps `postMessage` protocol (`ui/initialize`,
 `ui/notifications/tool-result`, host-context and size-change notifications). The
 bundled `loan_amortization.html` is a complete working example: it draws a
 principal/interest chart and a schedule table from the tool's `yearly_schedule`
-output, and follows the host's theme.
+output, and follows the host's theme. `bi_chart.html` (bound to `bi_chart`) shows a second pattern: it
+redraws an SVG the tool rendered on the server, copying only whitelisted elements and attributes and
+setting text with `textContent`, so the view needs no renderer of its own.
 
 Implementation: `sajha/core/mcp_apps.py`. Tests: `tests/test_mcp_apps.py`.
 

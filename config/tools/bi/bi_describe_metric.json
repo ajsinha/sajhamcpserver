@@ -1,0 +1,137 @@
+{
+  "name": "bi_describe_metric",
+  "implementation": "sajha.tools.impl.bi_metric_tools.BiDescribeMetricTool",
+  "title": "Describe a metric",
+  "description": "One metric's definition: measure, type, time column and grains, dimensions (with allowed values), source, unit, and how fresh its data is.\nReturns: name, title, description, owner, type, measure or ratio, additive, source, time, dimensions, format, as_of, status; fixed filters only for its owner.\nInputs (* required): metric*.\nExample: {\"metric\": \"net_sales\"}",
+  "annotations": {
+    "title": "Describe a metric",
+    "readOnlyHint": true,
+    "destructiveHint": false,
+    "idempotentHint": true,
+    "openWorldHint": false
+  },
+  "version": "1.0.0",
+  "enabled": true,
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "metric": {
+        "type": "string",
+        "description": "Metric name (bi_list_metrics)",
+        "pattern": "^[a-z][a-z0-9_]{0,63}$"
+      }
+    },
+    "required": [
+      "metric"
+    ],
+    "additionalProperties": false,
+    "examples": [
+      {
+        "metric": "net_sales"
+      }
+    ]
+  },
+  "outputSchema": {
+    "type": "object",
+    "properties": {
+      "name": {
+        "type": "string"
+      },
+      "title": {
+        "type": "string"
+      },
+      "description": {
+        "type": "string"
+      },
+      "owner": {
+        "type": "string"
+      },
+      "type": {
+        "type": "string"
+      },
+      "unit": {
+        "type": "string"
+      },
+      "measure": {
+        "type": "string"
+      },
+      "ratio": {
+        "type": "object"
+      },
+      "additive": {
+        "type": "boolean"
+      },
+      "source": {
+        "type": "object"
+      },
+      "time": {
+        "type": "object"
+      },
+      "grains": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        }
+      },
+      "dimensions": {
+        "type": "array",
+        "items": {
+          "type": "object"
+        }
+      },
+      "format": {
+        "type": "object"
+      },
+      "fixed_filter_count": {
+        "type": "integer"
+      },
+      "fixed_filters": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        }
+      },
+      "roles": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        }
+      },
+      "tags": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        }
+      },
+      "source_kind": {
+        "type": "string"
+      },
+      "as_of": {
+        "type": [
+          "string",
+          "null"
+        ]
+      },
+      "status": {
+        "type": "string"
+      }
+    },
+    "required": [
+      "name",
+      "type",
+      "source",
+      "time",
+      "dimensions",
+      "status"
+    ]
+  },
+  "metadata": {
+    "author": "Ashutosh Sinha",
+    "category": "Business Intelligence",
+    "tags": [
+      "bi",
+      "metrics",
+      "catalog"
+    ]
+  }
+}

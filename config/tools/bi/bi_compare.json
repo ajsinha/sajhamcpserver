@@ -1,0 +1,294 @@
+{
+  "name": "bi_compare",
+  "implementation": "sajha.tools.impl.bi_metric_tools.BiCompareTool",
+  "title": "Compare a metric between periods",
+  "description": "A metric in one period against another (the previous period, the same period last year, or any period), in total and per dimension member.\nReturns: period, against, total and rows (value, comparison, change, pct_change per member), as_of.\nInputs (* required): metric*; period*; against (default previous_period); by (dimensions); filters.\nTo see why it changed use bi_explain_change.\nExample: {\"metric\": \"net_sales\", \"period\": \"2024-Q3\", \"against\": \"same_period_last_year\", \"by\": [\"region\"]}",
+  "annotations": {
+    "title": "Compare a metric between periods",
+    "readOnlyHint": true,
+    "destructiveHint": false,
+    "idempotentHint": true,
+    "openWorldHint": false
+  },
+  "version": "1.0.0",
+  "enabled": true,
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "metric": {
+        "type": "string",
+        "description": "Metric name (bi_list_metrics)",
+        "pattern": "^[a-z][a-z0-9_]{0,63}$"
+      },
+      "period": {
+        "description": "A period: 2025-Q3, 2025-07, 2025, 2025-07-15, FY2025, YTD, QTD, MTD, last 12 months, last 8 quarters, or {\"from\": \"YYYY-MM-DD\", \"to\": \"YYYY-MM-DD\"} (inclusive)",
+        "oneOf": [
+          {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 40
+          },
+          {
+            "type": "object",
+            "properties": {
+              "from": {
+                "type": "string",
+                "format": "date"
+              },
+              "to": {
+                "type": "string",
+                "format": "date"
+              }
+            },
+            "required": [
+              "from",
+              "to"
+            ],
+            "additionalProperties": false
+          }
+        ]
+      },
+      "against": {
+        "description": "previous_period (default: the period of the same length just before), same_period_last_year, or a period of its own",
+        "oneOf": [
+          {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 40
+          },
+          {
+            "type": "object",
+            "properties": {
+              "from": {
+                "type": "string",
+                "format": "date"
+              },
+              "to": {
+                "type": "string",
+                "format": "date"
+              }
+            },
+            "required": [
+              "from",
+              "to"
+            ],
+            "additionalProperties": false
+          }
+        ],
+        "default": "previous_period"
+      },
+      "by": {
+        "type": "array",
+        "items": {
+          "type": "string",
+          "description": "A dimension the metric declares (bi_describe_metric)",
+          "pattern": "^[A-Za-z_][A-Za-z0-9_]{0,127}$"
+        },
+        "maxItems": 3,
+        "description": "Dimensions to compare member by member"
+      },
+      "filters": {
+        "type": "array",
+        "maxItems": 10,
+        "description": "Filters on declared dimensions; values are bound, never SQL",
+        "items": {
+          "type": "object",
+          "properties": {
+            "dimension": {
+              "type": "string",
+              "description": "A dimension the metric declares (bi_describe_metric)",
+              "pattern": "^[A-Za-z_][A-Za-z0-9_]{0,127}$"
+            },
+            "op": {
+              "type": "string",
+              "enum": [
+                "eq",
+                "ne",
+                "in",
+                "not_in",
+                "gte",
+                "lte",
+                "between",
+                "contains"
+              ],
+              "description": "Operator; eq when omitted"
+            },
+            "value": {
+              "description": "One value; a list for in, not_in and between ([low, high])"
+            }
+          },
+          "required": [
+            "dimension",
+            "value"
+          ],
+          "additionalProperties": false
+        }
+      }
+    },
+    "required": [
+      "metric",
+      "period"
+    ],
+    "additionalProperties": false,
+    "examples": [
+      {
+        "metric": "net_sales",
+        "period": "2024-Q3",
+        "against": "same_period_last_year",
+        "by": [
+          "region"
+        ]
+      }
+    ]
+  },
+  "outputSchema": {
+    "type": "object",
+    "properties": {
+      "metric": {
+        "type": "string"
+      },
+      "title": {
+        "type": "string"
+      },
+      "unit": {
+        "type": "string"
+      },
+      "currency": {
+        "type": "string"
+      },
+      "period": {
+        "type": [
+          "object",
+          "null"
+        ],
+        "properties": {
+          "label": {
+            "type": "string"
+          },
+          "from": {
+            "type": "string"
+          },
+          "to": {
+            "type": "string"
+          }
+        }
+      },
+      "as_of": {
+        "type": [
+          "string",
+          "null"
+        ],
+        "description": "Latest date in the metric's source"
+      },
+      "fingerprint": {
+        "type": "string",
+        "description": "Hash of the compiled query"
+      },
+      "truncated": {
+        "type": "boolean",
+        "description": "A result was cut at the row cap (bi.max_rows)"
+      },
+      "against": {
+        "type": [
+          "object",
+          "null"
+        ],
+        "properties": {
+          "label": {
+            "type": "string"
+          },
+          "from": {
+            "type": "string"
+          },
+          "to": {
+            "type": "string"
+          }
+        }
+      },
+      "by": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        }
+      },
+      "total": {
+        "type": "object",
+        "properties": {
+          "value": {
+            "type": [
+              "number",
+              "null"
+            ]
+          },
+          "comparison": {
+            "type": [
+              "number",
+              "null"
+            ]
+          },
+          "change": {
+            "type": [
+              "number",
+              "null"
+            ]
+          },
+          "pct_change": {
+            "type": [
+              "number",
+              "null"
+            ]
+          }
+        }
+      },
+      "rows": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "value": {
+              "type": [
+                "number",
+                "null"
+              ]
+            },
+            "comparison": {
+              "type": [
+                "number",
+                "null"
+              ]
+            },
+            "change": {
+              "type": [
+                "number",
+                "null"
+              ]
+            },
+            "pct_change": {
+              "type": [
+                "number",
+                "null"
+              ]
+            }
+          }
+        }
+      }
+    },
+    "required": [
+      "metric",
+      "period",
+      "against",
+      "total",
+      "rows"
+    ]
+  },
+  "metadata": {
+    "author": "Ashutosh Sinha",
+    "category": "Business Intelligence",
+    "tags": [
+      "bi",
+      "metrics",
+      "compare",
+      "period over period"
+    ]
+  }
+}

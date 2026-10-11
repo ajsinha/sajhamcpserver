@@ -108,6 +108,17 @@ class RawServer:
                 self.proc.wait(timeout=10)
 
 
+def _all_tool_names(s, first_id=2000):
+    """Every tool name over all tools/list pages (100 a page)."""
+    names, cursor, rid = [], None, first_id
+    while True:
+        lst = s.request(rid, 'tools/list', {'cursor': cursor} if cursor else None)
+        names += [t['name'] for t in lst['result']['tools']]
+        cursor, rid = lst['result'].get('nextCursor'), rid + 1
+        if not cursor:
+            return names
+
+
 def _initialize(server):
     r = server.request(1, 'initialize', {'protocolVersion': '2025-11-25', 'capabilities': {'sampling': {}},
                                          'clientInfo': {'name': 'pytest', 'version': '1'}})
@@ -168,8 +179,7 @@ def test_raw_protocol_both_eras_and_cancellation(stdio_env):
         assert init['result']['protocolVersion'] == '2025-11-25'
         assert caps['tools']['listChanged'] is True
         assert 'websocket' not in (caps.get('experimental') or {}).get('sajha', {})
-        lst = s.request(2, 'tools/list')
-        assert any(t['name'] == 'calc_percentage_change' for t in lst['result']['tools'])
+        assert 'calc_percentage_change' in _all_tool_names(s)
 
         # legacy cancellation of a call waiting on the client (sampling)
         s.send({'jsonrpc': '2.0', 'id': 3, 'method': 'tools/call',
@@ -204,8 +214,7 @@ def test_anonymous_by_default_sees_no_registry_tools(stdio_env):
     s = RawServer(stdio_env)
     try:
         _initialize(s)
-        tools = s.request(2, 'tools/list')['result']['tools']
-        assert not any(t['name'] == 'calc_percentage_change' for t in tools)
+        assert 'calc_percentage_change' not in _all_tool_names(s)
         r = s.request(3, 'tools/call', {'name': 'calc_percentage_change',
                                         'arguments': {'old_value': 1, 'new_value': 2}})
         assert 'error' in r or r['result'].get('isError')

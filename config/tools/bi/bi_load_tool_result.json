@@ -1,0 +1,150 @@
+{
+  "name": "bi_load_tool_result",
+  "title": "Load a tool result as a table",
+  "implementation": "sajha.tools.impl.bi_chart_tools.BILoadToolResultTool",
+  "description": "Call a tool as you (access, policy and budgets apply) and load its rows into your private scratch table (DuckDB), dropped after ttl_minutes (default 60). rows_path picks the rows. Returns provenance: table, rows, columns, call_id, expires_at. Chart it with bi_chart data {sql}.\nExample: {\"tool\": \"calc_loan_amortization\", \"arguments\": {\"principal\": 1000, \"annual_rate\": 5, \"months\": 24}, \"rows_path\": \"yearly_schedule\"}",
+  "annotations": {
+    "title": "Load a tool result as a table",
+    "readOnlyHint": true,
+    "destructiveHint": false,
+    "idempotentHint": false,
+    "openWorldHint": true
+  },
+  "version": "1.0.0",
+  "enabled": true,
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "tool": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 200,
+        "description": "The tool to call (you must be allowed to call it)"
+      },
+      "arguments": {
+        "type": "object",
+        "description": "Its arguments",
+        "default": {}
+      },
+      "rows_path": {
+        "type": "string",
+        "maxLength": 300,
+        "description": "JSONPath (or dotted path) to the rows in its result; else the largest list of records"
+      },
+      "table": {
+        "type": "string",
+        "maxLength": 60,
+        "description": "Table name (default: the tool name; made unique and lower case)"
+      },
+      "ttl_minutes": {
+        "type": "number",
+        "minimum": 1,
+        "maximum": 1440,
+        "description": "Minutes the table lives (default 60; capped by bi.scratch_max_minutes)"
+      }
+    },
+    "required": [
+      "tool"
+    ],
+    "additionalProperties": false,
+    "examples": [
+      {
+        "tool": "calc_loan_amortization",
+        "arguments": {
+          "principal": 1000,
+          "annual_rate": 5,
+          "months": 24
+        },
+        "rows_path": "yearly_schedule"
+      }
+    ]
+  },
+  "outputSchema": {
+    "type": "object",
+    "properties": {
+      "table": {
+        "type": "string",
+        "description": "The table name to query"
+      },
+      "rows": {
+        "type": "integer"
+      },
+      "columns": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "name": {
+              "type": "string"
+            },
+            "type": {
+              "type": "string"
+            },
+            "source": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "call_id": {
+        "type": "string"
+      },
+      "tool": {
+        "type": "string"
+      },
+      "tool_version": {
+        "type": "string"
+      },
+      "arguments": {
+        "type": "object"
+      },
+      "rows_path": {
+        "type": "string"
+      },
+      "data_classes": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "The source tool's result data classes"
+      },
+      "loaded_at": {
+        "type": "string"
+      },
+      "expires_at": {
+        "type": "string"
+      },
+      "sample": {
+        "type": "array",
+        "items": {
+          "type": "object"
+        },
+        "description": "The first rows"
+      },
+      "query_with": {
+        "type": "object",
+        "description": "A bi_chart data argument that reads the table"
+      }
+    },
+    "required": [
+      "table",
+      "rows",
+      "columns",
+      "call_id",
+      "tool",
+      "expires_at"
+    ]
+  },
+  "metadata": {
+    "author": "Ashutosh Sinha",
+    "email": "ajsinha@gmail.com",
+    "copyright": "Copyright All rights Reserved 2025-2030, Ashutosh Sinha",
+    "category": "Business Intelligence",
+    "tags": [
+      "blending",
+      "duckdb",
+      "provenance",
+      "business intelligence"
+    ]
+  }
+}

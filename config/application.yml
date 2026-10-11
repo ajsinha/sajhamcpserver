@@ -11,7 +11,7 @@
 
 app:
   name: SAJHA MCP Server
-  version: 8.10.0
+  version: 8.11.0
   description: Model Context Protocol Server
   author: Ashutosh Sinha
   author_email: ajsinha@gmail.com       # shown with the copyright notice; SAJHA is proprietary (see LICENSE)
@@ -921,15 +921,29 @@ snapshots:
   dir: data/snapshots              # owner-only (0700 / files 0600); git-ignored
   compress: false                  # gzip (.json.gz)
 
-# ── Business intelligence: the tool-result loader's scratch databases ─────────
-# Tool results loaded as tables (the data_analyst planner) live in one DuckDB file per user, never
+# ── Business intelligence: metric definitions and the tool-result loader ──────
+# Metric definitions are YAML files in metrics_dir. Tool results loaded as tables (the data_analyst planner) live in one DuckDB file per user, never
 # shared. Every key: docs/getting-started/Configuration Reference.md#bi; design:
 # docs/architecture/Business Intelligence.md §6.
 bi:
+  metrics_dir: config/bi/metrics   # metric definitions (YAML), re-read on change
+  max_rows: 5000                   # cap on any compiled metric query (below a connection's own)
   scratch_dir: data/bi/scratch     # one u_<user digest>.duckdb per user; git-ignored (data/bi/)
   scratch_max_rows: 100000         # rows in one loaded table; a larger result is refused
   scratch_max_mb: 100              # one user's scratch database; a load that would pass it is refused
   scratch_max_minutes: 240         # cap on a loaded table's time to live (default 60 minutes)
+
+# ── Reports: definitions published as report_<name> tools, runs, formats ──
+# Every key: docs/getting-started/Configuration Reference.md#reports; design: docs/architecture/Reports.md.
+reports:
+  enabled: true                    # off: report tools refuse every run; definitions and runs stay
+  dir: config/reports              # report definitions (*.yaml, *.yml, *.json), one level
+  output_dir: data/reports         # runs: <report>/<run_id>/run.json and report.<ext>; git-ignored
+  history_days: 90                 # runs older than this are pruned when the report runs again (0 keeps all)
+  max_sections: 50                 # a definition with more sections is refused
+  max_run_seconds: 300             # one run's budget; later sections are "skipped"
+  max_table_rows: 1000             # rows kept per table section (row_count keeps the total)
+  reload_seconds: 5                # how often definitions are rescanned (0: at start-up only)
 
 # ── Tool quality: test harness, linter, health probes, evals, tool versions ──
 # Nothing runs by default: probes are off and no tool has a versions file. Every key:

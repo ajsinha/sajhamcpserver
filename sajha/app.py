@@ -226,6 +226,7 @@ class SajhaMCPServerWebApp:
         from sajha.routes.tools_routes import router as tools_router
         from sajha.routes.admin_routes import router as admin_router
         from sajha.routes.reporting_routes import router as reporting_router
+        from sajha.routes.report_library_routes import router as report_library_router
         from sajha.routes.mcp_routes import router as mcp_router
         from sajha.routes.health_routes import router as health_router
         from sajha.routes.prompts_routes import router as prompts_router
@@ -260,7 +261,7 @@ class SajhaMCPServerWebApp:
         routers = [
             credential_files_router,   # before apikeys/admin: /admin/apikeys/file, /admin/users/file
             auth_router, dashboard_router, api_router, tools_router,
-            admin_router, reporting_router, mcp_router, health_router,
+            admin_router, reporting_router, report_library_router, mcp_router, health_router,
             prompts_router, studio_router, apikeys_router, misc_router,
             a2a_router,
             ai_router,
@@ -622,6 +623,14 @@ class SajhaMCPServerWebApp:
         except Exception as e:
             logger.warning(f'  Data connectors: unavailable ({e})', exc_info=True)
 
+        # 3a''. Reports: definitions in config/reports published as report_<name> tools
+        #       (docs/architecture/Reports.md); never fails start-up.
+        try:
+            from sajha.reports import init_reports
+            await _asyncio.to_thread(init_reports, tools_registry)
+        except Exception as e:
+            logger.warning(f'  Reports: unavailable ({e})', exc_info=True)
+
         # 3b. Composite tools (load from DB, build schemas, register)
         try:
             from sajha.tools.composite_tool import CompositeToolEngine
@@ -877,6 +886,11 @@ class SajhaMCPServerWebApp:
             shutdown_connectors()
         except Exception as e:
             logger.debug(f'connectors shutdown: {e}')
+        try:   # stop the report definitions watcher (sajha/reports)
+            from sajha.reports import shutdown_reports
+            shutdown_reports()
+        except Exception as e:
+            logger.debug(f'reports shutdown: {e}')
         try:   # end MCP subscriptions/listen streams (and legacy push forwarders)
             from sajha.core.change_bus import get_change_bus
             get_change_bus().shutdown()

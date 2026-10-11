@@ -1109,13 +1109,36 @@ Reader: live `_get` for every key (`sajha/analytics/scratch.py`), so `SAJHA_BI_S
 environment variables override the YAML. These are the tool-result loader's bounds: tool results
 loaded as tables (by the `data_analyst` planner today) live in the caller's own DuckDB file, never
 shared. The rules and the design: [Business Intelligence](../architecture/Business%20Intelligence.md) §6.
+The metrics layer reads `bi.metrics_dir` and `bi.max_rows` live too (`sajha/bi/metrics.py`,
+`sajha/bi/compiler.py`; design §3). There is no `bi.enabled`: the `bi_*` tools ship enabled.
 
 | Key | Default | Purpose |
 |-----|---------|---------|
+| `bi.metrics_dir` | `config/bi/metrics` | Metric definitions (`*.yaml`, `*.yml`; one metric or a list per file), read through the storage backend and re-read when a file is added, changed or removed (checked at most every 2 seconds, on use). |
+| `bi.max_rows` | `5000` | Cap on the rows of any compiled metric query (a data connection's own `max_rows` applies too, whichever is lower); a result cut here says `truncated: true`. |
 | `bi.scratch_dir` | `data/bi/scratch` | One scratch database per user (`u_<digest of the user id>.duckdb`); created on the first load; git-ignored. |
 | `bi.scratch_max_rows` | `100000` | Rows in one loaded table; a larger result is refused, not cut. |
 | `bi.scratch_max_mb` | `100` | One user's scratch database; a load that would pass it is refused and leaves nothing behind. |
 | `bi.scratch_max_minutes` | `240` | Cap on a loaded table's time to live (a load asks for 60 minutes unless it says otherwise). Expired tables are dropped on the user's next load, listing or query; a load also sweeps every user's file (at most once a minute per process) and deletes a file left with no tables. |
+
+## reports
+
+Reader: live `_get` (`sajha/reports/settings.py`), read on every use, so `SAJHA_REPORTS_*`
+environment variables override the YAML without a restart. The definitions themselves are files in
+`reports.dir`. A relative `reports.dir` or `reports.output_dir` goes through the storage backend; an
+absolute one is read and written on the local disk. Design: [Reports](../architecture/Reports.md).
+
+| Key | Default | Purpose |
+|-----|---------|---------|
+| `reports.enabled` | `true` | Off: the report tools refuse every run (`report_list` returns none); definitions and stored runs stay. |
+| `reports.dir` | `config/reports` | Folder of the report definitions (`*.yaml`, `*.yml`, `*.json`, one level). |
+| `reports.output_dir` | `data/reports` | Stored runs: `<report>/<run_id>/run.json` (the report data) and `report.<ext>` per rendered format. Git-ignored. |
+| `reports.history_days` | `90` | Runs older than this are deleted when the same report runs again; `0` keeps every run. |
+| `reports.max_sections` | `50` | A definition with more sections is refused. |
+| `reports.max_run_seconds` | `300` | One run's time budget: a section still running when it ends is an error, later sections are `skipped`. |
+| `reports.max_table_rows` | `1000` | Rows kept per table section; `row_count` keeps the total and `truncated` says so. |
+| `reports.reload_seconds` | `5` | How often the definitions are rescanned and the generated `report_<name>` tools synced; `0`: at start-up only. |
+| `reports.narrate_model` | empty | The model alias (`ai.aliases.<name>`) `report_narrate` uses; empty uses the `default` alias ([Reports](../architecture/Reports.md) §5). |
 
 ## Secrets
 

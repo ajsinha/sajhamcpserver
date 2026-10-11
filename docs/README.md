@@ -81,8 +81,8 @@ alone. Definitions live in the root [GLOSSARY](../GLOSSARY.md); release history 
 - [Tool Quality](architecture/Tool%20Quality.md): test cases with recorded HTTP cassettes and JUnit output, the schema linter, health probes, evals for Ask SAJHA, tool versions with canary routing, rollback and sunset dates
 - [Quantitative Planners](architecture/Quantitative%20Planners.md) (wave 8): planners whose answers are computed figures: a shared workspace of quantities with units, as-of and source, a tested operation library and a numbers validator; `calc_graph`, `estimate_then_compute`, `scenario`, `data_analyst`, `code_act`, `optimize`, a numbers check for every planner, `research_writer` and `reconcile`
 - [Open Data Tools](architecture/Open%20Data%20Tools.md) (planned, wave 8): public data sources verified for use as tools (terms, keys, limits), the sources dropped and why, the tool folder and tools for each, by priority
-- [Business Intelligence](architecture/Business%20Intelligence.md) (planned, wave 8): a metrics layer compiled to safe SQL through the sources' own guards; compare, explain a change, anomalies, forecasts, charts, blending tool results, data quality, dashboards
-- [Reports](architecture/Reports.md) (planned, wave 8): report definitions published as tools, formats, narration under a numbers check, governed delivery, scheduling, flagship reports
+- [Business Intelligence](architecture/Business%20Intelligence.md) (partly built in 8.11.0): a metrics layer compiled to safe SQL through the sources' own guards; query, compare, top N, crosstab, explain a change, charts, blending tool results; anomalies, forecasts, data quality and dashboards planned
+- [Reports](architecture/Reports.md) (core built in 8.11.0; delivery and scheduling planned): report definitions published as tools, formats, history and compare, narration under a numbers check, governed delivery, scheduling, flagship reports
 - [Policy and Audit](architecture/Policy%20and%20Audit.md): declarative rules on every tool call (deny, approval, argument constraints, rate limits, quotas, redaction, injection screening); the hash-chained, signed audit and SIEM export
 - [LLM Tools](architecture/LLM%20Tools.md): tools whose work is done by a model, configured like any tool and governed the same way: modes, memory, resource safety, sampling, the OpenAI-compatible endpoint and configurable planners
 - [Planner Reference](architecture/Planner%20Reference.md): the reference for planner files (`config/planners`): keys, the stage library, transitions and bounded loops, the `when` expression language, verify checks, validation messages, a JSON Schema and every shipped strategy in full
@@ -140,7 +140,8 @@ These guides document each provider's tools, parameters and API keys.
   [Tavily Search](tools/search/Tavily%20Search%20Tool%20Reference%20Guide.md) ·
   [Web Crawler](tools/search/Web%20Crawler%20Tool%20Reference%20Guide.md) ·
   [Wikipedia Search](tools/search/Wikipedia%20Search%20Tool%20Reference%20Guide.md)
-- **Analytics:** [Calendars](tools/analytics/Calendars%20Tool%20Reference%20Guide.md) ·
+- **Analytics:** [Business Intelligence](tools/analytics/Business%20Intelligence%20Tool%20Reference%20Guide.md) ·
+  [Calendars](tools/analytics/Calendars%20Tool%20Reference%20Guide.md) ·
   [DuckDB](tools/analytics/DuckDB%20Tool%20Reference%20Guide.md) ·
   [Financial Calculators](tools/analytics/Financial%20Calculators%20Tool%20Reference%20Guide.md) ·
   [OLAP Analytics](tools/analytics/OLAP%20Analytics%20Tool%20Reference%20Guide.md) ·

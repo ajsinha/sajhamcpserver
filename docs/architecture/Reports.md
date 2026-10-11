@@ -1,8 +1,12 @@
 # SAJHA MCP Server — Reports
 
-> **Status: planned, not built.** Wave 8, phase 8.5 (release 8.12.0) of the
+> **Status: core built in 8.11.0** (wave 8, phase 8.5 of the
 > [Implementation Plan](Implementation%20Plan.md#7b-wave-8-tool-health-open-data-business-intelligence-and-reports);
-> Roadmap items L45 to L50. Until it ships, nothing below exists in the code. It builds on
+> Roadmap L45 and L46): definitions, the loader, the run engine, report data and history, the tools
+> `report_list`, `report_describe`, `report_run`, `report_history`, `report_render`, `report_compare`
+> and the generated `report_<name>` tools, every format of §4, classification marking and the
+> provenance appendix (`sajha/reports/`). Not built yet: `report_deliver` and delivery (§6),
+> scheduling (§7), the Studio Report creator (§9) and most flagship reports (§10). It builds on
 > [Business Intelligence](Business%20Intelligence.md) (metrics, tiles, charts),
 > [Workflows](Workflows.md) (schedules), [Policy and Audit](Policy%20and%20Audit.md) (approval,
 > audit) and the intelligence layer ([LLM Tools](LLM%20Tools.md), `narrate` mode).
@@ -104,6 +108,32 @@ The arguments shown for the qlrisk tools are illustrative. A definition uses wha
 - formats and recipient kinds are known;
 - a sub-report (`kind: report`) does not recurse.
 
+**As built (8.11.0).** `sajha/reports/model.py` parses a definition; `sajha/reports/store.py` loads
+`*.yaml`, `*.yml` and `*.json` directly under `reports.dir` (through the storage backend, or from the
+local disk when the path is absolute) and rescans every `reports.reload_seconds`.
+
+- **More keys.** `enabled` (default `true`; a disabled report has no tool and does not run), `tags`,
+  `roles` (only callers with one of them, or administrators, may run it) and `required` (a list of
+  parameter names; parameters are otherwise optional). A parameter's `default` may be `$run.date`
+  or `$run.year`. `formats` defaults to `[markdown, html]`; Markdown is always made.
+- **References.** Whole-string argument values only: `$params.<name>`,
+  `$sections.<id>.<jsonpath>` (an earlier section's result) and `$run.date`, `$run.year`,
+  `$run.time`. A `text` section may write `${params.<name>}` inside its text.
+- **Sections.** A table's `columns` are keys or `{key, label, path, format, decimals, currency}`,
+  where `path` is a JSONPath into the row; `key` names the column `report_compare` matches rows on
+  (default the first); `limit` caps the rows. A `chart` is a table plus `x`, `y` (one column or a
+  list) and `type` (`bar` or `line`). A `metric` section's `tile` is any tool call (normally a
+  `bi_*` tool): `values` or `rows` present it, otherwise its top-level numbers become KPIs and its
+  first list of rows a table; `visual: bar|line` adds a chart. Value formats: `number`, `integer`,
+  `percent` (already in percent), `ratio` (a fraction shown as percent), `currency`, `bps`, `date`,
+  `text`.
+- **Names.** Lowercase letters, digits and `_`, starting with a letter, at most 48 characters, never
+  `__`, never a reserved name (§3). The parameter names `formats` and `deliver` are reserved. A
+  sub-report may not have sub-reports of its own (one level), nor be the report itself.
+- **Notices.** A refused file raises `reports.definition:<file>`; two files naming one report raise
+  `reports.duplicate:<report>` and neither loads; a report calling tools the server lacks raises the
+  info notice `reports.missing_tools:<report>` ([System Notices](System%20Notices.md)).
+
 ---
 
 ## 3. Tools
@@ -121,10 +151,33 @@ written as generated tool configs, in the same way data connectors write theirs.
 | `report_compare` | `report`, `run_a`, `run_b` (run ids, or dates for the runs on those dates) | Section-by-section differences: KPIs with their change, and table rows added, removed and changed | read-only |
 | `report_deliver` | `run_id`, `recipients?` (default: the definition's) | Delivers a run's files (section 6); external targets wait for approval | not read-only, not destructive |
 | `report_history` | `report`, `from?`, `to?`, `status?` | Runs: id, time, who ran it, parameters, status, formats, deliveries | read-only |
-| `report_narrate` | `run_id`, `sections?`, `length?`, `audience?` | Commentary that passes the numbers check (section 5) | read-only |
+| `report_narrate` | `run_id`, `sections?`, `length?`, `audience?` | Commentary that passes the numbers check (section 5): `commentary`, `label`, `model`, `revised`, `rejected`, `removed`, `caveats`, `stored_in`; stored in the run's waiting text section, if it has one | not read-only (writes the run record), not destructive |
 
 Some definition names are reserved because they would collide with the fixed tools: `list`,
 `describe`, `run`, `render`, `compare`, `deliver`, `history` and `narrate`.
+
+**As built (8.11.0).** The fixed tools ship in `config/tools/reports/` (`sajha/reports/tools.py`).
+A definition's `report_<name>` config is generated there by `sajha/reports/service.py` (marked by
+`"report": {"name", "definition_hash"}`), synced at start-up and whenever definitions change; only
+marked configs are ever rewritten or removed, and a name taken by another tool raises
+`reports.name_conflict:<tool>`. `deliver` is not in the schema until delivery is built (§6).
+
+- **Who may run.** A caller runs a report when reports are enabled, the definition is enabled, the
+  caller has one of its `roles` (if any) and may execute its `report_<name>` tool. `report_list`
+  lists exactly those.
+- **A run** returns `run_id`, `status` (`succeeded`; `partial` when a section is not permitted,
+  unavailable, failed or skipped; `failed` when every tool section failed), the Markdown, `files`,
+  `files_unavailable`, the sections (tables cut to 50 rows inline) and `warnings`.
+- **Stored runs.** `reports.output_dir/<report>/<run_id>/run.json` holds the report data and
+  `report.<ext>` each file; a run id is `<report>-<UTC yyyymmddThhmmssmmm>-<6 hex>`. A run's data
+  was fetched with its runner's access, so **only its runner and administrators** see it in
+  `report_history`, `report_render` and `report_compare`. Runs older than `reports.history_days`
+  are pruned when the report runs again. The shape of the data, for code that reads runs, is in
+  `sajha/reports/__init__.py`.
+- **Quantities.** Each run stores the figures a narrator may cite (§5): every KPI and numeric cell,
+  each KPI's previous value, change and percent change against the previous run with the same
+  parameters that the runner may see, and each numeric column's shares (2 to 50 rows, none
+  negative) and ranks, each with the text and precision the report displays.
 
 ---
 
@@ -146,33 +199,52 @@ PNG charts are made by rasterising the SVG in headless Chromium. Without Chromiu
 show each chart's data table instead and say so. Every format carries the classification marking
 (section 8) and ends with the provenance appendix.
 
+**As built (8.11.0).** `sajha/reports/render.py`. Charts are inline SVG in HTML and PDF. PNG
+rasterising is not built: XLSX, PPTX and DOCX always show each chart's data table and say so. PPTX
+shows at most 14 rows of a table (the XLSX has every row). Whether PDF works is probed once per
+process (Playwright importable and its Chromium installed); a definition asking for a format this
+server cannot make raises the info notice `reports.format_unavailable:<format>`, and its run records
+the reason in `files_unavailable` while the other formats are made.
+
 ---
 
 ## 5. Narration with a numbers check
 
-`report_narrate` writes commentary over a run's data. It uses an [LLM tool](LLM%20Tools.md) in
-`narrate` mode, with a configurable model alias (`reports.narrate_model`). It then **validates**
-the text with the numbers validator of the quantitative workspace
-([Quantitative Planners](Quantitative%20Planners.md) §2.4, built in phase 8.2), given the run's data
-and the comparisons the report computed as quantities:
+As built: `report_narrate`, in `sajha/reports/narrate.py` (its module docstring is the reference;
+tests in `tests/test_report_narrate.py`).
 
-1. **Extract.** Every number in the text is extracted: integers, decimals, percentages, currency
-   amounts, suffixed amounts such as `1.2bn` or `350k`, and basis points.
-2. **Match.** Each number is normalised and must match a value in the run's data. The comparison
-   uses the precision the report displays, or the precision written if that is coarser. A match
-   can be a value, a change or a percent change, as long as the report itself computed it.
-   - To make this possible, the report computes the comparisons a narrator would cite: changes
-     versus the previous run, shares and rankings. These are data, not arithmetic left to the
-     model.
-3. **Dates.** Dates and years must be parameters of the run or appear in the data. Ordinal words
-   and section numbers are ignored.
-4. **Reject.** A text with any unmatched number is **rejected**.
-   - The model gets one retry, with the rejected numbers named.
-   - If the retry also fails, the section is left empty with the message "commentary withheld: it
-     cited figures not in the report", and the run record gets a warning.
+- **The narrator.** A model reached through the LLM layer under the alias `reports.narrate_model`
+  (empty: `default`). It sees only the selected sections' data and the run's computed comparisons,
+  and it has no tools, so it cannot fetch numbers of its own.
+- **Which sections.** With no `sections`, the first text section waiting for commentary (its
+  definition has `narrate:`) sets the sections, `length` and `audience`, and the commentary is
+  stored in it: the section's text, `narration` on the run (model, sections, revised, removed), and
+  the run's files rendered again. Without such a section, every other section is narrated and
+  nothing is stored. Only the runner and administrators may narrate a run.
+
+The text is then **validated** with the numbers validator of the quantitative workspace
+([Quantitative Planners](Quantitative%20Planners.md) §2.4), given the run's data as tool results
+and the run's computed comparisons as quantities:
+
+1. **Extract.** Every number in the text is extracted: integers, decimals, percentages, suffixed
+   amounts such as `1.2bn` or `350k`, basis points and percentage points.
+2. **Match.** Each number must match a value in the run's data or a quantity, at the precision
+   written (`1.2bn` matches 1,234,000,000; `about 1,200` does not match 1,234.56) and by magnitude
+   (the sign is in the words: "fell 3.2%"). The validator's unit rules apply: a figure with a rate
+   unit matches a quantity in that unit, a figure with none matches any unit a quantity converts to.
+   - The quantities are the comparisons the run computed (`quantities` in the run data): each value,
+     its previous value against the previous run with the same parameters, the change and percent
+     change, each table cell's share of its column total, and ranks. They are data, not arithmetic
+     left to the model.
+3. **Dates.** Dates and years (ISO, `9 October 2026`, `Oct 9, 2026`, `October 2026`, `2026-10`,
+   `9 Oct`, bare years) must be parameters of the run, the run's own date, or appear in its data
+   (a section's as-of date included). Ordinals and section numbers are ignored.
+4. **Reject.** A text with any unmatched figure or date is **rejected**.
+   - The model gets one revision, with the rejected figures named.
+   - A figure still unmatched after the revision is replaced by `[unverified figure removed]`,
+     and a caveat names each one removed. The run record gets a warning and the audit records
+     `report.narrate.rejected`.
    - An invented figure is never delivered.
-
-The narrator sees only the run's data and has no tools, so it cannot fetch numbers of its own.
 
 ---
 
@@ -220,7 +292,10 @@ workflow.
     highest data class among the sections' results (wave 5's residency data classes).
   - Every page or sheet carries a header and footer marking. At `confidential` and above, PDF and
     HTML also get a diagonal watermark.
-- **Audit.** `report.run`, `report.render`, `report.deliver` and `report.narrate.rejected` are
+  - As built: a section whose tool marks data classes on its results (residency marks,
+    `sajha/net/integration/residency.py`) raises the effective classification to at least
+    `confidential`; there is no per-class mapping yet.
+- **Audit.** `report.run`, `report.render`, `report.deliver`, `report.download` and `report.narrate.rejected` are
   events in the hash-chained audit, recorded with the run id and the trace id.
 - **Provenance appendix.** Every rendered report ends with an appendix that records:
   - the run id, the runner, the time and the parameters;
@@ -241,9 +316,15 @@ workflow.
     preview with sample parameters, and save a definition.
   - Studio's per-creator permissions and ownership apply, as for every creator
     ([MCP Studio User Guide](../studio/MCP%20Studio%20User%20Guide.md)).
-- **A report library page.**
-  - It lists the definitions the user may run. From it the user can run a report with parameters,
-    see history, compare two runs and download files.
+- **The report library page (as built).** `/reports/library` (`sajha/routes/report_library_routes.py`)
+  lists the definitions the user may run: enabled, with a matching role when the definition names
+  roles, and (for a non-administrator) access to its `report_<name>` tool.
+  - Run opens the report's tool on the tool execute page, which builds the parameter form.
+  - `/reports/library/{name}` shows the parameters, the sections and the runs the user may see (their
+    own; every run for administrators), each with its files.
+  - `/api/reports/library/runs/{run_id}/{format}` downloads a file as an attachment (the runner and
+    administrators only).
+  - Comparing two runs is not on the page; use `report_compare`.
   - **Naming (owner decision, 2026-10-11).** The existing `/reports` page is a usage dashboard. In
     this phase its menu entry is renamed "Usage", the new page takes the name "Reports" under a new
     path, and `/reports` keeps working.
@@ -253,6 +334,12 @@ workflow.
 ## 10. Flagship reports
 
 These ship as definitions, off until enabled. Each one is also a test of the design.
+
+**Shipped (8.11.0)** in `config/reports/`: `desk_calendar` (enabled as the working example; offline:
+settlement dates from the business calendars, the market's holidays this year and a bond priced with
+`calc_bond_price`) and `central_bank_watch` (off until enabled: BIS policy rates and the US Treasury
+yield curve, with changes since the previous run and a narrated commentary section). The others
+below are still planned.
 
 | Report | Sections from | Notes |
 |---|---|---|
@@ -270,21 +357,20 @@ These ship as definitions, off until enabled. Each one is also a test of the des
 
 ---
 
-## 11. Configuration (planned keys)
+## 11. Configuration
 
-These keys go into the
-[Configuration Reference](../getting-started/Configuration%20Reference.md) when the feature is built:
+The built keys are in the
+[Configuration Reference](../getting-started/Configuration%20Reference.md#reports): `reports.enabled`,
+`reports.dir`, `reports.output_dir`, `reports.history_days`, `reports.max_sections`,
+`reports.max_run_seconds`, `reports.max_table_rows` and `reports.reload_seconds`.
+`reports.enabled` defaults to `true`, not `false` as first planned (owner decision, 2026-10-11): a
+report gives a caller nothing they could not already call, since every section runs with the
+caller's own access. `reports.narrate_model` belongs to narration (§5). Still planned, with
+delivery:
 
-- `reports.enabled` (default `false`)
-- `reports.dir`
-- `reports.output_dir`
-- `reports.history_days`
-- `reports.narrate_model`
 - `reports.email_internal_domains`
 - `reports.webhook_allowlist`
 - `reports.sharepoint_internal_sites`
-- `reports.max_sections`
-- `reports.max_run_seconds`
 
 ---
 

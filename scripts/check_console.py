@@ -49,7 +49,8 @@ from typing import Dict, List, Optional
 ROOT = Path(__file__).resolve().parent.parent
 
 #: Pages the accessibility check covers by default: the pages wave 3 added and the main flows.
-PAGES = ['/dashboard', '/ask', '/conversations', '/studio', '/studio/llm', '/studio/planners', '/studio/describe']
+PAGES = ['/dashboard', '/ask', '/conversations', '/studio', '/studio/llm', '/studio/planners', '/studio/describe',
+         '/reports/library']
 
 #: The built-in rule subset (used when axe-core is not available): (id, what it checks).
 RULES = [

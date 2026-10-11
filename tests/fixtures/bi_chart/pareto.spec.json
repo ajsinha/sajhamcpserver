@@ -1,0 +1,91 @@
+{
+ "$schema": "https://vega.github.io/schema/vega-lite/v5.json",
+ "data": {
+  "values": [
+   {
+    "_cumulative_pct": 50.0,
+    "cause": "E",
+    "count": 50.0
+   },
+   {
+    "_cumulative_pct": 80.0,
+    "cause": "B",
+    "count": 30.0
+   },
+   {
+    "_cumulative_pct": 92.0,
+    "cause": "C",
+    "count": 12.0
+   },
+   {
+    "_cumulative_pct": 97.0,
+    "cause": "A",
+    "count": 5.0
+   },
+   {
+    "_cumulative_pct": 100.0,
+    "cause": "D",
+    "count": 3.0
+   }
+  ]
+ },
+ "height": 400,
+ "layer": [
+  {
+   "encoding": {
+    "x": {
+     "field": "cause",
+     "sort": null,
+     "title": "cause",
+     "type": "nominal"
+    },
+    "y": {
+     "field": "count",
+     "title": "count",
+     "type": "quantitative"
+    }
+   },
+   "mark": {
+    "tooltip": true,
+    "type": "bar"
+   }
+  },
+  {
+   "encoding": {
+    "x": {
+     "field": "cause",
+     "sort": null,
+     "title": "cause",
+     "type": "nominal"
+    },
+    "y": {
+     "field": "_cumulative_pct",
+     "scale": {
+      "domain": [
+       0,
+       100
+      ]
+     },
+     "title": "cumulative %",
+     "type": "quantitative"
+    }
+   },
+   "mark": {
+    "point": true,
+    "tooltip": true,
+    "type": "line"
+   }
+  }
+ ],
+ "resolve": {
+  "scale": {
+   "y": "independent"
+  }
+ },
+ "title": "count by cause",
+ "usermeta": {
+  "generator": "sajha bi_chart",
+  "kind": "pareto"
+ },
+ "width": 720
+}

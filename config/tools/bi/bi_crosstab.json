@@ -1,0 +1,229 @@
+{
+  "name": "bi_crosstab",
+  "implementation": "sajha.tools.impl.bi_metric_tools.BiCrosstabTool",
+  "title": "Two-way table of a metric",
+  "description": "A metric as a two-way table: one dimension down, another across, with row, column and grand totals (computed by the source, so right for averages and ratios too).\nReturns: row_headers, column_headers, cells (rows of values, null when empty), row_totals, column_totals, grand_total, as_of.\nInputs (* required): metric*; rows*; columns* (dimensions); period; totals (default true); normalize (row, column or total: percent of that total); filters.\nExample: {\"metric\": \"net_sales\", \"rows\": \"region\", \"columns\": \"product_category\", \"period\": \"2024\"}",
+  "annotations": {
+    "title": "Two-way table of a metric",
+    "readOnlyHint": true,
+    "destructiveHint": false,
+    "idempotentHint": true,
+    "openWorldHint": false
+  },
+  "version": "1.0.0",
+  "enabled": true,
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "metric": {
+        "type": "string",
+        "description": "Metric name (bi_list_metrics)",
+        "pattern": "^[a-z][a-z0-9_]{0,63}$"
+      },
+      "rows": {
+        "type": "string",
+        "description": "A dimension the metric declares (bi_describe_metric)",
+        "pattern": "^[A-Za-z_][A-Za-z0-9_]{0,127}$"
+      },
+      "columns": {
+        "type": "string",
+        "description": "A dimension the metric declares (bi_describe_metric)",
+        "pattern": "^[A-Za-z_][A-Za-z0-9_]{0,127}$"
+      },
+      "period": {
+        "description": "A period: 2025-Q3, 2025-07, 2025, 2025-07-15, FY2025, YTD, QTD, MTD, last 12 months, last 8 quarters, or {\"from\": \"YYYY-MM-DD\", \"to\": \"YYYY-MM-DD\"} (inclusive)",
+        "oneOf": [
+          {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 40
+          },
+          {
+            "type": "object",
+            "properties": {
+              "from": {
+                "type": "string",
+                "format": "date"
+              },
+              "to": {
+                "type": "string",
+                "format": "date"
+              }
+            },
+            "required": [
+              "from",
+              "to"
+            ],
+            "additionalProperties": false
+          }
+        ]
+      },
+      "totals": {
+        "type": "boolean",
+        "default": true,
+        "description": "Add row, column and grand totals"
+      },
+      "normalize": {
+        "type": "string",
+        "enum": [
+          "row",
+          "column",
+          "total"
+        ],
+        "description": "Cells as a percent of their row, column or grand total"
+      },
+      "filters": {
+        "type": "array",
+        "maxItems": 10,
+        "description": "Filters on declared dimensions; values are bound, never SQL",
+        "items": {
+          "type": "object",
+          "properties": {
+            "dimension": {
+              "type": "string",
+              "description": "A dimension the metric declares (bi_describe_metric)",
+              "pattern": "^[A-Za-z_][A-Za-z0-9_]{0,127}$"
+            },
+            "op": {
+              "type": "string",
+              "enum": [
+                "eq",
+                "ne",
+                "in",
+                "not_in",
+                "gte",
+                "lte",
+                "between",
+                "contains"
+              ],
+              "description": "Operator; eq when omitted"
+            },
+            "value": {
+              "description": "One value; a list for in, not_in and between ([low, high])"
+            }
+          },
+          "required": [
+            "dimension",
+            "value"
+          ],
+          "additionalProperties": false
+        }
+      }
+    },
+    "required": [
+      "metric",
+      "rows",
+      "columns"
+    ],
+    "additionalProperties": false,
+    "examples": [
+      {
+        "metric": "net_sales",
+        "rows": "region",
+        "columns": "product_category",
+        "period": "2024"
+      }
+    ]
+  },
+  "outputSchema": {
+    "type": "object",
+    "properties": {
+      "metric": {
+        "type": "string"
+      },
+      "title": {
+        "type": "string"
+      },
+      "unit": {
+        "type": "string"
+      },
+      "currency": {
+        "type": "string"
+      },
+      "period": {
+        "type": [
+          "object",
+          "null"
+        ],
+        "properties": {
+          "label": {
+            "type": "string"
+          },
+          "from": {
+            "type": "string"
+          },
+          "to": {
+            "type": "string"
+          }
+        }
+      },
+      "as_of": {
+        "type": [
+          "string",
+          "null"
+        ],
+        "description": "Latest date in the metric's source"
+      },
+      "fingerprint": {
+        "type": "string",
+        "description": "Hash of the compiled query"
+      },
+      "truncated": {
+        "type": "boolean",
+        "description": "A result was cut at the row cap (bi.max_rows)"
+      },
+      "row_dimension": {
+        "type": "string"
+      },
+      "column_dimension": {
+        "type": "string"
+      },
+      "row_headers": {
+        "type": "array"
+      },
+      "column_headers": {
+        "type": "array"
+      },
+      "cells": {
+        "type": "array",
+        "items": {
+          "type": "array"
+        }
+      },
+      "row_totals": {
+        "type": "array"
+      },
+      "column_totals": {
+        "type": "array"
+      },
+      "grand_total": {
+        "type": [
+          "number",
+          "null"
+        ]
+      },
+      "normalize": {
+        "type": [
+          "string",
+          "null"
+        ]
+      }
+    },
+    "required": [
+      "metric",
+      "row_headers",
+      "column_headers",
+      "cells"
+    ]
+  },
+  "metadata": {
+    "author": "Ashutosh Sinha",
+    "category": "Business Intelligence",
+    "tags": [
+      "bi",
+      "metrics",
+      "pivot",
+      "crosstab"
+    ]
+  }
+}

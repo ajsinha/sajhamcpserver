@@ -1,0 +1,94 @@
+{
+ "$schema": "https://vega.github.io/schema/vega-lite/v5.json",
+ "data": {
+  "values": [
+   {
+    "_end": 100.0,
+    "_kind": "increase",
+    "_start": 0.0,
+    "change": 100.0,
+    "step": "Q2"
+   },
+   {
+    "_end": 120.0,
+    "_kind": "increase",
+    "_start": 100.0,
+    "change": 20.0,
+    "step": "Price"
+   },
+   {
+    "_end": 85.0,
+    "_kind": "decrease",
+    "_start": 120.0,
+    "change": -35.0,
+    "step": "Volume"
+   },
+   {
+    "_end": 93.0,
+    "_kind": "increase",
+    "_start": 85.0,
+    "change": 8.0,
+    "step": "Mix"
+   },
+   {
+    "_end": 93.0,
+    "_kind": "total",
+    "_start": 0.0,
+    "change": 93.0,
+    "step": "Total"
+   }
+  ]
+ },
+ "encoding": {
+  "color": {
+   "field": "_kind",
+   "scale": {
+    "domain": [
+     "increase",
+     "decrease",
+     "total"
+    ],
+    "range": [
+     "#2e9e6a",
+     "#c6403a",
+     "#2a78d6"
+    ]
+   },
+   "title": "change",
+   "type": "nominal"
+  },
+  "tooltip": [
+   {
+    "field": "step"
+   },
+   {
+    "field": "change"
+   }
+  ],
+  "x": {
+   "field": "step",
+   "sort": null,
+   "title": "step",
+   "type": "nominal"
+  },
+  "y": {
+   "field": "_start",
+   "title": "change",
+   "type": "quantitative"
+  },
+  "y2": {
+   "field": "_end"
+  }
+ },
+ "height": 400,
+ "mark": {
+  "tooltip": true,
+  "type": "bar"
+ },
+ "title": "Revenue bridge",
+ "usermeta": {
+  "generator": "sajha bi_chart",
+  "kind": "waterfall"
+ },
+ "width": 720
+}

@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<!--
+Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.com
+SAJHA MCP App (io.modelcontextprotocol/ui): the chart view of bi_chart.
+Self-contained: no external scripts, styles or network access. The chart is the SVG that
+bi_chart rendered on the server, rebuilt here element by element through a whitelist
+(chart elements and geometry attributes only; text through textContent, never innerHTML),
+with its classes coloured from this page's theme. The data table comes from the spec.
+-->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Chart</title>
+<style>
+  :root {
+    color-scheme: light;
+    --surface-1: #fcfcfb; --text-primary: #0b0b0b; --text-secondary: #52514e; --grid: #e4e3df; --axis: #9a9993;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:where(:not([data-theme="light"])) {
+      color-scheme: dark;
+      --surface-1: #1a1a19; --text-primary: #ffffff; --text-secondary: #c3c2b7; --grid: #3a3a37; --axis: #6f6e69;
+    }
+  }
+  :root[data-theme="dark"] {
+    color-scheme: dark;
+    --surface-1: #1a1a19; --text-primary: #ffffff; --text-secondary: #c3c2b7; --grid: #3a3a37; --axis: #6f6e69;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; padding: 12px; background: var(--surface-1); color: var(--text-primary);
+         font: 14px/1.4 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+  svg { display: block; width: 100%; height: auto; }
+  svg text { font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+  .bg { fill: var(--surface-1); }
+  .title { font-size: 15px; font-weight: 600; fill: var(--text-primary); }
+  .tick, .lg { font-size: 11px; fill: var(--text-secondary); }
+  .atitle { font-size: 12px; fill: var(--text-secondary); }
+  .grid { stroke: var(--grid); stroke-width: 1; }
+  .axis { stroke: var(--axis); stroke-width: 1; }
+  .ref { stroke: var(--axis); stroke-dasharray: 4 4; }
+  .line { fill: none !important; stroke-width: 2; }
+  .area { fill-opacity: .35; stroke-width: 1.5; }
+  .cell { stroke: var(--surface-1); stroke-width: 1; }
+  .f0{fill:#2a78d6}.k0{stroke:#2a78d6}.f1{fill:#eb6834}.k1{stroke:#eb6834}.f2{fill:#2e9e6a}.k2{stroke:#2e9e6a}
+  .f3{fill:#c6403a}.k3{stroke:#c6403a}.f4{fill:#8a5cc2}.k4{stroke:#8a5cc2}.f5{fill:#b8860b}.k5{stroke:#b8860b}
+  .f6{fill:#d16ba5}.k6{stroke:#d16ba5}.f7{fill:#5f7a8a}.k7{stroke:#5f7a8a}.f8{fill:#17a2b8}.k8{stroke:#17a2b8}
+  .f9{fill:#7f7f00}.k9{stroke:#7f7f00}.f10{fill:#8c564b}.k10{stroke:#8c564b}.f11{fill:#4b5fd6}.k11{stroke:#4b5fd6}
+  .w-increase{fill:#2e9e6a}.w-decrease{fill:#c6403a}.w-total{fill:#2a78d6}
+  table { width: 100%; border-collapse: collapse; margin-top: 8px; font-variant-numeric: tabular-nums; font-size: 12px; }
+  th, td { text-align: left; padding: 4px 8px; border-bottom: 1px solid var(--grid); }
+  th { color: var(--text-secondary); font-weight: 600; }
+  details summary { cursor: pointer; color: var(--text-secondary); margin-top: 8px; }
+  .empty { color: var(--text-secondary); }
+</style>
+</head>
+<body>
+<div id="root"><p class="empty">Waiting for the tool result…</p></div>
+<script>
+(function () {
+  "use strict";
+  var SVGNS = "http://www.w3.org/2000/svg";
+  var ELEMENTS = { svg: 1, g: 1, rect: 1, path: 1, line: 1, circle: 1, text: 1, title: 1 };
+  var ATTRS = { viewBox: 1, x: 1, y: 1, x1: 1, x2: 1, y1: 1, y2: 1, width: 1, height: 1, d: 1, cx: 1, cy: 1,
+                r: 1, rx: 1, "class": 1, "text-anchor": 1, role: 1, "aria-label": 1 };
+  var NUMERIC = /^-?[0-9.]+$/;
+  var PATH = /^[MLZ0-9. -]*$/;
+  var CLASS = /^[a-z0-9 -]*$/;
+  var MAX_ROWS_SHOWN = 500;
+  var nextId = 1;
+  var pending = {};
+
+  function send(msg) { window.parent.postMessage(msg, "*"); }
+  function request(method, params) {
+    var id = nextId++;
+    send({ jsonrpc: "2.0", id: id, method: method, params: params || {} });
+    return new Promise(function (resolve) { pending[id] = resolve; });
+  }
+  function notify(method, params) { send({ jsonrpc: "2.0", method: method, params: params || {} }); }
+  function el(tag, text) {
+    var n = document.createElement(tag);
+    if (text != null) n.textContent = String(text);
+    return n;
+  }
+  function applyTheme(ctx) {
+    if (ctx && (ctx.theme === "dark" || ctx.theme === "light")) {
+      document.documentElement.setAttribute("data-theme", ctx.theme);
+    }
+  }
+  function reportSize() {
+    notify("ui/notifications/size-changed",
+           { width: document.documentElement.scrollWidth, height: document.documentElement.scrollHeight });
+  }
+
+  function dataFrom(result) {
+    if (!result || typeof result !== "object") return null;
+    var sc = result.structuredContent;
+    if (sc && typeof sc === "object") return sc.result && typeof sc.result === "object" ? sc.result : sc;
+    var blocks = Array.isArray(result.content) ? result.content : [];
+    for (var i = 0; i < blocks.length; i++) {
+      if (blocks[i] && blocks[i].type === "text") {
+        try { var v = JSON.parse(blocks[i].text); if (v && typeof v === "object") return v; } catch (e) { /* not JSON */ }
+      }
+    }
+    return null;
+  }
+
+  // An attribute value is kept only when it has the shape the server writes.
+  function safeAttr(name, value) {
+    if (!ATTRS[name] && name !== "fill" && name !== "transform") return null;
+    if (name === "fill") return /^#[0-9a-fA-F]{6}$/.test(value) ? value : null;
+    if (name === "transform") return /^rotate\(-?[0-9.]+ -?[0-9.]+ -?[0-9.]+\)$/.test(value) ? value : null;
+    if (name === "d") return PATH.test(value) ? value : null;
+    if (name === "class") return CLASS.test(value) ? value : null;
+    if (name === "viewBox") return /^[0-9 .]+$/.test(value) ? value : null;
+    if (name === "text-anchor") return /^(start|middle|end)$/.test(value) ? value : null;
+    if (name === "role" || name === "aria-label") return value;
+    return NUMERIC.test(value) ? value : null;
+  }
+
+  function copy(node) {
+    var tag = node.localName;
+    if (!ELEMENTS[tag]) return null;
+    var out = document.createElementNS(SVGNS, tag);
+    for (var i = 0; i < node.attributes.length; i++) {
+      var a = node.attributes[i];
+      if (a.name === "width" && tag === "svg") continue;     // the page sets the size
+      if (a.name === "height" && tag === "svg") continue;
+      var v = safeAttr(a.name, a.value);
+      if (v != null) out.setAttribute(a.name, v);
+    }
+    if (tag === "text" || tag === "title") {
+      out.textContent = node.textContent;
+      return out;
+    }
+    for (var c = node.firstElementChild; c; c = c.nextElementSibling) {
+      var k = copy(c);
+      if (k) out.appendChild(k);
+    }
+    return out;
+  }
+
+  function chartFrom(svgText) {
+    if (typeof svgText !== "string" || !svgText) return null;
+    var doc = new DOMParser().parseFromString(svgText, "image/svg+xml");
+    var root = doc.documentElement;
+    if (!root || root.localName !== "svg" || doc.getElementsByTagName("parsererror").length) return null;
+    return copy(root);
+  }
+
+  function table(spec) {
+    var rows = spec && spec.data && Array.isArray(spec.data.values) ? spec.data.values : [];
+    if (!rows.length) return null;
+    var cols = [];
+    rows.slice(0, 50).forEach(function (r) {
+      Object.keys(r || {}).forEach(function (k) { if (k.charAt(0) !== "_" && cols.indexOf(k) < 0) cols.push(k); });
+    });
+    var det = el("details");
+    det.appendChild(el("summary", "Data (" + rows.length + " rows)"));
+    var t = el("table");
+    var head = el("tr");
+    cols.forEach(function (c) { head.appendChild(el("th", c)); });
+    t.appendChild(head);
+    rows.slice(0, MAX_ROWS_SHOWN).forEach(function (r) {
+      var tr = el("tr");
+      cols.forEach(function (c) { tr.appendChild(el("td", r[c] == null ? "" : r[c])); });
+      t.appendChild(tr);
+    });
+    det.appendChild(t);
+    det.addEventListener("toggle", reportSize);
+    return det;
+  }
+
+  function render(d) {
+    var root = document.getElementById("root");
+    root.textContent = "";
+    var chart = d ? chartFrom(d.svg) : null;
+    if (!chart) {
+      root.appendChild(el("p", "No chart in the tool result."));
+      root.firstChild.className = "empty";
+      reportSize();
+      return;
+    }
+    if (d.title) document.title = String(d.title);
+    root.appendChild(chart);
+    var t = table(d.spec);
+    if (t) root.appendChild(t);
+    reportSize();
+  }
+
+  window.addEventListener("message", function (ev) {
+    if (ev.source !== window.parent) return;          // only the host may talk to the view
+    var msg = ev.data;
+    if (!msg || msg.jsonrpc !== "2.0") return;
+    if (msg.id != null && pending[msg.id] && !msg.method) {
+      var resolve = pending[msg.id]; delete pending[msg.id];
+      resolve(msg.result || {});
+      return;
+    }
+    switch (msg.method) {
+      case "ui/notifications/tool-result": render(dataFrom(msg.params)); break;
+      case "ui/notifications/host-context-changed": applyTheme(msg.params); break;
+      case "ui/resource-teardown": if (msg.id != null) send({ jsonrpc: "2.0", id: msg.id, result: {} }); break;
+      default:
+        if (msg.id != null && msg.method) {
+          send({ jsonrpc: "2.0", id: msg.id, error: { code: -32601, message: "Method not found" } });
+        }
+    }
+  });
+
+  request("ui/initialize", {
+    protocolVersion: "2026-01-26",
+    appInfo: { name: "sajha-bi-chart", version: "1.0.0" },
+    appCapabilities: {}
+  }).then(function (res) {
+    applyTheme(res && res.hostContext);
+    notify("ui/notifications/initialized", {});
+    reportSize();
+  });
+})();
+</script>
+</body>
+</html>

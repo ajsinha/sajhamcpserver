@@ -1,0 +1,113 @@
+{
+  "name": "report_describe",
+  "implementation": "sajha.reports.tools.ReportDescribeTool",
+  "title": "Describe a report",
+  "description": "One report definition: its sections, the tools and metrics it calls, parameters, formats, schedule, recipients (redacted unless you own it) and your last runs of it.\nReturns: name, tool, title, definition, definition_hash, sources (section, tool, arguments), sub_reports, missing_tools, formats, formats_unavailable, schedule, last_runs.\nInputs (* required): report*.\nExample: {\"report\": \"desk_calendar\"}",
+  "version": "1.0.0",
+  "enabled": true,
+  "inputSchema": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "report"
+    ],
+    "properties": {
+      "report": {
+        "type": "string",
+        "description": "Report name (report_list lists them), e.g. desk_calendar",
+        "pattern": "^[a-z][a-z0-9_]{0,47}$"
+      }
+    },
+    "examples": [
+      {
+        "report": "desk_calendar"
+      }
+    ]
+  },
+  "outputSchema": {
+    "type": "object",
+    "required": [
+      "name",
+      "definition",
+      "sources"
+    ],
+    "properties": {
+      "name": {
+        "type": "string"
+      },
+      "tool": {
+        "type": "string"
+      },
+      "title": {
+        "type": "string"
+      },
+      "definition": {
+        "type": "object"
+      },
+      "definition_hash": {
+        "type": "string"
+      },
+      "sources": {
+        "type": "array",
+        "items": {
+          "type": "object"
+        }
+      },
+      "sub_reports": {
+        "type": "array"
+      },
+      "missing_tools": {
+        "type": "array"
+      },
+      "formats": {
+        "type": "array"
+      },
+      "formats_unavailable": {
+        "type": "object"
+      },
+      "last_runs": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "run_id": {
+              "type": "string"
+            },
+            "status": {
+              "type": "string"
+            },
+            "started_at": {
+              "type": "string"
+            },
+            "runner": {
+              "type": "string"
+            },
+            "parameters": {
+              "type": "object"
+            },
+            "formats": {
+              "type": "array"
+            }
+          }
+        }
+      }
+    }
+  },
+  "annotations": {
+    "readOnlyHint": true,
+    "destructiveHint": false,
+    "idempotentHint": true,
+    "openWorldHint": false,
+    "title": "Describe a report"
+  },
+  "metadata": {
+    "author": "Ashutosh Sinha",
+    "email": "ajsinha@gmail.com",
+    "copyright": "Copyright All rights Reserved 2025-2030, Ashutosh Sinha",
+    "category": "Reports",
+    "tags": [
+      "report",
+      "reports"
+    ]
+  }
+}

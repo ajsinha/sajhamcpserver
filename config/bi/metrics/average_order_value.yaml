@@ -1,0 +1,10 @@
+# Sample ratio metric: net_sales / order_count (same source, time column and fixed filters).
+name: average_order_value
+title: Average order value
+description: Net sales per completed order, in US dollars. bi_explain_change splits its change into rate and mix effects.
+owner: analyst
+measure:
+  type: ratio
+  ratio: {numerator: net_sales, denominator: order_count}
+format: {unit: currency, currency: USD, decimals: 2}
+tags: [sales, kpi, sample]

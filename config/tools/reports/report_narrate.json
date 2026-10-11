@@ -1,0 +1,171 @@
+{
+  "name": "report_narrate",
+  "implementation": "sajha.tools.impl.report_narrate_tool.ReportNarrateTool",
+  "title": "Narrate a report run",
+  "description": "Model-written commentary on a stored report run, checked first: every figure and date must match the run's data or its computed comparisons (changes, shares). Unmatched figures get one revision, then are removed and named in caveats. A text section waiting for commentary receives it.\nReturns: commentary, label, model, revised, rejected, removed, caveats, sections, stored_in.\nInputs: run_id (from report_run or report_history); sections; length (short, medium, long); audience.\nRunner and administrators only.\nExample: {\"run_id\": \"daily_risk-20261009T073000-abc123\", \"length\": \"short\"}",
+  "annotations": {
+    "title": "Narrate a report run",
+    "readOnlyHint": false,
+    "destructiveHint": false,
+    "idempotentHint": false,
+    "openWorldHint": false
+  },
+  "version": "1.0.0",
+  "enabled": true,
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "run_id": {
+        "type": "string",
+        "description": "The run to narrate, as report_run, report_<name> or report_history return it",
+        "minLength": 1,
+        "maxLength": 100
+      },
+      "sections": {
+        "type": "array",
+        "description": "Section ids to narrate; default the sections the definition's narrate names, else every section",
+        "items": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 100
+        },
+        "maxItems": 50
+      },
+      "length": {
+        "type": "string",
+        "description": "About 90, 180 or 350 words; default the definition's narrate length, else short",
+        "enum": [
+          "short",
+          "medium",
+          "long"
+        ]
+      },
+      "audience": {
+        "type": "string",
+        "description": "Who the commentary is for, such as \"risk committee\"",
+        "maxLength": 120
+      }
+    },
+    "required": [
+      "run_id"
+    ],
+    "additionalProperties": false,
+    "examples": [
+      {
+        "run_id": "daily_risk-20261009T073000-abc123",
+        "length": "short"
+      }
+    ]
+  },
+  "outputSchema": {
+    "type": "object",
+    "properties": {
+      "run_id": {
+        "type": "string"
+      },
+      "report": {
+        "type": [
+          "string",
+          "null"
+        ]
+      },
+      "sections": {
+        "type": "array",
+        "items": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "length": {
+        "type": "string"
+      },
+      "audience": {
+        "type": [
+          "string",
+          "null"
+        ]
+      },
+      "model": {
+        "type": "string",
+        "description": "The model that wrote the commentary"
+      },
+      "commentary": {
+        "type": "string",
+        "description": "The checked commentary"
+      },
+      "label": {
+        "type": "string",
+        "description": "Shown with the commentary: it is model-written"
+      },
+      "revised": {
+        "type": "boolean",
+        "description": "Whether the first draft was sent back for one revision"
+      },
+      "rejected": {
+        "type": "array",
+        "description": "Figures and dates of the first draft that the run does not support",
+        "items": {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string"
+            },
+            "raw": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "removed": {
+        "type": "array",
+        "description": "Figures and dates still unsupported after the revision, removed from the commentary",
+        "items": {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string"
+            },
+            "raw": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "caveats": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        }
+      },
+      "comparisons": {
+        "type": "integer",
+        "description": "Computed comparisons the check accepted as quantities"
+      },
+      "stored_in": {
+        "type": [
+          "string",
+          "null"
+        ],
+        "description": "The run's text section the commentary was stored in, when the definition asks for it"
+      }
+    },
+    "required": [
+      "run_id",
+      "commentary",
+      "label",
+      "revised",
+      "removed"
+    ]
+  },
+  "metadata": {
+    "author": "Ashutosh Sinha",
+    "category": "Reports",
+    "tags": [
+      "reports",
+      "narration",
+      "numbers check"
+    ]
+  }
+}

@@ -120,6 +120,7 @@ ROUTES: List[Tuple[str, bool]] = [
     ('/studio/json', True),
     ('/composite/builder', True),
     ('/workflows', True),
+    ('/reports/library', True),
     ('/admin/tool-health', True),
     ('/admin/tool-versions', True),
     ('/admin/evals', True),

@@ -1,0 +1,131 @@
+{
+  "name": "report_run",
+  "implementation": "sajha.reports.tools.ReportRunTool",
+  "title": "Run a report by name",
+  "description": "Runs a report by name, as you: each section is a tool call you could make yourself, so a section you may not call shows \"not permitted\" and the report still runs. Same result as its report_<name> tool; never delivers.\nReturns: run_id, status (succeeded, partial or failed), markdown, files by format, files_unavailable, sections, warnings.\nInputs (* required): report*; parameters (the report's own, see report_describe); formats.\nExample: {\"report\": \"desk_calendar\", \"parameters\": {\"market\": \"XNYS\"}}",
+  "version": "1.0.0",
+  "enabled": true,
+  "inputSchema": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "report"
+    ],
+    "properties": {
+      "report": {
+        "type": "string",
+        "description": "Report name (report_list lists them), e.g. desk_calendar",
+        "pattern": "^[a-z][a-z0-9_]{0,47}$"
+      },
+      "parameters": {
+        "type": "object",
+        "description": "The report's parameters (report_describe lists them)"
+      },
+      "formats": {
+        "type": "array",
+        "uniqueItems": true,
+        "items": {
+          "type": "string",
+          "enum": [
+            "markdown",
+            "html",
+            "pdf",
+            "xlsx",
+            "pptx",
+            "docx"
+          ]
+        },
+        "description": "Files to render besides Markdown (default: the definition's formats)"
+      }
+    },
+    "examples": [
+      {
+        "report": "desk_calendar",
+        "parameters": {
+          "market": "XNYS"
+        }
+      }
+    ]
+  },
+  "outputSchema": {
+    "type": "object",
+    "required": [
+      "run_id",
+      "report",
+      "status",
+      "markdown"
+    ],
+    "properties": {
+      "run_id": {
+        "type": "string"
+      },
+      "report": {
+        "type": "string"
+      },
+      "title": {
+        "type": "string"
+      },
+      "status": {
+        "type": "string",
+        "enum": [
+          "succeeded",
+          "partial",
+          "failed"
+        ]
+      },
+      "classification": {
+        "type": "string"
+      },
+      "parameters": {
+        "type": "object"
+      },
+      "started_at": {
+        "type": "string"
+      },
+      "files": {
+        "type": "object"
+      },
+      "files_unavailable": {
+        "type": "object"
+      },
+      "previous_run_id": {
+        "type": [
+          "string",
+          "null"
+        ]
+      },
+      "warnings": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        }
+      },
+      "sections": {
+        "type": "array",
+        "items": {
+          "type": "object"
+        }
+      },
+      "markdown": {
+        "type": "string"
+      }
+    }
+  },
+  "annotations": {
+    "readOnlyHint": true,
+    "destructiveHint": false,
+    "idempotentHint": false,
+    "openWorldHint": true,
+    "title": "Run a report by name"
+  },
+  "metadata": {
+    "author": "Ashutosh Sinha",
+    "email": "ajsinha@gmail.com",
+    "copyright": "Copyright All rights Reserved 2025-2030, Ashutosh Sinha",
+    "category": "Reports",
+    "tags": [
+      "report",
+      "reports"
+    ]
+  }
+}

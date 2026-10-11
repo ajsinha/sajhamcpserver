@@ -1,0 +1,65 @@
+{
+  "name": "report_list",
+  "implementation": "sajha.reports.tools.ReportListTool",
+  "title": "List the reports you may run",
+  "description": "Lists the report definitions the caller may run, with what each needs.\nReturns: reports (name, tool, title, description, owner, tags, parameters, required, formats, classification, schedule, last_run) and count.\nInputs (none required): search (words in the name, title or description); tag.\nRun one with its report_<name> tool or report_run; report_describe shows its sources.\nExample: {\"search\": \"calendar\"}",
+  "version": "1.0.0",
+  "enabled": true,
+  "inputSchema": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+      "search": {
+        "type": "string",
+        "description": "Words to find in the name, title or description"
+      },
+      "tag": {
+        "type": "string",
+        "description": "Only reports with this tag"
+      }
+    },
+    "examples": [
+      {
+        "search": "calendar"
+      }
+    ]
+  },
+  "outputSchema": {
+    "type": "object",
+    "required": [
+      "reports",
+      "count"
+    ],
+    "properties": {
+      "reports": {
+        "type": "array",
+        "items": {
+          "type": "object"
+        }
+      },
+      "count": {
+        "type": "integer"
+      },
+      "note": {
+        "type": "string"
+      }
+    }
+  },
+  "annotations": {
+    "readOnlyHint": true,
+    "destructiveHint": false,
+    "idempotentHint": true,
+    "openWorldHint": false,
+    "title": "List the reports you may run"
+  },
+  "metadata": {
+    "author": "Ashutosh Sinha",
+    "email": "ajsinha@gmail.com",
+    "copyright": "Copyright All rights Reserved 2025-2030, Ashutosh Sinha",
+    "category": "Reports",
+    "tags": [
+      "report",
+      "reports"
+    ]
+  }
+}

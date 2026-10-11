@@ -1,0 +1,143 @@
+{
+ "$schema": "https://vega.github.io/schema/vega-lite/v5.json",
+ "data": {
+  "values": [
+   {
+    "_y0": 0.0,
+    "_y1": 10.0,
+    "month": "2025-01-01",
+    "region": "East",
+    "sales": 10.0
+   },
+   {
+    "_y0": 10.0,
+    "_y1": 15.0,
+    "month": "2025-01-01",
+    "region": "West",
+    "sales": 5.0
+   },
+   {
+    "_y0": 0.0,
+    "_y1": 14.0,
+    "month": "2025-02-01",
+    "region": "East",
+    "sales": 14.0
+   },
+   {
+    "_y0": 14.0,
+    "_y1": 17.0,
+    "month": "2025-02-01",
+    "region": "West",
+    "sales": 3.0
+   },
+   {
+    "_y0": 0.0,
+    "_y1": 9.0,
+    "month": "2025-03-01",
+    "region": "East",
+    "sales": 9.0
+   },
+   {
+    "_y0": 9.0,
+    "_y1": 16.0,
+    "month": "2025-03-01",
+    "region": "West",
+    "sales": 7.0
+   },
+   {
+    "_y0": 0.0,
+    "_y1": 20.0,
+    "month": "2025-04-01",
+    "region": "East",
+    "sales": 20.0
+   },
+   {
+    "_y0": 20.0,
+    "_y1": 28.0,
+    "month": "2025-04-01",
+    "region": "West",
+    "sales": 8.0
+   },
+   {
+    "_y0": 0.0,
+    "_y1": 18.0,
+    "month": "2025-05-01",
+    "region": "East",
+    "sales": 18.0
+   },
+   {
+    "_y0": 18.0,
+    "_y1": 30.0,
+    "month": "2025-05-01",
+    "region": "West",
+    "sales": 12.0
+   },
+   {
+    "_y0": 0.0,
+    "_y1": 25.0,
+    "month": "2025-06-01",
+    "region": "East",
+    "sales": 25.0
+   },
+   {
+    "_y0": 25.0,
+    "_y1": 31.0,
+    "month": "2025-06-01",
+    "region": "West",
+    "sales": 6.0
+   }
+  ]
+ },
+ "encoding": {
+  "color": {
+   "field": "region",
+   "scale": {
+    "domain": [
+     "East",
+     "West"
+    ],
+    "range": [
+     "#2a78d6",
+     "#eb6834"
+    ]
+   },
+   "title": "region",
+   "type": "nominal"
+  },
+  "tooltip": [
+   {
+    "field": "month"
+   },
+   {
+    "field": "sales"
+   },
+   {
+    "field": "region"
+   }
+  ],
+  "x": {
+   "field": "month",
+   "title": "month",
+   "type": "temporal"
+  },
+  "y": {
+   "field": "sales",
+   "stack": "zero",
+   "title": "sales",
+   "type": "quantitative"
+  }
+ },
+ "height": 400,
+ "mark": {
+  "line": true,
+  "opacity": 0.35,
+  "tooltip": true,
+  "type": "area"
+ },
+ "title": "sales by month",
+ "usermeta": {
+  "generator": "sajha bi_chart",
+  "kind": "area"
+ },
+ "width": 720
+}

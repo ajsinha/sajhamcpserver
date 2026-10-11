@@ -1,0 +1,87 @@
+{
+ "$schema": "https://vega.github.io/schema/vega-lite/v5.json",
+ "data": {
+  "values": [
+   {
+    "price": 1,
+    "units": 7.0
+   },
+   {
+    "price": 2,
+    "units": 3.0
+   },
+   {
+    "price": 3,
+    "units": 10.0
+   },
+   {
+    "price": 4,
+    "units": 6.0
+   },
+   {
+    "price": 5,
+    "units": 2.0
+   },
+   {
+    "price": 6,
+    "units": 9.0
+   },
+   {
+    "price": 7,
+    "units": 5.0
+   },
+   {
+    "price": 8,
+    "units": 1.0
+   },
+   {
+    "price": 9,
+    "units": 8.0
+   },
+   {
+    "price": 10,
+    "units": 4.0
+   },
+   {
+    "price": 11,
+    "units": 0.0
+   },
+   {
+    "price": 12,
+    "units": 7.0
+   }
+  ]
+ },
+ "encoding": {
+  "tooltip": [
+   {
+    "field": "price"
+   },
+   {
+    "field": "units"
+   }
+  ],
+  "x": {
+   "field": "price",
+   "title": "price",
+   "type": "quantitative"
+  },
+  "y": {
+   "field": "units",
+   "title": "units",
+   "type": "quantitative"
+  }
+ },
+ "height": 400,
+ "mark": {
+  "filled": true,
+  "tooltip": true,
+  "type": "point"
+ },
+ "title": "units by price",
+ "usermeta": {
+  "generator": "sajha bi_chart",
+  "kind": "scatter"
+ },
+ "width": 720
+}

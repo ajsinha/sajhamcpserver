@@ -1,0 +1,1 @@
+Reports defined in config/reports, run as you: a section you may not call shows "not permitted" and the rest still runs. Each run is stored under a run id with its Markdown, its files and a provenance appendix naming every source; render, compare and history read stored runs without calling tools again.

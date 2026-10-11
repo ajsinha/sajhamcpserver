@@ -1,0 +1,162 @@
+{
+  "name": "report_desk_calendar",
+  "implementation": "sajha.reports.tools.ReportTool",
+  "title": "Report: Desk calendar and bond sheet",
+  "description": "Runs the report \"Desk calendar and bond sheet\": Settlement dates for today's trades, the market's holidays this year, and a bond priced from its yield.\nReturns: run_id, status (succeeded, partial or failed), the report as markdown, files by format, sections (KPIs, tables, each section's source).\nInputs (* required): market, face_value, coupon_rate, yield_rate, years; formats (default markdown, html, pdf, xlsx).\nSources (called as you): cal_holidays, cal_settlement_date, calc_bond_price.\nExample: {\"market\": \"XNYS\", \"face_value\": 1000, \"coupon_rate\": 5, \"yield_rate\": 4.5, \"years\": 10}",
+  "version": "1.0.0",
+  "enabled": true,
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "market": {
+        "type": "string",
+        "default": "XNYS",
+        "description": "Market (ISO 10383: XNYS, XNAS, XLON, XTSE or XECB)"
+      },
+      "face_value": {
+        "type": "number",
+        "default": 1000,
+        "minimum": 0,
+        "description": "Bond face value"
+      },
+      "coupon_rate": {
+        "type": "number",
+        "default": 5,
+        "minimum": 0,
+        "description": "Annual coupon rate in percent"
+      },
+      "yield_rate": {
+        "type": "number",
+        "default": 4.5,
+        "minimum": 0,
+        "description": "Yield to maturity in percent"
+      },
+      "years": {
+        "type": "integer",
+        "default": 10,
+        "minimum": 1,
+        "maximum": 100,
+        "description": "Years to maturity"
+      },
+      "formats": {
+        "type": "array",
+        "items": {
+          "type": "string",
+          "enum": [
+            "markdown",
+            "html",
+            "pdf",
+            "xlsx",
+            "pptx",
+            "docx"
+          ]
+        },
+        "uniqueItems": true,
+        "description": "Files to render besides Markdown (default: markdown, html, pdf, xlsx)"
+      }
+    },
+    "additionalProperties": false,
+    "examples": [
+      {
+        "market": "XNYS",
+        "face_value": 1000,
+        "coupon_rate": 5,
+        "yield_rate": 4.5,
+        "years": 10
+      }
+    ]
+  },
+  "outputSchema": {
+    "type": "object",
+    "required": [
+      "run_id",
+      "report",
+      "status",
+      "markdown"
+    ],
+    "properties": {
+      "run_id": {
+        "type": "string",
+        "description": "The run id: report_render, report_compare and report_history use it"
+      },
+      "report": {
+        "type": "string"
+      },
+      "title": {
+        "type": "string"
+      },
+      "status": {
+        "type": "string",
+        "enum": [
+          "succeeded",
+          "partial",
+          "failed"
+        ],
+        "description": "partial: some sections were not permitted, unavailable or failed"
+      },
+      "classification": {
+        "type": "string"
+      },
+      "parameters": {
+        "type": "object"
+      },
+      "started_at": {
+        "type": "string"
+      },
+      "files": {
+        "type": "object",
+        "description": "format -> stored file path"
+      },
+      "files_unavailable": {
+        "type": "object",
+        "description": "format -> why it could not be made"
+      },
+      "previous_run_id": {
+        "type": [
+          "string",
+          "null"
+        ]
+      },
+      "warnings": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        }
+      },
+      "sections": {
+        "type": "array",
+        "items": {
+          "type": "object"
+        }
+      },
+      "markdown": {
+        "type": "string",
+        "description": "The whole report as Markdown"
+      }
+    }
+  },
+  "annotations": {
+    "title": "Report: Desk calendar and bond sheet",
+    "readOnlyHint": true,
+    "destructiveHint": false,
+    "idempotentHint": false,
+    "openWorldHint": true
+  },
+  "metadata": {
+    "author": "Reports",
+    "category": "Reports",
+    "tags": [
+      "report",
+      "desk_calendar",
+      "calendar",
+      "fixed-income",
+      "offline"
+    ],
+    "source": "report",
+    "definition": "config/reports/desk_calendar.yaml"
+  },
+  "report": {
+    "name": "desk_calendar",
+    "definition_hash": "fc092c6d7f82b937231575495c66361e330565d6cbf0caf4aa3fb19ad929b8a6"
+  }
+}

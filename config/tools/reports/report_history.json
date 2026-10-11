@@ -1,0 +1,113 @@
+{
+  "name": "report_history",
+  "implementation": "sajha.reports.tools.ReportHistoryTool",
+  "title": "Past runs of a report",
+  "description": "Past runs of a report that you may see (your own runs; administrators see every run), newest first.\nReturns: report, count and runs (run_id, status, started_at, finished_at, runner, parameters, classification, formats, deliveries, warnings).\nInputs (* required): report*; from and to (YYYY-MM-DD); status (succeeded, partial, failed); limit (default 50).\nExample: {\"report\": \"desk_calendar\", \"limit\": 10}",
+  "version": "1.0.0",
+  "enabled": true,
+  "inputSchema": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "report"
+    ],
+    "properties": {
+      "report": {
+        "type": "string",
+        "description": "Report name (report_list lists them), e.g. desk_calendar",
+        "pattern": "^[a-z][a-z0-9_]{0,47}$"
+      },
+      "from": {
+        "type": "string",
+        "description": "First day (YYYY-MM-DD)",
+        "pattern": "^\\d{4}-\\d{2}-\\d{2}"
+      },
+      "to": {
+        "type": "string",
+        "description": "Last day (YYYY-MM-DD)",
+        "pattern": "^\\d{4}-\\d{2}-\\d{2}"
+      },
+      "status": {
+        "type": "string",
+        "enum": [
+          "succeeded",
+          "partial",
+          "failed"
+        ],
+        "description": "Only runs with this status"
+      },
+      "limit": {
+        "type": "integer",
+        "minimum": 1,
+        "maximum": 500,
+        "default": 50,
+        "description": "At most this many runs"
+      }
+    },
+    "examples": [
+      {
+        "report": "desk_calendar",
+        "limit": 10
+      }
+    ]
+  },
+  "outputSchema": {
+    "type": "object",
+    "required": [
+      "report",
+      "runs",
+      "count"
+    ],
+    "properties": {
+      "report": {
+        "type": "string"
+      },
+      "runs": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "run_id": {
+              "type": "string"
+            },
+            "status": {
+              "type": "string"
+            },
+            "started_at": {
+              "type": "string"
+            },
+            "runner": {
+              "type": "string"
+            },
+            "parameters": {
+              "type": "object"
+            },
+            "formats": {
+              "type": "array"
+            }
+          }
+        }
+      },
+      "count": {
+        "type": "integer"
+      }
+    }
+  },
+  "annotations": {
+    "readOnlyHint": true,
+    "destructiveHint": false,
+    "idempotentHint": true,
+    "openWorldHint": false,
+    "title": "Past runs of a report"
+  },
+  "metadata": {
+    "author": "Ashutosh Sinha",
+    "email": "ajsinha@gmail.com",
+    "copyright": "Copyright All rights Reserved 2025-2030, Ashutosh Sinha",
+    "category": "Reports",
+    "tags": [
+      "report",
+      "reports"
+    ]
+  }
+}

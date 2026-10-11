@@ -1,0 +1,251 @@
+{
+  "name": "bi_top_n",
+  "implementation": "sajha.tools.impl.bi_metric_tools.BiTopNTool",
+  "title": "Top members of a dimension",
+  "description": "The top members of one dimension by a metric, with each one's share and the cumulative share; with pareto, the members that make up that share of the total.\nReturns: dimension, total, members (rank, member, value, share_pct, cumulative_share_pct), member_count, pareto, as_of.\nInputs (* required): metric*; dimension*; n (default 10); period; pareto (true for 80, or a percent); filters.\nExample: {\"metric\": \"net_sales\", \"dimension\": \"sales_rep\", \"n\": 5, \"period\": \"2024\", \"pareto\": true}",
+  "annotations": {
+    "title": "Top members of a dimension",
+    "readOnlyHint": true,
+    "destructiveHint": false,
+    "idempotentHint": true,
+    "openWorldHint": false
+  },
+  "version": "1.0.0",
+  "enabled": true,
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "metric": {
+        "type": "string",
+        "description": "Metric name (bi_list_metrics)",
+        "pattern": "^[a-z][a-z0-9_]{0,63}$"
+      },
+      "dimension": {
+        "type": "string",
+        "description": "A dimension the metric declares (bi_describe_metric)",
+        "pattern": "^[A-Za-z_][A-Za-z0-9_]{0,127}$"
+      },
+      "n": {
+        "type": "integer",
+        "minimum": 1,
+        "maximum": 100,
+        "default": 10,
+        "description": "Members to return"
+      },
+      "period": {
+        "description": "A period: 2025-Q3, 2025-07, 2025, 2025-07-15, FY2025, YTD, QTD, MTD, last 12 months, last 8 quarters, or {\"from\": \"YYYY-MM-DD\", \"to\": \"YYYY-MM-DD\"} (inclusive)",
+        "oneOf": [
+          {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 40
+          },
+          {
+            "type": "object",
+            "properties": {
+              "from": {
+                "type": "string",
+                "format": "date"
+              },
+              "to": {
+                "type": "string",
+                "format": "date"
+              }
+            },
+            "required": [
+              "from",
+              "to"
+            ],
+            "additionalProperties": false
+          }
+        ]
+      },
+      "pareto": {
+        "description": "true (80 percent) or a percent from 1 to 100",
+        "oneOf": [
+          {
+            "type": "boolean"
+          },
+          {
+            "type": "number",
+            "minimum": 1,
+            "maximum": 100
+          }
+        ]
+      },
+      "filters": {
+        "type": "array",
+        "maxItems": 10,
+        "description": "Filters on declared dimensions; values are bound, never SQL",
+        "items": {
+          "type": "object",
+          "properties": {
+            "dimension": {
+              "type": "string",
+              "description": "A dimension the metric declares (bi_describe_metric)",
+              "pattern": "^[A-Za-z_][A-Za-z0-9_]{0,127}$"
+            },
+            "op": {
+              "type": "string",
+              "enum": [
+                "eq",
+                "ne",
+                "in",
+                "not_in",
+                "gte",
+                "lte",
+                "between",
+                "contains"
+              ],
+              "description": "Operator; eq when omitted"
+            },
+            "value": {
+              "description": "One value; a list for in, not_in and between ([low, high])"
+            }
+          },
+          "required": [
+            "dimension",
+            "value"
+          ],
+          "additionalProperties": false
+        }
+      }
+    },
+    "required": [
+      "metric",
+      "dimension"
+    ],
+    "additionalProperties": false,
+    "examples": [
+      {
+        "metric": "net_sales",
+        "dimension": "sales_rep",
+        "n": 5,
+        "period": "2024",
+        "pareto": true
+      }
+    ]
+  },
+  "outputSchema": {
+    "type": "object",
+    "properties": {
+      "metric": {
+        "type": "string"
+      },
+      "title": {
+        "type": "string"
+      },
+      "unit": {
+        "type": "string"
+      },
+      "currency": {
+        "type": "string"
+      },
+      "period": {
+        "type": [
+          "object",
+          "null"
+        ],
+        "properties": {
+          "label": {
+            "type": "string"
+          },
+          "from": {
+            "type": "string"
+          },
+          "to": {
+            "type": "string"
+          }
+        }
+      },
+      "as_of": {
+        "type": [
+          "string",
+          "null"
+        ],
+        "description": "Latest date in the metric's source"
+      },
+      "fingerprint": {
+        "type": "string",
+        "description": "Hash of the compiled query"
+      },
+      "truncated": {
+        "type": "boolean",
+        "description": "A result was cut at the row cap (bi.max_rows)"
+      },
+      "dimension": {
+        "type": "string"
+      },
+      "total": {
+        "type": [
+          "number",
+          "null"
+        ]
+      },
+      "member_count": {
+        "type": "integer"
+      },
+      "members": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "rank": {
+              "type": "integer"
+            },
+            "value": {
+              "type": [
+                "number",
+                "null"
+              ]
+            },
+            "share_pct": {
+              "type": [
+                "number",
+                "null"
+              ]
+            },
+            "cumulative_share_pct": {
+              "type": [
+                "number",
+                "null"
+              ]
+            }
+          }
+        }
+      },
+      "pareto": {
+        "type": "object",
+        "properties": {
+          "threshold_pct": {
+            "type": "number"
+          },
+          "members": {
+            "type": "array"
+          },
+          "count": {
+            "type": "integer"
+          }
+        }
+      },
+      "note": {
+        "type": "string"
+      }
+    },
+    "required": [
+      "metric",
+      "dimension",
+      "members"
+    ]
+  },
+  "metadata": {
+    "author": "Ashutosh Sinha",
+    "category": "Business Intelligence",
+    "tags": [
+      "bi",
+      "metrics",
+      "ranking",
+      "pareto"
+    ]
+  }
+}

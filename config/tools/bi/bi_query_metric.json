@@ -1,0 +1,288 @@
+{
+  "name": "bi_query_metric",
+  "implementation": "sajha.tools.impl.bi_metric_tools.BiQueryMetricTool",
+  "title": "Query a metric",
+  "description": "A metric's values for a period, by time grain and dimension members; no SQL.\nReturns: metric, unit, period, grain, by, rows (period, dimension members, value), row_count, truncated, as_of, fingerprint.\nInputs (* required): metric*; by (up to 3 dimensions); filters; grain (day, week, month, quarter, year); period; cumulative (ytd, qtd, mtd; additive metrics); rolling {window, fn}; limit.\nExample: {\"metric\": \"net_sales\", \"by\": [\"region\"], \"grain\": \"quarter\", \"period\": \"2024\"}",
+  "annotations": {
+    "title": "Query a metric",
+    "readOnlyHint": true,
+    "destructiveHint": false,
+    "idempotentHint": true,
+    "openWorldHint": false
+  },
+  "version": "1.0.0",
+  "enabled": true,
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "metric": {
+        "type": "string",
+        "description": "Metric name (bi_list_metrics)",
+        "pattern": "^[a-z][a-z0-9_]{0,63}$"
+      },
+      "by": {
+        "type": "array",
+        "items": {
+          "type": "string",
+          "description": "A dimension the metric declares (bi_describe_metric)",
+          "pattern": "^[A-Za-z_][A-Za-z0-9_]{0,127}$"
+        },
+        "maxItems": 3,
+        "description": "Dimensions to group by"
+      },
+      "filters": {
+        "type": "array",
+        "maxItems": 10,
+        "description": "Filters on declared dimensions; values are bound, never SQL",
+        "items": {
+          "type": "object",
+          "properties": {
+            "dimension": {
+              "type": "string",
+              "description": "A dimension the metric declares (bi_describe_metric)",
+              "pattern": "^[A-Za-z_][A-Za-z0-9_]{0,127}$"
+            },
+            "op": {
+              "type": "string",
+              "enum": [
+                "eq",
+                "ne",
+                "in",
+                "not_in",
+                "gte",
+                "lte",
+                "between",
+                "contains"
+              ],
+              "description": "Operator; eq when omitted"
+            },
+            "value": {
+              "description": "One value; a list for in, not_in and between ([low, high])"
+            }
+          },
+          "required": [
+            "dimension",
+            "value"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "grain": {
+        "type": "string",
+        "enum": [
+          "day",
+          "week",
+          "month",
+          "quarter",
+          "year"
+        ],
+        "description": "Time grain; omit for one value per member"
+      },
+      "period": {
+        "description": "A period: 2025-Q3, 2025-07, 2025, 2025-07-15, FY2025, YTD, QTD, MTD, last 12 months, last 8 quarters, or {\"from\": \"YYYY-MM-DD\", \"to\": \"YYYY-MM-DD\"} (inclusive)",
+        "oneOf": [
+          {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 40
+          },
+          {
+            "type": "object",
+            "properties": {
+              "from": {
+                "type": "string",
+                "format": "date"
+              },
+              "to": {
+                "type": "string",
+                "format": "date"
+              }
+            },
+            "required": [
+              "from",
+              "to"
+            ],
+            "additionalProperties": false
+          }
+        ]
+      },
+      "cumulative": {
+        "type": "string",
+        "enum": [
+          "ytd",
+          "qtd",
+          "mtd"
+        ],
+        "description": "Running total restarting each year, quarter or month (needs a finer grain)"
+      },
+      "rolling": {
+        "type": "object",
+        "description": "Rolling value over the last window rows of each member",
+        "properties": {
+          "window": {
+            "type": "integer",
+            "minimum": 2,
+            "maximum": 60,
+            "default": 3
+          },
+          "fn": {
+            "type": "string",
+            "enum": [
+              "sum",
+              "avg",
+              "min",
+              "max"
+            ],
+            "default": "avg"
+          }
+        },
+        "additionalProperties": false
+      },
+      "limit": {
+        "type": "integer",
+        "minimum": 1,
+        "maximum": 5000,
+        "description": "Most rows (capped by bi.max_rows)"
+      }
+    },
+    "required": [
+      "metric"
+    ],
+    "additionalProperties": false,
+    "examples": [
+      {
+        "metric": "net_sales",
+        "by": [
+          "region"
+        ],
+        "grain": "quarter",
+        "period": "2024"
+      }
+    ]
+  },
+  "outputSchema": {
+    "type": "object",
+    "properties": {
+      "metric": {
+        "type": "string"
+      },
+      "title": {
+        "type": "string"
+      },
+      "unit": {
+        "type": "string"
+      },
+      "currency": {
+        "type": "string"
+      },
+      "period": {
+        "type": [
+          "object",
+          "null"
+        ],
+        "properties": {
+          "label": {
+            "type": "string"
+          },
+          "from": {
+            "type": "string"
+          },
+          "to": {
+            "type": "string"
+          }
+        }
+      },
+      "as_of": {
+        "type": [
+          "string",
+          "null"
+        ],
+        "description": "Latest date in the metric's source"
+      },
+      "fingerprint": {
+        "type": "string",
+        "description": "Hash of the compiled query"
+      },
+      "truncated": {
+        "type": "boolean",
+        "description": "A result was cut at the row cap (bi.max_rows)"
+      },
+      "grain": {
+        "type": [
+          "string",
+          "null"
+        ]
+      },
+      "by": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        }
+      },
+      "rows": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "description": "period and period_start (with grain), one key per by dimension, value; numerator and denominator for a ratio; cumulative and rolling when asked",
+          "properties": {
+            "period": {
+              "type": "string"
+            },
+            "period_start": {
+              "type": "string"
+            },
+            "value": {
+              "type": [
+                "number",
+                "null"
+              ]
+            },
+            "numerator": {
+              "type": [
+                "number",
+                "null"
+              ]
+            },
+            "denominator": {
+              "type": [
+                "number",
+                "null"
+              ]
+            },
+            "cumulative": {
+              "type": [
+                "number",
+                "null"
+              ]
+            },
+            "rolling": {
+              "type": [
+                "number",
+                "null"
+              ]
+            }
+          }
+        }
+      },
+      "row_count": {
+        "type": "integer"
+      }
+    },
+    "required": [
+      "metric",
+      "rows",
+      "row_count",
+      "truncated",
+      "fingerprint"
+    ]
+  },
+  "metadata": {
+    "author": "Ashutosh Sinha",
+    "category": "Business Intelligence",
+    "tags": [
+      "bi",
+      "metrics",
+      "query"
+    ]
+  }
+}

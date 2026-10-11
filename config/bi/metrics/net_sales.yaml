@@ -1,0 +1,23 @@
+# Sample metric over the DuckDB sample data (data/duckdb/orders.csv, the duckdb_* tools' orders table).
+# Format: docs/architecture/Business Intelligence.md §3.1.
+name: net_sales
+title: Net sales
+description: Completed orders' sales after line discounts, before shipping, in US dollars.
+owner: analyst
+source:
+  duckdb_table: orders
+measure:
+  sql: sum(quantity * unit_price * (1 - discount_pct / 100.0))
+  type: sum
+time:
+  column: order_date
+  grains: [day, week, month, quarter, year]
+dimensions:
+  - {name: region, column: region, values: [Central, East, North, South, West]}
+  - {name: product_category, column: product_category}
+  - {name: payment_method, column: payment_method}
+  - {name: sales_rep, column: sales_rep}
+filters:
+  - "order_status = 'Completed'"
+format: {unit: currency, currency: USD, decimals: 2}
+tags: [sales, kpi, sample]

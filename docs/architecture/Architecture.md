@@ -233,7 +233,8 @@ filed one folder per provider; list them with `python -m sajha.tools folders`.
   folder. Import JSON offers the config's optional `"folder"` key, else its `metadata.category`; the LLM tool
   creator defaults to `llm` and API Import to the import's prefix when the field is left empty; Describe a tool files a tool under its category when that is a valid
   folder name; API Import uses the import's prefix ([API Import](API%20Import.md)); a data connection
-  uses its id ([Data Connectors](Data%20Connectors.md)).
+  uses its id ([Data Connectors](Data%20Connectors.md)); a report definition's `report_<name>` tool goes
+  to `reports` ([Reports](Reports.md)).
 - **Changes on disk.** With the local backend the registry polls the directory and its folders every
   5 s, and every hot-reload check (`hot_reload.interval_seconds`) runs the same scan: a new file or
   folder registers its tools, a changed file reloads its tool, a deleted file or removed folder
@@ -479,7 +480,7 @@ python scripts/check_console.py --base http://127.0.0.1:3087 --axe /path/to/axe.
 
 | Menu | Pages (path) |
 |---|---|
-| **Tools** | Dashboard (`/dashboard`), All tools (`/tools`), Domains (`/tools/domains`), Python Playground (`/playground`, when enabled), Workflows (`/workflows`), Reports (`/reports`); Tool metrics (`/monitoring/tools`), Usage & cost (`/monitoring/usage`), User activity (`/monitoring/users`, administrators) |
+| **Tools** | Dashboard (`/dashboard`), All tools (`/tools`), Domains (`/tools/domains`), Python Playground (`/playground`, when enabled), Workflows (`/workflows`), Reports (`/reports/library`, the report library), Usage (`/reports`, the usage dashboard); Tool metrics (`/monitoring/tools`), Usage & cost (`/monitoring/usage`), User activity (`/monitoring/users`, administrators) |
 | **AI** | Ask SAJHA (`/ask`), Conversations (`/conversations`), LLM (`/ai/settings`), Prompts (`/prompts`) |
 | **SAJHA Net** | Instances (`/net/instances`), Your net access (`/net/access`); for administrators Net overview (`/admin/sajhanet/overview`), Remote tools (`/admin/sajhanet/tools`), SAJHA Net admin (`/admin/sajhanet`) |
 | **MCP Studio** | Studio home with the Python code creator (`/studio/`), Describe a tool (`/studio/describe`), REST (`/studio/rest`), Import an API (`/studio/api-import`), DB query (`/studio/dbquery`), Script (`/studio/script`); Power BI (`/studio/powerbi`), Power BI DAX (`/studio/powerbidax`), LiveLink (`/studio/livelink`), SharePoint (`/studio/sharepoint`), OLAP (`/studio/olap`); LLM tool (`/studio/llm`), Planner editor (`/studio/planners`, administrators); Composite builder (`/composite/builder`), Workflows |

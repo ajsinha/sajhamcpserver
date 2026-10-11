@@ -206,11 +206,13 @@ CATALOG: List[dict] = [
                'Planned: public data sources verified for use as tools (licence, key, rate limits), the sources '
                'dropped and why, the tool folder and tools for each, by priority.', badge='Planned'),
             _g('Business Intelligence', 'Business Intelligence.md', 'bi-bar-chart-line',
-               'Planned: a metrics layer compiled to safe SQL through the sources\' own guards; compare, explain '
-               'a change, anomalies, forecasts, charts, blending tool results, data quality, dashboards.', badge='Planned'),
+               'Partly built: a metrics layer compiled to safe SQL through the sources\' own guards, with tools to '
+               'query, compare, rank, cross-tabulate and explain a change, charts and tool results loaded as '
+               'tables; anomalies, forecasts, the catalogue, data quality and dashboards are planned.'),
             _g('Reports', 'Reports.md', 'bi-file-earmark-bar-graph',
-               'Planned: report definitions published as tools, PDF, Excel, PowerPoint and Word output, '
-               'narration under a numbers check, governed delivery and scheduling.', badge='Planned'),
+               'Report definitions published as tools and run as the caller; Markdown, HTML, PDF, Excel, '
+               'PowerPoint and Word with classification marking and a provenance appendix; history, compare, '
+               'narration under a numbers check. Delivery and scheduling planned.'),
             _g('Policy and Audit', 'Policy and Audit.md', 'bi-shield-check',
                'Declarative rules on every tool call (deny, approval, argument constraints, rate limits, '
                'quotas, PII redaction, injection screening); hash-chained, signed audit; SIEM export.'),
@@ -307,7 +309,7 @@ CATALOG: List[dict] = [
             ('Filings', ['SEC EDGAR', 'Investor Relations']),
             ('Search', ['Google Search', 'MSDOC Search', 'Tavily Search', 'Web Crawler',
                         'Wikipedia Search']),
-            ('Analytics', ['Calendars', 'DuckDB', 'Financial Calculators', 'OLAP Analytics', 'SQL Select']),
+            ('Analytics', ['Business Intelligence (tools)', 'Calendars', 'DuckDB', 'Financial Calculators', 'OLAP Analytics', 'SQL Select']),
             ('Risk analytics', ['QLRisk']),
             ('Enterprise', ['SharePoint (tools)', 'Connected accounts (tools)', 'Data connectors (tools)']),
             ('Prompts', ['Prompts Management Guide']),
@@ -349,6 +351,9 @@ CATALOG: List[dict] = [
             _tool('Tavily Search', 'bi-search', 'Web search built for agents.'),
             _tool('Web Crawler', 'bi-globe', 'Fetch and extract web pages.'),
             _tool('Wikipedia Search', 'bi-wikipedia', 'Search and read Wikipedia; Wikidata facts, company identifiers and SPARQL.'),
+            _g('Business Intelligence (tools)', 'Business Intelligence Tool Reference Guide.md', 'bi-bar-chart',
+               'Governed metrics without SQL: list, describe and query them, compare periods, top N and Pareto, '
+               'two-way tables, why a metric changed, charts and tool results loaded as tables.'),
             _tool('Calendars', 'bi-calendar3', 'Holidays and business days for countries and exchanges, settlement dates and '
                   'date adjustment, computed offline.'),
             _tool('DuckDB', 'bi-database', 'SQL over local files with DuckDB.'),

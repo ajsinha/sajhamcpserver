@@ -41,6 +41,11 @@ _BUNDLED = {
         'title': 'Loan amortization chart',
         'description': 'Yearly principal vs. interest chart and schedule table for calc_loan_amortization',
     },
+    'bi_chart.html': {
+        'name': 'bi-chart',
+        'title': 'Chart',
+        'description': 'The chart drawn by bi_chart, in the host theme, with its data table',
+    },
 }
 _warned: set = set()
 

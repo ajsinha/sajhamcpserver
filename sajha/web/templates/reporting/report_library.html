@@ -1,0 +1,69 @@
+{% extends "common/base.html" %}
+{# Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.com #}
+{# Reports > the report library (docs/architecture/Reports.md §9): one card per report definition the
+   viewer may run (sajha/routes/report_library_routes.py). Run opens the report's tool on the execute
+   page; History opens /reports/library/<name>. The usage dashboard is /reports ("Usage" in the menu). #}
+{% block title %}Reports - SAJHA MCP Server{% endblock %}
+
+{% block extra_css %}
+<style>
+    .rep-card { height: 100%; border: 1px solid var(--sajha-border); border-radius: .6rem; background: var(--sajha-surface);
+        padding: .9rem 1rem; display: flex; flex-direction: column; gap: .5rem; }
+    .rep-title { font-weight: 600; overflow-wrap: anywhere; }
+    .rep-name { font-size: 12px; color: var(--sajha-slate); overflow-wrap: anywhere; }
+    .rep-desc { font-size: 13px; color: var(--sajha-slate); margin: 0; overflow-wrap: anywhere; }
+    .rep-meta { font-size: 12px; color: var(--sajha-slate); display: flex; flex-wrap: wrap; gap: .25rem .75rem; }
+    .rep-actions { margin-top: auto; display: flex; flex-wrap: wrap; gap: .5rem; }
+    .rep-actions .btn { min-height: 40px; display: inline-flex; align-items: center; }
+    .rep-tag { background: var(--sajha-surface); color: var(--sajha-ink); border: 1px solid var(--sajha-border); font-weight: 500; }
+    .rep-search { max-width: 28rem; }
+    .rep-search .form-control, .rep-search .btn { min-height: 40px; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <h1 class="h3 mb-1"><i class="bi bi-file-earmark-bar-graph" aria-hidden="true"></i> Reports
+        {% if enabled %}<span class="badge bg-primary ms-2">{{ reports|length }}</span>{% endif %}</h1>
+    <p class="text-muted mb-3">The reports you may run. A report runs as you, so each section shows only what your access
+        allows. Open a report for its parameters, its runs and their files. Tool and model usage is on
+        <a href="{{ url_for('reports_dashboard') }}">Usage</a>.</p>
+    {% if not enabled %}
+    <div class="alert alert-info">Reports are turned off on this server (<code>reports.enabled</code>).</div>
+    {% else %}
+    <form class="rep-search d-flex gap-2 mb-3" method="get" action="/reports/library" role="search">
+        <label class="visually-hidden" for="rep-q">Search reports</label>
+        <input id="rep-q" class="form-control" type="search" name="q" value="{{ q }}" placeholder="Search by name, title or tag">
+        <button class="btn btn-outline-primary" type="submit">Search</button>
+    </form>
+    {% if reports %}
+    <div class="row g-3">
+        {% for r in reports %}
+        <div class="col-12 col-md-6 col-xl-4">
+            <div class="rep-card">
+                <div>
+                    <div class="rep-title">{{ r.title }}</div>
+                    <div class="rep-name"><code>{{ r.tool }}</code>{% if r.owner %} · owner {{ r.owner }}{% endif %}</div>
+                </div>
+                {% if r.description %}<p class="rep-desc">{{ r.description }}</p>{% endif %}
+                <div class="rep-meta">
+                    <span><i class="bi bi-shield-lock" aria-hidden="true"></i> {{ r.classification }}</span>
+                    {% if r.formats %}<span><i class="bi bi-file-earmark" aria-hidden="true"></i> {{ r.formats|join(', ') }}</span>{% endif %}
+                    {% if r.schedule %}<span><i class="bi bi-clock" aria-hidden="true"></i> scheduled</span>{% endif %}
+                    {% if r.last_run %}<span><i class="bi bi-clock-history" aria-hidden="true"></i> last run {{ (r.last_run.started_at or '')[:16]|replace('T', ' ') }} ({{ r.last_run.status }})</span>{% endif %}
+                    {% for t in r.tags %}<span class="badge rep-tag">{{ t }}</span>{% endfor %}
+                </div>
+                <div class="rep-actions">
+                    {% if r.run_href %}<a class="btn btn-sm btn-primary" href="{{ r.run_href }}"><i class="bi bi-play-fill me-1" aria-hidden="true"></i>Run</a>{% endif %}
+                    <a class="btn btn-sm btn-outline-secondary" href="{{ r.detail_href }}"><i class="bi bi-clock-history me-1" aria-hidden="true"></i>History and files</a>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="alert alert-info">{% if q %}No report you may run matches "{{ q }}".{% else %}There are no reports you may run yet. Report definitions are files in <code>reports.dir</code>.{% endif %}</div>
+    {% endif %}
+    {% endif %}
+</div>
+{% endblock %}

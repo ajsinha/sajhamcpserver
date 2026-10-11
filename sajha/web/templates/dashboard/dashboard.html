@@ -134,7 +134,8 @@
                     {% if is_admin or can_studio %}<a href="/studio" class="quick-action"><svg class="sajha-icon" style="color:var(--sajha-indigo)"><use href="#icon-mcp"/></svg><div><strong>MCP Studio</strong><br><small class="text-muted">Create new tools visually</small></div></a>{% endif %}
                     <a href="/composite/builder" class="quick-action"><svg class="sajha-icon" style="color:var(--sajha-warn)"><use href="#icon-composite"/></svg><div><strong>Composite Builder</strong><br><small class="text-muted">Chain tools together</small></div></a>
                     <a href="/ai/settings" class="quick-action"><svg class="sajha-icon" style="color:var(--sajha-indigo)"><use href="#icon-provider"/></svg><div><strong>AI Settings</strong><br><small class="text-muted">LLM providers and models</small></div></a>
-                    <a href="/reports" class="quick-action"><i class="bi bi-bar-chart text-success"></i><div><strong>Reports</strong><br><small class="text-muted">Usage analytics and audit</small></div></a>
+                    <a href="/reports/library" class="quick-action"><i class="bi bi-file-earmark-bar-graph text-success"></i><div><strong>Reports</strong><br><small class="text-muted">Run reports and download their files</small></div></a>
+                    <a href="/reports" class="quick-action"><i class="bi bi-bar-chart text-success"></i><div><strong>Usage</strong><br><small class="text-muted">Tool calls by tool and user</small></div></a>
                     {% if is_admin %}
                     <a href="/admin/users" class="quick-action"><i class="bi bi-shield-lock text-danger"></i><div><strong>Admin Panel</strong><br><small class="text-muted">Users, roles, API keys</small></div></a>
                     {% endif %}
@@ -207,7 +208,8 @@
                     <hr>
                     <h6 class="text-muted mb-2"><i class="bi bi-clock-history me-1"></i>Quick Links</h6>
                     <div class="d-flex flex-wrap gap-2">
-                        <a href="/reports" class="badge bg-primary text-decoration-none py-2 px-3">Reports</a>
+                        <a href="/reports/library" class="badge bg-primary text-decoration-none py-2 px-3">Reports</a>
+                        <a href="/reports" class="badge bg-primary text-decoration-none py-2 px-3">Usage</a>
                         <a href="/prompts" class="badge bg-info text-decoration-none py-2 px-3">Prompts</a>
                         <a href="/help" class="badge bg-warning text-dark text-decoration-none py-2 px-3">Help</a>
                         <a href="/about" class="badge bg-secondary text-decoration-none py-2 px-3">About</a>

@@ -2,6 +2,65 @@
 
 Newest first. The current version is `app.version` in `config/application.yml`.
 
+## v8.11.0 (October 2026) — business intelligence and reports: metrics, analysis, charts, report definitions, formats, narration
+
+### Added
+
+- **Reports** (Roadmap L45, L46; `sajha/reports/`, `config/reports/`, tool folder `config/tools/reports/`;
+  [Reports](docs/architecture/Reports.md) §2–§4): report definitions in YAML, validated at load (a refused
+  file raises the warning notice `reports.definition:<file>`) and re-read when they change; each enabled
+  definition is published as a generated `report_<name>` tool. A run calls each section's tool as the
+  caller, so tool access, policy, approvals and budgets apply per section, and a section the caller may
+  not call shows "not permitted" instead of failing the report. Runs are stored under `data/reports/`
+  (the report data with every value, its source and the quantities a narrator may cite, plus the
+  rendered files) and are visible only to their runner and administrators. New tools: `report_list`,
+  `report_describe`, `report_run`, `report_history`, `report_render` (a past run in another format, no
+  tool called again) and `report_compare` (KPI changes; table rows added, removed and changed).
+  Formats: Markdown and HTML always; PDF through Playwright and Chromium, XLSX (openpyxl), PPTX
+  (python-pptx) and DOCX when installed; every format carries the classification marking and a
+  provenance appendix with each source's attribution line. Shipped definitions: `desk_calendar`
+  (offline) and `central_bank_watch` (live open data, off until enabled). New keys `reports.*`
+  ([Configuration Reference](docs/getting-started/Configuration%20Reference.md#reports)); audit events
+  `report.run` and `report.render`.
+- **Report narration** (`report_narrate`, `sajha/reports/narrate.py`; [Reports](docs/architecture/Reports.md) §5):
+  commentary on a stored run, written by the `reports.narrate_model` alias (empty: `default`) with no tools, then
+  checked by the numbers validator against the run's data, with the run's computed comparisons (previous values,
+  changes, percent changes and shares) as workspace quantities. Figures match at the precision written and by
+  magnitude; dates must be parameters, the run's date or in the data. A draft with unmatched figures gets one
+  revision; what still does not match is removed and named in a caveat, the run gets a warning and the audit
+  records `report.narrate.rejected`. A text section waiting for commentary receives it, and the run's files are
+  rendered again.
+- **Reports page** (`/reports/library`, `sajha/routes/report_library_routes.py`): the reports you may run, each with
+  Run (the report's tool) and a page with its parameters, your runs (administrators: every run) and their files
+  to download (`/api/reports/library/runs/{run_id}/{format}`, as attachments, audited `report.download`).
+- **Metrics layer and BI analysis tools** (Roadmap L40, L41 in part; `sajha/bi/`,
+  `config/tools/bi/`, `sajha/tools/impl/bi_metric_tools.py`;
+  [Business Intelligence](docs/architecture/Business%20Intelligence.md) §2–§4,
+  [Business Intelligence Tool Reference Guide](docs/tools/analytics/Business%20Intelligence%20Tool%20Reference%20Guide.md)):
+  metric definitions as YAML in `bi.metrics_dir` (`config/bi/metrics`), checked when read (a refused
+  file raises the warning notice `bi.metric:<file>`) and re-read when a file changes; a compiler that
+  builds one SELECT from the definition (caller values always bound parameters, identifiers only the
+  metric's declared columns) and runs it through the source's own path (a data connection's guard,
+  allowlist, masking and audit; the DuckDB sandbox; the OLAP semantic layer); `roles` hide a metric.
+  Tools: `bi_list_metrics`, `bi_describe_metric`, `bi_query_metric` (grains, cumulative YTD/QTD/MTD,
+  rolling), `bi_compare`, `bi_top_n` (Pareto), `bi_crosstab` (margins computed by the source) and
+  `bi_explain_change` (contribution analysis; rate and mix effects for ratios). Three sample metrics
+  (`net_sales`, `order_count`, `average_order_value`) over the DuckDB sample data. New keys
+  `bi.metrics_dir` and `bi.max_rows`; the BI tools ship enabled.
+- **Charts and loading tool results (BI, phase 8.4)** (`config/tools/bi/`, `sajha/tools/impl/bi_chart_tools.py`;
+  [Business Intelligence §5–§6](docs/architecture/Business%20Intelligence.md#5-charts-and-mcp-apps)):
+  `bi_chart` draws rows as `line`, `bar`, `area`, `scatter`, `heatmap`, `waterfall` or `pareto` and returns a
+  Vega-Lite-subset spec in `structuredContent`, an SVG rendered in pure Python, and an MCP Apps view
+  (`ui://sajha/bi-chart.html`); rows are given, come from a `bi_*` tool called as the caller, or from one
+  read-only SELECT over the caller's loaded tables. `bi_load_tool_result` calls any tool as the caller (tool
+  access, policy, budgets and audit apply: a tool the caller may not call is refused, and the shipped
+  sanctions policy still keeps `sanctions_*` results from a model) and loads its rows into the caller's
+  scratch database with provenance and a time to live.
+
+### Changed
+
+- The menu entry for the usage dashboard (`/reports`, unchanged) is now **Usage**; **Reports** is the report library.
+
 ## v8.10.0 (October 2026) — open data: calendars, GLEIF, BIS, US Treasury, sanctions screening, FDIC, Wikidata
 
 ### Added

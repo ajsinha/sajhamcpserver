@@ -428,6 +428,7 @@ curl -X POST http://localhost:3002/api/ai/complete \
 | GET | `/api/reports/users/activity?period=30d` | admin | Per-user usage. |
 | GET | `/api/reports/heatmap?days=30&tool=` | user | Hour-of-day usage heatmap. |
 | GET | `/api/reports/audit?limit=100&action=` | admin | Recent audit entries. |
+| GET | `/api/reports/library/runs/{run_id}/{fmt}` | user | A report run's rendered file (`markdown`, `html`, `pdf`, `xlsx`, `pptx`, `docx`) as an attachment; the runner and administrators only, else 404 ([Reports](../architecture/Reports.md) §9). |
 
 ### 4.9 Operations (`ops_routes.py`, `observability_routes.py`, `sandbox_routes.py`)
 
@@ -633,7 +634,7 @@ These render templates; they are not JSON APIs. Unauthenticated requests to `use
 | Auth | Paths |
 |---|---|
 | none / optional | `/`, `/login`, `/help`, `/help/c/{cid}`, `/help/guides`, `/help/guides/{name}`, `/glossary`, `/help/tools`, `/about`, `/comparison`, `/oauth/authorize`; and the 301 redirects `/help/ai`, `/help/enterprise`, `/help/tutorials`, `/help/glossary`, `/help/storage`, `/docs`, `/docs/view/{doc_path}` |
-| user | `/dashboard`, `/account/password`, `/account/apikeys`, `/tools` (`?domain=<name>` preselects a tool domain; `unfiled` for the root), `/tools/domains` (one card per tool domain with the caller's visible tool count), `/tools/{tool_name}/execute`, `/tools/{tool_name}/schema`, `/prompts`, `/prompts/{prompt_name}`, `/prompts/{prompt_name}/test`, `/prompts/category/{category}`, `/prompts/tag/{tag}`, `/reports`, `/composite/builder`, `/ai/settings`, `/ask`, `/conversations`, `/playground`, `/monitoring/usage`, `/net/instances`, `/net/instances/this`, `/net/instances/{net}/{instance}`, `/net/access` |
+| user | `/dashboard`, `/account/password`, `/account/apikeys`, `/tools` (`?domain=<name>` preselects a tool domain; `unfiled` for the root), `/tools/domains` (one card per tool domain with the caller's visible tool count), `/tools/{tool_name}/execute`, `/tools/{tool_name}/schema`, `/prompts`, `/prompts/{prompt_name}`, `/prompts/{prompt_name}/test`, `/prompts/category/{category}`, `/prompts/tag/{tag}`, `/reports` (Usage), `/reports/library` (the reports you may run), `/reports/library/{name}` (one report: parameters, runs, files), `/composite/builder`, `/ai/settings`, `/ask`, `/conversations`, `/playground`, `/monitoring/usage`, `/net/instances`, `/net/instances/this`, `/net/instances/{net}/{instance}`, `/net/access` |
 | admin | `/admin/users`, `/admin/users/create`, `/admin/tools`, `/admin/system-monitor`, `/admin/prompts`, `/admin/async-tasks`, `/admin/apikeys`, `/admin/apikeys/create`, `/admin/apikeys/{key_id}/view`, `/admin/federation`, `/admin/sajhanet`, `/admin/sajhanet/overview`, `/admin/sajhanet/tools`, `/admin/connectors`, `/prompts/create`, `/tools/{tool_name}/config`, `/monitoring/tools`, `/monitoring/users` |
 | studio | `/studio`, `/studio/rest`, `/studio/dbquery`, `/studio/script`, `/studio/livelink`, `/studio/olap`, `/studio/powerbi`, `/studio/powerbidax`, `/studio/sharepoint`, `/studio/examples`, `/studio/api-import`, `/studio/describe`, `/studio/llm` (each needs its creator's permission) |
 | admin (Studio) | `/studio/planners`, `/studio/json` |

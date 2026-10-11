@@ -1,0 +1,111 @@
+{
+ "$schema": "https://vega.github.io/schema/vega-lite/v5.json",
+ "data": {
+  "values": [
+   {
+    "month": "2025-01-01",
+    "region": "East",
+    "sales": 10.0
+   },
+   {
+    "month": "2025-01-01",
+    "region": "West",
+    "sales": 5.0
+   },
+   {
+    "month": "2025-02-01",
+    "region": "East",
+    "sales": 14.0
+   },
+   {
+    "month": "2025-02-01",
+    "region": "West",
+    "sales": 3.0
+   },
+   {
+    "month": "2025-03-01",
+    "region": "East",
+    "sales": 9.0
+   },
+   {
+    "month": "2025-03-01",
+    "region": "West",
+    "sales": 7.0
+   },
+   {
+    "month": "2025-04-01",
+    "region": "East",
+    "sales": 20.0
+   },
+   {
+    "month": "2025-04-01",
+    "region": "West",
+    "sales": 8.0
+   },
+   {
+    "month": "2025-05-01",
+    "region": "East",
+    "sales": 18.0
+   },
+   {
+    "month": "2025-05-01",
+    "region": "West",
+    "sales": 12.0
+   },
+   {
+    "month": "2025-06-01",
+    "region": "East",
+    "sales": 25.0
+   },
+   {
+    "month": "2025-06-01",
+    "region": "West",
+    "sales": 6.0
+   }
+  ]
+ },
+ "encoding": {
+  "color": {
+   "field": "sales",
+   "scale": {
+    "scheme": "blues"
+   },
+   "title": "sales",
+   "type": "quantitative"
+  },
+  "tooltip": [
+   {
+    "field": "month"
+   },
+   {
+    "field": "region"
+   },
+   {
+    "field": "sales"
+   }
+  ],
+  "x": {
+   "field": "month",
+   "sort": null,
+   "title": "month",
+   "type": "nominal"
+  },
+  "y": {
+   "field": "region",
+   "sort": null,
+   "title": "region",
+   "type": "nominal"
+  }
+ },
+ "height": 400,
+ "mark": {
+  "tooltip": true,
+  "type": "rect"
+ },
+ "title": "sales by month and region",
+ "usermeta": {
+  "generator": "sajha bi_chart",
+  "kind": "heatmap"
+ },
+ "width": 720
+}

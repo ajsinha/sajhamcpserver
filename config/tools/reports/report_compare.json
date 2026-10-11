@@ -1,0 +1,85 @@
+{
+  "name": "report_compare",
+  "implementation": "sajha.reports.tools.ReportCompareTool",
+  "title": "Compare two runs of a report",
+  "description": "Compares two stored runs of a report section by section; nothing is called again.\nReturns: report, a and b (run_id, started_at, parameters), same_definition, sections (KPIs with a, b, change and pct_change; table rows added, removed and changed by key column; status changes).\nInputs (* required): report*; run_a* and run_b* (run ids, or dates YYYY-MM-DD for your latest run on that day).\nExample: {\"report\": \"desk_calendar\", \"run_a\": \"2026-10-09\", \"run_b\": \"2026-10-10\"}",
+  "version": "1.0.0",
+  "enabled": true,
+  "inputSchema": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "report",
+      "run_a",
+      "run_b"
+    ],
+    "properties": {
+      "report": {
+        "type": "string",
+        "description": "Report name (report_list lists them), e.g. desk_calendar",
+        "pattern": "^[a-z][a-z0-9_]{0,47}$"
+      },
+      "run_a": {
+        "type": "string",
+        "description": "The earlier run: a run id or a date (YYYY-MM-DD)"
+      },
+      "run_b": {
+        "type": "string",
+        "description": "The later run: a run id or a date (YYYY-MM-DD)"
+      }
+    },
+    "examples": [
+      {
+        "report": "desk_calendar",
+        "run_a": "2026-10-09",
+        "run_b": "2026-10-10"
+      }
+    ]
+  },
+  "outputSchema": {
+    "type": "object",
+    "required": [
+      "report",
+      "a",
+      "b",
+      "sections"
+    ],
+    "properties": {
+      "report": {
+        "type": "string"
+      },
+      "a": {
+        "type": "object"
+      },
+      "b": {
+        "type": "object"
+      },
+      "same_definition": {
+        "type": "boolean"
+      },
+      "sections": {
+        "type": "array",
+        "items": {
+          "type": "object"
+        }
+      }
+    }
+  },
+  "annotations": {
+    "readOnlyHint": true,
+    "destructiveHint": false,
+    "idempotentHint": true,
+    "openWorldHint": false,
+    "title": "Compare two runs of a report"
+  },
+  "metadata": {
+    "author": "Ashutosh Sinha",
+    "email": "ajsinha@gmail.com",
+    "copyright": "Copyright All rights Reserved 2025-2030, Ashutosh Sinha",
+    "category": "Reports",
+    "tags": [
+      "report",
+      "reports"
+    ]
+  }
+}

@@ -1,0 +1,45 @@
+# SAJHA shipped report: live open data (BIS policy rates, the US Treasury yield curve). Off until
+# enabled: set enabled: true. Each run shows the change since your previous run with the same
+# parameters. The tool is report_central_bank_watch. Design: docs/architecture/Reports.md.
+name: central_bank_watch
+title: Central bank watch
+description: Policy rates of the main central banks (BIS) and the US Treasury par yield curve, with changes since the previous run.
+owner: admin
+enabled: false
+tags: [macro, rates, open-data]
+parameters:
+  countries:
+    type: array
+    items: {type: string, minLength: 2}
+    minItems: 1
+    maxItems: 20
+    default: [US, XM, GB, CA, JP, CH]
+    description: "Central banks by ISO 3166 code (XM: the euro area)"
+sections:
+  - id: policy_rates
+    kind: table
+    title: Policy rates
+    call: {tool: bis_policy_rates, arguments: {countries: $params.countries, period: last 3 months}}
+    rows: $.series[*]
+    key: country
+    columns:
+      - {key: country, label: Area}
+      - {key: title, label: Series}
+      - {key: latest, label: Latest (%), path: "$.observations[-1].value", format: percent, decimals: 3}
+      - {key: month, label: Month, path: "$.observations[-1].date", format: date}
+  - id: us_curve
+    kind: kpis
+    title: US Treasury par yields (latest curve)
+    call: {tool: ust_yield_curve, arguments: {curve: nominal, tenors: [3M, 2Y, 10Y, 30Y]}}
+    values:
+      - {label: Curve date, path: "$.observations[-1].date", format: date}
+      - {label: 3M, path: "$.observations[-1].yields['3M']", format: percent}
+      - {label: 2Y, path: "$.observations[-1].yields['2Y']", format: percent}
+      - {label: 10Y, path: "$.observations[-1].yields['10Y']", format: percent}
+      - {label: 30Y, path: "$.observations[-1].yields['30Y']", format: percent}
+  - id: commentary
+    kind: text
+    title: Commentary
+    narrate: {sections: [policy_rates, us_curve], length: short}
+formats: [markdown, html, pdf]
+classification: public

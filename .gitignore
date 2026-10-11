@@ -76,6 +76,9 @@ data/spool/
 # ── Per-user scratch databases of the tool-result loader (bi.scratch_dir; private per user) ──
 data/bi/
 
+# ── Report runs: report data and rendered files (reports.output_dir; hold what each runner could see) ──
+data/reports/
+
 # ── Retired demo credentials: users live in the database only (Roadmap N5) ──
 config/users.json
 

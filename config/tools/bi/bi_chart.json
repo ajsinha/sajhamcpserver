@@ -1,0 +1,223 @@
+{
+  "name": "bi_chart",
+  "title": "Chart rows",
+  "implementation": "sajha.tools.impl.bi_chart_tools.BIChartTool",
+  "description": "Chart rows as a Vega-Lite-subset spec, an SVG and an MCP Apps view. kind: line, bar, area, scatter, heatmap (value colours x by y), waterfall (y are changes), pareto. data: rows; {tool, arguments} of a bi_* tool, run as you; or {sql} over your loaded tables.\nExample: {\"kind\": \"bar\", \"x\": \"region\", \"y\": \"sales\", \"data\": [{\"region\": \"East\", \"sales\": 120}]}",
+  "annotations": {
+    "title": "Chart rows",
+    "readOnlyHint": true,
+    "destructiveHint": false,
+    "idempotentHint": true,
+    "openWorldHint": false
+  },
+  "version": "1.0.0",
+  "enabled": true,
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "data": {
+        "description": "The rows: a list of objects; or {tool, arguments, rows_path?} to call a bi_* tool as you; or {sql}: one read-only SELECT over the tables you loaded with bi_load_tool_result",
+        "anyOf": [
+          {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "description": "One row: column name to value"
+            },
+            "minItems": 1,
+            "maxItems": 5000
+          },
+          {
+            "type": "object",
+            "properties": {
+              "tool": {
+                "type": "string",
+                "pattern": "^bi_[a-z0-9_]+$",
+                "description": "A bi_* tool"
+              },
+              "arguments": {
+                "type": "object",
+                "description": "Its arguments"
+              },
+              "rows_path": {
+                "type": "string",
+                "maxLength": 300,
+                "description": "JSONPath to the rows in its result (else the largest list of records)"
+              }
+            },
+            "required": [
+              "tool"
+            ],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "properties": {
+              "sql": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 20000,
+                "description": "One SELECT over your loaded tables"
+              }
+            },
+            "required": [
+              "sql"
+            ],
+            "additionalProperties": false
+          }
+        ]
+      },
+      "kind": {
+        "type": "string",
+        "enum": [
+          "line",
+          "bar",
+          "area",
+          "scatter",
+          "heatmap",
+          "waterfall",
+          "pareto"
+        ],
+        "description": "Chart kind"
+      },
+      "x": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 200,
+        "description": "Column on the x axis (categories, dates or numbers)"
+      },
+      "y": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 200,
+        "description": "Column of numbers on the y axis; for heatmap, the second category column"
+      },
+      "series": {
+        "type": "string",
+        "maxLength": 200,
+        "description": "Column that splits the rows into coloured series (line, bar, area, scatter; at most 12)"
+      },
+      "value": {
+        "type": "string",
+        "maxLength": 200,
+        "description": "heatmap only: column of numbers that colours each cell"
+      },
+      "title": {
+        "type": "string",
+        "maxLength": 200,
+        "description": "Chart title (default: y by x)"
+      }
+    },
+    "required": [
+      "data",
+      "kind",
+      "x",
+      "y"
+    ],
+    "additionalProperties": false,
+    "examples": [
+      {
+        "kind": "bar",
+        "x": "region",
+        "y": "sales",
+        "data": [
+          {
+            "region": "East",
+            "sales": 120
+          },
+          {
+            "region": "West",
+            "sales": 95
+          }
+        ]
+      },
+      {
+        "kind": "waterfall",
+        "x": "step",
+        "y": "change",
+        "title": "Revenue bridge",
+        "data": [
+          {
+            "step": "Q2",
+            "change": 100
+          },
+          {
+            "step": "Price",
+            "change": 12
+          },
+          {
+            "step": "Volume",
+            "change": -30
+          }
+        ]
+      }
+    ]
+  },
+  "outputSchema": {
+    "type": "object",
+    "properties": {
+      "kind": {
+        "type": "string"
+      },
+      "title": {
+        "type": "string"
+      },
+      "spec": {
+        "type": "object",
+        "description": "Vega-Lite subset: mark or layer, encoding, data.values (derived fields precomputed), usermeta.kind"
+      },
+      "svg": {
+        "type": "string",
+        "description": "The chart as SVG, rendered by SAJHA"
+      },
+      "rows": {
+        "type": "integer",
+        "description": "Rows drawn"
+      },
+      "skipped": {
+        "type": "integer",
+        "description": "Rows without x or a number"
+      },
+      "combined": {
+        "type": "integer",
+        "description": "Rows summed into another with the same x (and series)"
+      },
+      "series": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        }
+      },
+      "source": {
+        "type": "object",
+        "description": "Where the rows came from: rows, tool (with its arguments) or sql"
+      },
+      "view": {
+        "type": "string",
+        "description": "The MCP Apps view"
+      }
+    },
+    "required": [
+      "kind",
+      "spec",
+      "svg",
+      "rows"
+    ]
+  },
+  "_meta": {
+    "ui": {
+      "resourceUri": "ui://sajha/bi-chart.html"
+    }
+  },
+  "metadata": {
+    "author": "Ashutosh Sinha",
+    "email": "ajsinha@gmail.com",
+    "copyright": "Copyright All rights Reserved 2025-2030, Ashutosh Sinha",
+    "category": "Business Intelligence",
+    "tags": [
+      "chart",
+      "visualization",
+      "business intelligence"
+    ]
+  }
+}

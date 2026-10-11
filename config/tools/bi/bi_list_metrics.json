@@ -1,0 +1,109 @@
+{
+  "name": "bi_list_metrics",
+  "implementation": "sajha.tools.impl.bi_metric_tools.BiListMetricsTool",
+  "title": "List metrics",
+  "description": "The governed metrics you may query, each defined once by its owner (a metric your roles may not query is not listed).\nReturns: count, metrics (name, title, description, owner, type, unit, grains, dimensions, tags, source_kind).\nInputs (none required): tag; search (text in name, title or description).\nNext: bi_describe_metric, then bi_query_metric.\nExample: {\"tag\": \"kpi\"}",
+  "annotations": {
+    "title": "List metrics",
+    "readOnlyHint": true,
+    "destructiveHint": false,
+    "idempotentHint": true,
+    "openWorldHint": false
+  },
+  "version": "1.0.0",
+  "enabled": true,
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "tag": {
+        "type": "string",
+        "description": "Only metrics with this tag",
+        "maxLength": 64
+      },
+      "search": {
+        "type": "string",
+        "description": "Text in the name, title or description",
+        "maxLength": 200
+      }
+    },
+    "required": [],
+    "additionalProperties": false,
+    "examples": [
+      {
+        "tag": "kpi"
+      }
+    ]
+  },
+  "outputSchema": {
+    "type": "object",
+    "properties": {
+      "count": {
+        "type": "integer"
+      },
+      "metrics": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "name": {
+              "type": "string"
+            },
+            "title": {
+              "type": "string"
+            },
+            "description": {
+              "type": "string"
+            },
+            "owner": {
+              "type": "string"
+            },
+            "type": {
+              "type": "string"
+            },
+            "unit": {
+              "type": "string"
+            },
+            "grains": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "dimensions": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "tags": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "source_kind": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "name",
+            "type"
+          ]
+        }
+      }
+    },
+    "required": [
+      "count",
+      "metrics"
+    ]
+  },
+  "metadata": {
+    "author": "Ashutosh Sinha",
+    "category": "Business Intelligence",
+    "tags": [
+      "bi",
+      "metrics",
+      "catalog"
+    ]
+  }
+}
