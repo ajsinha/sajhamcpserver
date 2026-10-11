@@ -72,7 +72,6 @@ removes the `tools.apply_schema_defaults` switch
 |---|---|---|---|---|---|---|
 | X13 | A benchmark suite with published numbers | A buyer comparing servers asks "how fast, on what hardware"; SAJHA has no answer | Nothing measures throughput or latency; the deck states that it "claims no performance it has not measured" ([deck guide](../../tools/deck/GUIDE.md)) | A repeatable load harness against `/mcp` in both eras, calling mock tools, at one and several workers on each `state.backend`; publish p50, p99 and throughput with the hardware in [Scaling and State](Scaling%20and%20State.md), and let the deck read them at build time | M | none |
 | X14 | SLOs and failure tests | The failure behaviour is written down but not exercised | [Scaling and State](Scaling%20and%20State.md#7-failure-behaviour-and-limits) describes Redis loss, slow databases and dying workers; [Observability](Observability.md) ships alert rules | State SLOs on the existing metrics; failure tests that stop Redis, kill a worker mid-task and break an upstream, asserting the documented behaviour | M | X13 |
-| X16 | A TypeScript client SDK (deferred by decision) | Most agent front ends are TypeScript | The client SDK (`clientsdk`) is Python only; any standard MCP client already works against `/mcp` ([Client SDK Guide](../clients/Client%20SDK%20Guide.md)). The owner has deferred this | A thin package on the official TypeScript MCP SDK, mirroring `SajhaMCPClient`, plus the REST and A2A helpers | M | none |
 
 ---
 
@@ -155,7 +154,7 @@ Recorded decisions:
   openpyxl and python-pptx are acceptable as optional `requires`; quantitative planners are added
   and built at the first opportunity (L51–L59).
 - **Release 7.0.0** cut on the owner's decision (formerly N1).
-- **TypeScript client** stays deferred (X16).
+- **TypeScript client**: dropped by the owner (2026-10-11); the client SDK stays Python only, and any standard MCP client works against `/mcp`.
 - **Deployment:** one-click templates only; no hosted service (L13).
 - **No tenants** (formerly X1, see section 6) and **no open-source licence**.
 
