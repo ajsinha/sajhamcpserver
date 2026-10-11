@@ -248,7 +248,9 @@ pair and scores each answer:
 Ask SAJHA (enabled or not): each question's `arguments` are the call (default
 `{question: <question>}`), memory is off and no audit record is written. The checks apply to the
 result's `answer`, `text` or `label` (else its JSON), and `expect_tools` to the inner tool calls.
-The shipped example LLM tools have theirs: `config/evals/llm_*.yaml`.
+The shipped example LLM tools have theirs: `config/evals/llm_*.yaml`. The quantitative planners have
+theirs, with `number` checks and tolerances: `config/evals/quant_*.yaml`
+([Quantitative Planners](Quantitative%20Planners.md) §4).
 
 ```yaml
 name: llm_triage_ticket

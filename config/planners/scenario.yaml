@@ -1,0 +1,68 @@
+# The shipped "scenario" planner (docs/architecture/Quantitative Planners.md §3.3;
+# file format: docs/architecture/Planner Reference.md §13).
+# Edit with care: change `version` when the behaviour changes, and keep the old file as
+# scenario@<old version>.yaml while tools still pin it.
+name: scenario
+version: 1.0.0
+description: Defines a grid of shocks (from the tool's settings, or a structured reply from the model), runs one tool call per grid point in parallel, tabulates the base value, each shocked value and each difference from the base as quantities with lineage, then has the model describe the table and checks its figures.
+use_when: What-if and sensitivity questions for a pricing or risk tool, such as how a book's value moves when a rate, a spread or a price is shocked by a range of sizes.
+settings:
+  max_points: 9                    # grid points including the base (at most ai.planners.limits.max_foreach_items)
+  concurrency: 4                   # points run at a time (at most ai.planners.limits.max_parallel)
+  grid: {}                         # a grid defined by the tool (same shape as the model's reply); empty: the model defines it
+start: grid
+stages:
+  grid:
+    type: grid
+    grid: "{{settings.grid}}"
+    max_points: "{{settings.max_points}}"
+    outcomes:
+      ready:   { next: points }
+      invalid: { next: fail }
+  points:
+    type: foreach                  # one tool call per grid point, bounded by the foreach limits
+    items: items
+    as: point
+    max_items: "{{settings.max_points}}"
+    concurrency: "{{settings.concurrency}}"
+    do:
+      start: call
+      stages:
+        call:
+          type: grid_call
+          outcomes:
+            done:  { next: done }
+            error: { next: failed }
+        done:
+          type: answer
+        failed:
+          type: fail
+          reason: "The grid point's call failed."
+    outcomes:
+      done:    { next: table }
+      partial: { next: table }     # failed points are reported by the table, never filled in
+  table:
+    type: tabulate
+    outcomes:
+      done:    { next: draft }
+      partial: { next: draft }
+      failed:  { next: draft }     # no value at all: the draft says so
+  draft:
+    type: draft
+    prompt: { text: "Describe the scenario table above in prose: the base value, how the value moves across the grid and which points failed. Quote figures exactly as the table writes them and cite the call ids; compute nothing yourself." }
+    next: verify
+  verify:
+    type: verify
+    checks: [numbers_in_workspace, no_failed_citations]
+    outcomes:
+      ok:       { next: answer }
+      mismatch: { next: revise, max_visits: 1, on_exhausted: answer }
+  revise:
+    type: revise
+    address: findings
+    next: verify
+  answer:
+    type: answer                   # unresolved findings become caveats
+  fail:
+    type: fail
+    reason: "The question could not be written as a grid of shocks over a tool offered to this run."

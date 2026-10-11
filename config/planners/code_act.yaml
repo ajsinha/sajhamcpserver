@@ -1,0 +1,30 @@
+# The shipped "code_act" planner (docs/architecture/Quantitative Planners.md §3.5).
+# Role-limited: only roles in ai.quant.code_act.roles (default none) may run it; it is not offered
+# to anyone else, and it is never an "auto" candidate unless a tool or the Ask page adds it.
+# Edit with care: change `version` when the behaviour changes, and keep the old file as
+# code_act@<old version>.yaml while tools still pin it.
+name: code_act
+version: 1.0.0
+description: Gathers the data, has the model write a Python program for the computation, runs it in the sandbox (network off, temporary directory only) with the quantities and tool results on standard input, requires quantities with units as JSON output, then drafts the answer around them.
+use_when: Computations the operation library cannot express (custom models, simulations, iterative methods); only for roles allowed to run code.
+start: gather
+stages:
+  gather:
+    type: act
+    outcomes:
+      called:   { next: gather, max_visits: 4, on_exhausted: compute }
+      answered: { next: compute }
+  compute:
+    type: code_act                 # code -> sandbox -> quantities; errors go back to the model
+    max_attempts: 2
+    outcomes:
+      done:   { next: draft }
+      failed: { next: fail }
+  draft:
+    type: draft
+    next: answer
+  answer:
+    type: answer
+  fail:
+    type: fail
+    reason: "The computation did not produce valid quantities."

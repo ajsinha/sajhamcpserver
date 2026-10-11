@@ -1,0 +1,34 @@
+# The shipped "optimize" planner (docs/architecture/Quantitative Planners.md §3.6).
+# Needs SciPy: without it this file is not loaded and an info notice says why.
+# Edit with care: change `version` when the behaviour changes, and keep the old file as
+# optimize@<old version>.yaml while tools still pin it.
+name: optimize
+version: 1.0.0
+description: Gathers the data, has the model write the problem as a restricted formulation (variables, a linear or quadratic objective, linear constraints), solves it with SciPy, checks every constraint at the solution, then drafts the answer around the result.
+use_when: Allocation and sizing questions such as the cheapest or best mix that meets stated limits; linear, mixed-integer or convex quadratic problems of modest size.
+settings:
+  max_variables: 50                # variables in one formulation (at most 500)
+start: gather
+stages:
+  gather:
+    type: act                      # fetch the figures the formulation needs, if any
+    outcomes:
+      called:   { next: gather, max_visits: 4, on_exhausted: solve }
+      answered: { next: solve }
+  solve:
+    type: optimize                 # formulation (structured reply), validation, solver, feasibility check
+    max_variables: "{{settings.max_variables}}"
+    outcomes:
+      solved:     { next: draft }
+      infeasible: { next: draft }  # the draft reports the status; no solution is invented
+      unbounded:  { next: draft }
+      failed:     { next: draft }
+      invalid:    { next: fail }
+  draft:
+    type: draft
+    next: answer
+  answer:
+    type: answer
+  fail:
+    type: fail
+    reason: "The question could not be written as an optimisation problem SAJHA can solve."

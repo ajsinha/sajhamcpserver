@@ -11,7 +11,7 @@
 
 app:
   name: SAJHA MCP Server
-  version: 8.8.0
+  version: 8.9.0
   description: Model Context Protocol Server
   author: Ashutosh Sinha
   author_email: ajsinha@gmail.com       # shown with the copyright notice; SAJHA is proprietary (see LICENSE)
@@ -531,6 +531,8 @@ ai:
     dir: config/planners               # read through the storage backend; reloaded on change
     default: react                     # an LLM tool's planner when it names none
     python_builtins: false             # true: react/plan_execute/recipes/router run the Python classes
+    # numbers_check: "off"             # default of every planner's reserved numbers_check setting:
+                                       # off | warn | enforce (quote "off": bare off is YAML false)
     limits:
       max_stages_run: 40
       max_visits_per_edge: 10
@@ -538,6 +540,15 @@ ai:
       max_parallel: 4
       max_samples: 5
       max_foreach_items: 50
+  # The quantitative workspace: quantities with units, the operation library, the numbers validator
+  # (docs/architecture/Quantitative Planners.md). Defaults shown. Env: SAJHA_AI_QUANT_<FIELD>,
+  # SAJHA_AI_QUANT_CODE_ACT_<FIELD>.
+  # quant:
+  #   max_graph_nodes: 40              # nodes in one computation graph
+  #   max_table_cells: 10000           # cells in one table quantity
+  #   day_count: act/365               # days <-> years: act/365 | act/360 | 30/360 | act/365.25
+  #   code_act:
+  #     roles: []                      # roles that may run the code_act planner; none by default
   # SAJHA as an OpenAI-compatible endpoint: POST /v1/chat/completions, GET /v1/models,
   # POST /v1/embeddings, authenticated with a SAJHA API key as the bearer token (docs/architecture/
   # LLM Tools.md §13.4). Off by default. Env: SAJHA_AI_OPENAI_API_<FIELD>.
@@ -905,6 +916,16 @@ snapshots:
   keep: 20                         # the oldest beyond this are deleted (audited)
   dir: data/snapshots              # owner-only (0700 / files 0600); git-ignored
   compress: false                  # gzip (.json.gz)
+
+# ── Business intelligence: the tool-result loader's scratch databases ─────────
+# Tool results loaded as tables (the data_analyst planner) live in one DuckDB file per user, never
+# shared. Every key: docs/getting-started/Configuration Reference.md#bi; design:
+# docs/architecture/Business Intelligence.md §6.
+bi:
+  scratch_dir: data/bi/scratch     # one u_<user digest>.duckdb per user; git-ignored (data/bi/)
+  scratch_max_rows: 100000         # rows in one loaded table; a larger result is refused
+  scratch_max_mb: 100              # one user's scratch database; a load that would pass it is refused
+  scratch_max_minutes: 240         # cap on a loaded table's time to live (default 60 minutes)
 
 # ── Tool quality: test harness, linter, health probes, evals, tool versions ──
 # Nothing runs by default: probes are off and no tool has a versions file. Every key:

@@ -69,6 +69,16 @@ class StageType:
     def check(self, h) -> None:
         """Extra load-time checks (``h`` is model._TypeChecks)."""
 
+    def unavailable(self) -> Optional[str]:
+        """Why this type cannot run here (an optional dependency is missing), or None. A planner
+        file that uses an unavailable type is not loaded, and the registry raises an info notice."""
+        return None
+
+    def allowed_roles(self) -> Optional[List[str]]:
+        """None: anyone may run a planner using this type. A list: only callers holding one of these
+        roles; for anyone else such a planner is not offered and ``auto`` never picks it."""
+        return None
+
     def run(self, rc: RunCtx, frame: Frame, st: M.Stage) -> Generator[Any, Any, str]:
         raise NotImplementedError
         yield  # pragma: no cover
@@ -115,8 +125,39 @@ def unregister_stage_type(name: str) -> None:
         _TYPES.pop(name, None)
 
 
+#: Stage types SAJHA ships outside this module (Quantitative Planners §3.1 to §3.6, §3.8). They register on
+#: first use of :func:`stage_types`, so a missing optional dependency never breaks this import.
+EXTENSIONS = ("sajha.ai.planners_engine.data_stages", "sajha.ai.optimize.stage", "sajha.ai.code_act.stage",
+              "sajha.ai.planners_engine.quant_stages", "sajha.ai.planners_engine.scenario_stages",
+              "sajha.ai.planners_engine.reconcile_stage")
+_extensions_loaded = False
+
+
+def _load_extensions() -> None:
+    global _extensions_loaded
+    if _extensions_loaded:
+        return
+    _extensions_loaded = True
+    import importlib
+    for mod in EXTENSIONS:
+        try:
+            importlib.import_module(mod)
+        except Exception as e:
+            logger.warning(f"planner stage types in {mod} not registered: {e.__class__.__name__}: {e}")
+
+
 def stage_types() -> Dict[str, StageType]:
+    _load_extensions()
     return dict(_TYPES)
+
+
+def permitted(t: StageType, ctx: Any) -> bool:
+    """Whether the caller (a RequestContext, or None for no caller) may run stage type ``t``."""
+    roles = t.allowed_roles()
+    if roles is None:
+        return True
+    have = set(getattr(ctx, "roles", None) or [])
+    return bool(have & set(roles))
 
 
 def _builtin(cls):
@@ -605,6 +646,7 @@ class Classify(StageType):
                 names = {c.split("@")[0] for c in rc.choices}
                 labels = [lab for lab in labels if lab.split("@")[0] in names or lab in rc.choices]
             labels = rc.registry.eval_filter(rc.tool, labels)
+            labels = [lab for lab in labels if rc.registry.refusal(lab, rc.state.ctx, rc.overlays) is None]
         default = cfg.get("default") or (labels[0] if labels else "")
         if labels and default not in labels:
             default = labels[0]
@@ -835,7 +877,8 @@ class Verify(StageType):
                            question=str(frame.slots.get("question") or ""),
                            results=list(frame.slots.get("results") or []), output_schema=rc.planner.output_schema,
                            lookup=lambda ref: E.render("{{" + ref + "}}", get, keep_type=True),
-                           evaluate=lambda ex: E.evaluate_bool(ex, env))
+                           evaluate=lambda ex: E.evaluate_bool(ex, env),
+                           workspace=rc.state.data.get("workspace"))   # sajha/ai/quant: the run's quantities
         findings: List[Dict[str, Any]] = []
         if False:
             yield
@@ -1036,6 +1079,18 @@ class Foreach(StageType):
     name = "foreach"
     fixed_outcomes = ("done", "partial")
 
+    def schema_errors(self, raw):
+        # Appendix A knows only the built-in types; a ``do`` stage of a type registered in code is
+        # validated against that type's own settings schema when the sub-graph is compiled (as at top level)
+        do = raw.get("do")
+        if isinstance(do, dict) and isinstance(do.get("stages"), dict):
+            custom = set(stage_types()) - set(M.BUILTIN_DEF)
+            if any(isinstance(v, dict) and v.get("type") in custom for v in do["stages"].values()):
+                stages = {k: ({"type": "fail", "reason": "-"} if isinstance(v, dict) and v.get("type") in custom else v)
+                          for k, v in do["stages"].items()}
+                raw = dict(raw, do=dict(do, stages=stages))
+        return super().schema_errors(raw)
+
     def check(self, h):
         h.ref_root(h.cfg.get("items") or "items", "items")
         as_name = h.cfg.get("as") or "item"
@@ -1157,6 +1212,12 @@ class PlannerStage(StageType):
             if frame.last.get("type") in ("verify", "answer") or frame.last.get("outcome") == "skipped":
                 by = "escalation"
         sub = rc.registry.for_run(ref, rc.overlays)
+        why = rc.registry.refusal(sub, rc.state.ctx, rc.overlays)
+        if why:                                   # a role-limited planner (code_act) the caller may not run
+            frame.slots["subrun"] = {"planner": sub.name, "version": sub.version, "outcome": "failed",
+                                     "stopped_by": None, "stages_run": 0, "reason": why}
+            rc.caveat(frame, f"{sub.name} was not run: {why}")
+            return "failed"
         q = E.render(cfg["question"], get) if cfg.get("question") else None
         old_q = frame.slots.get("question")
         f = sub_frame(rc, frame, sub, question=q, rebind_role=cfg.get("model"), limits=cfg.get("limits"))

@@ -41,8 +41,17 @@ READ_ONLY = {"input", "original_question", "history", "summary", "shortlist", "i
 SLOT_TYPES = ("string", "number", "integer", "boolean", "array", "object", "any")
 MAX_STAGES = 100
 # settings every planner accepts without declaring them: ``locality`` (any | local | net:<name>) restricts
-# where the tools offered to it run (sajha/ai/locality.py; docs/architecture/SAJHA Net.md §13)
-RESERVED_SETTINGS = ("locality",)
+# where the tools offered to it run (sajha/ai/locality.py; docs/architecture/SAJHA Net.md §13);
+# ``numbers_check`` (off | warn | enforce) checks the answer's figures after the run (Quantitative Planners §2.5)
+RESERVED_SETTINGS = ("locality", "numbers_check")
+NUMBERS_CHECK_MODES = ("off", "warn", "enforce")
+
+
+def numbers_check_error(value: Any) -> Optional[str]:
+    """Why ``value`` is not a valid ``numbers_check`` setting, or None (YAML reads a bare ``off`` as false)."""
+    if value is False or value in NUMBERS_CHECK_MODES:
+        return None
+    return f"numbers_check {value!r} is not one of {', '.join(NUMBERS_CHECK_MODES)}"
 MAX_CUSTOM_SLOTS = 32
 MAX_ALTERNATIVES = 10
 MAX_RULES = 200
@@ -311,6 +320,8 @@ def apply_overlay(doc: Dict[str, Any], overlay: Optional[Dict[str, Any]], where:
             parse(sets["locality"])
         except ValueError as e:
             raise ValueError(f"{where}: settings.{e}")
+    if "numbers_check" in sets and numbers_check_error(sets["numbers_check"]):
+        raise ValueError(f"{where}: settings.{numbers_check_error(sets['numbers_check'])}")
     if unknown:
         raise ValueError(f"{where}: unknown setting(s) {unknown} (the planner declares: {sorted(declared)})")
     out["settings"] = {**declared, **copy.deepcopy(sets)}
@@ -381,6 +392,10 @@ def compile_planner(doc: Any, *, file_stem: Optional[str] = None, ceilings: Opti
         except LocalityError as e:
             cx.err("P011", "settings.locality", str(e))
             raise PlannerError(who, cx.diags)
+    if isinstance(doc.get("settings"), dict) and "numbers_check" in doc["settings"] \
+            and numbers_check_error(doc["settings"]["numbers_check"]):
+        cx.err("P011", "settings.numbers_check", numbers_check_error(doc["settings"]["numbers_check"]))
+        raise PlannerError(who, cx.diags)
     if kind == "python":
         for msg in schema_errors(doc, "pythonPlanner"):
             cx.err("P011", "", msg)

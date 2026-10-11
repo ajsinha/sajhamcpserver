@@ -215,8 +215,11 @@ filed one folder per provider; list them with `python -m sajha.tools folders`.
   refuse a name that exists anywhere.
 - **Deeper files are ignored.** `config/tools/<a>/<b>/<name>.json` is never loaded; the warning notice
   `tools.too_deep` names every such file.
-- **Folder names**: a lowercase letter, then lowercase letters, digits, `_` or `-`; at most 32
-  characters; no `__`; not the name of a tool.
+- **Folder names** (and so domain names): letters, digits and `_` only, with at least one letter
+  (`fred`, `bank_of_canada`, `Fx_2`). A folder named otherwise (`market-data`, `2024`, `café`) is
+  ignored with everything in it, its `domain.txt` included, and the warning notice
+  `tools.bad_folder` names it. Creators and the move command also refuse more than 32 characters,
+  `__` and the name of a tool.
 - **One authority.** `sajha/tools/tool_files.py` maps names to files (`ToolFileIndex`, built from the
   storage backend's recursive listing). Everything that turns a tool name into a path asks it: the
   registry's save, enable, disable and reload; Studio ownership; the creators; API Import; data

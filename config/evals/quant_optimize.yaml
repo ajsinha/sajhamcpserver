@@ -1,0 +1,21 @@
+# An optimisation with a known optimum (docs/architecture/Quantitative Planners.md §3.6, §4): the
+# optimize planner writes the formulation, SAJHA solves it and checks feasibility. Needs SciPy.
+# Runs offline on the mock provider:
+#   python -m sajha.quality eval quant_optimize
+name: quant_optimize
+description: A linear programme with a known optimum (36 at x = 2, y = 6), solved by the optimize planner.
+models: [mock/mock-planner]
+planners: [optimize]
+tools: ["calc_*"]
+defaults:
+  max_steps: 0
+  max_tokens: 40000
+  max_latency_ms: 30000
+questions:
+  - id: product-mix
+    question: Maximise 3x + 5y subject to x <= 4, 2y <= 12 and 3x + 2y <= 18. What is the optimal objective value?
+    answer:
+      - number: 36
+        tolerance: 0.000001
+      - regex: "x = 2\\b"
+      - regex: "y = 6\\b"

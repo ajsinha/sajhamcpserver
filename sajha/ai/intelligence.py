@@ -176,6 +176,11 @@ class AskResult:
     loops_exhausted: List[str] = field(default_factory=list)         # bounded edges that reached their bound
     planner_by: str = ""                  # why this planner: version route | caller choice | tool config | ...
     input_request: Optional[Dict[str, Any]] = None                   # stopped_by needs_input: what to ask
+    queries: List[Dict[str, Any]] = field(default_factory=list)      # SQL run over loaded results (data_analyst)
+    code_runs: List[Dict[str, Any]] = field(default_factory=list)    # sandboxed code runs (code_act): code, digest, output
+    workspace: Optional[Dict[str, Any]] = None                       # the run's quantities (sajha/ai/quant), JSON
+    scenario_tables: List[Dict[str, Any]] = field(default_factory=list)  # sensitivity tables (scenario): rows per point
+    reconciliations: List[Dict[str, Any]] = field(default_factory=list)  # comparisons across sources (reconcile)
 
     def to_dict(self) -> Dict[str, Any]:
         return {"question": self.question, "answer": self.answer, "confidence": round(self.confidence, 4),
@@ -187,7 +192,9 @@ class AskResult:
                 "conversation_id": self.conversation_id, "turn": self.turn,
                 "standalone_question": self.standalone_question, "planner_version": self.planner_version,
                 "planner_path": self.planner_path, "loops_exhausted": self.loops_exhausted,
-                "planner_by": self.planner_by, "input_request": self.input_request}
+                "planner_by": self.planner_by, "input_request": self.input_request,
+                "queries": self.queries, "code_runs": self.code_runs, "workspace": self.workspace,
+                "scenario_tables": self.scenario_tables, "reconciliations": self.reconciliations}
 
 
 def fingerprint(name: str, arguments: Dict[str, Any]) -> str:
@@ -656,13 +663,14 @@ class IntelligenceService:
                 tool_calls += 1
                 yield ev("tool_call", id=call.id, name=call.function.name, arguments=_args(call), step=step)
                 if not parallel:
-                    outcome = self._run_call(call, offered, confirmed)
+                    outcome = self._run_call(call, offered, confirmed, state.data.get("raw_results"))
                     pending_here = self._record_call(call, outcome, res, parts) or pending_here
                     yield from self._call_events(call, outcome, ev)
                 else:
                     admitted.append(call)
             if admitted:
-                for call, outcome in zip(admitted, self._run_parallel(admitted, offered, confirmed)):
+                for call, outcome in zip(admitted, self._run_parallel(admitted, offered, confirmed,
+                                                                      state.data.get("raw_results"))):
                     pending_here = self._record_call(call, outcome, res, parts) or pending_here
                     yield from self._call_events(call, outcome, ev)
             messages.extend(parts[c.id] for c in calls if c.id in parts)
@@ -685,6 +693,10 @@ class IntelligenceService:
             res.planner_version = pinfo.get("planner_version") or res.planner_version
             res.planner_path = list(pinfo.get("planner_path") or [])
             res.loops_exhausted = list(pinfo.get("loops_exhausted") or [])
+            res.queries = list(pinfo.get("queries") or [])
+            res.code_runs = list(pinfo.get("code_runs") or [])
+            res.scenario_tables = list(pinfo.get("scenario_tables") or [])
+            res.reconciliations = list(pinfo.get("reconciliations") or [])
         plan_steps = state.data.get("plan")
         plan_steps = plan_steps() if callable(plan_steps) else plan_steps
         if plan_steps:
@@ -714,6 +726,13 @@ class IntelligenceService:
             for c in final.caveats or []:
                 if c not in res.caveats:
                     res.caveats.append(c)
+        if res.answer and stopped not in ("needs_confirmation", "needs_connection", "needs_input", "failed"):
+            checked = self._numbers_check(res, plan, ref, info, planner, state, messages, ctx, model, count)
+            if checked:                       # the reserved setting numbers_check (Quantitative Planners §2.5)
+                yield ev("numbers_check", **checked)
+        ws = state.data.get("workspace")
+        if ws is not None and hasattr(ws, "to_json") and len(ws):
+            res.workspace = ws.to_json()      # the run record keeps the quantities and their lineage
         if stopped == "needs_input" and res.input_request and not res.answer:
             res.answer = res.input_request.get("message") or ""
         for st in res.steps:
@@ -761,17 +780,19 @@ class IntelligenceService:
         yield ev("tool_result", id=call.id, name=call.function.name, ok=step_rec.ok, summary=step_rec.summary,
                  latency_ms=step_rec.latency_ms, **extra)
 
-    def _run_parallel(self, calls: List[ToolCall], offered: Dict[str, Any], confirmed: Set[str]):
+    def _run_parallel(self, calls: List[ToolCall], offered: Dict[str, Any], confirmed: Set[str],
+                      raw: Optional[Dict[str, Any]] = None):
         """Run independent calls together (each in a copy of this context: caller, policy source)."""
         import contextvars
         from concurrent.futures import ThreadPoolExecutor
         with ThreadPoolExecutor(max_workers=min(len(calls), 8), thread_name_prefix="ask-call") as pool:
-            futures = [pool.submit(contextvars.copy_context().run, self._run_call, c, offered, confirmed)
+            futures = [pool.submit(contextvars.copy_context().run, self._run_call, c, offered, confirmed, raw)
                        for c in calls]
             return [f.result() for f in futures]
 
     # ── pieces ─────────────────────────────────────────────────
-    def _run_call(self, call: ToolCall, offered: Dict[str, Any], confirmed: Set[str]):
+    def _run_call(self, call: ToolCall, offered: Dict[str, Any], confirmed: Set[str],
+                  raw: Optional[Dict[str, Any]] = None):
         s = self.settings
         name, args = call.function.name, _args(call)
         fp = fingerprint(name, args)
@@ -811,6 +832,8 @@ class IntelligenceService:
         except Exception as e:
             out, ok = {"error": f"{e.__class__.__name__}: {e}"}, False
         latency = int((time.time() - t) * 1000)
+        if raw is not None and ok and len(raw) < 64:
+            raw[call.id] = out           # uncapped, for a planner that loads results (state.data["raw_results"])
         from sajha.core.composition import get_tool_confidence
         from sajha.ai.llm_tools.runtime import observe_result     # an LLM-tool run's working set (§10.4)
         out = observe_result(name, call.id, out)
@@ -818,6 +841,71 @@ class IntelligenceService:
         step = AskStep(call.id, name, args, ok, "ok" if ok else "error", _summary(content), latency,
                        get_tool_confidence(name) if ok else 0.0, fp, _net_of(out))
         return step, ChatMessage.tool(call.id, content, is_error=not ok, tool_name=name), None
+
+    def _numbers_check(self, res: AskResult, plan, ref, info: Dict[str, Any], planner, state, messages, ctx, model,
+                       count) -> Optional[Dict[str, Any]]:
+        """The reserved planner setting ``numbers_check`` (docs/architecture/Quantitative Planners.md §2.5):
+        warn adds a caveat naming the answer's unmatched figures; enforce revises the answer once with
+        them named, then removes any still unmatched. Returns the event payload, or None when off."""
+        from sajha.ai.planners_engine import numbers as N
+        settings: Dict[str, Any] = {}
+        pdef = getattr(plan, "pdef", None)
+        try:
+            if pdef is not None:
+                settings = dict(pdef.settings or {})
+            elif isinstance(ref, dict) and "use" not in ref:
+                settings = dict(ref.get("settings") or {})
+            else:
+                from sajha.ai.planners_engine import ask_overlays, get_registry
+                overlays = dict(info.get("overlays") or {})
+                if not info or planner is None:
+                    overlays = {**ask_overlays(self.settings.planner_config), **overlays}
+                settings = dict(get_registry().compiled(ref, overlays).settings or {})
+        except Exception:
+            settings = {}
+        mode = N.mode_for(settings)
+        if mode == "off":
+            return None
+        from sajha.ai.quant import workspace_of
+        ws = workspace_of(state)
+        top = getattr(getattr(plan, "rc", None), "top", None)
+        results = list(top.slots.get("results") or []) if top is not None and top.slots.get("results") else \
+            N.results_from_messages(res.steps, state.results(), state.data.get("raw_results"))
+        question = state.question
+        bad = N.unmatched(res.answer, question, results, ws)
+        out: Dict[str, Any] = {"mode": mode, "check": "numbers_in_workspace" if ws is not None else "numbers_in_results",
+                               "unmatched": [f["raw"] for f in bad][:50], "revised": False, "removed": []}
+        if not bad:
+            return out
+        if mode == "warn":
+            res.caveats.append(N.warn_caveat(bad))
+            return out
+        from sajha.ai.planners import build_request, system_message
+        from sajha.ai.planners_engine.stages import titled
+        msgs = list(messages)
+        while msgs and msgs[-1].role == "assistant" and not msgs[-1].tool_calls:
+            msgs.pop()
+        req = build_request([system_message(N.REVISE_PROMPT)] + msgs
+                            + [ChatMessage.user(N.revision_text(question, res.answer, bad))], ctx=ctx,
+                            schema=titled(ASK_SCHEMA, "sajha.numbers_check"), schema_name="answer",
+                            temperature=self.settings.temperature)
+        req.model = model or "default"
+        req.sajha.needs = "structured_output"
+        try:
+            resp = self.gateway.chat_completions_create(req)
+            count(resp)
+            data = resp.parsed()
+            revised = str((data or {}).get("answer") or "").strip()
+            if revised:
+                res.answer, out["revised"] = revised, True
+        except Exception as e:
+            logger.info(f"ask: numbers_check revision failed ({e}); removing the unmatched figures")
+        still = N.unmatched(res.answer, question, results, ws)
+        if still:
+            res.answer = N.remove_figures(res.answer, still)
+            res.caveats.append(N.removed_caveat(still))
+            out["removed"] = [f["raw"] for f in still][:50]
+        return out
 
     def _synthesize(self, messages: List[ChatMessage], final_text: str, ok_ids: List[str], ctx, model, res):
         if not res.steps:
@@ -877,6 +965,26 @@ class IntelligenceService:
                  "planner_path": res.planner_path, "loops_exhausted": res.loops_exhausted,
                  "tokens": res.usage.total_tokens, "outcome": res.stopped_by,
                  "confidence": round(res.confidence, 4)}
+        if res.queries:                  # SQL over loaded tool results: the query and its source calls
+            entry["queries"] = [{"id": q.get("id"), "sql": str(q.get("sql") or "")[:500], "ok": q.get("ok"),
+                                 "sources": q.get("sources")} for q in res.queries[:10]]
+        if res.code_runs:                # code_act: the code, its input digest and its output (§3.5)
+            entry["code_runs"] = [{"stage": c.get("stage"), "code": str(c.get("code") or "")[:2000],
+                                   "input_digest": c.get("input_digest"), "output": str(c.get("output") or "")[:1000],
+                                   "ok": c.get("ok"), "error": c.get("error")} for c in res.code_runs[:5]]
+        if res.scenario_tables:          # scenario: the grid's tool, unit and each point's value and change (§3.3)
+            entry["scenario_tables"] = [{
+                "stage": t.get("stage"), "tool": t.get("tool"), "unit": t.get("unit"), "failed": t.get("failed"),
+                "rows": [{k: r.get(k) for k in ("point", "label", "status", "value", "change", "change_pct", "call_id",
+                                                 "error")} for r in (t.get("rows") or [])[:50]]}
+                for t in res.scenario_tables[:5]]
+        if res.reconciliations:          # reconcile: each figure's status and the differences beyond tolerance (§3.8)
+            entry["reconciliations"] = [{
+                "stage": x.get("stage"), "tolerance": x.get("tolerance"), "tolerance_abs": x.get("tolerance_abs"),
+                "align": x.get("align"),
+                "figures": [{k: f.get(k) for k in ("name", "status", "reason", "unit", "reference")}
+                            for f in (x.get("figures") or [])[:20]],
+                "breaks": list(x.get("breaks") or [])[:20]} for x in res.reconciliations[:5]]
         try:
             if self._audit is not None:
                 self._audit({"user_id": ctx.user_id, **entry})

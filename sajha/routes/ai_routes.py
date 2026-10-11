@@ -638,12 +638,18 @@ async def api_planners(auth: AuthContext = Depends(require_auth)):
     (ai.ask.planner), the LLM-tool default (ai.planners.default) and, for admins, load problems."""
     from sajha.ai.intelligence import get_intelligence
     from sajha.ai.planners_engine import get_registry
+    from sajha.ai.llm import RequestContext
     reg = get_registry()
     svc = get_intelligence()
-    body = {'planners': reg.describe(), 'default': svc.settings.planner if svc is not None else None,
+    # A role-limited planner (code_act: ai.quant.code_act.roles) is not offered to a caller without the
+    # role; administrators see it marked permitted: false (Quantitative Planners §3.5).
+    who = RequestContext(user_id=auth.user_id or '', roles=list(auth.roles or []), is_admin=bool(auth.is_admin))
+    body = {'planners': reg.describe(ctx=who, hide_refused=not auth.is_admin),
+            'default': svc.settings.planner if svc is not None else None,
             'tool_default': reg.settings.default, 'aliases': {'model': 'react'}}
     if auth.is_admin:
         body['problems'] = reg.problems()
+        body['unavailable'] = dict(reg.unavailable)
     return JSONResponse(body)
 
 

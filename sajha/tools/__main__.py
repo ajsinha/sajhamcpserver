@@ -75,6 +75,8 @@ def cmd_folders(out=sys.stdout) -> int:
         print(f'DUPLICATE {name}: {", ".join(rels)} (neither loads)', file=out)
     for rel in idx.too_deep():
         print(f'IGNORED (nested too deep): {rel}', file=out)
+    for rel in idx.bad_folder():
+        print(f'IGNORED (folder name not allowed): {rel}', file=out)
     return 0
 
 

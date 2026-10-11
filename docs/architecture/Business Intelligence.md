@@ -2,9 +2,10 @@
 
 > **Status: planned, not built.** Wave 8, phase 8.4 (release 8.11.0) of the
 > [Implementation Plan](Implementation%20Plan.md#7b-wave-8-tool-health-open-data-business-intelligence-and-reports);
-> Roadmap items L40 to L44. Until it ships, nothing below exists in the code; the parts it builds
-> on (DuckDB, the OLAP semantic layer, SQL select, data connectors, workflows, MCP Apps) do, and
-> their own guides describe them.
+> Roadmap items L40 to L44. Until it ships, nothing below exists in the code except the tool-result
+> loader of section 6 (built in phase 8.2 for the `data_analyst` planner; the `bi_load_tool_result`
+> tool is not built); the parts it builds on (DuckDB, the OLAP semantic layer, SQL select, data
+> connectors, workflows, MCP Apps) do, and their own guides describe them.
 
 This document owns one topic: **business intelligence as governed tools**. A *metrics layer*
 (metric definitions an owner writes once), analysis tools that answer the questions people
@@ -176,22 +177,28 @@ installed; otherwise those formats embed nothing and say so.
 ## 6. Blending tool results with internal data
 
 `bi_load_tool_result` turns any tool's output (FRED series, a World Bank indicator, an FMP
-statement, a qlrisk result) into a DuckDB table the caller can join with internal data. The loader
-itself is built earlier, in phase 8.2, for the `data_analyst` planner
-([Quantitative Planners](Quantitative%20Planners.md) §3.4); this phase exposes it as a tool, and the
-rules below are the loader's:
+statement, a qlrisk result) into a DuckDB table the caller can join with internal data. **The loader
+is built** (`sajha/analytics/scratch.py`, phase 8.2, used by the `data_analyst` planner:
+[Quantitative Planners](Quantitative%20Planners.md) §3.4, which also describes how rows are found,
+named and typed and how a query is guarded); **the tool is not built yet**: this phase exposes the
+loader as a tool. The rules, with what is built marked:
 
 - the inner call runs **as the caller** through `execute_with_tracking` (RBAC, policy, cache,
-  audit), exactly as Ask SAJHA's inner calls do;
-- rows are taken at `rows_path`; columns are typed from the tool's `outputSchema` when it has one,
-  else inferred;
-- the table lives in a **per-user scratch database** (one DuckDB file per user under a
-  `bi.scratch_dir`, planned), never shared, dropped after `ttl_minutes` (default 60, capped by
-  `bi.scratch_max_minutes`), bounded by `bi.scratch_max_rows` and `bi.scratch_max_mb`;
-- it records its provenance (tool, tool version, arguments, time) for [Reports](Reports.md)'
-  provenance appendix, and the source tool's data classes;
+  audit), exactly as Ask SAJHA's inner calls do (planned for the tool; in `data_analyst` the calls
+  are the ask's own);
+- rows are taken at `rows_path` (built, as is finding them without one); columns are typed from the
+  tool's `outputSchema` when it has one (planned), else inferred from the values (built);
+- the table lives in a **per-user scratch database** (one DuckDB file per user under
+  `bi.scratch_dir`), never shared, dropped after `ttl_minutes` (default 60, capped by
+  `bi.scratch_max_minutes`), bounded by `bi.scratch_max_rows` (a larger result is refused) and
+  `bi.scratch_max_mb` (built: the keys are in the
+  [Configuration Reference](../getting-started/Configuration%20Reference.md#bi));
+- it records its provenance (call id, tool, tool version, arguments, time loaded and expiry) for
+  [Reports](Reports.md)' provenance appendix, and the source tool's data classes (built: the loader
+  stores what it is given; the planner passes call id, tool and arguments);
 - a metric with `source: {loaded: true}` and `bi_query_metric` with a `table` override can then
-  query it; `duckdb_query` cannot see scratch tables (they are not in the shared DuckDB).
+  query it (planned); `duckdb_query` cannot see scratch tables (they are not in the shared DuckDB).
+  Today the loader's own query (one read-only `SELECT`, the caller's file only) is the way in.
 
 ---
 
@@ -237,10 +244,11 @@ workflow says so, an alert through the existing alert channels (log, webhook, em
 ## 9. Configuration (planned keys)
 
 `bi.enabled` (default `false`: no `bi_*` tool loads), `bi.metrics_dir`, `bi.dashboards_dir`,
-`bi.checks_dir`, `bi.scratch_dir`, `bi.scratch_max_minutes`, `bi.scratch_max_rows`,
-`bi.scratch_max_mb`, `bi.max_rows` (cap on any compiled query, below the connector's own),
+`bi.checks_dir`, `bi.max_rows` (cap on any compiled query, below the connector's own),
 `bi.dashboard_concurrency`. They go into the
-[Configuration Reference](../getting-started/Configuration%20Reference.md) when built.
+[Configuration Reference](../getting-started/Configuration%20Reference.md) when built. The loader's
+keys (`bi.scratch_dir`, `bi.scratch_max_minutes`, `bi.scratch_max_rows`, `bi.scratch_max_mb`) are
+built and are there already.
 
 ---
 

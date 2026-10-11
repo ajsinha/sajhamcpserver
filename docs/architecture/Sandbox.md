@@ -229,6 +229,7 @@ the active backend's guarantees before you deploy.
 | Any tool whose config says `"sandbox": {"enabled": true}` | sandbox (its module source runs in the runner) |
 | Built-in tools, composites, and Studio's template creators (REST, DB query, Power BI, LiveLink, SharePoint, OLAP) | in-process: their code is SAJHA's template, the user supplies only configuration, and they need the server's connections and credentials |
 | Admin shell (`/api/shell/python`, `/api/shell/bash`) | sandbox, after the existing import and command filters |
+| Model-written code of the `code_act` planner stage (`sajha/ai/code_act/`) | sandbox, default backend, through `exec`: the policy is `sandbox.defaults` capped by `sandbox.max` with the network always off; the code reads its input from standard input and must print quantities as JSON ([Quantitative Planners](Quantitative%20Planners.md) §3.5) |
 
 `sandbox.enforce_for_generated_tools: true` (the default) sandboxes Studio code and
 script tools whatever their config says. Set it to `false` to load them in-process again

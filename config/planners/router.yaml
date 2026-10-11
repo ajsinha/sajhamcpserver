@@ -2,14 +2,17 @@
 # Edit with care: change `version` when the behaviour changes, and keep the old file as
 # router@<old version>.yaml while tools still pin it.
 name: router
-version: 1.0.0
-description: Chooses a strategy per question - configured rules, then recipes, then plan_execute for questions with several parts, otherwise react.
+version: 1.1.0
+description: Chooses a strategy per question - configured rules, then recipes, then calc_graph for questions asking for a computed figure, then plan_execute for questions with several parts, otherwise react.
 use_when: Mixed traffic where cheap deterministic rules can route most questions.
-settings:                          # today's RouterConfig: same keys, same defaults
+settings:                          # the RouterConfig keys and defaults, plus use_quant, quant_default, quant_pattern
   rules: []                        # [{match: <regex>, planner: <name>}], checked first, in order
   use_recipes: true
   multi_step: plan_execute
   default: react
+  use_quant: true                  # questions asking for a computed figure (Quantitative Planners §3.9)
+  quant_default: calc_graph
+  quant_pattern: '\b(percent(age)? (change|increase|decrease|rise|fall|move)|per cent change|cagr|compound annual growth|basis points?|bps?|what[- ]if|sensitivity|sensitivities|spread|npv|net present value|irr|internal rate of return|weighted average|annuali[sz]ed?|regression|year[- ]over[- ]year|yoy)\b'
   multi_step_pattern: '\b(and then|then|after that|compare|comparison|versus|vs\.?|both|each of|as well as|respectively)\b|\?.+\?'
 start: rules
 stages:
@@ -27,14 +30,27 @@ stages:
   recipes_check:
     type: match
     when: "settings.use_recipes"
-    else: { next: shape }
+    else: { next: quant }
     rules_from: recipes.match      # the recipes planner's rules: a recipe whose tool is offered
     outcomes:
-      none: { next: shape }
+      none: { next: quant }
       "*":  { next: to_recipes }
   to_recipes:
     type: planner
     planner: recipes
+    next: answer
+  quant:
+    type: match
+    when: "settings.use_quant"
+    else: { next: shape }
+    rules:
+      - { name: quant, pattern: "{{settings.quant_pattern}}" }
+    outcomes:
+      quant: { next: computed }
+      none:  { next: shape }
+  computed:
+    type: planner
+    planner: "{{settings.quant_default}}"
     next: answer
   shape:
     type: match

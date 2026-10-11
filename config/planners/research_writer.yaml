@@ -1,0 +1,54 @@
+# The shipped "research_writer" planner (docs/architecture/Quantitative Planners.md §3.7;
+# file format: docs/architecture/Planner Reference.md §13). Built from the stage library only.
+# Edit with care: change `version` when the behaviour changes, and keep the old file as
+# research_writer@<old version>.yaml while tools still pin it.
+name: research_writer
+version: 1.0.0
+description: Outlines a write-up (one plan step per section), gathers each section's sources with its own ReAct sub-run, drafts with the call ids cited inline, checks that every paragraph with a figure cites a result, and revises once.
+use_when: A cited write-up drawing on several sources, such as a briefing, a market summary or a comparison across providers.
+models: { writer: reasoning }
+settings: { max_sections: 6, concurrency: 2 }
+start: outline
+stages:
+  outline:
+    type: plan
+    context: question
+    prompt: { text: "Outline the write-up the user asked for. Return one step per section, in reading order: `why` is the section's heading and what it covers, `tool` the first tool to consult for it, `arguments` that tool's arguments. No dependencies between steps." }
+    max_plan_steps: "{{settings.max_sections}}"
+    outcomes:
+      planned: { next: sections }
+      invalid: { next: gather }    # no outline: gather for the whole question instead
+  sections:
+    type: foreach
+    items: plan
+    as: section
+    planner: react@1.0.0
+    question: "{{original_question}} Gather the sources for this section only: {{section.why}}"
+    max_items: "{{settings.max_sections}}"
+    concurrency: "{{settings.concurrency}}"
+    outcomes:
+      done:    { next: draft }
+      partial: { next: draft }
+  gather:
+    type: act
+    outcomes:
+      called:   { next: gather, max_visits: 4, on_exhausted: draft }
+      answered: { next: draft }
+  draft:
+    type: draft
+    model: writer
+    prompt: { text: "Write the piece from the tool results and per-section notes above, one or more paragraphs per section. After every figure or claim, cite the call id it comes from in square brackets, for example [call_1]. Say what could not be found." }
+    next: verify
+  verify:
+    type: verify
+    checks: [{ check: citations_present, per: paragraph }, no_failed_citations]
+    outcomes:
+      ok:       { next: answer }
+      mismatch: { next: revise, max_visits: 1, on_exhausted: answer }
+  revise:
+    type: revise
+    model: writer
+    address: findings
+    next: verify
+  answer:
+    type: answer                   # unresolved findings become caveats

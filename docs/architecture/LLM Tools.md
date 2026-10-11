@@ -743,9 +743,9 @@ so:
 
 | Trigger | Escalates to |
 |---|---|
-| `verify` finds a figure in the draft that no tool result contains | Reflect (critique and revise) |
+| `verify` finds a figure in the draft that no tool result and no workspace quantity contains | Reflect (critique and revise) |
 | the question has several parts that the draft does not all answer | `plan_execute` on the reasoning alias |
-| confidence below `escalate_below`, or the first try used up its step sub-budget (`subrun.stopped_by` is `step_limit`) | `plan_execute` on the reasoning alias |
+| confidence below `escalate_below` (except for a planner in `self_checked`, which checks its own figures), or the first try used up its step sub-budget (`subrun.stopped_by` is `step_limit`) | `plan_execute` on the reasoning alias |
 | otherwise | answer |
 
 ```yaml
@@ -754,8 +754,9 @@ so:
 name: auto
 use_when: Mixed traffic; pick a strategy per question and upgrade only when checks fail.
 models: { chooser: fast, act: fast, strong: reasoning }
-settings: { candidates: [react, plan_execute, reflect, map_reduce], default: react,
-            escalate_below: 0.6, first_try: { max_steps: 4 } }
+settings: { candidates: [react, plan_execute, reflect, map_reduce, calc_graph, scenario, data_analyst],
+            default: react, escalate_below: 0.6, self_checked: [calc_graph, scenario, data_analyst],
+            first_try: { max_steps: 4 } }
 start: known
 stages:
   known:    { type: match, rules_from: recipes.match,           # recipes first: no model call
@@ -765,12 +766,13 @@ stages:
               default: "{{settings.default}}", outcomes: { "*": { next: run } } }
   run:      { type: planner, planner: "{{chosen}}", choices: "{{settings.candidates}}",
               model: act, limits: "{{settings.first_try}}", outcomes: { "*": { next: verify } } }
-  verify:   { type: verify, checks: [numbers_in_results, parts_answered],
+  verify:   { type: verify, checks: [numbers_in_workspace, parts_answered],
               outcomes: { ok: { next: gate },
                           mismatch: [ { next: split, when: "'parts_answered' in $.findings[*].check",
                                         max_visits: 1, on_exhausted: answer },
                                       { next: reflect, max_visits: 1, on_exhausted: answer } ] } }
-  gate:     { type: answer, when: "confidence >= settings.escalate_below and subrun.stopped_by != 'step_limit'",
+  gate:     { type: answer, when: "(confidence >= settings.escalate_below or chosen in settings.self_checked)
+                                     and subrun.stopped_by != 'step_limit'",
               else: { next: deeper, max_visits: 1, on_exhausted: answer } }
   reflect:  { type: planner, planner: reflect, model: strong, next: answer }
   split:    { type: planner, planner: plan_execute, model: strong, next: answer }
@@ -782,7 +784,10 @@ Three things make this safe to load. A planner chosen at run time (`"{{chosen}}"
 value it may take in `choices`, each resolved and validated at load, and a value outside it
 fails the stage instead of running. The candidates are shipped planners (`reflect` is the
 shipped Reflect strategy; `reflect_analyst` in section 9.2 is only an example), and recipes are
-not a candidate because the first `match` stage already handles them. And `model` on a
+not a candidate because the first `match` stage already handles them. The quantitative candidates
+(`calc_graph`, `scenario`, `data_analyst`) are described in
+[Quantitative Planners](Quantitative%20Planners.md) §3.9; `code_act` and `optimize` are never
+default candidates. And `model` on a
 `planner` stage re-binds every model role of the sub-run to that role's alias, so `model: act`
 runs the first try on the fast alias and `model: strong` the escalations on the reasoning alias.
 

@@ -1,0 +1,47 @@
+# The shipped "reconcile" planner (docs/architecture/Quantitative Planners.md §3.8;
+# file format: docs/architecture/Planner Reference.md §13).
+# Edit with care: change `version` when the behaviour changes, and keep the old file as
+# reconcile@<old version>.yaml while tools still pin it.
+name: reconcile
+version: 1.0.0
+description: Gathers the same figure from two or more sources, has the model say where each source holds it, then SAJHA reads every value as a quantity, aligns them on as-of date and unit (never across currencies without an FX rate from a tool), lists the differences beyond the tolerance with both lineages, and the model explains the comparison table.
+use_when: Comparing one figure across sources, such as an official statistic from two providers or a position system against a risk report, and explaining where they differ.
+settings:
+  tolerance: 0.005                 # a difference beyond this fraction of the reference value is listed
+  tolerance_abs: 0                 # or beyond this amount in the reference's unit, whichever is larger
+  align: day                       # as-of alignment: exact | day | month | quarter | year
+  max_gather: 4                    # tool rounds before comparing
+start: gather
+stages:
+  gather:
+    type: act
+    prompt: { text: "Fetch the figure the question is about from every source it names, with the tools offered, for the same period. Reply without calling a tool when you have them; SAJHA compares them next." }
+    outcomes:
+      called:   { next: gather, max_visits: "{{settings.max_gather}}", on_exhausted: compare }
+      answered: { next: compare }
+  compare:
+    type: reconcile
+    tolerance: "{{settings.tolerance}}"
+    tolerance_abs: "{{settings.tolerance_abs}}"
+    align: "{{settings.align}}"
+    outcomes:
+      matched:        { next: draft }
+      breaks:         { next: draft }
+      not_comparable: { next: draft }   # the caveats say why; nothing is converted at a guessed rate
+      invalid:        { next: draft }
+  draft:
+    type: draft
+    prompt: { text: "Explain the reconciliation above: whether the sources agree, each difference beyond the tolerance with its as-of date and likely cause, and anything that could not be compared and why. Quote figures exactly as the comparison writes them and cite the call ids; compute nothing yourself." }
+    next: verify
+  verify:
+    type: verify
+    checks: [numbers_in_workspace, no_failed_citations]
+    outcomes:
+      ok:       { next: answer }
+      mismatch: { next: revise, max_visits: 1, on_exhausted: answer }
+  revise:
+    type: revise
+    address: findings
+    next: verify
+  answer:
+    type: answer                   # unresolved findings become caveats

@@ -2,6 +2,149 @@
 
 Newest first. The current version is `app.version` in `config/application.yml`.
 
+## v8.9.0 (October 2026) — quantitative planners: computed numbers with units and lineage, scenarios, data analysis, optimisation
+
+### Upgrading
+
+- **Tool folder names.** A tool folder (a domain) is now named with letters, digits and `_` only, with at
+  least one letter. A folder named otherwise (for example with `-`, or digits only) is ignored with every
+  tool in it, and the warning notice `tools.bad_folder` names it; rename such a folder with `git mv`.
+  Uppercase letters and a leading digit or `_` are now allowed; `-` is not. No shipped folder is affected.
+
+- **`router` and `auto` are now version 1.1.0** and choose the quantitative planners (see Changed).
+  Only the new versions ship: a tool or `ai.ask.planner` that pins `router@1.0.0` or `auto@1.0.0`
+  no longer resolves, so use the bare name or pin `@1.1.0`. To keep the old routing, set
+  `use_quant: false` in a `router` overlay, or replace `auto`'s `candidates` in an overlay.
+- **The `optimize` planner needs SciPy** (an optional dependency, in `requirements-qlrisk.txt`);
+  without it that planner is not loaded and the info notice `planners.unavailable:optimize` says why.
+
+### Added
+
+- **Quantitative workspace** (`sajha/ai/quant/`; [Quantitative Planners](docs/architecture/Quantitative%20Planners.md)
+  §2): quantities that carry a unit, an as-of date, a source and their lineage; units with scales
+  and the conversions SAJHA allows (percent, pp, bp and ratio; scales of one currency; days and
+  years by `ai.quant.day_count`), refusing cross-currency and level-to-rate conversions; a run's
+  workspace, kept in the ask's result as JSON (`workspace`).
+- **Operation library** (`sajha/ai/quant/ops.py`): `diff`, `pp`, `pct_change`, `ratio`,
+  `bp_spread`, `cagr`, `annualise`, `npv`, `irr`, `weighted_avg`, `sum`, `mean`, `median`,
+  `stdev`, `min`, `max`, `regression`, `correlation`, `convert`, `fx_convert` and `round`, each
+  with a unit check whose refusal is written for the model; known-answer tests, and tests that
+  `npv`, `irr` and `pct_change` agree with `calc_npv`, `calc_irr` and `calc_percentage_change`.
+- **Verify check `numbers_in_workspace`** (Planner Reference §9.6): `numbers_in_results` that also
+  accepts a figure matching a workspace quantity in any unit it converts to.
+- **Reserved planner setting `numbers_check`** (`off`, `warn`, `enforce`): any planner, through its
+  file or an overlay, can caveat or revise and then remove the figures in its answer that match no
+  tool result or computed quantity. The ask's event stream gets a `numbers_check` event. New keys
+  `ai.planners.numbers_check` and `ai.quant.*` (Configuration Reference).
+- **Planner `calc_graph`** (Quantitative Planners §3.1, Planner Reference §13.18) and the stage types
+  `graph_plan` and `compute` (`sajha/ai/planners_engine/quant_stages.py`, `sajha/ai/quant/graph.py`):
+  the model writes a computation graph (tool reads with declared units, constants, named operations)
+  instead of an answer. Before anything runs, SAJHA checks it is acyclic, within
+  `ai.quant.max_graph_nodes`, uses only offered tools and known operations, has read paths that
+  parse and passes the unit checks on its declared units; then the reads run as one parallel step
+  (identical calls once, uncapped outputs), the operations in dependency order in the workspace with
+  lineage to the calls. A refused graph, or a failed node (which fails the nodes that need it), gets
+  one re-plan told the errors; the draft is checked with `numbers_in_workspace`. The stream carries a
+  `graph` event per attempt.
+- **Planner `estimate_then_compute`** (Quantitative Planners §3.2, Planner Reference §13.19): a rough
+  estimate without tools (stage type `estimate`), `calc_graph` as a sub-planner, and the verify
+  check `estimate_consistent`; a computed figure more than `settings.tolerance_factor` (default 10)
+  from the estimate, or in a unit that does not convert, is re-planned once with both figures named,
+  then answered with a caveat giving the estimate.
+- **Planner `scenario`** (Quantitative Planners §3.3, Planner Reference §13.20) and the stage types
+  `grid`, `grid_call` and `tabulate`: a grid of shocks defined by the tool's settings
+  (`settings.grid`) or by the model (validated: the tool offered, the paths, the unit, at most
+  `settings.max_points` points with the base, capped by `ai.planners.limits.max_foreach_items`;
+  errors go back once, a grid is never truncated), one tool call per point through the existing
+  `foreach` (for example `qlrisk_price_trades` with `market_data.shocks`), and a sensitivity table in
+  the workspace: base, shocked values, differences and percent changes from the base, columns and a
+  table quantity, each with lineage to the calls. A failed point is reported with its reason, never
+  filled in. The draft is checked with `numbers_in_workspace`; the stream carries `scenario_grid` and
+  `scenario_table` events, and the ask's result and audit entry the table (`scenario_tables`).
+- **Tool-result loader and per-user scratch databases** (`sajha/analytics/scratch.py`;
+  [Business Intelligence](docs/architecture/Business%20Intelligence.md) §6): a tool result's rows
+  become a table in the caller's own DuckDB file under `bi.scratch_dir`, with sanitised names,
+  inferred types, provenance (call id, tool, arguments, time loaded) and a time to live, bounded by
+  `bi.scratch_max_rows`, `bi.scratch_max_mb` and `bi.scratch_max_minutes` (new keys, Configuration
+  Reference `bi`). Its query runs one read-only `SELECT` only, parsed by DuckDB and limited to the
+  caller's loaded tables (no other statement, several statements, `ATTACH`, `COPY`, table functions
+  such as `read_csv` or other catalogs), on a read-only connection with file access off, with a row
+  and a time limit. The `bi_load_tool_result` tool is not built yet.
+- **Planner `data_analyst`** (Quantitative Planners §3.4) and the stage types `load_results` and
+  `sql` (Planner Reference §13.14): gather with tools, load the results whole (the service keeps
+  uncapped outputs for such a run), have the model write a SELECT, send DuckDB's error back at most
+  `settings.max_queries` times, then draft and verify. A query result is a result for
+  `numbers_in_results`, its citation names its source calls, each numeric column of a query enters
+  the workspace as `<query id>.<column>` with the query and its source calls as lineage, and every
+  query is in the ask's result and audit entry (`queries`) and on the stream (`query`,
+  `table_loaded`).
+- **Planner `code_act`** (Quantitative Planners §3.5, Planner Reference §13.17) and the stage type
+  `code_act` (`sajha/ai/code_act/`): model-written Python runs in the sandbox's default backend with
+  the network off and the `sandbox.*` limits, reads the run's quantities and results as JSON on
+  standard input, and must print quantities with units as JSON (anything else goes back to the
+  model). The code, its input digest and its output are in the ask's result and audit entry
+  (`code_runs`), on the stream (`code_run`) and in an `ai_code_act` audit event. Role-limited by
+  `ai.quant.code_act.roles` (default none): a caller without the role is not offered it
+  (`GET /api/ai/planners`, `classify` menus, `planner` stages), `auto` never picks it, and a direct
+  run ends `stopped_by: refused`. Stage types can declare such a limit (`allowed_roles()`) or an
+  optional dependency (`unavailable()`).
+- **Planner `optimize`** (Quantitative Planners §3.6, Planner Reference §13.16) and the stage type
+  `optimize` (`sajha/ai/optimize/`): the model writes a formulation (variables with bounds and
+  integrality, a linear or quadratic objective, linear constraints, at most
+  `settings.max_variables`) that is validated with every error sent back, then solved with SciPy
+  (`linprog`, `milp`, or `minimize` for a convex quadratic). A coefficient, bound or right-hand side
+  may name a single-number workspace quantity, and the solution's lineage names it. A feasibility
+  check evaluates every bound and constraint at the solution; infeasible, unbounded, unsupported
+  (non-convex) and check-failed problems are reported as such, never with an invented solution.
+- **Planner `reconcile`** (Quantitative Planners §3.8, Planner Reference §13.21) and the stage type
+  `reconcile`: the model says where each source holds a figure; SAJHA reads each value from the tool
+  result, aligns the readings on as-of period (`settings.align`) and unit (scales, percent and bp;
+  two currencies only through an FX rate read from a tool, otherwise the figure is reported as not
+  comparable), and lists each difference beyond `settings.tolerance` or `settings.tolerance_abs`
+  with both lineages; the model explains the table. The stream carries a `reconciliation` event, and
+  the ask's result and audit entry the comparison (`reconciliations`).
+- **Planner `research_writer`** (Quantitative Planners §3.7, Planner Reference §13.15): an outline,
+  one ReAct sub-run per section, a draft with call ids cited inline, a per-paragraph citation check
+  and one revision, from the existing stage library only.
+- **Quantitative eval sets** (`config/evals/quant_calc_graph.yaml`, `quant_scenario.yaml`,
+  `quant_optimize.yaml`; Quantitative Planners §4): questions with known answers (a percent change,
+  a CAGR, a spread in basis points, an NPV, a weighted average, a regression slope, a sensitivity
+  table, a linear programme with a known optimum) and `number` checks with tolerances. CI
+  (`tests/ai/test_quant_evals.py`) runs them on the mock provider, on `mock-planner` and with
+  scripted replies and recorded tool results that are wrong on purpose (an unknown operation, wrong
+  units, a cycle, a self-computed figure, a bad grid, an invalid formulation), each of which must be
+  refused and re-planned.
+- **Mock planner replies** for the `graph_plan`, `estimate`, `optimize`, `code_act`, `grid`, `sql`
+  and `reconcile` stages, so dry runs of those planners on `mock-planner` complete; it writes
+  computation graphs for the eval sets' question shapes and solves a linear programme written out in
+  the question, so the `quant_calc_graph` and `quant_optimize` sets pass offline. A question that names
+  two or more tools calls each of them; a draft reports the quantities of a `code_act` program and an
+  optimisation result, names a plan-step item by its heading and, when asked to, cites call ids in
+  square brackets; `reconcile` skips fields that echo a call's inputs.
+- **`foreach` `do` graphs may use stage types registered in code**, validated against their own
+  schema as in a file's graph (Planner Reference §6.13).
+- **Tutorial 45**, [Quantitative Planners](docs/tutorials/TUTORIAL_45_quantitative_planners.md): the
+  workspace and units, `numbers_check`, each planner, enabling `code_act` by role, and how `auto` and
+  `router` choose.
+
+### Changed
+
+- **`router` 1.1.0** sends a question asking for a computed figure (its new `quant_pattern`: percent
+  change, CAGR, basis points, what if, sensitivity, spread, NPV and the like) to `quant_default`
+  (`calc_graph`), after the configured rules and recipes and before the multi-step check; new
+  settings `use_quant`, `quant_default` and `quant_pattern` (Quantitative Planners §3.9).
+- **`auto` 1.1.0** offers `calc_graph`, `scenario` and `data_analyst` among its candidates (never
+  `code_act` or `optimize`), verifies with `numbers_in_workspace` instead of `numbers_in_results`,
+  and does not escalate a candidate in its new `self_checked` setting for low confidence alone.
+  Eval filtering of its menu applies to the new candidates as to the others.
+- **`queries` on the ask's result** are now collected from every sub-run, so they are reported when
+  `auto` ran `data_analyst`.
+
+### Fixed
+
+- `numbers_in_results` with `ignore: []` now checks every number; an empty list used to fall back
+  to the default ignore rules.
+
 ## v8.8.0 (October 2026) — tool health checks, domain descriptions, schema defaults, LLM providers import safe
 
 ### Upgrading

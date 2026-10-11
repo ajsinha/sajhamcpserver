@@ -100,7 +100,8 @@ class DomainTexts:
         if parts == [FILE_NAME]:
             return ''
         if len(parts) == 2 and parts[1] == FILE_NAME:
-            return parts[0]
+            from sajha.tools.tool_files import valid_folder_name
+            return parts[0] if valid_folder_name(parts[0]) else None
         return None
 
     def load(self) -> bool:

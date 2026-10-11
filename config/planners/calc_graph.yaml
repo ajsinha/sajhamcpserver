@@ -1,0 +1,40 @@
+# The shipped "calc_graph" planner (docs/architecture/Quantitative Planners.md §3.1;
+# file format: docs/architecture/Planner Reference.md §13.18).
+# Edit with care: change `version` when the behaviour changes, and keep the old file as
+# calc_graph@<old version>.yaml while tools still pin it.
+name: calc_graph
+version: 1.0.0
+description: Has the model write a computation graph (tool reads with declared units, constants the question states, and named operations of the operation library), validates it before anything runs, runs the reads as one parallel step and the operations in dependency order, re-plans once with the errors, then drafts the answer around the computed quantities and checks its figures against them.
+use_when: Questions whose answer is a computed figure, such as a percent change, a CAGR or growth rate over years, a spread in basis points, a ratio, an NPV, a weighted average or a regression slope, from tool data or stated figures.
+start: plan
+stages:
+  plan:
+    type: graph_plan               # one structured reply: the graph
+    outcomes:
+      planned: { next: compute }
+      invalid: { next: fail }
+  compute:
+    type: compute                  # validate (cycles, node cap, tools, operations, paths, units), then run
+    outcomes:
+      done:    { next: draft }
+      invalid: { next: plan, max_visits: 1, on_exhausted: fail }   # one re-plan with the errors
+      failed:  { next: plan, max_visits: 1, on_exhausted: fail }   # one re-plan naming the failed nodes
+  draft:
+    type: draft
+    prompt: { text: "Answer the question in prose around the quantities SAJHA computed above, starting with those that answer the question. Quote each figure as computed, with its unit, and cite the call ids its inputs were read from. Do not compute anything yourself." }
+    next: verify
+  verify:
+    type: verify
+    checks: [numbers_in_workspace, no_failed_citations]
+    outcomes:
+      ok:       { next: answer }
+      mismatch: { next: revise, max_visits: 1, on_exhausted: answer }
+  revise:
+    type: revise
+    address: findings
+    next: verify
+  answer:
+    type: answer                   # unresolved findings become caveats
+  fail:
+    type: fail
+    reason: "The figure could not be computed: the computation graph was refused or a node it needs failed, twice."

@@ -82,7 +82,9 @@ def codes(d, **kw):
 
 def test_every_strategy_ships():
     assert set(SHIPPED) == {"react", "plan_execute", "rewoo", "reflect", "verify_then_answer", "self_consistency",
-                            "branch_and_judge", "map_reduce", "router", "recipes", "human_in_the_loop", "auto"}
+                            "branch_and_judge", "map_reduce", "router", "recipes", "human_in_the_loop", "auto",
+                            "optimize", "code_act", "data_analyst", "research_writer", "calc_graph",
+                            "estimate_then_compute", "scenario", "reconcile"}
 
 
 @pytest.mark.parametrize("name", SHIPPED)
@@ -91,7 +93,18 @@ def test_shipped_files_load_with_plain_safe_load_and_match_the_schema(name, regi
     with open(f"config/planners/{name}.yaml") as f:
         d = yaml.safe_load(f)
     assert all(isinstance(k, str) for k in d) and d["name"] == name
-    jsonschema.Draft202012Validator(planner_schema()).validate(d)
+    # Appendix A knows the built-in stage types; a stage of a type registered in code (optimize,
+    # code_act, ...) is validated against that type's own settings schema when the registry loads it
+    from sajha.ai.planners_engine.model import BUILTIN_DEF
+    from sajha.ai.planners_engine.stages import stage_types
+    custom = set(stage_types()) - set(BUILTIN_DEF)
+    builtin_only = dict(d, stages={k: v for k, v in d["stages"].items() if v.get("type") not in custom})
+    for k, v in builtin_only["stages"].items():         # the same inside a foreach's do graph (scenario)
+        if isinstance(v.get("do"), dict):
+            do = v["do"]
+            builtin_only["stages"][k] = dict(v, do=dict(do, stages={
+                i: ({"type": "fail", "reason": "-"} if x.get("type") in custom else x) for i, x in do["stages"].items()}))
+    jsonschema.Draft202012Validator(planner_schema()).validate(builtin_only)
     assert registry.entry(name).pdef is not None and not registry.errors
 
 
@@ -114,7 +127,7 @@ def test_the_schema_is_the_one_in_the_reference():
     ("branch_and_judge", PCT, ["branch", "judge", "execute", "draft", "answer"], "branch_and_judge"),
     ("map_reduce", PCT, ["gather", "gather", "list", "direct", "answer"], "map_reduce"),
     ("router", PCT, ["rules", "recipes_check", "to_recipes", "answer"], "router>recipes"),
-    ("router", MULTI, ["rules", "recipes_check", "shape", "multi", "answer"], "router>plan_execute"),
+    ("router", MULTI, ["rules", "recipes_check", "quant", "shape", "multi", "answer"], "router>plan_execute"),
     ("recipes", PCT, ["match", "call", "finish"], "recipes"),
     ("human_in_the_loop", PCT, ["clarity", "plan", "run_small", "draft", "answer"], "human_in_the_loop"),
     ("auto", PCT, ["known", "recipe", "answer"], "auto>recipes"),
@@ -123,7 +136,9 @@ def test_the_schema_is_the_one_in_the_reference():
 def test_path_of_each_shipped_strategy(name, question, expected, chain):
     r = service(planner=name).ask(question, ctx())
     assert path(r) == expected and r.planner == chain and r.stopped_by == "answer"
-    assert r.steps and r.steps[0].ok and r.answer and r.planner_version == "1.0.0"
+    # router and auto are 1.1.0 since they choose the quantitative planners (Quantitative Planners §3.9)
+    assert r.steps and r.steps[0].ok and r.answer and r.planner_version == ("1.1.0" if name in ("router", "auto")
+                                                                             else "1.0.0")
 
 
 def test_map_reduce_answers_per_item():

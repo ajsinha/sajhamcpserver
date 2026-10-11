@@ -79,7 +79,7 @@ alone. Definitions live in the root [GLOSSARY](../GLOSSARY.md); release history 
 - [Google Integration](architecture/Google%20Integration.md): Google's Workspace MCP servers (Gmail, Drive, Calendar) proxied per user with OAuth sign-in (configurable, not verified against Google's live servers), and other public MCP servers worth the same
 - [Adversarial QA Plan](architecture/Adversarial%20QA%20Plan.md): how to attack SAJHA on purpose — every surface, what to try, the safe behaviour expected, priorities, automation and existing coverage
 - [Tool Quality](architecture/Tool%20Quality.md): test cases with recorded HTTP cassettes and JUnit output, the schema linter, health probes, evals for Ask SAJHA, tool versions with canary routing, rollback and sunset dates
-- [Quantitative Planners](architecture/Quantitative%20Planners.md) (planned, wave 8): planners whose answers are computed figures: a shared workspace of quantities with units, as-of and source, a tested operation library and a numbers validator; `calc_graph`, `estimate_then_compute`, `scenario`, `data_analyst`, `code_act`, `optimize`, a numbers check for every planner, `research_writer` and `reconcile`
+- [Quantitative Planners](architecture/Quantitative%20Planners.md) (wave 8): planners whose answers are computed figures: a shared workspace of quantities with units, as-of and source, a tested operation library and a numbers validator; `calc_graph`, `estimate_then_compute`, `scenario`, `data_analyst`, `code_act`, `optimize`, a numbers check for every planner, `research_writer` and `reconcile`
 - [Open Data Tools](architecture/Open%20Data%20Tools.md) (planned, wave 8): public data sources verified for use as tools (terms, keys, limits), the sources dropped and why, the tool folder and tools for each, by priority
 - [Business Intelligence](architecture/Business%20Intelligence.md) (planned, wave 8): a metrics layer compiled to safe SQL through the sources' own guards; compare, explain a change, anomalies, forecasts, charts, blending tool results, data quality, dashboards
 - [Reports](architecture/Reports.md) (planned, wave 8): report definitions published as tools, formats, narration under a numbers check, governed delivery, scheduling, flagship reports
@@ -189,6 +189,7 @@ These guides document each provider's tools, parameters and API keys.
 42. [Tutorial 42: Per-User Sign-In for Proxied Servers](tutorials/TUTORIAL_42_per_user_sign_in.md)
 43. [Tutorial 43: Connect and Configure LLM Providers](tutorials/TUTORIAL_43_llm_providers.md)
 44. [Tutorial 44: Tool Health and Domain Descriptions](tutorials/TUTORIAL_44_tool_health.md)
+45. [Tutorial 45: Quantitative Planners](tutorials/TUTORIAL_45_quantitative_planners.md)
 
 ## Clients and security
 

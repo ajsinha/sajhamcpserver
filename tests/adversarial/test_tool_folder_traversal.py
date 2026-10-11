@@ -81,7 +81,7 @@ def test_import_json_refuses_a_traversing_name_and_writes_nothing(admin_bearer, 
 
 
 @pytest.mark.parametrize('folder', ['..', '../x', 'a/b', 'a\\b', 'tools/..', 'ｆｕｌｌ', 'café', 'x' * 40,
-                                    'Upper', '-lead', 'a__b'])
+                                    'a-b', '123', '-lead', 'a__b'])
 def test_hostile_folder_names_are_refused(folder):
     from sajha.tools.tool_files import clean_folder, folder_problem, writing_into
     assert folder_problem(clean_folder(folder), check_tools=False), folder

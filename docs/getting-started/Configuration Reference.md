@@ -507,10 +507,15 @@ fields below. Built-in providers not listed still exist, disabled.
 | `ai.planners.dry_run_model` | `mock/mock-planner` | The model every call of a dry run (`POST /api/ai/planners/dry-run`, the planner editor's Dry run) and of the LLM tool creator's test run (`POST /admin/studio/llm/test`) goes to. |
 | `ai.planners.max_input_chars` | `20000` | Text a `match` stage or the `matches()` function searches is clipped to this. |
 | `ai.planners.menu_min_pass_rate` | `0.5` | Automatic selection (`classify` with `menu: planners`): a candidate whose latest recorded eval run, on an eval set for the tool, passed fewer questions than this is left off the menu. |
+| `ai.planners.numbers_check` | `off` | The default of the reserved planner setting `numbers_check` (`off`, `warn`, `enforce`): after a planner's answer, check its figures against the tool results and the run's workspace ([Quantitative Planners](../architecture/Quantitative%20Planners.md) §2.5). A planner's own `settings.numbers_check`, or an overlay's, wins. Quote `"off"` in YAML (a bare `off` reads as false, which is taken as `off`). |
 | `ai.planners.limits.max_stages_run` | `40` | Ceiling of a run's stage executions, sub-runs included (`stopped_by: stage_limit`). The `ai.planners.limits` values are ceilings a planner file may lower, never raise (a higher value is clamped with lint warning P060). Env `SAJHA_AI_PLANNERS_LIMITS_<FIELD>`. |
 | `ai.planners.limits.max_visits_per_edge` | `10` | Ceiling of every integer `max_visits` (clamped at load, P023). |
 | `ai.planners.limits.max_subplanner_depth` | `2` | Nesting of `planner` stages, `sample` of a planner and `foreach` (deeper is refused at load, P035). |
 | `ai.planners.limits.max_parallel` / `max_samples` / `max_foreach_items` | `4` / `5` / `50` | Ceilings of `execute.max_parallel`, `sample.concurrency` and `foreach.concurrency`; `sample.n`; `foreach.max_items` (further items are dropped and the outcome is `partial`). |
+| `ai.quant.max_graph_nodes` | `40` | Nodes in one computation graph ([Quantitative Planners](../architecture/Quantitative%20Planners.md)). Env `SAJHA_AI_QUANT_<FIELD>` (likewise for the keys below). |
+| `ai.quant.max_table_cells` | `10000` | Cells in one table quantity; a larger table is refused. |
+| `ai.quant.day_count` | `act/365` | The day-count basis for converting days to years: `act/365`, `act/360`, `30/360` or `act/365.25`. Another value logs a warning and `act/365` is used. |
+| `ai.quant.code_act.roles` | `[]` | Roles that may run a planner using `code_act`; empty, nobody may. Env `SAJHA_AI_QUANT_CODE_ACT_ROLES`. |
 | `ai.memory.enabled` | `true` | Conversation memory for asks that send a `conversation_id` (`sajha/ai/memory.py`). |
 | `ai.memory.history_turns` | `6` | Most recent turns sent to the planner verbatim. |
 | `ai.memory.max_turn_chars` | `2000` | Each stored question and answer is clipped to this. |
@@ -1091,6 +1096,20 @@ design: [Tool Quality](../architecture/Tool%20Quality.md).
 | `quality.check.exclude` | `[]` | Tool-name globs the live check never calls (env: comma-separated or a JSON list). |
 | `quality.versions.enabled` | `true` | `false`: versions files are ignored and every call runs the registered tool. |
 | `quality.versions.reload_seconds` | `5` | Recheck the versions directory at most this often (on the next call). |
+
+## bi
+
+Reader: live `_get` for every key (`sajha/analytics/scratch.py`), so `SAJHA_BI_SCRATCH_*`
+environment variables override the YAML. These are the tool-result loader's bounds: tool results
+loaded as tables (by the `data_analyst` planner today) live in the caller's own DuckDB file, never
+shared. The rules and the design: [Business Intelligence](../architecture/Business%20Intelligence.md) §6.
+
+| Key | Default | Purpose |
+|-----|---------|---------|
+| `bi.scratch_dir` | `data/bi/scratch` | One scratch database per user (`u_<digest of the user id>.duckdb`); created on the first load; git-ignored. |
+| `bi.scratch_max_rows` | `100000` | Rows in one loaded table; a larger result is refused, not cut. |
+| `bi.scratch_max_mb` | `100` | One user's scratch database; a load that would pass it is refused and leaves nothing behind. |
+| `bi.scratch_max_minutes` | `240` | Cap on a loaded table's time to live (a load asks for 60 minutes unless it says otherwise). Expired tables are dropped on the user's next load, listing or query; a load also sweeps every user's file (at most once a minute per process) and deletes a file left with no tables. |
 
 ## Secrets
 

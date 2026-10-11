@@ -198,9 +198,10 @@ CATALOG: List[dict] = [
                'Test cases with recorded HTTP cassettes and JUnit output, the schema linter, health probes, '
                'evals for Ask SAJHA, and tool versions with canary routing, rollback and sunset dates.'),
             _g('Quantitative Planners', 'Quantitative Planners.md', 'bi-calculator',
-               'Planned: planners whose answers are computed figures with units and lineage: a computation graph '
-               'SAJHA runs, scenario grids, SQL over loaded results, sandboxed code, a solver, a numbers check.',
-               badge='Planned'),
+               'Planners whose answers are computed figures with units and lineage: the workspace of quantities, '
+               'the operation library and numbers check, computation graphs, scenario grids, SQL over loaded '
+               'results, sandboxed code, a solver, cited write-ups, reconciliation, and how router and auto '
+               'choose them.'),
             _g('Open Data Tools', 'Open Data Tools.md', 'bi-globe2',
                'Planned: public data sources verified for use as tools (licence, key, rate limits), the sources '
                'dropped and why, the tool folder and tools for each, by priority.', badge='Planned'),
@@ -481,6 +482,10 @@ CATALOG: List[dict] = [
             _g('44. Tool health and domain descriptions', 'TUTORIAL_44_tool_health.md', 'bi-heart-pulse',
                'Schema defaults and their switch, a folder\'s domain.txt, read-only annotations, the live tool '
                'check with its notices and Tool Health page, and the generated guide tables.'),
+            _g('45. Quantitative planners', 'TUTORIAL_45_quantitative_planners.md', 'bi-calculator',
+               'Computed answers with units and lineage: the numbers check, calc_graph, a sensitivity table over '
+               'qlrisk, SQL over tool results, a solver, sandboxed code by role, reconcile, research_writer, and '
+               'how router and auto choose them.'),
         ],
     },
     {

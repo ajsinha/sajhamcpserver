@@ -293,6 +293,46 @@ def test_federation_source(svc, monkeypatch):
     assert svc.get(sources.APPROVAL_PREFIX + 'up1')['state'] == 'cleared'
 
 
+def test_planner_with_a_missing_optional_dependency_raises_then_clears_an_info_notice(svc, tmp_path):
+    """Planner registry source (Quantitative Planners §3.6): a planner file whose stage type reports
+    unavailable() is not loaded and raises planners.unavailable:<name>; it clears once it loads."""
+    import yaml
+    from sajha.ai.planners_engine import PlannerRegistry, StageType, register_stage_type, unregister_stage_type
+    from sajha.ai.planners_engine.settings import PlannerSettings
+    from sajha.core.storage import LocalStorageBackend
+    missing = {'why': 'toylib is not installed'}
+
+    class Toy(StageType):
+        name = 'toy_needs_lib'
+        fixed_outcomes = ('done',)
+
+        def unavailable(self):
+            return missing['why']
+
+        def run(self, rc, frame, st):
+            if False:
+                yield
+            return 'done'
+    register_stage_type(Toy)
+    try:
+        d = tmp_path / 'planners'
+        d.mkdir()
+        (d / 'toy.yaml').write_text(yaml.safe_dump({
+            'name': 'toy', 'version': '1.0.0', 'description': 'd', 'use_when': 'u', 'start': 'go',
+            'stages': {'go': {'type': 'toy_needs_lib', 'next': 'answer'}, 'answer': {'type': 'answer'}}}))
+        reg = PlannerRegistry(storage=LocalStorageBackend(str(tmp_path)), settings=PlannerSettings(dir='planners'))
+        reg.load()
+        assert 'toy' not in reg.names() and not reg.errors and reg.unavailable == {'toy': 'toylib is not installed'}
+        n = svc.get('planners.unavailable:toy')
+        assert n['state'] == 'active' and n['severity'] == 'info' and n['source'] == 'planners'
+        assert 'toylib' in n['detail']
+        missing['why'] = None
+        reg.load()
+        assert 'toy' in reg.names() and svc.get('planners.unavailable:toy')['state'] == 'cleared'
+    finally:
+        unregister_stage_type('toy_needs_lib')
+
+
 def test_alert_rule_notice_channel(svc, monkeypatch):
     from sajha.observability import alerts
     from sajha.notices import sources
@@ -353,6 +393,8 @@ def http(web, plain_user):
     r = client.post('/login', data={'user_id': plain_user, 'password': PASSWORD}, follow_redirects=False)
     user = dict(r.cookies)
     client.cookies.clear()
+    for n in N.get_service().all():          # a notice another test left open would take the banner
+        N.get_service().store.delete(N.KEY + n['id'])
     yield client, admin, user
     for n in N.get_service().all():
         if n['id'].startswith('test.'):

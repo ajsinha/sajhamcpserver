@@ -104,6 +104,9 @@ config/planners/
   is incremented and running tools keep the old one (LLM Tools 9.12).
 - Two valid files with the same `name@version` are a load error for the second one found, in
   sorted file-name order (P005).
+- A file that uses a stage type whose optional dependency is missing (`optimize` without SciPy,
+  section 13.16) is not loaded and is not a load error: the registry lists it as unavailable and
+  raises an info notice, `planners.unavailable:<name>`, cleared once it loads.
 
 ### 2.2 Versions
 
@@ -219,6 +222,13 @@ run: `local` keeps this server's own tools, `net:<name>` adds that SAJHA Net net
 ask's own `locality` wins over it, and it wins over `ai.ask.locality`
 ([SAJHA Net](SAJHA%20Net.md) §13). Another value is refused at load (P011); a Python planner's
 `config_model` never sees it.
+
+A second reserved key works the same way: `numbers_check` (`off`, `warn` or `enforce`; the default
+is `ai.planners.numbers_check`). After the run's answer the service checks its figures
+with `numbers_in_workspace` (section 9.6): `warn` adds a caveat naming each unmatched figure;
+`enforce` revises the answer once with them named and then removes any figure still unmatched, with
+a caveat. Another value is refused at load (P011); a bare YAML `off` (read as false) is `off`.
+[Quantitative Planners](Quantitative%20Planners.md) §2.5 owns the behaviour.
 
 ### 3.4 `limits`
 
@@ -650,9 +660,12 @@ rule matches.
 
 #### 6.6.1 Eval filtering for `menu: planners`
 
-When the tool has an eval set and the latest recorded eval run of the tool with a candidate
-planner failed its pass threshold, that candidate is dropped from the menu. With no eval history
-every candidate stays. If filtering empties the list, `default` is used without a model call.
+When the tool has an eval set (one whose `tool` is the tool, or whose `tools` list names it) and the
+latest recorded eval run of that set with a candidate planner passed fewer than
+`ai.planners.menu_min_pass_rate` of its questions, that candidate is dropped from the menu
+(`PlannerRegistry.eval_filter`; the result is cached per tool for a minute). With no eval history
+every candidate stays. A role-limited candidate the caller may not run is dropped too. If filtering
+empties the list, `default` is used without a model call.
 
 ### 6.7 `draft`
 
@@ -718,7 +731,8 @@ Deterministic checks of the draft, no model.
 | `stop_at_first` | boolean | `false` | Stop after the first failing check. |
 
 - **Reads:** `draft`, `draft_json`, `citations`, `question`, `results` (full results, streamed
-  back from the spool when spilled).
+  back from the spool when spilled), and the run's quantitative workspace when it has one
+  (`numbers_in_workspace`).
 - **Writes:** `findings` (replaced each visit; empty on `ok`).
 - **Outcomes:** `ok` when every check passes; `mismatch` otherwise.
 - **Model calls:** 0.
@@ -773,7 +787,7 @@ map-reduce; a following `draft` is the "reduce").
 |---|---|---|---|
 | `items` | ref | `items` | A list slot. |
 | `as` | identifier | `item` | The slot name of the current item inside the sub-run (always readable as `item` too). |
-| `do` | `{start, stages}` | required unless `planner` | An inline sub-graph with the same rules as a file's graph. |
+| `do` | `{start, stages}` | required unless `planner` | An inline sub-graph with the same rules as a file's graph; like a file's graph it may use stage types registered in code (validated against their own schema, not Appendix A). |
 | `planner` | planner reference | none | Instead of `do`: run this planner per item. |
 | `question` | template | `{{question}}` | The sub-run's `question`, for example `"{{original_question}} (for {{item}})"`. |
 | `max_items` | integer | `ai.planners.limits.max_foreach_items` | Clamped to it; further items are dropped. |
@@ -1180,9 +1194,22 @@ Validates with JSON Schema 2020-12; each error is a finding with its instance pa
 | `contains` | `patterns` (list of regex) | Every pattern matches the draft. |
 | `not_contains` | `patterns` (list of regex) | No pattern matches the draft (for example `as an AI`). |
 | `expression` | `expr`, `message` | The expression (section 8) is true; otherwise one finding with `message`. |
+| `estimate_consistent` | `tolerance_factor`, `quantity` | A computed figure agrees with the run's rough estimate (section 13.19). |
 
 Custom checks can be registered in code with a name, a settings schema and a pure function of
 (draft, state) to findings; planner files then use them like the built-in ones.
+
+### 9.6 `numbers_in_workspace`
+
+`numbers_in_results` generalised to computed figures. It takes the same settings (`tolerance`,
+`ignore`, `max_numbers`) and checks the same numbers; a number passes when it matches a tool result
+by the rules of section 9.1, or a quantity of the run's quantitative workspace at the precision
+written, in the quantity's unit or one it converts to ("45 bp", "0.45%" and "0.0045" all match a
+`bp_spread` of 45; a figure written with `%`, "bp" or "pp" matches only in that unit). With no
+workspace it behaves exactly as `numbers_in_results`. Finding: `{check: numbers_in_workspace,
+message: "12.7 does not match any tool result or computed quantity", value: 12.7}`. The workspace,
+its units and the matching rules are owned by
+[Quantitative Planners](Quantitative%20Planners.md) §2.
 
 ---
 
@@ -1217,8 +1244,9 @@ run(planner, call):
 Unchanged from today and outside the planner's reach: building the shortlist from the caller's
 access, loading conversation memory, the safety preamble, running every call through the
 normal tool path as the caller, confirmation, policy, result caps and spill, limits and budgets,
-synthesis, confidence, citations, memory recording, audit and the event stream. A planner file
-only chooses the order of stages and the transitions between them.
+synthesis, the numbers check of the reserved setting `numbers_check` (section 3.3), confidence,
+citations, memory recording, audit and the event stream. A planner file only chooses the order of
+stages and the transitions between them.
 
 ### 10.3 Finishing and `stopped_by`
 
@@ -1358,8 +1386,10 @@ A tool that references a planner which fails validation does not load (LLM Tools
 
 ## 13. Shipped planners
 
-SAJHA ships these files in `config/planners/<name>.yaml`. They are the strategies of LLM Tools
-9.4, and they double as examples. The first four re-express today's Python planners; section
+SAJHA ships these files in `config/planners/<name>.yaml`, one subsection each (13.1 to 13.12 and
+13.14 to 13.21). Sections 13.1 to 13.12 are the strategies of LLM Tools 9.4; 13.14 to 13.21 are the
+planners of [Quantitative Planners](Quantitative%20Planners.md), whose stage types are registered in
+code. They double as examples. The first four re-express today's Python planners; section
 13.13 lists every place where the file form differs from today's behaviour.
 
 ### 13.1 `react`
@@ -1678,14 +1708,17 @@ stages:
 ```yaml
 # config/planners/router.yaml
 name: router
-version: 1.0.0
-description: Chooses a strategy per question - configured rules, then recipes, then plan_execute for questions with several parts, otherwise react.
+version: 1.1.0
+description: Chooses a strategy per question - configured rules, then recipes, then calc_graph for questions asking for a computed figure, then plan_execute for questions with several parts, otherwise react.
 use_when: Mixed traffic where cheap deterministic rules can route most questions.
-settings:                          # today's RouterConfig: same keys, same defaults
+settings:                          # the RouterConfig keys and defaults, plus use_quant, quant_default, quant_pattern
   rules: []                        # [{match: <regex>, planner: <name>}], checked first, in order
   use_recipes: true
   multi_step: plan_execute
   default: react
+  use_quant: true                  # questions asking for a computed figure (Quantitative Planners §3.9)
+  quant_default: calc_graph
+  quant_pattern: '\b(percent(age)? (change|increase|decrease|rise|fall|move)|per cent change|cagr|compound annual growth|basis points?|bps?|what[- ]if|sensitivity|sensitivities|spread|npv|net present value|irr|internal rate of return|weighted average|annuali[sz]ed?|regression|year[- ]over[- ]year|yoy)\b'
   multi_step_pattern: '\b(and then|then|after that|compare|comparison|versus|vs\.?|both|each of|as well as|respectively)\b|\?.+\?'
 start: rules
 stages:
@@ -1703,14 +1736,27 @@ stages:
   recipes_check:
     type: match
     when: "settings.use_recipes"
-    else: { next: shape }
+    else: { next: quant }
     rules_from: recipes.match      # the recipes planner's rules: a recipe whose tool is offered
     outcomes:
-      none: { next: shape }
+      none: { next: quant }
       "*":  { next: to_recipes }
   to_recipes:
     type: planner
     planner: recipes
+    next: answer
+  quant:
+    type: match
+    when: "settings.use_quant"
+    else: { next: shape }
+    rules:
+      - { name: quant, pattern: "{{settings.quant_pattern}}" }
+    outcomes:
+      quant: { next: computed }
+      none:  { next: shape }
+  computed:
+    type: planner
+    planner: "{{settings.quant_default}}"
     next: answer
   shape:
     type: match
@@ -1855,15 +1901,18 @@ classifier over the allowed planners, a cheap first try, checks, and one escalat
 ```yaml
 # config/planners/auto.yaml
 name: auto
-version: 1.0.0
+version: 1.1.0
 description: Picks a strategy per question (known patterns first, then a cheap classifier over the allowed planners), checks the answer, and escalates once only when a check fails.
 use_when: Mixed traffic; pick a strategy per question and upgrade only when checks fail.
 models: { chooser: fast, act: fast, strong: reasoning }
 settings:
-  candidates: [react, plan_execute, reflect, map_reduce]
+  # calc_graph, scenario and data_analyst answer computed figures (Quantitative Planners §3.9); code_act and
+  # optimize are never default candidates: a tool or the Ask page adds them by overlay
+  candidates: [react, plan_execute, reflect, map_reduce, calc_graph, scenario, data_analyst]
   default: react
   min_label_confidence: 0.5
   escalate_below: 0.6
+  self_checked: [calc_graph, scenario, data_analyst]   # check their own figures: low tool confidence does not escalate them
   first_try: { max_steps: 4 }      # sub-budget of the first attempt
 start: known
 stages:
@@ -1894,7 +1943,7 @@ stages:
     outcomes: { "*": { next: verify } }
   verify:
     type: verify
-    checks: [numbers_in_results, parts_answered]
+    checks: [numbers_in_workspace, parts_answered]   # numbers_in_results, plus figures a sub-run computed
     outcomes:
       ok: { next: gate }
       mismatch:
@@ -1902,7 +1951,7 @@ stages:
         - { next: reflect, max_visits: 1, on_exhausted: answer }
   gate:
     type: answer
-    when: "confidence >= settings.escalate_below and subrun.stopped_by != 'step_limit'"
+    when: "(confidence >= settings.escalate_below or chosen in settings.self_checked) and subrun.stopped_by != 'step_limit'"
     else: { next: deeper, max_visits: 1, on_exhausted: answer }
   reflect:
     type: planner
@@ -1923,17 +1972,24 @@ stages:
     type: answer
 ```
 
-The escalation table of LLM Tools 9.13 maps onto this file: a figure no result contains →
-`verify` mismatch → `reflect`; parts not answered → `split` (`plan_execute`); low confidence or
-the first try hit its step budget → `deeper` (`plan_execute` on the reasoning alias); otherwise
-`gate` answers. The deepest nesting is `auto > recipes > react` and `auto > plan_execute > react`
-(depth 2), within the default `max_subplanner_depth`.
+The escalation table of LLM Tools 9.13 maps onto this file: a figure neither a result nor the
+run's workspace contains → `verify` mismatch → `reflect`; parts not answered → `split`
+(`plan_execute`); low confidence or the first try hit its step budget → `deeper` (`plan_execute` on
+the reasoning alias); otherwise `gate` answers. A candidate in `settings.self_checked` is not
+escalated for low confidence alone: `calc_graph`, `scenario` and `data_analyst` verify their own
+figures, and a computed answer may call no tool, so the confidence score has nothing to rest on.
+`code_act` and `optimize` are not candidates; a tool or the Ask page adds them by overlay. Why the
+quantitative candidates and `router`'s `quant_pattern` were added:
+[Quantitative Planners](Quantitative%20Planners.md) §3.9. The deepest nesting is
+`auto > recipes > react` and `auto > plan_execute > react` (depth 2), within the default
+`max_subplanner_depth`.
 
 ### 13.13 Fidelity of the four built-ins
 
 The shipped `react`, `plan_execute`, `recipes` and `router` make the same model calls, the same
 tool calls in the same order and the same plan events as today's classes in
-`sajha/ai/planners.py`, and their settings keep today's names and defaults. Their tests run
+`sajha/ai/planners.py` (`router` with `use_quant: false`), and their settings keep today's names and
+defaults (`router` adds `use_quant`, `quant_default` and `quant_pattern`). Their tests run
 against both forms during the transition (LLM Tools 9.4). The differences, and how each is
 handled:
 
@@ -1949,8 +2005,150 @@ handled:
 | `recipes` | A recipe with neither `match` nor `keywords` silently never matches | Refused at load (P011) | Lint finds it before deploy. |
 | `router` | A rule naming `router` is silently replaced by `default` | Refused at load (P034, planner cycle) | Lint finds it. |
 | `router` | Reads the recipes config on every ask | `rules_from` reads it at load, and again on every reload | The same, since the config only changes on reload. |
+| `router` | No routing for computed figures | Since 1.1.0, a question matching `quant_pattern` goes to `quant_default` (`calc_graph`) before the multi-step check | Intended ([Quantitative Planners](Quantitative%20Planners.md) §3.9); `use_quant: false` restores the class's routing. |
 
 Nothing in the four built-ins needs a capability the file form lacks.
+
+### 13.14 `data_analyst`
+
+`config/planners/data_analyst.yaml`: `gather` (`act`, at most `settings.max_gather` rounds) →
+`load` → `query` → `draft` → `verify` (`numbers_in_results`, `no_failed_citations`) → one
+`revise` → `answer`; `load` with nothing loaded, and `query` on `failed`, go straight to `draft`.
+Settings: `max_queries` (3), `max_rows` (200), `timeout_s` (10), `ttl_minutes` (60), `max_gather`
+(4). It uses two stage types SAJHA registers in code (`sajha/ai/planners_engine/data_stages.py`,
+loaded with the other shipped extensions on first use of the stage library); any planner file may
+use them:
+
+| Type | Keys (each a value or a settings reference) | Outcomes | Reads / writes |
+|---|---|---|---|
+| `load_results` | `tools` (`allow`/`deny` globs), `rows_path` (tool name to JSONPath), `ttl_minutes`, `max_tables` (10) | `loaded`, `none` | Reads `results` (whole outputs: a planner using this type makes the service keep each call's uncapped output for the ask); writes the internal slot `loaded` (each table's provenance). No model call. |
+| `sql` | `max_queries` (3), `max_rows` (200), `timeout_s` (10), and the model keys (`model`, `prompt`, `retry`, ...) | `done`, `failed` | One structured call per attempt (schema title `sajha.sql`: `sql`, `why`). Appends a successful query to `results` as `query_<n>` (`derived`, with `sources`: the calls its tables came from) and to the transcript; writes the internal slot `queries` (every attempt), which the run record reports, and each numeric column of a successful query to the run's workspace as `<query id>.<column>` with the query and its source calls as lineage. |
+
+A cited `query_<n>` is replaced by its source calls in the answer's citations. The loader, the
+statement guard and the bounds: [Quantitative Planners](Quantitative%20Planners.md) §3.4 and
+[Business Intelligence](Business%20Intelligence.md) §6.
+
+### 13.15 `research_writer`
+
+`config/planners/research_writer.yaml`, built from the stage library only: `outline` (`plan` with
+`context: question`; each step is a section, `why` its heading; at most `settings.max_sections`,
+6) → `sections` (`foreach` over `plan` with `as: section`, `planner: react@1.0.0`,
+`settings.concurrency` 2) → `draft` (model role `writer`, call ids cited inline in square
+brackets) → `verify` (`citations_present` with `per: paragraph`, `no_failed_citations`) → one
+`revise` → `answer`. An unusable outline (`invalid`) goes to a `gather` `act` loop over the whole
+question. Behaviour: [Quantitative Planners](Quantitative%20Planners.md) §3.7.
+
+### 13.16 `optimize`
+
+`config/planners/optimize.yaml`, for allocation and sizing questions: `gather` (`act`, at most 4
+rounds) → `solve` → `draft` → `answer`; `solve`'s outcomes `solved`, `infeasible`, `unbounded` and
+`failed` all go to `draft`, which writes from the result as labelled (no solution is invented), and
+`invalid` goes to `fail`. Settings: `max_variables` (50). It uses a stage type SAJHA registers in code
+(`sajha/ai/optimize/stage.py`); any planner file may use it:
+
+| Type | Keys (each a value or a settings reference) | Outcomes | Reads / writes |
+|---|---|---|---|
+| `optimize` | `max_variables` (the file's `settings.max_variables`, else 50; at most 500), `max_attempts` (2, at most 4), `time_limit_s` (10), `into`, and the model keys | `solved`, `infeasible`, `unbounded`, `failed`, `invalid` | One structured call per attempt (schema title `sajha.optimize`: the formulation); a formulation that does not validate goes back with every error. A coefficient, bound or right-hand side may be the name of a single-number workspace quantity (used at its value; the solution's lineage names it). Writes the internal slot `optimization` (`status`, `message`, `method`, `objective`, `values`, `check`, `formulation`), an optimal solution's values and objective to the run's workspace, the result to the transcript and an `optimization` event. |
+
+The type needs SciPy. Without it the type reports itself unavailable, the file is not loaded (not a
+load error: `GET /api/ai/planners` lists it under `unavailable` for administrators) and the info
+notice `planners.unavailable:optimize` says why. The formulation, the solvers and the feasibility
+check: [Quantitative Planners](Quantitative%20Planners.md) §3.6.
+
+### 13.17 `code_act`
+
+`config/planners/code_act.yaml`, for computations the operation library cannot express: `gather`
+(`act`, at most 4 rounds) → `compute` → `draft` → `answer`, or `fail` when no program produced
+valid quantities. It uses a stage type SAJHA registers in code (`sajha/ai/code_act/stage.py`):
+
+| Type | Keys (each a value or a settings reference) | Outcomes | Reads / writes |
+|---|---|---|---|
+| `code_act` | `max_attempts` (2, at most 4), `into`, and the model keys | `done`, `failed` | One structured call per attempt (schema title `sajha.code_act`: `code`, `explanation`); the code runs in the [Sandbox](Sandbox.md) with `question`, the workspace's quantities and `results` on standard input. Bad output goes back to the model. Writes the printed quantities to the run's workspace and the transcript, one entry per attempt to the run record's `code_runs` (code, input digest, output, standard error's tail, exit code, backend), a `code_run` event and an `ai_code_act` audit event. |
+
+**Role-limited.** Only callers with a role in `ai.quant.code_act.roles` (default none) may run a
+planner that uses `code_act`, or that always runs a sub-planner using it (`planner`, `foreach` and
+`sample` references; `classify` menus and `planner` choices are checked when the choice is made).
+For anyone else it is not offered: `GET /api/ai/planners` leaves it out (administrators see it with
+`roles` and `permitted: false`), a `classify` menu drops it (so `auto` never picks it), a `planner`
+stage that reaches it fails with the reason, and a direct run ends `stopped_by: refused` before any
+stage. A custom stage type declares the same limit with `allowed_roles()`, and an optional dependency
+with `unavailable()`. Neither `optimize` nor `code_act` is an `auto` candidate; a tool or the Ask page
+adds them by overlay. The confinement, the output contract and the audit:
+[Quantitative Planners](Quantitative%20Planners.md) §3.5.
+
+### 13.18 `calc_graph`
+
+`config/planners/calc_graph.yaml`, for questions whose answer is a computed figure: `plan`
+(`graph_plan`) → `compute` → `draft` → `verify` (`numbers_in_workspace`, `no_failed_citations`) →
+one `revise` → `answer`. `compute`'s `invalid` and `failed` outcomes go back to `plan` once each
+(`max_visits: 1`, then `fail`); `plan`'s `invalid` goes to `fail`. No settings. It uses two stage
+types SAJHA registers in code (`sajha/ai/planners_engine/quant_stages.py`); any planner file may use
+them, `compute` after a `graph_plan`:
+
+| Type | Keys (each a value or a settings reference) | Outcomes | Reads / writes |
+|---|---|---|---|
+| `graph_plan` | the model keys (`model`, `prompt`, `retry`, ...) | `planned`, `invalid` | One structured call (schema title `sajha.graph_plan`: `nodes`, `answer_with`, `why`), with the offered tools and the operations' signatures. On a re-plan it also sends the previous graph with its errors, its failed nodes, or (after `estimate_consistent`) both figures. Writes the internal slot `graph` (`attempt`, `status`, `plan`). |
+| `compute` | `max_nodes` (lowers `ai.quant.max_graph_nodes`, never raises it) | `done`, `invalid`, `failed` | Validates the graph before anything runs, then runs its tool reads as one parallel step (identical calls once; uncapped outputs, as `load_results`), reads quantities and runs the operations in the run's workspace. `invalid`: the graph was refused; `failed`: an `answer_with` node could not be computed. Writes `results`, the slot `graph` (`status`, `errors`, `failed`, `calls`, `quantities`, `answer_with`), the quantities to the transcript and a `graph` event. |
+
+The graph's form, the validation rules and the execution: [Quantitative
+Planners](Quantitative%20Planners.md) §3.1.
+
+### 13.19 `estimate_then_compute`
+
+`config/planners/estimate_then_compute.yaml`: `estimate` → `compute` (`planner: calc_graph@1.0.0`)
+→ `check` (`estimate_consistent`) → `final` → `answer`; `check`'s `mismatch` goes to `recompute`
+(`calc_graph` again) once, then on to `final`, a `verify` of `numbers_in_workspace` and
+`estimate_consistent` whose findings become the answer's caveats. A failed sub-run goes to `fail`.
+Settings: `tolerance_factor` (10). It adds a stage type and a verify check
+(`sajha/ai/planners_engine/quant_stages.py`):
+
+| Type | Keys | Outcomes | Reads / writes |
+|---|---|---|---|
+| `estimate` | the model keys | `done`, `none` | One structured call, no tools (schema title `sajha.estimate`: `value`, number or null, `unit`, `why`). Writes the internal slot `estimate` (`value`, `unit`, `why`), or null for `none` (no value, or a unit SAJHA does not know), and an `estimate` event. |
+
+| Check | Settings | Passes when |
+|---|---|---|
+| `estimate_consistent` | `tolerance_factor` (number above 1, default 10), `quantity` (default the graph's first `answer_with`) | There is no estimate or no scalar computed figure, or the computed figure, converted to the estimate's unit, is within a factor of `tolerance_factor` of it. Finding: `{check: estimate_consistent, message: "The computed inflation is 2.95 percent, but a rough estimate was 300 percent: they differ by more than a factor of 10.", value: 2.95}`, or one saying the units do not agree. |
+
+The computed figure is always the answer; the estimate appears only in the caveat.
+Behaviour: [Quantitative Planners](Quantitative%20Planners.md) §3.2.
+
+### 13.20 `scenario`
+
+`config/planners/scenario.yaml`, for sensitivity questions: `grid` → `points` (`foreach` over
+`items` with `as: point`, a `do` graph of one `grid_call` that ends in `answer`, or in `fail` when the
+call failed; `max_items` `settings.max_points`, `concurrency` `settings.concurrency`) → `table` →
+`draft` → `verify` (`numbers_in_workspace`, `no_failed_citations`) → one `revise` → `answer`; `grid`
+on `invalid` goes to `fail`, and every outcome of `table` goes to `draft`. Settings: `max_points`
+(9, the base included), `concurrency` (4), `grid` (`{}`: the model defines the grid; a tool's
+overlay may set it, in the reply's shape, and then the model is not asked). It uses three stage types
+SAJHA registers in code (`sajha/ai/planners_engine/scenario_stages.py`); any planner file may use
+them:
+
+| Type | Keys (each a value or a settings reference) | Outcomes | Reads / writes |
+|---|---|---|---|
+| `grid` | `grid` (an object; empty: ask the model), `max_points` (the file's `settings.max_points`, else 9; at most `ai.planners.limits.max_foreach_items`), `max_attempts` (2, at most 4), `tools` (`allow`/`deny` globs), and the model keys | `ready`, `invalid` | One structured call per attempt (schema title `sajha.grid`: `tool`, `arguments`, `shock_path`, `value_path`, `unit`, `as_of_path`, `base`, `factors`, `why`); a grid that does not validate goes back with every error. Writes `items` (one `{id, label}` per point, the base first) and the internal slot `scenario` (the expanded points with their arguments); a `scenario_grid` event. |
+| `grid_call` | none | `done`, `error` | In a `foreach` item over the grid: the point's one tool call (call id `point_<id>`), through the service; writes `results` (marked with the point) and the item's `draft`. A tool not offered is recorded `not_run`. |
+| `tabulate` | `into` | `done`, `partial`, `failed` | Reads `scenario` and `results` (whole outputs, as `load_results`). Writes the quantities `<stage>.base`, `<stage>.<point>`, `<stage>.<point>.change`, `<stage>.<point>.change_pct`, `<stage>.shocked`, `<stage>.change`, `<stage>.shock` and `<stage>.table` to the run's workspace, the internal slot `scenario_table` (every row, failed ones with the reason), the table to the transcript, a caveat per failed point and a `scenario_table` event. No model call. |
+
+The grid's shape, the expansion and the table: [Quantitative Planners](Quantitative%20Planners.md)
+§3.3.
+
+### 13.21 `reconcile`
+
+`config/planners/reconcile.yaml`, for comparing one figure across sources: `gather` (`act`, at most
+`settings.max_gather` rounds) → `compare` → `draft` → `verify` (`numbers_in_workspace`,
+`no_failed_citations`) → one `revise` → `answer`; every outcome of `compare` goes to `draft`.
+Settings: `tolerance` (0.005, a fraction of the reference value), `tolerance_abs` (0, in the
+reference's unit), `align` (`day`), `max_gather` (4). It uses a stage type SAJHA registers in code
+(`sajha/ai/planners_engine/reconcile_stage.py`); any planner file may use it:
+
+| Type | Keys (each a value or a settings reference) | Outcomes | Reads / writes |
+|---|---|---|---|
+| `reconcile` | `tolerance`, `tolerance_abs`, `align` (`exact`, `day`, `month`, `quarter`, `year`), `max_attempts` (2, at most 4), `into`, and the model keys | `matched`, `breaks`, `not_comparable`, `invalid` | One structured call per attempt (schema title `sajha.reconcile`: `figures`, each with `name`, `unit`, `align`, `readings` and `fx`); a reading SAJHA cannot read goes back with the errors. Reads `results` (whole outputs). Writes each reading, its aligned form, each difference and a table to the run's workspace (`<stage>.<figure>.<source>...`, and `<stage>.tolerance`), the internal slot `reconciliation` (each figure's status, rows and the differences beyond the tolerance with both lineages), the comparison to the transcript, a caveat per figure not compared and a `reconciliation` event. |
+
+Alignment, the currency rule and the tolerance: [Quantitative Planners](Quantitative%20Planners.md)
+§3.8.
 
 ---
 

@@ -1,0 +1,52 @@
+# The shipped "data_analyst" planner (docs/architecture/Quantitative Planners.md §3.4;
+# file format: docs/architecture/Planner Reference.md §13).
+# Edit with care: change `version` when the behaviour changes, and keep the old file as
+# data_analyst@<old version>.yaml while tools still pin it.
+name: data_analyst
+version: 1.0.0
+description: Gathers data with tools, loads the results that hold rows into the caller's private DuckDB scratch database, has the model write one read-only SELECT over them (a failed query goes back with DuckDB's error), then drafts the answer from the query result and checks its figures.
+use_when: Questions across many rows (totals, averages, rankings, filters, joins of several results) where the answer is a query, not a lookup.
+settings:
+  max_queries: 3                   # queries in all; each failure goes back to the model with DuckDB's error
+  max_rows: 200                    # rows of a query result the model sees
+  timeout_s: 10                    # per query
+  ttl_minutes: 60                  # how long loaded tables live (capped by bi.scratch_max_minutes)
+  max_gather: 4                    # tool rounds before loading
+start: gather
+stages:
+  gather:
+    type: act
+    prompt: { text: "Gather the data the question needs with the tools offered: prefer calls that return whole series or tables. Reply without calling a tool when you have the data; a SQL query over the results comes next." }
+    outcomes:
+      called:   { next: gather, max_visits: "{{settings.max_gather}}", on_exhausted: load }
+      answered: { next: load }
+  load:
+    type: load_results
+    ttl_minutes: "{{settings.ttl_minutes}}"
+    outcomes:
+      loaded: { next: query }
+      none:   { next: draft }      # nothing with rows: answer from the results as they are
+  query:
+    type: sql
+    max_queries: "{{settings.max_queries}}"
+    max_rows: "{{settings.max_rows}}"
+    timeout_s: "{{settings.timeout_s}}"
+    outcomes:
+      done:   { next: draft }
+      failed: { next: draft }      # the caveat says the query failed; the draft uses the raw results
+  draft:
+    type: draft
+    prompt: { text: "Answer the question from the SQL query result and the tool results above. Quote figures exactly as they appear there and cite the query id (query_1, ...) or the call ids they come from." }
+    next: verify
+  verify:
+    type: verify
+    checks: [numbers_in_results, no_failed_citations]
+    outcomes:
+      ok:       { next: answer }
+      mismatch: { next: revise, max_visits: 1, on_exhausted: answer }
+  revise:
+    type: revise
+    address: findings
+    next: verify
+  answer:
+    type: answer                   # unresolved findings become caveats

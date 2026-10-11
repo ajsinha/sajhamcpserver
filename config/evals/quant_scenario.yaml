@@ -1,0 +1,26 @@
+# A sensitivity table (docs/architecture/Quantitative Planners.md §3.3, §4): the scenario planner runs
+# one pricing call per grid point and SAJHA tabulates the values and their differences from the base.
+# The known answers are those of the recorded pricer results the CI test replays
+# (tests/ai/test_quant_evals.py): a book worth 1,000,000 USD that loses 1,000 USD per bp. Against the
+# live qlrisk server the figures are the book's own, so compare planners on the table's shape there.
+#   python -m sajha.quality eval quant_scenario
+name: quant_scenario
+description: A five-point sensitivity table of a book's value to the 5-year SOFR rate, from -50 bp to +50 bp.
+models: [mock/mock-planner]
+planners: [scenario]
+tools: ["qlrisk_price_trades"]
+defaults:
+  max_tokens: 60000
+  max_latency_ms: 60000
+questions:
+  - id: sofr-ladder
+    question: How does the book's value move if IR.FWD.SOFR.5Y is shocked from -50 bp to +50 bp in 25 bp steps?
+    expect_tools: [qlrisk_price_trades]
+    max_steps: 5
+    answer:
+      - number: 1000000
+        tolerance: 0.5
+      - number: -25000
+        tolerance: 0.5
+      - number: 1050000
+        tolerance: 0.5

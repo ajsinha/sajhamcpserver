@@ -381,6 +381,18 @@ class ToolsRegistry:
                                      link='/help/guides/Architecture.md', ttl_minutes=0)
             else:
                 notices.clear_notice('tools.too_deep')
+            bad = idx.bad_folder()
+            if bad:
+                folders = sorted({rel.rsplit('/', 2)[-2] for rel in bad})
+                for rel in bad:
+                    self.logger.warning(f"Tool config ignored, its folder name is not allowed: {rel}")
+                notices.raise_notice('tools.bad_folder', severity='warning', source='tools',
+                                     title=f'{len(folders)} tool folder(s) with a name that is not allowed are ignored',
+                                     detail='A tool folder (a domain) is named with letters, digits and "_" only, '
+                                            'with at least one letter. Ignored: ' + ', '.join(folders),
+                                     link='/help/guides/Architecture.md', ttl_minutes=0)
+            else:
+                notices.clear_notice('tools.bad_folder')
         except Exception:
             pass
 
@@ -967,7 +979,7 @@ class ToolsRegistry:
             if changed or deleted:
                 self.rescan(changed, deleted)
             self._scan_domain_texts()
-            if sorted(deep) != idx.too_deep():
+            if sorted(deep) != idx.ignored():
                 idx.refresh()
                 self._report_layout(idx)
 

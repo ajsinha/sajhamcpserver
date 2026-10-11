@@ -468,6 +468,8 @@ def run_frame(rc: RunCtx, frame: Frame) -> Generator[Any, Any, Tuple[str, Any]]:
     from sajha.ai.planners_engine import metrics
     pdef = frame.pdef
     sid = frame.extra.pop("__resume_stage", None) or pdef.start
+    if any(getattr(st.impl, "wants_raw_results", False) for st in pdef.stages.values()):
+        rc.state.data.setdefault("raw_results", {})   # the service keeps uncapped tool outputs for this ask
     while True:
         st = pdef.stages[sid]
         rc.check(frame)
@@ -620,6 +622,10 @@ class GraphPlanner(Planner):
             tmp = sub_frame(rc, frame, self.pdef, limits=caps)
             frame.caps = tmp.caps
         from sajha.ai.planners_engine.stages import maybe_resume
+        why = self.registry.refusal(self.pdef, rc.state.ctx, self.overlays)
+        if why:                                   # a role-limited planner (code_act) for a caller without the role
+            rc.emit("error", code="planner_refused", message=why[:300])
+            return Answer(why, synthesize=False, stopped_by="refused", citations=[], error=why)
         maybe_resume(rc, frame)
         try:
             end = yield from run_frame(rc, frame)
@@ -678,6 +684,9 @@ class GraphPlanner(Planner):
             cites = [c for c in slots.get("citations") or [] if c in ok_ids] or ok_ids
         elif not synth and ds in ("template", "subrun"):
             cites = ok_ids
+        derived = {r["id"]: list(r.get("sources") or []) for r in slots.get("results") or [] if r.get("derived")}
+        if cites and derived:                 # a derived result (a query) is cited through its source calls
+            cites = list(dict.fromkeys(x for c in cites for x in derived.get(c, [c])))
         return text, synth, cites
 
     def info(self) -> Dict[str, Any]:
@@ -687,8 +696,17 @@ class GraphPlanner(Planner):
             return {"planner_version": self.pdef.version}
         path = rc.path
         shown = path[:200] + (["…"] if len(path) > 200 else [])
-        return {"planner_version": self.pdef.version, "planner_path": shown, "planner_top_path": rc.top_path[:200],
-                "loops_exhausted": list(rc.loops_exhausted), "stages_run": rc.stages_run}
+        out = {"planner_version": self.pdef.version, "planner_path": shown, "planner_top_path": rc.top_path[:200],
+               "loops_exhausted": list(rc.loops_exhausted), "stages_run": rc.stages_run}
+        queries = rc.state.data.get("queries") or (rc.top.slots.get("queries") if rc.top is not None else None)
+        if queries:                               # data_analyst, also when a sub-run (auto > data_analyst) ran it
+            out["queries"] = [dict(q) for q in queries]
+        if rc.state.data.get("code_runs"):        # code_act: the code, its input digest and output (§3.5)
+            out["code_runs"] = [dict(c) for c in rc.state.data["code_runs"]]
+        for key in ("scenario_tables", "reconciliations"):    # scenario and reconcile (§3.3, §3.8)
+            if rc.state.data.get(key):
+                out[key] = [dict(x) for x in rc.state.data[key]]
+        return out
 
     def final_for(self, stopped_by: str) -> Optional[Tuple[str, bool, Optional[List[str]]]]:
         """When the service ended the run (step or tool limit, ...): the best answer so far (§10.3)."""

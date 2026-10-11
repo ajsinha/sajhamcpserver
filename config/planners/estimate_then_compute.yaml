@@ -1,0 +1,48 @@
+# The shipped "estimate_then_compute" planner (docs/architecture/Quantitative Planners.md §3.2;
+# file format: docs/architecture/Planner Reference.md §13.19).
+# Edit with care: change `version` when the behaviour changes, and keep the old file as
+# estimate_then_compute@<old version>.yaml while tools still pin it.
+name: estimate_then_compute
+version: 1.0.0
+description: Asks the model for a rough estimate of the figure first (no tools), computes it with calc_graph, and compares the two; when they differ by more than settings.tolerance_factor the graph is re-planned once with both figures named, and a computed figure that still disagrees is answered with a caveat giving the estimate. The computed figure is always the answer.
+use_when: Computed figures where a wrong order of magnitude is the likely error (unit slips, per-share against total, monthly against annual).
+settings:
+  tolerance_factor: 10             # how far apart (as a factor) the estimate and the computed figure may be
+start: estimate
+stages:
+  estimate:
+    type: estimate                 # a rough magnitude and unit; never the answer
+    outcomes:
+      done: { next: compute }
+      none: { next: compute }      # no estimate: nothing to compare, the check passes
+  compute:
+    type: planner
+    planner: calc_graph@1.0.0
+    outcomes:
+      answered: { next: check }
+      failed:   { next: fail }
+      stopped:  { next: answer }
+  check:
+    type: verify
+    checks: [{ check: estimate_consistent, tolerance_factor: "{{settings.tolerance_factor}}" }]
+    outcomes:
+      ok:       { next: final }
+      mismatch: { next: recompute, max_visits: 1, on_exhausted: final }    # still apart: caveat with the estimate
+  recompute:
+    type: planner                  # calc_graph again; its graph_plan sees the old graph and both figures
+    planner: calc_graph@1.0.0
+    outcomes:
+      answered: { next: check }
+      failed:   { next: fail }
+      stopped:  { next: answer }
+  final:
+    type: verify                   # what is still unresolved (an estimate apart, an unmatched figure) is kept
+    checks: [numbers_in_workspace, { check: estimate_consistent, tolerance_factor: "{{settings.tolerance_factor}}" }]
+    outcomes:
+      ok:       { next: answer }
+      mismatch: { next: answer }
+  answer:
+    type: answer                   # the findings left become caveats (the estimate is named in one)
+  fail:
+    type: fail
+    reason: "The figure could not be computed."

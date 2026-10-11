@@ -1,0 +1,45 @@
+# Quantitative questions with known answers (docs/architecture/Quantitative Planners.md §4,
+# docs/architecture/Tool Quality.md §5). Every figure is stated in the question, so no tool is called;
+# the planner computes the answer through the operation library. Runs offline on the mock provider:
+#   python -m sajha.quality eval quant_calc_graph
+# and against real models on demand (--model) to compare planners (--planner).
+name: quant_calc_graph
+description: Computed figures (percent change, CAGR, basis-point spread, NPV, weighted average, regression slope) with known answers.
+models: [mock/mock-planner]
+planners: [calc_graph, estimate_then_compute]
+tools: ["calc_*"]
+defaults:
+  max_steps: 0                         # the figures are stated: a computed answer calls no tool
+  max_tokens: 40000
+  max_latency_ms: 30000
+questions:
+  - id: pct-change
+    question: By what percent did the index move from 310.3 to 319.5?
+    answer:
+      - number: 2.9649
+        tolerance: 0.001
+  - id: cagr
+    question: What is the CAGR of revenue that grew from 120 to 180 over 5 years?
+    answer:
+      - number: 8.4472
+        tolerance: 0.001
+  - id: bp-spread
+    question: What is the spread of a 4.25% Treasury yield over a 3.80% Bund yield, in basis points?
+    answer:
+      - number: 45
+        tolerance: 0.001
+  - id: npv
+    question: What is the NPV of cash flows -1000, 300, 400, 500 at a discount rate of 8%?
+    answer:
+      - number: 17.6294
+        tolerance: 0.001
+  - id: weighted-average
+    question: What is the weighted average yield of 3.5%, 4.0% and 5.0% with weights 50, 30 and 20?
+    answer:
+      - number: 3.95
+        tolerance: 0.0001
+  - id: regression-slope
+    question: What is the regression slope of y = 2.1, 3.9, 6.2, 7.8, 10.1 on x = 1, 2, 3, 4, 5?
+    answer:
+      - number: 1.99
+        tolerance: 0.0001

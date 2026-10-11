@@ -41,10 +41,11 @@ judgement. They are collected in [section 5](#5-decisions-needed).
 ## 2. Now
 
 Every wave of the [Implementation Plan](Implementation%20Plan.md) through wave 7 has shipped, and so
-has phase 8.1 of wave 8 (tool health, L21 to L25: schema defaults, broken tools fixed or removed,
-the live tool check, domain descriptions and generated guide tables; the CHANGELOG has them). The rest
-of wave 8 (quantitative planners, open data, business intelligence and reports) is placed and
-planned: its items are L26 to L59 in [section 4.3](#43-wave-8-placed). One carry-over: the release
+have phases 8.1 of wave 8 (tool health, L21 to L25) and 8.2 (quantitative planners, L51 to L59: the
+quantitative workspace, the numbers check, the computed-answer planners, their choice by `router` and
+`auto`, and the quantitative eval sets; the CHANGELOG has them). The rest of wave 8 (open data,
+business intelligence and reports) is placed and planned: its items are L26 to L50 in
+[section 4.3](#43-wave-8-placed), with L60 the remainder of phase 8.2. One carry-over: the release
 after 8.8.0 removes the `tools.apply_schema_defaults` switch
 ([Tool Quality §12.1](Tool%20Quality.md#121-schema-defaults-applied-before-a-call)).
 
@@ -111,7 +112,7 @@ the roadmap and build at the first opportunity") and placed them in wave 8 of th
 | Phase | Items | Release |
 |---|---|---|
 | 8.1 | L21–L25 (shipped; rows removed) | 8.8.0 |
-| 8.2 | L51–L59 (quantitative planners) | 8.9.0 |
+| 8.2 | L51–L59 (quantitative planners; built, rows removed; the remainder is L60) | 8.9.0 |
 | 8.3 | L26–L39 | 8.10.0 |
 | 8.4 | L40–L44 | 8.11.0 |
 | 8.5 | L45–L50 | 8.12.0 |
@@ -134,24 +135,16 @@ the roadmap and build at the first opportunity") and placed them in wave 8 of th
 | L39 | Public spending and catalogue (`us_spending`) (wave 8) | US federal awards and the data.gov catalogue | Not built; the CKAN API is gone ([Open Data Tools](Open%20Data%20Tools.md)) | USAspending search and recipients; the new data.gov catalogue API pinned by a contract test | S | none |
 | L40 | Metrics layer (`bi`) (wave 8) | Every caller re-invents "revenue" in SQL | OLAP measures are DuckDB expressions, not owned metrics ([Business Intelligence](Business%20Intelligence.md)) | Metric definitions with owner, grain and dimensions, compiled to safe SQL that runs through the source's own guard; list, describe, query | L | none |
 | L41 | BI analysis tools (wave 8) | People ask compared with when, why it changed and what next | The OLAP engines for cohorts and windows are not exposed ([Business Intelligence](Business%20Intelligence.md)) | Compare, top-N and Pareto, crosstab, cohort retention, contribution analysis, anomalies, forecasts | M | L40 |
-| L42 | Charts and blending tool results (wave 8) | Answers need pictures, and public data joined with internal data | No chart tool; tool output cannot be joined with tables ([Business Intelligence](Business%20Intelligence.md)) | `bi_chart` (spec, SVG, MCP Apps view); `bi_load_tool_result` into a private, expiring DuckDB table per user, exposing the tool-result loader built with L54 | M | L40, L54 |
+| L42 | Charts and blending tool results (wave 8) | Answers need pictures, and public data joined with internal data | No chart tool; tool output cannot be joined with tables ([Business Intelligence](Business%20Intelligence.md)) | `bi_chart` (spec, SVG, MCP Apps view); `bi_load_tool_result` into a private, expiring DuckDB table per user, exposing the tool-result loader built in phase 8.2 ([Quantitative Planners](Quantitative%20Planners.md) §3.4) | M | L40 (the loader is built) |
 | L43 | Dataset catalogue, profiling and data quality (wave 8) | Trust in a metric needs its data's freshness and checks | Not built ([Business Intelligence](Business%20Intelligence.md)) | A catalogue across OLAP, DuckDB and connectors; profiling; check suites scheduled as workflows with notices and alerts | M | L40 |
 | L44 | Dashboards (wave 8) | Teams look at the same metrics every day | Not built ([Business Intelligence](Business%20Intelligence.md)) | Dashboard files of tiles (the unit reports reuse), a BI console page | M | L41, L42 |
 | L45 | Report definitions and engine (`reports`) (wave 8) | Recurring documents built by hand from tool output | Not built ([Reports](Reports.md)) | Definitions in a reports directory published as `report_<name>` tools; run, list, describe, history | L | L44 |
 | L46 | Report formats (wave 8) | Recipients want PDF, Excel, PowerPoint or Word | Not built ([Reports](Reports.md)) | HTML, Markdown, DOCX; PDF through headless Chromium, XLSX and PPTX as optional dependencies; classification marking; provenance appendix | M | L45 |
-| L47 | Narration with a numbers check (wave 8) | Model commentary must not invent figures | Not built ([Reports](Reports.md)) | `report_narrate` over the run's data only; every number checked against the data by the numbers validator of L51; rejected text never delivered | M | L45, L51 |
+| L47 | Narration with a numbers check (wave 8) | Model commentary must not invent figures | Not built ([Reports](Reports.md)) | `report_narrate` over the run's data only; every number checked against the data by the numbers validator built in phase 8.2 ([Quantitative Planners](Quantitative%20Planners.md) §2.4); rejected text never delivered | M | L45 (the validator is built) |
 | L48 | Report delivery and governance (wave 8) | Reports leave the building | Not built ([Reports](Reports.md)) | Email, Teams or Slack webhook, SharePoint, folder; approval for external targets; audit; scheduling through workflows | M | L45, L46 |
 | L49 | Studio Report creator and report library page (wave 8) | Authors need to build and run reports without YAML | Not built; `/reports` is today the usage dashboard ([Reports](Reports.md)) | A Studio creator with preview; a library page with run, history and compare | M | L45 |
 | L50 | Flagship reports (wave 8) | Each proves the design on a real need | Not built ([Reports](Reports.md)) | Daily risk, counterparty exposure, regulatory capital, morning brief, company tearsheet, country profile, central bank watch, metric pack, data quality, platform report, access review | M | L46–L48 |
-| L51 | Quantitative workspace (wave 8) | A model's arithmetic and units cannot be trusted, and a computed figure is in no tool result | The verify check `numbers_in_results` only finds figures that a result contains; nothing tracks units ([Quantitative Planners](Quantitative%20Planners.md)) | Quantities with unit, as-of and source; a tested operation library (percent change, CAGR, bp spread, annualise, NPV, weighted average, regression and more); a unit-aware numbers validator, shared later with report narration | M | none |
-| L52 | `calc_graph` and `estimate_then_compute` planners (wave 8) | Numeric answers need computed figures with lineage | Not built ([Quantitative Planners](Quantitative%20Planners.md)) | The model writes a computation graph of tool inputs and library operations; SAJHA validates it, runs it with unit checks and records each figure's lineage; a rough estimate first catches order-of-magnitude slips | M | L51 |
-| L53 | `scenario` planner (wave 8) | "What if" and sensitivity questions are a grid of runs | Not built ([Quantitative Planners](Quantitative%20Planners.md)) | A shock grid run as parallel tool calls (for example qlrisk) and tabulated by SAJHA as a sensitivity table | S | L51 |
-| L54 | `data_analyst` planner and the tool-result loader (wave 8) | Questions over many rows need a query, not a lookup | Not built ([Quantitative Planners](Quantitative%20Planners.md)) | Tool results loaded into the caller's private DuckDB scratch database (the loader BI's `bi_load_tool_result` exposes, L42); the model writes read-only SQL | M | L51 |
-| L55 | `code_act` planner (wave 8) | Some computations do not fit a fixed library | Not built ([Quantitative Planners](Quantitative%20Planners.md)) | Model-written Python in the existing sandbox, network off, typed quantities out, only for roles an administrator lists | M | L51 |
-| L56 | `optimize` planner (wave 8) | Allocation and sizing questions need a solver | Not built ([Quantitative Planners](Quantitative%20Planners.md)) | A restricted formulation solved with SciPy (optional), every constraint checked at the solution | M | L51 |
-| L57 | Numbers check for every planner (wave 8) | Any planner can cite a figure it did not get from a tool | Only planners whose files run `verify` check figures ([Quantitative Planners](Quantitative%20Planners.md)) | A reserved `numbers_check` setting (`off`, `warn`, `enforce`) every planner accepts, so an overlay turns it on | S | L51 |
-| L58 | `research_writer` and `reconcile` planners (wave 8) | Cited write-ups and source comparisons are common requests | Not built ([Quantitative Planners](Quantitative%20Planners.md)) | A per-section gather and cited draft from the existing stages; figures from several sources aligned on unit and date, differences listed with lineage | S | L51 |
-| L59 | Router and `auto` candidates, quantitative evals (wave 8) | The new planners must be chosen, and proven | Not built ([Quantitative Planners](Quantitative%20Planners.md)) | `auto` and `router` offer `calc_graph`, `scenario` and `data_analyst`; eval sets of quantitative questions with known answers run on the mock provider in CI | S | L52–L58 |
+| L60 | Quantitative planners, finished (wave 8) | A reader should see how a figure was computed, and a tool should declare its units | The planners, workspace, validator and evals are built ([Quantitative Planners](Quantitative%20Planners.md)); a figure's lineage is in the run record but not shown on the Ask SAJHA page, and a unit read from a tool result is the model's declaration, since no `outputSchema` keyword declares it (§2.1, §2.2, §7 there) | Show a selected figure's lineage on the Ask page; an `x-sajha-unit` keyword in `outputSchema`, recorded as `unit_from: schema` | S | none |
 
 ---
 

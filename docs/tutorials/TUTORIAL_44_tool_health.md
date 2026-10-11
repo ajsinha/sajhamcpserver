@@ -304,6 +304,6 @@ the suite until the guide is regenerated.
 
 - The design and every setting: [Tool Quality](../architecture/Tool%20Quality.md)
 - Test cases, probes and evals: [Tutorial 23: Test and Canary Your Tools](TUTORIAL_23_test_and_canary_your_tools.md)
-- This is the last tutorial; the [documentation index](../README.md) lists every guide
+- Next: [Tutorial 45: Quantitative Planners](TUTORIAL_45_quantitative_planners.md)
 
 Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.com

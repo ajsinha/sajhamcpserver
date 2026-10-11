@@ -73,6 +73,9 @@ data/sajhanet/
 # ── LLM-tool spool: large in-flight payloads of running calls (ai.llm_tools.memory.spool) ──
 data/spool/
 
+# ── Per-user scratch databases of the tool-result loader (bi.scratch_dir; private per user) ──
+data/bi/
+
 # ── Retired demo credentials: users live in the database only (Roadmap N5) ──
 config/users.json
 

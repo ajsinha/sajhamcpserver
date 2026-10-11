@@ -43,7 +43,13 @@ def store(tmp_path, monkeypatch):
     monkeypatch.setattr(storage, '_storage', storage.LocalStorageBackend(str(tmp_path)))
     monkeypatch.setattr(ToolsRegistry, 'start_monitoring', lambda self: None)
     monkeypatch.setattr(ToolsRegistry, 'start_retrying', lambda self: None)
-    return tmp_path
+    from sajha import notices
+    before = {n['id'] for n in notices.get_service().all()}
+    yield tmp_path
+    svc = notices.get_service()             # the notices these registries raised must not reach other tests
+    for n in svc.all():
+        if n['id'] not in before and n['id'].startswith('tools.'):
+            svc.store.delete(notices.KEY + n['id'])
 
 
 def _registry(base: Path):
@@ -90,12 +96,25 @@ def test_the_migrated_tree_registers_exactly_what_the_flat_layout_did(tmp_path, 
 
 def test_folder_names():
     from sajha.tools.tool_files import folder_problem, slug_folder
-    for ok in ('', 'fmp', 'bank_of_canada', 'a1-b', 'x' * 32):
+    for ok in ('', 'fmp', 'bank_of_canada', 'Fmp', '1fmp', '_fmp', 'a1_b', 'x' * 32):
         assert folder_problem(ok, check_tools=False) is None, ok
-    for bad in ('Fmp', '1fmp', '_fmp', 'f mp', 'a/b', 'a__b', 'x' * 33, 'fmp.json', '-a'):
+    for bad in ('a1-b', '123', '_1_', 'f mp', 'a/b', 'a__b', 'x' * 33, 'fmp.json', '-a', 'café'):
         assert folder_problem(bad, check_tools=False), bad
     assert slug_folder('Market Data') == 'market_data' and slug_folder('REST API') == 'rest_api'
     assert slug_folder('') == '' and slug_folder('42') == ''
+
+
+def test_a_folder_with_a_name_that_is_not_allowed_is_ignored_and_reported(store):
+    from sajha.tools.tools_registry import ToolsRegistry
+    _put(store, 'bad-name/zz_hyphen.json', _cfg('zz_hyphen'))
+    _put(store, '2024/zz_digits.json', _cfg('zz_digits'))
+    _put(store, 'Good_2/zz_fine.json', _cfg('zz_fine'))
+    reg = _registry(store)
+    assert 'zz_fine' in reg.tools
+    assert 'zz_hyphen' not in reg.tools and 'zz_digits' not in reg.tools
+    assert 'zz_hyphen' not in reg.tool_errors and 'zz_digits' not in reg.tool_errors
+    n = _open_notices('tools.bad_folder')['tools.bad_folder']
+    assert 'bad-name' in n['detail'] and '2024' in n['detail']
 
 
 def test_a_folder_may_not_be_named_like_a_tool(store):
@@ -414,7 +433,7 @@ def test_cli_folders_dry_run_move_and_collision(store):
     assert (store / 'config' / 'tools' / 'cli' / 'zz_cli_a.json').exists()
     assert not (store / 'config' / 'tools' / 'zz_cli_a.json').exists()
     with redirect_stderr(io.StringIO()):
-        assert cmd_move('zz_cli_a', 'Bad', dry_run=True, out=io.StringIO()) == 1
+        assert cmd_move('zz_cli_a', 'bad-name', dry_run=True, out=io.StringIO()) == 1
 
 
 # ── the Tools page groups by folder ──────────────────────────────────────

@@ -13,6 +13,8 @@ import logging
 from dataclasses import dataclass, field
 from typing import Any, Dict, Optional
 
+from pydantic import field_validator
+
 from sajha.ai.llm.settings import Layered, load_ai_yaml, resolve_layers
 
 logger = logging.getLogger(__name__)
@@ -37,6 +39,15 @@ class PlannerTopSettings(Layered):
     dry_run_model: str = "mock/mock-planner"
     max_input_chars: int = 20000
     menu_min_pass_rate: float = 0.5        # a menu candidate whose latest eval run passed less is dropped
+    numbers_check: str = "off"             # the reserved setting's default: off | warn | enforce
+
+    @field_validator("numbers_check", mode="before")
+    @classmethod
+    def _numbers_check(cls, v):
+        v = "off" if v is False else v              # YAML reads a bare ``off`` as false
+        if v not in ("off", "warn", "enforce"):
+            raise ValueError(f"numbers_check {v!r} is not one of off, warn, enforce")
+        return v
 
 
 @dataclass
@@ -49,6 +60,7 @@ class PlannerSettings:
     dry_run_model: str = "mock/mock-planner"
     max_input_chars: int = 20000
     menu_min_pass_rate: float = 0.5        # a menu candidate whose latest eval run passed less is dropped
+    numbers_check: str = "off"             # the reserved setting's default: off | warn | enforce
     limits: PlannerLimitSettings = field(default_factory=PlannerLimitSettings)
 
     def ceilings(self):

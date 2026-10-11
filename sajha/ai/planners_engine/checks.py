@@ -37,6 +37,7 @@ class CheckContext:
     output_schema: Optional[Dict[str, Any]]
     lookup: Callable[[str], Any]
     evaluate: Callable[[Any], bool]       # the `expression` check (a compiled expression)
+    workspace: Any = None                 # the run's quantitative workspace (sajha/ai/quant), when it has one
 
 
 Check = Callable[[CheckContext, Dict[str, Any]], List[Dict[str, Any]]]
@@ -54,6 +55,8 @@ def register_check(name: str, fn: Optional[Check] = None, settings_schema: Optio
 
 
 def checks() -> Dict[str, Check]:
+    from sajha.ai.planners_engine.stages import stage_types
+    stage_types()            # the shipped extensions register their checks too (estimate_consistent)
     return dict(_CHECKS)
 
 
@@ -77,7 +80,7 @@ def extract_numbers(text: str) -> List[Dict[str, Any]]:
         scale = _SCALE.get(suffix, 1.0) if suffix and not pct else 1.0
         decimals = len(raw.split(".")[1]) if "." in raw else 0
         out.append({"value": mant * scale, "mantissa": mant, "pct": pct, "scaled": scale != 1.0,
-                    "decimals": decimals, "raw": m.group(0).strip(), "start": m.start()})
+                    "decimals": decimals, "raw": m.group(0).strip(), "start": m.start(), "end": m.end()})
     return out
 
 
@@ -114,14 +117,11 @@ def _matches(d: float, decimals: int, r: float, tol: float) -> bool:
         return False
 
 
-@register_check("numbers_in_results")
-def numbers_in_results(ctx: CheckContext, s: Dict[str, Any]) -> List[Dict[str, Any]]:
-    tol = float(s.get("tolerance", 0.005))
-    ignore = set(s.get("ignore") or ["question", "years", "ordinals", "small_integers"])
+def _figures(ctx: CheckContext, s: Dict[str, Any]):
+    """The draft's numbers that are checked (the ``ignore`` and ``max_numbers`` rules of §9.1)."""
+    ignore = set(s["ignore"] if s.get("ignore") is not None else ["question", "years", "ordinals", "small_integers"])
     limit = int(s.get("max_numbers", 200))
     q_nums = {n["value"] for n in extract_numbers(ctx.question)} if "question" in ignore else set()
-    pool = _result_numbers(ctx.results)
-    out = []
     checked = 0
     for n in extract_numbers(ctx.draft):
         v = n["value"]
@@ -139,14 +139,74 @@ def numbers_in_results(ctx: CheckContext, s: Dict[str, Any]) -> List[Dict[str, A
         checked += 1
         if checked > limit:
             break
-        cands = [(v, n["decimals"])]
-        if n["pct"]:
-            cands.append((v / 100.0, n["decimals"] + 2))
-        if n["scaled"]:
-            cands.append((n["mantissa"], n["decimals"]))
-        if not any(_matches(d, dec, r, tol) for d, dec in cands for r in pool):
-            shown = int(v) if float(v).is_integer() else v
-            out.append(_finding("numbers_in_results", f"{n['raw']} does not appear in any tool result", shown))
+        yield n
+
+
+def _in_results(n: Dict[str, Any], pool: List[float], tol: float) -> bool:
+    v = n["value"]
+    cands = [(v, n["decimals"])]
+    if n["pct"]:
+        cands.append((v / 100.0, n["decimals"] + 2))
+    if n["scaled"]:
+        cands.append((n["mantissa"], n["decimals"]))
+    return any(_matches(d, dec, r, tol) for d, dec in cands for r in pool)
+
+
+def _shown(v: float) -> Any:
+    return int(v) if float(v).is_integer() else v
+
+
+@register_check("numbers_in_results")
+def numbers_in_results(ctx: CheckContext, s: Dict[str, Any]) -> List[Dict[str, Any]]:
+    tol = float(s.get("tolerance", 0.005))
+    pool = _result_numbers(ctx.results)
+    return [_finding("numbers_in_results", f"{n['raw']} does not appear in any tool result", _shown(n["value"]))
+            for n in _figures(ctx, s) if not _in_results(n, pool, tol)]
+
+
+# ── numbers in the workspace (Quantitative Planners §2.4) ────────
+
+_UNIT_TAG = re.compile(r"\s*(bps?\b|basis points?\b|pp\b|ppts?\b|percentage points?\b|per ?cent\b)", re.IGNORECASE)
+
+
+def _unit_tag(text: str, n: Dict[str, Any]) -> str:
+    """The rate unit written after a figure: ``percent`` (``%``, "percent"), ``bp`` or ``pp``; else ""."""
+    if n["pct"]:
+        return "percent"
+    m = _UNIT_TAG.match(text, n["end"])
+    if not m:
+        return ""
+    w = m.group(1).lower()
+    return "bp" if w.startswith(("bp", "basis")) else "pp" if w.startswith(("pp", "percentage")) else "percent"
+
+
+def _in_workspace(n: Dict[str, Any], tag: str, figures: List[tuple], tol: float) -> bool:
+    """A figure matches a quantity at the precision written, in the unit written (a rate unit), or,
+    with no rate unit written, in any unit the quantity converts to."""
+    if tag:
+        d = n["mantissa"]
+        return any(u.kind == tag and _matches(d, n["decimals"], r, tol) for r, u, _ in figures)
+    cands = [(n["value"], n["decimals"])] + ([(n["mantissa"], n["decimals"])] if n["scaled"] else [])
+    return any(_matches(d, dec, r, tol) for d, dec in cands for r, _u, _ in figures)
+
+
+@register_check("numbers_in_workspace")
+def numbers_in_workspace(ctx: CheckContext, s: Dict[str, Any]) -> List[Dict[str, Any]]:
+    """``numbers_in_results`` generalised: a figure also passes when it matches a quantity of the
+    run's workspace (sajha/ai/quant) in the quantity's unit or one it converts to, so "45 bp",
+    "0.45%" and "0.0045" all match a bp_spread of 45."""
+    tol = float(s.get("tolerance", 0.005))
+    pool = _result_numbers(ctx.results)
+    ws = ctx.workspace
+    figures = ws.figures() if ws is not None and hasattr(ws, "figures") else []
+    out = []
+    for n in _figures(ctx, s):
+        tag = _unit_tag(ctx.draft, n)
+        if _in_results(n, pool, tol) or (figures and _in_workspace(n, tag, figures, tol)):
+            continue
+        out.append(_finding("numbers_in_workspace",
+                            f"{n['raw']}{' ' + tag if tag in ('bp', 'pp') else ''} does not match any tool result or "
+                            f"computed quantity", _shown(n["value"])))
     return out
 
 

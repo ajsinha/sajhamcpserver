@@ -36,6 +36,54 @@ logger = logging.getLogger(__name__)
 
 PY_BUILTINS = ("react", "plan_execute", "recipes", "router")
 NESTING_KINDS = ("planner", "choice", "foreach", "sample")
+ALWAYS_RUN_KINDS = ("planner", "foreach", "sample")      # literal sub-planner references (not menus or choices)
+NOTICE_UNAVAILABLE = "planners.unavailable"
+
+
+def stage_impls(pdef: PlannerDef, registry: Optional["PlannerRegistry"] = None,
+                overlays: Optional[Dict[str, Any]] = None, _seen: Optional[set] = None) -> List[Any]:
+    """Every stage type ``pdef`` runs: its own stages, ``foreach`` ``do`` sub-graphs, ``sample`` ``of``
+    stages and (with a registry) the literal sub-planners it always runs. Choices and menus are left out:
+    they are filtered per caller when the choice is made."""
+    seen = _seen if _seen is not None else set()
+    if pdef.ref in seen or pdef.kind != "graph":
+        return []
+    seen.add(pdef.ref)
+    out: List[Any] = []
+
+    def walk(stages) -> None:
+        for st in stages.values():
+            if st.impl is not None:
+                out.append(st.impl)
+            of = st.compiled.get("of")
+            if of is not None and getattr(of, "impl", None) is not None:
+                out.append(of.impl)
+            sub = st.compiled.get("do")
+            if sub is not None:
+                walk(sub.stages)
+    walk(pdef.stages)
+    if registry is not None:
+        for _sid, kind, ref in pdef.refs:
+            if kind not in ALWAYS_RUN_KINDS:
+                continue
+            name = ref["use"] if isinstance(ref, dict) else ref
+            if not isinstance(name, str) or "{{" in name:
+                continue
+            try:
+                sub = registry.compiled(name, overlays)
+            except Exception:
+                continue
+            out.extend(stage_impls(sub, registry, overlays, seen))
+    return out
+
+
+def unavailable_reason(pdef: PlannerDef) -> Optional[str]:
+    """Why a compiled planner cannot run here (a stage type's optional dependency is missing), or None."""
+    for t in stage_impls(pdef):
+        why = t.unavailable()
+        if why:
+            return why
+    return None
 
 
 @dataclass
@@ -92,6 +140,7 @@ class PlannerRegistry:
         self.files: Dict[str, Dict[str, Entry]] = {}       # name -> version -> last good entry
         self.errors: Dict[str, List[Diagnostic]] = {}      # file -> diagnostics of its last load
         self.warnings: Dict[str, List[Diagnostic]] = {}
+        self.unavailable: Dict[str, str] = {}              # planner name -> why it is not loaded
         self._digests: Dict[Tuple[str, str], str] = {}
         self._sig: Optional[Tuple] = None
         self._checked = 0.0
@@ -167,6 +216,7 @@ class PlannerRegistry:
             fresh: Dict[str, Dict[str, Entry]] = {}
             errors: Dict[str, List[Diagnostic]] = {}
             failed: Dict[Tuple[str, str], str] = {}
+            unavailable: Dict[str, str] = {}
             seen_files: Dict[Tuple[str, str], str] = {}
             ceil = self.settings.ceilings()
             for p in paths:
@@ -189,6 +239,12 @@ class PlannerRegistry:
                     failed[(str(nm), str(ver))] = fname
                     metrics.load_error(str(nm))
                     logger.warning(f"planner file {fname} refused: {e}")
+                    continue
+                why = unavailable_reason(pdef)
+                if why:                                  # an optional dependency is missing: not loaded
+                    if pdef.name not in unavailable:
+                        logger.info(f"planner {pdef.ref} not loaded: {why}")
+                    unavailable[pdef.name] = why
                     continue
                 key = (pdef.name, pdef.version)
                 if key in seen_files:
@@ -221,6 +277,7 @@ class PlannerRegistry:
                     logger.warning(f"planner {nm}@{ver}: keeping the last good version ({fname} failed validation)")
             self.files = fresh
             self.errors = errors
+            self._unavailable_notices({k: v for k, v in unavailable.items() if k not in fresh})
             self._cache.clear()
             # link: sub-planner references (P033 P034 P035), which need every file
             for nm in list(self.files):
@@ -240,6 +297,53 @@ class PlannerRegistry:
                     self.files.pop(nm, None)
             self._sig = sig if sig is not None else self._signature(paths)
             self._checked = time.time()
+
+    def _unavailable_notices(self, now: Dict[str, str]) -> None:
+        """An info notice per planner not loaded for a missing optional dependency (Quantitative
+        Planners §3.6); cleared once it loads."""
+        before, self.unavailable = self.unavailable, dict(now)
+        try:
+            from sajha import notices
+        except Exception:
+            return
+        for name, why in now.items():
+            if before.get(name) != why:
+                notices.raise_notice(f"{NOTICE_UNAVAILABLE}:{name}", severity="info", source="planners",
+                                     title=f"Planner {name} is not available",
+                                     detail=f"The planner file {name} was not loaded: {why}.",
+                                     link="/help/guides/Quantitative%20Planners", ttl_minutes=0)
+        for name in set(before) - set(now):
+            notices.clear_notice(f"{NOTICE_UNAVAILABLE}:{name}")
+
+    def refusal(self, ref: Any, ctx: Any, overlays: Optional[Dict[str, Any]] = None) -> Optional[str]:
+        """Why the caller (``ctx``: a RequestContext) may not run planner ``ref`` (a reference or a
+        compiled PlannerDef), or None. A planner is role-limited when it, or a sub-planner it always
+        runs, uses a stage type with ``allowed_roles`` (``code_act``: ``ai.quant.code_act.roles``)."""
+        from sajha.ai.planners_engine.stages import permitted
+        try:
+            pdef = ref if isinstance(ref, PlannerDef) else self.compiled(ref, overlays)
+        except Exception:
+            return None                   # resolution errors are reported where the planner is run
+        for t in stage_impls(pdef, self, overlays):
+            if not permitted(t, ctx):
+                roles = t.allowed_roles() or []
+                return (f"planner {pdef.name} uses the {t.name} stage, which only the roles "
+                        f"{', '.join(roles)} may run" if roles else
+                        f"planner {pdef.name} uses the {t.name} stage, which no role is allowed to run")
+        return None
+
+    def restricted_roles(self, ref: Any) -> Optional[List[str]]:
+        """The roles that may run ``ref`` when it is role-limited, else None."""
+        try:
+            pdef = ref if isinstance(ref, PlannerDef) else self.compiled(ref)
+        except Exception:
+            return None
+        out: Optional[List[str]] = None
+        for t in stage_impls(pdef, self):
+            roles = t.allowed_roles()
+            if roles is not None:
+                out = sorted(set(roles) if out is None else set(out) & set(roles))
+        return out
 
     # ── resolution ────────────────────────────────────────────────
     def entry(self, ref: str) -> Entry:
@@ -446,7 +550,9 @@ class PlannerRegistry:
         return [lab for lab in labels if lab.split("@")[0] not in failing and lab not in failing]
 
     # ── views ─────────────────────────────────────────────────────
-    def describe(self) -> List[Dict[str, Any]]:
+    def describe(self, ctx: Any = None, hide_refused: bool = False) -> List[Dict[str, Any]]:
+        """Every planner. A role-limited one carries ``roles`` and, with ``ctx``, ``permitted``;
+        ``hide_refused`` leaves out those ``ctx`` may not run (they are not offered to it)."""
         self.maybe_reload()
         out = []
         for name in self.names():
@@ -455,10 +561,18 @@ class PlannerRegistry:
             except ValueError:
                 continue
             if e.pdef is not None:
-                out.append({"name": e.name, "version": e.version, "kind": e.kind, "source": "file",
-                            "file": e.file, "description": e.pdef.description, "use_when": e.pdef.use_when,
-                            "versions": sorted(self.files.get(name, {}), key=semver_key),
-                            "warnings": [w.to_dict() for w in e.warnings]})
+                item = {"name": e.name, "version": e.version, "kind": e.kind, "source": "file",
+                        "file": e.file, "description": e.pdef.description, "use_when": e.pdef.use_when,
+                        "versions": sorted(self.files.get(name, {}), key=semver_key),
+                        "warnings": [w.to_dict() for w in e.warnings]}
+                roles = self.restricted_roles(e.pdef)
+                if roles is not None:
+                    item["roles"] = roles
+                    if ctx is not None:
+                        item["permitted"] = self.refusal(e.pdef, ctx) is None
+                        if hide_refused and not item["permitted"]:
+                            continue
+                out.append(item)
             else:
                 cls = e.cls
                 out.append({"name": e.name, "version": e.version, "kind": "python", "source": "python",

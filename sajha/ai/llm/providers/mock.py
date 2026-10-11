@@ -506,6 +506,9 @@ class PlannerModel(_MockChat):
         for s, _, t in scored[1:limit]:
             if best > 0 and s >= max(3.0, 0.9 * best):
                 chosen.append(t)
+        named = [t for t in tools if re.search(r"(?<![\w])" + re.escape(t.name) + r"(?![\w])", question)]
+        if len(named) > 1:                     # a question that names two or more tools calls each of them
+            chosen = named[:max(limit, 4)]
         calls = []
         for i, spec in enumerate(chosen):
             args = fill_arguments(spec.input_schema or {}, question)
@@ -578,11 +581,18 @@ def _all_calls(request: ChatRequest):
     return calls, results
 
 
+_NOT_QUESTIONS = ("Per-item answers", "Question:", "SQL query results", "That query failed",
+                  "Quantities computed by", "The previous computation graph",
+                  "Scenario table computed by", "That grid does not", "Reconciliation computed by",
+                  "That reply does not validate", "Optimisation result computed by",
+                  "That formulation does not validate")
+
+
 def _question_of(request: ChatRequest) -> str:
     """The last user message that is the question (not a stage's review or per-item data message)."""
     q = ""
     for m in request.messages:
-        if m.role == "user" and m.text and not m.text.startswith(("Per-item answers", "Question:")):
+        if m.role == "user" and m.text and not m.text.startswith(_NOT_QUESTIONS):
             q = m.text
     return q or _last_user_text(request)
 
@@ -637,9 +647,76 @@ def _reply_draft(model, request) -> str:
     data = json.loads(text) if text.startswith("{") else {"answer": text, "citations": [], "caveats": []}
     items = [m.text for m in request.messages if m.role == "user" and (m.text or "").startswith("Per-item answers")]
     if items:
-        lines = [ln[2:] for ln in items[-1].splitlines()[1:] if ln.startswith("- ")]
+        lines = []
+        for ln in items[-1].splitlines()[1:]:
+            if not ln.startswith("- "):
+                continue
+            body = ln[2:]
+            if body.startswith("{"):           # an item that is a plan step: name it by its heading (why)
+                try:
+                    item, end = json.JSONDecoder().raw_decode(body)
+                    if isinstance(item, dict) and body[end:end + 2] == ": ":
+                        body = f"{item.get('why') or item.get('id') or 'item'}: {body[end + 2:]}"
+                except ValueError:
+                    pass
+            lines.append(body)
         data["answer"] = "; ".join(lines) if lines else data["answer"]
+        cites = [c for c in data.get("citations") or [] if c]
+        if cites and "square brackets" in (request.system or ""):
+            data["answer"] += " " + " ".join(f"[{c}]" for c in cites)     # research_writer: cite inline
+    queries = [m.text for m in request.messages if m.role == "user" and (m.text or "").startswith("SQL query results")]
+    if queries:                                # a data_analyst query result: quote its rows, cite it
+        qid = re.search(r"^\[(query_\d+)\]", queries[-1], re.M)
+        rows = re.search(r"^rows[^:]*: (.*)$", queries[-1], re.M | re.S)
+        if qid:
+            data["answer"] = f"The query {qid.group(1)} returned: {_short(rows.group(1) if rows else '', 600)}"
+            data["citations"] = [qid.group(1)] + list(data.get("citations") or [])
+    computed = [m.text for m in request.messages if m.role == "user" and (m.text or "").startswith("Quantities computed by")]
+    if computed:                               # calc_graph / code_act quantities: quote them as computed
+        lines = re.findall(r"^- ([\w.]+) = (\S+) ([^;(\n]*?)(?: \(answers the question\))?(?: as of [^;]*)?;", computed[-1], re.M)
+        marked = [ln for ln in computed[-1].splitlines() if "(answers the question)" in ln]
+        keep = [x for x in lines if any(ln.startswith(f"- {x[0]} =") for ln in marked)] or lines
+        if keep:
+            data["answer"] = "; ".join(f"{n} is {v} {u}".strip() for n, v, u in keep[:5]) + "."
+            data["citations"] = sorted(set(re.findall(r"read from call (\S+)", computed[-1]))) or data.get("citations") or []
+        elif "\n{" in computed[-1]:              # code_act: a JSON object of quantities
+            try:
+                shown = json.loads(computed[-1].split("\n", 1)[1])
+            except ValueError:
+                shown = {}
+            parts = [f"{n} is {q.get('value')} {q.get('unit') or ''}".strip() for n, q in shown.items()
+                     if isinstance(q, dict)]
+            if parts:
+                data["answer"] = "; ".join(parts[:5]) + "."
+    solved = [m.text for m in request.messages if m.role == "user"
+              and (m.text or "").startswith("Optimisation result computed by")]
+    if solved:                                 # optimize: report the solver's result as labelled
+        try:
+            res = json.loads(solved[-1].split("\n", 1)[1].split("\nThere is no solution")[0])
+        except (IndexError, ValueError):
+            res = {}
+        if res.get("status") == "optimal":
+            vals = ", ".join(f"{k} = {v:g}" for k, v in (res.get("values") or {}).items() if isinstance(v, (int, float)))
+            data["answer"] = f"The optimal objective is {res.get('objective'):g} at {vals}."
+        elif res:
+            data["answer"] = f"There is no solution: the problem is {res.get('status')} ({res.get('message') or ''})."
+    tables = [m.text for m in request.messages if m.role == "user"
+              and (m.text or "").startswith(("Scenario table computed by", "Reconciliation computed by"))]
+    if tables:                                 # scenario / reconcile: describe the table as SAJHA wrote it
+        lines = [ln[2:] for ln in tables[-1].splitlines() if ln.startswith("- ")]
+        if lines:
+            data["answer"] = "; ".join(lines[:12]) + "."
+            data["citations"] = list(dict.fromkeys(re.findall(r"\[([\w.-]+)\]", tables[-1]))) or data.get("citations") or []
     return json.dumps(data)
+
+
+def _reply_sql(model, request) -> str:
+    """A data_analyst query: the rows of the first loaded table listed in the request."""
+    for m in reversed(request.messages):
+        hit = re.search(r"^- (\w+) \(\d+ rows", m.text or "", re.M) if m.role == "user" else None
+        if hit:
+            return json.dumps({"sql": f"SELECT * FROM {hit.group(1)} LIMIT 20", "why": "mock: the loaded rows"})
+    return json.dumps({"sql": "SELECT 1 AS one", "why": "mock: no table listed"})
 
 
 def _reply_revise(model, request) -> str:
@@ -677,7 +754,232 @@ def _reply_condense(model, request) -> str:
 
 STAGE_REPLIES = {"classify": _reply_classify, "critique": _reply_critique, "judge": _reply_judge,
                  "draft": _reply_draft, "revise": _reply_revise, "extract": _reply_extract,
-                 "condense": _reply_condense}
+                 "condense": _reply_condense, "sql": _reply_sql}
+
+
+# ── computed answers (Quantitative Planners §3.1, §3.2, §3.5, §3.6): deterministic, from the question ──
+
+def _mock_calc(question: str):
+    """(op, first, second) for a question stating two figures: a ratio, a difference or a percent change."""
+    nums = extract_numbers(question)
+    if len(nums) < 2:
+        return None
+    low = question.lower()
+    op = "ratio" if re.search(r"\bratio\b|divided", low) else \
+        "diff" if re.search(r"\bdifference\b|\bminus\b|\bspread\b", low) else "pct_change"
+    return op, nums[0], nums[1]
+
+
+_PCT = re.compile(r"(-?\d+(?:\.\d+)?)\s*(?:%|percent\b)", re.I)
+
+
+def _const(value, unit="unitless"):
+    return {"value": value, "unit": unit}
+
+
+def _mock_graph(question: str):
+    """A graph for the question shapes the eval sets ask (config/evals/quant_calc_graph.yaml): a CAGR, a
+    spread in basis points, an NPV, a weighted average, a regression slope; None for anything else."""
+    low = question.lower()
+    nums = extract_numbers(question)
+    if re.search(r"\bcagr\b|compound annual growth", low) and len(nums) >= 3:
+        return ({"start": _const(nums[0]), "end": _const(nums[1]), "years": _const(nums[2], "years"),
+                 "growth": {"op": "cagr", "start": "start", "end": "end", "years": "years"}}, ["growth"], "cagr")
+    rates = [float(x) for x in _PCT.findall(question)]
+    if re.search(r"basis points?|\bbps?\b", low) and len(rates) >= 2:
+        return ({"a": _const(rates[0], "percent"), "b": _const(rates[1], "percent"),
+                 "spread": {"op": "bp_spread", "a": "a", "b": "b"}}, ["spread"], "bp_spread")
+    if re.search(r"\bnpv\b|net present value", low) and rates:
+        flows = [n for n in extract_numbers(_PCT.sub(" ", question))]
+        if len(flows) >= 2:
+            return ({"flows": _const(flows), "rate": _const(rates[0], "percent"),
+                     "value": {"op": "npv", "cash_flows": "flows", "rate": "rate"}}, ["value"], "npv")
+    m = re.search(r"weighted average(.*)\bweights?\b(.*)", question, re.I | re.S)
+    if m:
+        unit = "percent" if _PCT.search(m.group(1)) else "unitless"
+        vals, wts = extract_numbers(m.group(1)), extract_numbers(m.group(2))
+        if vals and len(vals) == len(wts):
+            return ({"values": _const(vals, unit), "weights": _const(wts),
+                     "average": {"op": "weighted_avg", "values": "values", "weights": "weights"}}, ["average"],
+                    "weighted_avg")
+    m = re.search(r"\by\s*=\s*(.*?)\bon\s+x\s*=\s*(.*)", question, re.I | re.S)
+    if m and re.search(r"regression|slope", low):
+        ys, xs = extract_numbers(m.group(1)), extract_numbers(m.group(2))
+        if len(ys) >= 2 and len(ys) == len(xs):
+            return ({"y": _const(ys), "x": _const(xs), "fit": {"op": "regression", "y": "y", "x": "x"},
+                     "slope": {"op": "round", "q": "fit.slope", "places": 4}}, ["slope"], "regression")
+    return None
+
+
+def _reply_graph_plan(model, request) -> str:
+    """A computation graph of the figures the question states (a constant per figure, one operation)."""
+    q = _question_of(request)
+    shaped = _mock_graph(q)
+    if shaped:
+        nodes, answer_with, op = shaped
+        return json.dumps({"nodes": nodes, "answer_with": answer_with, "why": f"mock: {op} of the stated figures"})
+    calc = _mock_calc(q)
+    if calc:
+        op, a, b = calc
+        node = {"op": "pct_change", "from": "start", "to": "end"} if op == "pct_change" else \
+            {"op": op, "a": "end", "b": "start"}
+        return json.dumps({"nodes": {"start": {"value": a, "unit": "unitless"}, "end": {"value": b, "unit": "unitless"},
+                                     "result": node}, "answer_with": ["result"], "why": f"mock: {op} of the two figures"})
+    nums = extract_numbers(q)
+    if nums:
+        return json.dumps({"nodes": {"figure": {"value": nums[0], "unit": "unitless"}}, "answer_with": ["figure"],
+                           "why": "mock: the figure stated"})
+    return json.dumps({"nodes": {}, "answer_with": [], "why": "mock: no figure to compute"})
+
+
+def _reply_estimate(model, request) -> str:
+    calc = _mock_calc(_question_of(request))
+    if calc:
+        op, a, b = calc
+        if op == "pct_change" and a:
+            return json.dumps({"value": (b - a) / abs(a) * 100, "unit": "percent", "why": "mock: rough change"})
+        if op == "ratio" and a:
+            return json.dumps({"value": b / a, "unit": "ratio", "why": "mock: rough ratio"})
+        return json.dumps({"value": b - a, "unit": "unitless", "why": "mock: rough difference"})
+    return json.dumps({"value": None, "unit": "unitless", "why": "mock: no estimate"})
+
+
+_LP_TERM = re.compile(r"([+-]?)\s*(\d+(?:\.\d+)?)?\s*\*?\s*([a-z]\w*)")
+_LP_OPS = {"<=": "<=", "≤": "<=", ">=": ">=", "≥": ">=", "=": "=="}
+
+
+def _lp_terms(text: str) -> Dict[str, float]:
+    terms: Dict[str, float] = {}
+    for sign, coef, var in _LP_TERM.findall(text):
+        terms[var] = terms.get(var, 0.0) + (-1.0 if sign == "-" else 1.0) * float(coef or 1)
+    return terms
+
+
+def _mock_lp(question: str):
+    """A linear programme the question writes out: "maximise 3x + 5y subject to x <= 4, 2y <= 12 and
+    3x + 2y <= 18" (non-negative variables); None when the question does not have that shape."""
+    m = re.search(r"\b(maximi[sz]e|minimi[sz]e)\s+(.*?)\s+subject to\s+(.*?)(?:[.?;]\s|[.?]?$)", question, re.I | re.S)
+    if not m:
+        return None
+    objective = _lp_terms(m.group(2))
+    constraints = []
+    for i, part in enumerate(re.split(r",\s*(?:and\s+)?|\s+and\s+", m.group(3))):
+        c = re.match(r"\s*(.*?)\s*(<=|>=|≤|≥|=)\s*(-?\d+(?:\.\d+)?)\s*$", part)
+        if not c:
+            return None
+        constraints.append({"name": f"c{i + 1}", "terms": _lp_terms(c.group(1)), "op": _LP_OPS[c.group(2)],
+                            "rhs": float(c.group(3))})
+    names = sorted(set(objective) | {v for c in constraints for v in c["terms"]})
+    if not objective or not constraints or len(names) > 10:
+        return None
+    return {"sense": "max" if m.group(1).lower().startswith("max") else "min",
+            "variables": [{"name": n, "lower": 0} for n in names], "objective": {"linear": objective},
+            "constraints": constraints}
+
+
+def _reply_optimize(model, request) -> str:
+    """The linear programme the question writes out; otherwise one variable bounded by the first figure
+    in the question, maximised when the question says so."""
+    q = _question_of(request)
+    lp = _mock_lp(q)
+    if lp:
+        return json.dumps(lp)
+    nums = [n for n in extract_numbers(q) if n > 0]
+    cap = nums[0] if nums else 10
+    sense = "max" if re.search(r"\b(max\w*|most|largest|highest|best)\b", q, re.I) else "min"
+    return json.dumps({"sense": sense, "variables": [{"name": "x", "lower": 0, "upper": cap}],
+                       "objective": {"linear": {"x": 1}},
+                       "constraints": [{"name": "limit", "terms": {"x": 1}, "op": "<=", "rhs": cap}]})
+
+
+_MOCK_CODE = ("import json, re, sys\n"
+              "data = json.load(sys.stdin)\n"
+              "nums = [float(x) for x in re.findall(r'-?\\d+(?:\\.\\d+)?', data.get('question') or '')]\n"
+              "print(json.dumps({'quantities': {'mock_total': {'value': sum(nums), 'unit': 'unitless'}}}))\n")
+
+
+def _reply_code_act(model, request) -> str:
+    return json.dumps({"code": _MOCK_CODE, "explanation": "mock: the sum of the figures in the question"})
+
+
+STAGE_REPLIES.update({"graph_plan": _reply_graph_plan, "estimate": _reply_estimate, "optimize": _reply_optimize,
+                      "code_act": _reply_code_act})
+
+
+# ── scenario and reconcile (Quantitative Planners §3.3, §3.8) ──
+
+_FACTOR = re.compile(r"\b((?:IR|FX|EQ|CR|VOL|CMDTY|DIV|BOND)\.[A-Za-z0-9_.]*[A-Za-z0-9])")
+_RANGE = re.compile(r"([-+]?\d+(?:\.\d+)?)\s*(bp|%)?\s*to\s*([-+]?\d+(?:\.\d+)?)\s*(bp|%)?\s*"
+                    r"(?:in|by|with)\s*(\d+(?:\.\d+)?)\s*(bp|%)?\s*steps?", re.I)
+
+
+def _reply_grid(model, request) -> str:
+    """A one-factor grid: the factor and range named in the question (else IR.FWD.SOFR.5Y, -50 to +50 bp in
+    25 bp steps) over the offered tool that looks like a pricer, valued at ``$.total_npv`` in USD."""
+    q = _question_of(request)
+    names = [t.name for t in (request.tools or [])]
+    tool = next((n for n in names if re.search(r"price|valu|stress|scenario|npv", n)), names[0] if names else "")
+    f = _FACTOR.search(q)
+    r = _RANGE.search(q)
+    lo, hi, step, unit = (-50.0, 50.0, 25.0, "bp")
+    if r:
+        lo, hi, step = float(r.group(1)), float(r.group(3)), float(r.group(5))
+        unit = (r.group(2) or r.group(4) or r.group(6) or "bp").lower()
+    field = "size_pct" if unit == "%" else "size_bp"
+    return json.dumps({"tool": tool, "arguments": {}, "shock_path": "market_data.shocks", "value_path": "$.total_npv",
+                       "unit": "USD", "factors": [{"factor": f.group(1) if f else "IR.FWD.SOFR.5Y", "size_field": field,
+                                                   "shock_type": "absolute", "from": lo, "to": hi, "step": step}],
+                       "why": "mock: one factor over the range in the question"})
+
+
+def _numeric_leaves(data: Any, path: str = "$", depth: int = 0) -> List[Tuple[str, str]]:
+    out: List[Tuple[str, str]] = []
+    if isinstance(data, dict) and depth < 3:
+        for k, v in data.items():
+            if not re.match(r"^[A-Za-z_]\w*$", str(k)):
+                continue
+            if isinstance(v, (int, float)) and not isinstance(v, bool):
+                out.append((str(k), f"{path}.{k}"))
+            elif isinstance(v, dict):
+                out.extend(_numeric_leaves(v, f"{path}.{k}", depth + 1))
+    return out
+
+
+def _reply_reconcile(model, request) -> str:
+    """The first numeric field (not an echoed input) found in two or more successful results, read from
+    each (unit from a ``currency`` or ``unit`` field beside it, as-of from ``as_of`` or ``date``)."""
+    calls, results = _all_calls(request)
+    found: Dict[str, List[Dict[str, Any]]] = {}
+    for c in calls:
+        r = results.get(c.id)
+        if r is None or r.is_error:
+            continue
+        try:
+            data = json.loads(r.content) if isinstance(r.content, str) else r.content
+        except ValueError:
+            continue
+        args = c.arguments if isinstance(c.arguments, dict) else {}
+        for key, path in _numeric_leaves(data):
+            if path.count(".") == 1 and key in args:
+                continue                       # an input echoed back, not a figure the source reports
+            parent = data
+            for part in path.split(".")[1:-1]:
+                parent = parent.get(part) if isinstance(parent, dict) else None
+            parent = parent if isinstance(parent, dict) else {}
+            unit = str(parent.get("currency") or parent.get("unit") or "unitless")
+            rd = {"source": c.name, "call_id": c.id, "path": path, "unit": unit}
+            as_of = parent.get("as_of") or parent.get("date")
+            if as_of:
+                rd["as_of"] = str(as_of)
+            found.setdefault(key, []).append(rd)
+    for key, readings in found.items():
+        if len({x["call_id"] for x in readings}) >= 2:
+            return json.dumps({"figures": [{"name": key, "readings": readings[:6]}],
+                               "why": f"mock: {key} appears in {len(readings)} results"})
+    return json.dumps({"figures": [], "why": "mock: no figure appears in two results"})
+
+
+STAGE_REPLIES.update({"grid": _reply_grid, "reconcile": _reply_reconcile})
 
 
 def _short(s: str, n: int) -> str:

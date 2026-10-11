@@ -2,15 +2,18 @@
 # Edit with care: change `version` when the behaviour changes, and keep the old file as
 # auto@<old version>.yaml while tools still pin it.
 name: auto
-version: 1.0.0
+version: 1.1.0
 description: Picks a strategy per question (known patterns first, then a cheap classifier over the allowed planners), checks the answer, and escalates once only when a check fails.
 use_when: Mixed traffic; pick a strategy per question and upgrade only when checks fail.
 models: { chooser: fast, act: fast, strong: reasoning }
 settings:
-  candidates: [react, plan_execute, reflect, map_reduce]
+  # calc_graph, scenario and data_analyst answer computed figures (Quantitative Planners §3.9); code_act and
+  # optimize are never default candidates: a tool or the Ask page adds them by overlay
+  candidates: [react, plan_execute, reflect, map_reduce, calc_graph, scenario, data_analyst]
   default: react
   min_label_confidence: 0.5
   escalate_below: 0.6
+  self_checked: [calc_graph, scenario, data_analyst]   # check their own figures: low tool confidence does not escalate them
   first_try: { max_steps: 4 }      # sub-budget of the first attempt
 start: known
 stages:
@@ -41,7 +44,7 @@ stages:
     outcomes: { "*": { next: verify } }
   verify:
     type: verify
-    checks: [numbers_in_results, parts_answered]
+    checks: [numbers_in_workspace, parts_answered]   # numbers_in_results, plus figures a sub-run computed
     outcomes:
       ok: { next: gate }
       mismatch:
@@ -49,7 +52,7 @@ stages:
         - { next: reflect, max_visits: 1, on_exhausted: answer }
   gate:
     type: answer
-    when: "confidence >= settings.escalate_below and subrun.stopped_by != 'step_limit'"
+    when: "(confidence >= settings.escalate_below or chosen in settings.self_checked) and subrun.stopped_by != 'step_limit'"
     else: { next: deeper, max_visits: 1, on_exhausted: answer }
   reflect:
     type: planner

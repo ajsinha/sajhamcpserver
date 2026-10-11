@@ -3,7 +3,9 @@ SAJHA MCP Server — tool config files: the one authority for a tool's name and 
 Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.com
 
 A tool config lives at ``<tools dir>/<name>.json`` (the root) or ``<tools dir>/<folder>/<name>.json``
-(a tool folder), exactly one level deep. A deeper file is ignored and reported. Folders organise;
+(a tool folder), exactly one level deep. A deeper file is ignored and reported. A folder name (and so
+a domain name) uses only letters, digits and "_", with at least one letter; a folder named otherwise
+is ignored and reported. Folders organise;
 they never rename: a tool's name is its config's ``name`` (the file stem when the file has none).
 A name may exist in one place only; two files with the same name load neither (the registry raises
 ``tools.duplicate:<name>``). Every piece of code that turns a tool name into a path asks the index
@@ -26,7 +28,13 @@ logger = logging.getLogger(__name__)
 
 DEFAULT_PREFIX = 'config/tools'
 FOLDER_MAX = 32
-_FOLDER_RE = re.compile(r'^[a-z][a-z0-9_-]*$')
+_FOLDER_RE = re.compile(r'^(?=[A-Za-z0-9_]*[A-Za-z])[A-Za-z0-9_]+$')   # letters, digits, '_'; one letter at least
+
+
+def valid_folder_name(folder) -> bool:
+    """True when ``folder`` may name a tool folder (a domain): only letters, digits and "_", at least one
+    letter. A folder named otherwise is ignored when tools load."""
+    return isinstance(folder, str) and bool(_FOLDER_RE.match(folder))
 
 
 # ── folder names ─────────────────────────────────────────────────────────
@@ -39,9 +47,9 @@ def folder_problem(folder: str, check_tools: bool = True) -> Optional[str]:
         return 'a folder name must be text'
     if len(folder) > FOLDER_MAX:
         return f'folder name {folder!r} is longer than {FOLDER_MAX} characters'
-    if not _FOLDER_RE.match(folder):
-        return (f'folder name {folder!r} must start with a lowercase letter and use only lowercase '
-                f'letters, digits, "_" or "-"')
+    if not valid_folder_name(folder):
+        return (f'folder name {folder!r} may use only letters, digits and "_", and needs at least one '
+                f'letter')
     if '__' in folder:
         return f'folder name {folder!r} contains "__", which is reserved'
     if folder.lower() == UNFILED.lower():
@@ -69,9 +77,9 @@ def clean_folder(folder) -> str:
 
 def slug_folder(text) -> str:
     """A valid folder name made from free text (a category, a namespace), or '' when there is none."""
-    s = re.sub(r'[^a-z0-9_-]+', '_', str(text or '').strip().lower())
-    s = re.sub(r'_+', '_', s).strip('_-')
-    s = re.sub(r'^[^a-z]+', '', s)[:FOLDER_MAX].rstrip('_-')
+    s = re.sub(r'[^a-z0-9_]+', '_', str(text or '').strip().lower())
+    s = re.sub(r'_+', '_', s).strip('_')
+    s = s[:FOLDER_MAX].rstrip('_')
     return s if s and folder_problem(s, check_tools=False) is None else ''
 
 
@@ -148,6 +156,7 @@ class ToolFileIndex:
         self._lock = threading.RLock()
         self._names: Dict[str, str] = {}        # rel -> tool name, for every file at an allowed depth
         self._deep: List[str] = []              # files nested deeper than one folder
+        self._bad: List[str] = []               # files in a folder whose name is not allowed
 
     # paths
     def storage(self):
@@ -155,7 +164,7 @@ class ToolFileIndex:
 
     def split(self, rel: str) -> Tuple[Optional[str], bool]:
         """(folder, allowed) of a path under the prefix: ('', True) root, ('x', True) one folder down,
-        (None, False) deeper or outside."""
+        (None, False) deeper, outside, or in a folder whose name is not allowed."""
         rel = rel.replace('\\', '/')
         if not rel.startswith(self.prefix + '/'):
             return None, False
@@ -163,7 +172,7 @@ class ToolFileIndex:
         if len(parts) == 1:
             return '', True
         if len(parts) == 2:
-            return parts[0], True
+            return (parts[0], True) if valid_folder_name(parts[0]) else (None, False)
         return None, False
 
     def new_path(self, name: str, folder: str = '') -> str:
@@ -180,7 +189,7 @@ class ToolFileIndex:
         their name; new ones are read (or taken from ``configs``, rel -> parsed config)."""
         if rels is None:
             rels = self.storage().list_files(self.prefix, '*.json')
-        names, deep = {}, []
+        names, deep, bad = {}, [], []
         with self._lock:
             known = dict(self._names)
         for rel in rels:
@@ -189,7 +198,7 @@ class ToolFileIndex:
                 continue                         # an atomic write's temporary file
             folder, ok = self.split(rel)
             if not ok:
-                deep.append(rel)
+                (bad if self._in_bad_folder(rel) else deep).append(rel)
                 continue
             if configs is not None and rel in configs:
                 names[rel] = _name_of(configs[rel], rel)
@@ -198,8 +207,16 @@ class ToolFileIndex:
             else:
                 names[rel] = self._read_name(rel)
         with self._lock:
-            self._names, self._deep = names, sorted(deep)
+            self._names, self._deep, self._bad = names, sorted(deep), sorted(bad)
         return self
+
+    def _in_bad_folder(self, rel: str) -> bool:
+        """True for a file one folder down whose folder name is not allowed."""
+        rel = rel.replace('\\', '/')
+        if not rel.startswith(self.prefix + '/'):
+            return False
+        parts = rel[len(self.prefix) + 1:].split('/')
+        return len(parts) == 2 and not valid_folder_name(parts[0])
 
     def _read_name(self, rel: str) -> str:
         try:
@@ -257,6 +274,16 @@ class ToolFileIndex:
     def too_deep(self) -> List[str]:
         with self._lock:
             return list(self._deep)
+
+    def bad_folder(self) -> List[str]:
+        """Files ignored because their folder's name is not allowed."""
+        with self._lock:
+            return list(self._bad)
+
+    def ignored(self) -> List[str]:
+        """Every file ignored by its place: nested too deep or in a badly named folder."""
+        with self._lock:
+            return sorted(self._deep + self._bad)
 
     def folders(self) -> List[str]:
         return sorted({f for _, _, f in self.entries() if f})

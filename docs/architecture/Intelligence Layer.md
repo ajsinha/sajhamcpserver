@@ -454,7 +454,8 @@ event carries the guard's per-step basis. Freshness and cross-source agreement a
 scored.
 
 **Audit**: each ask writes an `ai_ask` audit-log entry (question, tools, models, planner,
-tokens, outcome, confidence) unless `ai.ask.audit` is false.
+tokens, outcome, confidence, and a summary of any `queries`, `code_runs`, `scenario_tables` and
+`reconciliations`) unless `ai.ask.audit` is false.
 
 ### Conversation memory
 
@@ -620,7 +621,11 @@ its `tool_result`, all tool results before the answer.
 `duration_ms`, `error`, `planner`, `plan` (the last plan, each step with its final status),
 `conversation_id` and `turn` (for a turn of a conversation), `standalone_question` (when the
 question was rewritten), and from planner files `planner_version`, `planner_path`,
-`loops_exhausted`, `planner_by` and `input_request` (`stopped_by: needs_input`).
+`loops_exhausted`, `planner_by` and `input_request` (`stopped_by: needs_input`). The quantitative
+planners add `workspace` (the run's quantities with their lineage), `queries` (`data_analyst`'s
+SQL), `code_runs` (`code_act`), `scenario_tables` (`scenario`) and `reconciliations` (`reconcile`),
+each also filled when that planner ran as a sub-run, for example under `auto`
+([Quantitative Planners](Quantitative%20Planners.md) §3).
 
 ### Using Ask SAJHA
 
