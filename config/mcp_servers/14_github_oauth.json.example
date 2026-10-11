@@ -1,0 +1,25 @@
+{
+  "_comment": "GitHub's remote MCP server, called as each user after they sign in with GitHub (auth.type oauth_user) through an OAuth app your organisation registers (GitHub, Settings > Developer settings > OAuth Apps; Authorization callback URL = <accounts.public_url>/account/server-connections/oauth/callback). Set GITHUB_OAUTH_CLIENT_ID and GITHUB_OAUTH_CLIENT_SECRET in SAJHA's environment; the secret is only ever a reference. Endpoints are GitHub's documented OAuth app endpoints (https://docs.github.com/en/apps/oauth-apps/building-oauth-apps/authorizing-oauth-apps). For personal access tokens instead, see 11_github_token_user.json.example.",
+  "mcpServers": {
+    "github": {
+      "url": "https://api.githubcopilot.com/mcp/",
+      "title": "GitHub",
+      "tools": ["get_*", "list_*", "search_*"],
+      "auth": {
+        "type": "oauth_user",
+        "vendor": "GitHub",
+        "client_id": "${GITHUB_OAUTH_CLIENT_ID}",
+        "client_secret_ref": "env:GITHUB_OAUTH_CLIENT_SECRET",
+        "authorize_url": "https://github.com/login/oauth/authorize",
+        "token_url": "https://github.com/login/oauth/access_token",
+        "revoke_url": "https://api.github.com/applications/{client_id}/grant",
+        "revoke_style": "github",
+        "scopes": ["read:user", "read:org"],
+        "write_scopes": ["repo"],
+        "resource_indicator": false,
+        "help_url": "https://docs.github.com/en/apps/oauth-apps/using-oauth-apps/authorizing-oauth-apps",
+        "_comment": "GitHub's classic OAuth scopes have no read-only scope for private repositories: 'repo' grants read and write, so it is offered only to users who tick 'allow changes'. Without it users see public repositories and their organisations. GitHub OAuth apps do not document resource indicators (RFC 8707), hence resource_indicator false."
+      }
+    }
+  }
+}

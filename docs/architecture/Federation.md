@@ -141,10 +141,10 @@ or the store: every secret is a **reference** resolved by the intelligence layer
 | `oauth_client_credentials` | `token_url`, `client_id`, `client_secret_ref`, `scope`, `audience`, `resource` | a bearer token from an OAuth 2.0 client-credentials grant, cached until shortly before it expires and fetched again on a 401 |
 | `connected_account` | `provider`, `scopes`, `discovery` (one of the types above, for `tools/list`) | per-user token passthrough: each tool call carries the **calling user's** token for `provider` on a connection opened for that call; a caller without a link is asked to connect |
 | `token_user` | `header` (default `Authorization`), `format` (default `Bearer {token}`), `label`, `help_url`, `token_prefix`, `token_pattern`, `test_call` (default true), `discovery` | each tool call carries the **calling user's own personal token** (one they saved on Server connections) as `<header>: <format>`; a caller without one is asked to connect ([Per-user credentials](#per-user-credentials-token_user)) |
-| `oauth_user` | `discovery` (and, later, the OAuth settings) | accepted and listed, shown as "OAuth sign-in: coming in phase 7.3"; its tools refuse calls until then |
+| `oauth_user` | `scopes`, `write_scopes`, `vendor`, `client_id`, `client_secret_ref`, `token_auth_method`, `authorization_server`, `authorize_url`, `token_url`, `revoke_url`, `revoke_style`, `resource`, `resource_indicator` (default true), `authorize_params`, `help_url`, `discovery` | each tool call carries the **calling user's own OAuth access token** (`Authorization: Bearer`), obtained when they signed in at the vendor on Server connections; a caller who has not is asked to connect ([Per-user OAuth sign-in](#per-user-oauth-sign-in-oauth_user)) |
 
 In YAML, the console and the mcpServers file alike, `auth: token_user` is short for
-`auth: {type: token_user}`.
+`auth: {type: token_user}` (and `auth: oauth_user` for `{type: oauth_user}`).
 
 The token URL passes the same URL guard as the upstream URL (section 9). With
 `connected_account` the upstream acts as the SAJHA user who made the call; `cache_ttl` and
@@ -157,8 +157,8 @@ who may make the call.
 
 The **credential mode** says who the vendor sees: `static` (every type above except the two
 per-user ones: one shared identity), `token_user` (each user, with a personal token they paste
-once) or `oauth_user` (each user, after an OAuth sign-in; phase 7.3). The design, with what part 1
-builds and what 7.3 adds, is [Per-User Sign-In for Proxied Servers](Per-User%20Sign-In%20for%20Proxied%20Servers.md).
+once) or `oauth_user` (each user, after an OAuth sign-in at the vendor: [below](#per-user-oauth-sign-in-oauth_user)).
+The design and what is built is [Per-User Sign-In for Proxied Servers](Per-User%20Sign-In%20for%20Proxied%20Servers.md).
 
 ```yaml
 - id: github
@@ -201,6 +201,66 @@ builds and what 7.3 adds, is [Per-User Sign-In for Proxied Servers](Per-User%20S
   the Proxied MCP servers page shows the identity mode and links to who is connected. Every connect,
   replace, disconnect and refusal is audited (`proxied_connection.*`), and every call's `tool.call`
   record names the identity used (`identity: {upstream, mode, user}`), never the token.
+
+### Per-user OAuth sign-in (oauth_user)
+
+For servers that sign each user in with OAuth (hosted MCP servers from Atlassian, Notion, Linear,
+Sentry and others; GitHub and Google through a client you register). Everything said above for
+`token_user` about the vault, call time, sessions, discovery, status and audit holds; what differs is
+how the token is obtained and kept fresh (`sajha/federation/oauth_user.py`).
+
+```yaml
+- id: atlassian                                  # discovery and dynamic registration: nothing else to set
+  url: https://mcp.atlassian.com/v1/mcp
+  auth: {type: oauth_user, vendor: Atlassian}
+- id: github                                     # an OAuth app your organisation registered
+  url: https://api.githubcopilot.com/mcp/
+  auth:
+    type: oauth_user
+    vendor: GitHub
+    client_id: Iv1.0123456789abcdef
+    client_secret_ref: env:GITHUB_OAUTH_CLIENT_SECRET
+    authorize_url: https://github.com/login/oauth/authorize
+    token_url: https://github.com/login/oauth/access_token
+    scopes: [read:user, read:org]
+    write_scopes: [repo]
+```
+
+* **Discovery.** SAJHA sends the upstream an unauthenticated request; its HTTP 401 names the
+  protected-resource metadata (RFC 9728, the `resource_metadata` parameter of `WWW-Authenticate`; else
+  the well-known URL `/.well-known/oauth-protected-resource[/path]`), which names the authorization
+  server; that server's metadata (RFC 8414 `/.well-known/oauth-authorization-server`, or OpenID Connect
+  discovery) gives the endpoints. `authorization_server` names the issuer when the server publishes no
+  resource metadata; `authorize_url` and `token_url` (with `client_id`) skip discovery for vendors that
+  publish none. The metadata must name the same issuer it was fetched for and advertise PKCE with
+  `S256`; every discovered URL passes the URL guard of section 9 and must be https (plain http only on
+  loopback with `federation.allow_localhost`). Results are reused for an hour.
+* **The client.** With `client_id` (and `client_secret_ref`, a reference, for a confidential client)
+  SAJHA uses the client the operator registered at the vendor. Without it SAJHA registers itself
+  (dynamic client registration, RFC 7591) where the authorization server offers it, once per upstream;
+  the registration is kept encrypted in the vault and redone when SAJHA's redirect URI changes. Neither
+  possible: the connect page says that an administrator must register a client.
+* **The redirect URI** is one route for every upstream: `/account/server-connections/oauth/callback` on
+  `accounts.public_url` (set it, so the URI you register at a vendor never changes), else on the
+  request's own origin. It is the only redirect URI SAJHA registers or sends, and the callback accepts
+  only a `state` it issued.
+* **Signing in.** "Connect with <vendor>" on the connect page starts an authorization-code flow with
+  PKCE (`S256`) and a single-use `state` bound to the SAJHA user and the browser (the connected-accounts
+  machinery: the state lives in the state store, so the callback can land on any worker). The
+  authorization, token and refresh requests carry the **resource indicator** (RFC 8707, the upstream's
+  URL, or the `resource` its metadata names) so the token is issued for this server only
+  (`resource_indicator: false` for a vendor that rejects it). `scopes` are requested by default;
+  `write_scopes` only when the user ticks "allow changes"; signing in again without ticking it asks for
+  read scopes only. The granted scopes and expiry show on the user's and the administrators' views.
+* **Refresh.** An access token due within `accounts.refresh_skew_seconds` is refreshed before the call;
+  a vendor 401 refreshes it once and retries with the new token. A refused refresh marks the connection
+  "needs re-connect" (the next call asks the user to sign in again). A vendor 403 (for example a scope
+  the user did not grant) is passed back without marking the connection. Session-based upstreams open
+  the user's session again with the refreshed token.
+* **Revocation.** Disconnecting, an administrator's revoke, disabling or deleting the user (on the
+  console or in the users file) and signing out everywhere revoke the token at the vendor when it
+  advertises a revocation endpoint (RFC 7009; `revoke_style: github` or `google` for those vendors'
+  own forms), then delete it; the token is deleted even when the vendor cannot be reached.
 
 ## 4. Namespacing
 
@@ -507,8 +567,8 @@ template with it, so they cannot drift apart.
 - **SAJHA keys**, all optional: `vendor` (default the entry's key), `prefix` (default the vendor; the
   tools are `<prefix>__<tool>`), `external` (default **true** in this file), `tools` (globs of the tools
   to take; nothing else is federated), `enabled` (`false`: listed, never connected), `cwd` (stdio),
-  `title`, `timeout_seconds`, `auth` (the credential mode of section 3: `"static"`, the default, or
-  `{"type": "token_user", ...}`; `"oauth_user"` is accepted as not built yet);
+  `title`, `timeout_seconds`, `auth` (the credential mode of section 3: `"static"`, the default,
+  `{"type": "token_user", ...}` or `{"type": "oauth_user", ...}`, whose `client_id` may be `${NAME}`);
   `"disabled": true` means `"enabled": false`, and `description` is accepted
   and ignored. A key starting with `_` is a comment, at any depth; any other key is an error for that
   entry.
@@ -529,14 +589,14 @@ template with it, so they cannot drift apart.
   ones are replaced. A file entry is not editable on the console.
 - **Servers that need each user to sign in.** Servers that accept personal tokens work per user with
   `"auth": {"type": "token_user"}` (templates `11_github_token_user.json.example` and
-  `12_atlassian_datacenter_token_user.json.example`). Hosted servers such as Notion's or Supabase's MCP
-  endpoints use per-user OAuth (MCP authorization with discovery and dynamic client registration),
-  which comes in phase 7.3 (`"auth": "oauth_user"` is accepted now and shown as coming). Such an
-  upstream, reached without a credential and without `oauth_user`, answers HTTP 401; its state is then
-  `needs_sign_in` ("needs sign-in (not supported yet)") with a warning notice `federation.sign_in:<id>`,
-  and it is retried once a minute. Keep it `"enabled": false` until then ([Roadmap](Roadmap.md) L18;
-  the template `06_remote_oauth_sign_in.json.example` keeps such servers disabled). A static bearer or
-  API-key header and servers without auth work as before.
+  `12_atlassian_datacenter_token_user.json.example`). Hosted servers such as Notion's, Linear's or
+  Atlassian's MCP endpoints use per-user OAuth (MCP authorization with discovery and dynamic client
+  registration): give them `"auth": "oauth_user"` ([above](#per-user-oauth-sign-in-oauth_user);
+  templates `06_remote_oauth_sign_in.json.example`, `13_atlassian_cloud_oauth.json.example`,
+  `14_github_oauth.json.example`, `15_google_workspace_oauth.json.example`). Such an upstream reached
+  without a credential and without `oauth_user` answers HTTP 401; its state is then `needs_sign_in`
+  ("needs sign-in") with a warning notice `federation.sign_in:<id>` that suggests `oauth_user`, and it is
+  retried once a minute. A static bearer or API-key header and servers without auth work as before.
 
 ## 11. Using it
 
@@ -558,9 +618,10 @@ is in the [API Reference](../protocol/API%20Reference.md#416-federation-federati
 
 ## 12. Limits
 
-* Per-user credentials (`auth.type: connected_account`, and `token_user` on a 2026-07-28 upstream)
-  cost one connection per call: a user's token is never put on the shared connection (section 3).
-  Per-user sessions (`token_user` on a session-based upstream) are per process.
+* Per-user credentials (`auth.type: connected_account`, and `token_user` or `oauth_user` on a
+  2026-07-28 upstream) cost one connection per call: a user's token is never put on the shared
+  connection (section 3). Per-user sessions (on a session-based upstream) and discovered OAuth metadata
+  are per process.
 * Server-to-client requests from a 2025-11-25 upstream (elicitation, sampling, roots) are
   declined; client input reaches upstreams only through 2026-07-28 MRTR (section 7).
 * Resource templates, completions, `resources/subscribe` and upstream tasks are not
@@ -574,8 +635,10 @@ is in the [API Reference](../protocol/API%20Reference.md#416-federation-federati
 * The SSRF guard checks addresses before each connection; a DNS answer that changes
   between that check and the connection itself is not caught. Pin hosts with
   `federation.allowed_hosts` for upstreams outside your control.
-* Servers that need each user to sign in with OAuth are not reachable yet (`oauth_user` comes in
-  phase 7.3; [The mcpServers file](#the-mcpservers-file)). Personal tokens (`token_user`) work.
+* `oauth_user` needs PKCE with `S256` and, without `authorize_url`/`token_url`, published metadata;
+  a vendor offering neither dynamic registration nor an operator-registered client cannot be used.
+  Server-to-client elicitation from the upstream during sign-in is not used: users sign in on the
+  connect page.
 * A cycle of proxies through an MCP server that is not SAJHA is bounded only by timeouts: other
   servers ignore the call-chain depth SAJHA sends ([Proxies all the way down](#proxies-all-the-way-down)).
 
@@ -595,6 +658,11 @@ that federated tools appear in `tools/list` on both eras and in Ask SAJHA's shor
 request's token: per-user answers, the connect answer on every front end, vendor refusals, per-user
 sessions with idle eviction and the cap, the discovery union, secrecy (a canary token), revocation,
 the SAJHA Net relay of the connect request, and that static upstreams are unchanged.
+`tests/test_proxied_oauth_user.py` covers `oauth_user` against `deployment/local-lab/fake_oauth_mcp.py`
+(a fake authorization server and an MCP server that checks its own tokens and the resource indicator):
+discovery and dynamic registration, two users signing in, PKCE and `state` refusals, refresh before
+expiry and after a 401, a refused refresh, an operator client, write scopes on opt-in, revocation at the
+vendor on every path, secrecy, the SAJHA Net relay, a session-based upstream and the pages.
 
 ---
 

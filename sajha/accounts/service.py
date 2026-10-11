@@ -161,8 +161,9 @@ class ConnectedAccountsService:
 
     # ── the authorization-code flow ──────────────────────────────────
     def start(self, user_id: str, pid: str, *, browser_nonce: str, request=None,
-              scopes: Optional[List[str]] = None, return_to: str = '') -> str:
-        """The provider's authorize URL for a new flow (state, PKCE, exact redirect URI)."""
+              scopes: Optional[List[str]] = None, return_to: str = '', keep_granted: bool = True) -> str:
+        """The provider's authorize URL for a new flow (state, PKCE, exact redirect URI). ``keep_granted``:
+        ask again for the scopes the user granted before (False: exactly the scopes asked for now)."""
         if not is_user_caller(user_id):
             raise OAuthFlowError('sign in as a SAJHA user to link accounts')
         p = self.provider(pid)
@@ -171,7 +172,7 @@ class ConnectedAccountsService:
             if s not in wanted:
                 wanted.append(s)
         # keep scopes the user already granted, so re-consent for one more never loses others
-        existing = self.vault.get(user_id, pid)
+        existing = self.vault.get(user_id, pid) if keep_granted else None
         if existing is not None:
             for s in existing.scopes:
                 if s not in wanted and p.normalize_scope(s) not in p.expand(wanted):
@@ -237,8 +238,8 @@ class ConnectedAccountsService:
         body.update({k: str(v) for k, v in (p.token_params or {}).items()})
         headers = {'Accept': 'application/json'}
         auth = None
-        secret = ''
-        if p.client_secret_ref:
+        secret = p.client_secret or ''
+        if p.client_secret_ref and not secret:
             try:
                 secret = resolve_ref(p.client_secret_ref, f'provider {p.id} client_secret_ref')
             except Exception as e:
@@ -447,8 +448,8 @@ class ConnectedAccountsService:
             return False
         with ahttp.client() as c:
             if p.revoke_style == 'github':
-                secret = resolve_ref(p.client_secret_ref, f'provider {p.id} client_secret_ref') \
-                    if p.client_secret_ref else ''
+                secret = p.client_secret or (resolve_ref(p.client_secret_ref, f'provider {p.id} client_secret_ref')
+                                             if p.client_secret_ref else '')
                 r = c.request('DELETE', url, json={'access_token': doc.get('access_token')},
                               auth=(p.client_id, secret), headers={'Accept': 'application/vnd.github+json'})
                 return r.status_code in (204, 404)
@@ -461,7 +462,14 @@ class ConnectedAccountsService:
             form = {'token': token, 'client_id': p.client_id}
             if doc.get('refresh_token'):
                 form['token_type_hint'] = 'refresh_token'
-            r = c.post(url, data=form)
+            secret = p.client_secret or (resolve_ref(p.client_secret_ref, f'provider {p.id} client_secret_ref')
+                                         if p.client_secret_ref else '')
+            if secret and p.token_auth_method == 'client_secret_basic':
+                r = c.post(url, data=form, auth=(p.client_id, secret))
+            else:
+                if secret:
+                    form['client_secret'] = secret
+                r = c.post(url, data=form)
             return r.status_code == 200
 
     # ── views ───────────────────────────────────────────────────────

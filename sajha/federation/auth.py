@@ -19,7 +19,9 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
                                 carries the caller's own token in ``header``/``format``; the shared
                                 connection discovers with ``discovery`` or, without one, the token
                                 of the first user who connected.
-* ``oauth_user``                per-user OAuth sign-in (phase 7.3): discovery only, as above.
+* ``oauth_user``                per-user OAuth sign-in (sajha/federation/oauth_user.py): each call
+                                carries the caller's own access token as a bearer token; discovery
+                                as for token_user.
 * ``static``                    the same as ``none``: the shared credential is in ``headers``.
 
 Secrets are references (``env:``, ``file:``, ``db:``) resolved when the connection is
@@ -146,14 +148,15 @@ def build_auth(config, settings) -> Optional[httpx2.Auth]:
         kind = a.get('type') or 'none'
     elif kind in ('token_user', 'oauth_user'):
         disc = dict(a.get('discovery') or {})
-        if (disc.get('type') or 'none') == 'none' and kind == 'token_user':
+        if (disc.get('type') or 'none') == 'none':
             # no discovery credential: discover as the first user who connected (the union of what
-            # users see is completed from each user's own listing when they connect)
-            from sajha.federation.user_tokens import TokenUserSpec, get_tokens
-            token = get_tokens().first_token(config.id)
+            # users see is completed from each user's own listing when they connect); an OAuth
+            # token is refreshed first when due
+            from sajha.federation.user_tokens import get_tokens, header_for
+            token = get_tokens().first_token(config.id, config)
             if not token:
                 return None
-            return StaticHeaderAuth(*TokenUserSpec.from_auth(a).header_value(token))
+            return StaticHeaderAuth(*header_for(config, token))
         a, kind = disc, disc.get('type') or 'none'
     if kind in ('none', 'static'):
         return None

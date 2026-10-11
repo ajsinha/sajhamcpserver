@@ -99,7 +99,7 @@ details.schema pre{background:var(--t-inp);color:var(--t-text);padding:.5rem;bor
             <option value="oauth_client_credentials">OAuth client credentials</option>
             <option value="connected_account">Each user's connected account</option>
             <option value="token_user">Each user's own personal token</option>
-            <option value="oauth_user">Each user's OAuth sign-in (coming in phase 7.3)</option>
+            <option value="oauth_user">Each user's OAuth sign-in</option>
           </select></div>
         <div class="col-md-2 a-tu" style="display:none"><label class="form-label" for="fTuHeader">Token header</label>
           <input class="form-control form-control-sm" id="fTuHeader" placeholder="Authorization"></div>
@@ -123,12 +123,18 @@ details.schema pre{background:var(--t-inp);color:var(--t-text);padding:.5rem;bor
           <input class="form-control form-control-sm" id="fValueRef" placeholder="env:WEATHER_KEY"></div>
         <div class="col-md-4 a-oauth" style="display:none"><label class="form-label" for="fTokenUrl">Token URL</label>
           <input class="form-control form-control-sm" id="fTokenUrl" placeholder="https://auth.example.com/token"></div>
-        <div class="col-md-2 a-oauth" style="display:none"><label class="form-label" for="fClientId">Client id</label>
+        <div class="col-md-2 a-oauth a-ouc" style="display:none"><label class="form-label" for="fClientId">Client id</label>
           <input class="form-control form-control-sm" id="fClientId"></div>
-        <div class="col-md-3 a-oauth" style="display:none"><label class="form-label" for="fSecretRef">Client secret reference</label>
+        <div class="col-md-3 a-oauth a-ouc" style="display:none"><label class="form-label" for="fSecretRef">Client secret reference</label>
           <input class="form-control form-control-sm" id="fSecretRef" placeholder="env:WEATHER_CLIENT_SECRET"></div>
         <div class="col-md-3 a-oauth" style="display:none"><label class="form-label" for="fScope">Scope</label>
           <input class="form-control form-control-sm" id="fScope"></div>
+        <div class="col-md-2 a-ou" style="display:none"><label class="form-label" for="fOuVendor">Vendor (button)</label>
+          <input class="form-control form-control-sm" id="fOuVendor" placeholder="Atlassian"></div>
+        <div class="col-md-3 a-ou" style="display:none"><label class="form-label" for="fOuScopes">Read scopes</label>
+          <input class="form-control form-control-sm" id="fOuScopes" placeholder="space-separated; empty: the vendor's default"></div>
+        <div class="col-md-3 a-ou" style="display:none"><label class="form-label" for="fOuWrite">Write scopes (users opt in)</label>
+          <input class="form-control form-control-sm" id="fOuWrite" placeholder="optional"></div>
         <div class="col-md-2"><label class="form-label" for="fTimeout">Timeout (s)</label>
           <input class="form-control form-control-sm" id="fTimeout" type="number" min="1" placeholder="30"></div>
         <div class="col-md-2"><label class="form-label" for="fRate">Calls per minute</label>
@@ -202,8 +208,8 @@ function load(){
   }).catch(function(e){document.getElementById('upstreams').innerHTML='<div class="fed-err">'+esc(e.message)+'</div>'});
 }
 var SOURCES={config:'from federation.upstreams',file:'from config/mcp_servers.json',store:'added here'};
-function stateText(s){return s==='needs_sign_in'?'needs sign-in (not supported yet)':s==='waiting_for_user'?'waiting for a user to connect':s}
-var MODES={static:'shared credential',token_user:'each user\'s own token',oauth_user:'OAuth sign-in: coming in phase 7.3',connected_account:'each user\'s connected account'};
+function stateText(s){return s==='needs_sign_in'?'needs sign-in (set auth oauth_user)':s==='waiting_for_user'?'waiting for a user to connect':s}
+var MODES={static:'shared credential',token_user:'each user\'s own token',oauth_user:'each user\'s OAuth sign-in',connected_account:'each user\'s connected account'};
 function row(u){
   return '<tr><td><a href="#up-'+esc(u.id)+'"><code>'+esc(u.id)+'</code></a><div class="fed-meta">'+esc(SOURCES[u.source]||u.source)+'</div></td>'+
     '<td>'+(u.vendor?esc(u.vendor):'—')+'</td><td>'+(u.external?'External':'Internal')+'</td>'+
@@ -273,7 +279,8 @@ function formData(){
   else if(at==='oauth_client_credentials')d.auth={type:at,token_url:v('fTokenUrl'),client_id:v('fClientId'),client_secret_ref:v('fSecretRef'),scope:v('fScope')};
   else if(at==='connected_account')d.auth={type:at,provider:v('fCaProvider'),scopes:list(v('fCaScopes').replace(/\s+/g,','))};
   else if(at==='token_user'){d.auth={type:at};[['header','fTuHeader'],['format','fTuFormat'],['label','fTuLabel'],['help_url','fTuHelp'],['token_prefix','fTuPrefix']].forEach(function(p){if(v(p[1]))d.auth[p[0]]=v(p[1])})}
-  else if(at==='oauth_user')d.auth={type:at};
+  else if(at==='oauth_user'){d.auth={type:at};[['vendor','fOuVendor'],['client_id','fClientId'],['client_secret_ref','fSecretRef']].forEach(function(p){if(v(p[1]))d.auth[p[0]]=v(p[1])});
+    [['scopes','fOuScopes'],['write_scopes','fOuWrite']].forEach(function(p){var x=v(p[1]).split(/\s+/).filter(Boolean);if(x.length)d.auth[p[0]]=x})}
   if(v('fTimeout'))d.timeout_seconds=Number(v('fTimeout'));
   if(v('fRate'))d.max_calls_per_minute=Number(v('fRate'));
   if(v('fCache'))d.cache_ttl=Number(v('fCache'));
@@ -293,7 +300,7 @@ function saveUp(){
   req.then(function(){hideForm();setTimeout(load,800)}).catch(function(e){msg(e.message,false)});
 }
 function showForm(){editing=null;document.getElementById('formTitle').textContent='Add upstream';document.getElementById('fId').disabled=false;
-  ['fId','fTitle','fPrefix','fUrl','fCommand','fArgs','fTokenRef','fHeader','fValueRef','fTokenUrl','fClientId','fSecretRef','fScope','fTimeout','fRate','fCache','fInclude','fExclude','fTuHeader','fTuFormat','fTuLabel','fTuHelp','fTuPrefix'].forEach(function(i){document.getElementById(i).value=''});
+  ['fId','fTitle','fPrefix','fUrl','fCommand','fArgs','fTokenRef','fHeader','fValueRef','fTokenUrl','fClientId','fSecretRef','fScope','fTimeout','fRate','fCache','fInclude','fExclude','fTuHeader','fTuFormat','fTuLabel','fTuHelp','fTuPrefix','fOuVendor','fOuScopes','fOuWrite'].forEach(function(i){document.getElementById(i).value=''});
   document.getElementById('fTransport').value='streamable_http';document.getElementById('fProtocol').value='auto';document.getElementById('fAuth').value='none';
   document.getElementById('fEnabled').checked=true;['fPrompts','fResources','fAuto','fHold'].forEach(function(i){document.getElementById(i).checked=false});
   transportChanged();authChanged();msg('',true);document.getElementById('upForm').style.display='block';document.getElementById('fId').focus()}
@@ -306,6 +313,7 @@ function editUp(uid){
   var a=d.auth||{};set('fAuth',a.type||'none');set('fTokenRef',a.token_ref);set('fHeader',a.header);set('fValueRef',a.value_ref);
   set('fTokenUrl',a.token_url);set('fClientId',a.client_id);set('fSecretRef',a.client_secret_ref);set('fScope',a.scope);
   set('fCaProvider',a.provider);set('fCaScopes',(a.scopes||[]).join(' '));
+  if(a.type==='oauth_user'){set('fOuVendor',a.vendor);set('fOuScopes',(a.scopes||[]).join(' '));set('fOuWrite',(a.write_scopes||[]).join(' '))}
   if(a.type==='token_user'){set('fTuHeader',a.header);set('fTuFormat',a.format);set('fTuLabel',a.label);set('fTuHelp',a.help_url);set('fTuPrefix',a.token_prefix)}
   set('fTimeout',d.timeout_seconds);set('fRate',d.max_calls_per_minute);set('fCache',d.cache_ttl);
   set('fInclude',(d.include_tools||[]).join(', '));set('fExclude',(d.exclude_tools||[]).join(', '));
@@ -321,6 +329,8 @@ function authChanged(){var t=v('fAuth');
   document.querySelectorAll('.a-bearer').forEach(function(e){e.style.display=t==='bearer'?'':'none'});
   document.querySelectorAll('.a-header').forEach(function(e){e.style.display=t==='header'?'':'none'});
   document.querySelectorAll('.a-oauth').forEach(function(e){e.style.display=t==='oauth_client_credentials'?'':'none'});
+  document.querySelectorAll('.a-ouc').forEach(function(e){if(t==='oauth_user')e.style.display=''});
+  document.querySelectorAll('.a-ou').forEach(function(e){e.style.display=t==='oauth_user'?'':'none'});
   document.querySelectorAll('.a-ca').forEach(function(e){e.style.display=t==='connected_account'?'':'none'});
   document.querySelectorAll('.a-tu').forEach(function(e){e.style.display=t==='token_user'?'':'none'})}
 load();

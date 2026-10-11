@@ -695,7 +695,7 @@ file are re-read when it changes. Design, the upstream fields and operation:
 | `federation.upstreams` | `[]` | The upstreams defined in configuration; each entry's fields are in [Federation](../architecture/Federation.md#2-the-upstream-model). An id also in the mcpServers file uses this definition. |
 | `federation.mcp_servers_file` | `config/mcp_servers.json` | The mcpServers file: proxied MCP servers in the `{"mcpServers": {...}}` JSON of Claude Desktop, Cursor and VS Code, git-ignored (templates: `config/mcp_servers.json.example`, `config/mcp_servers/`). Each entry is an upstream, external unless it says `"external": false`; its keys are in [Federation](../architecture/Federation.md#the-mcpservers-file). Empty: no file. A missing file is no error. |
 | `federation.mcp_servers_reload_seconds` | `5` | How often the mcpServers file's modification time and size are checked; a change is applied without a restart. |
-| `federation.per_user_session_idle_seconds` | `900` | `auth.type: token_user` on a session-based (2025-11-25 or legacy SSE) upstream: a user's own upstream session is closed after this long without a call ([Per-user credentials](../architecture/Federation.md#per-user-credentials-token_user)). |
+| `federation.per_user_session_idle_seconds` | `900` | `auth.type: token_user` or `oauth_user` on a session-based (2025-11-25 or legacy SSE) upstream: a user's own upstream session is closed after this long without a call ([Per-user credentials](../architecture/Federation.md#per-user-credentials-token_user)). |
 | `federation.per_user_sessions_max` | `50` | The most per-user sessions open at once per such upstream; the oldest idle one is closed to make room, and a call is refused when every one is busy. |
 
 ## SAJHA Net
@@ -903,9 +903,9 @@ The provider block is read from the YAML as nested data, or from `SAJHA_ACCOUNTS
 | Key | Default | Purpose |
 |-----|---------|---------|
 | `accounts.enabled` | `true` | Master switch. Off: no linking, and tools that need a connected account fail. |
-| `accounts.public_url` | `""` | Origin used in redirect URIs and connect URLs. Empty: `mcp.auth.public_url`, else the request's host (development only). |
+| `accounts.public_url` | `""` | Origin used in redirect URIs and connect URLs, including the one callback of proxied servers' OAuth sign-in (`<origin>/account/server-connections/oauth/callback`, the URI to register at a vendor for `auth.type: oauth_user`). Empty: `mcp.auth.public_url`, else the request's host (development only). |
 | `accounts.flow_ttl_seconds` | `600` | How long a started Connect may take before its state expires. |
-| `accounts.refresh_skew_seconds` | `120` | Refresh an access token this long before it expires. |
+| `accounts.refresh_skew_seconds` | `120` | Refresh an access token this long before it expires (connected accounts and `oauth_user` proxied servers alike). |
 | `accounts.http_timeout_seconds` | `20` | Token endpoint, revocation, user-info and provider API calls. |
 | `accounts.max_response_bytes` | `2000000` | Largest provider API answer a tool reads. |
 | `accounts.vault.key` | `""` | The vault key (env `SAJHA_ACCOUNTS_VAULT_KEY`): 32 bytes base64url or a passphrase. Empty: generated once into the server secrets file. Several hosts must share it. |

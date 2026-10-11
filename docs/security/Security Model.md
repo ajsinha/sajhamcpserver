@@ -151,7 +151,7 @@ Signing in issues tokens that are checked on every request, so they can be withd
 - **One session: sign out.** Every SAJHA JWT carries a `jti`. `GET /logout` and `POST /api/auth/logout` record the presented token's `jti` in the [state store](../architecture/Scaling%20and%20State.md) (`auth:revoked:<jti>`) until the token would have expired; the token is then refused everywhere. With `state.backend: memory` only the process that handled the sign-out knows; several workers need `redis` or `database`. If the state store does not answer, the check is skipped (logged) rather than signing everyone out.
 - **Every session of a user: the token version.** Each user has `users.token_version`, copied into every SAJHA JWT and every access token of SAJHA's own OAuth authorization server as the claim `tv` (a token without `tv`, issued before this existed, counts as 0). The user row is reloaded on every request anyway, so a token whose `tv` differs is refused. The version is raised by "Sign out everywhere" (`POST /api/auth/sessions/revoke`, or the button on My API keys), by a password change (the session that changed it gets a fresh token; every other session ends), by an administrator's password reset and by an administrator's `POST /api/admin/users/{uid}/sessions/revoke` (the Users page). Each raise is audited as `user.sessions_revoked` with the reason.
 - **OAuth refresh tokens.** Refresh tokens of SAJHA's authorization server remember the token version they were issued under; once it changes, refreshing fails with `invalid_grant` and the grant's refresh-token family is revoked.
-- **Personal tokens for proxied servers** go with every session of a user: "Sign out everywhere" and an administrator's session revocation also delete them ([Per-user tokens for proxied servers](#per-user-tokens-for-proxied-servers)); a password change does not.
+- **Personal tokens and OAuth sign-ins for proxied servers** go with every session of a user: "Sign out everywhere" and an administrator's session revocation also delete them (an OAuth token is revoked at the vendor first where it offers revocation) ([Per-user tokens for proxied servers](#per-user-tokens-for-proxied-servers)); a password change does not.
 - **API keys are not sessions.** Ending sessions does not touch API keys; revoke or rotate those ([API keys](#api-keys)). Key revocation takes effect on the next request.
 - **Not covered.** Access tokens from an external issuer are that issuer's to revoke; SAJHA only stops accepting them when the user is disabled. An MCP session ID is not a credential on its own: each request on it is authenticated again.
 
@@ -481,7 +481,9 @@ Threat table and audit events: [Connected Accounts §10](../architecture/Connect
 ### Per-user tokens for proxied servers
 
 A proxied MCP server with `auth.type: token_user` is called as the person who asked, with the
-personal token that person saved on Server connections (`sajha/federation/user_tokens.py`):
+personal token that person saved on Server connections (`sajha/federation/user_tokens.py`); one with
+`auth.type: oauth_user`, with the OAuth access token that person's sign-in at the vendor returned
+(`sajha/federation/oauth_user.py`). Both:
 
 - **Storage.** In the same vault, one row per user and upstream (`upstream:<id>`), encrypted and bound to
   both; only `••••` and the last four characters are kept in clear. No page, API, status, log line or
@@ -489,14 +491,33 @@ personal token that person saved on Server connections (`sajha/federation/user_t
 - **Use.** Sent only on that user's own calls to that one server, never to another server, never as
   another user, never replaced by the discovery credential or a static header. Anonymous callers and API
   keys without an owner are refused. SAJHA's own credentials (session, JWT, API key) are never forwarded.
-- **Refusal.** A vendor 401 or 403 marks the user's connection "needs re-connect" and is not retried.
+- **Refusal.** A vendor 401 or 403 to a personal token marks the user's connection "needs re-connect" and
+  is not retried. An OAuth token answered with 401 is refreshed once and the call retried with the new
+  token; a refused refresh marks "needs re-connect"; a 403 is passed back.
 - **Revocation.** Removing the token (user or administrator, CSRF-protected), disabling or deleting the
-  user, "Sign out everywhere" and an administrator's session revocation delete the user's tokens and close
-  their upstream sessions.
+  user (on the console or in the users file), "Sign out everywhere" and an administrator's session
+  revocation delete the user's tokens and close their upstream sessions; OAuth tokens are first revoked at
+  the vendor when it advertises a revocation endpoint.
 - **Audit.** `proxied_connection.connected`, `.replaced`, `.disconnected` and `.refused`, and on every
   call the `tool.call` record's `identity` (upstream, mode, user); never a token.
 - **SAJHA Net.** Tokens stay on the server that holds them; a remote caller without one is sent this
   server's connect page as an input request.
+
+The OAuth sign-in adds:
+
+- **Discovery is guarded.** Protected-resource and authorization-server metadata, and every endpoint they
+  name, pass the federation URL guard (`federation.allowed_hosts`, no private or loopback addresses unless
+  allowed) and must be https (plain http only on loopback with `federation.allow_localhost`); metadata
+  naming another issuer, or a resource on another origin, is refused.
+- **The flow.** Authorization code with PKCE `S256` (refused when the vendor does not advertise it), a
+  single-use `state` bound to the SAJHA user and to the browser (an HttpOnly cookie whose hash is kept with
+  the state), and one exact redirect URI on SAJHA (`/account/server-connections/oauth/callback`, on
+  `accounts.public_url`). Codes are exchanged once, server to server.
+- **Audience.** The resource indicator (RFC 8707) binds each token to the one upstream it was issued for;
+  SAJHA never sends it anywhere else (no token passthrough in either direction).
+- **Least privilege.** Read scopes by default; write scopes only for a user who opts in when signing in.
+- **Client secrets** are references (`client_secret_ref: env:NAME`), resolved only for token requests; a
+  dynamically registered client's secret is kept encrypted in the vault. Neither is logged or shown.
 
 Design: [Per-User Sign-In for Proxied Servers](../architecture/Per-User%20Sign-In%20for%20Proxied%20Servers.md).
 

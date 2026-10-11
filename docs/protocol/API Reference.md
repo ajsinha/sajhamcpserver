@@ -691,17 +691,22 @@ Behaviour: [Connected Accounts](../architecture/Connected%20Accounts.md).
 
 #### Server connections (`server_connections_routes.py`)
 
-Each user's own personal token for proxied MCP servers with `auth.type: token_user`. Forms carry the
+Each user's own credential for proxied MCP servers that act as them: a personal token
+(`auth.type: token_user`) or an OAuth sign-in at the vendor (`auth.type: oauth_user`). Forms carry the
 page's CSRF token; a cookie session calling the JSON API sends `X-CSRF-Token`. No route ever returns a
-saved token: status carries `token_hint` (`••••` and the last four characters). Behaviour:
-[Federation §3, Per-user credentials](../architecture/Federation.md#per-user-credentials-token_user).
+saved token: status carries `token_hint` (`••••` and the last four characters) for a personal token, and
+`scopes`, `expires_at`, `refreshable` and `write_granted` for an OAuth sign-in. Behaviour:
+[Federation §3, Per-user credentials](../architecture/Federation.md#per-user-credentials-token_user) and
+[Per-user OAuth sign-in](../architecture/Federation.md#per-user-oauth-sign-in-oauth_user).
 
 | Method | Path | Auth | Purpose |
 |---|---|---|---|
 | GET | `/account/server-connections` | user | The Server connections page: each per-user proxied server with connected, needs re-connect or not connected. |
 | GET | `/account/server-connections/{upstream}` | user | The connect page for one server (where "connect your account" answers point). |
 | POST | `/account/server-connections/{upstream}/token` | user (form, CSRF) | Save or replace the token (`token`; tested with `tools/list` unless `skip_test`); 303 to the list, 400 with the reason. |
-| POST | `/account/server-connections/{upstream}/remove` | user (form, CSRF) | Forget the caller's token. |
+| POST | `/account/server-connections/{upstream}/oauth/start` | user (form, CSRF) | `oauth_user`: 303 to the vendor's authorization page (state, PKCE `S256`, resource indicator; read scopes, plus the write scopes when `write=1`), setting the HttpOnly flow cookie `sajha_upstream_flow`; 400 with the reason when discovery or registration fails. |
+| GET | `/account/server-connections/oauth/callback` | user | The one redirect URI of every `oauth_user` upstream: checks `state` (issued to this user, unused, unexpired) and the flow cookie, exchanges `code` with the PKCE verifier, stores the tokens; 303 to `/account/server-connections?saved=<upstream>`, or `?error=<reason>`. |
+| POST | `/account/server-connections/{upstream}/remove` | user (form, CSRF) | Forget the caller's token (an OAuth token is revoked at the vendor first where it offers revocation). |
 | GET | `/api/accounts/server-connections` | user | `{connections}`: the caller's status per per-user server. |
 | PUT | `/api/accounts/server-connections/{upstream}` | user | `{"token", "test": true}`: save; `{connection}` or 400 `{error}`. |
 | DELETE | `/api/accounts/server-connections/{upstream}` | user | Remove; 404 when there was none. |

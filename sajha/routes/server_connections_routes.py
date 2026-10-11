@@ -3,11 +3,17 @@ SAJHA MCP Server — Server connections: each user's own sign-in to proxied MCP 
 Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.com
 
 A proxied server with ``auth.type: token_user`` is called as the person who asked, with a
-personal token that person saves here once (sajha/federation/user_tokens.py).
+personal token that person saves here once (sajha/federation/user_tokens.py); one with
+``auth.type: oauth_user``, with the OAuth access that person grants by signing in at the vendor
+(sajha/federation/oauth_user.py).
 
     GET    /account/server-connections                       your connections to proxied servers
     GET    /account/server-connections/{upstream}            the connect page: add, replace, remove
     POST   /account/server-connections/{upstream}/token      save a token (CSRF; tested first)
+    POST   /account/server-connections/{upstream}/oauth/start  oauth_user: to the vendor's sign-in (CSRF;
+                                                             ``write=1`` also asks for the write scopes)
+    GET    /account/server-connections/oauth/callback        oauth_user: the vendor's redirect back, for
+                                                             every upstream (state, browser binding, PKCE)
     POST   /account/server-connections/{upstream}/remove     forget your token (CSRF)
     GET    /admin/server-connections                         who is connected to which server; revoke
     POST   /admin/server-connections/revoke                  an administrator removes a user's token (CSRF)
@@ -37,6 +43,9 @@ from sajha.routes.accounts_routes import _csrf_ok, _ip, _user, csrf_token
 
 logger = logging.getLogger(__name__)
 router = APIRouter(tags=['server-connections'])
+
+#: the browser-binding nonce of an oauth_user sign-in (HttpOnly; its hash is kept with the state)
+FLOW_COOKIE = 'sajha_upstream_flow'
 
 
 def _manager():
@@ -172,6 +181,88 @@ async def server_connect_remove(upstream_id: str, request: Request, auth: AuthCo
     return RedirectResponse('/account/server-connections?removed=1', status_code=303)
 
 
+# ── oauth_user: sign in at the vendor ───────────────────────────────
+
+def _plain(msg) -> str:
+    return str(msg).replace('Start again from Connected accounts', 'Start again from Server connections')[:300]
+
+
+@router.post('/account/server-connections/{upstream_id}/oauth/start')
+async def server_oauth_start(upstream_id: str, request: Request, auth: AuthContext = Depends(require_auth),
+                             csrf: str = Form(''), write: str = Form('')):
+    cfg = _config(upstream_id)
+    if cfg is None:
+        return RedirectResponse('/account/server-connections?' + urlencode({'error': 'Unknown server.'}),
+                                status_code=303)
+    if not _csrf_ok(request, auth, csrf):
+        return render(request, 'account/server_connect.html',
+                      _connect_context(request, auth, cfg, 'The form expired; reload the page and try again.'),
+                      status_code=403)
+    if not _is_user(auth) or auth.auth_type == 'apikey':
+        return render(request, 'account/server_connect.html',
+                      _connect_context(request, auth, cfg, 'Server connections belong to signed-in users.'),
+                      status_code=403)
+    import secrets
+    from sajha.accounts.errors import AccountsError
+    from sajha.federation.oauth_user import get_oauth
+    nonce = secrets.token_urlsafe(32)
+    try:
+        url = await asyncio.to_thread(get_oauth().start, cfg, auth.user_id, browser_nonce=nonce, request=request,
+                                      write=bool(write))
+    except AccountsError as e:
+        return render(request, 'account/server_connect.html', _connect_context(request, auth, cfg, _plain(e)),
+                      status_code=400)
+    from sajha.accounts.settings import get_accounts_settings
+    resp = RedirectResponse(url, status_code=303)
+    resp.set_cookie(FLOW_COOKIE, nonce, max_age=get_accounts_settings().flow_ttl_seconds, httponly=True,
+                    samesite='lax', secure=request.url.scheme == 'https', path='/account/server-connections')
+    return resp
+
+
+@router.get('/account/server-connections/oauth/callback', name='account_server_oauth_callback')
+async def server_oauth_callback(request: Request, auth: AuthContext = Depends(require_auth)):
+    from sajha.accounts.errors import AccountsError
+    from sajha.federation.oauth_user import get_oauth
+    q = request.query_params
+    oauth = get_oauth()
+    upstream_id = oauth.flow_upstream(q.get('state', ''))
+    cfg = _config(upstream_id) if upstream_id else None
+
+    def back(params):
+        resp = RedirectResponse('/account/server-connections?' + urlencode(params), status_code=303)
+        resp.delete_cookie(FLOW_COOKIE, path='/account/server-connections')
+        return resp
+    if cfg is None:
+        oauth.tokens.audit('proxied_connection.state_rejected', auth.user_id, upstream_id or '-', _ip(request),
+                           user=auth.user_id, why='unknown or expired state')
+        return back({'error': 'This sign-in link is unknown or has expired. Start again from Server connections.'})
+    try:
+        conn = await asyncio.to_thread(
+            oauth.complete, cfg, auth.user_id, state=q.get('state', ''), code=q.get('code', ''),
+            error=q.get('error', ''), error_description=q.get('error_description', ''),
+            browser_nonce=request.cookies.get(FLOW_COOKIE, ''), ip=_ip(request))
+    except AccountsError as e:
+        return back({'error': _plain(e)})
+    await asyncio.to_thread(_after_oauth_connect, cfg, auth.user_id, conn)
+    return back({'saved': cfg.id})
+
+
+def _after_oauth_connect(cfg, user_id: str, conn) -> None:
+    """The user's own tool listing joins discovery (the union), any old session of theirs closes, and
+    a waiting upstream discovers with the new token. Best effort: the connection is already saved."""
+    from sajha.federation.user_tokens import _close_user_sessions, _user_connected, get_tokens
+    m = _manager()
+    if m is not None:
+        try:
+            token = (get_tokens().vault.tokens(conn) or {}).get('access_token') or ''
+            if token:
+                m.test_user_token(cfg.id, token)
+        except Exception as e:
+            logger.info(f'server connections: listing {cfg.id} tools after a sign-in failed: {type(e).__name__}')
+    _close_user_sessions(cfg.id, user_id)
+    _user_connected(cfg.id)
+
+
 # ── administration ──────────────────────────────────────────────────
 
 def _admin_context(request: Request, auth: AuthContext, notice: str = '', error: str = '') -> Dict[str, Any]:
@@ -182,10 +273,13 @@ def _admin_context(request: Request, auth: AuthContext, notice: str = '', error:
         rows = _tokens().all_connections(upstream, user_id)
     except Exception as e:
         error = error or f'The token vault is unavailable: {e}'
+    from sajha.federation.user_tokens import auth_mode
     titles = {c.id: c.display_title for c in _per_user_configs()}
+    modes = {c.id: auth_mode(c) for c in _per_user_configs()}
     for r in rows:
         r['title'] = titles.get(r['upstream'], r['upstream'])
-    from sajha.federation.user_tokens import auth_mode
+        if r['upstream'] in modes:
+            r['kind'] = 'oauth' if modes[r['upstream']] == 'oauth_user' else 'token'
     servers = [{'id': c.id, 'title': c.display_title, 'mode': auth_mode(c),
                 'connected': sum(1 for r in rows if r['upstream'] == c.id and r['status'] == 'connected')}
                for c in _per_user_configs()]

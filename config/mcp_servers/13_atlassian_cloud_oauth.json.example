@@ -1,0 +1,16 @@
+{
+  "_comment": "Atlassian's remote MCP server for Jira and Confluence Cloud (Rovo), called as each user after they sign in with their own Atlassian account (auth.type oauth_user). Nothing to register: SAJHA reads the server's OAuth metadata and registers itself dynamically (RFC 7591), then each user clicks 'Connect with Atlassian' on Server connections (/account/server-connections/atlassian) and approves at Atlassian. What a user can see and change is what their Atlassian account and the site's admin settings allow. Check the endpoint against Atlassian's current documentation (https://developer.atlassian.com/cloud/rovo-mcp/guides/getting-started/): Atlassian documents a Streamable HTTP endpoint under https://mcp.atlassian.com/v1/ (the older /v1/sse endpoint is retired), and third-party guides disagree on the exact path. Set accounts.public_url so the redirect URI SAJHA registers stays the same.",
+  "mcpServers": {
+    "atlassian": {
+      "url": "https://mcp.atlassian.com/v1/mcp",
+      "title": "Atlassian (Jira, Confluence)",
+      "tools": ["get*", "search*", "lookup*", "atlassianUserInfo", "getAccessibleAtlassianResources"],
+      "auth": {
+        "type": "oauth_user",
+        "vendor": "Atlassian",
+        "help_url": "https://developer.atlassian.com/cloud/rovo-mcp/guides/getting-started/",
+        "_comment": "No client_id: dynamic client registration. Atlassian decides the scopes on its consent screen; list scopes here only if Atlassian's documentation asks for them. Widen 'tools' (create*, edit*, add*) only together with an approval rule for writes."
+      }
+    }
+  }
+}

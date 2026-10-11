@@ -146,7 +146,7 @@ suggests `rename`.
 
 `config/mcp_servers.json.example` and the files in `config/mcp_servers/` are ready-made entries: local
 servers over stdio with `npx`, `uvx` or `docker run -i`, hosted servers with a bearer token or none, the
-legacy SSE transport, servers that need each user's OAuth sign-in (kept disabled: not supported yet), and
+legacy SSE transport, servers that need each user's OAuth sign-in (`oauth_user`, kept disabled until you check each URL; [Tutorial 42](TUTORIAL_42_per_user_sign_in.md)), and
 internal entries. Their [README](../../config/mcp_servers/README.md) lists every key. The `npx`, `uvx` and
 hosted templates fetch packages or reach the internet; check each server against its maintainer's
 documentation, and narrow what you expose with `tools`.

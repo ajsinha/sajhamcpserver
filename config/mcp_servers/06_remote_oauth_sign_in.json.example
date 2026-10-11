@@ -1,20 +1,24 @@
 {
-  "_comment": "Hosted servers that require each user to sign in with OAuth (authorization code). SAJHA does not support per-user OAuth to external servers yet: these load, show 'needs sign-in (not supported yet)' with a notice, and offer no tools. They are here as templates for when it is supported (Roadmap). enabled: false keeps them from being tried at all.",
+  "_comment": "Hosted servers that ask each user to sign in with OAuth (authorization code). Supported with auth.type oauth_user: SAJHA discovers each server's OAuth metadata, registers itself dynamically where the server allows it, and each user connects once on Server connections (/account/server-connections/<name>); calls then run as that user. Check each URL against the vendor's documentation, set accounts.public_url, and remove enabled: false to use one. Narrow 'tools' to what you want offered: most of these servers include tools that write.",
   "mcpServers": {
     "notion": {
       "url": "https://mcp.notion.com/mcp",
+      "auth": {"type": "oauth_user", "vendor": "Notion"},
       "enabled": false
     },
     "supabase": {
       "url": "https://mcp.supabase.com/mcp",
+      "auth": {"type": "oauth_user", "vendor": "Supabase"},
       "enabled": false
     },
     "linear": {
       "url": "https://mcp.linear.app/mcp",
+      "auth": {"type": "oauth_user", "vendor": "Linear"},
       "enabled": false
     },
     "sentry": {
       "url": "https://mcp.sentry.dev/mcp",
+      "auth": {"type": "oauth_user", "vendor": "Sentry"},
       "enabled": false
     }
   }

@@ -1,19 +1,20 @@
 # Per-User Sign-In for Proxied Servers
 
-**Status: part 1 built (`token_user`, phase 7.2); `oauth_user` comes in phase 7.3** (Roadmap
-[L18](Roadmap.md); what is built and what is not: [§10](#10-what-is-built)). How a proxied MCP server's tools should run
+**Status: built, both modes: `token_user` (phase 7.2) and `oauth_user` (phase 7.3)**; what is built
+and what is not: [§10](#10-what-is-built). How a proxied MCP server's tools should run
 **as the person who asked**, with that person's own account at the vendor, instead of one shared
 credential. It is the prerequisite for the [Google](Google%20Integration.md),
 [GitHub](GitHub%20Integration.md) and [Atlassian](Atlassian%20Integration.md) integrations and for most
-hosted MCP servers. How proxied servers work today is in [Federation](Federation.md); per-user accounts
+hosted MCP servers. How proxied servers work, and how to configure both modes, is in
+[Federation](Federation.md#per-user-credentials-token_user); per-user accounts
 for SAJHA's own tools are in [Connected Accounts](Connected%20Accounts.md).
 
 ## 1. The problem
 
-Today a proxied server gets **one** credential from `config/mcp_servers.json` (a header such as a
-bearer token). Every user's calls then reach the vendor as that one identity: they see what it sees and
-act as it. A server that asks each user to sign in answers HTTP 401 and is shown as "needs sign-in (not
-supported yet)". Hosted servers from Google, GitHub, Atlassian, Notion, Linear and others work that way.
+Before this design, a proxied server got **one** credential from `config/mcp_servers.json` (a header
+such as a bearer token). Every user's calls then reached the vendor as that one identity: they saw what
+it saw and acted as it. A server that asks each user to sign in answered HTTP 401 and could not be used.
+Hosted servers from Google, GitHub, Atlassian, Notion, Linear and others work that way.
 
 ## 2. Credential modes
 
@@ -22,7 +23,7 @@ stays the default, so nothing changes for existing entries):
 
 | Mode | Who the vendor sees | When to use |
 |---|---|---|
-| `static` (today) | One shared identity | Public data, a service account for read-only organisation data, servers without user sign-in |
+| `static` (the default) | One shared identity | Public data, a service account for read-only organisation data, servers without user sign-in |
 | `oauth_user` | Each user, after they connect once | Hosted servers with OAuth (Google, GitHub, Atlassian Cloud, Notion, Linear) |
 | `token_user` | Each user, with a personal token they paste once | Personal access tokens (GitHub PAT, Jira and Confluence Data Center tokens) |
 | `service_with_user` | A shared identity, with the SAJHA user named in an audit header the vendor records | Vendors that support acting on behalf of users from a service identity |
@@ -96,22 +97,22 @@ connection fails the run with a clear notice instead of silently using another i
 
 ## 10. What is built
 
-**Part 1 (phase 7.2): `token_user`**, configured and operated as described in
-[Federation §3, Per-user credentials](Federation.md#per-user-credentials-token_user):
+Both modes are configured and operated as described in [Federation §3](Federation.md#per-user-credentials-token_user)
+(personal tokens) and [Per-user OAuth sign-in](Federation.md#per-user-oauth-sign-in-oauth_user); the
+walkthrough is [Tutorial 42](../tutorials/TUTORIAL_42_per_user_sign_in.md).
 
 | Design item | Built |
 |---|---|
-| Credential modes (§2) | `auth.type` `static` (default; today's headers and credentials, unchanged), `token_user`, and `oauth_user` accepted and shown as "OAuth sign-in: coming in phase 7.3" (its tools refuse calls). In `federation.upstreams`, console-added upstreams and `config/mcp_servers.json` alike. `service_with_user` is not built. |
-| At call time (§3) | The caller (signed-in user, owned API key's owner, SAJHA Net mapped user) → their token from the vault (`upstream:<id>`) → sent with that call only. No token: the connected-accounts "connect your account" answers on every front end. Anonymous callers refused. Vendor 401/403 passed back, connection marked "needs re-connect", never retried as anyone else. |
-| Connecting (§4) | For tokens: the connect page (`/account/server-connections/<id>`) with the token's label, where to create one, prefix/pattern checks and a test call; the Connections view per user and the administrators' view with revoke. The OAuth items (discovery, PKCE, resource indicators, scopes) are phase 7.3. |
-| Sessions and discovery (§5) | Per request on 2026-07-28 upstreams; one session per user on session-based ones (idle close, cap per upstream); discovery with a discovery credential or the first connected user's token, the union of what users' tokens list. |
+| Credential modes (§2) | `auth.type` `static` (default; today's headers and credentials, unchanged), `token_user` (phase 7.2) and `oauth_user` (phase 7.3), in `federation.upstreams`, console-added upstreams and `config/mcp_servers.json` alike. `service_with_user` is not built. |
+| At call time (§3) | The caller (signed-in user, owned API key's owner, SAJHA Net mapped user) → their token from the vault (`upstream:<id>`) → sent with that call only. An OAuth token due within `accounts.refresh_skew_seconds` is refreshed first. No token, or a refused refresh: the connected-accounts "connect your account" answers on every front end. Anonymous callers refused. A vendor 401 to an OAuth token refreshes it once and retries; otherwise a 401/403 is passed back and (for a personal token, or a refused OAuth refresh) the connection is marked "needs re-connect"; never retried as anyone else. |
+| Connecting (§4) | Personal tokens: the connect page with the token's label, where to create one, prefix/pattern checks and a test call. OAuth: discovery of the server's protected-resource metadata (RFC 9728, from the 401's `WWW-Authenticate` or the well-known URL) and its authorization server's metadata (RFC 8414 or OpenID Connect discovery), or operator-given endpoints; dynamic client registration (RFC 7591) or an operator-registered client (`client_id`, `client_secret_ref`); authorization code with PKCE `S256` and `state` on the connected-accounts machinery; one allowlisted redirect URI (`/account/server-connections/oauth/callback`); the resource indicator (RFC 8707) on authorization, token and refresh requests; read `scopes` by default and `write_scopes` only for users who opt in. The Connections view per user and the administrators' view show both kinds (OAuth: scopes and expiry), with revoke. |
+| Sessions and discovery (§5) | Per request on 2026-07-28 upstreams; one session per user on session-based ones (idle close, cap per upstream; a refreshed OAuth token opens a new one); discovery with a discovery credential or the first connected user's token (refreshed when due), the union of what users' tokens list. |
 | SAJHA Net (§6) | The connect request relayed back to a remote caller as an input request; the token stays on the defining server. |
-| Security (§7) | Encrypted in the vault, never logged or returned, masked in status; revoked when a user is disabled or deleted or signs out everywhere; every connect, disconnect and refusal audited, every call's audit record names the identity mode and user. Write approvals use the existing policy engine (no default rule is shipped for proxied writes). |
+| Security (§7) | Encrypted in the vault, never logged or returned; revoked (OAuth tokens also at the vendor, RFC 7009, where advertised) when a user disconnects, is disabled or deleted on the console or in the users file, or signs out everywhere; every connect, refresh, disconnect and refusal audited (`proxied_connection.*`), every call's audit record names the identity mode and user. Discovered URLs pass the federation URL guard and must be https. Write approvals use the existing policy engine (no default rule is shipped for proxied writes). |
 | Background work (§8) | Workflows and scheduled jobs run as their owner, so they use the owner's token; a missing token fails the step with the connect message. |
 
-**Phase 7.3 adds** `oauth_user`: OAuth discovery (RFC 9728, RFC 8414), dynamic or operator-registered
-clients, authorization code with PKCE and resource indicators, refresh, scopes on the Connections view,
-and a tutorial.
+**Not built:** the `service_with_user` mode (§2) and a default policy rule that asks for approval of
+proxied writes (§7); both are one row of the [Roadmap](Roadmap.md) (L20).
 
 ---
 

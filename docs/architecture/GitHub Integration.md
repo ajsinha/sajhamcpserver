@@ -1,14 +1,14 @@
 # GitHub Integration
 
-**Status: works per user with personal access tokens (`token_user`, phase 7.2); OAuth sign-in
-(`oauth_user`) comes in phase 7.3.** How SAJHA reaches GitHub (repositories, issues, pull requests,
+**Status: works per user, with personal access tokens (`token_user`) or with each user's GitHub sign-in
+through an OAuth app your organisation registers (`oauth_user`).** How SAJHA reaches GitHub (repositories, issues, pull requests,
 code search, Actions, Projects). Acting as each user rests on
-[Per-User Sign-In for Proxied Servers](Per-User%20Sign-In%20for%20Proxied%20Servers.md). How proxied servers work today is in [Federation](Federation.md).
+[Per-User Sign-In for Proxied Servers](Per-User%20Sign-In%20for%20Proxied%20Servers.md). How proxied servers work is in [Federation](Federation.md).
 
 ## 1. Recommendation
 
 Proxy GitHub's official MCP server as an external server (`vendor: github`, tools as
-`github__<tool>`), with each user signed in as themselves once per-user sign-in exists. Do not write
+`github__<tool>`), with each user signed in as themselves. Do not write
 GitHub tools by hand.
 
 ## 2. What GitHub offers
@@ -41,13 +41,25 @@ configuring.
   `config/mcp_servers/04_remote_bearer_token.json.example`) still works. Its limit: **every SAJHA user acts
   as the token's owner**. Use it only with a read-only, narrowly scoped token for a shared purpose (for
   example public issue search).
-- **Not yet:** OAuth sign-in (phase 7.3), so Enterprise Managed Users whose enterprise disables personal
-  access tokens cannot connect yet.
+- **Each user signing in with GitHub** (`oauth_user`): copy `config/mcp_servers/14_github_oauth.json.example`.
+  Register an OAuth app for your organisation on GitHub (Settings > Developer settings > OAuth Apps)
+  with the authorization callback URL `<accounts.public_url>/account/server-connections/oauth/callback`,
+  and set `GITHUB_OAUTH_CLIENT_ID` and `GITHUB_OAUTH_CLIENT_SECRET` in SAJHA's environment (the template
+  reads the secret only as a reference). The template gives GitHub's documented OAuth app endpoints
+  ([authorizing OAuth apps](https://docs.github.com/en/apps/oauth-apps/building-oauth-apps/authorizing-oauth-apps)),
+  because SAJHA is configured with them rather than discovering them. Each user clicks "Connect with
+  GitHub" on Server connections and approves at GitHub; disconnecting revokes the grant at GitHub.
+  Scopes: `read:user` and `read:org` for everyone; `repo` only for users who tick "allow changes" (GitHub's
+  classic OAuth scopes have no read-only scope for private repositories, so `repo` grants read and write;
+  see [GitHub's scopes](https://docs.github.com/en/apps/oauth-apps/building-oauth-apps/scopes-for-oauth-apps)).
+  This is also the route for Enterprise Managed Users whose enterprise disables personal access tokens,
+  where the enterprise allows the OAuth app. Configuration and behaviour:
+  [Federation, Per-user OAuth sign-in](Federation.md#per-user-oauth-sign-in-oauth_user).
 
 ## 4. With per-user sign-in
 
-- Each user connects GitHub once (a personal token under `token_user` now, OAuth in phase 7.3); calls
-  carry their own identity, so repository permissions and audit attribution are GitHub's own.
+- Each user connects GitHub once (a personal token, or an OAuth sign-in); calls carry their own
+  identity, so repository permissions and audit attribution are GitHub's own.
 - Narrow toolsets per deployment (for example issues, pull requests and repositories; Actions read).
 - Writes — creating issues or comments, opening or merging pull requests, dispatching workflows — go
   through SAJHA's approval policy.

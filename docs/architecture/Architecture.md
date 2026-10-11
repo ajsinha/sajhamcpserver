@@ -460,7 +460,7 @@ the wordmark, the navbar badge `Net · <instance name>` names the instance a use
 Instances ([SAJHA Net](SAJHA%20Net.md) §17). Administrators manage the MCP servers this instance
 embeds and proxies calls to on **Proxied MCP servers** (`/admin/federation`): one row per server, from
 `federation.upstreams`, `config/mcp_servers.json` or the page itself, with its vendor, internal or
-external, prefix, transport, status (including "needs sign-in (not supported yet)") and tools, then
+external, prefix, transport, status (including "needs sign-in", which suggests `oauth_user`) and tools, then
 each server's discovered items and their approval ([Federation](Federation.md)).
 
 ## 11. Clients, the CLI and stdio

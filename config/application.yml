@@ -715,7 +715,7 @@ federation:
   # credentials; templates: config/mcp_servers.json.example and config/mcp_servers/ (external unless "external": false)
   mcp_servers_file: config/mcp_servers.json
   mcp_servers_reload_seconds: 5    # checks the file's mtime and size; a change applies without a restart
-  # auth.type token_user (each user's own token) on a session-based upstream: one session per user
+  # auth.type token_user or oauth_user (each user's own credential) on a session-based upstream: one session per user
   per_user_session_idle_seconds: 900   # close a user's upstream session after this long without a call
   per_user_sessions_max: 50            # per upstream; the oldest idle session is closed to make room
 

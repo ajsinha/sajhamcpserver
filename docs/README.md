@@ -183,6 +183,7 @@ These guides document each provider's tools, parameters and API keys.
 39. [Tutorial 39: Console Single Sign-On](tutorials/TUTORIAL_39_console_single_sign_on.md)
 40. [Tutorial 40: Stream a Call Across the Net](tutorials/TUTORIAL_40_stream_a_net_call.md)
 41. [Tutorial 41: qlrisk Risk Tools](tutorials/TUTORIAL_41_qlrisk_risk_tools.md)
+42. [Tutorial 42: Per-User Sign-In for Proxied Servers](tutorials/TUTORIAL_42_per_user_sign_in.md)
 
 ## Clients and security
 

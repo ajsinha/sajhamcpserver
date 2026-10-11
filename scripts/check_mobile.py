@@ -98,7 +98,8 @@ ROUTES: List[Tuple[str, bool]] = [
     ('/admin/audit', True),
     ('/admin/connections', True),
     ('/account/connections', True),
-    ('/account/server-connections', True),      # Server connections (per-user tokens for proxied servers)
+    ('/account/server-connections', True),      # Server connections (per-user tokens and OAuth sign-ins); a
+                                                # connect page needs an upstream: --extra /account/server-connections/<id>
     ('/admin/server-connections', True),
     ('/account/apikeys', True),
     ('/studio', True),

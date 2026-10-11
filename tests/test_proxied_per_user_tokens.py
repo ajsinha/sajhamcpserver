@@ -5,7 +5,7 @@ Per-user sign-in for proxied MCP servers, part 1: ``auth.type: token_user`` (wav
 A fake vendor MCP server runs on a local port (the official SDK behind a gate): it accepts only the
 personal tokens it issued, answers 401 to any other and 403 to a "forbidden" one, records which token
 and which session every request carried, and lists an extra tool only to an "admin" token. Covered:
-configuration rules of the credential modes (``oauth_user`` accepted as not built yet); two users with
+configuration rules of the credential modes; two users with
 their own tokens get their own answers, per request on a 2026-07-28 upstream; a user without a token
 gets "connect your account" on MCP 2026-07-28, MCP 2025-11-25, REST and Ask SAJHA, and an anonymous
 caller a clear refusal; a vendor 401/403 is passed back and marks the connection "needs re-connect";
@@ -499,18 +499,24 @@ def test_static_upstreams_are_unchanged(tmp_path, vendor, vault, monkeypatch):
         m.stop()
 
 
-def test_oauth_user_is_accepted_and_not_built_yet(tmp_path, vendor, vault, monkeypatch):
-    from sajha.federation.manager import FederationError
+def test_oauth_user_discovers_with_a_discovery_credential_and_calls_need_sign_in(tmp_path, vendor, vault,
+                                                                                 monkeypatch):
+    """oauth_user (phase 7.3, tests/test_proxied_oauth_user.py): a discovery credential lists the tools, and a
+    call by a user who has not signed in asks them to connect; never the discovery credential."""
+    from sajha.federation import manager as fm
     monkeypatch.setenv('VENDOR_DISCOVERY', ALICE)
     m, reg = manager_for(tmp_path, [{'id': 'later', 'url': vendor.url, 'protocol': '2026-07-28', 'auth': {
         'type': 'oauth_user', 'discovery': {'type': 'bearer', 'token_ref': 'env:VENDOR_DISCOVERY'}}}])
+    monkeypatch.setattr(fm, '_manager', m)
     try:
         assert wait_for(lambda: 'later__whoami' in reg.tools)
         st = m.status('later')
-        assert st['auth_mode'] == 'oauth_user' and st['auth_note'] == 'OAuth sign-in: coming in phase 7.3'
+        assert st['auth_mode'] == 'oauth_user' and st['auth_note'] == ''
         assert not m.config_errors
-        with as_user('alice'), pytest.raises(FederationError, match='phase 7.3'):
+        vendor.seen.clear()
+        with as_user('alice'), pytest.raises(ConnectedAccountRequired) as ei:
             reg.tools['later__whoami'].execute_with_tracking({})
+        assert ei.value.reason == 'not_connected' and vendor.tokens_seen('tools/call') == []
     finally:
         m.stop()
 

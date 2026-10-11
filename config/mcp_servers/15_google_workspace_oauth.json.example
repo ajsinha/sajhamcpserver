@@ -1,0 +1,26 @@
+{
+  "_comment": "Google Workspace (Drive, Calendar) through an MCP server that accepts Google access tokens, called as each user after they sign in with Google (auth.type oauth_user). Requires a Google Cloud project: create an OAuth client of type 'Web application' (Google Cloud console, APIs & Services > Credentials), add <accounts.public_url>/account/server-connections/oauth/callback as an authorised redirect URI, enable the Drive and Calendar APIs, and configure the OAuth consent screen (internal for your Workspace domain, or verified by Google for sensitive scopes). Set GOOGLE_OAUTH_CLIENT_ID and GOOGLE_OAUTH_CLIENT_SECRET. The url is a placeholder: Google documents remote MCP servers for Workspace, one per product (Drive, Calendar, Gmail), configured in a Google Cloud project (https://developers.google.com/workspace/guides/configure-mcp-servers); copy each endpoint from there into its own entry (this one, and copies for the others), and check availability for your domain. Endpoints and scopes are Google's documented ones (https://developers.google.com/identity/protocols/oauth2/web-server, https://developers.google.com/identity/protocols/oauth2/scopes). Disabled until you set the url.",
+  "mcpServers": {
+    "google": {
+      "url": "https://workspace-mcp.example.com/mcp",
+      "title": "Google Workspace",
+      "enabled": false,
+      "auth": {
+        "type": "oauth_user",
+        "vendor": "Google",
+        "client_id": "${GOOGLE_OAUTH_CLIENT_ID}",
+        "client_secret_ref": "env:GOOGLE_OAUTH_CLIENT_SECRET",
+        "authorize_url": "https://accounts.google.com/o/oauth2/v2/auth",
+        "token_url": "https://oauth2.googleapis.com/token",
+        "revoke_url": "https://oauth2.googleapis.com/revoke",
+        "revoke_style": "google",
+        "scopes": ["openid", "email", "https://www.googleapis.com/auth/drive.readonly",
+                   "https://www.googleapis.com/auth/calendar.readonly"],
+        "write_scopes": ["https://www.googleapis.com/auth/drive.file", "https://www.googleapis.com/auth/calendar.events"],
+        "authorize_params": {"access_type": "offline", "prompt": "consent"},
+        "resource_indicator": false,
+        "_comment": "access_type offline and prompt consent: Google returns a refresh token only then. Google does not document resource indicators (RFC 8707) for its OAuth endpoints. Gmail: add https://www.googleapis.com/auth/gmail.readonly to scopes for reading; https://www.googleapis.com/auth/gmail.send belongs in write_scopes and only together with a policy rule that requires approval for sending (docs/architecture/Policy and Audit.md). Gmail scopes are restricted: an external app needs Google's verification."
+      }
+    }
+  }
+}

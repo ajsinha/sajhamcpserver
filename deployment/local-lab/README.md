@@ -84,4 +84,8 @@ The lab does not pass your shell's `SAJHA_*` variables to the instances; use `la
 [`fake_idp.py`](fake_idp.py): a fake OpenID Connect provider for trying console single sign-on offline
 ([Tutorial 39](../../docs/tutorials/TUTORIAL_39_console_single_sign_on.md)).
 
+[`fake_oauth_mcp.py`](fake_oauth_mcp.py): a fake OAuth authorization server and OAuth-protected MCP server for
+trying per-user OAuth sign-in to proxied servers (`auth.type: oauth_user`) offline
+([Tutorial 42](../../docs/tutorials/TUTORIAL_42_per_user_sign_in.md)); the tests use it too.
+
 Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.com

@@ -173,6 +173,9 @@ class Provider:
     tenant: str = ''
     docs_url: str = ''
     template: str = ''
+    #: a client secret held in memory (a dynamically registered client of a proxied server); never
+    #: configuration, never shown: configured providers use client_secret_ref
+    client_secret: str = field(default='', repr=False, compare=False)
 
     # ── derived ────────────────────────────────────────────────────
     @property

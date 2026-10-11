@@ -30,7 +30,7 @@ PROTOCOLS = ('auto', 'legacy', '2026-07-28')
 ON_CHANGE = ('withdraw', 'hold')
 #: credential modes: one shared identity ('static' = 'none' plus fixed ``headers``; bearer, header,
 #: oauth_client_credentials), the caller's connected account, or per-user sign-in for proxied servers
-#: (token_user; oauth_user is accepted and shown as coming in phase 7.3). See sajha/federation/user_tokens.py.
+#: (token_user, oauth_user). See sajha/federation/user_tokens.py and sajha/federation/oauth_user.py.
 AUTH_TYPES = ('none', 'static', 'bearer', 'header', 'oauth_client_credentials', 'connected_account',
               'token_user', 'oauth_user')
 #: what a connected_account upstream may use for discovery (tools/list) when no user is calling
@@ -324,7 +324,8 @@ class UpstreamConfig:
 
     def _validate_per_user(self, atype: str) -> None:
         """token_user: each call carries the caller's own personal token (sajha/federation/user_tokens.py);
-        oauth_user: accepted, built in phase 7.3. ``discovery`` is the credential for tools/list."""
+        oauth_user: the caller's own OAuth access token (sajha/federation/oauth_user.py). ``discovery`` is
+        the credential for tools/list."""
         a = self.auth
         if self.transport == 'stdio':
             raise ConfigError(f'auth.type {atype} needs an HTTP transport (a credential per user)')
@@ -342,6 +343,18 @@ class UpstreamConfig:
             if key in ('token', 'value', 'client_secret', 'password', 'api_key'):
                 raise ConfigError(f'auth.discovery.{key}: put secrets in a reference ({key}_ref: env:NAME)')
         if atype == 'oauth_user':
+            from sajha.federation.oauth_user import OAuthUserSpec
+            unknown = set(a) - set(OAuthUserSpec.KEYS)
+            if unknown:
+                raise ConfigError(f'auth: unknown field(s) for oauth_user: {", ".join(sorted(unknown))}')
+            if 'client_secret' in a:
+                raise ConfigError('auth.client_secret: put the secret in a reference (client_secret_ref: env:NAME)')
+            problems = OAuthUserSpec.from_auth(a).problems()
+            if problems:
+                raise ConfigError(problems[0])
+            if any(k.lower() == 'authorization' for k in self.headers or {}):
+                raise ConfigError('headers.Authorization conflicts with auth.type oauth_user: each user\'s own '
+                                  'access token is sent in Authorization')
             return
         from sajha.federation.user_tokens import TokenUserSpec
         unknown = set(a) - set(TokenUserSpec.KEYS)

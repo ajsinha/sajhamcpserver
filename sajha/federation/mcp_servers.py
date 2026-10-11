@@ -16,7 +16,8 @@ credentials). Each entry becomes a federation upstream whose id is the entry's k
   ``include_tools``), ``enabled`` (``false``: listed, never connected), ``cwd`` (stdio), ``title``,
   ``timeout_seconds``, ``auth`` (the credential mode: ``"static"``, the default, sends ``headers`` as one
   shared identity; ``{"type": "token_user", ...}`` sends each user's own personal token; ``"oauth_user"``
-  is accepted and shown as coming in phase 7.3; the same ``auth`` block as federation upstreams); a key
+  signs each user in with OAuth at the vendor; the same ``auth`` block as federation upstreams, with a
+  ``client_id`` that may be ``${NAME}``); a key
   starting with ``_`` is a comment, at any depth;
 * ``${NAME}`` and ``${NAME:default}`` in ``url``, header values, ``args`` and ``env`` are read from the
   environment. A raw secret-looking header still works (the owner's intranet stance) but is reported,
@@ -136,7 +137,9 @@ def parse(data: Any) -> Parsed:
                 out.errors[key] = 'auth must be "static", "token_user", "oauth_user" or an object with "type"'
                 continue
             if (auth.get('type') or 'static') != 'static' or len(auth) > 1:
-                up['auth'] = dict(auth)
+                # an operator-registered OAuth client's id may come from the environment (${NAME});
+                # its secret is always a reference (client_secret_ref: env:NAME)
+                up['auth'] = {k: expand(v) if k == 'client_id' and isinstance(v, str) else v for k, v in auth.items()}
         vendor = str(e.get('vendor') or _vendor_of(key))
         out.vendors[key] = vendor
         up['prefix'] = str(e.get('prefix') or vendor)   # tools are <prefix>__<tool>, here and in SAJHA Net

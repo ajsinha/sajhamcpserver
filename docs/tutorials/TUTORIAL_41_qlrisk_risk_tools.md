@@ -245,6 +245,6 @@ question gives no date). A small local model may need the question to be explici
 - Every tool, mode, input, output and bound: the
   [QLRisk Tool Reference Guide](../tools/qlrisk/QLRisk%20Tool%20Reference%20Guide.md)
 - Tool configs, folders and `requires`: [Architecture](../architecture/Architecture.md#tool-config-files-and-folders)
-- This is the last tutorial; the [documentation index](../README.md) lists every guide
+- Next tutorial: [Tutorial 42: Per-User Sign-In for Proxied Servers](TUTORIAL_42_per_user_sign_in.md)
 
 Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.com

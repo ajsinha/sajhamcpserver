@@ -16,8 +16,12 @@ Newest first. The current version is `app.version` in `config/application.yml`.
 - **Database:** no schema change; prompt and resource entries live in the existing `tool_access_list`.
   Per-user tokens for proxied servers use the existing `connected_accounts` table (provider `upstream:<id>`).
 - **Proxied servers:** nothing changes for existing upstreams (their credential mode is `static`). "Sign out
-  everywhere", an administrator's session revocation, disabling and deleting a user now also delete that
-  user's personal tokens for proxied servers.
+  everywhere", an administrator's session revocation, disabling and deleting a user (on the console or in
+  the users file) now also delete that user's personal tokens and OAuth sign-ins for proxied servers.
+  Upstreams that use `auth.type: oauth_user` need `accounts.public_url` set to the address users reach,
+  because the redirect URI registered at the vendor derives from it.
+- **Connected accounts:** RFC 7009 revocation now authenticates a confidential client (its secret sent as
+  `client_secret`, or HTTP Basic for `client_secret_basic`), as the RFC asks.
 
 ### Added
 
@@ -36,6 +40,25 @@ Newest first. The current version is `app.version` in `config/application.yml`.
   disconnect and refusal is audited and every proxied call's audit record names the identity used.
   Templates `config/mcp_servers/11_github_token_user.json.example` and
   `12_atlassian_datacenter_token_user.json.example`; [Federation §3](docs/architecture/Federation.md#per-user-credentials-token_user).
+- **Per-user sign-in for proxied MCP servers, part 2: OAuth** (wave 7 phase 7.3; Roadmap L18 done,
+  remaining parts are L20): `auth.type: oauth_user` signs each user in at the vendor ("Connect with
+  <vendor>" on the connect page). Discovery of the server's protected-resource metadata (RFC 9728, from the
+  401's `WWW-Authenticate` or the well-known URL) and its authorization server's metadata (RFC 8414 or
+  OpenID Connect), or operator-given endpoints; dynamic client registration (RFC 7591) kept encrypted in
+  the vault, or an operator-registered client (`client_id`, `client_secret_ref`); authorization code with
+  PKCE `S256` and a `state` bound to the user and the browser on the connected-accounts machinery; one
+  redirect URI for every upstream (`/account/server-connections/oauth/callback`); the resource indicator
+  (RFC 8707) on every token request; read `scopes` by default and `write_scopes` only for users who tick
+  "allow changes". Tokens are refreshed before expiry and once after a vendor 401; a refused refresh marks
+  "needs re-connect"; disconnecting and every revocation path revoke at the vendor (RFC 7009, or GitHub's
+  and Google's forms). Per-user sessions and discovery work with OAuth tokens (a refreshed token opens a new
+  session). The Connections and administrators' views show scopes and expiry; the federation console's
+  form takes the OAuth settings. Templates `13_atlassian_cloud_oauth.json.example`,
+  `14_github_oauth.json.example`, `15_google_workspace_oauth.json.example`, and
+  `06_remote_oauth_sign_in.json.example` now marked supported. An upstream answering 401 without a
+  credential now suggests `oauth_user`. A fake OAuth-protected MCP server for the lab and the tests
+  (`deployment/local-lab/fake_oauth_mcp.py`) and [Tutorial 42](docs/tutorials/TUTORIAL_42_per_user_sign_in.md);
+  [Federation, Per-user OAuth sign-in](docs/architecture/Federation.md#per-user-oauth-sign-in-oauth_user).
 
 - **Adversarial QA, first automation** ([Adversarial QA Plan](docs/architecture/Adversarial%20QA%20Plan.md)):
   `tests/adversarial/` attacks the P0 surfaces: a denied tool under every name (plain, qualified, published,
@@ -52,6 +75,9 @@ Newest first. The current version is `app.version` in `config/application.yml`.
 
 ### Fixed
 
+- Disabling a user in the users file (`config/users.json`, `"enabled": false`) now also revokes their
+  tokens for proxied servers, as the console's disable route does; before, the next sync disabled the user
+  but left their personal tokens in the vault.
 - Per-caller access to prompts and data resources (Roadmap X3): roles limit prompts and data resources
   through `prompt` / `resource` permission rows, API keys through `prompt:` / `resource:` entries; one rule
   for `prompts/list`, `prompts/get`, prompt completion, `resources/list` and `resources/read` on both MCP

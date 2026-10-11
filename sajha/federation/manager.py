@@ -794,20 +794,18 @@ class FederationManager:
             raise FederationError(f'{tool.name} is no longer exposed by upstream {tool.upstream_id}')
         if up.conn is None:
             raise UpstreamUnavailable(f'upstream {tool.upstream_id} is not connected')
-        from sajha.federation.user_tokens import OAUTH_USER_PENDING, auth_mode
+        from sajha.federation.user_tokens import PER_USER_MODES, auth_mode
         mode = auth_mode(up.config)
-        if mode == 'oauth_user':
-            raise FederationError(f'{up.config.display_title} signs each user in with OAuth ({OAUTH_USER_PENDING}); '
-                                  f'its tools cannot be called until then')
         user_cred = None
-        if mode == 'token_user':
-            # the caller's own token, or "connect your account" (ConnectedAccountRequired) before
-            # anything is sent; never another user's token or a shared credential
+        if mode in PER_USER_MODES:
+            # the caller's own token (an OAuth one refreshed when due), or "connect your account"
+            # (ConnectedAccountRequired) before anything is sent; never another user's token or a
+            # shared credential
             from sajha.accounts.injection import caller_user_id
-            from sajha.federation.user_tokens import TokenUserSpec, get_tokens
+            from sajha.federation.user_tokens import get_tokens, header_for
             uid = caller_user_id()
             token = get_tokens().resolve(up.config, uid, tool=tool.name)
-            user_cred = (uid, token, TokenUserSpec.from_auth(up.config.auth).header_value(token))
+            user_cred = (uid, token, header_for(up.config, token))
         if up.limiter is not None and not up.limiter.is_allowed('calls'):
             raise FederationError(f'rate limit reached for upstream {tool.upstream_id} '
                                   f'({up.config.max_calls_per_minute} calls per minute)')
@@ -876,7 +874,7 @@ class FederationManager:
             if data.pop('isError', False):
                 text = ' '.join(b.get('text', '') for b in data.get('content') or [] if b.get('type') == 'text')
                 raise FederatedToolError(redact(text or f'{tool.name} failed upstream',
-                                                up.conn.secret_values() + ([user_cred[1]] if user_cred else []))
+                                                up.conn.secret_values() + (list(user_cred[1:2]) if user_cred else []))
                                          [:2000], data)
             return data
         except InputRequired:
@@ -936,30 +934,49 @@ class FederationManager:
         """tools/call as the caller: on a 2026-07-28 upstream the header rides on this call's own
         connection; on a session-based one, in the caller's own session (opened on first use). A
         refused token (HTTP 401/403) is the vendor's answer: passed back, the connection marked
-        "needs re-connect", never retried as anyone else."""
+        "needs re-connect", never retried as anyone else. oauth_user: an HTTP 401 first refreshes the
+        caller's token once and retries with it; a 403 (for example a scope the user did not grant)
+        is passed back without marking the connection."""
         from sajha.federation.connection import UpstreamUnauthorized
+        from sajha.federation.user_tokens import auth_mode, get_tokens, header_for
         uid, token, (header, value) = cred
+        oauth = auth_mode(up.config) == 'oauth_user'
         connect_wait = min(timeout, 30.0)
-        try:
-            if self._modern(up):
-                coro = up.conn.call_tool_with_header(header, value, tool.upstream_name, arguments, timeout, progress,
-                                                     responses, request_state, trace_meta)
-            else:
-                coro = self._call_in_session(up, uid, header, value, tool.upstream_name, arguments, timeout,
-                                             progress, responses, request_state, trace_meta)
-            return self._wait(coro, timeout + connect_wait + 5.0, ctx)
-        except UpstreamUnauthorized as e:
-            from sajha.federation.user_tokens import get_tokens
-            tokens = get_tokens()
-            tokens.mark_needs_reconnect(up.config.id, uid, f'the server refused the token (HTTP {e.status})')
-            vendor = redact(e.vendor or '', [token, value]).strip()
-            err = FederatedToolError(
-                f'{up.config.display_title} refused your token (HTTP {e.status})'
-                + (f': {vendor}' if vendor else '') + '. Your connection is marked "needs re-connect"; '
-                f'replace the token at {tokens.connect_url(up.config.id)}.',
-                {'content': [], 'isError': True})
-            err.caller_specific = True          # one user's credential: not the upstream's failure (breaker)
-            raise err from None
+        tokens = get_tokens()
+        seen = [token, value]
+        for attempt in range(2):
+            try:
+                if self._modern(up):
+                    coro = up.conn.call_tool_with_header(header, value, tool.upstream_name, arguments, timeout,
+                                                         progress, responses, request_state, trace_meta)
+                else:
+                    coro = self._call_in_session(up, uid, header, value, tool.upstream_name, arguments, timeout,
+                                                 progress, responses, request_state, trace_meta)
+                return self._wait(coro, timeout + connect_wait + 5.0, ctx)
+            except UpstreamUnauthorized as e:
+                if oauth and e.status == 401 and attempt == 0:
+                    token = tokens.refresh_after_401(up.config, uid, tool=tool.name)   # or "re-connect"
+                    header, value = header_for(up.config, token)
+                    seen += [token, value]
+                    continue
+                vendor = redact(e.vendor or '', seen).strip()
+                if oauth and e.status == 403:
+                    err = FederatedToolError(
+                        f'{up.config.display_title} refused this call for your account (HTTP 403)'
+                        + (f': {vendor}' if vendor else '') + '. If it needs permissions you did not grant, '
+                        f're-connect at {tokens.connect_url(up.config.id)} and allow them.',
+                        {'content': [], 'isError': True})
+                else:
+                    tokens.mark_needs_reconnect(up.config.id, uid, f'the server refused the token (HTTP {e.status})')
+                    err = FederatedToolError(
+                        f'{up.config.display_title} refused your token (HTTP {e.status})'
+                        + (f': {vendor}' if vendor else '') + '. Your connection is marked "needs re-connect"; '
+                        + (f'sign in again at {tokens.connect_url(up.config.id)}.' if oauth
+                           else f'replace the token at {tokens.connect_url(up.config.id)}.'),
+                        {'content': [], 'isError': True})
+                err.caller_specific = True          # one user's credential: not the upstream's failure (breaker)
+                raise err from None
+        raise AssertionError('unreachable')
 
     async def _call_in_session(self, up: _Upstream, uid: str, header: str, value: str, name: str, arguments,
                                timeout: float, progress, responses, request_state, meta):
@@ -1059,13 +1076,13 @@ class FederationManager:
         """The connect page's test call: tools/list with ``token``. Returns the tool names; the tools
         join the upstream's discovery (the union of what users see). Raises TokenRejected."""
         from sajha.federation.connection import UpstreamUnauthorized
-        from sajha.federation.user_tokens import TokenRejected, TokenUserSpec
+        from sajha.federation.user_tokens import TokenRejected, header_for
         up = self._upstreams.get(upstream_id)
         if up is None:
             raise TokenRejected(f'There is no proxied server {upstream_id}.')
         if not self.settings.enabled or not up.config.enabled:
             raise TokenRejected(f'{up.config.display_title} is not enabled, so the token cannot be tested now.')
-        header, value = TokenUserSpec.from_auth(up.config.auth).header_value(token)
+        header, value = header_for(up.config, token)
         t = float(timeout or up.config.timeout_seconds or self.settings.default_timeout_seconds)
         probe = up.conn if up.conn is not None else UpstreamConnection(up.config, self.settings, self._discover)
         try:
@@ -1330,11 +1347,11 @@ class FederationManager:
         except Exception:
             breaker = None
         ext = next((x for x in self.file_external if x['upstream'] == cfg.id), None) or _net_external(cfg.id)
-        from sajha.federation.user_tokens import OAUTH_USER_PENDING, auth_mode
+        from sajha.federation.user_tokens import auth_mode
         mode = auth_mode(cfg)
         return {
             'auth_mode': mode,
-            'auth_note': OAUTH_USER_PENDING if mode == 'oauth_user' else '',
+            'auth_note': '',
             'user_sessions': len(up.user_sessions),
             'id': cfg.id, 'title': cfg.display_title, 'source': cfg.source, 'enabled': cfg.enabled,
             'vendor': (ext or {}).get('vendor') or self.file_vendors.get(cfg.id) or '',

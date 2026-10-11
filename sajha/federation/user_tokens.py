@@ -1,5 +1,5 @@
 """
-SAJHA MCP Server — per-user tokens for proxied MCP servers (``auth.type: token_user``).
+SAJHA MCP Server — per-user tokens for proxied MCP servers (``auth.type: token_user`` and ``oauth_user``).
 Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.com
 
 A proxied server whose ``auth.type`` is ``token_user`` is called **as the person who asked**,
@@ -15,6 +15,10 @@ with a personal token that person pasted once on the connect page
   :class:`~sajha.accounts.errors.ConnectedAccountRequired` (the same "connect your account"
   answer connected accounts give on every front end) when the caller has none, has one that
   the vendor refused (``needs re-connect``), or is not a signed-in user at all.
+* **OAuth tokens** (``oauth_user``) come from the sign-in flow in
+  :mod:`sajha.federation.oauth_user` and are kept the same way; :meth:`ProxiedTokens.resolve`
+  refreshes one shortly before it expires, :meth:`ProxiedTokens.refresh_after_401` once when the
+  vendor refuses it, and removing one revokes it at the vendor when the vendor offers revocation.
 * **Status, revocation and audit:** connected / needs re-connect / not connected per user;
   every connect, replace and disconnect audited (``proxied_connection.*``, never the token);
   every token of a user deleted when the user is disabled, deleted or signs out everywhere.
@@ -40,8 +44,6 @@ PER_USER_MODES = ('token_user', 'oauth_user')
 #: the longest token accepted from the connect page
 MAX_TOKEN_CHARS = 8192
 _HEADER = re.compile(r'^[A-Za-z0-9][A-Za-z0-9-]{0,63}$')
-#: shown for an ``oauth_user`` upstream until phase 7.3 builds the OAuth flow
-OAUTH_USER_PENDING = 'OAuth sign-in: coming in phase 7.3'
 
 
 def auth_mode(config) -> str:
@@ -53,6 +55,19 @@ def auth_mode(config) -> str:
 
 def vault_provider(upstream_id: str) -> str:
     return PROVIDER_PREFIX + upstream_id
+
+
+def header_for(config, token: str):
+    """(header, value) carrying ``token`` to the upstream: ``auth.header``/``auth.format`` for
+    token_user, ``Authorization: Bearer`` for oauth_user."""
+    if auth_mode(config) == 'oauth_user':
+        return 'Authorization', f'Bearer {token}'
+    return TokenUserSpec.from_auth(config.auth).header_value(token)
+
+
+def _client_row(user_id: str) -> bool:
+    from sajha.federation.oauth_user import CLIENT_ROW
+    return user_id == CLIENT_ROW
 
 
 def masked(token: str) -> str:
@@ -164,23 +179,44 @@ class ProxiedTokens:
             raise self.required(config, 'not_connected', user_id, tool)
         if conn.status != 'active':
             raise self.required(config, 'reauth_required', user_id, tool)
+        if auth_mode(config) == 'oauth_user':
+            from sajha.federation.oauth_user import get_oauth
+            conn = get_oauth().fresh(config, conn, tool=tool)      # refreshed shortly before it expires
         token = (self.vault.tokens(conn) or {}).get('access_token') or ''
         if not token:
             raise self.required(config, 'not_connected', user_id, tool)
         self.vault.touch(conn)
         return token
 
-    def first_token(self, upstream_id: str) -> Optional[str]:
+    def refresh_after_401(self, config, user_id: str, tool: str = '') -> str:
+        """oauth_user: the vendor answered 401 to the caller's token. Refresh it once and return the
+        new token; without a refresh token, or when the refresh is refused, the connection is marked
+        "needs re-connect" and ConnectedAccountRequired is raised."""
+        from sajha.federation.oauth_user import get_oauth
+        conn = self.vault.get(user_id, vault_provider(config.id))
+        if conn is None:
+            raise self.required(config, 'not_connected', user_id, tool)
+        if not conn.has_refresh_token:
+            self.mark_needs_reconnect(config.id, user_id, 'the server refused the token (HTTP 401) and it '
+                                                          'cannot be refreshed')
+            raise self.required(config, 'reauth_required', user_id, tool)
+        conn = get_oauth().fresh(config, conn, force=True, tool=tool)
+        return (self.vault.tokens(conn) or {}).get('access_token') or ''
+
+    def first_token(self, upstream_id: str, config=None) -> Optional[str]:
         """Discovery without a discovery credential: the token of the first user who connected
-        (and whose token the vendor still accepts)."""
+        (and whose token the vendor still accepts; an OAuth token is refreshed first when due)."""
         try:
             rows = [c for c in self.vault.list_all(provider=vault_provider(upstream_id), limit=500)
-                    if c.status == 'active']
+                    if c.status == 'active' and not _client_row(c.user_id)]
         except Exception as e:
             logger.debug(f'federation: per-user tokens of {upstream_id} unavailable: {type(e).__name__}')
             return None
         for c in sorted(rows, key=lambda c: (c.created_at is None, c.created_at)):
             try:
+                if config is not None and auth_mode(config) == 'oauth_user':
+                    from sajha.federation.oauth_user import get_oauth
+                    c = get_oauth().fresh(config, c)
                 tok = (self.vault.tokens(c) or {}).get('access_token')
             except Exception:
                 continue
@@ -227,16 +263,33 @@ class ProxiedTokens:
 
     def remove(self, upstream_id: str, user_id: str, *, actor: str = '', ip: Optional[str] = None,
                reason: str = '') -> bool:
-        done = False
+        """Forget ``user_id``'s token for the upstream; an OAuth token is first revoked at the vendor
+        when it advertises revocation (best effort: the token is deleted here either way)."""
+        done, revoked = False, None
+        try:
+            revoked = self._revoke_at_vendor(upstream_id, user_id)
+        except Exception as e:
+            revoked = False
+            logger.info(f'federation: revocation at the vendor failed ({type(e).__name__}); deleting anyway')
         try:
             done = self.vault.delete(user_id, vault_provider(upstream_id))
         except Exception as e:
             logger.warning(f'federation: removing a per-user token failed: {type(e).__name__}')
         if done:
             self.audit('proxied_connection.disconnected', actor or user_id, upstream_id, ip, user=user_id,
-                       by_admin=bool(actor and actor != user_id), reason=reason)
+                       by_admin=bool(actor and actor != user_id), reason=reason, revoked_at_vendor=revoked)
             _close_user_sessions(upstream_id, user_id)
         return done
+
+    def _revoke_at_vendor(self, upstream_id: str, user_id: str) -> Optional[bool]:
+        from sajha.federation.oauth_user import UpstreamOAuth, get_oauth
+        cfg = UpstreamOAuth.config(upstream_id)
+        if cfg is None or auth_mode(cfg) != 'oauth_user':
+            return None
+        conn = self.vault.get(user_id, vault_provider(upstream_id))
+        if conn is None:
+            return None
+        return get_oauth().revoke(cfg, self.vault.tokens(conn))
 
     def revoke_user(self, user_id: str, *, actor: str = '', reason: str = '') -> int:
         """Delete every proxied-server token of ``user_id`` (user disabled, deleted, signed out
@@ -257,7 +310,7 @@ class ProxiedTokens:
     def status_of(self, config, user_id: str, conn=None) -> Dict[str, Any]:
         mode = auth_mode(config)
         spec = TokenUserSpec.from_auth(config.auth) if mode == 'token_user' else None
-        if conn is None and mode == 'token_user':
+        if conn is None and mode in PER_USER_MODES:
             try:
                 conn = self.vault.get(user_id, vault_provider(config.id))
             except Exception:
@@ -272,7 +325,7 @@ class ProxiedTokens:
                 'last_error': pub.get('last_error') or '',
                 'label': spec.label if spec else '', 'help_url': spec.help_url if spec else '',
                 'header': spec.header if spec else '', 'token_prefix': spec.token_prefix if spec else '',
-                'note': OAUTH_USER_PENDING if mode == 'oauth_user' else ''}
+                **(_oauth_status(config, pub) if mode == 'oauth_user' else {})}
 
     def all_connections(self, upstream_id: Optional[str] = None, user_id: Optional[str] = None) -> List[Dict[str, Any]]:
         """Who is connected to which upstream (administrators): metadata only, never a token."""
@@ -280,14 +333,17 @@ class ProxiedTokens:
                                    limit=5000)
         out = []
         for c in rows:
-            if not c.provider.startswith(PROVIDER_PREFIX):
+            if not c.provider.startswith(PROVIDER_PREFIX) or _client_row(c.user_id):
                 continue
             pub = c.to_public()
+            oauth = bool(pub['expires_at'] or pub['refreshable'] or pub['scopes'])
             out.append({'upstream': c.provider[len(PROVIDER_PREFIX):], 'user_id': c.user_id,
                         'status': 'connected' if c.status == 'active' else 'needs_reconnect',
-                        'token_hint': pub['account_login'], 'connected_at': pub['created_at'],
+                        'token_hint': pub['account_login'] if not oauth else '', 'connected_at': pub['created_at'],
                         'updated_at': pub['updated_at'], 'last_used_at': pub['last_used_at'],
-                        'last_error': pub['last_error'] or ''})
+                        'last_error': pub['last_error'] or '', 'kind': 'oauth' if oauth else 'token',
+                        'scopes': pub['scopes'], 'expires_at': pub['expires_at'],
+                        'refreshable': pub['refreshable']})
         return out
 
     # ── audit ──────────────────────────────────────────────────────
@@ -301,6 +357,17 @@ class ProxiedTokens:
                                    ip_address=ip)
         except Exception as e:
             logger.debug(f'federation: audit {action} failed: {type(e).__name__}')
+
+
+def _oauth_status(config, pub: Dict[str, Any]) -> Dict[str, Any]:
+    """What the pages show of an OAuth connection: scopes, expiry, whether changes were allowed."""
+    from sajha.federation.oauth_user import OAuthUserSpec
+    spec = OAuthUserSpec.from_auth(config.auth)
+    granted = list(pub.get('scopes') or [])
+    return {'token_hint': '', 'scopes': granted, 'expires_at': pub.get('expires_at'),
+            'refreshable': bool(pub.get('refreshable')), 'read_scopes': spec.scopes,
+            'write_scopes': spec.write_scopes, 'write_granted': bool(set(spec.write_scopes) & set(granted)),
+            'vendor': spec.vendor or config.display_title, 'help_url': spec.help_url}
 
 
 def _user_connected(upstream_id: str) -> None:

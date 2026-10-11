@@ -246,7 +246,7 @@ Owner decision, 2026-10-10, after release 8.3.0. Design for the main item:
 |---|---|---|---|
 | 7.1 | A: Roadmap X3 — prompts and data resources under the same allow/deny rules as tools, for API keys, roles and remote callers ‖ B: the [Adversarial QA Plan](Adversarial%20QA%20Plan.md)'s first automation — random test order, a shifted clock, failing on unexpected skips, a clean install in CI, and its P0 attack tests | 8.3.0 | done |
 | 7.2 | L18 part 1: credential modes, the vault lookup at call time, `token_user` (personal tokens) end to end, the "connect your account" answers on every transport, the Connections view | 7.1 | done |
-| 7.3 | L18 part 2: `oauth_user` (discovery, PKCE, refresh, resource indicators), per-user sessions and discovery, the SAJHA Net connect relay, audit and revocation; GitHub and Atlassian templates and guides updated from proposal to built; a tutorial; release 8.4.0 | 7.2 | in progress |
+| 7.3 | L18 part 2: `oauth_user` (discovery, PKCE, refresh, resource indicators), per-user sessions and discovery, the SAJHA Net connect relay, audit and revocation; GitHub and Atlassian templates and guides updated from proposal to built; a tutorial; release 8.4.0 | 7.2 | built; release pending |
 
 ## 8. After wave 5
 

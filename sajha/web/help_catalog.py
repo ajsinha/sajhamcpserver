@@ -177,18 +177,20 @@ CATALOG: List[dict] = [
                'durable runs that resume after a crash, re-run from a step, publish as a tool.'),
             _g('Per-User Sign-In for Proxied Servers', 'Per-User Sign-In for Proxied Servers.md', 'bi-person-lock',
                'Proxied MCP servers acting as each user with their own vendor account: credential modes '
-               '(static, token_user; oauth_user next), connect prompts, per-user sessions, SAJHA Net and security.'),
+               '(static, token_user, oauth_user), connect prompts, per-user sessions, SAJHA Net and security.'),
             _p('Server connections', 'account_server_connections_page', 'bi-person-lock',
-               'Your own token for each proxied server that acts as you: connect, replace, remove; status.'),
+               'Your own token or OAuth sign-in for each proxied server that acts as you: connect, replace, '
+               'remove; status, scopes and expiry.'),
             _p('Server connections: all users', 'admin_server_connections_page', 'bi-shield-lock',
                'Administrators: who is connected to which proxied server, needs re-connect, revoke. Never a token.'),
             _g('GitHub Integration', 'GitHub Integration.md', 'bi-github',
-               'Proposal: GitHub\'s official MCP server proxied per user (issues, pull requests, code, Actions).'),
+               'GitHub\'s official MCP server proxied per user, with personal tokens or an OAuth app sign-in.'),
             _g('Atlassian Integration', 'Atlassian Integration.md', 'bi-kanban',
-               'Proposal: Jira and Confluence via Atlassian\'s Rovo MCP server (Cloud) or a self-hosted server.'),
+               'Jira and Confluence: Atlassian\'s Rovo MCP server with each user\'s sign-in (Cloud), or a '
+               'self-hosted server with personal tokens (Data Center).'),
             _g('Google Integration', 'Google Integration.md', 'bi-google',
-               'Proposal: proxy Google Workspace MCP servers (Gmail, Drive, Calendar) and other public MCP '
-               'servers once proxied servers support each user\'s own sign-in.'),
+               'Google Workspace MCP servers (Drive, Calendar, Gmail) with each user\'s Google sign-in through '
+               'your own Google Cloud OAuth client, and other public MCP servers worth proxying.'),
             _g('Adversarial QA Plan', 'Adversarial QA Plan.md', 'bi-bug',
                'How to attack SAJHA on purpose: every surface, what to try, the safe behaviour expected, '
                'priorities, automation and the tests that already cover each item.'),
@@ -458,6 +460,9 @@ CATALOG: List[dict] = [
             _g('41. qlrisk risk tools', 'TUTORIAL_41_qlrisk_risk_tools.md', 'bi-graph-down-arrow',
                'Install qlrisk into SAJHA\'s environment so the qlrisk_ tools load, then price a swap, '
                'run VaR and ES, a stress test, SA-CCR and CVA, and ask Ask SAJHA a risk question.'),
+            _g('42. Per-user sign-in for proxied servers', 'TUTORIAL_42_per_user_sign_in.md', 'bi-person-lock',
+               'Call a proxied MCP server as each user: personal tokens (GitHub), then OAuth sign-in against an '
+               'offline fake authorization server with refresh, write scopes and revocation.'),
         ],
     },
     {

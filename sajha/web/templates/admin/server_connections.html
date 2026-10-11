@@ -11,7 +11,7 @@ Design: docs/architecture/Per-User Sign-In for Proxied Servers.md
   <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
     <div>
       <h1 class="h3 mb-0"><i class="bi bi-person-lock me-2" aria-hidden="true"></i>Server connections: all users</h1>
-      <small class="text-muted">Which users have saved their own token for each proxied MCP server that acts as them. Tokens are encrypted in the vault and never shown, here or anywhere.</small>
+      <small class="text-muted">Which users have signed in or saved their own token for each proxied MCP server that acts as them. Tokens are encrypted in the vault and never shown, here or anywhere; removing an OAuth connection also revokes it at the vendor where offered.</small>
     </div>
     <a class="btn btn-sm btn-outline-primary" href="{{ url_for('account_server_connections_page') }}"><i class="bi bi-person me-1" aria-hidden="true"></i>My connections</a>
   </div>
@@ -40,14 +40,14 @@ Design: docs/architecture/Per-User Sign-In for Proxied Servers.md
   <div class="card">
     <div class="table-responsive">
       <table class="table table-sm align-middle mb-0 obs-table">
-        <thead><tr><th scope="col">User</th><th scope="col">Server</th><th scope="col">Token</th><th scope="col">Status</th>
+        <thead><tr><th scope="col">User</th><th scope="col">Server</th><th scope="col">Credential</th><th scope="col">Status</th>
           <th scope="col">Last used</th><th scope="col">Saved</th><th scope="col"><span class="visually-hidden">Actions</span></th></tr></thead>
         <tbody>
         {% for r in rows %}
           <tr>
             <td>{{ r.user_id }}</td>
             <td>{{ r.title }} <small class="text-muted">({{ r.upstream }})</small></td>
-            <td><code>{{ r.token_hint or '••••' }}</code></td>
+            <td>{% if r.kind == 'oauth' %}OAuth{% if r.scopes %}: {% for s in r.scopes %}<code>{{ s }}</code>{% if not loop.last %} {% endif %}{% endfor %}{% endif %}<br><small class="text-muted">{% if r.expires_at %}expires {{ r.expires_at }}{% else %}no expiry{% endif %}{% if r.refreshable %}, renewable{% endif %}</small>{% else %}<code>{{ r.token_hint or '••••' }}</code>{% endif %}</td>
             <td>{% if r.status == 'connected' %}<span class="obs-pill obs-ok">connected</span>{% else %}<span class="obs-pill obs-bad" title="{{ r.last_error }}">needs re-connect</span>{% endif %}</td>
             <td>{{ r.last_used_at or '—' }}</td>
             <td>{{ r.updated_at or r.connected_at }}</td>
@@ -74,7 +74,7 @@ Design: docs/architecture/Per-User Sign-In for Proxied Servers.md
       <thead><tr><th scope="col">Id</th><th scope="col">Server</th><th scope="col">Mode</th><th scope="col">Connected users</th></tr></thead>
       <tbody>{% for s in servers %}
         <tr><td><code>{{ s.id }}</code></td><td>{{ s.title }}</td>
-          <td>{% if s.mode == 'oauth_user' %}OAuth sign-in: coming in phase 7.3{% else %}personal token{% endif %}</td>
+          <td>{% if s.mode == 'oauth_user' %}OAuth sign-in{% else %}personal token{% endif %}</td>
           <td>{{ s.connected }}</td></tr>
       {% else %}<tr><td colspan="4" class="text-muted">None configured.</td></tr>{% endfor %}</tbody>
     </table>

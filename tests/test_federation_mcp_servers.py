@@ -89,6 +89,8 @@ def test_every_template_parses_with_the_loader(path, monkeypatch):
     for k in ('GITHUB_PAT', 'VENDOR_MCP_KEY', 'VENDOR_MCP_URL', 'SAJHA_PEER_KEY', 'BRAVE_API_KEY'):
         monkeypatch.delenv(k, raising=False)
     monkeypatch.setenv('GITHUB_PAT', 'ghp_t')
+    monkeypatch.setenv('GITHUB_OAUTH_CLIENT_ID', 'Iv1.t')                # operator-registered OAuth clients
+    monkeypatch.setenv('GOOGLE_OAUTH_CLIENT_ID', 't.apps.googleusercontent.com')
     data = json.load(open(path, encoding='utf-8'))
     p = parse(data)
     assert not p.errors, (path, p.errors)
@@ -200,7 +202,7 @@ def test_an_oauth_only_server_needs_sign_in(tmp_path):
         try:
             assert wait_for(lambda: m.status('notion')['state'] == 'needs_sign_in', 15), \
                 (m.status('notion')['state'], m.status('notion')['last_error'])
-            assert 'needs sign-in (not supported yet)' in m.status('notion')['last_error']
+            assert 'needs sign-in' in m.status('notion')['last_error'] and 'oauth_user' in m.status('notion')['last_error']
             from sajha import notices
             assert any(n['id'] == 'federation.sign_in:notion' for n in notices.list_notices(state='all'))
         finally:

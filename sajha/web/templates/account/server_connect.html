@@ -1,7 +1,8 @@
 {% extends "common/base.html" %}
 <!--
 Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.com
-Connect to one proxied MCP server with your own personal token (auth.type token_user).
+Connect to one proxied MCP server as yourself: a personal token (auth.type token_user) or an OAuth
+sign-in at the vendor (auth.type oauth_user).
 Design: docs/architecture/Per-User Sign-In for Proxied Servers.md
 -->
 {% block title %}Connect {{ server.title }} - SAJHA MCP Server{% endblock %}
@@ -12,7 +13,11 @@ Design: docs/architecture/Per-User Sign-In for Proxied Servers.md
     <li class="breadcrumb-item"><a href="{{ url_for('account_server_connections_page') }}">Server connections</a></li>
     <li class="breadcrumb-item active" aria-current="page">{{ server.title }}</li></ol></nav>
   <h1 class="h3 mb-1"><i class="bi bi-key me-2" aria-hidden="true"></i>Connect {{ server.title }}</h1>
+  {% if st.mode == 'oauth_user' %}
+  <p class="text-muted small mb-3">Tools from {{ server.title }} act as you, with your own account there. Sign in at {{ st.vendor }} once: SAJHA keeps the access it grants encrypted, sends it only to this server, and never shows it.</p>
+  {% else %}
   <p class="text-muted small mb-3">Tools from {{ server.title }} act as you, with your own account there. Save your {{ st.label or 'token' }} once: SAJHA encrypts it, sends it only to this server, and never shows it again.</p>
+  {% endif %}
 
   {% if error %}<div class="alert alert-danger" role="alert"><i class="bi bi-exclamation-triangle me-1" aria-hidden="true"></i>{{ error }}</div>{% endif %}
   {% if not federation_on %}<div class="alert alert-info" role="status">Proxied MCP servers are turned off on this server (<code>federation.enabled</code>).</div>{% endif %}
@@ -20,7 +25,61 @@ Design: docs/architecture/Per-User Sign-In for Proxied Servers.md
   {% if not is_user %}
   <div class="alert alert-info" role="status">Server connections belong to signed-in users. This credential has none.</div>
   {% elif st.mode == 'oauth_user' %}
-  <div class="alert alert-info" role="status">{{ server.title }} signs users in with OAuth. {{ st.note }}.</div>
+  <div class="row g-3">
+    <div class="col-lg-7">
+      <section class="acct-card{% if st.status == 'needs_reconnect' %} acct-attn{% endif %}" aria-labelledby="ctitle">
+        <div class="acct-head">
+          <span class="acct-icon" aria-hidden="true"><i class="bi bi-diagram-2"></i></span>
+          <div class="acct-title"><h2 class="h6 mb-0" id="ctitle">Sign in at {{ st.vendor }}</h2>
+            <small class="text-muted">{{ server.url }}</small></div>
+          {% if st.status == 'connected' %}<span class="acct-badge acct-ok">Connected</span>
+          {% elif st.status == 'needs_reconnect' %}<span class="acct-badge acct-bad">Needs re-connect</span>
+          {% else %}<span class="acct-badge">Not connected</span>{% endif %}
+        </div>
+        {% if st.status != 'not_connected' %}
+        <dl class="acct-facts">
+          <dt>Scopes granted</dt><dd>{% for s in st.scopes %}<code>{{ s }}</code>{% if not loop.last %} {% endif %}{% else %}none reported{% endfor %}{% if st.write_granted %} <span class="badge text-bg-warning">changes allowed</span>{% endif %}</dd>
+          <dt>Expires</dt><dd>{{ st.expires_at or 'does not expire' }}{% if st.refreshable %} (renewed automatically){% endif %}</dd>
+          <dt>Signed in</dt><dd>{{ st.updated_at or st.connected_at }}</dd>
+          <dt>Last used</dt><dd>{{ st.last_used_at or 'not yet' }}</dd>
+          {% if st.status == 'needs_reconnect' %}<dt>Status</dt><dd class="text-danger">{{ st.last_error or 'The server refused your sign-in.' }}</dd>{% endif %}
+        </dl>
+        {% endif %}
+        <form method="post" action="/account/server-connections/{{ server.id }}/oauth/start" class="mt-2">
+          <input type="hidden" name="csrf" value="{{ csrf }}">
+          <p class="small mb-1">SAJHA asks {{ st.vendor }} for read access{% if st.read_scopes %} (<code>{{ st.read_scopes|join(' ') }}</code>){% endif %}.</p>
+          {% if st.write_scopes %}
+          <div class="form-check small mb-2">
+            <input class="form-check-input" type="checkbox" id="allowWrite" name="write" value="1"{% if st.write_granted %} checked{% endif %}>
+            <label class="form-check-label" for="allowWrite">Also allow changes (<code>{{ st.write_scopes|join(' ') }}</code>): tools may then create, update or delete as you, subject to this server's approval rules</label>
+          </div>
+          {% endif %}
+          <div class="acct-actions">
+            <button type="submit" class="btn btn-sm btn-primary"><i class="bi bi-box-arrow-in-right me-1" aria-hidden="true"></i>{% if st.status == 'not_connected' %}Connect with {{ st.vendor }}{% else %}Sign in again with {{ st.vendor }}{% endif %}</button>
+          </div>
+          <div class="form-text">You are sent to {{ st.vendor }} to approve, then back here.{% if st.help_url %} <a href="{{ st.help_url }}" target="_blank" rel="noopener">About this sign-in</a>.{% endif %}</div>
+        </form>
+        {% if st.status != 'not_connected' %}
+        <form method="post" action="/account/server-connections/{{ server.id }}/remove" class="mt-2"
+              data-onsubmit="return confirm('Disconnect {{ server.title }}? SAJHA revokes its access at {{ st.vendor }} where it can, and its tools stop working for you until you connect again.');">
+          <input type="hidden" name="csrf" value="{{ csrf }}">
+          <button type="submit" class="btn btn-sm btn-outline-danger"><i class="bi bi-x-circle me-1" aria-hidden="true"></i>Disconnect</button>
+        </form>
+        {% endif %}
+      </section>
+    </div>
+    <div class="col-lg-5">
+      <div class="card"><div class="card-body small">
+        <h2 class="h6">What SAJHA does with it</h2>
+        <ul class="mb-0">
+          <li>Keeps the access and refresh tokens encrypted in the token vault, bound to you and to {{ server.title }}; they are issued for this server only.</li>
+          <li>Sends the access token only on your own calls to this server; never as anyone else, never to another server.</li>
+          <li>Renews it before it expires; if {{ st.vendor }} stops accepting it, marks the connection "needs re-connect".</li>
+          <li>Revokes it at {{ st.vendor }} (where offered) and forgets it when you disconnect, sign out everywhere, or your account is disabled.</li>
+        </ul>
+      </div></div>
+    </div>
+  </div>
   {% else %}
   <div class="row g-3">
     <div class="col-lg-7">

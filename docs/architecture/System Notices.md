@@ -99,7 +99,7 @@ start-up), which also clears notices whose ttl has passed.
 | Intelligence layer | `llm.provider_down:<provider>` | `warning` | An active provider's health check says it is down; per worker | It is healthy again |
 | Federation | `federation.upstream_down:<upstream>` | `error`; audience `everyone` when the upstream has approved items | An enabled upstream is in error (or still connecting after an error); per worker | It connects, or is disabled |
 | Federation | `federation.approvals:<upstream>` | `warning` | Tools from the upstream are new or changed and wait for an administrator's approval | None is waiting |
-| Federation | `federation.sign_in:<upstream>` | `warning` | The upstream answered HTTP 401 with no credential configured: it needs per-user OAuth sign-in, not supported yet ([Federation](Federation.md#the-mcpservers-file)) | It connects |
+| Federation | `federation.sign_in:<upstream>` | `warning` | The upstream answered HTTP 401 with no credential configured: it needs per-user OAuth sign-in: set `auth.type: oauth_user` on it ([Federation](Federation.md#per-user-oauth-sign-in-oauth_user)) | It connects |
 | Federation | `federation.mcp_servers` | `warning` | Entries of the mcpServers file are invalid, duplicate a `federation.upstreams` id or clash on a prefix | The file loads cleanly |
 | Federation | `federation.mcp_servers.raw_secrets` | `info` | The mcpServers file holds raw credential headers (names listed, never values) | They are `${NAME}` references or gone |
 | Tools registry (`sajha/tools/tools_registry.py`) | `tools.reserved_name:<tool>` | `error` | A tool that is not namespaced has `__` in its name and is refused ([Federation](Federation.md#names)) | Never by itself: rename the tool; an administrator clears it |

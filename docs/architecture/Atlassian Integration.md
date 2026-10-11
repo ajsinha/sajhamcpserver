@@ -1,10 +1,10 @@
 # Atlassian Integration
 
-**Status: Data Center works per user with personal access tokens (`token_user`, phase 7.2); Atlassian
-Cloud needs OAuth sign-in (`oauth_user`), which comes in phase 7.3.** How SAJHA reaches Jira, Confluence
+**Status: works per user: Atlassian Cloud with each user's Atlassian sign-in (`oauth_user`), Data Center
+with personal access tokens (`token_user`).** How SAJHA reaches Jira, Confluence
 and other Atlassian products. Acting as each user rests on
 [Per-User Sign-In for Proxied Servers](Per-User%20Sign-In%20for%20Proxied%20Servers.md).
-How proxied servers work today is in [Federation](Federation.md).
+How proxied servers work is in [Federation](Federation.md).
 
 ## 1. Recommendation
 
@@ -39,7 +39,17 @@ How proxied servers work today is in [Federation](Federation.md).
 - **Cloud with one shared API token** (where the administrator enabled API-token access) can be proxied
   with a static header, but then **every SAJHA user acts as that one Atlassian account**: suitable only for
   a read-only service account with narrow access.
-- **Not yet:** each user's OAuth sign-in to the Cloud Rovo server (phase 7.3).
+- **Cloud, each user with their own Atlassian sign-in** (`oauth_user`): copy
+  `config/mcp_servers/13_atlassian_cloud_oauth.json.example` and set `accounts.public_url`. Nothing is
+  registered by hand: SAJHA reads the server's OAuth metadata and registers itself with Atlassian's
+  authorization server (dynamic client registration, which Atlassian's OAuth 2.1 setup for MCP clients
+  provides; [configuring OAuth 2.1](https://support.atlassian.com/atlassian-rovo-mcp-server/docs/configuring-oauth-2-1)).
+  Each user clicks "Connect with Atlassian" on Server connections and approves at Atlassian; calls then
+  run with that user's Jira and Confluence permissions, tokens are refreshed before they expire, and a
+  user whose sign-in Atlassian stops accepting is asked to connect again. Take the endpoint path from
+  Atlassian's current documentation (the template's `_comment` says so); a site administrator may have to
+  allow the MCP server for your site first. Configuration and behaviour:
+  [Federation, Per-user OAuth sign-in](Federation.md#per-user-oauth-sign-in-oauth_user).
 
 ## 4. With per-user sign-in
 

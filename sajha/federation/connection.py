@@ -114,7 +114,7 @@ class UpstreamConnection:
         self.last_error: Optional[str] = None
         self.connected_at: Optional[float] = None
         self.listening = False
-        self.needs_sign_in = False          # HTTP 401 with no credential configured: per-user OAuth (not built)
+        self.needs_sign_in = False          # HTTP 401 with no credential configured: it wants auth.type oauth_user
         self.waiting_for_user = False       # token_user without a discovery credential and nobody connected yet
         self.user_session = False           # a per-user session (token_user): a refused token ends it for good
         self.refused: Optional[UpstreamUnauthorized] = None
@@ -234,10 +234,9 @@ class UpstreamConnection:
                     if not self.needs_sign_in:
                         self._sign_in_notice()
                     self.needs_sign_in = True
-                    self.last_error = ('needs sign-in (not supported yet): the server answered HTTP 401 and asks '
-                                       'for per-user OAuth sign-in (MCP authorization), which federation does '
-                                       'not do for upstreams yet; give it a static credential (a header) or '
-                                       'remove it')
+                    self.last_error = ('needs sign-in: the server answered HTTP 401 and asks for per-user OAuth '
+                                       'sign-in (MCP authorization); set "auth": "oauth_user" on it so each user '
+                                       'signs in on Server connections, or give it a static credential (a header)')
                     backoff = BACKOFF_MAX_SECONDS
                 logger.warning(f'federation: upstream {self.config.id}: {self.last_error}')
             finally:
@@ -271,11 +270,11 @@ class UpstreamConnection:
         try:
             from sajha import notices
             notices.raise_notice(f'federation.sign_in:{self.config.id}', severity='warning', source='federation',
-                                 title=f'Upstream {self.config.id} needs sign-in (not supported yet)',
+                                 title=f'Upstream {self.config.id} needs sign-in',
                                  detail=f'{self.config.url} answered HTTP 401: it uses per-user OAuth sign-in '
-                                        f'(MCP authorization with discovery), which federation does not do for '
-                                        f'upstreams yet (see the Roadmap). Give it a static credential header or '
-                                        f'remove it.', ttl_minutes=0)
+                                        f'(MCP authorization with discovery). Set auth.type oauth_user on it so '
+                                        f'each user signs in on Server connections, give it a static credential '
+                                        f'header, or remove it.', ttl_minutes=0)
         except Exception as e:
             logger.debug(f'federation: sign-in notice for {self.config.id}: {e}')
 

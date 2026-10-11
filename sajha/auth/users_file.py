@@ -170,6 +170,7 @@ def sync_to_database(db, store: Optional['UsersFile'] = None) -> Tuple[int, List
     store = store or get_users_file()
     roles = {r.name: r for r in db.query(Role).all()}
     synced, problems = 0, []
+    disabled: List[str] = []           # enabled before this sync, disabled by it
     from sajha.auth.persistent_keys import test_admin_enabled
     test_on = test_admin_enabled()
     for rec in store.users():
@@ -179,6 +180,7 @@ def sync_to_database(db, store: Optional['UsersFile'] = None) -> Tuple[int, List
             logger.error(f'users file: {why}; this user is not applied')
             continue
         user = db.query(User).filter(User.user_id == rec['user_id']).first()
+        was_enabled = user is not None and user.enabled is not False
         if user is None:
             user = User(user_id=rec['user_id'], user_name=rec.get('user_name') or rec['user_id'])
             db.add(user)
@@ -189,12 +191,20 @@ def sync_to_database(db, store: Optional['UsersFile'] = None) -> Tuple[int, List
             user.password_hash = rec['password']
         # a test admin account (``"test_admin": true``) counts only while sajhanet.test_admin_key.enabled
         user.enabled = bool(rec.get('enabled', True)) and (test_on or not rec.get('test_admin'))
+        if was_enabled and not user.enabled:
+            disabled.append(user.user_id)
         user.must_change_password = False
         user.roles = [roles[r] for r in rec.get('roles') or []]
         if hasattr(user, 'managed_by'):
             user.managed_by = 'users_file'
         synced += 1
     db.commit()
+    if disabled:
+        # a user disabled in the file loses their proxied-server tokens, as with the admin disable
+        # route (docs/architecture/Per-User Sign-In for Proxied Servers.md §7)
+        from sajha.federation.user_tokens import revoke_user
+        for uid in disabled:
+            revoke_user(uid, actor='users_file', reason='user disabled')
     if synced:
         try:
             from sajha.auth.apikeys import ensure_default_key
