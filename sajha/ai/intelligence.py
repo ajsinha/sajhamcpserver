@@ -408,7 +408,18 @@ class IntelligenceService:
             self._memory = ConversationMemory(self.gateway, ms)
         return self._memory
 
-    def stream_ask(self, question: str, ctx: Optional[RequestContext] = None, *, model: Optional[str] = None,
+    def stream_ask(self, *args, **kw):
+        """The ask as step events (:meth:`_stream_ask`); the caller it sets for the usage ledger is put back
+        when the stream ends, so it never outlives this ask in the thread that ran it."""
+        from sajha.observability import caller as _caller
+        before = _caller._current.get()
+        try:
+            yield from self._stream_ask(*args, **kw)
+        finally:
+            if _caller._current.get() is not before:
+                _caller._current.set(before)
+
+    def _stream_ask(self, question: str, ctx: Optional[RequestContext] = None, *, model: Optional[str] = None,
                    confirm: Optional[List[str]] = None, conversation_id: Optional[str] = None,
                    planner: Any = None, _objects: bool = False, instructions: str = "",
                    limits: Optional[Dict[str, Any]] = None, memory_context: Any = None,

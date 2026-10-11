@@ -4,6 +4,8 @@ Newest first. The current version is `app.version` in `config/application.yml`.
 
 ## Unreleased
 
+## v8.4.0 (October 2026) — per-user sign-in for proxied servers, access rules for prompts and resources
+
 ### Upgrading
 
 - **API keys limited to a list of tools lose prompts and data files they were not granted.** A key whose
@@ -27,8 +29,7 @@ Newest first. The current version is `app.version` in `config/application.yml`.
 
 - **Per-user sign-in for proxied MCP servers, part 1** (wave 7 phase 7.2, Roadmap L18;
   [Per-User Sign-In for Proxied Servers](docs/architecture/Per-User%20Sign-In%20for%20Proxied%20Servers.md)):
-  a credential mode per proxied server (`auth.type`: `static`, the default; `token_user`; `oauth_user`
-  accepted and shown as "OAuth sign-in: coming in phase 7.3") in `federation.upstreams`, console-added
+  a credential mode per proxied server (`auth.type`: `static`, the default; `token_user`; `oauth_user`, part 2) in `federation.upstreams`, console-added
   upstreams and `config/mcp_servers.json`. A `token_user` server is called as the person who asked, with the
   personal token they saved once on the new **Server connections** pages (`/account/server-connections`,
   the connect page per server with a test call, and `/admin/server-connections` with revoke); no token
@@ -93,6 +94,9 @@ Newest first. The current version is `app.version` in `config/application.yml`.
   values instead of showing them.
 - The tool-config monitor no longer acts on a storage backend it did not start on (tests that point the
   storage at a temporary directory made the live catalog drop every tool for a moment).
+- An Ask SAJHA run no longer leaves its asker set as the current caller in the thread that ran it after the
+  run ends (a later tool call in that thread, such as a composite step, was checked against the wrong
+  caller).
 - Order- and date-dependent tests fixed (they relied on files, keys or net state made by another test, or
   on the calendar); tests no longer write `config/apikeys_db.json` (the multi-worker servers) or the tool
   result cache under `data/cache`.
