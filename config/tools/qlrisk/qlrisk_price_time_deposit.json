@@ -3,7 +3,7 @@
   "implementation": "sajha.tools.impl.qlrisk.qlrisk_tools.QlriskPriceProductTool",
   "product": "TimeDeposit",
   "title": "Price a TimeDeposit",
-  "description": "Price one qlrisk TimeDeposit (Time Deposit; money_market, interest_rate): NPV in the trade currency and the reporting currency, pricing components, analytic Greeks where the pricer gives them, and optional cash flows. Inputs are this product's fields only; required: notional (maturity_date or tenor_years); pricer terms: coupon, frequency, rate. Market data defaults to qlrisk's sample snapshot valued today; override curves, spots and vols, or apply shocks, with market_data as in qlrisk_price_trades. For a book of several products use qlrisk_price_trades. Example: {\"notional\": 1000000, \"tenor_years\": 5}.",
+  "description": "Price one Time Deposit (qlrisk TimeDeposit): NPV, pricing components and Greeks where the pricer gives them.\nInputs (* required): maturity* (tenor like 3Y or date), principal (amount; default 1000000), rate_pct (percent, 3 = 3%; default 0), currency (see the schema's list; default USD). Rates are in percent, spreads in basis points, maturities a tenor (3Y, 18M, 6W, 10D) or a date YYYY-MM-DD. Optional `advanced`: trade_id, trade_date, effective_date, counterparty_id, frequency, market_data, reporting_currency, include_cash_flows; market data defaults to qlrisk's sample snapshot valued today.\nExample: {\"maturity\": \"6M\", \"principal\": 1000000, \"rate_pct\": 4} gives NPV 998,349.64 USD on the sample market valued 2026-10-09. For several trades at once use qlrisk_price_trades.",
   "version": "1.0.0",
   "enabled": true,
   "requires": [
@@ -32,8 +32,14 @@
     ],
     "generated_by": "sajha.tools.impl.qlrisk.generate",
     "example": {
-      "notional": 1000000,
-      "tenor_years": 5
+      "maturity": "6M",
+      "principal": 1000000,
+      "rate_pct": 4
+    },
+    "example_result": {
+      "valuation_date": "2026-10-09",
+      "npv": 998349.64,
+      "currency": "USD"
     }
   }
 }

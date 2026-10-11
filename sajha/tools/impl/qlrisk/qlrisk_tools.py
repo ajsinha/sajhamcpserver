@@ -76,7 +76,9 @@ class QlriskTool(BaseMCPTool):
         from .options import Limits
         self.limits = Limits.from_config(self.config.get("bounds"))
         self.tool_def = self._tool_def()
-        self._input_schema = self.tool_def.input_schema
+        from .tools.layout import present
+        self.presented_schema = present(self.TOOL, self.tool_def.input_schema)
+        self._input_schema = self.presented_schema
         if not self._description:                          # the config's description wins
             self._description = self.tool_def.description
         if not self._output_schema:
@@ -86,7 +88,7 @@ class QlriskTool(BaseMCPTool):
         return registry_for(self.limits)[self.TOOL]
 
     def get_input_schema(self) -> Dict:
-        return self.tool_def.input_schema
+        return self.presented_schema
 
     def get_output_schema(self) -> Dict:
         return {"type": "object"}
@@ -94,9 +96,10 @@ class QlriskTool(BaseMCPTool):
     def execute(self, arguments: Dict[str, Any]) -> Any:
         from .inputs import InvalidInput
         from .tools import Ctx
+        from .tools.layout import to_handler_args
         ctx = Ctx(self.limits)
         try:
-            structured, summary = self.tool_def.handler(dict(arguments or {}), ctx)
+            structured, summary = self.tool_def.handler(to_handler_args(self.TOOL, dict(arguments or {})), ctx)
         except InvalidInput as exc:
             raise ToolArgumentError(self.name, str(exc)) from None
         except Exception as exc:                          # a qlrisk failure on valid-looking input

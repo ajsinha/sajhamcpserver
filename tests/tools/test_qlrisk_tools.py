@@ -55,6 +55,11 @@ def call(tools):
 
     def _call(name, args, ok=True):
         tool = tools["qlrisk_" + name]
+        main = tool.input_schema["properties"]
+        args = dict(args)
+        adv = {k: args.pop(k) for k in list(args) if k not in main}
+        if adv:
+            args["advanced"] = {**args.get("advanced", {}), **adv}
         try:
             res = tool.execute_with_tracking(args)
         except (ToolArgumentError, RuntimeError) as exc:
@@ -66,15 +71,15 @@ def call(tools):
     return _call
 
 
-SWAP = {"product": "InterestRateSwap", "trade_id": "IRS-5Y", "notional": 10_000_000, "tenor_years": 5,
-        "fixed_rate": 0.044, "counterparty_id": "BANK-A"}
-BOND = {"product": "CorporateBond", "trade_id": "ACME-5Y", "notional": 5_000_000, "tenor_years": 5, "coupon": 0.05,
+SWAP = {"product": "InterestRateSwap", "trade_id": "IRS-5Y", "maturity": "5Y", "notional": 10_000_000,
+        "fixed_rate_pct": 4.4, "counterparty_id": "BANK-A"}
+BOND = {"product": "CorporateBond", "trade_id": "ACME-5Y", "maturity": "5Y", "face_value": 5_000_000, "coupon_pct": 5,
         "issuer": "ACME", "counterparty_id": "ACME"}
-CDS = {"product": "CreditDefaultSwap", "trade_id": "GLX-CDS", "notional": 5_000_000, "tenor_years": 5,
-       "reference": "GLOBEX", "coupon": 0.01, "counterparty_id": "BANK-B"}
-EQO = {"product": "EquityOption", "trade_id": "SPX-P", "notional": 1_000_000, "tenor_years": 0.5, "ticker": "SPX",
-       "strike": 5000, "is_call": False, "counterparty_id": "BANK-B"}
-FXO = {"product": "FXOption", "trade_id": "EURUSD-C", "notional": 2_000_000, "tenor_years": 1, "pair": "EURUSD",
+CDS = {"product": "CreditDefaultSwap", "trade_id": "GLX-CDS", "maturity": "5Y", "notional": 5_000_000,
+       "reference": "GLOBEX", "coupon_bp": 100, "counterparty_id": "BANK-B"}
+EQO = {"product": "EquityOption", "trade_id": "SPX-P", "maturity": "6M", "notional": 1_000_000, "ticker": "SPX",
+       "strike": 5000, "option_type": "put", "counterparty_id": "BANK-B"}
+FXO = {"product": "FXOption", "trade_id": "EURUSD-C", "maturity": "1Y", "notional": 2_000_000, "pair": "EURUSD",
        "strike": 1.10, "currency": "EUR", "counterparty_id": "BANK-A"}
 BOOK = [SWAP, BOND, CDS, EQO, FXO]
 SHORT_HISTORY = {"num_days": 400, "stress_start": 100, "stress_days": 40}
@@ -107,7 +112,8 @@ def test_enums_come_from_qlrisk(tools):
     from qlrisk.scenarios import STRESS_LIBRARY
     import qlrisk.products.python as P
     trade = tools["qlrisk_price_trades"].input_schema["properties"]["trades"]["items"]["properties"]
-    assert trade["currency"]["enum"] == [c.value for c in Currency]
+    from sajha.tools.impl.qlrisk.tools.products import trade_item_schema
+    assert trade_item_schema("InterestRateSwap")["properties"]["currency"]["enum"] == [c.value for c in Currency]
     assert "InterestRateSwap" in trade["product"]["enum"] and len(trade["product"]["enum"]) >= 80
     assert set(trade["product"]["enum"]) <= set(P.__all__)
     stress = tools["qlrisk_stress_test"].input_schema["properties"]["scenarios"]["items"]["enum"]
@@ -125,7 +131,10 @@ def test_mcp_result_is_structured_content_plus_summary_then_json(tools):
 
 def test_invalid_input_is_a_clear_error(call):
     assert "not one of" in call("price_trades", {"trades": [{"product": "Nope"}]}, ok=False)
-    assert "missing" in call("price_trades", {"trades": [{"product": "InterestRateSwap", "notional": 1e6}]}, ok=False)
+    assert "'maturity' is a required property" in call("price_trades", {"trades": [{"product": "InterestRateSwap", "notional": 1e6}]}, ok=False)
+    old = call("price_trades", {"trades": [{"product": "InterestRateSwap", "tenor_years": 5, "fixed_rate": 0.044}]}, ok=False)
+    assert "trades[0] (InterestRateSwap)" in old and "fixed_rate_pct" in old and "percent" in old   # the old units are named
+    assert "confidence_pct" in call("value_at_risk", {"trades": [SWAP], "confidence_pct": 0.99}, ok=False)
     assert "additional" in call("catalog", {"topic": "products", "colour": 1}, ok=False).lower()
     assert "maximum of 20000" in call("simulate_paths", {"process": "gbm", "initial_value": 100, "num_paths": 10**6}, ok=False)
     assert "is not a date" in call("price_trades", {"trades": [SWAP], "market_data": {"valuation_date": "soon"}}, ok=False)
@@ -166,7 +175,7 @@ def test_catalog_details(call):
     assert {p["name"] for p in fx["products"]} >= {"FXForward", "FXOption"}
     assert {p["pricing_tool"] for p in fx["products"]} >= {"qlrisk_price_fx_forward", "qlrisk_price_fx_option"}
     one = call("catalog", {"topic": "products", "name": "CorporateBond"})
-    assert {"coupon", "issuer"} <= set(one["product"]["terms"])
+    assert {"coupon_pct", "issuer", "maturity"} <= set(one["trade_schema"]["properties"]) and one["pricing_tool"] == "qlrisk_price_corporate_bond"
     cva = call("catalog", {"topic": "calculators", "name": "cva"})
     assert "ee_profile" in cva["input_schema"]["properties"] and "method" in cva["config"]
     md = call("catalog", {"topic": "market_data"})
@@ -228,7 +237,7 @@ def test_value_at_risk_extras(call):
 
 def test_value_at_risk_pnl_series(call):
     pnl = [math.sin(i) * 1000 for i in range(250)]
-    out = call("value_at_risk", {"mode": "pnl_series", "pnl": pnl, "confidence": 0.99, "horizon_days": 10})
+    out = call("value_at_risk", {"mode": "pnl_series", "pnl": pnl, "confidence_pct": 99, "horizon_days": 10})
     assert out["var"] > 0 and math.isclose(out["var"], out["var_1d"] * math.sqrt(10))
     assert "at least 10" in call("value_at_risk", {"mode": "pnl_series", "pnl": [1, 2]}, ok=False)
 
@@ -351,8 +360,11 @@ def test_saccr_modes(call):
 
 def test_initial_margin(call):
     one = call("initial_margin", {"method": "simm", "positions": [{"notional": 1e7, "product_type": "irs",
-                                                                     "remaining_maturity": 5, "delta_sensitivities": {"USD-5Y": 4500}}]})
-    assert one["headline"] > 0
+                                                                     "remaining_maturity": 5, "delta_sensitivities": {"5y": 4500}}]})
+    assert one["headline"] == pytest.approx(56 * 4500)          # ISDA SIMM: 5y risk weight 56bp x DV01 per bp
+    bad = call("initial_margin", {"method": "simm", "positions": [{"notional": 1e7, "product_type": "irs",
+                                                                   "remaining_maturity": 5, "delta_sensitivities": {"USD-5Y": 4500}}]}, ok=False)
+    assert "'USD-5Y' is not a SIMM rates bucket" in bad
     sched = call("initial_margin", {"method": "schedule", "positions": [{"notional": 1e7, "product_type": "irs", "remaining_maturity": 5}]})
     assert sched["headline"] == pytest.approx(160_000)
     port = call("initial_margin", {"method": "schedule", "positions": [
@@ -399,7 +411,7 @@ def test_xva(call):
                       "counterparty_buckets": {"ACME": ["3", True]}})
     hedged = call("xva", {"measure": "sa_cva", "counterparty": "ACME", "time_grid": TG, "expected_exposure": EE,
                           "counterparty_buckets": {"ACME": ["3", True]},
-                          "hedges": [{"product": "CreditDefaultSwap", "trade_id": "H", "notional": 3e6, "tenor_years": 5,
+                          "hedges": [{"product": "CreditDefaultSwap", "trade_id": "H", "notional": 3e6, "maturity": "5Y",
                                       "reference": "ACME", "counterparty_id": "DEALER"}]})
     assert sa["capital"] > hedged["capital"] > 0
     ba = call("xva", {"measure": "ba_cva", "counterparties": [
@@ -468,7 +480,7 @@ def test_rest_lists_and_executes_qlrisk_tools(app_client):
     assert r.status_code == 200, r.text
     assert r.json()["result"]["trades"][0]["trade_id"] == "IRS-5Y"
     r = c.post("/api/tools/execute", headers=h, json={"tool": "qlrisk_value_at_risk",
-                                                       "arguments": {"trades": [SWAP], "history": SHORT_HISTORY}})
+                                                       "arguments": {"trades": [SWAP], "advanced": {"history": SHORT_HISTORY}}})
     assert r.status_code == 200, r.text
     assert r.json()["result"]["var"]["value"] > 0
     bad = c.post("/api/tools/execute", headers=h, json={"tool": "qlrisk_price_trades", "arguments": {"trades": [{"product": "Nope"}]}})
@@ -493,7 +505,7 @@ def test_mcp_calls_qlrisk_tools_with_structured_content_and_a_summary(app_client
     assert listed["qlrisk_value_at_risk"]["annotations"]["readOnlyHint"] is True
     assert listed["qlrisk_price_trades"]["inputSchema"]["properties"]["trades"]["maxItems"] >= 1
     for rid, (name, args, word) in enumerate([("qlrisk_price_trades", {"trades": [SWAP]}, "total NPV"),
-                                              ("qlrisk_value_at_risk", {"trades": [SWAP], "history": SHORT_HISTORY}, "VaR")], 3):
+                                              ("qlrisk_value_at_risk", {"trades": [SWAP], "advanced": {"history": SHORT_HISTORY}}, "VaR")], 3):
         r = c.post("/mcp", headers=sh, json={"jsonrpc": "2.0", "id": rid, "method": "tools/call",
                                              "params": {"name": name, "arguments": args}})
         res = r.json()["result"]
@@ -520,47 +532,341 @@ def test_one_product_tool_per_priceable_product(product_tools):
     assert tool_name("FXOption") == "qlrisk_price_fx_option" and tool_name("MTMCrossCurrencySwap") == "qlrisk_price_mtm_cross_currency_swap"
 
 
+CALL_NAMES = {"market_data", "reporting_currency", "include_cash_flows"}
+NOTIONAL_NAMES = ("face_value", "principal", "position_value", "notional", "base_notional")
+MD = {"valuation_date": "2026-10-09"}
+
+
+def _run(tool, args, md=MD):
+    adv = {**args.get("advanced", {}), "market_data": md}
+    return tool.execute_with_tracking({**args, "advanced": adv})
+
+
 def test_every_product_tool_schema_is_valid_and_its_example_validates(product_tools):
     import jsonschema
-    from sajha.tools.impl.qlrisk import introspect as I
+    from sajha.tools.impl.qlrisk.tools.products import exposed_fields
     for name, (tool, cfg) in product_tools.items():
         schema = tool.input_schema
         jsonschema.Draft202012Validator.check_schema(schema)
         assert "__" not in name and cfg["requires"] == ["qlrisk"] and "inputSchema" not in cfg
         assert schema["additionalProperties"] is False and "product" not in schema["properties"]
-        spec = I.product_spec(cfg["product"])
-        own = set(spec["parameters"]) | set(spec["terms"]) | {"tenor_years", "market_data", "reporting_currency", "include_cash_flows"}
-        assert set(schema["properties"]) <= own, name
+        own = {e.name for e in exposed_fields(cfg["product"]) if not e.advanced}
+        assert set(schema["properties"]) == own | {"advanced"}, name
+        adv = schema["properties"]["advanced"]
+        assert "advanced" not in schema.get("required", []) and adv["additionalProperties"] is False
+        assert CALL_NAMES <= set(adv["properties"]), name
+        # the clutter lives in advanced, never on the main form
+        for clutter in ("trade_id", "trade_date", "effective_date", "counterparty_id", "issuer", "position",
+                        "tenor_years", "maturity_date", "coupon") + tuple(CALL_NAMES):
+            assert clutter not in schema["properties"], (name, clutter)
+        for e in exposed_fields(cfg["product"]):
+            assert e.schema.get("title"), (name, e.name)
+            if e.spec.unit == "percent":
+                assert e.name.endswith("_pct"), (name, e.name)
+            if e.spec.unit == "basis points":
+                assert e.name.endswith("_bp"), (name, e.name)
         example = cfg["metadata"]["example"]
-        assert json.dumps(example) in cfg["description"]
+        lines = cfg["description"].split("\n")
+        assert len(lines) == 3 and lines[1].startswith("Inputs") and json.dumps(example) in lines[2]
         tool.validate_arguments(example)
         assert tool.to_mcp_format()["annotations"]["readOnlyHint"] is True
 
 
-def test_price_one_product_per_asset_class_through_its_tool(product_tools):
-    by_class = {}
+def _amount(example, schema):
+    for n in NOTIONAL_NAMES:
+        if n in example:
+            return example[n]
+        if n in schema["properties"] and "default" in schema["properties"][n]:
+            return schema["properties"][n]["default"]
+    raise AssertionError("no notional")
+
+
+def test_every_product_example_prices_plausibly(product_tools):
+    """Each generated example prices to its recorded result and to a plausible value for its asset class."""
+    from sajha.tools.impl.qlrisk import introspect as I
     for name, (tool, cfg) in product_tools.items():
-        from sajha.tools.impl.qlrisk import introspect as I
-        by_class.setdefault(I.product_spec(cfg["product"])["asset_class"], (tool, cfg))
-    assert len(by_class) >= 5
-    for asset_class, (tool, cfg) in by_class.items():
-        out = tool.execute_with_tracking({**cfg["metadata"]["example"], "market_data": {"valuation_date": "2026-10-09"}})
-        assert out["product"] == cfg["product"] and finite(out["npv"]) and finite(out["npv_reporting"]), asset_class
-        assert cfg["product"] in tool.format_mcp_result(out)["content"][0]["text"].split("\n", 1)[0]
+        example, product = cfg["metadata"]["example"], cfg["product"]
+        out = _run(tool, example)
+        assert out["npv"] == pytest.approx(cfg["metadata"]["example_result"]["npv"], abs=0.01), name
+        assert finite(out["npv"]) and finite(out["npv_reporting"]) and out["product"] == product
+        amount = _amount(example, tool.input_schema)
+        spec = I.product_spec(product)
+        pricer, ratio = spec["pricer"], out["npv"] / amount
+        if pricer in ("price_fixed_bond", "price_frn", "price_convertible", "price_abs", "price_mbs"):
+            assert 0.70 <= ratio <= 1.30, (name, out["npv"])          # a near-par bond: 70-130% of face
+        elif pricer in ("price_deposit", "price_cash_equity"):
+            assert 0.70 <= ratio <= 1.30, (name, out["npv"])
+        elif spec["category"] == "sft":
+            assert abs(ratio) <= 1.50, (name, out["npv"])             # a loan or financing: about its principal
+        elif pricer in ("price_tranche", "price_clo_tranche"):
+            assert 0.0 <= ratio <= 1.10, (name, out["npv"])           # a risky tranche: at most par-ish
+        elif "option" in pricer or pricer in ("price_fx_digital", "price_fx_barrier") or \
+                product in ("InterestRateCap", "InterestRateFloor", "Swaption"):
+            assert 0.0 <= ratio <= 1.0, (name, out["npv"])            # a long option: non-negative
+        else:
+            assert abs(ratio) <= 0.30, (name, out["npv"])             # swaps, forwards, futures near the money
+
+
+def test_owner_case_treasury_bond_3y_3pct(product_tools):
+    """The bug report: maturity 3Y, face 100, coupon 3 (percent), USD prices a 3-year 3% bond near par."""
+    tool, cfg = product_tools["qlrisk_price_treasury_bond"]
+    out = _run(tool, {"maturity": "3Y", "face_value": 100, "coupon_pct": 3, "currency": "USD"})
+    assert 95 <= out["npv"] <= 100 and out["npv"] == pytest.approx(97.85, abs=0.01)
+    assert out["qlrisk_terms"]["coupon"] == 0.03 and out["qlrisk_terms"]["frequency"] == 2
+    assert out["qlrisk_terms"]["maturity_date"] == "2029-10-09" and out["qlrisk_terms"]["notional"] == 100
+    assert "97.85" in cfg["description"].split("\n")[2]
+    props = tool.input_schema["properties"]
+    assert list(props)[:3] == ["maturity", "face_value", "coupon_pct"] and props["frequency"]["default"] == "semi-annual"
+    assert props["currency"]["default"] == "USD" and tool.input_schema["required"] == ["maturity", "coupon_pct"]
+
+
+def test_rates_out_of_bounds_are_clear_errors(product_tools):
+    from sajha.tools.base_mcp_tool import ToolArgumentError
+    bond, _ = product_tools["qlrisk_price_treasury_bond"]
+    with pytest.raises(ToolArgumentError, match="coupon_pct"):
+        _run(bond, {"maturity": "3Y", "coupon_pct": 300})
+    with pytest.raises(ToolArgumentError, match="coupon_pct"):
+        _run(bond, {"maturity": "3Y", "coupon_pct": -1})
+    with pytest.raises(ToolArgumentError, match="face_value"):
+        _run(bond, {"maturity": "3Y", "coupon_pct": 3, "face_value": 0})
+    with pytest.raises(ToolArgumentError, match="coupon_pct"):
+        _run(bond, {"maturity": "3Y"})
+    # the code-level check (for callers that skip schema validation) names the field and the unit
+    from sajha.tools.impl.qlrisk.inputs import InvalidInput
+    from sajha.tools.impl.qlrisk.tools.products import to_trade
+    with pytest.raises(InvalidInput, match=r"coupon_pct: 300 is outside 0.0 to 100.0 percent \(rates are in percent"):
+        to_trade("TreasuryBond", {"maturity": "3Y", "coupon_pct": 300}, date(2026, 10, 9), [])
+    warnings = []
+    to_trade("TreasuryBond", {"maturity": "3Y", "coupon_pct": 0.03}, date(2026, 10, 9), warnings)
+    assert any("for 3% send 3" in w for w in warnings)
+    cds, _ = product_tools["qlrisk_price_credit_default_swap"]
+    with pytest.raises(ToolArgumentError, match="recovery_pct"):
+        _run(cds, {"maturity": "5Y", "reference": "GLOBEX", "recovery_pct": 100})
+    cdo, _ = product_tools["qlrisk_price_cdo"]
+    with pytest.raises(ToolArgumentError, match="detachment_pct: must be after attachment_pct"):
+        _run(cdo, {"maturity": "5Y", "attachment_pct": 7, "detachment_pct": 3})
+
+
+@pytest.mark.parametrize("value, expected", [("3Y", "2029-10-09"), ("18M", "2028-04-09"), ("6W", "2026-11-20"),
+                                             ("10D", "2026-10-19"), ("1.5y", "2028-04-09"), ("2031-02-28", "2031-02-28")])
+def test_maturity_takes_tenors_and_dates(product_tools, value, expected):
+    tool, _ = product_tools["qlrisk_price_treasury_bond"]
+    out = _run(tool, {"maturity": value, "coupon_pct": 3})
+    assert out["qlrisk_terms"]["maturity_date"] == expected
+
+
+def test_maturity_errors(product_tools):
+    from sajha.tools.base_mcp_tool import ToolArgumentError
+    tool, _ = product_tools["qlrisk_price_treasury_bond"]
+    with pytest.raises(ToolArgumentError, match="maturity: '3X' is neither a tenor"):
+        _run(tool, {"maturity": "3X", "coupon_pct": 3})
+    with pytest.raises(ToolArgumentError, match="not after the valuation date"):
+        _run(tool, {"maturity": "2020-01-01", "coupon_pct": 3})
+    with pytest.raises(ToolArgumentError, match="whole number of months"):
+        _run(tool, {"maturity": "1.5M", "coupon_pct": 3})
+
+
+def test_advanced_section(product_tools):
+    tool, _ = product_tools["qlrisk_price_corporate_bond"]
+    base = {"maturity": "5Y", "face_value": 100, "coupon_pct": 5}
+    plain = _run(tool, base)
+    out = _run(tool, {**base, "advanced": {"issuer": "ACME", "position": "short", "trade_id": "ACME-5Y",
+                                           "include_cash_flows": True, "reporting_currency": "EUR"}})
+    assert out["trade_id"] == "ACME-5Y" and out["npv"] < 0 and "cash_flows" in out
+    assert -out["npv"] < plain["npv"]                     # the issuer's credit spread lowers the price
+    assert out["reporting_currency"] == "EUR" and out["npv_reporting"] != out["npv"]
+    assert out["qlrisk_terms"]["is_long"] is False and out["qlrisk_terms"]["issuer"] == "ACME"
+    from sajha.tools.base_mcp_tool import ToolArgumentError
+    with pytest.raises(ToolArgumentError, match="Additional properties"):
+        _run(tool, {**base, "issuer": "ACME"})            # issuer is in advanced, not on the main form
 
 
 def test_product_tool_worked_examples(product_tools):
-    """The bond and swap examples of the guide's "Per-product pricing tools" section."""
-    md = {"valuation_date": "2026-10-09"}
-    bond, _ = product_tools["qlrisk_price_corporate_bond"]
-    out = bond.execute_with_tracking({"notional": 5_000_000, "tenor_years": 5, "coupon": 0.05, "issuer": "ACME",
-                                      "include_cash_flows": True, "market_data": md})
-    assert out["product"] == "CorporateBond" and out["npv"] > 0 and "cash_flows" in out
+    """The guide's examples: the swap in percent, its par rate prices to zero, a payer swaption is non-negative."""
     swap, _ = product_tools["qlrisk_price_interest_rate_swap"]
-    out = swap.execute_with_tracking({"notional": 10_000_000, "tenor_years": 5, "fixed_rate": 0.044, "market_data": md})
-    assert out["npv"] == pytest.approx(-22834.98, abs=0.01)
+    out = _run(swap, {"maturity": "5Y", "notional": 10_000_000, "fixed_rate_pct": 4.4})
+    assert out["npv"] == pytest.approx(-22834.98, abs=0.01) and out["qlrisk_terms"]["fixed_rate"] == 0.044
+    par = out["components"]["par_rate"] * 100
+    at_money = _run(swap, {"maturity": "5Y", "notional": 10_000_000, "fixed_rate_pct": par})
+    assert abs(at_money["npv"]) < 1e-6 * 10_000_000
     from sajha.tools.base_mcp_tool import ToolArgumentError
-    with pytest.raises(ToolArgumentError, match="fixed_rate"):
-        swap.execute_with_tracking({"notional": 1e6, "tenor_years": 5})
+    with pytest.raises(ToolArgumentError, match="fixed_rate_pct"):
+        _run(swap, {"maturity": "5Y"})
     with pytest.raises(ToolArgumentError, match="Additional properties"):
-        swap.execute_with_tracking({"notional": 1e6, "tenor_years": 5, "fixed_rate": 0.04, "strike": 1})
+        _run(swap, {"maturity": "5Y", "fixed_rate_pct": 4, "fixed_rate": 0.04})
+    swaption, _ = product_tools["qlrisk_price_swaption"]
+    out = _run(swaption, {"expiry": "1Y", "swap_start": "1Y", "swap_end": "6Y", "strike_pct": 4,
+                          "volatility_pct": 20, "swaption_type": "receiver"})
+    assert out["npv"] >= 0 and out["qlrisk_terms"]["volatility"] == 0.2 and out["qlrisk_terms"]["is_payer"] is False
+    with pytest.raises(ToolArgumentError, match="swap_end: must be after swap_start"):
+        _run(swaption, {"expiry": "1Y", "swap_start": "6Y", "swap_end": "1Y", "strike_pct": 4})
+
+
+# ── core tools: presentation, worked examples, plausibility against independent estimates ──
+
+CORE_MD = {"valuation_date": "2026-10-09"}
+
+
+def test_core_tools_present_essentials_first_with_titles_and_a_worked_example(tools):
+    import jsonschema
+    from sajha.tools.impl.qlrisk.tools.layout import LAYOUTS
+    for name, tool in tools.items():
+        key = name[len("qlrisk_"):]
+        schema = tool.input_schema
+        jsonschema.Draft202012Validator.check_schema(schema)
+        props = schema["properties"]
+        assert [k for k in props if k != "advanced"] == [k for k in LAYOUTS[key].essentials if k in props], name
+        for k, v in list(props.items()) + list(props.get("advanced", {}).get("properties", {}).items()):
+            assert v.get("title"), (name, k)
+        for old in ("confidence", "es_confidence", "confidence_level", "recovery", "drc_confidence"):
+            assert old not in props and old not in props.get("advanced", {}).get("properties", {}), (name, old)
+        example = schema["examples"][0]
+        tool.validate_arguments(example)
+        out = tool.execute_with_tracking(example)
+        assert isinstance(out, dict) and out.summary, name
+
+
+def _black(fwd, strike, t, vol, df, call):
+    from math import erf, log, sqrt
+    n = lambda x: 0.5 * (1 + erf(x / sqrt(2)))
+    d1 = (log(fwd / strike) + 0.5 * vol * vol * t) / (vol * sqrt(t))
+    d2 = d1 - vol * sqrt(t)
+    return df * (fwd * n(d1) - strike * n(d2) if call else strike * n(-d2) - fwd * n(-d1))
+
+
+def test_option_price_matches_black_scholes(call):
+    """An SPX put priced through qlrisk_price_trades equals Black-76 on its forward, vol and the curve rate."""
+    from math import exp, log
+    from datetime import date as _d
+    from qlrisk.data import create_sample_market_data
+    from qlrisk.products.base import curve_value
+    out = call("price_trades", {"trades": [EQO], "market_data": CORE_MD})
+    row = out["trades"][0]
+    c = row["components"]
+    t = (_d(2027, 4, 9) - _d(2026, 10, 9)).days / 365.25
+    r = curve_value(create_sample_market_data(_d(2026, 10, 9)).discount_curve, t)
+    expected = (EQO["notional"] / EQO["strike"]) * _black(c["forward"], c["strike"], t, c["vol"], exp(-r * t), False)
+    assert row["npv"] == pytest.approx(expected, rel=1e-6) and row["npv"] > 0
+    assert c["forward"] == pytest.approx(c["spot"] * exp(r * t), rel=0.02)            # small dividend yield
+
+
+def test_var_is_consistent_with_parametric_and_es(call):
+    stock = {"product": "CommonStock", "trade_id": "SPX-1M", "position_value": 1_000_000, "ticker": "SPX"}
+    base = {"trades": [stock], "market_data": CORE_MD, "horizon_days": 1, "confidence_pct": 99, "es_confidence_pct": 99}
+    hist = call("value_at_risk", {**base, "method": "historical"})
+    para = call("value_at_risk", {**base, "method": "parametric"})
+    assert hist["confidence"] == 0.99 and hist["horizon_days"] == 1
+    assert 0.5 <= hist["var"]["value"] / para["var"]["value"] <= 2.0                  # same order as delta-normal
+    assert hist["es"]["value"] >= hist["var"]["value"] * 0.999                         # ES >= VaR at one confidence
+    assert 0 < para["var"]["value"] < 0.2 * stock["position_value"]                    # a 1-day 99% loss under 20%
+    ten = call("value_at_risk", {**base, "method": "parametric", "horizon_days": 10})
+    assert ten["var"]["value"] == pytest.approx(para["var"]["value"] * 10 ** 0.5, rel=0.25)   # square-root of time
+
+
+def test_backtest_exceptions_match_the_series(call):
+    out = call("backtest", {"trades": [SWAP, EQO], "market_data": CORE_MD, "include_series": True})
+    s = out["series"]
+    count = sum(1 for p, v in zip(s["hpl"], s["var"]) if p < -v)
+    assert out["var"]["exceptions"] == count and out["var"]["n"] == len(s["hpl"]) == 250
+    assert out["var"]["expected_exceptions"] == pytest.approx(2.5)
+    assert out["var"]["zone"] == ("green" if count <= 4 else "amber" if count <= 9 else "red")
+
+
+def test_saccr_ead_is_alpha_times_rc_plus_pfe(call):
+    out = call("saccr", {"trades": [SWAP], "market_data": CORE_MD, "csa": {"BANK-A": {"margined": True, "threshold": 0}}})
+    ns = out["netting_sets"]["BANK-A"]
+    assert ns["ead"] == pytest.approx(1.4 * (ns["replacement_cost"] + ns["multiplier"] * ns["addon"]), rel=1e-9)
+    # by hand (CRE52): SF 0.5% x supervisory duration x notional x margined MF 1.5 x sqrt(10/250)
+    from math import exp, sqrt
+    sd = (1 - exp(-0.05 * ns["trades"][0]["maturity"])) / 0.05
+    assert ns["addon"] == pytest.approx(0.005 * sd * 10_000_000 * 1.5 * sqrt(10 / 250), rel=0.01)
+    floor = 0.05 + 0.95 * exp(ns["mtm"] / (2 * 0.95 * ns["addon"]))
+    assert ns["multiplier"] == pytest.approx(min(1.0, floor), rel=1e-6)
+
+
+def test_cva_is_near_the_rough_estimate(call):
+    """CVA ~ LGD x sum(EE x DF x marginal PD), PD from the spread over 1 - recovery."""
+    from math import exp
+    ee, tg, spread, rec, r = [400_000, 600_000, 700_000, 650_000, 500_000], [1, 2, 3, 4, 5], 0.01, 0.4, 0.05
+    out = call("xva", {"measure": "cva", "inputs": {"ee_profile": ee, "time_grid": tg, "credit_spread": spread,
+                                                     "recovery_rate": rec, "notional": 10_000_000}})
+    h, prev, rough = spread / (1 - rec), 0.0, 0.0
+    for e, t in zip(ee, tg):
+        rough += (1 - rec) * e * exp(-r * t) * (exp(-h * prev) - exp(-h * t))
+        prev = t
+    assert 0.6 <= out["headline"] / rough <= 1.4
+    assert out["result"]["cva_pct"] == pytest.approx(100 * out["headline"] / 10_000_000)
+
+
+def test_stress_moves_a_stock_by_the_shock(call):
+    out = call("stress_test", {"trades": [{"product": "CommonStock", "position_value": 1_000_000, "ticker": "SPX"}],
+                               "market_data": CORE_MD, "mode": "custom",
+                               "custom_scenarios": [{"name": "eq -10%", "shocks": [{"factor": "EQ.SPX", "size": -0.1,
+                                                                                   "shock_type": "relative"}]}]})
+    assert out["results"][0]["pnl"] == pytest.approx(-100_000, rel=1e-6)
+
+
+def test_capital_and_credit_formulas(call):
+    b = call("basel25_capital", {"var_series": [1_000_000], "svar_series": [2_000_000], "exceptions": 3})
+    assert b["result"]["capital"] == pytest.approx(max(1e6, 3 * 1e6) + max(2e6, 3 * 2e6))       # green zone: m = 3
+    el = call("credit_risk", {"measure": "el", "inputs": {"pd": 0.02, "lgd": 0.45, "ead": 1_000_000}})
+    assert el["headline"] == pytest.approx(0.02 * 0.45 * 1_000_000)
+    sa = call("frtb_sa_capital", {"trades": [SWAP, BOND, EQO], "market_data": CORE_MD, "credit_buckets": {"ACME": 4},
+                                  "equity_buckets": {"SPX": 12}, "ratings": {"ACME": "BBB"}, "vol_underlyings": {"eq_vol": "SPX"}})
+    s = sa["summary"]
+    assert s["TOTAL"] == pytest.approx(s["SBM"] + s["DRC"] + s["RRAO"])
+    # DRC by hand (MAR22): BBB risk weight 6% x jump-to-default (LGD 75% x face - loss already in the price)
+    bond_pv = call("price_trades", {"trades": [BOND], "market_data": CORE_MD})["trades"][0]["npv"]
+    jtd = 0.75 * BOND["face_value"] - (BOND["face_value"] - bond_pv)
+    assert s["DRC"] == pytest.approx(0.06 * jtd, rel=0.02)
+
+
+def test_exposure_simulation_and_limits_are_consistent(call):
+    out = call("ccr_exposure", {"trades": [SWAP], "market_data": CORE_MD, "mode": "trade_profiles"})
+    p = out["trades"][0]
+    assert p["peak_exposure"] >= max(p["expected_exposure"]) >= p["epe"] > 0
+    assert all(f >= e for f, e in zip(p["potential_future_exposure"], p["expected_exposure"]))
+    assert any("gives no CVA" in w for w in out.get("warnings", []))                    # qlrisk leaves it at 0.0
+    gbm = call("simulate_paths", {"process": "gbm", "initial_value": 100, "drift": 0.05, "volatility": 0.2,
+                                  "maturity": 1, "num_paths": 10000})
+    from math import exp, sqrt
+    assert gbm["terminal"]["mean"] == pytest.approx(100 * exp(0.05), rel=0.01)
+    assert gbm["terminal"]["std"] == pytest.approx(100 * exp(0.05) * sqrt(exp(0.04) - 1), rel=0.03)
+    lim = call("check_limits", {"metrics": {"var.1d": 420_000}, "limits": [{"name": "VaR", "metric": "var.1d", "limit": 500_000}]})
+    assert lim["checks"][0]["utilisation"] == pytest.approx(0.84) and lim["checks"][0]["status"] == "amber"
+
+
+def test_pnl_explain_adds_up_and_report_is_coherent(call):
+    out = call("pnl_explain", {"trades": [EQO], "market_data": CORE_MD,
+                               "end_shocks": [{"factor": "EQ.SPX", "size": -0.05, "shock_type": "relative"}]})
+    t = out["total"]
+    explained = sum(v for k, v in t.items() if k not in ("actual", "theta", "unexplained"))
+    assert t["actual"] == pytest.approx(t["theta"] + explained + t["unexplained"], rel=1e-9)
+    assert t["actual"] > 0 and abs(t["unexplained"]) < 0.05 * abs(t["actual"])        # a put gains when SPX falls
+    rep = call("risk_report", {"use_demo_book": True, "market_data": CORE_MD})
+    h = rep["metrics"]
+    assert 0.8 <= h["es.1d"] / h["var.1d"] <= 1.5 and h["svar.10d"] > h["var.1d"]
+
+
+@pytest.mark.xfail(strict=True, reason="qlrisk issue (reported): schedule IM = NGR x gross x rate; BCBS-IOSCO "
+                                       "uses (0.4 + 0.6 x NGR) x gross x rate")
+def test_schedule_initial_margin_follows_bcbs_iosco(call):
+    out = call("initial_margin", {"method": "schedule", "positions": [{"notional": 10_000_000, "product_type": "irs",
+                                                                       "remaining_maturity": 3}]})
+    assert out["headline"] == pytest.approx((0.4 + 0.6 * 0.4) * 0.02 * 10_000_000)
+
+
+def test_core_descriptions_carry_their_worked_example_and_its_real_result(tools):
+    """The configs' descriptions are rewritten from the layout examples; this keeps their figures true."""
+    from sajha.tools.impl.qlrisk.tools.layout import example
+    for name, tool in tools.items():
+        key = name[len("qlrisk_"):]
+        ex = example(key)
+        desc = tool.config["description"]
+        assert f"Example: {json.dumps(ex)} gives " in desc, name
+        if key == "risk_report":
+            continue
+        args = json.loads(json.dumps(ex))
+        if "market_data" in json.dumps(tool.input_schema):
+            args.setdefault("advanced", {})["market_data"] = CORE_MD
+        assert tool.execute_with_tracking(args).summary in desc, name

@@ -3,7 +3,7 @@
   "implementation": "sajha.tools.impl.qlrisk.qlrisk_tools.QlriskPriceProductTool",
   "product": "CryptoSpot",
   "title": "Price a CryptoSpot",
-  "description": "Price one qlrisk CryptoSpot (Cryptocurrency Spot; alternatives, equity): NPV in the trade currency and the reporting currency, pricing components, analytic Greeks where the pricer gives them, and optional cash flows. Inputs are this product's fields only; required: notional (maturity_date or tenor_years); pricer terms: is_long, quantity, ticker. Market data defaults to qlrisk's sample snapshot valued today; override curves, spots and vols, or apply shocks, with market_data as in qlrisk_price_trades. For a book of several products use qlrisk_price_trades. Example: {\"notional\": 1000000, \"tenor_years\": 5}.",
+  "description": "Price one Cryptocurrency Spot (qlrisk CryptoSpot): NPV, pricing components and Greeks where the pricer gives them.\nInputs (* required): position_value (amount; default 1000000), ticker, quantity, currency (see the schema's list; default USD). Rates are in percent, spreads in basis points, maturities a tenor (3Y, 18M, 6W, 10D) or a date YYYY-MM-DD. Optional `advanced`: maturity, trade_id, trade_date, effective_date, counterparty_id, position, market_data, reporting_currency, include_cash_flows; market data defaults to qlrisk's sample snapshot valued today.\nExample: {\"position_value\": 1000000, \"ticker\": \"AAPL\"} gives NPV 1,000,000.00 USD on the sample market valued 2026-10-09. For several trades at once use qlrisk_price_trades.",
   "version": "1.0.0",
   "enabled": true,
   "requires": [
@@ -32,8 +32,13 @@
     ],
     "generated_by": "sajha.tools.impl.qlrisk.generate",
     "example": {
-      "notional": 1000000,
-      "tenor_years": 5
+      "position_value": 1000000,
+      "ticker": "AAPL"
+    },
+    "example_result": {
+      "valuation_date": "2026-10-09",
+      "npv": 1000000.0,
+      "currency": "USD"
     }
   }
 }

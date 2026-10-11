@@ -76,6 +76,9 @@ def _report(args: Dict[str, Any], ctx: Ctx):
         from qlrisk.demos import demo_book
         trades, md, hist, tree, frtb_maps = demo_book()
         frtb = frtb or frtb_maps
+        if args.get("market_data") or args.get("history"):
+            ctx.warnings.append("use_demo_book: the demo book brings its own market (qlrisk's sample valued today) "
+                                "and history; market_data and history were ignored")
         if args.get("trades"):
             raise InvalidInput("give trades or use_demo_book, not both")
     else:

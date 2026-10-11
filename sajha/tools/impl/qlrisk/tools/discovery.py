@@ -10,7 +10,7 @@ from .. import introspect as I
 from ..inputs import InvalidInput, build_market_data
 from ..jsonable import to_jsonable
 from . import Ctx, ToolDef, obj
-from .products import tool_name
+from .products import exposed_fields, tool_name, trade_item_schema
 
 TOPICS = ["products", "calculators", "stress_scenarios", "report_measures", "processes", "market_data",
           "enumerations", "version"]
@@ -26,18 +26,22 @@ def _catalog(args: Dict[str, Any], ctx: Ctx):
             if name not in classes:
                 raise InvalidInput(f"name {name!r} is not a qlrisk product; omit name to list them")
             spec = I.product_spec(name)
-            return {"product": spec, "trade_schema": I.product_schema(name)}, \
-                f"{name}: {spec['category']} product, priced by {spec['pricer']}, terms {sorted(spec['terms']) or 'from its signature'}"
+            fields = exposed_fields(name)
+            return {"product": {k: spec[k] for k in ("name", "category", "product_type", "asset_class", "description")},
+                    "pricing_tool": tool_name(name), "trade_schema": trade_item_schema(name)}, \
+                (f"{name}: {spec['category']} product; inputs {[e.name for e in fields if not e.advanced]}, "
+                 f"required {[e.name for e in fields if e.required]} (rates in percent, spreads in bp)")
         rows = []
         for n in classes:
             s = I.product_spec(n)
             if args.get("category") and s["category"] != args["category"]:
                 continue
-            extra = [p for p in s["parameters"] if p not in I.COMMON_PARAMS]
+            fields = exposed_fields(n)
             rows.append({"name": n, "pricing_tool": tool_name(n), "category": s["category"], "asset_class": s["asset_class"],
                          "product_type": s["product_type"], "description": s["description"],
-                         "required": [r for r in s["required"] if r not in ("trade_id", "trade_date", "effective_date", "counterparty_id", "currency")],
-                         "terms": sorted(set(extra) | set(s["terms"]))})
+                         "required": [e.name for e in fields if e.required],
+                         "inputs": [e.name for e in fields if not e.advanced],
+                         "trade_fields": [e.name for e in fields if e.advanced]})
         cats = sorted({r["category"] for r in rows})
         return {"count": len(rows), "categories": cats, "products": rows}, \
             f"{len(rows)} qlrisk products in {len(cats)} categories"

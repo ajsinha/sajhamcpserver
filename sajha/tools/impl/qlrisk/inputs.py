@@ -82,22 +82,20 @@ def trade_schema() -> Dict[str, Any]:
         "type": "object",
         "properties": {
             "product": {"type": "string", "enum": list(I.product_classes()),
-                        "description": "qlrisk product class (qlrisk_catalog topic 'products' lists each with its terms)."},
+                        "description": "qlrisk product class (qlrisk_catalog topic 'products' lists each with its inputs)."},
+            "maturity": {"type": "string", "description": "A tenor (3Y, 18M, 6W, 10D) or a date YYYY-MM-DD."},
             "trade_id": {"type": "string"},
-            "notional": {"type": "number"},
-            "currency": {"type": "string", "enum": I.enum_values("Currency"), "default": "USD"},
-            "counterparty_id": {"type": "string", "default": "CP-1"},
-            "trade_date": {"type": "string", "format": "date"},
-            "effective_date": {"type": "string", "format": "date"},
-            "maturity_date": {"type": "string", "format": "date"},
-            "tenor_years": {"type": "number", "description": "Instead of maturity_date: maturity = valuation date + tenor."},
+            "counterparty_id": {"type": "string"},
             "netting_set_id": {"type": "string"},
         },
         "required": ["product"],
         "additionalProperties": True,
-        "description": "A trade: product plus its terms (fixed_rate, strike, ticker, pair, issuer, reference, coupon, is_long ...; "
-                       "qlrisk_catalog topic 'products' name=<product> lists them). trade_id defaults to <product>-<n>, trade and "
-                       "effective dates to the valuation date, netting_set_id to counterparty_id.",
+        "description": "A trade: product plus the inputs of its qlrisk_price_<product> tool, flat, in the same units: "
+                       "rates in percent (fixed_rate_pct 4.4 = 4.4%), spreads in basis points, maturity as a tenor or "
+                       "a date, the amount named for the product (face_value, notional ...), and its trade fields "
+                       "(trade_id, counterparty_id, issuer, position ...) at the same level. trade_id defaults to "
+                       "<product>-<n>, trade and effective dates to the valuation date, netting_set_id to "
+                       "counterparty_id. Each trade is checked against its product's inputs.",
     }
 
 
@@ -310,8 +308,10 @@ def _coerce(value: Any, tp: Any, what: str) -> Any:
     return value
 
 
-def build_trades(items: Sequence[Dict[str, Any]], md, limits: Limits, warnings: Optional[List[str]] = None) -> list:
-    """qlrisk product objects from trade dicts (dates default to the valuation date)."""
+def build_trades(items: Sequence[Dict[str, Any]], md, limits: Limits, warnings: Optional[List[str]] = None,
+                 human: bool = True) -> list:
+    """qlrisk product objects from trade dicts (dates default to the valuation date). With human (the tools'
+    trades), each trade is in the units of its qlrisk_price_<product> tool and is converted first."""
     if not items:
         raise InvalidInput("trades: send at least one trade")
     if len(items) > limits.max_trades:
@@ -319,6 +319,10 @@ def build_trades(items: Sequence[Dict[str, Any]], md, limits: Limits, warnings: 
     classes = I.product_classes()
     vd = md.valuation_date
     out, seen = [], set()
+    if human:
+        from .tools.products import human_trade
+        items = [human_trade(raw, f"trades[{i}]", vd, warnings if warnings is not None else [])
+                 for i, raw in enumerate(items)]
     for i, raw in enumerate(items):
         w = f"trades[{i}]"
         if not isinstance(raw, dict) or "product" not in raw:

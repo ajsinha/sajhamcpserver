@@ -136,6 +136,10 @@ def _ccr(args: Dict[str, Any], ctx: Ctx):
                      "effective_ee": to_jsonable(p.effective_ee), "peak_exposure": p.peak_exposure, "epe": p.epe,
                      "effective_epe": p.effective_epe, "cva": p.cva})
     ok = [r for r in rows if "error" not in r]
+    for r in ok:
+        if not r["cva"] and r["epe"] > 0:          # qlrisk's profile leaves CVA at 0.0 for some products
+            ctx.warnings.append(f"{r['trade_id']}: qlrisk's exposure profile for {r['product']} gives no CVA (0.0); "
+                                "for a CVA use qlrisk_xva measure cva with this expected_exposure and time_grid")
     peak = max((r["peak_exposure"] for r in ok), default=0.0)
     return {"mode": mode, "num_scenarios": n, "trades": rows}, \
         f"Exposure profiles for {len(ok)} trade(s); largest peak PFE {rounded(peak)}"
@@ -169,12 +173,43 @@ def _saccr(args: Dict[str, Any], ctx: Ctx):
         f"SA-CCR EAD {rounded(total)} {ccy} across {len(sets)} netting set(s)"
 
 
+BP_PER_UNIT = 10_000          # SIMM rates / credit weights apply to dV per 1.00 of rate; the tool takes dV per 1bp
+
+
+def _simm_positions(positions: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    """SIMM delta sensitivities in the tool's units -> qlrisk's: rates and credit per 1bp (DV01 / CS01, as
+    qlrisk_sensitivities reports them) x 10,000; bucket keys checked against qlrisk's SIMM weights (an unknown
+    key would silently take a 10% weight)."""
+    _, cls = I.calculator_class("initial_margin")
+    calc = cls("mcp_im_keys", {})
+    out = []
+    for i, pos in enumerate(positions):
+        sens = pos.get("delta_sensitivities")
+        if not sens:
+            out.append(pos)
+            continue
+        rc = calc._get_risk_class(str(pos.get("product_type", "")))
+        weights = cls.SIMM_WEIGHTS.get(rc, {"all": 0.10})
+        conv = {}
+        for key, value in sens.items():
+            k = str(key).lower()
+            if k not in weights and "all" not in weights:
+                raise InvalidInput(f"positions[{i}].delta_sensitivities: {key!r} is not a SIMM {rc} bucket; "
+                                   f"use one of {sorted(weights)}")
+            k = k if k in weights else key
+            conv[k] = float(value) * (BP_PER_UNIT if rc in ("rates", "credit") else 1.0)
+        out.append({**pos, "delta_sensitivities": conv})
+    return out
+
+
 def _im(args: Dict[str, Any], ctx: Ctx):
     positions = args.get("positions") or []
     if not positions:
         raise InvalidInput("positions: send at least one position (notional, product_type, remaining_maturity ...)")
     cfg = {k: args[k] for k in ("method", "confidence_level", "mpor_scaling") if k in args}
     cfg.setdefault("method", "simm")
+    if cfg["method"] == "simm":
+        positions = _simm_positions(positions)
     if len(positions) == 1:
         value, warns = run_calculator("initial_margin", positions[0], cfg, ctx)
         return _calc_tool_result("initial_margin", value, warns, f"Initial margin ({cfg['method']})")
@@ -279,6 +314,12 @@ def tools(limits) -> List[ToolDef]:
     from qlrisk.regulatory.saccr_netting import CSATerms
     im_cfg = I.calculator_config("initial_margin")
     im_schema = I.dataclass_schema(I.calculator_input_class("initial_margin"))
+    im_schema["properties"]["delta_sensitivities"] = {
+        "type": "object", "additionalProperties": {"type": "number"}, "title": "SIMM delta sensitivities",
+        "description": "Bucket -> sensitivity. Rates (product_type irs, fra): tenor buckets 2w, 1m, 3m, 6m, 1y, 2y, 3y, "
+                       "5y, 10y, 15y, 20y, 30y with DV01 per 1bp, as qlrisk_sensitivities reports it; credit (cds): ig, "
+                       "hy, sovereign with CS01 per 1bp; equity: large_cap, small_cap, emerging; fx: any key; "
+                       "commodity: energy, metals, agriculture, these three in currency per 100% move (delta x spot)."}
     cp_schema = I.dataclass_schema(CVACounterparty)
     cp_schema["properties"]["sector"] = {"type": "string", "enum": I.ba_cva_sectors(), "default": "other"}
     cp_schema["properties"]["netting_sets"] = {"type": "array", "items": {"type": "array", "items": {"type": "number"}, "minItems": 2, "maxItems": 2},
@@ -289,7 +330,7 @@ def tools(limits) -> List[ToolDef]:
             title="Counterparty exposure",
             description=(
                 "Counterparty credit exposure. mode='trade_profiles' simulates each trade's exposure profile from the "
-                "market data: EE, PFE, effective EE (EEE), EPE, effective EPE, peak PFE and a CVA estimate. "
+                "market data: EE, PFE, effective EE (EEE), EPE, effective EPE, peak PFE and a CVA where qlrisk's product model gives one (a warning says when it does not). "
                 "mode='calculator' runs a qlrisk exposure calculator from summary inputs: measure ce (current exposure, "
                 "collateral-adjusted), ee, eee, pfe, peak, stressed (crisis scenarios). mode='wrong_way' measures wrong-way "
                 "risk: exposure conditional on the counterparty's credit spread widening by shock_sigmas. Calculator fields: "

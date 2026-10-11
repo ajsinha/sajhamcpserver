@@ -3,7 +3,7 @@
   "implementation": "sajha.tools.impl.qlrisk.qlrisk_tools.QlriskPriceProductTool",
   "product": "FXSwap",
   "title": "Price a FXSwap",
-  "description": "Price one qlrisk FXSwap (FX Swap - spot + forward transaction; fx, fx): NPV in the trade currency and the reporting currency, pricing components, analytic Greeks where the pricer gives them, and optional cash flows. Inputs are this product's fields only; required: near_date, far_date, base_currency, quote_currency, base_notional, near_rate, far_rate. Market data defaults to qlrisk's sample snapshot valued today; override curves, spots and vols, or apply shocks, with market_data as in qlrisk_price_trades. For a book of several products use qlrisk_price_trades. Example: {\"near_date\": \"2027-01-11\", \"far_date\": \"2027-10-11\", \"base_currency\": \"EUR\", \"quote_currency\": \"USD\", \"base_notional\": 1000000, \"near_rate\": 1.1, \"far_rate\": 1.11}.",
+  "description": "Price one FX Swap - spot + forward transaction (qlrisk FXSwap): NPV, pricing components and Greeks where the pricer gives them.\nInputs (* required): base_notional* (amount), near_settlement* (tenor like 3Y or date), far_settlement* (tenor like 3Y or date), base_currency* (see the schema's list), quote_currency* (see the schema's list), near_rate*, far_rate*. Rates are in percent, spreads in basis points, maturities a tenor (3Y, 18M, 6W, 10D) or a date YYYY-MM-DD. Optional `advanced`: trade_id, trade_date, counterparty_id, buy_base_near, market_data, reporting_currency, include_cash_flows; market data defaults to qlrisk's sample snapshot valued today.\nExample: {\"base_notional\": 1000000, \"near_settlement\": \"3M\", \"far_settlement\": \"1Y\", \"base_currency\": \"EUR\", \"quote_currency\": \"USD\", \"near_rate\": 1.1, \"far_rate\": 1.11} gives NPV 5,000.00 USD on the sample market valued 2026-10-09. For several trades at once use qlrisk_price_trades.",
   "version": "1.0.0",
   "enabled": true,
   "requires": [
@@ -32,13 +32,18 @@
     ],
     "generated_by": "sajha.tools.impl.qlrisk.generate",
     "example": {
-      "near_date": "2027-01-11",
-      "far_date": "2027-10-11",
+      "base_notional": 1000000,
+      "near_settlement": "3M",
+      "far_settlement": "1Y",
       "base_currency": "EUR",
       "quote_currency": "USD",
-      "base_notional": 1000000,
       "near_rate": 1.1,
       "far_rate": 1.11
+    },
+    "example_result": {
+      "valuation_date": "2026-10-09",
+      "npv": 5000.0,
+      "currency": "USD"
     }
   }
 }

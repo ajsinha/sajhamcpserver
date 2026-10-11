@@ -152,7 +152,17 @@ def test_off_by_default():
 def sdk(env):
     openai = pytest.importorskip('openai')
     c, keys = env
-    return openai, openai.OpenAI(api_key=keys['user'], base_url='http://testserver/v1', http_client=c, max_retries=0)
+    import httpx
+
+    class _ThroughTestClient(httpx.BaseTransport):
+        # The SDK wants an httpx.Client; Starlette 1.x's TestClient is no longer one and its transport's
+        # responses are not httpx byte streams, so replay each request through the TestClient.
+        def handle_request(self, request):
+            r = c.request(request.method, str(request.url), headers=dict(request.headers), content=request.read())
+            return httpx.Response(r.status_code, headers=r.headers, content=r.content, request=request)
+
+    http = c if isinstance(c, httpx.Client) else httpx.Client(transport=_ThroughTestClient(), base_url='http://testserver')
+    return openai, openai.OpenAI(api_key=keys['user'], base_url='http://testserver/v1', http_client=http, max_retries=0)
 
 
 def test_sdk_chat_streaming_models_and_embeddings(sdk):

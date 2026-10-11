@@ -79,14 +79,17 @@ The same tools answer `POST /api/tools/execute`, which returns the result object
 
 ### 3. Price a swap
 
-A trade is an object with `product` (a qlrisk product class) and its terms. Market data defaults to
-qlrisk's sample snapshot; here it is valued on 9 October 2026:
+A trade is an object with `product` (a qlrisk product class) and its terms in human units: a maturity as a
+tenor, rates in percent (`fixed_rate_pct` 4.4 is 4.40%). Market data defaults to qlrisk's sample snapshot;
+here it is valued on 9 October 2026, sent in the optional `advanced` object with the other technical
+settings:
 
 ```bash
-SWAP='{"product": "InterestRateSwap", "trade_id": "IRS-5Y", "notional": 10000000, "tenor_years": 5, "fixed_rate": 0.044, "counterparty_id": "BANK-A"}'
+SWAP='{"product": "InterestRateSwap", "trade_id": "IRS-5Y", "maturity": "5Y", "notional": 10000000, "fixed_rate_pct": 4.4, "counterparty_id": "BANK-A"}'
 MD='{"valuation_date": "2026-10-09"}'
-call qlrisk_price_trades "{\"trades\": [$SWAP], \"market_data\": $MD}"
-call qlrisk_sensitivities "{\"trades\": [$SWAP], \"market_data\": $MD, \"ladder_vertices\": \"frtb_girr\"}"
+ADV="{\"market_data\": $MD}"
+call qlrisk_price_trades "{\"trades\": [$SWAP], \"advanced\": $ADV}"
+call qlrisk_sensitivities "{\"trades\": [$SWAP], \"ladder_vertices\": \"frtb_girr\", \"advanced\": $ADV}"
 ```
 
 ```text
@@ -97,41 +100,54 @@ Sensitivities in USD for 1 trade(s): DV01 4,561.84
 The payer swap pays 4.40% against a par rate of about 4.35% (`components.par_rate`), so it is slightly
 under water, and it gains about 4,562 USD per basis point of higher rates, almost all of it in the 5-year
 SOFR bucket of the ladder. To see what the tools know, call `qlrisk_catalog` with
-`{"topic": "products"}`, or `{"topic": "products", "name": "CorporateBond"}` for one product's terms.
+`{"topic": "products"}`, or `{"topic": "products", "name": "CorporateBond"}` for one product's inputs.
 
 ### 4. Price a bond with its own tool
 
 Every qlrisk product also has a pricing tool of its own, `qlrisk_price_<product>`, whose inputs are only
-that product's fields ([Per-product pricing tools](../tools/qlrisk/QLRisk%20Tool%20Reference%20Guide.md#per-product-pricing-tools)).
-A 5-year corporate bond paying 5%:
+that product's terms in human units ([Per-product pricing tools](../tools/qlrisk/QLRisk%20Tool%20Reference%20Guide.md#per-product-pricing-tools)):
+rates in percent, spreads in basis points, a maturity as a tenor or a date. A 3-year US treasury paying 3%,
+face 100:
 
 ```bash
-call qlrisk_price_corporate_bond "{\"notional\": 5000000, \"tenor_years\": 5, \"coupon\": 0.05, \"issuer\": \"ACME\", \"market_data\": $MD}"
+call qlrisk_price_treasury_bond "{\"maturity\": \"3Y\", \"face_value\": 100, \"coupon_pct\": 3, \"advanced\": {\"market_data\": $MD}}"
 ```
 
 ```text
-CorporateBond CorporateBond-1 on 2026-10-09: NPV 4,886,813.03 USD
+TreasuryBond on 2026-10-09: NPV 97.85 USD
+```
+
+`coupon_pct` 3 means 3%; the result's `qlrisk_terms` shows what qlrisk received (`"coupon": 0.03`,
+`"maturity_date": "2029-10-09"`). Send `coupon_pct` 300 and the call is rejected with the field named. A
+5-year corporate bond paying 5% on ACME's credit curve puts the issuer in `advanced`:
+
+```bash
+call qlrisk_price_corporate_bond "{\"maturity\": \"5Y\", \"face_value\": 5000000, \"coupon_pct\": 5, \"advanced\": {\"issuer\": \"ACME\", \"market_data\": $MD}}"
+```
+
+```text
+CorporateBond on 2026-10-09: NPV 4,886,813.03 USD
 ```
 
 The bond is worth about 97.7% of par: the coupon is discounted at the curve plus ACME's credit spread
-(`components.credit_spread`, 1.2%). Send a field the bond does not have, such as `strike`, and the call is
-rejected with the field named; `tools/list` shows each tool's fields.
+(`components.credit_spread`, 1.2%). On `/tools/qlrisk_price_treasury_bond/execute` the form shows only
+maturity, face value, coupon, frequency and currency; the rest is under **Advanced (optional)**.
 
 ### 5. VaR and Expected Shortfall
 
-Add a short SPX put and ask for 10-day VaR and ES, with stressed VaR. History defaults to a 750-day
-synthetic history ending at the market data, with a stress regime:
+Add a short SPX put and ask for 10-day VaR and ES at 99% (`confidence_pct` is in percent), with stressed
+VaR. History defaults to a 750-day synthetic history ending at the market data, with a stress regime:
 
 ```bash
-PUT='{"product": "EquityOption", "trade_id": "SPX-P", "notional": 1000000, "tenor_years": 0.5, "ticker": "SPX", "strike": 5000, "is_call": false, "counterparty_id": "BANK-B"}'
-call qlrisk_value_at_risk "{\"trades\": [$SWAP, $PUT], \"market_data\": $MD, \"method\": \"historical\", \"horizon_days\": 10, \"include_stressed_var\": true}"
+PUT='{"product": "EquityOption", "trade_id": "SPX-P", "maturity": "6M", "notional": 1000000, "ticker": "SPX", "strike": 5000, "option_type": "put", "counterparty_id": "BANK-B"}'
+call qlrisk_value_at_risk "{\"trades\": [$SWAP, $PUT], \"method\": \"historical\", \"confidence_pct\": 99, \"horizon_days\": 10, \"advanced\": {\"market_data\": $MD, \"include_stressed_var\": true}}"
 ```
 
 ```text
-historical VaR 99.0% 10d 204,168.67 USD; ES 97.5% 193,300.83; SVaR 561,506.31
+historical VaR 99.0% 10d 204,153.91 USD; ES 97.5% 193,288.73; SVaR 561,570.24
 ```
 
-`var.contributions` splits the VaR by trade (here 186,413 for the swap and 17,755 for the put); try
+`var.contributions` splits the VaR by trade (here 186,413 for the swap and 17,741 for the put); try
 `"method": "monte_carlo"` or `"parametric"`, and `qlrisk_backtest` on the same trades for the
 traffic-light zone.
 
@@ -140,12 +156,12 @@ traffic-light zone.
 Revalue the book under qlrisk's crisis library, then under a scenario of your own:
 
 ```bash
-call qlrisk_stress_test "{\"trades\": [$SWAP, $PUT], \"market_data\": $MD}"
-call qlrisk_stress_test "{\"trades\": [$SWAP], \"market_data\": $MD, \"mode\": \"custom\", \"custom_scenarios\": [{\"name\": \"rates +100bp\", \"shocks\": [{\"risk_classes\": [\"IR\"], \"shape\": \"parallel\", \"size\": 0.01}]}]}"
+call qlrisk_stress_test "{\"trades\": [$SWAP, $PUT], \"advanced\": $ADV}"
+call qlrisk_stress_test "{\"trades\": [$SWAP], \"advanced\": $ADV, \"mode\": \"custom\", \"custom_scenarios\": [{\"name\": \"rates +100bp\", \"shocks\": [{\"risk_classes\": [\"IR\"], \"shape\": \"parallel\", \"size\": 0.01}]}]}"
 ```
 
 ```text
-9 stress scenario(s); worst 2008_gfc_lehman P&L -423,225.11 USD
+9 stress scenario(s); worst 2008_gfc_lehman P&L -423,260.25 USD
 1 stress scenario(s); worst rates +100bp P&L 445,355.39 USD
 ```
 
@@ -157,7 +173,7 @@ call qlrisk_stress_test "{\"trades\": [$SWAP], \"market_data\": $MD, \"mode\": \
 The swap faces `BANK-A` under a margined CSA with no threshold:
 
 ```bash
-call qlrisk_saccr "{\"trades\": [$SWAP], \"market_data\": $MD, \"csa\": {\"BANK-A\": {\"margined\": true, \"threshold\": 0}}}"
+call qlrisk_saccr "{\"trades\": [$SWAP], \"advanced\": $ADV, \"csa\": {\"BANK-A\": {\"margined\": true, \"threshold\": 0}}}"
 ```
 
 ```text
@@ -169,7 +185,8 @@ multiplier of 0.84, from the negative MTM; EAD = 1.4 × (RC + multiplier × add-
 
 ### 8. CVA
 
-From an expected-exposure profile and a 120bp credit spread:
+From an expected-exposure profile and a 120bp credit spread (calculator inputs are qlrisk's own fields,
+in its units: `credit_spread` 0.012 is 120bp):
 
 ```bash
 call qlrisk_xva '{"measure": "cva", "inputs": {"ee_profile": [2e6, 3e6, 3.5e6, 3e6, 2e6, 1e6], "time_grid": [0.5, 1, 2, 3, 4, 5], "credit_spread": 0.012}}'

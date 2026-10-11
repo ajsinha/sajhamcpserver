@@ -3,7 +3,7 @@
   "implementation": "sajha.tools.impl.qlrisk.qlrisk_tools.QlriskPriceProductTool",
   "product": "TreasuryBond",
   "title": "Price a TreasuryBond",
-  "description": "Price one qlrisk TreasuryBond (Treasury Bond; fixed_income, interest_rate): NPV in the trade currency and the reporting currency, pricing components, analytic Greeks where the pricer gives them, and optional cash flows. Inputs are this product's fields only; required: notional (maturity_date or tenor_years); pricer terms: coupon, frequency, is_long, issuer. Market data defaults to qlrisk's sample snapshot valued today; override curves, spots and vols, or apply shocks, with market_data as in qlrisk_price_trades. For a book of several products use qlrisk_price_trades. Example: {\"notional\": 1000000, \"tenor_years\": 5, \"coupon\": 0.05}.",
+  "description": "Price one Treasury Bond (qlrisk TreasuryBond): NPV, pricing components and Greeks where the pricer gives them.\nInputs (* required): maturity* (tenor like 3Y or date), face_value (amount; default 100), coupon_pct* (percent, 3 = 3%), frequency (annual/semi-annual/quarterly/monthly/at maturity; default semi-annual), currency (see the schema's list; default USD). Rates are in percent, spreads in basis points, maturities a tenor (3Y, 18M, 6W, 10D) or a date YYYY-MM-DD. Optional `advanced`: trade_id, trade_date, effective_date, counterparty_id, issuer, position, market_data, reporting_currency, include_cash_flows; market data defaults to qlrisk's sample snapshot valued today.\nExample: {\"maturity\": \"3Y\", \"face_value\": 100, \"coupon_pct\": 3, \"currency\": \"USD\"} gives NPV 97.85 USD on the sample market valued 2026-10-09. For several trades at once use qlrisk_price_trades.",
   "version": "1.0.0",
   "enabled": true,
   "requires": [
@@ -32,9 +32,15 @@
     ],
     "generated_by": "sajha.tools.impl.qlrisk.generate",
     "example": {
-      "notional": 1000000,
-      "tenor_years": 5,
-      "coupon": 0.05
+      "maturity": "3Y",
+      "face_value": 100,
+      "coupon_pct": 3,
+      "currency": "USD"
+    },
+    "example_result": {
+      "valuation_date": "2026-10-09",
+      "npv": 97.85,
+      "currency": "USD"
     }
   }
 }

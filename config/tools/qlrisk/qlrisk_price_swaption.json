@@ -3,7 +3,7 @@
   "implementation": "sajha.tools.impl.qlrisk.qlrisk_tools.QlriskPriceProductTool",
   "product": "Swaption",
   "title": "Price a Swaption",
-  "description": "Price one qlrisk Swaption (Swaption - option to enter into a swap; interest_rate, interest_rate): NPV in the trade currency and the reporting currency, pricing components, analytic Greeks where the pricer gives them, and optional cash flows. Inputs are this product's fields only; required: option_expiry, swap_effective, swap_maturity, notional, strike. Market data defaults to qlrisk's sample snapshot valued today; override curves, spots and vols, or apply shocks, with market_data as in qlrisk_price_trades. For a book of several products use qlrisk_price_trades. Example: {\"notional\": 1000000, \"option_expiry\": \"2027-10-11\", \"swap_effective\": \"2027-10-13\", \"swap_maturity\": \"2032-10-13\", \"strike\": 0.04}.",
+  "description": "Price one Swaption - option to enter into a swap (qlrisk Swaption): NPV, pricing components and Greeks where the pricer gives them.\nInputs (* required): notional (amount; default 1000000), expiry* (tenor like 3Y or date), swap_start* (tenor like 3Y or date), swap_end* (tenor like 3Y or date), strike_pct* (percent, 3 = 3%), swaption_type (payer/receiver; default payer), exercise_style (european/american/bermudan; default european), floating_index (see the schema's list; default SOFR), volatility_pct (percent, 3 = 3%), currency (see the schema's list; default USD). Rates are in percent, spreads in basis points, maturities a tenor (3Y, 18M, 6W, 10D) or a date YYYY-MM-DD. Optional `advanced`: trade_id, trade_date, counterparty_id, position, market_data, reporting_currency, include_cash_flows; market data defaults to qlrisk's sample snapshot valued today.\nExample: {\"notional\": 1000000, \"expiry\": \"1Y\", \"swap_start\": \"1Y\", \"swap_end\": \"6Y\", \"strike_pct\": 4} gives NPV 20,450.09 USD on the sample market valued 2026-10-09. For several trades at once use qlrisk_price_trades.",
   "version": "1.0.0",
   "enabled": true,
   "requires": [
@@ -33,10 +33,15 @@
     "generated_by": "sajha.tools.impl.qlrisk.generate",
     "example": {
       "notional": 1000000,
-      "option_expiry": "2027-10-11",
-      "swap_effective": "2027-10-13",
-      "swap_maturity": "2032-10-13",
-      "strike": 0.04
+      "expiry": "1Y",
+      "swap_start": "1Y",
+      "swap_end": "6Y",
+      "strike_pct": 4
+    },
+    "example_result": {
+      "valuation_date": "2026-10-09",
+      "npv": 20450.09,
+      "currency": "USD"
     }
   }
 }

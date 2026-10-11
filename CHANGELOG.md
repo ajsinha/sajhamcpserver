@@ -4,6 +4,34 @@ Newest first. The current version is `app.version` in `config/application.yml`.
 
 ## Unreleased
 
+- Fixed: qlrisk per-product pricing tools take rates in percent and maturities like 3Y, with a short form.
+  `qlrisk_price_<product>` asked for qlrisk's raw fields, so a coupon of 3 meant 300% (a 3-year treasury
+  priced at about 1,074 per 100 face instead of 97.85), "3Y" was not a maturity and the form listed fifteen
+  fields. Each tool now asks only for the product's economic terms under human names and units (`maturity`
+  as a tenor or date, `face_value`, `coupon_pct`, `spread_bp`, frequencies as words, currency default USD)
+  converted to qlrisk's units inside the tool; trade ids and dates, issuer, position, market data, reporting
+  currency and cash flows sit in one optional `advanced` object; implausible values are rejected with the
+  field named or warned about; descriptions carry a worked example with its real result; the result carries
+  `qlrisk_terms`. The tool execute page renders an optional object as a collapsed section, keeps the schema's
+  field order and leaves empty fields out
+  ([QLRisk Tool Reference Guide](docs/tools/qlrisk/QLRisk%20Tool%20Reference%20Guide.md#per-product-pricing-tools)).
+- Changed (breaking for callers of the qlrisk tools): the 18 core qlrisk tools use the same units and layout.
+  Trades in every tool take the per-product tools' inputs, flat (`maturity` "5Y", `fixed_rate_pct` 4.4,
+  `face_value`, `option_type` ...; `tenor_years`, `fixed_rate` 0.044 and the like are rejected with the
+  product's inputs listed); confidence levels are in percent (`confidence_pct` 99, `es_confidence_pct`,
+  `drc_confidence_pct`), the SA-CVA recovery too (`recovery_pct`); each tool lists its essentials first and
+  keeps the rest (market data, history, reporting currency, model settings) in an optional `advanced`
+  object; every field has a title, the schema carries a worked example that pre-fills the execute page's
+  JSON boxes, and each description ends with that example and its real result (kept true by a test). The
+  layout is one table, `sajha/tools/impl/qlrisk/tools/layout.py`; `qlrisk_catalog` topic `products` lists
+  each product's inputs.
+- Fixed: `qlrisk_initial_margin` SIMM took rate sensitivities in qlrisk's per-unit-rate convention and
+  silently weighted an unknown bucket key (the guide's `USD-5Y`) at 10%, so a 4,500 DV01 swap gave IM 450;
+  it now takes DV01 / CS01 per 1bp with qlrisk's bucket names (`5y`) and rejects unknown buckets (IM
+  252,000, the 56bp SIMM weight). `qlrisk_ccr_exposure` no longer presents qlrisk's hard-coded zero CVA as
+  an estimate (a warning points to `qlrisk_xva`); `qlrisk_risk_report` warns that `use_demo_book` ignores
+  `market_data` and `history`. Plausibility tests check the tools against independent estimates
+  (Black-Scholes, delta-normal VaR, SA-CCR and FRTB DRC by hand, CVA, Basel 2.5, SIMM, GBM moments).
 - Added: **Domains** page (`/tools/domains`, Tools menu): one card per tool domain (tool folder, proxied MCP
   server, Unfiled) with the number of tools the viewer may see, readable labels, and a link to the Tools page
   filtered to that domain (`/tools?domain=<name>`, new). Labels come from one map in `sajha/tools/domains.py`

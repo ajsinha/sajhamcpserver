@@ -15,7 +15,7 @@ LADDER_VERTICES = ["native", "frtb_girr", "frtb_csr", "standard"]
 
 def _price(args: Dict[str, Any], ctx: Ctx):
     md = build_market_data(args.get("market_data"))
-    trades = build_trades(args["trades"], md, ctx.limits, ctx.warnings)
+    trades = build_trades(args["trades"], md, ctx.limits, ctx.warnings, human=not args.get("_qlrisk_units"))
     ccy = args.get("reporting_currency", "USD")
     rows, total, errors = [], 0.0, []
     for t in trades:

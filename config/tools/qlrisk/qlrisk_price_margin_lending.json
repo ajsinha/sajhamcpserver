@@ -3,7 +3,7 @@
   "implementation": "sajha.tools.impl.qlrisk.qlrisk_tools.QlriskPriceProductTool",
   "product": "MarginLending",
   "title": "Price a MarginLending",
-  "description": "Price one qlrisk MarginLending (Margin Lending Transaction; sft, equity): NPV in the trade currency and the reporting currency, pricing components, analytic Greeks where the pricer gives them, and optional cash flows. Inputs are this product's fields only; required: notional (maturity_date or tenor_years). Market data defaults to qlrisk's sample snapshot valued today; override curves, spots and vols, or apply shocks, with market_data as in qlrisk_price_trades. For a book of several products use qlrisk_price_trades. Example: {\"notional\": 1000000, \"tenor_years\": 5}.",
+  "description": "Price one Margin Lending Transaction (qlrisk MarginLending): NPV, pricing components and Greeks where the pricer gives them.\nInputs (* required): maturity* (tenor like 3Y or date), notional (amount; default 1000000), collateral_positions, loan_rate_pct (percent, 3 = 3%; default 5), reference_rate (default SOFR), spread_bp (basis points, 25 = 0.25%; default 200), initial_margin_ratio (default 1.5), maintenance_margin_ratio (default 1.25), margin_call_frequency (default daily), loan_purpose (securities_purchase/working_capital/bridge_financing/portfolio_leverage; default portfolio_leverage), is_committed (default true), facility_limit, currency (see the schema's list; default USD). Rates are in percent, spreads in basis points, maturities a tenor (3Y, 18M, 6W, 10D) or a date YYYY-MM-DD. Optional `advanced`: trade_id, trade_date, effective_date, counterparty_id, day_count, market_data, reporting_currency, include_cash_flows; market data defaults to qlrisk's sample snapshot valued today.\nExample: {\"maturity\": \"5Y\", \"notional\": 1000000} gives NPV 1,255,898.73 USD on the sample market valued 2026-10-09. For several trades at once use qlrisk_price_trades.",
   "version": "1.0.0",
   "enabled": true,
   "requires": [
@@ -32,8 +32,13 @@
     ],
     "generated_by": "sajha.tools.impl.qlrisk.generate",
     "example": {
-      "notional": 1000000,
-      "tenor_years": 5
+      "maturity": "5Y",
+      "notional": 1000000
+    },
+    "example_result": {
+      "valuation_date": "2026-10-09",
+      "npv": 1255898.73,
+      "currency": "USD"
     }
   }
 }

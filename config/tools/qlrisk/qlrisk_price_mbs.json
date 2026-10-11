@@ -3,7 +3,7 @@
   "implementation": "sajha.tools.impl.qlrisk.qlrisk_tools.QlriskPriceProductTool",
   "product": "MBS",
   "title": "Price a MBS",
-  "description": "Price one qlrisk MBS (Mortgage-Backed Securities; fixed_income, interest_rate): NPV in the trade currency and the reporting currency, pricing components, analytic Greeks where the pricer gives them, and optional cash flows. Inputs are this product's fields only; required: notional (maturity_date or tenor_years); pricer terms: base_cpr, coupon, is_long, oas, refi_multiplier, wac. Market data defaults to qlrisk's sample snapshot valued today; override curves, spots and vols, or apply shocks, with market_data as in qlrisk_price_trades. For a book of several products use qlrisk_price_trades. Example: {\"notional\": 1000000, \"tenor_years\": 5, \"coupon\": 0.05}.",
+  "description": "Price one Mortgage-Backed Securities (qlrisk MBS): NPV, pricing components and Greeks where the pricer gives them.\nInputs (* required): maturity* (tenor like 3Y or date), face_value (amount; default 100), coupon_pct (percent, 3 = 3%; default 5.5), wac_pct (percent, 3 = 3%), base_cpr_pct (percent, 3 = 3%; default 6), refi_multiplier (default 8), oas_bp (basis points, 25 = 0.25%; default 50), currency (see the schema's list; default USD). Rates are in percent, spreads in basis points, maturities a tenor (3Y, 18M, 6W, 10D) or a date YYYY-MM-DD. Optional `advanced`: trade_id, trade_date, effective_date, counterparty_id, position, market_data, reporting_currency, include_cash_flows; market data defaults to qlrisk's sample snapshot valued today.\nExample: {\"maturity\": \"5Y\", \"face_value\": 100} gives NPV 101.27 USD on the sample market valued 2026-10-09. For several trades at once use qlrisk_price_trades.",
   "version": "1.0.0",
   "enabled": true,
   "requires": [
@@ -32,9 +32,13 @@
     ],
     "generated_by": "sajha.tools.impl.qlrisk.generate",
     "example": {
-      "notional": 1000000,
-      "tenor_years": 5,
-      "coupon": 0.05
+      "maturity": "5Y",
+      "face_value": 100
+    },
+    "example_result": {
+      "valuation_date": "2026-10-09",
+      "npv": 101.27,
+      "currency": "USD"
     }
   }
 }

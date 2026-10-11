@@ -3,7 +3,7 @@
   "implementation": "sajha.tools.impl.qlrisk.qlrisk_tools.QlriskPriceProductTool",
   "product": "InterestRateCap",
   "title": "Price a InterestRateCap",
-  "description": "Price one qlrisk InterestRateCap (Interest Rate Cap - series of caplets; interest_rate, interest_rate): NPV in the trade currency and the reporting currency, pricing components, analytic Greeks where the pricer gives them, and optional cash flows. Inputs are this product's fields only; required: notional, strike (maturity_date or tenor_years). Market data defaults to qlrisk's sample snapshot valued today; override curves, spots and vols, or apply shocks, with market_data as in qlrisk_price_trades. For a book of several products use qlrisk_price_trades. Example: {\"notional\": 1000000, \"tenor_years\": 5, \"strike\": 0.04}.",
+  "description": "Price one Interest Rate Cap - series of caplets (qlrisk InterestRateCap): NPV, pricing components and Greeks where the pricer gives them.\nInputs (* required): maturity* (tenor like 3Y or date), notional (amount; default 1000000), strike_pct* (percent, 3 = 3%), floating_index (see the schema's list; default SOFR), frequency (annual/semi-annual/quarterly/monthly/weekly/daily/at maturity; default quarterly), volatility_pct (percent, 3 = 3%), currency (see the schema's list; default USD). Rates are in percent, spreads in basis points, maturities a tenor (3Y, 18M, 6W, 10D) or a date YYYY-MM-DD. Optional `advanced`: trade_id, trade_date, effective_date, counterparty_id, day_count, position, market_data, reporting_currency, include_cash_flows; market data defaults to qlrisk's sample snapshot valued today.\nExample: {\"maturity\": \"5Y\", \"notional\": 1000000, \"strike_pct\": 4} gives NPV 292,656.39 USD on the sample market valued 2026-10-09. For several trades at once use qlrisk_price_trades.",
   "version": "1.0.0",
   "enabled": true,
   "requires": [
@@ -32,9 +32,14 @@
     ],
     "generated_by": "sajha.tools.impl.qlrisk.generate",
     "example": {
+      "maturity": "5Y",
       "notional": 1000000,
-      "tenor_years": 5,
-      "strike": 0.04
+      "strike_pct": 4
+    },
+    "example_result": {
+      "valuation_date": "2026-10-09",
+      "npv": 292656.39,
+      "currency": "USD"
     }
   }
 }

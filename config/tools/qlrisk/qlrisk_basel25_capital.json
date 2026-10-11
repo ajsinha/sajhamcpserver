@@ -2,7 +2,7 @@
   "name": "qlrisk_basel25_capital",
   "implementation": "sajha.tools.impl.qlrisk.qlrisk_tools.QlriskBasel25CapitalTool",
   "title": "Basel 2.5 market-risk capital",
-  "description": "Basel 2.5 capital = max(VaR, m x avg60 VaR) + max(SVaR, m x avg60 SVaR), m = 3 + the backtesting plus factor. Give var_series and svar_series (the last 60 daily 10-day figures) and the backtest exceptions, or give trades to compute 10-day VaR, SVaR and the exception count from a history. Example: {\"var_series\": [1000000], \"svar_series\": [2000000], \"exceptions\": 3}.",
+  "description": "Basel 2.5 capital = max(VaR, m x avg60 VaR) + max(SVaR, m x avg60 SVaR), m = 3 + the backtesting plus factor. Give var_series and svar_series (the last 60 daily 10-day figures) and the backtest exceptions, or give trades to compute 10-day VaR, SVaR and the exception count from a history. Trades take the inputs of each product's qlrisk_price_<product> tool (rates in percent, spreads in basis points, maturity as a tenor like 5Y); confidence levels are in percent (99 = 99%). Inputs: var_series, svar_series, exceptions, trades; the rest (market_data, reporting_currency, history) in the optional `advanced` object. Example: {\"var_series\": [1000000], \"svar_series\": [2000000], \"exceptions\": 3} gives Basel 2.5 capital 9,000,000.00 on qlrisk's sample market valued 2026-10-09.",
   "version": "1.0.0",
   "enabled": true,
   "requires": [

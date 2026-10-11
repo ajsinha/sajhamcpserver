@@ -26,7 +26,7 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
         </div>
         <div class="card-body">
             <p><strong>Name:</strong> {{ tool.name }}</p>
-            <p><strong>Description:</strong> {{ tool.description }}</p>
+            <p style="white-space: pre-line;"><strong>Description:</strong> {{ tool.description }}</p>
         </div>
     </div>
     
@@ -102,6 +102,13 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
 <script nonce="{{ csp_nonce() }}">
 const toolName = "{{ tool.name }}";
 const toolSchema = {{ tool.inputSchema|tojson }};
+// tojson sorts keys; keep the schema's own field order (essentials first) for the form and its sections
+{% set _props = (tool.inputSchema or {}).get('properties') or {} %}
+const propertyOrder = {"": {{ _props.keys()|list|tojson }}{% for k, v in _props.items() if v is mapping and v.get('properties') %}, {{ k|tojson }}: {{ v['properties'].keys()|list|tojson }}{% endfor %}};
+function orderedKeys(properties, path) {
+    const order = propertyOrder[path] || [];
+    return order.filter(k => k in properties).concat(Object.keys(properties).filter(k => !order.includes(k)));
+}
 let executionHistory = [];
 
 // #8 Generate human-readable summary from tool result
@@ -133,100 +140,141 @@ function generateSummary(result) {
     } catch(e) { return ''; }
 }
 
-// Generate form inputs based on schema
+// Generate form inputs based on schema. An optional object with its own properties (such as the
+// qlrisk pricing tools' `advanced`) is a collapsed section of sub-fields; other objects and arrays are
+// JSON text areas. Field ids are the property path joined with dots.
+function escapeHtml(text) {
+    return String(text).replace(/[&<>"']/g, c => ({'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'}[c]));
+}
+
+function renderField(key, property, isRequired, prefix, exampleValue) {
+    const id = prefix ? `${prefix}.${key}` : key;
+    const label = property.title || key;
+    const formGroup = document.createElement('div');
+    formGroup.className = 'mb-3';
+    if (property.type === 'object' && property.properties && !isRequired && !prefix) {
+        const details = document.createElement('details');
+        details.className = 'border rounded p-2';
+        details.innerHTML = `<summary class="fw-semibold">${escapeHtml(label)}
+            ${property.description ? `<small class="text-muted d-block fw-normal">${escapeHtml(property.description)}</small>` : ''}</summary>`;
+        const inner = document.createElement('div');
+        inner.className = 'mt-2';
+        orderedKeys(property.properties, id).forEach(sub => {
+            const req = (property.required || []).includes(sub);
+            inner.appendChild(renderField(sub, property.properties[sub], req, id, (exampleValue || {})[sub]));
+        });
+        details.appendChild(inner);
+        formGroup.appendChild(details);
+        return formGroup;
+    }
+    const attrId = escapeHtml(id);
+    const required = isRequired ? 'required' : '';
+    // the default, else the worked example's value (so Execute runs the example as is)
+    const initial = property.default !== undefined ? property.default
+        : (exampleValue !== undefined && typeof exampleValue !== 'object' ? exampleValue : undefined);
+    const def = initial !== undefined ? escapeHtml(initial) : undefined;
+    const hint = Array.isArray(property.examples) && property.examples.length
+        ? `placeholder="e.g. ${escapeHtml(property.examples.join(', '))}"` : '';
+    let inputHtml = `<label for="${attrId}" class="form-label">
+        ${escapeHtml(label)} ${isRequired ? '<span class="text-danger">*</span>' : ''}
+        ${label !== key ? `<code class="small text-muted ms-1">${escapeHtml(key)}</code>` : ''}
+        ${property.description ? `<small class="text-muted d-block">${escapeHtml(property.description)}</small>` : ''}
+    </label>`;
+    if (property.enum) {
+        inputHtml += `<select class="form-control" id="${attrId}" ${required}>`;
+        inputHtml += `<option value="">-- Select --</option>`;
+        property.enum.forEach(value => {
+            const selected = initial === value ? 'selected' : '';
+            inputHtml += `<option value="${escapeHtml(value)}" ${selected}>${escapeHtml(value)}</option>`;
+        });
+        inputHtml += `</select>`;
+    } else if (property.type === 'boolean') {
+        inputHtml += `<div class="form-check">
+            <input class="form-check-input" type="checkbox" id="${attrId}" ${initial ? 'checked' : ''}>
+            <label class="form-check-label" for="${attrId}">Enable</label>
+        </div>`;
+    } else if (property.type === 'integer' || property.type === 'number') {
+        inputHtml += `<input type="number" step="any" class="form-control" id="${attrId}" ${required}
+            ${property.minimum !== undefined ? `min="${property.minimum}"` : ''}
+            ${property.maximum !== undefined ? `max="${property.maximum}"` : ''}
+            ${def !== undefined ? `value="${def}"` : ''} ${hint}>`;
+    } else if (property.type === 'object' || property.type === 'array') {
+        // a worked example (the schema's `examples`) fills the box, so Execute runs it as is
+        const filled = exampleValue !== undefined ? escapeHtml(JSON.stringify(exampleValue, null, 2)) : '';
+        const rows = filled ? Math.min(14, filled.split('\n').length) : 3;
+        inputHtml += `<textarea class="form-control font-monospace small" id="${attrId}" rows="${rows}"
+            placeholder='${property.type === 'array' ? '[...]' : '{"key": "value"}'}' ${required}>${filled}</textarea>`;
+    } else {
+        inputHtml += `<input type="text" class="form-control" id="${attrId}" ${required}
+            ${def !== undefined ? `value="${def}"` : ''}
+            ${hint || (property.description ? '' : `placeholder="${escapeHtml(key)}"`)}>`;
+    }
+    formGroup.innerHTML = inputHtml;
+    return formGroup;
+}
+
 function generateFormInputs() {
     const container = document.getElementById('dynamicInputs');
     container.innerHTML = '';
-    
     if (toolSchema.properties) {
-        Object.keys(toolSchema.properties).forEach(key => {
-            const property = toolSchema.properties[key];
+        const example = (Array.isArray(toolSchema.examples) && toolSchema.examples[0]) || {};
+        orderedKeys(toolSchema.properties, '').forEach(key => {
             const isRequired = toolSchema.required && toolSchema.required.includes(key);
-            
-            const formGroup = document.createElement('div');
-            formGroup.className = 'mb-3';
-            
-            let inputHtml = '';
-            
-            // Create label
-            inputHtml += `<label for="${key}" class="form-label">
-                ${key} ${isRequired ? '<span class="text-danger">*</span>' : ''}
-                ${property.description ? `<small class="text-muted">(${property.description})</small>` : ''}
-            </label>`;
-            
-            // Create input based on type
-            if (property.enum) {
-                // Dropdown for enum
-                inputHtml += `<select class="form-control" id="${key}" name="${key}" ${isRequired ? 'required' : ''}>`;
-                inputHtml += `<option value="">-- Select --</option>`;
-                property.enum.forEach(value => {
-                    const selected = property.default === value ? 'selected' : '';
-                    inputHtml += `<option value="${value}" ${selected}>${value}</option>`;
-                });
-                inputHtml += `</select>`;
-            } else if (property.type === 'boolean') {
-                // Checkbox for boolean
-                inputHtml += `<div class="form-check">
-                    <input class="form-check-input" type="checkbox" id="${key}" name="${key}" 
-                           ${property.default ? 'checked' : ''}>
-                    <label class="form-check-label" for="${key}">Enable</label>
-                </div>`;
-            } else if (property.type === 'integer' || property.type === 'number') {
-                // Number input
-                inputHtml += `<input type="number" class="form-control" id="${key}" name="${key}" 
-                    ${isRequired ? 'required' : ''} 
-                    ${property.minimum !== undefined ? `min="${property.minimum}"` : ''} 
-                    ${property.maximum !== undefined ? `max="${property.maximum}"` : ''}
-                    ${property.default !== undefined ? `value="${property.default}"` : ''}>`;
-            } else if (property.type === 'object') {
-                // JSON textarea for object
-                inputHtml += `<textarea class="form-control" id="${key}" name="${key}" rows="3" 
-                    placeholder='{"key": "value"}' ${isRequired ? 'required' : ''}></textarea>`;
-            } else {
-                // Text input for string and others
-                inputHtml += `<input type="text" class="form-control" id="${key}" name="${key}" 
-                    ${isRequired ? 'required' : ''} 
-                    ${property.default !== undefined ? `value="${property.default}"` : ''}
-                    placeholder="${property.description || key}">`;
-            }
-            
-            formGroup.innerHTML = inputHtml;
-            container.appendChild(formGroup);
+            container.appendChild(renderField(key, toolSchema.properties[key], isRequired, '', example[key]));
         });
     } else {
         container.innerHTML = '<p class="text-muted">No input parameters required</p>';
     }
 }
 
+// Read the form back into arguments (empty fields are left out); throws on invalid JSON.
+function collectArguments(properties, prefix) {
+    const out = {};
+    Object.keys(properties || {}).forEach(key => {
+        const property = properties[key];
+        const id = prefix ? `${prefix}.${key}` : key;
+        if (property.type === 'object' && property.properties && !document.getElementById(id)) {
+            const nested = collectArguments(property.properties, id);
+            if (Object.keys(nested).length) out[key] = nested;
+            return;
+        }
+        const el = document.getElementById(id);
+        if (!el) return;
+        if (property.type === 'boolean' && !property.enum) {
+            out[key] = el.checked;
+            return;
+        }
+        const value = el.value;
+        if (value === '') return;
+        if (property.enum) {
+            out[key] = value;
+        } else if (property.type === 'integer') {
+            out[key] = parseInt(value);
+        } else if (property.type === 'number') {
+            out[key] = parseFloat(value);
+        } else if (property.type === 'object' || property.type === 'array') {
+            try {
+                out[key] = JSON.parse(value);
+            } catch (e) {
+                throw new Error(`Invalid JSON for field ${id}`);
+            }
+        } else {
+            out[key] = value;
+        }
+    });
+    return out;
+}
+
 // Handle form submission
 document.getElementById('toolExecuteForm').addEventListener('submit', function(e) {
     e.preventDefault();
-    
-    // Collect form data
-    const formData = new FormData(e.target);
-    const arguments = {};
-    
-    for (const [key, value] of formData.entries()) {
-        const property = toolSchema.properties[key];
-        
-        if (property) {
-            if (property.type === 'integer') {
-                arguments[key] = parseInt(value);
-            } else if (property.type === 'number') {
-                arguments[key] = parseFloat(value);
-            } else if (property.type === 'boolean') {
-                arguments[key] = document.getElementById(key).checked;
-            } else if (property.type === 'object' && value) {
-                try {
-                    arguments[key] = JSON.parse(value);
-                } catch (e) {
-                    alert(`Invalid JSON for field ${key}`);
-                    return;
-                }
-            } else if (value !== '') {
-                arguments[key] = value;
-            }
-        }
+
+    let arguments;
+    try {
+        arguments = collectArguments(toolSchema.properties, '');
+    } catch (err) {
+        alert(err.message);
+        return;
     }
     
     // Show loading

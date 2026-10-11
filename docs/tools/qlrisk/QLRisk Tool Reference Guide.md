@@ -92,12 +92,14 @@ Design choices:
   the descriptive parts.
 - **Validated input, clear errors.** SAJHA checks every call against the schema; the handler then parses
   it and reports anything else wrong with a message naming the field and what to send (for example
-  `trades[0] (InterestRateSwap): missing ['maturity_date', 'fixed_rate'] (or tenor_years)`). Both are
+  `trades[0] (InterestRateSwap): 'maturity' is a required property`). Both are
   invalid-argument errors: `-32602` on MCP 2026-07-28, `isError: true` on 2025-11-25, HTTP 400 on REST. A
   failure inside qlrisk on valid input is a tool execution error naming the qlrisk exception.
 - **Results.** The tool returns the full result object. An MCP caller gets it as `structuredContent`, with
   a text block holding a one-line summary, a newline and the same JSON (cut at `max_text_chars`; the
-  structured result is never cut). REST callers get the object as `result`.
+  structured result is never cut). REST callers get the same object as `result`: the REST `result` and the
+  MCP `structuredContent` are identical, including `warnings` (values outside the usual range, ignored
+  inputs) and, for the per-product tools, `qlrisk_terms`.
 - **Off the event loop.** qlrisk is synchronous and CPU-bound; SAJHA runs tool calls in a worker thread on
   `/mcp` and on `POST /api/tools/execute`.
 
@@ -143,24 +145,44 @@ Like any tool, each can be disabled on the Tools page, restricted by role, or gi
 Most tools take a book (`trades`), `market_data`, `reporting_currency`, and, for VaR-like measures, a
 `history`.
 
+**Essentials first.** Each tool's schema lists its essential inputs at the top (for VaR: `trades`,
+`method`, `confidence_pct`, `es_confidence_pct`, `horizon_days`) and puts everything else, including
+`market_data`, `reporting_currency` and `history`, in one optional `advanced` object; on
+`/tools/<name>/execute` that is a collapsed section, and the JSON boxes (`trades` and the like) start
+filled with the tool's worked example, so **Execute** runs it as is. The layout (essentials, renamed
+fields, worked example) is one table, `sajha/tools/impl/qlrisk/tools/layout.py`; the schema's `examples`
+holds the example.
+
+**Units.** The same field means the same unit everywhere: rates and coupons in percent (`coupon_pct` 3 =
+3%), spreads in basis points, confidence levels in percent (`confidence_pct` 99, `es_confidence_pct` 97.5,
+`drc_confidence_pct` 99.9), recoveries in percent (`recovery_pct` 40), horizons in days where the name says
+`_days` and in years otherwise (`time_horizon`, `maturity` of a simulation). A confidence of 0.99 is
+rejected with a hint. Three kinds of input keep qlrisk's own units and say so: shock sizes (decimals,
+below), calculator `inputs` and `config` (`credit_risk`, `xva`, `ccr_exposure` calculator mode: rates,
+spreads, probabilities and recoveries as decimals, times in years) and simulation parameters
+(`drift`, `volatility` as decimals per year).
+
 ### trades
 
 A list of objects, each with `product` (a qlrisk product class, e.g. `InterestRateSwap`, `CorporateBond`,
 `CreditDefaultSwap`, `FXOption`, `EquityOption`, `CommodityForward`; `qlrisk_catalog` with topic `products` lists
-them all) and the product's terms. Defaults: `trade_id` `<product>-<n>`, `trade_date` and `effective_date`
-the valuation date, `currency` `USD`, `counterparty_id` `CP-1`, `netting_set_id` the counterparty.
-`tenor_years` can stand in for `maturity_date`. Dates are `YYYY-MM-DD`; enumerations accept qlrisk's value
-or name.
+them all with their inputs) and **the inputs of that product's `qlrisk_price_<product>` tool, flat and in
+the same units** ([Per-product pricing tools](#per-product-pricing-tools)): `maturity` as a tenor or a date,
+the amount under the product's name (`face_value`, `notional`, `principal` ...), rates in percent, spreads
+in basis points, and the trade fields that tool keeps in `advanced` (`trade_id`, `counterparty_id`,
+`issuer`, `position` ...) at the same level, plus `netting_set_id`. Defaults: `trade_id` `<product>-<n>`,
+trade and effective dates the valuation date, `currency` `USD`, `counterparty_id` `CP-1`, `netting_set_id`
+the counterparty. Each trade is checked against its product's inputs, and an error names the trade and the
+field (`trades[0] (InterestRateSwap): Additional properties are not allowed ('fixed_rate' was unexpected);
+InterestRateSwap takes [...] (rates in percent ...)`).
 
 ```json
-{"product": "InterestRateSwap", "trade_id": "IRS-5Y", "notional": 10000000, "tenor_years": 5,
- "fixed_rate": 0.044, "counterparty_id": "BANK-A"}
-{"product": "CorporateBond", "notional": 5000000, "tenor_years": 5, "coupon": 0.05, "issuer": "ACME"}
-{"product": "EquityOption", "notional": 1000000, "tenor_years": 0.5, "ticker": "SPX", "strike": 5000, "is_call": false}
-{"product": "FXOption", "notional": 2000000, "tenor_years": 1, "pair": "EURUSD", "strike": 1.10, "currency": "EUR"}
+{"product": "InterestRateSwap", "trade_id": "IRS-5Y", "maturity": "5Y", "notional": 10000000,
+ "fixed_rate_pct": 4.4, "counterparty_id": "BANK-A"}
+{"product": "CorporateBond", "maturity": "5Y", "face_value": 5000000, "coupon_pct": 5, "issuer": "ACME"}
+{"product": "EquityOption", "maturity": "6M", "notional": 1000000, "ticker": "SPX", "strike": 5000, "option_type": "put"}
+{"product": "FXOption", "maturity": "1Y", "notional": 2000000, "pair": "EURUSD", "strike": 1.10, "currency": "EUR"}
 ```
-
-A term the product's pricer does not read is passed through with a warning in the result's `warnings`.
 
 ### market_data
 
@@ -197,8 +219,10 @@ or send `{"source": "supplied", "dates": [...], "factors": ["EQ.SPX", ...], "val
 
 ## Tools
 
-Examples were run on the sample market data valued 2026-10-09 (`"market_data": {"valuation_date":
-"2026-10-09"}`, left out below for brevity). Figures depend on the market data and the history.
+Examples were run on the sample market data valued 2026-10-09 (`"advanced": {"market_data":
+{"valuation_date": "2026-10-09"}}`, left out below for brevity). Figures depend on the market data and the
+history. Each tool's description carries its own worked example with its real result, and a test keeps
+those figures true.
 
 ### qlrisk_catalog
 
@@ -206,11 +230,11 @@ Examples were run on the sample market data valued 2026-10-09 (`"market_data": {
 
 **Inputs:** `topic` (required): `products`, `calculators`, `stress_scenarios`, `report_measures`,
 `processes`, `market_data`, `enumerations`, `version`; `name` (a product, a calculator measure or an
-enumeration); `category` (products only, e.g. `fx`); `market_data` (for topic `market_data`).
+enumeration); `category` (products only, e.g. `fx`); in `advanced`, `market_data` (for topic `market_data`).
 
 **Outputs:** products: `count`, `categories`, `products` (`name`, `pricing_tool`, `category`, `asset_class`,
-`product_type`, `description`, `required`, `terms`); with `name`: `product` (parameters, terms, pricer) and
-`trade_schema`. calculators: `calculators` (`measure`, `calculator_type`, `inputs`, `required`, `config`)
+`product_type`, `description`, `required`, `inputs`, `trade_fields`); with `name`: `product`, `pricing_tool`
+and `trade_schema` (the trade's inputs in the tools' units). calculators: `calculators` (`measure`, `calculator_type`, `inputs`, `required`, `config`)
 and `tool_for_measure` (each measure's tool); with `name`: the full `input_schema` and `config`. version:
 `qlrisk_version` and `bounds`.
 
@@ -222,14 +246,14 @@ and `tool_for_measure` (each measure's tool); with `name`: the full `input_schem
 
 **Purpose:** what trades are worth.
 
-**Inputs:** `trades` (required), `market_data`, `reporting_currency` (default `USD`),
+**Inputs:** `trades` (required); in `advanced`: `market_data`, `reporting_currency` (default `USD`),
 `include_cash_flows` (default false).
 
 **Outputs:** `valuation_date`, `reporting_currency`, `total_npv`, `trades` (`trade_id`, `product`, `npv`,
 `currency`, `npv_reporting`, `components`, `greeks`, `risk_measures`, `cash_flows`), `errors`.
 
 ```json
-{"trades": [{"product": "InterestRateSwap", "trade_id": "IRS-5Y", "notional": 10000000, "tenor_years": 5, "fixed_rate": 0.044}]}
+{"trades": [{"product": "InterestRateSwap", "trade_id": "IRS-5Y", "maturity": "5Y", "notional": 10000000, "fixed_rate_pct": 4.4}]}
 ```
 
 ```text
@@ -243,9 +267,8 @@ and `tool_for_measure` (each measure's tool); with `name`: the full `input_schem
 **Purpose:** what moves the book: bump-and-reprice DV01 (per 1bp), CS01, DIV01, delta, vega, gamma
 (central bumps), 1-day theta, key-rate ladders and cross-gamma.
 
-**Inputs:** `trades` (required), `market_data`, `reporting_currency`, `risk_classes` (`IR`, `CR`, `EQ`,
-`CM`, `FX`, `OT`), `factors`, `include_theta` (true), `include_ladders` (true), `ladder_vertices`
-(`native`, `frtb_girr`, `frtb_csr`, `standard`), `bump_method` (`central`, `forward`),
+**Inputs:** `trades` (required), `ladder_vertices`; in `advanced`: `market_data`, `reporting_currency`, `risk_classes` (`IR`, `CR`, `EQ`,
+`CM`, `FX`, `OT`), `factors`, `include_theta` (true), `include_ladders` (true), `bump_method` (`central`, `forward`),
 `cross_gamma_factors` (2 or more factor keys).
 
 **Outputs:** `base_pv`, `by_risk_class` (`risk_class`, `measure`, `value`), `gamma_by_risk_class`,
@@ -253,7 +276,7 @@ and `tool_for_measure` (each measure's tool); with `name`: the full `input_schem
 `errors`.
 
 ```json
-{"trades": [{"product": "InterestRateSwap", "trade_id": "IRS-5Y", "notional": 10000000, "tenor_years": 5, "fixed_rate": 0.044}],
+{"trades": [{"product": "InterestRateSwap", "trade_id": "IRS-5Y", "maturity": "5Y", "notional": 10000000, "fixed_rate_pct": 4.4}],
  "ladder_vertices": "frtb_girr"}
 ```
 
@@ -267,10 +290,10 @@ ladders: forward_curves/SOFR dv01 {"2.0": 78.28, "3.0": 183.89, "5.0": 4217.99, 
 
 **Purpose:** market-risk VaR and Expected Shortfall.
 
-**Inputs:** `trades`, `market_data`, `reporting_currency`, `history`; `mode` (`portfolio`, or
-`pnl_series` with `pnl` and optional `weights`); `method` (`historical`, `age_weighted`,
-`filtered_historical`, `monte_carlo`, `parametric`); `confidence` (0.99), `es_confidence` (0.975),
-`horizon_days` (1), `lookback` (250), `revaluation` (`full`, `taylor`), `age_decay` (0.98),
+**Inputs:** `trades`, `method` (`historical`, `age_weighted`, `filtered_historical`, `monte_carlo`,
+`parametric`), `confidence_pct` (99), `es_confidence_pct` (97.5), `horizon_days` (1); in `advanced`:
+`market_data`, `reporting_currency`, `history`, `mode` (`portfolio`, or `pnl_series` with `pnl` and
+optional `weights`), `lookback` (250), `revaluation` (`full`, `taylor`), `age_decay` (0.98),
 `ewma_lambda`, `mc_paths` (5000), `mc_distribution` (`normal`, `student_t`), `mc_dof` (5), `seed` (7),
 `decomposition` (true), `group_by` (trade id → group), `include_stressed_var`, `stress_window` (250),
 `svar_horizon_days` (10), `liquidity` (`spreads`: trade id → proportional spread; `horizon_days`).
@@ -281,24 +304,24 @@ ladders: forward_curves/SOFR dv01 {"2.0": 78.28, "3.0": 183.89, "5.0": 4217.99, 
 in `pnl_series` mode `var`, `es`, `var_1d`, `es_1d`.
 
 ```json
-{"trades": [{"product": "InterestRateSwap", "trade_id": "IRS-5Y", "notional": 10000000, "tenor_years": 5, "fixed_rate": 0.044},
-            {"product": "EquityOption", "trade_id": "SPX-P", "notional": 1000000, "tenor_years": 0.5, "ticker": "SPX", "strike": 5000, "is_call": false}],
- "method": "historical", "horizon_days": 10, "include_stressed_var": true}
+{"trades": [{"product": "InterestRateSwap", "trade_id": "IRS-5Y", "maturity": "5Y", "notional": 10000000, "fixed_rate_pct": 4.4},
+            {"product": "EquityOption", "trade_id": "SPX-P", "maturity": "6M", "notional": 1000000, "ticker": "SPX", "strike": 5000, "option_type": "put"}],
+ "method": "historical", "horizon_days": 10, "advanced": {"include_stressed_var": true}}
 ```
 
 ```text
-historical VaR 99.0% 10d 204,168.67 USD; ES 97.5% 193,300.83; SVaR 561,506.31
-var.contributions {"IRS-5Y": 186413.37, "SPX-P": 17755.30}
+historical VaR 99.0% 10d 204,153.91 USD; ES 97.5% 193,288.73; SVaR 561,570.24
+var.contributions {"IRS-5Y": 186413.37, "SPX-P": 17740.54}
 ```
 
 ### qlrisk_backtest
 
 **Purpose:** validate a risk model.
 
-**Inputs:** `mode`: `portfolio` (the book's historical VaR and ES over `test_days` (250) after `lookback`
+**Inputs:** `trades`, `mode`, `confidence_pct` (99), `test_days` (250); the rest in `advanced`. `mode`: `portfolio` (the book's historical VaR and ES over `test_days` after `lookback`
 (250), plus PLA; `include_series` returns the daily `hpl`, `rtpl`, `var`, `es`), `var_series` (`pnl`,
 `var_forecasts`, `labels`), `es_series` (`pnl`, `var_forecasts`, `es_forecasts`), `pla` (`hpl`, `rtpl`);
-`confidence`, `es_confidence`. Forecasts are positive losses.
+`es_confidence_pct` (97.5). Forecasts are positive losses.
 
 **Outputs:** `var` (`n`, `exceptions`, `expected_exceptions`, `exception_labels`, `kupiec_lr`,
 `kupiec_p_value`, `independence_lr`, `independence_p_value`, `christoffersen_lr`,
@@ -317,26 +340,26 @@ Backtest over 250 days: 1 VaR exceptions (green, multiplier 3.0); ES green; PLA 
 
 **Purpose:** explain the P&L between two market states.
 
-**Inputs:** `trades` (required), `market_data` (the start), and the end: `end_market_data`, or
-`end_shocks` and/or `end_valuation_date` (the time roll).
+**Inputs:** `trades` (required), `end_shocks`, `end_valuation_date` (the time roll); in `advanced`:
+`market_data` (the start), `end_market_data` (instead of `end_shocks`), `reporting_currency`.
 
 **Outputs:** `start`, `end`, `total` (`actual`, `theta`, `unexplained` and one entry per risk class),
 `trades` (`actual`, `theta`, `by_risk_class`, `unexplained`, `top_factors`).
 
 ```json
-{"trades": [{"product": "EquityOption", "trade_id": "SPX-P", "notional": 1000000, "tenor_years": 0.5, "ticker": "SPX", "strike": 5000, "is_call": false}],
+{"trades": [{"product": "EquityOption", "trade_id": "SPX-P", "maturity": "6M", "notional": 1000000, "ticker": "SPX", "strike": 5000, "option_type": "put"}],
  "end_shocks": [{"factor": "EQ.SPX", "size": -0.05, "shock_type": "relative"}], "end_valuation_date": "2026-10-12"}
 ```
 
 ```text
-P&L 2026-10-09 -> 2026-10-12: actual 20,097.86 USD, theta -261.57, unexplained 215.70
+P&L 2026-10-09 -> 2026-10-12: actual 20,107.87 USD, theta -257.87, unexplained 216.67
 ```
 
 ### qlrisk_stress_test
 
 **Purpose:** stress a book.
 
-**Inputs:** `trades` (required), `market_data`, `reporting_currency`; `mode`: `library` (qlrisk's
+**Inputs:** `trades` (required), `mode`, `scenarios`, `custom_scenarios`, `target_loss`; in `advanced`: `market_data`, `reporting_currency`, `history`, `lookback`, `top_n`. `mode`: `library` (qlrisk's
 historical crises, all or `scenarios`: `1987_black_monday`, `1998_ltcm_russia`, `2008_gfc_lehman`,
 `2010_euro_crisis`, `2013_taper_tantrum`, `2016_brexit`, `2020_covid`, `2022_rates_shock`,
 `2023_regional_banks` in qlrisk today; the schema reads them from qlrisk), `custom` (`custom_scenarios`:
@@ -347,7 +370,7 @@ historical crises, all or `scenarios`: `1987_black_monday`, `1998_ltcm_russia`, 
 reverse: `target_loss`, `achieved_loss`, `scale`, `sigma_distance`, `top_moves`, `shocks`.
 
 ```json
-{"trades": [{"product": "InterestRateSwap", "trade_id": "IRS-5Y", "notional": 10000000, "tenor_years": 5, "fixed_rate": 0.044}],
+{"trades": [{"product": "InterestRateSwap", "trade_id": "IRS-5Y", "maturity": "5Y", "notional": 10000000, "fixed_rate_pct": 4.4}],
  "mode": "custom", "custom_scenarios": [{"name": "rates +100bp", "shocks": [{"risk_classes": ["IR"], "shape": "parallel", "size": 0.01}]}]}
 ```
 
@@ -355,14 +378,14 @@ reverse: `target_loss`, `achieved_loss`, `scale`, `sigma_distance`, `top_moves`,
 1 stress scenario(s); worst rates +100bp P&L 445,355.39 USD
 ```
 
-With the swap and the SPX put and no `mode`, the library's worst is `2008_gfc_lehman` (-423,225.11 USD); a
+With the swap and the SPX put and no `mode`, the library's worst is `2008_gfc_lehman` (-423,260.25 USD); a
 reverse stress to a 500,000 loss finds a move 19.04 sigma away.
 
 ### qlrisk_frtb_sa_capital
 
 **Purpose:** FRTB Standardised Approach capital (MAR21-23).
 
-**Inputs:** `mode`: `portfolio` (default) with `trades`, `market_data`, `reporting_currency`,
+**Inputs:** `trades`, `mode`; the rest in `advanced`. `mode`: `portfolio` (default) with `trades`, `market_data`, `reporting_currency`,
 `curve_currency`, `credit_buckets`, `equity_buckets`, `commodity_buckets`, `vol_underlyings`, `ratings`,
 `seniority`, `exotic`, `other_residual`, `csr_sector_gamma`, `include_curvature`;
 `sbm_from_sensitivities` with `frtb_sensitivities` (`risk_class`, `risk_type`, `bucket`, `name`, `tenor`,
@@ -374,11 +397,11 @@ reverse stress to a 500,000 loss finds a move 19.04 sigma away.
 `net_jtd`, `hbr`), `rrao`.
 
 ```json
-{"trades": [...the swap and the SPX put...], "equity_buckets": {"SPX": 12}, "vol_underlyings": {"eq_vol": "SPX"}}
+{"trades": [...the swap and the SPX put...], "advanced": {"equity_buckets": {"SPX": 12}, "vol_underlyings": {"eq_vol": "SPX"}}}
 ```
 
 ```text
-FRTB SA capital 480,976.01 USD: SBM 480,976.01, DRC 0.00, RRAO 0.00; unmapped factors ['DIV.SPX.1Y', 'DIV.SPX.5Y']
+FRTB SA capital 480,891.53 USD: SBM 480,891.53, DRC 0.00, RRAO 0.00; unmapped factors ['DIV.SPX.1Y', 'DIV.SPX.5Y']
 ```
 
 ### qlrisk_frtb_ima_capital
@@ -391,14 +414,15 @@ dates of real prices), `ima_drc` (`drc_positions`, `n_sims`, `global_correlation
 `sectors`, `drc_confidence`, `seed`), `capital` (`imcc`, `ses`, `drc`, `multiplier`, `imcc_avg60`,
 `ses_avg60`). Book modes take `trades`, `market_data`, `history`, `current_window`, `stress_window`,
 `rho`, `revaluation`, `reduced_set`, `liquidity_horizons` (factor → 10/20/40/60/120), `idiosyncratic`,
-`seniority`, `multiplier`, `es_confidence`.
+`seniority`, `multiplier`, `es_confidence_pct` (97.5); `drc_confidence_pct` (99.9) for the DRC. Only
+`trades` and `mode` are essentials; the rest is in `advanced`.
 
 **Outputs:** `imcc` (`imcc`, `es_unconstrained`, `es_by_class`, `stress_window`, `ratio`, `details`),
 `ses` (`ses`, `by_factor`), `drc` (`drc`, ...), `capital`; `lh_es`: `es`, `components`; `rfet`:
 `modellable`, `non_modellable`; `liquidity_horizons`: factor → horizon.
 
 ```json
-{"mode": "capital", "imcc": 1000000, "ses": 200000, "drc": 100000}
+{"mode": "capital", "advanced": {"imcc": 1000000, "ses": 200000, "drc": 100000}}
 ```
 
 ```text
@@ -409,7 +433,7 @@ IMA capital 1,800,000.00
 
 **Purpose:** Basel 2.5 capital = max(VaR, m × avg60 VaR) + max(SVaR, m × avg60 SVaR).
 
-**Inputs:** `var_series`, `svar_series`, `exceptions`; or `trades` (with `market_data`, `history`) to
+**Inputs:** `var_series`, `svar_series`, `exceptions`; or `trades` (with `market_data`, `history` in `advanced`) to
 compute 10-day VaR, SVaR and the exception count (needs at least 520 days of history).
 
 **Outputs:** `result` (`capital`, `var_term`, `svar_term`, `multiplier`); with trades also `var_10d`,
@@ -428,7 +452,7 @@ Basel 2.5 capital 9,000,000.00     (var_term 3,000,000, svar_term 6,000,000, mul
 **Purpose:** counterparty exposure.
 
 **Inputs:** `mode`: `trade_profiles` (default without `measure`: each trade's simulated profile; `trades`,
-`market_data`, `time_horizon` (5), `num_scenarios` (2000), `confidence_level` (0.95)); `calculator`
+`market_data`, `time_horizon` (years, 5), `num_scenarios` (2000), `confidence_pct` (95)); `calculator`
 (`measure`: `ce`, `ee`, `eee`, `pfe`, `peak`, `stressed`; `inputs` and `config` as the calculator defines
 them, listed by `qlrisk_catalog` topic `calculators`); `wrong_way` (`credit_factor` such as `CR.GLOBEX.5Y`,
 `history`, `shock_sigmas` (3), `horizon_days` (10), `lookback`, `top_n`).
@@ -436,7 +460,9 @@ them, listed by `qlrisk_catalog` topic `calculators`); `wrong_way` (`credit_fact
 **Outputs:** profiles: `trades` (`time_grid`, `expected_exposure`, `potential_future_exposure`,
 `effective_ee`, `peak_exposure`, `epe`, `effective_epe`, `cva`); calculator: `measure`, `result` (the
 calculator's result), `headline`; wrong-way: `base_exposure`, `conditional_exposure`, `ratio`,
-`spread_move`, `top_moves`.
+`spread_move`, `top_moves`. Essentials are `trades`, `mode`, `measure`, `inputs`; the rest is in
+`advanced`. qlrisk's exposure profile leaves `cva` at 0.0 for some products (the swap among them); the result
+then carries a warning pointing to `qlrisk_xva`.
 
 ```json
 {"mode": "calculator", "measure": "pfe", "inputs": {"current_mtm": 100000, "notional": 10000000, "remaining_maturity": 5, "volatility": 0.01}}
@@ -450,7 +476,7 @@ PFE: 212,925.17
 
 **Purpose:** SA-CCR exposure at default.
 
-**Inputs:** `mode`: `netting_sets` (default; `trades`, `market_data`, `reporting_currency`, `csa`: netting
+**Inputs:** `trades`, `mode`, `csa` (the rest in `advanced`). `mode`: `netting_sets` (default; `trades`, `market_data`, `reporting_currency`, `csa`: netting
 set → `margined`, `collateral`, `threshold`, `minimum_transfer_amount`, `nica`, `mpor_days`;
 `index_names`), `trades` (stand-alone per trade), `calculator` (`calculator_input`: `netting_set_id`,
 `trades` as `{asset_class, notional, maturity, mtm, ...}`, `collateral`, `variation_margin`, `threshold`,
@@ -461,7 +487,7 @@ set → `margined`, `collateral`, `threshold`, `minimum_transfer_amount`, `nica`
 `pfe_add_on`, `ead`, `asset_class`, `hedging_set_contributions`, and `ead_sum`.
 
 ```json
-{"trades": [{"product": "InterestRateSwap", "trade_id": "IRS-5Y", "notional": 10000000, "tenor_years": 5, "fixed_rate": 0.044, "counterparty_id": "BANK-A"}],
+{"trades": [{"product": "InterestRateSwap", "trade_id": "IRS-5Y", "maturity": "5Y", "notional": 10000000, "fixed_rate_pct": 4.4, "counterparty_id": "BANK-A"}],
  "csa": {"BANK-A": {"margined": true, "threshold": 0}}}
 ```
 
@@ -476,17 +502,21 @@ SA-CCR EAD 78,272.06 USD across 1 netting set(s)     (BANK-A: RC 0, add-on 66,35
 **Inputs:** `positions` (required; `notional`, `product_type`, `remaining_maturity`, `volatility`,
 `delta`, `delta_sensitivities`, `vega_sensitivities`, `curvature_sensitivities`, `correlation_within`,
 `correlation_across`, `margin_period_of_risk`, `gross_notional`, `net_to_gross_ratio`), `method` (`simm`
-by default, `schedule`, `var`), `confidence_level`, `mpor_scaling`. One position gives its IM; several
-give the portfolio IM.
+by default, `schedule`, `var`); in `advanced`, `confidence_pct` (99) and `mpor_scaling`. One position gives
+its IM; several give the portfolio IM. SIMM `delta_sensitivities` are bucket → sensitivity: for rates
+(`irs`, `fra`) the tenor buckets `2w` ... `30y` with **DV01 per 1bp** (as `qlrisk_sensitivities` reports it;
+the tool multiplies by 10,000 for qlrisk, whose weights apply per 1.00 of rate), for credit `ig`, `hy`,
+`sovereign` with CS01 per 1bp, for equity, FX and commodity a delta in currency per 100% move. A bucket
+qlrisk does not know is an error (qlrisk would otherwise apply a 10% weight).
 
 **Outputs:** `result` (`initial_margin`, `im_as_pct_notional`, `method`, `components`), `headline`.
 
 ```json
-{"method": "simm", "positions": [{"notional": 10000000, "product_type": "irs", "remaining_maturity": 5, "delta_sensitivities": {"USD-5Y": 4500}}]}
+{"method": "simm", "positions": [{"notional": 10000000, "product_type": "irs", "remaining_maturity": 5, "delta_sensitivities": {"5y": 4500}}]}
 ```
 
 ```text
-Initial margin (simm): 450.00
+Initial margin (simm): 252,000.00      (5y risk weight 56bp x DV01 4,500)
 ```
 
 ### qlrisk_credit_risk
@@ -497,7 +527,8 @@ Initial margin (simm): 450.00
 fields and configuration of each come from the qlrisk calculator and are in the tool description and in
 `qlrisk_catalog` topic `calculators`; for example `pd` takes `credit_rating`, or `asset_value`, `debt_value`,
 `asset_volatility`, `risk_free_rate`, or `hazard_rate`, with `config.model` one of `structural`,
-`reduced_form`, `transition_matrix`, `logistic`, `historical`.
+`reduced_form`, `transition_matrix`, `logistic`, `historical`. The calculator fields are qlrisk's own and in
+its units: probabilities, rates and LGDs as decimals (`pd` 0.02 = 2%), times in years.
 
 **Outputs:** `measure`, `result`, `headline` (PD and LGD are the result itself; others the main field,
 e.g. `expected_loss`, `economic_capital`, `raroc`).
@@ -519,10 +550,12 @@ PD: 0.004
 **Inputs:** `measure`: `cva`, `dva`, `fva`, `kva`, `mva` (`inputs`, `config` from the qlrisk calculator;
 e.g. `cva`: `ee_profile`, `time_grid`, `credit_spread`, `recovery_rate`, ...); `total` (`inputs`: one
 object per adjustment plus `colva` as a number); `sa_cva` (`counterparty` (a credit curve in the market
-data), `time_grid`, `expected_exposure`, `recovery`, `counterparty_buckets`: name → [MAR50 bucket,
+data), `time_grid`, `expected_exposure`, `recovery_pct` (40), `counterparty_buckets`: name → [MAR50 bucket,
 investment grade], `hedges` (trades), `m_cva`, `reference_buckets`, `market_data`, `reporting_currency`);
 `ba_cva` (`counterparties`: `name`, `sector`, `investment_grade`, `netting_sets` as [EAD, maturity],
-`hedges`; `index_hedges`).
+`hedges`; `index_hedges`). Essentials are `measure`, `inputs`, `counterparty`, `time_grid`,
+`expected_exposure` and `recovery_pct`; the rest is in `advanced`. Calculator `inputs` are in qlrisk's units
+(`credit_spread` 0.012 = 120bp, `recovery_rate` 0.4); give `notional` there for a meaningful `cva_pct`.
 
 **Outputs:** calculators: `result`, `headline`; total: `components` (`cva`, `dva`, `fva`, `kva`, `mva`,
 `colva`, `total_xva`), `details`, `convention`; sa_cva: `cva`, `capital`, `by_component`, `by_bucket`;
@@ -536,7 +569,7 @@ ba_cva: `result` (`k_reduced`, `capital_reduced`, `scva`, `capital`, ...).
 CVA: 118,737.19
 ```
 
-The same profile as SA-CVA on ACME (`"counterparty_buckets": {"ACME": ["3", true]}`): CVA 115,136.81 and
+The same profile as SA-CVA on ACME (`"advanced": {"counterparty_buckets": {"ACME": ["3", true]}}`): CVA 115,136.81 and
 capital 294,291.64 USD. BA-CVA for one investment-grade financial with a 10m, 5-year netting set:
 1,026,996.36.
 
@@ -545,8 +578,8 @@ capital 294,291.64 USD. BA-CVA for one investment-grade financial with a 10m, 5-
 **Purpose:** Monte Carlo paths of qlrisk's processes (`gbm`, `ou`, `cir`, `heston`, `vasicek`,
 `hull_white`, `merton_jump` in qlrisk today; the enum lists only those the generator supports).
 
-**Inputs:** `process`, `initial_value` (required), `drift`, `volatility`, `maturity`, `num_steps`,
-`num_paths`, `mean_reversion_speed`, `long_term_mean`, `vol_of_vol`, `correlation`, `initial_variance`,
+**Inputs:** `process`, `initial_value` (required), `drift`, `volatility` (decimals per year), `maturity`
+(years), `num_paths`; in `advanced`: `num_steps`, `mean_reversion_speed`, `long_term_mean`, `vol_of_vol`, `correlation`, `initial_variance`,
 `jump_intensity`, `jump_mean`, `jump_std`, `seed` (7), `percentiles` ([5, 50, 95]), `sample_paths` (3,
 at most 10).
 
@@ -555,7 +588,7 @@ at most 10).
 returned.
 
 ```json
-{"process": "gbm", "initial_value": 100, "drift": 0.05, "volatility": 0.2, "maturity": 1, "num_steps": 252, "num_paths": 10000}
+{"process": "gbm", "initial_value": 100, "drift": 0.05, "volatility": 0.2, "maturity": 1, "num_paths": 10000}
 ```
 
 ```text
@@ -566,10 +599,10 @@ returned.
 
 **Purpose:** every risk in one call with qlrisk's `RiskEngine`.
 
-**Inputs:** `trades`, `market_data`, `history`, `reporting_currency`, or `use_demo_book: true` (qlrisk's
+**Inputs:** `trades`, `use_demo_book`, `measures`, `limits`; the rest in `advanced`. `trades` (with `market_data`, `history`, `reporting_currency`), or `use_demo_book: true` (qlrisk's
 demo book: swap, bond, CDS, FX option, equity option, commodity forward, with its history, hierarchy and
 FRTB maps); `measures` (`PV`, `SENSITIVITIES`, `VAR`, `ES`, `PARAMETRIC_VAR`, `SVAR`, `STRESS`,
-`BACKTEST`, `FRTB_SA`, `EXPOSURE`; the default is qlrisk's default set), `confidence`, `es_confidence`,
+`BACKTEST`, `FRTB_SA`, `EXPOSURE`; the default is qlrisk's default set), `confidence_pct`, `es_confidence_pct`,
 `lookback`, `horizon_days` (10), `stress_window`, `hierarchy` (`levels`, `paths`: trade id → path),
 `limits`, `frtb` (as in `frtb_sa_capital`), `csa`.
 
@@ -581,7 +614,8 @@ FRTB maps); `measures` (`PV`, `SENSITIVITIES`, `VAR`, `ES`, `PARAMETRIC_VAR`, `S
 {"use_demo_book": true, "limits": [{"name": "Firm 1d VaR", "metric": "var.1d", "limit": 500000}]}
 ```
 
-The demo book values itself today, so its date and figures move:
+The demo book values itself today with its own market and history, so its date and figures move (a
+`market_data` or `history` sent with it is ignored, with a warning):
 
 ```text
 Risk report 2026-10-10 in USD: pv.total 11,390,256.04, var.1d 329,796.11, es.1d 339,983.10, svar.10d 2,761,917.56,
@@ -613,14 +647,35 @@ limits: Firm 1d VaR utilisation 0.66, green
 
 Besides `qlrisk_price_trades` (any mix of products in one book), there is one pricing tool per qlrisk
 product, named `qlrisk_price_<product>`: the product class in snake case, for example
-`qlrisk_price_corporate_bond`, `qlrisk_price_interest_rate_swap`, `qlrisk_price_fx_option`. Each one's
-input schema holds **only that product's fields**: its constructor parameters and the keyword terms its
-pricer reads (types, enums and defaults from qlrisk), `tenor_years` where the product has a maturity, and
-the same `market_data`, `reporting_currency` and `include_cash_flows` as `qlrisk_price_trades`. A field the
-product does not have is rejected. The description names the required fields and the pricer terms and
-carries an example. The result is the trade's row of `qlrisk_price_trades` with `valuation_date` and
-`reporting_currency`: `npv` and `currency`, `npv_reporting`, `components`, `greeks`, `risk_measures`, and
-`cash_flows` when asked.
+`qlrisk_price_treasury_bond`, `qlrisk_price_interest_rate_swap`, `qlrisk_price_fx_option`. Each one asks
+only for **that product's economic terms, in human units**, and keeps everything else in one optional
+`advanced` object, so its form on `/tools/<name>/execute` is short:
+
+| Input | Unit and syntax |
+|---|---|
+| `maturity` | A tenor from the valuation date (`3Y`, `18M`, `6W`, `10D`; `1.5Y` is 18 months) or a date `YYYY-MM-DD`; it must fall after the valuation date. Other dates (`expiry`, `swap_start`, `swap_end`, `settlement`, `fixing`, the FX swap legs) take the same syntax |
+| `face_value`, `principal`, `position_value`, `notional` | The amount, named for the product (face value for bonds and bills, principal for deposits and repos, position value for cash equity), in the trade currency, with a default (100 face for bonds, 1,000,000 otherwise) |
+| `*_pct` | A rate in **percent**: `coupon_pct` 3 is 3% a year (qlrisk itself takes 0.03); also `rate_pct`, `fixed_rate_pct`, `fra_rate_pct`, `strike_pct` (cap, floor and swaption strikes), `recovery_pct`, `volatility_pct`, `cpr_pct`, `attachment_pct` and the like |
+| `*_bp` | A spread in **basis points**: `spread_bp` 25 is 0.25%; also `coupon_bp` (a CDS's running premium, a tranche's spread), `oas_bp`, `rebate_rate_bp`, `fee_rate_bp` |
+| frequencies | Words: `annual`, `semi-annual`, `quarterly`, `monthly`, `at maturity` (default the market convention: semi-annual for US treasuries, annual for Bunds and OATs) |
+| `currency` | One of qlrisk's currencies, default USD (EUR for Bunds and OATs, GBP for gilts, JPY for JGBs) |
+| `option_type`, `pay_fixed`, `swaption_type` | `call`/`put`, true/false, `payer`/`receiver` |
+| `advanced` | Optional: trade id and dates, counterparty, `issuer` (its credit curve adds a spread), `position` (`long`/`short`) and the other direction flags, day counts, fallback spots, `market_data`, `reporting_currency`, `include_cash_flows` |
+
+Prices, FX rates, quantities and ratios keep their natural units (an equity strike is a price, an FX strike
+a rate). A field qlrisk gives as a nested object (a TRS's `terms`, an SFT's collateral) is passed as is, in
+qlrisk's own units (rates as decimals). Values outside hard bounds are rejected with the field named (for
+example `coupon_pct` above 100, a recovery of 100%, a non-positive face value, a maturity in the past, a
+detachment below the attachment, a tenor like `3X`); values outside the usual range (a coupon above 20%, a
+rate of 0.03 that probably meant 3%) price but add a line to `warnings`. The names, units, conversions,
+bounds and defaults are one table in `sajha/tools/impl/qlrisk/generate.py` (`FIELDS`, `OVERRIDES`,
+`NOTIONAL`); a qlrisk field it does not name is passed as is and documented as taking qlrisk's units.
+
+Each description has three lines: what it prices; the inputs with units and defaults; a worked example
+with its real result on the sample market. The result is the trade's row of `qlrisk_price_trades` with
+`valuation_date` and `reporting_currency` (`npv` and `currency`, `npv_reporting`, `components`, `greeks`,
+`risk_measures`, `cash_flows` when asked), plus `qlrisk_terms`: the trade exactly as qlrisk received it, in
+qlrisk's units, so the conversion can be checked.
 
 **Finding them.** They are in the `qlrisk` folder of the Tools page with the other qlrisk tools, and in
 `tools/list`; `qlrisk_catalog` with topic `products` lists every product with its `pricing_tool`.
@@ -634,33 +689,34 @@ python -m sajha.tools.impl.qlrisk.generate            # write the configs; remov
 python -m sajha.tools.impl.qlrisk.generate --check    # report differences, write nothing (exit 1 if any)
 ```
 
-For each product it builds a small example trade, checks it against the tool's schema and prices it on the
-sample market (valued 2026-10-09, so the output is stable). A product that cannot be priced standalone is
-skipped and printed with the reason. `tests/tools/test_qlrisk_tools.py` fails when the files differ from
-what the generator would write now, so a qlrisk upgrade that adds, removes or changes products is caught:
-run the generator and commit the result. As with every qlrisk tool, the input schema itself is built from
-the installed qlrisk when the tool loads.
+For each product it builds a small example trade in the tool's own inputs, checks it against the tool's
+schema and prices it on the sample market (valued 2026-10-09, so the output is stable); the result goes into
+the description and `metadata.example_result`. A product that cannot be priced standalone is skipped and
+printed with the reason. `tests/tools/test_qlrisk_tools.py` fails when the files differ from what the
+generator would write now, so a qlrisk upgrade that adds, removes or changes products is caught: run the
+generator and commit the result. The same tests price every example and check it is plausible for its
+asset class (a bond within 70-130% of face, a long option non-negative, a swap at its par rate at zero).
 
-**Example.** A 5-year fixed-rate corporate bond and a 5-year payer swap (on `"market_data":
-{"valuation_date": "2026-10-09"}`):
+**Example.** A 3-year 3% US treasury with face 100, a 5-year corporate bond with face 5,000,000 on ACME's
+credit curve, and a 5-year payer swap (each with `"advanced": {"market_data": {"valuation_date": "2026-10-09"}}`):
 
 ```json
-qlrisk_price_corporate_bond     {"notional": 5000000, "tenor_years": 5, "coupon": 0.05, "issuer": "ACME"}
-qlrisk_price_interest_rate_swap {"notional": 10000000, "tenor_years": 5, "fixed_rate": 0.044}
+qlrisk_price_treasury_bond      {"maturity": "3Y", "face_value": 100, "coupon_pct": 3, "currency": "USD"}
+qlrisk_price_corporate_bond     {"maturity": "5Y", "face_value": 5000000, "coupon_pct": 5, "advanced": {"issuer": "ACME"}}
+qlrisk_price_interest_rate_swap {"maturity": "5Y", "notional": 10000000, "fixed_rate_pct": 4.4}
 ```
 
 ```text
-CorporateBond CorporateBond-1 on 2026-10-09: NPV 4,886,813.03 USD
+TreasuryBond on 2026-10-09: NPV 97.85 USD
+  qlrisk_terms {"maturity_date": "2029-10-09", "notional": 100, "coupon": 0.03, "frequency": 2, ...}
+CorporateBond on 2026-10-09: NPV 4,886,813.03 USD
   components {"maturity": 4.9993, "credit_spread": 0.0120}
-InterestRateSwap InterestRateSwap-1 on 2026-10-09: NPV -22,834.98 USD
+InterestRateSwap on 2026-10-09: NPV -22,834.98 USD
   components {"fixed_leg_pv": 1960276.75, "float_leg_pv": 1937441.77, "annuity": 44551744.33, "par_rate": 0.04349}
-  greeks {"dv01": 4455.17}
 ```
 
-The swap tool requires `notional` and `fixed_rate` (plus `maturity_date` or `tenor_years`) and offers
-`floating_index`, `is_payer`, frequencies, day counts, `spread` and `amortization_schedule`; the bond tool
-requires only `notional` and the maturity and offers `coupon`, `frequency`, `issuer` (its credit curve) and
-`is_long`.
+`coupon_pct` 300 is rejected (`'coupon_pct': 300 is greater than the maximum of 100.0`); qlrisk itself
+would price a 300% coupon without complaint, which is why the bound lives here.
 
 ---
 
@@ -670,7 +726,7 @@ Like any SAJHA tool: MCP `tools/call`, REST, Ask SAJHA, composites and workflows
 
 ```bash
 curl -s -X POST http://localhost:3002/api/tools/execute -H "X-API-Key: $SAJHA_KEY" -H 'Content-Type: application/json' \
-  -d '{"tool": "qlrisk_price_trades", "arguments": {"trades": [{"product": "InterestRateSwap", "notional": 10000000, "tenor_years": 5, "fixed_rate": 0.044}]}}'
+  -d '{"tool": "qlrisk_price_trades", "arguments": {"trades": [{"product": "InterestRateSwap", "maturity": "5Y", "notional": 10000000, "fixed_rate_pct": 4.4}]}}'
 ```
 
 REST returns the result object as `result`; MCP returns it as `structuredContent` with the summary line and
