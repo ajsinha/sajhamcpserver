@@ -156,21 +156,28 @@ def check_cimd_url(url: str) -> Optional[str]:
 _NAT64 = ipaddress.ip_network('64:ff9b::/96')
 
 
+def effective_address(ip):
+    """The address a connection to ``ip`` really reaches: an IPv6 form that embeds an IPv4
+    target (mapped, 6to4, Teredo, NAT64) is that target; any other address is itself."""
+    if isinstance(ip, ipaddress.IPv6Address):
+        embedded = ip.ipv4_mapped or ip.sixtofour or (ip.teredo[1] if ip.teredo else None)
+        if embedded is None and ip in _NAT64:
+            embedded = ipaddress.IPv4Address(int(ip) & 0xFFFFFFFF)
+        if embedded is not None:
+            return embedded
+    return ip
+
+
 def address_allowed(ip, host: str, allow_localhost: bool = False, allow_private: bool = False) -> bool:
     """
     SSRF guard for one resolved address: public (global unicast) addresses only, unless
     ``allow_localhost`` (loopback, and only for a localhost host name) or ``allow_private``
     (RFC 1918 / ULA; never link-local, so never cloud metadata at 169.254.169.254).
     IPv6 forms that embed an IPv4 target (mapped, 6to4, Teredo, NAT64) are judged by it.
-    Shared by CIMD fetches and async webhook delivery (sajha/core/async_executor.py).
+    Shared by CIMD fetches, async webhook delivery (sajha/core/async_executor.py), federation,
+    API Import and the outbound fetch guard for tools (sajha/core/outbound.py).
     """
-    if isinstance(ip, ipaddress.IPv6Address):
-        # Addresses that embed an IPv4 target are judged by that target
-        embedded = ip.ipv4_mapped or ip.sixtofour or (ip.teredo[1] if ip.teredo else None)
-        if embedded is None and ip in _NAT64:
-            embedded = ipaddress.IPv4Address(int(ip) & 0xFFFFFFFF)
-        if embedded is not None:
-            ip = embedded
+    ip = effective_address(ip)
     if ip.is_loopback:
         return allow_localhost and host in _LOOPBACK_HOSTS
     if ip.is_global and not ip.is_multicast and not ip.is_reserved:

@@ -52,6 +52,7 @@ ROUTES: List[Tuple[str, bool]] = [
     ('/login', False),
     ('/dashboard', True),
     ('/tools', True),
+    ('/tools/domains', True),
     ('/tools/wiki_search/schema', True),
     ('/tools/wiki_search/execute', True),
     ('/tools/wiki_search/config', True),

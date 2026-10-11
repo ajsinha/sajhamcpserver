@@ -81,10 +81,9 @@ def test_rest_generator_substitutes_path_params(gen_dirs):
     ok, msg, j, p = g.save_tool(d)
     assert ok, msg
     tool = _load(j, p)
-    resp = mock.Mock(status_code=200)
-    resp.raise_for_status.return_value = None
-    resp.json.return_value = {'ok': 1}
-    with mock.patch('requests.request', return_value=resp) as req:
+    from sajha.core.outbound import Response
+    resp = Response(200, 'OK', {'content-type': 'application/json'}, b'{"ok": 1}', '')
+    with mock.patch('sajha.core.outbound.request', return_value=resp) as req:
         out = tool.execute({'item_id': '42'})
     assert out['success'] and out['data'] == {'ok': 1}
     assert req.call_args.kwargs['url'] == 'https://api.example.com/items/42'
@@ -285,12 +284,12 @@ def test_python_creator_end_to_end(studio):
 
 def test_rest_creator_end_to_end(studio):
     payload = {'name': 'zz_test_rest', 'endpoint': 'http://127.0.0.1:9/nothing', 'method': 'GET',
-               'description': 'Unreachable endpoint', 'request_schema': {'type': 'object', 'properties': {}},
+               'description': 'Loopback endpoint', 'request_schema': {'type': 'object', 'properties': {}},
                'response_format': 'json', 'timeout': 2}
 
     def check(resp):
-        out = _mcp_result(resp) if 'result' in resp else resp
-        assert 'Request failed' in json.dumps(out) or 'error' in json.dumps(out).lower()
+        # loopback is refused by the outbound fetch guard (sajha/core/outbound.py): a tool error
+        assert resp['result']['isError'] and 'refused: http://127.0.0.1:9/nothing' in json.dumps(resp), resp
     _deploy_call_delete(studio, 'zz_test_rest', '/admin/studio/rest/preview', '/admin/studio/rest/deploy',
                         payload, {}, check)
 
@@ -301,7 +300,7 @@ def test_rest_creator_end_to_end(studio):
     ('csv', 'x,y\n1,2\n', [{'x': 1, 'y': 2}]),
 ])
 def test_rest_generator_parses_response_formats(gen_dirs, fmt, body, expected):
-    import requests
+    from sajha.core.outbound import Response
     from sajha.studio import RESTToolGenerator, RESTToolDefinition
     g = RESTToolGenerator()
     g.config_dir, g.impl_dir = gen_dirs['cfg'], gen_dirs['impl']
@@ -309,9 +308,8 @@ def test_rest_generator_parses_response_formats(gen_dirs, fmt, body, expected):
                                                     description='d', request_schema={}, response_schema={},
                                                     response_format=fmt))
     assert ok, msg
-    resp = requests.Response()
-    resp.status_code, resp._content, resp.encoding = 200, body.encode(), 'utf-8'
-    with mock.patch('requests.request', return_value=resp):
+    resp = Response(200, 'OK', {}, body.encode(), 'https://x.test/r')
+    with mock.patch('sajha.core.outbound.request', return_value=resp):
         out = _load(j, p).execute({})
     assert out['success'] and out['data'] == expected, out
 

@@ -18,7 +18,7 @@ import fnmatch
 import ipaddress
 import socket
 from dataclasses import dataclass, field
-from typing import Any, Dict, List, Optional, Sequence, Tuple
+from typing import Any, Callable, Dict, List, Optional, Sequence, Tuple
 from urllib.parse import urljoin, urlsplit
 
 import httpx
@@ -125,8 +125,13 @@ def _parse_links(value: str) -> Dict[str, str]:
 def request(method: str, url: str, *, params: Optional[Sequence[Tuple[str, str]]] = None,
             headers: Optional[Dict[str, str]] = None, content: Optional[bytes] = None,
             timeout: float = 30.0, max_bytes: int = 5 * 1024 * 1024,
-            follow_redirects: bool = True) -> Response:
-    """One guarded request. Raises UnsafeURLError, FetchTimeout or FetchError."""
+            follow_redirects: bool = True,
+            vet: Optional[Callable[[str], Tuple[str, int, str]]] = None) -> Response:
+    """One guarded request. Raises UnsafeURLError, FetchTimeout or FetchError.
+
+    ``vet(url) -> (host, port, ip)`` checks one hop and names the address to pin; the default
+    is API Import's guard. The outbound fetch guard for tools (sajha/core/outbound.py) passes
+    its own, so it shares this pinned, redirect-checking client."""
     method = method.upper()
     target = httpx.URL(url)
     if params:
@@ -134,8 +139,11 @@ def request(method: str, url: str, *, params: Optional[Sequence[Tuple[str, str]]
     hops = 0
     while True:
         current = str(target)
-        host, port = check_url(current)
-        ip = resolve_pinned(host, port)
+        if vet is None:
+            host, port = check_url(current)
+            ip = resolve_pinned(host, port)
+        else:
+            host, port, ip = vet(current)
         pinned = target.copy_with(host=ip, port=port)
         send_headers = dict(headers or {})
         send_headers['Host'] = target.netloc.decode('ascii')

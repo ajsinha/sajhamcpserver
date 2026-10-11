@@ -697,7 +697,8 @@ class MCPHandler:
         except Exception as e:
             # MCP 2025-11-25 Minor 5: Return as Tool Execution Error (isError: true)
             # instead of Protocol Error — enables model self-correction
-            self.logger.error(f"Error executing tool {tool_name}: {e}", exc_info=True)
+            if not getattr(e, 'quiet_failure', False):     # an expected refusal is logged where raised
+                self.logger.error(f"Error executing tool {tool_name}: {e}", exc_info=True)
             return {
                 "content": [{"type": "text", "text": f"Tool execution failed: {str(e)}"}],
                 "isError": True

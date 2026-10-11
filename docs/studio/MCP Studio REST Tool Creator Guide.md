@@ -1,6 +1,6 @@
 # MCP Studio REST Tool Creator Guide
 
-The REST Tool Creator wraps a single HTTP endpoint as an MCP tool through a form, with no code to write. It generates a JSON tool config and a Python class that makes the HTTP call with `requests` and returns the parsed response.
+The REST Tool Creator wraps a single HTTP endpoint as an MCP tool through a form, with no code to write. It generates a JSON tool config and a Python class that makes the HTTP call through the outbound fetch guard (`sajha.core.outbound`) and returns the parsed response.
 
 Where Studio lives, the common create → preview → deploy workflow, where generated files are stored, hot reload and permissions are covered once in the [MCP Studio User Guide](MCP%20Studio%20User%20Guide.md).
 
@@ -71,7 +71,8 @@ A JSON Schema for the response. For JSON and XML responses, if it has `propertie
 - **GET.** All arguments, including those used as path parameters, are also sent as query-string parameters.
 - **POST, PUT, PATCH.** All arguments are sent as a JSON body, whatever the Content Type setting.
 - **DELETE.** No query string and no body; only path parameters are used.
-- **Errors** do not raise. The tool returns `success: false` with an `error` message: a timeout, `HTTP error: <status> - <reason>` (with `status_code` and the first 500 characters of the response as `response_text`), a request failure, or an unexpected error. There is no retry.
+- **Destination check.** Every call goes through the outbound fetch guard: an endpoint whose host resolves to a cloud metadata, link-local or loopback address (`localhost`, 127.0.0.1) is refused with a tool error (`refused: <url> resolves to a blocked address (...)`), as is a private address when `tools.outbound.block_private_networks` is true. Add the host or its CIDR to `tools.outbound.exempt_hosts` to call a service on localhost. Redirects are followed for GET only, each hop checked again. The rule is in the [Security Model](../security/Security%20Model.md#other-features-that-need-care).
+- **Other errors** do not raise. The tool returns `success: false` with an `error` message: a timeout, `HTTP error: <status> - <reason>` (with `status_code` and the first 500 characters of the response as `response_text`), a request failure, or an unexpected error. There is no retry.
 
 A successful call returns:
 
@@ -175,6 +176,7 @@ The **Quick Examples** sidebar fills the form with a working configuration:
 | "Endpoint must start with http:// or https://" | Use a full URL. |
 | "Request schema is required for POST/PUT/PATCH methods" | Provide a schema with the body properties. |
 | "Tool configuration already exists" / "Tool implementation already exists" | A tool with that name has already been generated. |
+| `refused: <url> resolves to a blocked address (loopback)` | The endpoint is on localhost (or metadata, or private with `tools.outbound.block_private_networks` on); add it to `tools.outbound.exempt_hosts` if that is intended. |
 | `HTTP error: 401 - Unauthorized` | Check the auth option, header name and key. |
 | A path parameter appears unreplaced in the URL | The argument name doesn't match the `{name}` in the URL, or isn't in the schema. |
 | GET endpoint rejects unexpected query parameters | Path-parameter arguments are also sent as query parameters on GET. |

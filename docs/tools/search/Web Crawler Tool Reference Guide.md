@@ -57,7 +57,14 @@ No credentials are required. Built-in behaviour:
 | Response decoding | UTF-8, undecodable bytes ignored |
 
 The server needs outbound HTTP(S) access. Proxies, cookies and site logins are
-not supported. General configuration is covered in the
+not supported.
+
+Every fetch (the page, links `crawl_url` follows, robots.txt, sitemaps and each
+redirect hop) goes through the outbound fetch guard: cloud metadata, link-local
+and loopback addresses (`localhost`, 127.0.0.0/8, ::1) are refused, private
+ranges too when `tools.outbound.block_private_networks` is true, and hosts or
+CIDRs in `tools.outbound.exempt_hosts` are never refused. The rule is described
+in the [Security Model](../../security/Security%20Model.md#other-features-that-need-care). General configuration is covered in the
 [Configuration Reference](../../getting-started/Configuration%20Reference.md).
 
 ---
@@ -266,7 +273,8 @@ the pages of interest; fall back to `crawl_url` only when no sitemap exists.
 | Symptom | Cause | Fix |
 |---------|-------|-----|
 | `Invalid URL: ...` | Missing scheme or host | Use `https://host/path` |
-| Timeout / `<urlopen error ...>` | Slow or unreachable site | Raise `timeout` (crawl_url), check connectivity |
+| `refused: <url> resolves to a blocked address (...)` | The host is cloud metadata, loopback, or private with `tools.outbound.block_private_networks` on | Use a public or intranet host, or add the host to `tools.outbound.exempt_hosts` |
+| Timeout / `request failed: ...` | Slow or unreachable site | Raise `timeout` (crawl_url), check connectivity |
 | HTTP 403 / 429 in page errors | Blocked or rate-limited | Increase `delay`, crawl less, or check robots.txt |
 | `Crawling not allowed by robots.txt` | Disallowed path | Respect it, or check a different path / user agent |
 | `No sitemap found` | Sitemap at a non-standard path | Pass the sitemap URL directly; look for `Sitemap:` in robots.txt |

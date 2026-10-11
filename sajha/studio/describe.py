@@ -1086,14 +1086,12 @@ def revise(draft_id: str, proposal: Dict[str, Any], user=None, registry=None) ->
 
 class _FakeResponse:
     def __init__(self, fx: Dict[str, Any], url: str):
-        import requests
         self.status_code = fx.get('status', 200)
         self.reason = 'fixture'
         self.url = url
         self.headers = {'content-type': 'application/json' if 'json' in fx else 'text/plain'}
         self._json = fx.get('json')
         self.text = json.dumps(self._json) if 'json' in fx else fx.get('text', '')
-        self._requests = requests
 
     def json(self):
         if self._json is None:
@@ -1102,15 +1100,18 @@ class _FakeResponse:
 
     def raise_for_status(self):
         if self.status_code >= 400:
-            raise self._requests.exceptions.HTTPError(f'{self.status_code} fixture', response=self)
+            from sajha.core.outbound import HTTPStatusError
+            raise HTTPStatusError(f'{self.status_code} fixture', self)
 
 
-class _FixtureRequests:
-    """Stands in for ``requests`` inside a REST tool under test: answers with the case's fixture."""
+class _FixtureOutbound:
+    """Stands in for ``sajha.core.outbound`` inside a REST tool under test: answers with the
+    case's fixture (no network, so no destination check either)."""
 
     def __init__(self, fx: Dict[str, Any]):
-        import requests
-        self.exceptions = requests.exceptions
+        from sajha.core import outbound
+        self.Refused, self.FetchError = outbound.Refused, outbound.FetchError
+        self.FetchTimeout, self.HTTPStatusError = outbound.FetchTimeout, outbound.HTTPStatusError
         self.fx = fx
         self.calls: List[Dict[str, Any]] = []
 
@@ -1119,12 +1120,12 @@ class _FixtureRequests:
         return _FakeResponse(self.fx, url)
 
 
-def _module_tool(art: Dict[str, Any], fake_requests=None):
+def _module_tool(art: Dict[str, Any], fake_outbound=None):
     """The REST / DB query tool built from its generated module (SAJHA's own template), not registered."""
     mod = types.ModuleType(f'sajha_describe_under_test_{secrets.token_hex(4)}')
     exec(compile(art['module_source'], f"<{art['files'][0]['path']}>", 'exec'), mod.__dict__)
-    if fake_requests is not None:
-        mod.__dict__['requests'] = fake_requests
+    if fake_outbound is not None:
+        mod.__dict__['outbound'] = fake_outbound
     return mod.__dict__[art['class_name']](art['config'])
 
 
@@ -1213,7 +1214,7 @@ def _run_case(p, art, case, run_live: bool, registry=None, user=None) -> Dict[st
             ok, err, result, info = _run_python_case(p, art, case)
         elif kind == 'rest':
             if case.get('fixture'):
-                fake = _FixtureRequests(case['fixture'])
+                fake = _FixtureOutbound(case['fixture'])
                 result = _module_tool(art, fake).execute(dict(case['arguments']))
                 info = {'request': fake.calls[-1] if fake.calls else None, 'fixture': True}
             else:

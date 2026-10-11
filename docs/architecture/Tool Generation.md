@@ -145,7 +145,7 @@ live tests" on the page, `--live` in the CLI).
 | Kind | How a case runs |
 |---|---|
 | python | the generated module in the [sandbox](Sandbox.md) (`op: python_tool`), never in the server process. An offline case runs with `network: none` whatever the tool's policy allows; a live case gets the tool's policy. A sandbox that is unavailable skips the case. The result is also checked against the output schema. |
-| rest | the generated tool with `requests` replaced by the case's fixture (status, JSON or text), so the URL, headers and parsing are exercised without a call. A live case calls the endpoint after the SSRF guard resolves it, and only for `GET`. |
+| rest | the generated tool with its HTTP client (`sajha.core.outbound`) replaced by the case's fixture (status, JSON or text), so the URL, headers and parsing are exercised without a call. A live case calls the endpoint after the SSRF guard resolves it, and only for `GET`. |
 | dbquery | the generated tool against the listed database (the query is read-only by construction, §3) |
 | composite | live: the composite built from the definition runs its tools |
 | openapi | live: the spec is fetched and planned by API Import; it passes when it lists operations |

@@ -160,7 +160,7 @@ whether the decisions are wise.
 
 | Attack | Safe behaviour | Automate | P | Existing coverage |
 |---|---|---|---|---|
-| Fetch, crawler and REST tools pointed at the cloud metadata address, localhost, private ranges | Refused by the network guard where it applies (federation upstreams, API import and its tools, OAuth CIMD, webhooks, alert webhooks; SAJHA Net peers by their own rule); documented where it does not: the web crawler tools fetch any URL the caller names (finding F6, open) and Studio REST tools call their author's endpoint unchecked | URL corpus | P0 | `adversarial/test_ssrf.py`, `test_hardening.py` |
+| Fetch, crawler and REST tools pointed at the cloud metadata address, localhost, private ranges | Refused by the network guard on every path: federation upstreams, API import and its tools, OAuth CIMD, webhooks, alert webhooks; the web crawler tools and Studio REST tools through the outbound fetch guard (metadata and loopback always, private ranges with `tools.outbound.block_private_networks`; finding F6, fixed); SAJHA Net peers by their own rule | URL corpus | P0 | `adversarial/test_ssrf.py`, `test_outbound_guard.py`, `test_hardening.py` |
 | Connector queries reading outside their allowlist | Refused | Hostile queries | P0 | connector tests |
 | DuckDB reading local files | Refused | File path corpus | P0 | `test_duckdb_tools_sandbox.py` |
 
@@ -214,7 +214,7 @@ Each finding has its regression test (named in the coverage column above).
 | F3 | 3.6 | An upstream's status (console and admin API) showed a raw credential header value from its definition | P1 | Fixed: credential-named header and environment values masked (`sajha/federation/manager.py`) |
 | F4 | 3.7 | A symbolic link dropped into `config/tools` loaded a tool config from anywhere on the disk | P1 | Fixed: links that leave the listed directory are not listed (`sajha/core/storage.py`) |
 | F5 | 3.7 | Import JSON accepted a tool name with path separators (`../../x`) and wrote outside the tools directory (administrators only) | P1 | Fixed: `tool_files.name_path_problem`, refused by every writer |
-| F6 | 3.11 | The web crawler tools fetch any URL the caller names, cloud metadata and private addresses included | P0 | Open, documented: strict xfail in `adversarial/test_ssrf.py` |
+| F6 | 3.11 | The web crawler tools fetch any URL the caller names, cloud metadata and private addresses included | P0 | Fixed: the crawler tools and Studio REST tools fetch through the outbound fetch guard (`sajha/core/outbound.py`): every resolved address and every redirect hop checked with the shared `address_allowed` rule, metadata and loopback refused by default, private ranges with `tools.outbound.block_private_networks`, exceptions in `tools.outbound.exempt_hosts`, connection pinned to the checked address |
 | F7 | 3.13 | Order-dependent tests: a test relying on files or keys another test made, a CLI test needing the state of the test before it, the tool monitor following a test's temporary storage and dropping every tool. Date-dependent: a SAJHA Net test moved its fixed net clock to the real date (it would have failed once the calendar passed the instances' certificate lifetime), a TLS test certificate valid for one day. Developer files written: the multi-worker tests' servers wrote `config/apikeys_db.json`, tests wrote `data/cache` | P1 | Fixed in the tests (and the monitor, which now ignores a storage it did not start on) |
 
 ---

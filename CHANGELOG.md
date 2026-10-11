@@ -4,6 +4,34 @@ Newest first. The current version is `app.version` in `config/application.yml`.
 
 ## Unreleased
 
+## v8.5.0 (October 2026) — outbound fetch guard for crawler and REST tools
+
+### Upgrading
+
+- **The web crawler tools and Studio REST tools refuse cloud metadata and localhost.** Their fetches now go
+  through the outbound fetch guard: a URL whose host resolves to a cloud metadata or link-local address
+  (169.254.169.254, `metadata.google.internal`), loopback (`localhost`, 127.0.0.0/8, ::1) or 0.0.0.0 gets the
+  tool error `refused: <url> resolves to a blocked address (...)`. Private ranges stay allowed unless the new
+  `tools.outbound.block_private_networks` is true. To call a service on localhost on purpose (a REST tool
+  pointing at `http://localhost:8080/...`, say), list it in `tools.outbound.exempt_hosts` (`[localhost]` or
+  `[127.0.0.1/32]`; env `SAJHA_TOOLS_OUTBOUND_EXEMPT_HOSTS`). These fetches no longer use the environment's
+  proxy variables, and a REST tool follows redirects for GET only. Regenerate a REST tool made before this
+  release in MCP Studio to give it the guard (the generated code calls the guard; older files call
+  `requests` directly).
+
+### Fixed
+
+- **Security: SSRF through the web crawler tools and Studio REST tools** (Adversarial QA finding F6). Every
+  crawler fetch (page, followed links, robots.txt, sitemaps) and every REST tool call is checked by the
+  outbound fetch guard (`sajha/core/outbound.py`, [Security Model](docs/security/Security%20Model.md#other-features-that-need-care)):
+  every address the host resolves to, IP literals normalised in any form (decimal, octal, hex, IPv4 inside
+  IPv6), the connection pinned to the checked address, each redirect hop checked again. It reuses the shared
+  `address_allowed` rule and API Import's pinned client. A refusal is a tool error naming the setting, logged
+  at warning without the query string, and does not open the tool's circuit breaker.
+- Small screens: the Ask page's Clear button is a full-size tap target, and small text on Ask, the landing
+  page's net diagram and the federation console's table headers is at least 12 px; the mobile check now
+  covers the Domains page.
+
 ## v8.4.0 (October 2026) — per-user sign-in for proxied servers, access rules for prompts and resources
 
 ### Upgrading

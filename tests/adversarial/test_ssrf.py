@@ -1,8 +1,7 @@
 # Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.com
 """
 Adversarial QA Plan 3.11 (outbound requests), P0: which outbound paths the SSRF guard covers, tested
-with a corpus of internal addresses; the paths it does not cover are recorded as strict xfails (a
-documented gap; the xfail turns into a failure the day a guard is added, so the record is updated).
+with a corpus of internal addresses.
 
 Covered (``sajha.auth.oauth.clients.address_allowed``, resolved once and pinned): federation upstream
 URLs (``sajha.federation.security.check_url``), OpenAPI/GraphQL import and its generated tools
@@ -10,9 +9,9 @@ URLs (``sajha.federation.security.check_url``), OpenAPI/GraphQL import and its g
 URLs have their own stricter rule (``check_peer_url``: loopback and link-local never, private only inside
 ``sajhanet.allowed_networks``).
 
-Not covered (gaps, QA plan 3.11): the web crawler tools (``crawl_url`` and friends) fetch any URL the
-caller names, cloud metadata included; Studio REST tools call the endpoint their author configured with
-no address check.
+The web crawler tools (``crawl_url`` and friends) and Studio REST tools go through the outbound fetch
+guard (``sajha.core.outbound``, finding F6, fixed): metadata and loopback always refused, private ranges
+with ``tools.outbound.block_private_networks``.
 """
 
 import ipaddress
@@ -80,19 +79,66 @@ def test_net_peer_urls_never_allow_metadata_even_when_listed():
     assert check_peer_url('https://10.0.0.5/', networks=['10.0.0.0/8'])[0] == '10.0.0.5'
 
 
-@pytest.mark.xfail(strict=True, reason='documented gap (Adversarial QA Plan 3.11): the web crawler tools have no '
-                                       'SSRF guard; remove this mark when one is added')
-def test_the_web_crawler_refuses_the_metadata_address(monkeypatch):
+# The web crawler tools and Studio REST tools (finding F6, fixed): the outbound fetch guard
+# (sajha.core.outbound) refuses metadata, link-local, loopback, unspecified and multicast destinations by
+# default; private ranges and CGNAT only with tools.outbound.block_private_networks.
+_PRIVATE = ('10.0.0.5', '172.16.3.4', '192.168.1.1', '100.64.0.1', 'fc00::1')
+
+
+def _no_network(monkeypatch):
+    import socket
+    import httpx
     import urllib.request
-    from sajha.tools.impl.webcrawler_tool_refactored import ExtractContentTool
     attempted = []
 
-    def no_network(req, *a, **kw):
-        attempted.append(getattr(req, 'full_url', req))
+    def refuse(*a, **kw):
+        attempted.append(a[:2])
         raise OSError('network disabled in this test')
-    monkeypatch.setattr(urllib.request, 'urlopen', no_network)
-    try:
-        ExtractContentTool().execute({'url': 'http://169.254.169.254/latest/meta-data/'})
-    except Exception:
-        pass
+    monkeypatch.setattr(urllib.request, 'urlopen', refuse)
+    monkeypatch.setattr(httpx.Client, 'send', refuse)
+    monkeypatch.setattr(socket, 'create_connection', refuse)
+    return attempted
+
+
+@pytest.mark.parametrize('url', INTERNAL_URLS)
+def test_the_web_crawler_refuses_internal_urls(url, monkeypatch):
+    from sajha.core.outbound import Refused
+    from sajha.tools.impl.webcrawler_tool_refactored import ExtractContentTool
+    monkeypatch.setenv('SAJHA_TOOLS_OUTBOUND_BLOCK_PRIVATE_NETWORKS', 'true')
+    monkeypatch.delenv('SAJHA_TOOLS_OUTBOUND_EXEMPT_HOSTS', raising=False)
+    attempted = _no_network(monkeypatch)
+    with pytest.raises(Refused):
+        ExtractContentTool().execute({'url': url})
     assert not attempted, f'the crawler tried to fetch {attempted}'
+
+
+@pytest.mark.parametrize('url', [u for u in INTERNAL_URLS if not any(p in u for p in _PRIVATE)])
+def test_the_web_crawler_refuses_metadata_and_loopback_by_default(url, monkeypatch):
+    from sajha.core.outbound import Refused
+    from sajha.tools.impl.webcrawler_tool_refactored import CrawlURLTool
+    monkeypatch.delenv('SAJHA_TOOLS_OUTBOUND_BLOCK_PRIVATE_NETWORKS', raising=False)
+    monkeypatch.delenv('SAJHA_TOOLS_OUTBOUND_EXEMPT_HOSTS', raising=False)
+    attempted = _no_network(monkeypatch)
+    with pytest.raises(Refused):
+        CrawlURLTool().execute({'url': url})
+    assert not attempted, f'the crawler tried to fetch {attempted}'
+
+
+def test_a_studio_rest_tool_refuses_the_metadata_address(tmp_path, monkeypatch):
+    import importlib.util
+    from sajha.core.outbound import Refused
+    from sajha.studio import RESTToolDefinition, RESTToolGenerator
+    monkeypatch.delenv('SAJHA_TOOLS_OUTBOUND_EXEMPT_HOSTS', raising=False)
+    gen = RESTToolGenerator()
+    d = RESTToolDefinition(name='zz_ssrf_rest', endpoint='http://169.254.169.254/latest/meta-data/{path}',
+                           method='GET', description='d', request_schema={'type': 'object', 'properties': {
+                               'path': {'type': 'string'}}}, response_schema={})
+    impl = tmp_path / 'rest_zz_ssrf_rest.py'
+    impl.write_text(gen.generate_python_implementation(d), encoding='utf-8')
+    spec = importlib.util.spec_from_file_location('rest_zz_ssrf_rest', impl)
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    attempted = _no_network(monkeypatch)
+    with pytest.raises(Refused, match='cloud metadata'):
+        mod.RESTZzSsrfRestTool().execute({'path': 'iam'})
+    assert not attempted

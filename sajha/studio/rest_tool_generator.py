@@ -155,8 +155,8 @@ import csv
 import io
 import json
 import logging
-import requests
 from typing import Dict, Any, Optional, List
+from sajha.core import outbound
 from sajha.tools.base_mcp_tool import BaseMCPTool
 
 logger = logging.getLogger(__name__)
@@ -239,7 +239,9 @@ class {class_name}(BaseMCPTool):
             # Make the request
             logger.info(f"Calling REST endpoint: {{self._method}} {{url}}")
             
-            response = requests.request(
+            # through the outbound fetch guard (sajha/core/outbound.py): cloud metadata and
+            # loopback refused, private ranges too when tools.outbound.block_private_networks is on
+            response = outbound.request(
                 method=self._method,
                 url=url,
                 headers=headers,
@@ -255,20 +257,22 @@ class {class_name}(BaseMCPTool):
             # Parse response based on format
 {self._indent(response_parse_code, 12)}
             
-        except requests.exceptions.Timeout:
+        except outbound.Refused:
+            raise               # a tool error naming the blocked destination and the setting
+        except outbound.FetchTimeout:
             return {{
                 "success": False,
                 "error": f"Request timed out after {{self._timeout}} seconds",
                 "endpoint": self._endpoint
             }}
-        except requests.exceptions.HTTPError as e:
+        except outbound.HTTPStatusError as e:
             return {{
                 "success": False,
                 "error": f"HTTP error: {{e.response.status_code}} - {{e.response.reason}}",
                 "status_code": e.response.status_code,
                 "response_text": e.response.text[:500] if e.response.text else None
             }}
-        except requests.exceptions.RequestException as e:
+        except outbound.FetchError as e:
             return {{
                 "success": False,
                 "error": f"Request failed: {{str(e)}}"

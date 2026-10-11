@@ -179,7 +179,7 @@ def test_plan_execute_runs_independent_steps_together(toolbox):
             with lock:
                 running[0] += 1
                 peak[0] = max(peak[0], running[0])
-            time.sleep(0.25)
+            time.sleep(0.5)
             with lock:
                 running[0] -= 1
             return {"value": value}
@@ -194,7 +194,7 @@ def test_plan_execute_runs_independent_steps_together(toolbox):
     t0 = time.time()
     events = list(service(toolbox, gw, planner="plan_execute", synthesize=False)
                   .stream_ask("Fetch the alpha quote and the beta quote", ctx()))
-    assert peak[0] == 2 and time.time() - t0 < 0.45
+    assert peak[0] == 2 and time.time() - t0 < 0.9      # serial would take at least 1.0 s
     types = [e["type"] for e in events if e["type"] not in PLANNER_EVENTS]     # stage events of planner files
     assert types[types.index("plan") + 1: types.index("plan") + 5] == ["tool_call", "tool_call", "tool_result",
                                                                          "tool_result"]

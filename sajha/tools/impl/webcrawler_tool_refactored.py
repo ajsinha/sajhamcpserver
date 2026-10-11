@@ -1,19 +1,26 @@
 """
 Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.com
 Web Crawler MCP Tool Implementation - Refactored with Individual Tools
+
+Every fetch (pages, links followed, robots.txt, sitemaps, each redirect hop) goes through the
+outbound fetch guard (sajha/core/outbound.py): cloud metadata and loopback addresses are
+refused, private ranges too when tools.outbound.block_private_networks is true.
 """
 
 import json
+import logging
 import re
 import time
 import urllib.parse
-import urllib.request
 import urllib.robotparser
 from typing import Dict, Any, List, Optional, Set
 from datetime import datetime
 from html.parser import HTMLParser
 from collections import deque
+from sajha.core import outbound
 from sajha.tools.base_mcp_tool import BaseMCPTool
+
+logger = logging.getLogger(__name__)
 
 
 class LinkExtractor(HTMLParser):
@@ -109,12 +116,27 @@ class WebCrawlerBaseTool(BaseMCPTool):
             'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8'
         }
         
-        req = urllib.request.Request(url, headers=headers)
-        with urllib.request.urlopen(req, timeout=timeout) as response:
-            content = response.read().decode('utf-8', errors='ignore')
-            content_type = response.headers.get('Content-Type', '')
-            status_code = response.status
-            return content, content_type, status_code
+        response = outbound.request('GET', url, headers=headers, timeout=timeout)
+        if response.status_code >= 400:
+            raise ValueError(f"HTTP Error {response.status_code}: {response.reason}".rstrip())
+        content = response.content.decode('utf-8', errors='ignore')
+        content_type = response.headers.get('Content-Type', '')
+        return content, content_type, response.status_code
+
+    def _read_robots(self, robots_url: str) -> 'urllib.robotparser.RobotFileParser':
+        """robots.txt through the guard (RobotFileParser.read would fetch it unguarded).
+        As RobotFileParser.read: 401/403 disallow all, other errors allow all."""
+        rp = urllib.robotparser.RobotFileParser()
+        rp.set_url(robots_url)
+        response = outbound.request('GET', robots_url, headers={'User-Agent': self.user_agent},
+                                    timeout=self.default_timeout)
+        if response.status_code in (401, 403):
+            rp.disallow_all = True
+        elif response.status_code >= 400:
+            rp.allow_all = True
+        else:
+            rp.parse(response.content.decode('utf-8', errors='ignore').splitlines())
+        return rp
     
     def _normalize_url(self, url: str, base_url: str) -> Optional[str]:
         """Normalize and resolve relative URLs"""
@@ -284,6 +306,7 @@ class CrawlURLTool(WebCrawlerBaseTool):
         
         if not self._is_valid_url(url):
             raise ValueError(f"Invalid URL: {url}")
+        outbound.vet(url)       # refuse a blocked destination before any fetch
         
         # Check robots.txt if required
         if respect_robots:
@@ -364,6 +387,12 @@ class CrawlURLTool(WebCrawlerBaseTool):
                             if follow_external or self._is_same_domain(url, normalized):
                                 to_visit.append((normalized, depth + 1))
                 
+            except outbound.Refused as e:
+                if current_url == url:
+                    raise
+                pages.append({'url': outbound.safe_url(current_url), 'depth': depth, 'error': str(e),
+                              'crawled_at': datetime.now().isoformat()})
+                visited.add(current_url)
             except Exception as e:
                 self.logger.warning(f"Error crawling {current_url}: {e}", exc_info=True)
                 pages.append({
@@ -394,9 +423,7 @@ class CrawlURLTool(WebCrawlerBaseTool):
             parsed = urllib.parse.urlparse(url)
             robots_url = f"{parsed.scheme}://{parsed.netloc}/robots.txt"
             
-            rp = urllib.robotparser.RobotFileParser()
-            rp.set_url(robots_url)
-            rp.read()
+            rp = self._read_robots(robots_url)
             
             can_fetch = rp.can_fetch(self.user_agent, url)
             
@@ -406,6 +433,8 @@ class CrawlURLTool(WebCrawlerBaseTool):
                 'user_agent': self.user_agent,
                 'checked_at': datetime.now().isoformat()
             }
+        except outbound.Refused:
+            raise
         except Exception as e:
             # If robots.txt doesn't exist or can't be read, allow crawling
             return {
@@ -500,6 +529,7 @@ class ExtractLinksTool(WebCrawlerBaseTool):
         
         if not self._is_valid_url(url):
             raise ValueError(f"Invalid URL: {url}")
+        outbound.vet(url)       # refuse a blocked destination before any fetch
         
         content, content_type, status_code = self._fetch_url(url)
         
@@ -649,6 +679,7 @@ class ExtractContentTool(WebCrawlerBaseTool):
         
         if not self._is_valid_url(url):
             raise ValueError(f"Invalid URL: {url}")
+        outbound.vet(url)       # refuse a blocked destination before any fetch
         
         content, content_type, status_code = self._fetch_url(url)
         
@@ -773,6 +804,7 @@ class ExtractMetadataTool(WebCrawlerBaseTool):
         
         if not self._is_valid_url(url):
             raise ValueError(f"Invalid URL: {url}")
+        outbound.vet(url)       # refuse a blocked destination before any fetch
         
         content, content_type, status_code = self._fetch_url(url)
         
@@ -856,6 +888,7 @@ class CrawlSitemapTool(WebCrawlerBaseTool):
         
         if not self._is_valid_url(url):
             raise ValueError(f"Invalid URL: {url}")
+        outbound.vet(url)       # refuse a blocked destination before any fetch
         
         try:
             # Try common sitemap locations
@@ -886,8 +919,10 @@ class CrawlSitemapTool(WebCrawlerBaseTool):
                             'urls': urls,
                             'retrieved_at': datetime.now().isoformat()
                         }
+                except outbound.Refused:
+                    raise
                 except Exception as e:
-                    logger.error(f"Unexpected error: {e}", exc_info=True)
+                    self.logger.debug(f"No sitemap at {outbound.safe_url(sitemap_url)}: {e}")
                     continue
             
             return {
@@ -896,6 +931,8 @@ class CrawlSitemapTool(WebCrawlerBaseTool):
                 'base_url': base_url
             }
             
+        except outbound.Refused:
+            raise
         except Exception as e:
             self.logger.error(f"Error crawling sitemap: {e}", exc_info=True)
             return {
@@ -975,14 +1012,13 @@ class CheckRobotsTxtTool(WebCrawlerBaseTool):
         
         if not self._is_valid_url(url):
             raise ValueError(f"Invalid URL: {url}")
+        outbound.vet(url)       # refuse a blocked destination before any fetch
         
         try:
             parsed = urllib.parse.urlparse(url)
             robots_url = f"{parsed.scheme}://{parsed.netloc}/robots.txt"
             
-            rp = urllib.robotparser.RobotFileParser()
-            rp.set_url(robots_url)
-            rp.read()
+            rp = self._read_robots(robots_url)
             
             can_fetch = rp.can_fetch(user_agent, url)
             crawl_delay = rp.crawl_delay(user_agent)
@@ -995,6 +1031,8 @@ class CheckRobotsTxtTool(WebCrawlerBaseTool):
                 'crawl_delay': crawl_delay,
                 'checked_at': datetime.now().isoformat()
             }
+        except outbound.Refused:
+            raise
         except Exception as e:
             # If robots.txt doesn't exist or can't be read, allow crawling
             return {
@@ -1099,6 +1137,7 @@ class GetPageInfoTool(WebCrawlerBaseTool):
         
         if not self._is_valid_url(url):
             raise ValueError(f"Invalid URL: {url}")
+        outbound.vet(url)       # refuse a blocked destination before any fetch
         
         content, content_type, status_code = self._fetch_url(url)
         

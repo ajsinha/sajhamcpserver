@@ -64,7 +64,7 @@
     else if (c < -0.5) { anchor = 'end'; tx = P[i].x - 30; y = P[i].y - 2; }      // left side
     else { anchor = 'middle'; tx = P[i].x; y = P[i].y + (s > 0 ? 40 : -38); }      // top and bottom
     el('text', { x: tx, y: y, 'class': 'lp2-net-name', 'text-anchor': anchor }, g).textContent = name;
-    el('text', { x: tx, y: y + 13, 'class': 'lp2-net-tag', 'text-anchor': anchor }, g).textContent = TAGS[i];
+    el('text', { x: tx, y: y + 15, 'class': 'lp2-net-tag', 'text-anchor': anchor }, g).textContent = TAGS[i];
     return { g: g, dots: dots };
   });
 

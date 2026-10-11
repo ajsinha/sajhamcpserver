@@ -1419,7 +1419,7 @@ div.jsoneditor-treepath, div.jsoneditor-treepath * { color: var(--t-muted) !impo
 .ask-input-wrap textarea:focus, .ask-input-wrap textarea:focus-visible { outline: 0 !important; box-shadow: none !important; border: 0 !important; }
 .ask-input-wrap textarea::placeholder { color: var(--t-muted); opacity: 1; }
 .ask-compose-bar { display: flex; align-items: center; gap: .5rem; margin-top: .3rem; }
-.ask-hint { margin-right: auto; font-size: .75rem; color: var(--t-muted); }
+.ask-hint { margin-right: auto; font-size: .86rem; color: var(--t-muted); }
 .ask-compose-bar [hidden] { display: none; }
 
 @media (max-width: 991.98px) {
@@ -1766,7 +1766,7 @@ pre.pg-repr { box-shadow: inset 2px 0 0 color-mix(in srgb, var(--sajha-indigo) 5
   box-shadow: 0 24px 50px -30px color-mix(in srgb, var(--sajha-nav-to) 55%, transparent); }
 .lp2-net svg { display: block; width: 100%; height: auto; }
 .lp2-net-head { position: absolute; z-index: 2; top: 14px; left: 18px; right: 18px; pointer-events: none; }
-.lp2-net-kicker { margin: 0; font-size: 11px; font-weight: 700; letter-spacing: .16em; text-transform: uppercase; color: var(--t-accent-text); }
+.lp2-net-kicker { margin: 0; font-size: 12px; font-weight: 700; letter-spacing: .16em; text-transform: uppercase; color: var(--t-accent-text); }
 .lp2-net-slogan { margin: .15rem 0 0; font-size: clamp(1rem, 1.6vw, 1.2rem); font-weight: 800; letter-spacing: -.01em; color: var(--sajha-ink); }
 .lp2-net-center { position: absolute; left: 50%; top: 54%; transform: translate(-50%, -50%); width: 46%; text-align: center; pointer-events: none; }
 .lp2-net-bubble { display: inline-block; font-size: 13px; line-height: 1.45; background: var(--sajha-surface); color: var(--sajha-ink);
@@ -1799,7 +1799,7 @@ pre.pg-repr { box-shadow: inset 2px 0 0 color-mix(in srgb, var(--sajha-indigo) 5
 .lp2-net-arrow.is-proxy { stroke: var(--sajha-warn); stroke-width: 2; fill: none; opacity: .8; }
 .lp2-net-name { font: 600 12px ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; fill: var(--sajha-ink); }
 .lp2-net-node.is-down .lp2-net-name { fill: var(--t-muted); }
-.lp2-net-tag { font-size: 9px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; fill: var(--t-muted); }
+.lp2-net-tag { font-size: 12px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; fill: var(--t-muted); }
 .lp2-net-arrow { fill: none; stroke: var(--sajha-crimson); stroke-width: 2; }
 .lp2-net-arrow.is-fail { stroke: var(--sajha-bad); stroke-dasharray: 3 4; }
 .lp2-net-arrow.is-gossip { stroke-width: 1.2; opacity: .35; }
@@ -1821,14 +1821,15 @@ pre.pg-repr { box-shadow: inset 2px 0 0 color-mix(in srgb, var(--sajha-indigo) 5
 .ask-calls-head { display: flex; align-items: baseline; justify-content: space-between; gap: .6rem; padding: .55rem .8rem;
   border-bottom: 1px solid var(--sajha-border); }
 .ask-calls-head h3 { margin: 0; font-size: .9rem; font-weight: 700; color: var(--sajha-ink); }
-.ask-calls-count { font-size: .8rem; color: var(--t-muted); font-variant-numeric: tabular-nums; }
+.ask-calls-count { font-size: .86rem; color: var(--t-muted); font-variant-numeric: tabular-nums; }
 .ask-calls-log { list-style: none; margin: 0; padding: .3rem 0; height: 9rem; overflow-y: scroll; font-size: .86rem;
   scrollbar-width: thin; scrollbar-color: var(--t-muted) transparent; }
 .ask-calls-log::-webkit-scrollbar { width: 8px; }
 .ask-calls-log::-webkit-scrollbar-thumb { background: color-mix(in srgb, var(--t-muted) 60%, transparent); border-radius: 8px; }
 .ask-calls-tools { display: inline-flex; align-items: center; gap: .6rem; }
-.ask-calls-clear { font-size: .78rem; font-weight: 600; color: var(--sajha-ink); background: var(--sajha-surface);
+.ask-calls-clear { font-size: .86rem; font-weight: 600; color: var(--sajha-ink); background: var(--sajha-surface);
   border: 1px solid var(--sajha-border); border-radius: 7px; padding: .15rem .55rem; }
+@media (max-width: 991.98px) { .ask-calls-clear { min-height: 40px; padding: .35rem .8rem; } }
 .ask-calls-clear:hover { border-color: var(--sajha-crimson); }
 .ask-calls-clear:focus-visible { outline: 2px solid var(--sajha-crimson); outline-offset: 2px; }
 /* wide screens: the sky column is pinned; if the screen is too short for sky + log, the column scrolls instead of hiding the log */

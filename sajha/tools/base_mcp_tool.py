@@ -355,7 +355,11 @@ class BaseMCPTool(ABC):
             except Exception:
                 pass
 
-            self.logger.error(f"Tool execution failed: {self.name} - {str(e)}", exc_info=True)
+            if getattr(e, 'quiet_failure', False):
+                # an expected refusal (e.g. the outbound fetch guard): no stack trace
+                self.logger.warning(f"Tool execution refused: {self.name} - {str(e)}")
+            else:
+                self.logger.error(f"Tool execution failed: {self.name} - {str(e)}", exc_info=True)
             raise
     
     def get_metrics(self) -> Dict:

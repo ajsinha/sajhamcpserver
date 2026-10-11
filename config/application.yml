@@ -11,7 +11,7 @@
 
 app:
   name: SAJHA MCP Server
-  version: 8.4.0
+  version: 8.5.0
   description: Model Context Protocol Server
   author: Ashutosh Sinha
   author_email: ajsinha@gmail.com       # shown with the copyright notice; SAJHA is proprietary (see LICENSE)
@@ -331,6 +331,14 @@ hot_reload:
 # rhythm re-checks tools skipped because a module their config "requires" is missing.
 tools:
   retry_failed_seconds: 300
+  # Outbound fetch guard for tools that fetch a URL someone else chose: the web crawler
+  # tools (the caller's URL) and Studio REST tools (the author's endpoint). Cloud metadata,
+  # link-local and loopback addresses (localhost, 127.0.0.0/8, ::1, 0.0.0.0) are always
+  # refused; every resolved address and every redirect hop is checked.
+  # docs/security/Security Model.md
+  outbound:
+    block_private_networks: false  # also refuse 10/8, 172.16/12, 192.168/16, fc00::/7, CGNAT 100.64/10
+    exempt_hosts: []               # host patterns (fnmatch) or CIDRs never refused, e.g. [localhost, 127.0.0.1/32]
 
 # ── Features ─────────────────────────────────────────────────────────────────
 

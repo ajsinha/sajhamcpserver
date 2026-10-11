@@ -304,11 +304,13 @@ Reader: Settings.
 
 ## tools
 
-Reader: `sajha/core/config.py::_get`, read when the registry starts its retry thread and on each retry.
+Reader: `sajha/core/config.py::_get`, read when the registry starts its retry thread and on each retry; the `tools.outbound.*` keys on every guarded fetch (`sajha/core/outbound.py`), so an env override applies without a restart.
 
 | Key | Default | Env | Purpose / reader |
 |-----|---------|-----|------------------|
 | `tools.retry_failed_seconds` | `300` | `SAJHA_TOOLS_RETRY_FAILED_SECONDS` | Retry of tools that failed to load, without a change to their file: first after this many seconds, then doubling up to 30 minutes; `0` turns it off. Duplicate names and deleted files are not retried. Per worker process (`ToolsRegistry.retry_failed` in `sajha/tools/tools_registry.py`; [Architecture](../architecture/Architecture.md#tool-config-files-and-folders)). The same rhythm re-checks tools skipped because a module their config `requires` is missing. |
+| `tools.outbound.block_private_networks` | `false` | `SAJHA_TOOLS_OUTBOUND_BLOCK_PRIVATE_NETWORKS` | Outbound fetch guard for the web crawler tools and Studio REST tools: also refuse private ranges (10/8, 172.16/12, 192.168/16, fc00::/7, CGNAT 100.64/10). Cloud metadata, link-local, loopback, multicast and reserved addresses are refused whatever it says ([Security Model](../security/Security%20Model.md#other-features-that-need-care)). |
+| `tools.outbound.exempt_hosts` | `[]` | `SAJHA_TOOLS_OUTBOUND_EXEMPT_HOSTS` | Host patterns (fnmatch, for example `localhost` or `*.corp.example`) and CIDRs (`127.0.0.1/32`) the outbound fetch guard never refuses. Env: comma-separated or a JSON list. |
 
 ## qlrisk
 
