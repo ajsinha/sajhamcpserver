@@ -1,0 +1,73 @@
+{% extends "common/base.html" %}
+{# Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.com #}
+{% set sn_here = '/admin/sajhanet/settings' %}
+{% block title %}{{ _('Net settings - SAJHA Net - Admin - SAJHA MCP Server') }}{% endblock %}
+{% block extra_css %}{% include "admin/_sajhanet_mgmt_css.html" %}{% endblock %}
+{% block content %}
+<div class="container-fluid" data-sn-csrf="{{ csrf }}">
+  <div class="mb-3">
+    <h1 class="h3 mb-0"><i class="bi bi-sliders me-2" aria-hidden="true"></i>{{ _('Net settings') }}</h1>
+    <small class="text-muted">{{ _('The nets this server is in, in preference order: its name, region and labels there, seeds, gossip health, routing preferences and defaults. What is configuration names its key.') }}</small>
+  </div>
+  {% include "admin/_sajhanet_subnav.html" %}
+  <p class="small" data-sn-status role="status" aria-live="polite"></p>
+  {% if not view.enabled %}
+  <div class="alert alert-info small" role="status">{% trans %}SAJHA Net is off (<code>sajhanet.enabled</code>), so this server is a net of one under the names below, read from <code>sajhanet.nets</code>.{% endtrans %}</div>
+  {% endif %}
+  {% for n in view.nets %}
+  {% set api = '/api/sajhanet/nets/' ~ n.net|urlencode %}
+  <section class="sn-box" aria-labelledby="s-{{ loop.index }}">
+    <h2 id="s-{{ loop.index }}">{% trans i=loop.index, net=n.net %}{{ i }}. {{ net }}{% endtrans %} <span class="sn-meta">{% trans instance=n.instance or '—' %}as <code>{{ instance }}</code>{% endtrans %}</span></h2>
+    <div class="sn-body">
+      {% if n.default_name %}<p class="small"><span class="st st-info">{{ _('hint') }}</span> {% trans %}This net is still called <code>default</code>: give it a name of its own in <code>sajhanet.nets[].name</code> before others join.{% endtrans %}</p>{% endif %}
+      {% if n.error %}<p class="sn-bad small">{{ n.error }}</p>{% endif %}
+      <dl class="row small mb-2">
+        <dt class="col-sm-3">{{ _('Region, labels') }}</dt><dd class="col-sm-9">{{ n.region or '—' }}{% for k, v in (n.labels or {}).items() %} · {{ k }}: {{ v }}{% endfor %} <span class="sn-meta">(<code>sajhanet.nets[].region</code>, <code>labels</code>)</span></dd>
+        {% if view.enabled %}
+        <dt class="col-sm-3">{{ _('Address') }}</dt><dd class="col-sm-9"><code>{{ n.url }}</code>{% if not n.require_https %} <span class="st st-warning">{{ _('plain HTTP allowed') }}</span>{% endif %}</dd>
+        <dt class="col-sm-3">{{ _('Admission') }}</dt><dd class="col-sm-9"><code>{{ n.admission }}</code>{% if n.certificate %} · {% trans until=n.certificate.not_after %}certificate valid until {{ until }}{% endtrans %} (<a href="/admin/sajhanet/certificates">{{ _('Certificates') }}</a>){% endif %}</dd>
+        <dt class="col-sm-3">{{ _('Gossip') }}</dt><dd class="col-sm-9"><span class="st st-{{ n.gossip.level }}">{{ n.gossip.state }}</span> {{ n.gossip.words }}</dd>
+        <dt class="col-sm-3">{{ _('Configured seeds') }}</dt><dd class="col-sm-9">{% for s in n.seeds %}<code>{{ s }}</code>{% if not loop.last %}, {% endif %}{% else %}{{ _('none (a net of one until someone joins)') }}{% endfor %} <span class="sn-meta">(<code>sajhanet.nets[].seeds</code>)</span></dd>
+        {% endif %}
+      </dl>
+      {% if view.enabled %}
+      <h3 class="h6">{{ _('Runtime seeds') }}</h3>
+      <ul class="list-unstyled small">{% for s in n.runtime_seeds %}
+        <li class="mb-1"><code>{{ s.url }}</code> {% trans by=s.added_by or '—', at=s.added_at or '—' %}added by {{ by }} at {{ at }}{% endtrans %}
+          <button class="btn btn-sm btn-outline-secondary ms-1" type="button" data-sn-action data-method="DELETE" data-url="{{ api }}/seeds" data-net="{{ n.net }}" data-kind="seed_remove"
+            data-body='{{ {"url": s.url}|tojson }}' data-effect="{{ _('Stop trying %(url)s at the next start (the current membership is unchanged).', url=s.url) }}">{{ _('Remove') }}</button></li>
+      {% else %}<li class="sn-meta">{{ _('None.') }}</li>{% endfor %}</ul>
+      <form class="row g-2 align-items-end" data-sn-form data-method="POST" data-url="{{ api }}/peers" data-net="{{ n.net }}" data-final
+            data-effect="{{ _('Contact this address now with a signed join; nothing is stored if it fails.') }}">
+        <div class="col-12 col-md-6"><label class="form-label small" for="p-{{ loop.index }}">{{ _('Add a peer by address') }}</label>
+          <input class="form-control form-control-sm" id="p-{{ loop.index }}" name="address" required autocomplete="off" placeholder="{{ _('10.20.4.17:3002 or https://sajha-peer.example.internal') }}"></div>
+        <div class="col-auto"><label class="small"><input type="checkbox" name="keep_as_seed"> {{ _('Keep as a runtime seed') }}</label></div>
+        <div class="col-auto"><button class="btn btn-sm btn-success" type="submit">{{ _('Contact') }}</button></div>
+      </form>
+      {% endif %}
+    </div>
+  </section>
+  {% endfor %}
+
+  {% if view.routing %}
+  <section class="sn-box" aria-labelledby="s-r">
+    <h2 id="s-r">{{ _('Routing') }}</h2>
+    <div class="sn-body">
+      <p class="small">{% trans mf=view.routing.max_fallbacks, ba=view.routing.bare_aliases, rt=view.routing.routing, dt=view.routing.default_trust, mh=view.routing.max_hops, mc=view.routing.max_call_chain %}Fallbacks after the first host: {{ mf }} (<code>sajhanet.max_fallbacks</code>) · plain names: <code>{{ ba }}</code> (<code>sajhanet.bare_aliases</code>) · strategy <code>{{ rt }}</code> · default trust <code>{{ dt }}</code> (<code>sajhanet.default_trust</code>; per peer on an instance's page) · hops {{ mh }}, call chain {{ mc }}.{% endtrans %}</p>
+      <h3 class="h6">{{ _('Preference lists') }} <span class="sn-meta">(<code>sajhanet.preferences</code>)</span></h3>
+      <ul class="list-unstyled small mb-0">{% for p in view.routing.preferences %}
+        <li class="mb-1"><code>{{ p.tool }}</code>{% if not p.known %} <span class="st st-warning">{{ _('no such tool') }}</span>{% endif %}:
+          {% for e in p.entries %}<code>{{ e.entry }}</code>{% if not e.matches %} <span class="st st-warning">{{ _('matches nothing') }}</span>{% endif %}{% if not loop.last %} → {% endif %}{% endfor %}</li>
+      {% else %}<li class="sn-meta">{{ _('No preference lists: plain names resolve by the routing strategy and the nets\' order.') }}</li>{% endfor %}</ul>
+    </div>
+  </section>
+  {% endif %}
+  {% if view.defaults %}
+  <section class="sn-box" aria-labelledby="s-d">
+    <h2 id="s-d">{{ _('Users and identity') }}</h2>
+    <div class="sn-body small">{% trans m=_('on') if view.defaults.match_by_name else _('off'), u=view.defaults.unknown, ra=view.defaults.remote_admin, ids=view.defaults.user_identity %}Name matching {{ m }} (<code>sajhanet.users.match_by_name</code>) · unknown users <code>{{ u }}</code> (<code>sajhanet.users.unknown</code>) · remote administrators <code>{{ ra }}</code> (<code>sajhanet.users.remote_admin</code>) · user identity <code>{{ ids }}</code>. Exceptions per instance, links and role maps are on <a href="/admin/sajhanet/users">Users across the net</a>.{% endtrans %}</div>
+  </section>
+  {% endif %}
+</div>
+{% include "admin/_sajhanet_change_dialog.html" %}
+{% endblock %}

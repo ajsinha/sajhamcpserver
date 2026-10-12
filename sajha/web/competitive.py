@@ -179,8 +179,10 @@ SAJHA = {
         'isolation': _s('Partial', 'Code users add in Studio (Python and script tools) and the shell run in a '
                                    'per-call sandbox: by default a subprocess with rlimits, plus Landlock, seccomp '
                                    'and namespaces on Linux; bwrap, nsjail or a container per call (optionally '
-                                   'gVisor) by config. Built-in tools and federated servers are not isolated.',
-                        ['sajha/sandbox', 'sajha/sandbox/runner.py'], 'Sandbox.md'),
+                                   'gVisor) by config. A federated stdio server runs in its own container '
+                                   '(no network, read-only root, limits) unless set to isolation: none. '
+                                   'Built-in tools and HTTP upstreams are not isolated.',
+                        ['sajha/sandbox', 'sajha/sandbox/runner.py', 'sajha/federation/container.py'], 'Sandbox.md'),
         'self_hosted': _s('Yes', 'One Python process or several pods; SQLite or PostgreSQL; a non-root container '
                                  'image, a Helm chart (HPA, PDB, NetworkPolicy, ServiceMonitor) and Kustomize '
                                  'manifests, plus recipes for AWS, Hetzner and bare metal.',

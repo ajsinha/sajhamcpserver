@@ -12,11 +12,15 @@
     "fetch": {
       "command": "uvx",
       "args": ["mcp-server-fetch"],
+      "container": {"image": "ghcr.io/astral-sh/uv:python3.13-bookworm-slim", "tmpfs_mb": 512, "network": "allowlist",
+                    "allow_hosts": ["pypi.org:443", "files.pythonhosted.org:443"]},
       "vendor": "mcp_reference"
     },
     "filesystem": {
       "command": "npx",
       "args": ["-y", "@modelcontextprotocol/server-filesystem", "/srv/shared-docs"],
+      "container": {"image": "node:22-slim", "mounts": ["/srv/shared-docs:/srv/shared-docs"], "tmpfs_mb": 512,
+                    "network": "allowlist", "allow_hosts": ["registry.npmjs.org:443"]},
       "vendor": "mcp_reference",
       "prefix": "files",
       "tools": ["read_*", "list_*", "search_files"]

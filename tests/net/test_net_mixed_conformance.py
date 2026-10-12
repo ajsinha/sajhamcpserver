@@ -173,6 +173,7 @@ def test_mixed_net_passes_the_conformance_suite(mixed):
                 'LIM-01'} <= passed, (what, sorted(passed))
         assert len(rep.results) == len(conformance.CASES)
     assert {'KEY-01', 'KEY-03', 'BLK-01'} <= {r.id for r in reports['S'].results if r.status == conformance.PASS}
+    assert {'KEY-01', 'KEY-03', 'BLK-01'} <= {r.id for r in reports['A'].results if r.status == conformance.PASS}
     lib = {r.id for r in reports['L'].results if r.status == conformance.PASS}
     assert {'NAME-01', 'SIG-01', 'SIG-12', 'SIG-13', 'REC-01', 'REC-02', 'GOS-05', 'KEY-02', 'KEY-03'} <= lib
     # the report is plain data for CI

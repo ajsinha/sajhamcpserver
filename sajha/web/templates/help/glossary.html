@@ -2,23 +2,23 @@
 {# Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.com #}
 {# Rendered from GLOSSARY.md (sajha/web/glossary.py), the one place a term is defined.
    Add or change a definition there, never here. #}
-{% block title %}Glossary - {{ app_name }}{% endblock %}
+{% block title %}{{ _('Glossary') }} - {{ app_name }}{% endblock %}
 
 {% block content %}
 <div class="container-fluid">
-    <nav class="help-crumbs" aria-label="Breadcrumb"><a href="/help"><i class="bi bi-life-preserver me-1" aria-hidden="true"></i>Help</a><i class="bi bi-chevron-right" aria-hidden="true"></i><span>Glossary</span></nav>
+    <nav class="help-crumbs" aria-label="{{ _('Breadcrumb') }}"><a href="/help"><i class="bi bi-life-preserver me-1" aria-hidden="true"></i>{{ _('Help') }}</a><i class="bi bi-chevron-right" aria-hidden="true"></i><span>{{ _('Glossary') }}</span></nav>
     <div class="help-topic-hero">
         <div class="ico"><i class="bi bi-journal-text" aria-hidden="true"></i></div>
         <div>
-            <h1>Glossary</h1>
-            <p>Every acronym, term of art and SAJHA-specific word, defined once.</p>
+            <h1>{{ _('Glossary') }}</h1>
+            <p>{{ _('Every acronym, term of art and SAJHA-specific word, defined once.') }}{% if console_lang is defined and console_lang() != 'en' %} {{ _('Definitions are in English.') }}{% endif %}</p>
         </div>
     </div>
 
     <div class="help-toolbar">
         <div class="help-search">
             <i class="bi bi-search" aria-hidden="true"></i>
-            <input id="glq" type="search" autocomplete="off" placeholder="Search {{ term_count }} terms and definitions&hellip;" aria-label="Search the glossary">
+            <input id="glq" type="search" autocomplete="off" placeholder="{{ _('Search %(n)s terms and definitions…', n=term_count) }}" aria-label="{{ _('Search the glossary') }}">
         </div>
         <div class="cat-chips gl-toc mb-0">
             {% for sec in glossary if sec.terms %}<a class="chip" href="#{{ sec.id }}">{{ sec.title }}</a>{% endfor %}
@@ -38,7 +38,7 @@
         </div>
     </section>
     {% endfor %}
-    <div class="help-none" id="glempty" style="display:none"><i class="bi bi-search" aria-hidden="true"></i> No terms match your search.</div>
+    <div class="help-none" id="glempty" style="display:none"><i class="bi bi-search" aria-hidden="true"></i> {{ _('No terms match your search.') }}</div>
 
     {% include "help/_help_footer.html" %}
 </div>

@@ -659,6 +659,14 @@ class Classify(StageType):
         if choice is None and len(labels) <= 1:
             choice = {"label": default, "confidence": 1.0 if labels else 0.0, "by": "default",
                       "reason": "one candidate" if labels else "no candidates"}
+        qclass = None
+        if menu:                                  # learning from results (§6.6.2): approved rules, the bandit
+            from sajha.ai.planners_engine import learning
+            qclass, learned = learning.select(rc.registry, rc.tool, question, labels) if choice is None \
+                else (learning.question_class(question), None)
+            if learned is not None:
+                choice = {"label": learned["label"], "confidence": 1.0, "by": learned["by"],
+                          "reason": learned["reason"]}
         if choice is None:
             schema = {"type": "object", "title": "sajha.classify", "additionalProperties": False,
                       "required": ["label", "confidence", "reason"],
@@ -686,6 +694,10 @@ class Classify(StageType):
                     choice = {"label": data["label"], "confidence": conf, "by": "model",
                               "reason": str(data.get("reason") or "")[:300]}
         frame.slots.update(chosen=choice["label"], choice=choice)
+        if menu and labels and rc.learning is None:
+            rc.learning = {"tool": rc.tool or "ask", "class": qclass, "candidates": list(labels),
+                           "chosen": choice["label"], "by": choice["by"], "reason": choice.get("reason"),
+                           "frame": id(frame)}
         if cfg.get("into"):
             write_slot(rc, frame, cfg["into"], choice["label"])
         return choice["label"] or "none"
@@ -1199,7 +1211,7 @@ class PlannerStage(StageType):
             choice = frame.slots.get("choice") or {}
             if choice.get("by") == "model":
                 by = f"label {float(choice.get('confidence') or 0):.2f}"
-            elif choice.get("by") in ("rule", "default"):
+            elif choice.get("by") in ("rule", "default", "learned", "bandit", "explore"):
                 by = choice["by"]
             elif frame.slots.get("matched"):
                 by = "rule"
@@ -1243,6 +1255,7 @@ class PlannerStage(StageType):
                 frame.slots["question"] = old_q
         frame.slots["subrun"] = {"planner": sub.name, "version": sub.version, "outcome": outcome,
                                  "stopped_by": stopped_by, "stages_run": f.stages_run, "reason": reason}
+        rc.subruns.append({"frame": id(frame), "planner": sub.name, "outcome": outcome, "stopped_by": stopped_by})
         return outcome
 
 

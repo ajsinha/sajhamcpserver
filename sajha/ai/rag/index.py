@@ -20,9 +20,13 @@ file of its own). A search fuses the store's vector ranking with its keyword (BM
 Document passages are embedded with the "document" purpose and the query with the "query"
 purpose. The index syncs by content hash: only changed documents are re-embedded. A PDF or
 Word file is hashed on its bytes, so an unchanged file is skipped before its text is even
-extracted. Indexing streams: documents are read one at a time and each document's passages
-are embedded ``ai.rag.embed_batch_size`` at a time while the store consumes them, so the
-build never holds the corpus in memory (the memory store itself does, by design).
+extracted. A scanned PDF is read by OCR when ``ai.rag.ocr`` is on and an engine is installed
+(ocr.py). Indexing goes one document at a time: its passages are embedded
+``ai.rag.embed_batch_size`` at a time *before* the store is written, in one short
+transaction, so no store connection or lock is held while a model is called, and the build
+holds one document's passages, never the corpus (the memory store itself does, by design).
+Documents read through users' connected accounts are a separate, per-user index
+(personal.py).
 """
 
 from __future__ import annotations
@@ -36,7 +40,7 @@ import time
 from typing import Any, Dict, Iterator, List, Optional
 
 from sajha.ai.llm.settings import RagSettings
-from sajha.ai.rag import extract
+from sajha.ai.rag import extract, ocr
 from sajha.ai.rag.chunking import SUPPORTED_TYPES, chunk_document, title_of
 from sajha.ai.rag.stores import DimensionChanged, StoredChunk, VectorStore, normalize
 
@@ -136,7 +140,8 @@ class DocIndex:
         """Fill in a document's text (PDF, Word): raises ExtractorMissing or ValueError."""
         if d.get("text") is not None:
             return
-        text, title = extract.extract_text(d["document"], _storage().read_bytes(d["document"]))
+        text, title = ocr.extract_document(d["document"], _storage().read_bytes(d["document"]),
+                                           bool(getattr(self.settings, "ocr", False)))
         d["text"] = text
         d["title"] = title or title_of(d["document"], text if d["document"].lower().endswith(".docx") else "")
 
@@ -256,31 +261,24 @@ class DocIndex:
         return stats
 
     def _index_document(self, d: Dict[str, Any], doc_hash: str, embedder: str) -> int:
-        """Chunk one document and stream its passages to the store, embedding them
-        ``ai.rag.embed_batch_size`` at a time."""
+        """Chunk one document, embed its passages (``ai.rag.embed_batch_size`` per call), then
+        write them to the store. Embedding comes first, so no store transaction (a database
+        connection for pgvector, the write lock for sqlite_vec) is open while a model is called."""
         s = self.settings
         pieces = chunk_document(d["document"], d["text"], s.chunk_chars, s.chunk_overlap)
-        size = max(1, int(s.embed_batch_size or 64))
-        count = [0]
-
-        def passages() -> Iterator[StoredChunk]:
-            for i in range(0, len(pieces), size):
-                batch = []
-                for p in pieces[i:i + size]:
-                    cid = hashlib.sha1(f"{d['source']}\x00{d['document']}\x00{p.ordinal}\x00{doc_hash}"
-                                       .encode()).hexdigest()[:32]
-                    url = d["url"] + ("#" + p.anchor if d["url"] and p.anchor else "")
-                    batch.append(StoredChunk(cid, d["source"], d["document"], d["title"], p.heading, p.anchor, url,
-                                             p.text, p.ordinal))
-                if embedder:
-                    vecs = self._embed([f"{c.title} — {c.heading}\n{c.text}" for c in batch], "document")
-                    for c, v in zip(batch, vecs):
-                        c.vector = v
-                count[0] += len(batch)
-                yield from batch
-
-        self.store.replace_document(d["source"], d["document"], doc_hash, embedder, passages())
-        return count[0]
+        chunks: List[StoredChunk] = []
+        for p in pieces:
+            cid = hashlib.sha1(f"{d['source']}\x00{d['document']}\x00{p.ordinal}\x00{doc_hash}"
+                               .encode()).hexdigest()[:32]
+            url = d["url"] + ("#" + p.anchor if d["url"] and p.anchor else "")
+            chunks.append(StoredChunk(cid, d["source"], d["document"], d["title"], p.heading, p.anchor, url,
+                                      p.text, p.ordinal))
+        if embedder and chunks:
+            vecs = self._embed([f"{c.title} — {c.heading}\n{c.text}" for c in chunks], "document")
+            for c, v in zip(chunks, vecs):
+                c.vector = v
+        self.store.replace_document(d["source"], d["document"], doc_hash, embedder, chunks)
+        return len(chunks)
 
     def build_in_background(self) -> None:
         threading.Thread(target=self._safe_build, name="rag-index-build", daemon=True).start()
@@ -348,8 +346,8 @@ class DocIndex:
         rel = f"{self.settings.uploads_dir.rstrip('/')}/{name}"
         if extract.is_document(name):         # PDF / Word: read it before keeping it
             try:
-                text, title = extract.extract_text(name, data)
-            except extract.ExtractorMissing as e:
+                text, title = ocr.extract_document(name, data, bool(getattr(self.settings, "ocr", False)))
+            except (extract.ExtractorMissing, ocr.OCRUnavailable) as e:
                 raise ValueError(str(e))
             _storage().write_bytes(rel, data)
             d = {"source": UPLOADS, "document": rel, "url": "", "text": text,
@@ -383,7 +381,8 @@ class DocIndex:
         out.update(embedder=self.store.embedder() or "none (BM25 only)", built=self._built.is_set(),
                    building=self._building, last_build=self.last_build, uploads=self.uploads(),
                    configured_sources=[s.model_dump() for s in self.settings.sources],
-                   document_readers=extract.available(),
+                   document_readers=extract.available(), ocr={"enabled": bool(getattr(self.settings, "ocr", False)),
+                                                               **ocr.available()},
                    index_sajha_docs=self.settings.index_sajha_docs,
                    store_configured=self.settings.store, store_fallback=self.store_fallback)
         return out

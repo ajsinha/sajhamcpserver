@@ -332,11 +332,14 @@ def decide(node, rule: str, s: Dict[str, Any], registry=None) -> plugins.Decisio
         if d is None:
             return plugins.Decision(True, rule)
         tool = str(s.get('qualified_name') or s.get('tool') or '')
-        if rule == 'residency_offer':
-            if d.effect != 'allow' and s.get('audit_refusal'):      # a call refused before any host was tried
+        if rule == 'residency_offer':                 # a tool whose calls need approval is still offered
+            ok = d.effect in ('allow', 'require_approval')
+            if not ok and s.get('audit_refusal'):      # a call refused before any host was tried
                 _audit(node.net, host, tool, 'arguments', classes, 'refused', d.rule,
                        trace_id=str(s.get('trace_id') or ''), user=user)
-            return plugins.Decision(d.effect == 'allow', 'residency_arguments' if d.effect != 'allow' else rule)
+            return plugins.Decision(ok, 'residency_arguments' if not ok else rule)
+        if d.effect == 'require_approval':
+            return _approval(node, host, tool, classes, d, s, user, rule)
         if d.effect != 'allow':
             _audit(node.net, host, tool, 'arguments', classes, 'refused', d.rule, trace_id=str(s.get('trace_id') or ''),
                    user=user)
@@ -357,6 +360,30 @@ def decide(node, rule: str, s: Dict[str, Any], registry=None) -> plugins.Decisio
     if rule == 'residency_result':
         return _result_at_host(node, s, here, user, registry)
     return plugins.Decision(True, rule)
+
+
+def _approval(node, host: str, tool: str, classes: List[str], d, s: Dict[str, Any], user, rule: str):
+    """Arguments a ``require_approval`` residency rule holds at the home (design §12): the call goes ahead
+    once a person approved this exact call (tool, arguments, caller; policy approvals, consumed once); until
+    then it is refused ``approval_required`` (side home, not executed) with the pending approval's id, and a
+    repeated call waits on the same approval."""
+    from sajha.policy import approvals
+    who = _caller(user)
+    ptool = f'sajhanet.residency:{tool}'
+    args = s.get('arguments') or {}
+    trace = str(s.get('trace_id') or '')
+    try:
+        if approvals.consume_grant(ptool, args, who) is not None:
+            _audit(node.net, host, tool, 'arguments', classes, 'approved', d.rule, trace_id=trace, user=user)
+            return plugins.Decision(True, rule)
+        rec = approvals.request(tool=ptool, arguments=args, caller=who, source='sajhanet', rule=d.rule,
+                                reason=d.reason or f'residency rule {d.rule} requires approval')
+    except Exception as e:
+        logger.warning(f'SAJHA Net residency approval for {tool}: {e}; the call is refused')
+        _audit(node.net, host, tool, 'arguments', classes, 'refused', d.rule, trace_id=trace, user=user)
+        return plugins.Decision(False, 'residency_arguments')
+    _audit(node.net, host, tool, 'arguments', classes, 'approval_required', d.rule, trace_id=trace, user=user)
+    return plugins.Decision(False, 'approval_required', value={'approval_id': rec['id']})
 
 
 # ── streamed events (design §3.3 of wave 6; protocol §15.10) ───────
@@ -581,6 +608,31 @@ def remote_classes(steps: Iterable[Any]) -> Tuple[bool, List[str]]:
             if c not in out:
                 out.append(c)
     return remote, out
+
+
+def steps_of_tools(names: Iterable[str]) -> List[Any]:
+    """Answer steps (``AskStep``-like: ``net`` with the host and its result classes) for the remote tools among
+    ``names``, so the turn of a tool that records only the names of the tools it used (an LLM tool calling
+    ``ConversationMemory.record`` with ``tools`` and no ``steps``) is masked like one that passed its steps.
+    A named remote tool counts as used."""
+    from types import SimpleNamespace
+    try:
+        from sajha.net.integration.catalogs import get_catalogs
+        cat = get_catalogs()
+    except Exception:
+        cat = None
+    proxies = getattr(cat, '_proxies', None) or {}
+    out: List[Any] = []
+    for name in dict.fromkeys(str(n) for n in (names or []) if n):
+        p = proxies.get(name)
+        meta = getattr(p, 'meta', None) if p is not None else None
+        if not isinstance(meta, dict) or not meta.get('instance'):
+            continue
+        dc = meta.get('data_classes') if isinstance(meta.get('data_classes'), dict) else {}
+        out.append(SimpleNamespace(name=name, ok=True, net={
+            'net': str(meta.get('net') or ''), 'instance': str(meta['instance']),
+            'data_classes': [str(c) for c in R.as_classes(dc.get('results'))]}))
+    return out
 
 
 def memory_answer(answer: str, steps: Iterable[Any]) -> Tuple[str, str]:

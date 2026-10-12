@@ -568,7 +568,9 @@ index (`sajha/ai/rag/`):
   file is skipped and the build's `errors` say which package to install (an upload answers 400
   with the same message); everything else indexes as usual. Word headings become sections like
   Markdown headings; a PDF is split by paragraphs. A scanned PDF has no text layer and is
-  reported as having no text (there is no OCR).
+  reported as having no text, unless OCR is on ([OCR](#ocr-for-scanned-pdfs-and-images)).
+  Documents read through each user's connected accounts are a separate, per-user index
+  ([below](#documents-from-connected-accounts)).
 - **Passages.** Markdown is split at headings (each passage keeps its section path and anchor),
   then into passages of about `ai.rag.chunk_chars` characters at paragraph boundaries.
 - **Embeddings** come from the factory's `ai.rag.embedding_model` alias (`embedding`, which is
@@ -627,9 +629,70 @@ clears once the store runs. The store in use, and any fallback reason, are in
   runs (SAJHA runs no DDL there); that section also shows the optional HNSW and full-text
   indexes for large corpora.
 
-Indexing streams: documents are read one at a time, and each document's passages are embedded
-`ai.rag.embed_batch_size` at a time while the store consumes them, so a build never holds the
-corpus in memory; only the memory store keeps it, by design.
+Indexing goes one document at a time: its passages are embedded `ai.rag.embed_batch_size` at a
+time *before* the store is written, in one short transaction, so no database connection (pgvector)
+or write lock (sqlite_vec) is held while a model is called, and a build holds one document's
+passages, never the corpus; only the memory store keeps it, by design.
+
+#### Documents from connected accounts
+
+`ai.rag.accounts.sources` names document sources at services users link on
+[Connected accounts](Connected%20Accounts.md) (`sajha/ai/rag/personal.py`,
+`sajha/ai/rag/account_sources.py`). Each source is read **as each user**, with that user's own
+linked token, so what is indexed for a user is what that user may read there:
+
+| `kind` | Provider (default) | Where | Change token |
+|---|---|---|---|
+| `google_drive` | `google` | `folder`: a folder id, or `root` (My Drive); subfolders when `recursive`; Google Docs, Sheets and Slides are exported as text | md5 checksum, else version |
+| `onedrive` | `microsoft` | `folder`: a path under the user's OneDrive root | `cTag` |
+| `sharepoint` | `microsoft` | `drive_id` (a document library) or `site_id` (its default library); `folder`: a path in it | `cTag` |
+| `github` | `github` | `repo` (`owner/name`), `ref` (the default branch when empty), `path` (a folder prefix) | blob sha; the commit is the source's cursor |
+| `confluence` | `atlassian` | `cloud_id` and `space_id`; each current page is an HTML document | page version |
+
+Every source also takes `name`, `title`, `pattern` (a glob on the file name), `recursive`,
+`provider` (another configured provider id), `scopes` (what the link must grant; by kind,
+Drive `drive.readonly`, OneDrive `Files.Read`, SharePoint `Sites.Read.All`, none for GitHub and
+Confluence) and `max_files`. The file types are those of the other sources, and images when OCR
+is on.
+
+- **Isolation.** The passages live in a store of their own (`ai.rag.accounts.store`: `auto`,
+  `sqlite_vec` at `ai.rag.accounts.path`, or `memory` at `ai.rag.accounts.index_path`; never the
+  shared index's store, and never pgvector, whose one table the shared index uses), so
+  `sajha_search_docs` never sees them. Each passage's source is `acct:<owner>:<source>`, where
+  `<owner>` is a hash of the user id; every search filters the store by the caller's own keys
+  and checks each hit again. A document two users can read is indexed once for each. API keys
+  and anonymous callers have no connected accounts and get nothing.
+- **Access.** A search covers only sources whose link is active now. When the link is removed,
+  or the provider answers 403 or 404 for the source itself, the next sync removes that user's
+  passages from it; a file the user can no longer open goes with it.
+- **Incremental sync.** Each file's change token is its hash in the store, so an unchanged file
+  is not downloaded and a file no longer listed is deleted; an unchanged GitHub commit skips the
+  listing. A search starts a background sync of the caller's sources not synced within
+  `ai.rag.accounts.stale_after_seconds`; `ai.rag.accounts.sync_interval_seconds` (off by
+  default) sweeps every user with an active link. Workers that share one store file take a sync
+  lease in the state store, so one of them syncs a user's source at a time.
+- **Requests** go only to the provider's `api_hosts`, with the user's token; HTTP 401 refreshes
+  the token once, then marks the link for reconnection. A Graph download redirects to a
+  pre-authenticated URL on another host, which is fetched without the token through the
+  outbound fetch guard. Files larger than `ai.rag.accounts.max_file_bytes` are skipped.
+- **No connection is held during slow work:** one file at a time is fetched, extracted,
+  chunked and embedded, and then written in one short store transaction.
+
+`sajha_search_my_docs` (`config/tools/sajha/sajha_search_my_docs.json`, listed only while
+sources are configured) searches the caller's own passages; its result also names the sources
+whose sync it started (`syncing`) and those whose service the caller has not linked
+(`not_linked`). For the signed-in user over HTTP: `GET /api/ai/docs/mine` (each source: linked,
+documents, last sync), `POST /api/ai/docs/mine/sync` and `POST /api/ai/docs/mine/search`.
+
+#### OCR for scanned PDFs and images
+
+With `ai.rag.ocr: true`, a PDF without a text layer is read from its page images (at most 200
+pages; `ai.rag.accounts.ocr_max_pages` for connected-account sources), and image files (`.png`,
+`.jpg`, `.jpeg`, `.tif`, `.tiff`, `.bmp`, `.webp`) from connected-account sources become
+documents (`sajha/ai/rag/ocr.py`). SAJHA ships no OCR engine: it uses `rapidocr-onnxruntime`
+(or `rapidocr`) when installed, else `pytesseract` with the `tesseract` program on the PATH.
+Without one, such a file is refused with a message naming both; with OCR off, the message says
+to turn on `ai.rag.ocr`. `GET /api/ai/docs/status` reports the engine (`ocr`).
 
 ### `POST /api/ai/ask`
 
@@ -805,8 +868,10 @@ tool registered by any path is shortlisted without a reload.
   covers the Anthropic Claude and Amazon Nova 2 families only.
 - Confirmation through the client over the stdio transport: its 2025-11-25 sessions bind no
   confirmation channel for registry tools, so a stdio client gets `needs_confirmation`.
-- Document connectors (SharePoint, Drive, Confluence, or a connected account) as RAG sources;
-  today a source is a folder in the storage backend, or an upload. No OCR for scanned PDFs.
+- Documents from connected accounts are synced by listing each source and comparing each
+  file's change token; the providers' change feeds (Drive `changes`, Graph `delta`) are not
+  used. The personal index is per host (a sqlite_vec file or process memory), so each host
+  syncs for itself. Image files are indexed (with OCR) only from connected-account sources.
 
 ---
 

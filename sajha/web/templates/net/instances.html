@@ -1,6 +1,6 @@
 {% extends "common/base.html" %}
 {# Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.com #}
-{% block title %}Instances - SAJHA Net - SAJHA MCP Server{% endblock %}
+{% block title %}{{ _('Instances - SAJHA Net - SAJHA MCP Server') }}{% endblock %}
 {% block extra_css %}
 <style>
 .ni-bar{display:flex;flex-wrap:wrap;gap:.5rem;align-items:flex-end;margin-bottom:1rem}
@@ -24,63 +24,63 @@
 <div class="container-fluid">
   <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
     <div>
-      <h1 class="h3 mb-0"><i class="bi bi-share me-2" aria-hidden="true"></i>Instances</h1>
-      <small class="text-muted">Every SAJHA Net participant this server knows, and how many of its tools you may use from here</small>
+      <h1 class="h3 mb-0"><i class="bi bi-share me-2" aria-hidden="true"></i>{{ _('Instances') }}</h1>
+      <small class="text-muted">{{ _('Every SAJHA Net participant this server knows, and how many of its tools you may use from here') }}</small>
     </div>
     <div class="d-flex gap-2">
-      <a class="btn btn-sm btn-outline-secondary" href="/net/access">Your net access</a>
-      {% if is_admin %}<a class="btn btn-sm btn-outline-secondary" href="/admin/sajhanet/overview">Net overview</a>{% endif %}
-      <a class="btn btn-sm btn-outline-primary" href="/net/instances" aria-label="Reload"><i class="bi bi-arrow-clockwise" aria-hidden="true"></i></a>
+      <a class="btn btn-sm btn-outline-secondary" href="/net/access">{{ _('Your net access') }}</a>
+      {% if is_admin %}<a class="btn btn-sm btn-outline-secondary" href="/admin/sajhanet/overview">{{ _('Net overview') }}</a>{% endif %}
+      <a class="btn btn-sm btn-outline-primary" href="/net/instances" aria-label="{{ _('Reload') }}"><i class="bi bi-arrow-clockwise" aria-hidden="true"></i></a>
     </div>
   </div>
 
   {% if not view.enabled %}
   <div class="alert alert-info small" role="status">
     <i class="bi bi-info-circle me-1" aria-hidden="true"></i>
-    SAJHA Net is off, so this server is a net of one: it is listed below and talks to no other instance.
-    {% if is_admin %}Set <code>sajhanet.enabled: true</code> to let it join others or let others join it.{% endif %}
+    {{ _('SAJHA Net is off, so this server is a net of one: it is listed below and talks to no other instance.') }}
+    {% if is_admin %}{% trans %}Set <code>sajhanet.enabled: true</code> to let it join others or let others join it.{% endtrans %}{% endif %}
   </div>
   {% endif %}
 
-  <form class="ni-bar" role="search" data-onsubmit="return false" aria-label="Filter instances">
-    <div><label class="form-label small" for="ni-q">Search</label>
-      <input class="form-control form-control-sm" id="ni-q" placeholder="name, region, label" autocomplete="off"></div>
-    <div><label class="form-label small" for="ni-net">Net</label>
-      <select class="form-select form-select-sm" id="ni-net"><option value="">All</option>
+  <form class="ni-bar" role="search" data-onsubmit="return false" aria-label="{{ _('Filter instances') }}">
+    <div><label class="form-label small" for="ni-q">{{ _('Search') }}</label>
+      <input class="form-control form-control-sm" id="ni-q" placeholder="{{ _('name, region, label') }}" autocomplete="off"></div>
+    <div><label class="form-label small" for="ni-net">{{ _('Net') }}</label>
+      <select class="form-select form-select-sm" id="ni-net"><option value="">{{ _('All') }}</option>
         {% for n in view.nets %}<option>{{ n.net }}</option>{% endfor %}</select></div>
-    <div><label class="form-label small" for="ni-state">State</label>
-      <select class="form-select form-select-sm" id="ni-state"><option value="">All</option>
-        <option>alive</option><option>suspect</option><option>dead</option><option>left</option></select></div>
-    <div><label class="form-label small" for="ni-kind">Kind</label>
-      <select class="form-select form-select-sm" id="ni-kind"><option value="">All</option>
-        <option>sajha</option><option>agent</option><option>sponsored</option></select></div>
-    <div><label class="form-label small" for="ni-region">Region</label>
-      <input class="form-control form-control-sm" id="ni-region" placeholder="any" autocomplete="off"></div>
-    <div><label class="form-label small" for="ni-labelf">Label</label>
-      <input class="form-control form-control-sm" id="ni-labelf" placeholder="key or key=value" autocomplete="off"></div>
+    <div><label class="form-label small" for="ni-state">{{ _('State') }}</label>
+      <select class="form-select form-select-sm" id="ni-state"><option value="">{{ _('All') }}</option>
+        <option>{{ _('alive') }}</option><option>{{ _('suspect') }}</option><option>{{ _('dead') }}</option><option>{{ _('left') }}</option></select></div>
+    <div><label class="form-label small" for="ni-kind">{{ _('Kind') }}</label>
+      <select class="form-select form-select-sm" id="ni-kind"><option value="">{{ _('All') }}</option>
+        <option>{{ _('sajha') }}</option><option>{{ _('agent') }}</option><option>{{ _('sponsored') }}</option></select></div>
+    <div><label class="form-label small" for="ni-region">{{ _('Region') }}</label>
+      <input class="form-control form-control-sm" id="ni-region" placeholder="{{ _('any') }}" autocomplete="off"></div>
+    <div><label class="form-label small" for="ni-labelf">{{ _('Label') }}</label>
+      <input class="form-control form-control-sm" id="ni-labelf" placeholder="{{ _('key or key=value') }}" autocomplete="off"></div>
   </form>
   <p class="ni-meta" id="ni-count" role="status" aria-live="polite"></p>
 
   {% for n in view.nets %}
   <section class="ni-net" data-net="{{ n.net }}" aria-labelledby="ni-net-{{ loop.index }}">
     <div class="ni-head">
-      <h2 id="ni-net-{{ loop.index }}">{{ n.net }} <span class="ni-meta">as <code>{{ n.instance }}</code></span></h2>
-      <span class="ni-meta">{% if n.single_member %}a net of one{% if n.state != 'off' %} · {{ n.state }}{% endif %}{% else %}{{ n.instances|length }} instances · {{ n.state }}{% endif %}</span>
+      <h2 id="ni-net-{{ loop.index }}">{{ n.net }} <span class="ni-meta">{% trans instance=n.instance %}as <code>{{ instance }}</code>{% endtrans %}</span></h2>
+      <span class="ni-meta">{% if n.single_member %}{{ _('a net of one') }}{% if n.state != 'off' %} · {{ n.state }}{% endif %}{% else %}{% trans n=n.instances|length, state=n.state %}{{ n }} instances · {{ state }}{% endtrans %}{% endif %}</span>
     </div>
     <div class="table-responsive">
     <table class="ni-table">
-      <caption class="visually-hidden">Instances in {{ n.net }}</caption>
-      <thead><tr><th scope="col">Instance</th><th scope="col">State</th><th scope="col">Your tools</th>
-        <th scope="col" class="opt">Kind</th><th scope="col" class="opt">Vendor</th><th scope="col" class="opt">Region and labels</th><th scope="col" class="opt">Last seen</th></tr></thead>
+      <caption class="visually-hidden">{% trans net=n.net %}Instances in {{ net }}{% endtrans %}</caption>
+      <thead><tr><th scope="col">{{ _('Instance') }}</th><th scope="col">{{ _('State') }}</th><th scope="col">{{ _('Your tools') }}</th>
+        <th scope="col" class="opt">{{ _('Kind') }}</th><th scope="col" class="opt">{{ _('Vendor') }}</th><th scope="col" class="opt">{{ _('Region and labels') }}</th><th scope="col" class="opt">{{ _('Last seen') }}</th></tr></thead>
       <tbody>
       {% for i in n.instances %}
         <tr class="ni-row" data-net="{{ n.net }}" data-state="{{ i.state }}" data-kind="{{ i.kind }}" data-region="{{ i.region|lower }}"
             data-labels="{% for k, v in i.labels.items() %}{{ k|lower }}={{ v|lower }} {% endfor %}"
             data-text="{{ i.name|lower }} {{ (i.vendor or '')|lower }} {{ i.region|lower }} {% for k, v in i.labels.items() %}{{ k|lower }} {{ v|lower }} {% endfor %}">
-          <td><a href="/net/instances/{{ n.net|urlencode }}/{{ i.name|urlencode }}"><code>{{ i.name }}</code></a>{% if i.self %}<span class="ni-you">this server</span>{% endif %}
+          <td><a href="/net/instances/{{ n.net|urlencode }}/{{ i.name|urlencode }}"><code>{{ i.name }}</code></a>{% if i.self %}<span class="ni-you">{{ _('this server') }}</span>{% endif %}
             {% if i.note %}<div class="ni-meta">{{ i.note }}</div>{% endif %}</td>
           <td><span class="st st-{{ i.state }}">{{ i.state }}</span></td>
-          <td>{{ i.tools_usable }}{% if i.tools_total != i.tools_usable %} <span class="ni-meta">of {{ i.tools_total }}</span>{% endif %}</td>
+          <td>{{ i.tools_usable }}{% if i.tools_total != i.tools_usable %} <span class="ni-meta">{% trans tools_total=i.tools_total %}of {{ tools_total }}{% endtrans %}</span>{% endif %}</td>
           <td class="opt">{{ i.kind }}</td>
           <td class="opt">{{ i.vendor or '—' }}</td>
           <td class="opt">{{ i.region or '—' }}{% for k, v in i.labels.items() %} <span class="ni-label">{{ k }}: {{ v }}</span>{% endfor %}</td>
@@ -108,7 +108,7 @@
       r.hidden = !ok; if (ok) shown++;
     });
     document.querySelectorAll('.ni-net').forEach(s => { s.hidden = !s.querySelector('.ni-row:not([hidden])'); });
-    document.getElementById('ni-count').textContent = shown === total ? (total + ' instances') : (shown + ' of ' + total + ' instances shown');
+    document.getElementById('ni-count').textContent = shown === total ? _t('%(n)s instances', {n: total}) : _t('%(shown)s of %(n)s instances shown', {shown: shown, n: total});
   }
   ids.forEach(id => document.getElementById(id).addEventListener('input', apply));
   apply();

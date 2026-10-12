@@ -33,14 +33,15 @@ _DIALECT_NAMES = {'postgresql': 'PostgreSQL', 'pgvector': 'PostgreSQL', 'redshif
                   'mysql': 'MySQL', 'mariadb': 'MariaDB', 'sqlserver': 'SQL Server (T-SQL)', 'oracle': 'Oracle',
                   'snowflake': 'Snowflake', 'bigquery': 'BigQuery (GoogleSQL)', 'databricks': 'Databricks SQL',
                   'sqlite': 'SQLite', 'duckdb': 'DuckDB', 'qdrant': 'Qdrant', 'elasticsearch': 'Elasticsearch',
-                  'opensearch': 'OpenSearch'}
+                  'opensearch': 'OpenSearch', 'weaviate': 'Weaviate', 'chroma': 'Chroma'}
 _PACKAGES = {'postgresql': ('psycopg2', 'psycopg2-binary'), 'pgvector': ('psycopg2', 'psycopg2-binary'),
              'redshift': ('psycopg2', 'psycopg2-binary'), 'mysql': ('pymysql', 'pymysql'),
              'mariadb': ('pymysql', 'pymysql'), 'sqlserver': ('pyodbc', 'pyodbc'),
              'oracle': ('oracledb', 'oracledb'), 'snowflake': ('snowflake.connector', 'snowflake-connector-python'),
              'bigquery': ('google.cloud.bigquery', 'google-cloud-bigquery'),
              'databricks': ('databricks.sql', 'databricks-sql-connector'), 'sqlite': ('sqlite3', ''),
-             'duckdb': ('duckdb', 'duckdb'), 'qdrant': ('', ''), 'elasticsearch': ('', ''), 'opensearch': ('', '')}
+             'duckdb': ('duckdb', 'duckdb'), 'qdrant': ('', ''), 'elasticsearch': ('', ''), 'opensearch': ('', ''),
+             'weaviate': ('', ''), 'chroma': ('', '')}
 
 
 _ARR = {'type': 'array'}
@@ -181,8 +182,8 @@ def _search_tool(conn: Connection, collections: bool) -> Dict[str, Any]:
     if collections:
         props['collection'] = {'type': 'string', 'maxLength': 255,
                                'description': f'The collection or index (from {p}__list_collections).'}
-    what = 'nearest-neighbour' if conn.kind in ('qdrant', 'pgvector') or conn.vector.get('vector_field') \
-        else 'full-text'
+    from sajha.connectors.vector import needs_vector
+    what = 'nearest-neighbour' if needs_vector(conn) else 'full-text'
     first = f'Call {p}__list_collections first to find collections. ' if collections else ''
     return _base(conn, f'{p}__search', 'search', f'{conn.label}: search',
                  f'Search {_about(conn)} ({what}) and get the best matches with their text, score and metadata. '

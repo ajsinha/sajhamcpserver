@@ -2,12 +2,12 @@
 <!--
 Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.com
 -->
-{% block title %}Monitoring - Tools - SAJHA MCP Server{% endblock %}
+{% block title %}{{ _('Monitoring - Tools - SAJHA MCP Server') }}{% endblock %}
 
 {% block content %}
 <div class="container-fluid">
     <h1 class="h3 mb-4">
-        <i class="bi bi-graph-up"></i> Tools Monitoring
+        <i class="bi bi-graph-up"></i> {{ _('Tools Monitoring') }}
     </h1>
     
     <!-- Real-time Metrics -->
@@ -15,7 +15,7 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
         <div class="col-md-3">
             <div class="card text-center">
                 <div class="card-body">
-                    <h5>Total Tools</h5>
+                    <h5>{{ _('Total Tools') }}</h5>
                     <p class="display-4">{{ metrics|length }}</p>
                 </div>
             </div>
@@ -23,7 +23,7 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
         <div class="col-md-3">
             <div class="card text-center">
                 <div class="card-body">
-                    <h5>Total Executions</h5>
+                    <h5>{{ _('Total Executions') }}</h5>
                     <p class="display-4">{{ metrics|sum(attribute='execution_count') }}</p>
                 </div>
             </div>
@@ -31,7 +31,7 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
         <div class="col-md-3">
             <div class="card text-center">
                 <div class="card-body">
-                    <h5>Active Tools</h5>
+                    <h5>{{ _('Active Tools') }}</h5>
                     <p class="display-4">{{ metrics|selectattr('enabled')|list|length }}</p>
                 </div>
             </div>
@@ -39,7 +39,7 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
         <div class="col-md-3">
             <div class="card text-center">
                 <div class="card-body">
-                    <h5>Avg Response Time</h5>
+                    <h5>{{ _('Avg Response Time') }}</h5>
                     <p class="display-4">{{ "%.2f"|format(metrics|map(attribute='average_execution_time')|sum / (metrics|length or 1)) }}s</p>
                 </div>
             </div>
@@ -49,7 +49,7 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
     <!-- Performance Chart -->
     <div class="card mb-4">
         <div class="card-header card-header-primary">
-            <h5 class="mb-0"><i class="bi bi-bar-chart"></i> Performance Overview (Last 30 Minutes)</h5>
+            <h5 class="mb-0"><i class="bi bi-bar-chart"></i> {{ _('Performance Overview (Last 30 Minutes)') }}</h5>
         </div>
         <div class="card-body">
             <div class="sajha-chart"><canvas id="performanceChart"></canvas></div>
@@ -59,7 +59,7 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
     <!-- Tool Metrics Table -->
     <div class="card">
         <div class="card-header card-header-primary">
-            <h5 class="mb-0"><i class="bi bi-table"></i> Tool Metrics (Total: {{ metrics|length }})</h5>
+            <h5 class="mb-0"><i class="bi bi-table"></i> {% trans n=metrics|length %}Tool Metrics (Total: {{ n }}){% endtrans %}</h5>
         </div>
         <div class="card-body">
             {% if metrics %}
@@ -68,18 +68,18 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
                 <div class="col-md-6">
                     <div class="input-group">
                         <span class="input-group-text"><i class="bi bi-search"></i></span>
-                        <input type="text" class="form-control" id="searchMetrics" placeholder="Search by tool name...">
+                        <input type="text" class="form-control" id="searchMetrics" placeholder="{{ _('Search by tool name...') }}">
                     </div>
                 </div>
                 <div class="col-md-6 text-end">
-                    <label for="rowsPerPage" class="me-2">Show:</label>
+                    <label for="rowsPerPage" class="me-2">{{ _('Show:') }}</label>
                     <select id="rowsPerPage" class="form-select d-inline-block" style="width: auto;">
                         <option value="5" selected>5</option>
                         <option value="10">10</option>
                         <option value="50">50</option>
-                        <option value="all">All</option>
+                        <option value="all">{{ _('All') }}</option>
                     </select>
-                    <span class="ms-2">entries</span>
+                    <span class="ms-2">{{ _('entries') }}</span>
                 </div>
             </div>
 
@@ -88,22 +88,22 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
                     <thead>
                         <tr>
                             <th style="cursor: pointer;" id="sortToolName">
-                                Tool <i class="bi bi-arrow-down-up"></i>
+                                {{ _('Tool') }} <i class="bi bi-arrow-down-up"></i>
                             </th>
                             <th style="cursor: pointer;" id="sortStatus">
-                                Status <i class="bi bi-arrow-down-up"></i>
+                                {{ _('Status') }} <i class="bi bi-arrow-down-up"></i>
                             </th>
                             <th style="cursor: pointer;" id="sortExecutions">
-                                Executions <i class="bi bi-arrow-down-up"></i>
+                                {{ _('Executions') }} <i class="bi bi-arrow-down-up"></i>
                             </th>
-                            <th>Success Rate</th>
+                            <th>{{ _('Success Rate') }}</th>
                             <th style="cursor: pointer;" id="sortAvgTime">
-                                Avg Time <i class="bi bi-arrow-down-up"></i>
+                                {{ _('Avg Time') }} <i class="bi bi-arrow-down-up"></i>
                             </th>
-                            <th>Min Time</th>
-                            <th>Max Time</th>
+                            <th>{{ _('Min Time') }}</th>
+                            <th>{{ _('Max Time') }}</th>
                             <th style="cursor: pointer;" id="sortLastExecution">
-                                Last Executed <i class="bi bi-arrow-down-up"></i>
+                                {{ _('Last Executed') }} <i class="bi bi-arrow-down-up"></i>
                             </th>
                         </tr>
                     </thead>
@@ -113,9 +113,9 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
                             <td><strong>{{ metric.name }}</strong></td>
                             <td>
                                 {% if metric.enabled %}
-                                <span class="badge bg-success">Active</span>
+                                <span class="badge bg-success">{{ _('Active') }}</span>
                                 {% else %}
-                                <span class="badge bg-secondary">Inactive</span>
+                                <span class="badge bg-secondary">{{ _('Inactive') }}</span>
                                 {% endif %}
                             </td>
                             <td>{{ metric.execution_count }}</td>
@@ -131,7 +131,7 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
                                 {% if metric.last_execution %}
                                 <small>{{ metric.last_execution }}</small>
                                 {% else %}
-                                <span class="text-muted">Never</span>
+                                <span class="text-muted">{{ _('Never') }}</span>
                                 {% endif %}
                             </td>
                         </tr>
@@ -146,14 +146,14 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
                     <div id="tableInfo" class="text-muted"></div>
                 </div>
                 <div class="col-md-6">
-                    <nav aria-label="Metrics pagination">
+                    <nav aria-label="{{ _('Metrics pagination') }}">
                         <ul class="pagination justify-content-end mb-0" id="pagination"></ul>
                     </nav>
                 </div>
             </div>
             {% else %}
             <div class="alert alert-warning">
-                <i class="bi bi-exclamation-triangle"></i> No tool metrics available.
+                <i class="bi bi-exclamation-triangle"></i> {{ _('No tool metrics available.') }}
             </div>
             {% endif %}
         </div>
@@ -174,13 +174,13 @@ const performanceChart = new Chart(ctx, {
     data: {
         labels: generateTimeLabels(),
         datasets: [{
-            label: 'Requests per Minute',
+            label: _t('Requests per Minute'),
             data: generateDemoData(30),
             borderColor: T.color('crimson'),
             backgroundColor: T.color('crimson', 0.15),
             tension: 0.1
         }, {
-            label: 'Average Response Time (ms)',
+            label: _t('Average Response Time (ms)'),
             data: generateDemoData(30, 50, 200),
             borderColor: T.color('indigo'),
             backgroundColor: T.color('indigo', 0.15),
@@ -211,7 +211,7 @@ const performanceChart = new Chart(ctx, {
                 position: 'right',
                 title: {
                     display: true,
-                    text: 'Response Time (ms)'
+                    text: _t('Response Time (ms)')
                 },
                 grid: {
                     drawOnChartArea: false,
@@ -410,12 +410,12 @@ function renderTable() {
         const row = document.createElement('tr');
 
         const statusBadge = metric.enabled 
-            ? '<span class="badge bg-success">Active</span>'
-            : '<span class="badge bg-secondary">Inactive</span>';
+            ? '<span class="badge bg-success">' + _t('Active') + '</span>'
+            : '<span class="badge bg-secondary">' + _t('Inactive') + '</span>';
 
         const lastExecutionText = metric.lastExecution 
             ? `<small>${metric.lastExecution}</small>`
-            : '<span class="text-muted">Never</span>';
+            : '<span class="text-muted">' + _t('Never') + '</span>';
 
         row.innerHTML = `
             <td><strong>${metric.name}</strong></td>
@@ -437,9 +437,9 @@ function renderTable() {
     // Update info
     if (totalRows > 0) {
         document.getElementById('tableInfo').textContent =
-            `Showing ${start + 1} to ${end} of ${totalRows} entries`;
+            _t('Showing %(from)s to %(to)s of %(total)s entries', {from: start + 1, to: end, total: totalRows});
     } else {
-        document.getElementById('tableInfo').textContent = 'No entries found';
+        document.getElementById('tableInfo').textContent = _t('No entries found');
     }
 
     // Render pagination
@@ -455,7 +455,7 @@ function renderPagination(totalPages) {
     // Previous button
     const prevLi = document.createElement('li');
     prevLi.className = `page-item ${currentPage === 1 ? 'disabled' : ''}`;
-    prevLi.innerHTML = `<a class="page-link" href="#" data-onclick="changePage(${currentPage - 1}); return false;">Previous</a>`;
+    prevLi.innerHTML = `<a class="page-link" href="#" data-onclick="changePage(${currentPage - 1}); return false;">${_t('Previous')}</a>`;
     pagination.appendChild(prevLi);
 
     // Page numbers
@@ -509,7 +509,7 @@ function renderPagination(totalPages) {
     // Next button
     const nextLi = document.createElement('li');
     nextLi.className = `page-item ${currentPage === totalPages ? 'disabled' : ''}`;
-    nextLi.innerHTML = `<a class="page-link" href="#" data-onclick="changePage(${currentPage + 1}); return false;">Next</a>`;
+    nextLi.innerHTML = `<a class="page-link" href="#" data-onclick="changePage(${currentPage + 1}); return false;">${_t('Next')}</a>`;
     pagination.appendChild(nextLi);
 }
 

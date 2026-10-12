@@ -2,28 +2,28 @@
 <!--
 Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.com
 -->
-{% block title %}Admin - Manage Tools - SAJHA MCP Server{% endblock %}
+{% block title %}{{ _('Admin - Manage Tools - SAJHA MCP Server') }}{% endblock %}
 
 {% block content %}
 <div class="container-fluid">
     <h1 class="h3 mb-4">
-        <i class="bi bi-gear-fill"></i> Tools Management
+        <i class="bi bi-gear-fill"></i> {{ _('Tools Management') }}
     </h1>
     
     <!-- Tool Errors -->
     {% if tool_errors %}
     <div class="card border-danger mb-4">
         <div class="card-header card-header-danger">
-            <h5 class="mb-0"><i class="bi bi-exclamation-triangle-fill"></i> Tool Loading Errors</h5>
+            <h5 class="mb-0"><i class="bi bi-exclamation-triangle-fill"></i> {{ _('Tool Loading Errors') }}</h5>
         </div>
         <div class="card-body">
             <div class="table-responsive">
                 <table class="table table-sm">
                     <thead>
                         <tr>
-                            <th>Tool</th>
-                            <th>Error</th>
-                            <th>Action</th>
+                            <th>{{ _('Tool') }}</th>
+                            <th>{{ _('Error') }}</th>
+                            <th>{{ _('Action') }}</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -33,7 +33,7 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
                             <td class="text-danger">{{ error }}</td>
                             <td>
                                 <button class="btn btn-sm btn-warning" data-onclick="reloadTools()">
-                                    <i class="bi bi-arrow-clockwise"></i> Reload All
+                                    <i class="bi bi-arrow-clockwise"></i> {{ _('Reload All') }}
                                 </button>
                             </td>
                         </tr>
@@ -48,7 +48,7 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
     <!-- Tools Metrics -->
     <div class="card">
         <div class="card-header card-header-primary">
-            <h5 class="mb-0"><i class="bi bi-graph-up"></i> Tool Metrics & Management (Total: {{ tools_metrics|length }})</h5>
+            <h5 class="mb-0"><i class="bi bi-graph-up"></i> {% trans n=tools_metrics|length %}Tool Metrics & Management (Total: {{ n }}){% endtrans %}</h5>
         </div>
         <div class="card-body">
             {% if tools_metrics %}
@@ -57,18 +57,18 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
                 <div class="col-md-6">
                     <div class="input-group">
                         <span class="input-group-text"><i class="bi bi-search"></i></span>
-                        <input type="text" class="form-control" id="searchMetrics" placeholder="Search by tool name, or folder:<name>...">
+                        <input type="text" class="form-control" id="searchMetrics" placeholder="{{ _('Search by tool name, or folder:<name>...') }}">
                     </div>
                 </div>
                 <div class="col-md-6 text-end">
-                    <label for="rowsPerPage" class="me-2">Show:</label>
+                    <label for="rowsPerPage" class="me-2">{{ _('Show:') }}</label>
                     <select id="rowsPerPage" class="form-select d-inline-block" style="width: auto;">
                         <option value="5" selected>5</option>
                         <option value="10">10</option>
                         <option value="50">50</option>
-                        <option value="all">All</option>
+                        <option value="all">{{ _('All') }}</option>
                     </select>
-                    <span class="ms-2">entries</span>
+                    <span class="ms-2">{{ _('entries') }}</span>
                 </div>
             </div>
 
@@ -77,36 +77,36 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
                     <thead>
                         <tr>
                             <th style="cursor: pointer;" id="sortToolName">
-                                Tool Name <i class="bi bi-arrow-down-up"></i>
+                                {{ _('Tool Name') }} <i class="bi bi-arrow-down-up"></i>
                             </th>
                             <th style="cursor: pointer;" id="sortVersion">
-                                Version <i class="bi bi-arrow-down-up"></i>
+                                {{ _('Version') }} <i class="bi bi-arrow-down-up"></i>
                             </th>
                             <th style="cursor: pointer;" id="sortStatus">
-                                Status <i class="bi bi-arrow-down-up"></i>
+                                {{ _('Status') }} <i class="bi bi-arrow-down-up"></i>
                             </th>
                             <th style="cursor: pointer;" id="sortExecutions">
-                                Executions <i class="bi bi-arrow-down-up"></i>
+                                {{ _('Executions') }} <i class="bi bi-arrow-down-up"></i>
                             </th>
                             <th style="cursor: pointer;" id="sortAvgTime">
-                                Avg Time (s) <i class="bi bi-arrow-down-up"></i>
+                                {{ _('Avg Time (s)') }} <i class="bi bi-arrow-down-up"></i>
                             </th>
                             <th style="cursor: pointer;" id="sortLastExecution">
-                                Last Executed <i class="bi bi-arrow-down-up"></i>
+                                {{ _('Last Executed') }} <i class="bi bi-arrow-down-up"></i>
                             </th>
-                            <th>Actions</th>
+                            <th>{{ _('Actions') }}</th>
                         </tr>
                     </thead>
                     <tbody>
                         {% for metric in tools_metrics %}
                         <tr>
-                            <td><strong>{{ metric.name }}</strong> <span class="badge bg-light text-dark" title="Tool folder">{{ tool_folders.get(metric.name) or 'root' if tool_folders.get(metric.name) is not none else '' }}</span></td>
+                            <td><strong>{{ metric.name }}</strong> <span class="badge bg-light text-dark" title="{{ _('Tool folder') }}">{{ tool_folders.get(metric.name) or _('root') if tool_folders.get(metric.name) is not none else '' }}</span></td>
                             <td>{{ metric.version }}</td>
                             <td>
                                 {% if metric.enabled %}
-                                <span class="badge bg-success">Enabled</span>
+                                <span class="badge bg-success">{{ _('Enabled') }}</span>
                                 {% else %}
-                                <span class="badge bg-danger">Disabled</span>
+                                <span class="badge bg-danger">{{ _('Disabled') }}</span>
                                 {% endif %}
                             </td>
                             <td>{{ metric.execution_count }}</td>
@@ -115,24 +115,24 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
                                 {% if metric.last_execution %}
                                 {{ metric.last_execution }}
                                 {% else %}
-                                <span class="text-muted">Never</span>
+                                <span class="text-muted">{{ _('Never') }}</span>
                                 {% endif %}
                             </td>
                             <td>
                                 {% if metric.enabled %}
                                 <button class="btn btn-sm btn-warning"
                                         data-onclick="toggleTool('{{ metric.name }}', false)">
-                                    <i class="bi bi-pause-circle"></i> Disable
+                                    <i class="bi bi-pause-circle"></i> {{ _('Disable') }}
                                 </button>
                                 {% else %}
                                 <button class="btn btn-sm btn-success"
                                         data-onclick="toggleTool('{{ metric.name }}', true)">
-                                    <i class="bi bi-play-circle"></i> Enable
+                                    <i class="bi bi-play-circle"></i> {{ _('Enable') }}
                                 </button>
                                 {% endif %}
                                 <button class="btn btn-sm btn-info"
                                         data-onclick="viewConfig('{{ metric.name }}')">
-                                    <i class="bi bi-file-code"></i> Config
+                                    <i class="bi bi-file-code"></i> {{ _('Config') }}
                                 </button>
                             </td>
                         </tr>
@@ -147,14 +147,14 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
                     <div id="tableInfo" class="text-muted"></div>
                 </div>
                 <div class="col-md-6">
-                    <nav aria-label="Tools pagination">
+                    <nav aria-label="{{ _('Tools pagination') }}">
                         <ul class="pagination justify-content-end mb-0" id="pagination"></ul>
                     </nav>
                 </div>
             </div>
             {% else %}
             <div class="alert alert-warning">
-                <i class="bi bi-exclamation-triangle"></i> No tool metrics available.
+                <i class="bi bi-exclamation-triangle"></i> {{ _('No tool metrics available.') }}
             </div>
             {% endif %}
         </div>
@@ -163,14 +163,14 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
     <!-- Actions -->
     <div class="card mt-4">
         <div class="card-header card-header-secondary">
-            <h5 class="mb-0"><i class="bi bi-lightning"></i> Quick Actions</h5>
+            <h5 class="mb-0"><i class="bi bi-lightning"></i> {{ _('Quick Actions') }}</h5>
         </div>
         <div class="card-body">
             <button class="btn btn-primary" data-onclick="reloadTools()">
-                <i class="bi bi-arrow-clockwise"></i> Reload All Tools
+                <i class="bi bi-arrow-clockwise"></i> {{ _('Reload All Tools') }}
             </button>
             <button class="btn btn-info" data-onclick="exportMetrics()">
-                <i class="bi bi-download"></i> Export Metrics
+                <i class="bi bi-download"></i> {{ _('Export Metrics') }}
             </button>
         </div>
     </div>
@@ -335,19 +335,19 @@ function renderTable() {
         const row = document.createElement('tr');
 
         const statusBadge = metric.enabled
-            ? '<span class="badge bg-success">Enabled</span>'
-            : '<span class="badge bg-danger">Disabled</span>';
+            ? '<span class="badge bg-success">' + _t('Enabled') + '</span>'
+            : '<span class="badge bg-danger">' + _t('Disabled') + '</span>';
 
         const lastExecutionText = metric.lastExecution
             ? metric.lastExecution
-            : '<span class="text-muted">Never</span>';
+            : '<span class="text-muted">' + _t('Never') + '</span>';
 
         const toggleButton = metric.enabled
             ? `<button class="btn btn-sm btn-warning" data-onclick="toggleTool('${metric.name}', false)">
-                <i class="bi bi-pause-circle"></i> Disable
+                <i class="bi bi-pause-circle"></i> ${_t('Disable')}
                </button>`
             : `<button class="btn btn-sm btn-success" data-onclick="toggleTool('${metric.name}', true)">
-                <i class="bi bi-play-circle"></i> Enable
+                <i class="bi bi-play-circle"></i> ${_t('Enable')}
                </button>`;
 
         row.innerHTML = `
@@ -360,7 +360,7 @@ function renderTable() {
             <td>
                 ${toggleButton}
                 <button class="btn btn-sm btn-info" data-onclick="viewConfig('${metric.name}')">
-                    <i class="bi bi-file-code"></i> Config
+                    <i class="bi bi-file-code"></i> ${_t('Config')}
                 </button>
             </td>
         `;
@@ -370,9 +370,9 @@ function renderTable() {
     // Update info
     if (totalRows > 0) {
         document.getElementById('tableInfo').textContent =
-            `Showing ${start + 1} to ${end} of ${totalRows} entries`;
+            _t('Showing %(from)s to %(to)s of %(total)s entries', {from: start + 1, to: end, total: totalRows});
     } else {
-        document.getElementById('tableInfo').textContent = 'No entries found';
+        document.getElementById('tableInfo').textContent = _t('No entries found');
     }
 
     // Render pagination
@@ -388,7 +388,7 @@ function renderPagination(totalPages) {
     // Previous button
     const prevLi = document.createElement('li');
     prevLi.className = `page-item ${currentPage === 1 ? 'disabled' : ''}`;
-    prevLi.innerHTML = `<a class="page-link" href="#" data-onclick="changePage(${currentPage - 1}); return false;">Previous</a>`;
+    prevLi.innerHTML = `<a class="page-link" href="#" data-onclick="changePage(${currentPage - 1}); return false;">${_t('Previous')}</a>`;
     pagination.appendChild(prevLi);
 
     // Page numbers
@@ -442,7 +442,7 @@ function renderPagination(totalPages) {
     // Next button
     const nextLi = document.createElement('li');
     nextLi.className = `page-item ${currentPage === totalPages ? 'disabled' : ''}`;
-    nextLi.innerHTML = `<a class="page-link" href="#" data-onclick="changePage(${currentPage + 1}); return false;">Next</a>`;
+    nextLi.innerHTML = `<a class="page-link" href="#" data-onclick="changePage(${currentPage + 1}); return false;">${_t('Next')}</a>`;
     pagination.appendChild(nextLi);
 }
 
@@ -463,18 +463,18 @@ function toggleTool(toolName, enable) {
             location.reload();
         })
         .fail(function() {
-            alert(`Failed to ${action} tool: ${toolName}`);
+            alert(_t('Failed to %(action)s tool: %(toolName)s', {action: action, toolName: toolName}));
         });
 }
 
 function reloadTools() {
-    if (confirm('Reload all tools? This may take a moment.')) {
+    if (confirm(_t('Reload all tools? This may take a moment.'))) {
         $.post('/api/admin/tools/reload')
             .done(function() {
                 location.reload();
             })
             .fail(function() {
-                alert('Failed to reload tools');
+                alert(_t('Failed to reload tools'));
             });
     }
 }

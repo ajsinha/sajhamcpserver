@@ -36,6 +36,19 @@ the stored call spec (tool, arguments, caller) and runs the next round itself.
 A ``working`` task whose worker stopped heart-beating is failed on read
 ("orphaned"): tools are not assumed idempotent, so it is never re-run.
 
+Remote tasks: a runner may hand its work to a task held by another server
+(SAJHA Net host-side tasks, docs/architecture/SAJHA Net.md section 9) by
+raising :class:`RemoteTask`. The record then keeps ``remote`` (``kind`` names a
+handler registered with :func:`register_remote_handler`) and no local runner:
+``tasks/get`` refreshes the record from the remote task through the handler,
+``tasks/update`` and ``tasks/cancel`` are relayed to it, and such a record is
+never reaped as orphaned, so it survives a restart of this server (with a
+durable task record store) and is not bounded by this server's call deadline.
+
+The store also runs outside an event loop (a SAJHA Net host serves forwarded
+calls in worker threads): a task is then started on a background loop thread.
+Several stores share one record store under different key prefixes.
+
 It is *not* the /admin/async-tasks executor (sajha.core.async_executor): that
 one is a fire-and-forget worker pool that delivers results to
 webhooks/Kafka/files, cannot pause for client input and cannot cancel a
@@ -90,7 +103,49 @@ ORPHANED_MESSAGE = "The worker running this task stopped before it finished"
 # record fields persisted in the task record store
 _RECORD_FIELDS = ("task_id", "owner", "ttl_ms", "poll_interval_ms", "status", "status_message",
                   "created_at", "updated_at", "result", "error", "pending", "responses", "state",
-                  "worker", "spec")
+                  "worker", "spec", "remote")
+
+
+class RemoteTask(Exception):
+    """Raised by a runner whose work continues in a task held by another server. ``remote`` is a JSON
+    object with ``kind`` (a handler registered with :func:`register_remote_handler`), the remote task's
+    first ``status`` and whatever the handler needs to reach it."""
+
+    def __init__(self, remote: Dict[str, Any]):
+        super().__init__(f"continued as a remote task ({remote.get('kind')})")
+        self.remote = dict(remote)
+
+
+#: kind -> handler with refresh(record) -> fields | None, update(record, responses), cancel(record)
+_REMOTE_HANDLERS: Dict[str, Any] = {}
+
+
+def register_remote_handler(kind: str, handler: Any) -> None:
+    """Install the handler that follows remote tasks of ``kind`` (None removes it)."""
+    if handler is None:
+        _REMOTE_HANDLERS.pop(kind, None)
+    else:
+        _REMOTE_HANDLERS[kind] = handler
+
+
+def _remote_handler(rec: Dict[str, Any]) -> Any:
+    remote = rec.get("remote") if isinstance(rec.get("remote"), dict) else None
+    return _REMOTE_HANDLERS.get(str(remote.get("kind"))) if remote else None
+
+
+_bg_loop: Optional[asyncio.AbstractEventLoop] = None
+_bg_lock = threading.Lock()
+
+
+def _background_loop() -> asyncio.AbstractEventLoop:
+    """One event loop on a daemon thread, for stores used outside an event loop."""
+    global _bg_loop
+    with _bg_lock:
+        if _bg_loop is None or _bg_loop.is_closed():
+            loop = asyncio.new_event_loop()
+            threading.Thread(target=loop.run_forever, name="sajha-tasks-loop", daemon=True).start()
+            _bg_loop = loop
+        return _bg_loop
 
 
 @dataclass
@@ -111,6 +166,7 @@ class McpTask:
     state: Dict[str, Any] = field(default_factory=dict)                # tool state across input rounds
     worker: Optional[str] = None                                       # worker running / that ran it
     spec: Optional[Dict[str, Any]] = None                              # how to rebuild the runner elsewhere
+    remote: Optional[Dict[str, Any]] = None                            # a task held by another server
     context: Any = None                                                # the running ModernToolContext
     _job: Optional[asyncio.Task] = None
 
@@ -173,8 +229,10 @@ Resumer = Callable[[Dict[str, Any]], Optional[Callable[[McpTask], Awaitable[Dict
 
 
 class TaskStore:
-    def __init__(self, records=None):
+    def __init__(self, records=None, prefix: str = _KEY, channel: str = _CHANNEL):
         self._records = records                    # StateStore; None = sajha.core.state's task store
+        self._prefix = prefix                      # several stores share one record store
+        self._channel = channel
         self._live: Dict[str, McpTask] = {}        # tasks whose runner lives in this process
         self._lock = threading.Lock()
         self._resumer: Optional[Resumer] = None
@@ -209,7 +267,7 @@ class TaskStore:
         if self._unsubscribe:
             self._unsubscribe()
         self._relay = relay
-        self._unsubscribe = relay.subscribe(_CHANNEL, self._on_message)
+        self._unsubscribe = relay.subscribe(self._channel, self._on_message)
 
     def _on_message(self, message: Dict[str, Any]) -> None:
         if message.get("op") != "cancel":
@@ -222,7 +280,7 @@ class TaskStore:
     # -- records ----------------------------------------------------------
 
     def _save(self, task: McpTask) -> None:
-        self.records.set(_KEY + task.task_id, task.record(), ttl=task.ttl_ms / 1000.0)
+        self.records.set(self._prefix + task.task_id, task.record(), ttl=task.ttl_ms / 1000.0)
         _announce(task.task_id)
 
     def _write(self, task_id: str, fn: Callable[[Dict[str, Any]], Optional[Dict[str, Any]]],
@@ -240,7 +298,7 @@ class TaskStore:
                 return cur
             changed.append(True)
             return new
-        rec = self.records.update(_KEY + task_id, apply, ttl=ttl_ms / 1000.0)
+        rec = self.records.update(self._prefix + task_id, apply, ttl=ttl_ms / 1000.0)
         if changed and rec is not None:
             _announce(task_id)
         return rec
@@ -269,12 +327,30 @@ class TaskStore:
         return task
 
     def _start(self, task: McpTask) -> None:
-        task._job = asyncio.get_running_loop().create_task(self._drive(task))
+        try:
+            loop = asyncio.get_running_loop()
+        except RuntimeError:
+            loop = None
+        if loop is not None:
+            task._job = loop.create_task(self._drive(task))
+            return
+
+        async def spawn():
+            task._job = asyncio.get_running_loop().create_task(self._drive(task))
+        asyncio.run_coroutine_threadsafe(spawn(), _background_loop()).result(timeout=10)
 
     async def _drive(self, task: McpTask) -> None:
         from sajha.core.mcp_2025_11_25 import MCPError
         try:
             result = await task.runner(task)
+        except RemoteTask as rt:
+            remote = _jsonable(rt.remote) or {}
+            status = remote.pop("status", None)
+            status = status if status in ("working", "input_required") else "working"
+            self._settle(task, status, remote.pop("status_message", None), remote=remote)
+            with self._lock:                 # no local runner from here: the remote server runs it
+                self._live.pop(task.task_id, None)
+            return
         except InputRequired as ir:
             pending = {k: v for k, v in ir.requests.items() if k not in task.responses}
             self._settle(task, "input_required", "Waiting for client input (tasks/update)",
@@ -311,7 +387,7 @@ class TaskStore:
             rec = None
         if rec is None:                      # cancelled meanwhile, or the record expired
             try:
-                rec = self.records.get(_KEY + task.task_id)
+                rec = self.records.get(self._prefix + task.task_id)
             except Exception:
                 rec = None
         if rec is not None:
@@ -326,20 +402,44 @@ class TaskStore:
 
     def get(self, task_id: Any, owner: Optional[str]) -> McpTask:
         self._purge()
-        rec = self.records.get(_KEY + task_id) if isinstance(task_id, str) else None
+        rec = self.records.get(self._prefix + task_id) if isinstance(task_id, str) else None
         if rec is None or rec.get("owner") != owner:
             raise TaskNotFound(task_id)
         rec = self._reap_orphan(rec)
+        rec = self._refresh_remote(rec)
         with self._lock:
             live = self._live.get(task_id)
         if live is not None:
             return live.absorb(rec)
         return McpTask.from_record(rec)
 
+    def _refresh_remote(self, rec: Dict[str, Any]) -> Dict[str, Any]:
+        """A task held by another server: its current state, through the handler of its kind."""
+        if not rec.get("remote") or rec.get("status") in TERMINAL_STATUSES:
+            return rec
+        handler = _remote_handler(rec)
+        if handler is None:
+            return rec
+        try:
+            fields = handler.refresh(dict(rec))
+        except Exception as e:
+            logger.warning(f"Task {rec.get('task_id')}: the remote task could not be read: {e}")
+            return rec
+        if not fields:
+            return rec
+
+        def fn(cur):
+            if cur.get("status") in TERMINAL_STATUSES:
+                return None
+            new = dict(cur, **fields)
+            new["updated_at"] = time.time()
+            return new if any(cur.get(k) != new.get(k) for k in fields) else None
+        return self._write(rec["task_id"], fn, rec["ttl_ms"]) or self.records.get(self._prefix + rec["task_id"]) or rec
+
     def _reap_orphan(self, rec: Dict[str, Any]) -> Dict[str, Any]:
-        """A working task whose worker is gone will never finish: fail it."""
+        """A working task whose worker is gone will never finish: fail it (a remote task is not ours to reap)."""
         from sajha.core.state import worker_alive
-        if rec.get("status") != "working" or worker_alive(rec.get("worker"), self.records):
+        if rec.get("remote") or rec.get("status") != "working" or worker_alive(rec.get("worker"), self.records):
             return rec
         worker = rec.get("worker")
 
@@ -359,6 +459,22 @@ class TaskStore:
             return                                       # nothing pending: ack, ignore
         answered = [k for k in input_responses if k in task.pending]
         if not answered:
+            return
+        if task.remote:
+            handler = _remote_handler(task.record())
+            if handler is None:
+                return
+            handler.update(task.record(), {k: input_responses[k] for k in answered})
+
+            def sent(rec):
+                if rec.get("status") != "input_required":
+                    return None
+                pending = {k: v for k, v in (rec.get("pending") or {}).items() if k not in answered}
+                rec.update(pending=pending, updated_at=time.time())
+                if not pending:
+                    rec.update(status="working", status_message=None)
+                return rec
+            self._write(task.task_id, sent, task.ttl_ms)
             return
         claimed: List[bool] = []
 
@@ -403,6 +519,14 @@ class TaskStore:
         if task.terminal:
             return                                       # idempotent
 
+        if task.remote:
+            handler = _remote_handler(task.record())
+            if handler is not None:
+                try:
+                    handler.cancel(task.record())
+                except Exception as e:      # cancelled here all the same; the remote task's TTL ends it
+                    logger.warning(f"Task {task.task_id}: the cancel did not reach the remote task: {e}")
+
         def fn(rec):
             if rec.get("status") in TERMINAL_STATUSES:
                 return None
@@ -416,7 +540,7 @@ class TaskStore:
                 live.absorb(rec)
             self._cancel_local(live)
         elif self._relay is not None:
-            self._relay.publish(_CHANNEL, {"op": "cancel", "task_id": task.task_id})
+            self._relay.publish(self._channel, {"op": "cancel", "task_id": task.task_id})
 
     def _cancel_local(self, task: McpTask, threadsafe: bool = False) -> None:
         if task.context is not None:
@@ -426,6 +550,11 @@ class TaskStore:
                 pass
         job = task._job
         if job is not None and not job.done():
+            if not threadsafe:
+                try:
+                    threadsafe = job.get_loop() is not asyncio.get_running_loop()
+                except RuntimeError:
+                    threadsafe = True            # not on any loop: hand the cancel to the job's loop
             if threadsafe:
                 try:
                     job.get_loop().call_soon_threadsafe(job.cancel)
@@ -440,23 +569,23 @@ class TaskStore:
     # -- housekeeping ---------------------------------------------------
 
     def _size_locked(self) -> int:
-        n = self.records.count(_KEY)
+        n = self.records.count(self._prefix)
         return n if n is not None else len(self._live)
 
     def _purge(self, keep: Optional[int] = None) -> None:
         """Drop expired records (the store's TTL does that) and, over ``keep``, the oldest finished ones."""
         store = self.records
-        if keep is not None and store.count(_KEY) is not None and store.count(_KEY) > keep:
-            done = sorted((rec for _, rec in store.scan(_KEY) if rec.get("status") in TERMINAL_STATUSES),
+        if keep is not None and store.count(self._prefix) is not None and store.count(self._prefix) > keep:
+            done = sorted((rec for _, rec in store.scan(self._prefix) if rec.get("status") in TERMINAL_STATUSES),
                           key=lambda r: r.get("updated_at", 0))
-            for rec in done[:store.count(_KEY) - keep]:
-                store.delete(_KEY + rec["task_id"])
+            for rec in done[:store.count(self._prefix) - keep]:
+                store.delete(self._prefix + rec["task_id"])
         if keep is None:
             return
         # forget (and stop) local runners whose record has expired
         with self._lock:
             live = list(self._live.values())
-        gone = [t for t in live if store.get(_KEY + t.task_id) is None]
+        gone = [t for t in live if store.get(self._prefix + t.task_id) is None]
         with self._lock:
             for t in gone:
                 self._live.pop(t.task_id, None)

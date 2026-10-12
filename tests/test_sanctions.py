@@ -404,7 +404,7 @@ def test_shipped_workflow_definition_and_install(monkeypatch):
     identity.set_resolver(lambda owner: identity.RunIdentity(owner, ['admin'], True))
     try:
         svc = Svc()
-        assert shipped.install_shipped(svc) == ['sanctions_refresh']
+        assert 'sanctions_refresh' in shipped.install_shipped(svc)              # with the other shipped ones
         assert svc.store.saved['sanctions_refresh']['owner'] == 'admin'
         assert shipped.install_shipped(svc) == []                           # never overwritten
     finally:

@@ -7,8 +7,8 @@ it **as that user**, with that user's permissions there. Federated upstream MCP 
 receive the user's token the same way (*token passthrough*).
 
 This guide owns the topic: design, configuration of providers, the user flow, the token
-vault, tool binding, how each client is asked to connect, federation passthrough, scaling
-and security. Configuration keys are listed in the
+vault, tool binding, how each client is asked to connect, federation passthrough, scaling,
+security, and provider packs (§11). Configuration keys are listed in the
 [Configuration Reference](../getting-started/Configuration%20Reference.md#accounts);
 the example tools in the
 [Connected Account Tools Reference Guide](../tools/enterprise/Connected%20Account%20Tools%20Reference%20Guide.md);
@@ -80,6 +80,10 @@ accounts:
 * Each field can also come from `SAJHA_ACCOUNTS_PROVIDERS_<ID>_<FIELD>` (for example
   `SAJHA_ACCOUNTS_PROVIDERS_GITHUB_CLIENT_ID`); `SAJHA_ACCOUNTS_PROVIDERS` (a JSON object)
   replaces the YAML block.
+* A provider pack (§11) installs a **preset**: the provider's fields stored in
+  `config/accounts/provider_presets/<id>.json` through the storage backend. A field resolves from
+  the environment variable, then the YAML, then the preset, then the template, so a preset never
+  overrides what an operator configured.
 * Secrets are references only: `client_secret_ref: env:NAME`, `file:/path` or
   `db:llm_providers/<type>`, resolved when a token request is made. An inline
   `client_secret` is refused, as is an `http://` endpoint (except loopback, for tests) and a
@@ -191,6 +195,11 @@ The shipped tools are `github_list_my_repos`, `github_create_issue`,
 `connected_http_request`, an administrator binding of a provider's API (base URL,
 allowed methods, path patterns) that the model may call with a path and query. Write tools
 carry `destructiveHint`, so Ask SAJHA and `mcp.confirm_destructive_tools` confirm them.
+
+Document search reads through connected accounts too: `ai.rag.accounts.sources` (Drive,
+OneDrive, SharePoint, GitHub, Confluence) are listed and read with each user's own token and
+indexed per user, searched with `sajha_search_my_docs`
+([Intelligence Layer](Intelligence%20Layer.md#documents-from-connected-accounts)).
 
 Any other tool may declare `auth.connected_account` and read the token with
 `sajha.accounts.current_token()`.
@@ -314,6 +323,108 @@ Limits: GitHub OAuth-app tokens do not expire and have no refresh token; Microso
 token revocation endpoint (disconnect deletes the token; revoke sessions in Entra ID if
 needed); Atlassian tools need the user's cloud id (Atlassian's accessible-resources endpoint on
 `api.atlassian.com`), which a `connected_http_request` binding can reach.
+
+## 11. Provider packs
+
+A **provider pack** brings a service that users ask for in one reviewed step: a connected-account
+**preset** (the provider: OAuth endpoints, scopes, the hosts a token may go to) and an
+[API Import](API%20Import.md) of the service's OpenAPI spec whose tools act as the calling user
+(`auth.type: connected_account`, §5). The spec is bundled with the pack and never fetched when it
+is installed. Code: `sajha/packs/` (format, review, install), `sajha/accounts/presets.py` (the
+stored presets), `sajha/routes/packs_routes.py` (the admin API).
+
+### The format
+
+A pack is a folder: `pack.json`, the spec file and the licence the spec is published under.
+
+| `pack.json` field | Meaning |
+|---|---|
+| `format`, `id`, `title`, `version`, `description` | `format` is `1`; `id` (a lower-case letter, then letters, digits, `-` or `_`) equals the folder name |
+| `provider` | The preset: any provider field of §2 (`template`, endpoints, `scopes`, `api_hosts`, ...) except `client_id`, `client_secret_ref`, `redirect_uri` and `enabled`, which belong to the administrator. `id` is the provider users link (default: the pack id) |
+| `install_fields` | What the administrator supplies on install: `client_id`, `client_secret_ref`, `tenant`, `redirect_uri` (default the first two) |
+| `api` | `spec` (a file in the folder) and its `spec_sha256`; `prefix` (the API Import prefix and tool-name prefix), `base_url`, `folder` (the tool folder), `security_scheme` (the spec's scheme bound to the account; empty: the binding is added to every operation), `scopes` (what each tool asks of the user's link), `operations` (the reviewed selection, as API Import operation keys `METHOD /path`) |
+| `source` | `url`, `file`, `revision`, `retrieved`, `licence` (one of MIT, Apache-2.0, BSD-2-Clause, BSD-3-Clause, ISC, CC0-1.0, CC-BY-4.0), `licence_file`, and `changes` (how the bundled copy differs from the upstream one) |
+
+A pack is refused when the spec does not match `spec_sha256`, the licence is not one of those, a
+file name leaves the folder, the provider sets a field that belongs to the administrator, or an
+operation key is malformed. Packs are read from `sajha/packs/bundled/`, then from the folders in
+`packs.dirs` ([Configuration Reference](../getting-started/Configuration%20Reference.md#packs)).
+
+### The bundled packs
+
+Each bundled spec is an excerpt: the pack's operations and the components they reference, with
+examples, `externalDocs` and `x-` extensions removed, and its `info.description` replaced by a
+notice naming the source, the revision and the licence. The live list, with each pack's operations
+and install state, is `python -m sajha.packs list` or `GET /api/admin/packs`.
+
+| Pack | Provider | Spec source | Licence | Notes |
+|---|---|---|---|---|
+| `github` | the `github` template | [github/rest-api-description](https://github.com/github/rest-api-description) `descriptions/api.github.com/api.github.com.json` | MIT | The spec declares no security scheme, so the account binding applies to every operation |
+| `slack` | the `slack` template, with history and user scopes added | [slackapi/slack-api-specs](https://github.com/slackapi/slack-api-specs) `web-api/slack_web_openapi_v2.json` (Swagger 2.0) | MIT | The `token` parameter is removed from every operation (the user token goes in `Authorization: Bearer`); upstream has not been updated since 2021 |
+| `box` | a custom provider (Box's OAuth 2.0 endpoints, `api.box.com` and `upload.box.com`) | [box/box-openapi](https://github.com/box/box-openapi) `openapi.json` | Apache-2.0 | The modified file carries the notice the licence asks for; the licence is in the pack folder |
+
+### Review and install
+
+Installing is the review-and-approve gate of Describe a tool
+([Tool Generation §6](Tool%20Generation.md#6-deploy)) without a stored draft:
+
+1. **Plan.** `POST /api/admin/packs/{id}/plan` with the install inputs (`client_id`,
+   `client_secret_ref` as `env:NAME`, `file:/path` or `db:...`; a literal secret is refused) answers
+   with everything an install would do: the provider as the registry would build it (checked by its
+   own rules), the redirect URI to register with the service, every operation as API Import plans it
+   (tool name, annotations, conflicts, new or changed), the policy preview, errors and warnings,
+   and the review **hash** of all of it. The plan is an error when the provider has no client id,
+   when the API's base URL is not https on one of the provider's `api_hosts` (a user's token would
+   go elsewhere; API Import refuses that too, API Import §4), when an operation is missing, unsupported or its name is taken, or when the prefix
+   belongs to an import that is not this pack.
+2. **Install.** `POST /api/admin/packs/{id}/install` with the same inputs, `hash` and
+   `approve: true`. It is refused unless the plan made again has no errors and the same hash
+   (nothing changed since the review: the pack, its spec, the inputs, the names, the tools it
+   would replace), and the [policy engine](Policy%20and%20Audit.md) allows the pseudo tool call
+   `studio.deploy` with `{"tool": "pack:<id>", "kind": "pack"}`; `require_approval` creates an
+   approval request that another administrator decides on the Approvals page, and installing again
+   consumes the grant. Then the preset is saved and API Import's own deploy writes and hot-loads
+   the tools. A deploy refused before any tool is written restores the previous preset; when some
+   tools do not load, the answer names them and the install is reported as failed (the tools that
+   loaded stay, as with any API Import deploy, and installing again retries).
+3. **Users link** the provider on `/account/connections` as for any provider; the pack's tools
+   then call the service as each caller, and a caller without a link is asked to connect (§6).
+
+Installing again (a new pack version, other inputs) is a new review: the plan shows the
+operations as changed or unchanged and has a new hash. `POST /api/admin/packs/{id}/uninstall`
+removes the pack's import (its tools) and the preset it created; users' links stay in the vault
+until they or an administrator unlink them (§9). Every install, failed install and uninstall is
+audited (`config_change`, `packs.install`, `packs.install_failed`, `packs.uninstall`). Install
+records are `config/packs/<id>.json` in the storage backend.
+
+The admin API needs the admin role; a cookie session sends the page's CSRF token in
+`X-CSRF-Token`. The same steps from a shell, against the working directory's configuration and
+storage (a running server notices the new tool configs and the preset):
+
+```
+python -m sajha.packs list
+python -m sajha.packs show box
+python -m sajha.packs plan box --client-id <id> --client-secret-ref env:BOX_CLIENT_SECRET
+python -m sajha.packs install box --client-id <id> --client-secret-ref env:BOX_CLIENT_SECRET --hash <hash> --approve
+python -m sajha.packs uninstall box
+```
+
+A `require_approval` policy rule needs a shared state store (`state.backend: redis` or `database`)
+for an approval asked from the command line to reach the Approvals page.
+
+### Presets on several workers
+
+The provider registry records which preset files (and their modification times) it was built
+from; on use it lists them again at most every 10 seconds per process and reloads when they
+changed, so a pack installed on one worker is linkable on every worker on the same storage within
+seconds. The tool registry picks up the new tool configs the same way.
+
+### Limits
+
+* There is no console page for packs yet: the admin API and `python -m sajha.packs` are the installer.
+* A pack ships the operations its author reviewed; another operation of the same service is an API
+  Import with `auth.type: connected_account` (API Import §4), made in Studio.
+* The provider's `api_headers` (GitHub's `Accept` and API version) are not sent by imported tools.
 
 ---
 

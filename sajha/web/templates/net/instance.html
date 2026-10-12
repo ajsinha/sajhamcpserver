@@ -1,8 +1,9 @@
 {% extends "common/base.html" %}
 {# Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.com #}
 {% set i = view.instance %}
-{% block title %}{{ i.name }} - Instances - SAJHA MCP Server{% endblock %}
+{% block title %}{% trans name=i.name %}{{ name }} - Instances - SAJHA MCP Server{% endtrans %}{% endblock %}
 {% block extra_css %}
+{% if admin %}{% include "admin/_sajhanet_mgmt_css.html" %}{% endif %}
 <style>
 .nt-card{border:1px solid var(--t-card-b);border-radius:var(--radius-lg);background:var(--t-card);margin-bottom:.75rem;padding:.75rem 1rem}
 .nt-card h2{font-size:1rem;margin:0 0 .25rem;font-weight:700;color:var(--t-heading);word-break:break-word}
@@ -18,55 +19,60 @@
 {% endblock %}
 {% block content %}
 <div class="container-fluid">
-  <nav aria-label="breadcrumb"><ol class="breadcrumb small mb-2">
-    <li class="breadcrumb-item"><a href="/net/instances">Instances</a></li>
+  <nav aria-label="{{ _('breadcrumb') }}"><ol class="breadcrumb small mb-2">
+    <li class="breadcrumb-item"><a href="/net/instances">{{ _('Instances') }}</a></li>
     <li class="breadcrumb-item">{{ view.net }}</li>
     <li class="breadcrumb-item active" aria-current="page">{{ i.name }}</li></ol></nav>
   <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
     <div>
-      <h1 class="h3 mb-0"><code>{{ i.name }}</code>{% if i.self %} <small class="text-muted">this server</small>{% endif %}</h1>
+      <h1 class="h3 mb-0"><code>{{ i.name }}</code>{% if i.self %} <small class="text-muted">{{ _('this server') }}</small>{% endif %}</h1>
       <div class="nt-meta"><span class="st st-{{ i.state }}">{{ i.state }}</span>
         · {{ i.kind }}{% if i.region %} · {{ i.region }}{% endif %}{% for k, v in i.labels.items() %} · {{ k }}: {{ v }}{% endfor %}
-        · last seen {{ i.last_seen or '—' }}{% if i.note %} · {{ i.note }}{% endif %}</div>
+        {% trans value=i.last_seen or '—' %}· last seen {{ value }}{% endtrans %}{% if i.note %} · {{ i.note }}{% endif %}</div>
     </div>
   </div>
-  <form class="mb-2" role="search" data-onsubmit="return false" aria-label="Filter tools">
-    <label class="form-label small" for="nt-q">Search the tools</label>
-    <input class="form-control form-control-sm" id="nt-q" placeholder="name or description" autocomplete="off">
+  {% if admin %}{% include "net/_instance_tabs.html" %}{% endif %}
+  {% if admin and tab != 'tools' %}{% include "net/_instance_admin.html" %}{% else %}
+  <form class="mb-2" role="search" data-onsubmit="return false" aria-label="{{ _('Filter tools') }}">
+    <label class="form-label small" for="nt-q">{{ _('Search the tools') }}</label>
+    <input class="form-control form-control-sm" id="nt-q" placeholder="{{ _('name or description') }}" autocomplete="off">
   </form>
   <p class="nt-meta" role="status" aria-live="polite" id="nt-count">
-    {% if i.self %}The tools of this server you may use.{% else %}The tools {{ i.name }} offers you through this server. {{ i.name }} checks your access again on every call.{% endif %}
+    {% if i.self %}{{ _('The tools of this server you may use.') }}{% else %}{% trans name=i.name %}The tools {{ name }} offers you through this server. {{ name }} checks your access again on every call.{% endtrans %}{% endif %}
   </p>
   {% for t in view.tools %}
   <article class="nt-card" data-text="{{ t.name|lower }} {{ t.alias|lower }} {{ t.qualified_name|lower }} {{ t.description|lower }}">
     <div class="d-flex flex-wrap justify-content-between gap-2 align-items-start">
       <div class="nt-name">
         <h2><code>{{ t.name }}</code></h2>
-        <div class="nt-meta">{% if t.qualified_name %}qualified <code>{{ t.qualified_name }}</code>{% endif %}
-          {% if t.alias %} · alias <code>{{ t.alias }}</code>{% endif %}{% if t.version %} · version {{ t.version }}{% endif %}{% if t.external %} · vendor {{ t.vendor }}, external (via {{ i.name }}){% endif %}</div>
+        <div class="nt-meta">{% if t.qualified_name %}{% trans qualified_name=t.qualified_name %}qualified <code>{{ qualified_name }}</code>{% endtrans %}{% endif %}
+          {% if t.alias %} {% trans alias=t.alias %}· alias <code>{{ alias }}</code>{% endtrans %}{% endif %}{% if t.version %} {% trans version=t.version %}· version {{ version }}{% endtrans %}{% endif %}{% if t.external %} {% trans vendor=t.vendor, name=i.name %}· vendor {{ vendor }}, external (via {{ name }}){% endtrans %}{% endif %}</div>
       </div>
       <div class="text-end">
-        <span class="st st-{{ t.state }}">{{ 'healthy' if t.state == 'active' else t.state }}</span>
-        {% if t.latency_ms is not none %}<div class="nt-meta">p50 {{ t.latency_ms }} ms</div>{% endif %}
+        <span class="st st-{{ t.state }}">{{ _('healthy') if t.state == 'active' else t.state }}</span>
+        {% if t.latency_ms is not none %}<div class="nt-meta">{% trans latency_ms=t.latency_ms %}p50 {{ latency_ms }} ms{% endtrans %}</div>{% endif %}
       </div>
     </div>
-    <p class="nt-desc">{{ t.description or 'No description.' }}</p>
+    <p class="nt-desc">{{ t.description or _('No description.') }}</p>
     <div class="nt-io">
-      <div><div class="nt-meta fw-semibold">Inputs</div>
-        <ul class="nt-fields">{% for f in t.inputs %}<li><code>{{ f.name }}</code> {{ f.type }}{% if f.required %} (required){% endif %}{% if f.description %}: {{ f.description }}{% endif %}</li>{% else %}<li>none</li>{% endfor %}</ul></div>
-      <div><div class="nt-meta fw-semibold">Outputs</div>
-        <ul class="nt-fields">{% for f in t.outputs %}<li><code>{{ f.name }}</code> {{ f.type }}</li>{% else %}<li>not declared</li>{% endfor %}</ul></div>
+      <div><div class="nt-meta fw-semibold">{{ _('Inputs') }}</div>
+        <ul class="nt-fields">{% for f in t.inputs %}<li><code>{{ f.name }}</code> {{ f.type }}{% if f.required %} {{ _('(required)') }}{% endif %}{% if f.description %}: {{ f.description }}{% endif %}</li>{% else %}<li>{{ _('none') }}</li>{% endfor %}</ul></div>
+      <div><div class="nt-meta fw-semibold">{{ _('Outputs') }}</div>
+        <ul class="nt-fields">{% for f in t.outputs %}<li><code>{{ f.name }}</code> {{ f.type }}</li>{% else %}<li>{{ _('not declared') }}</li>{% endfor %}</ul></div>
     </div>
-    {% if t.try_it %}<a class="btn btn-sm btn-primary mt-2" href="/tools/{{ t.try_it|urlencode }}/execute"><i class="bi bi-play-fill" aria-hidden="true"></i> Try it</a>
-    {% else %}<p class="nt-meta mt-2 mb-0">Not callable now ({{ t.state }}).</p>{% endif %}
+    {% if t.try_it %}<a class="btn btn-sm btn-primary mt-2" href="/tools/{{ t.try_it|urlencode }}/execute"><i class="bi bi-play-fill" aria-hidden="true"></i> {{ _('Try it') }}</a>
+    {% else %}<p class="nt-meta mt-2 mb-0">{% trans state=t.state %}Not callable now ({{ state }}).{% endtrans %}</p>{% endif %}
   </article>
   {% else %}
-  <p class="nt-meta">{% if i.self %}You may use none of this server's tools.{% else %}{{ i.name }} offers you no tools through this server now.{% endif %}</p>
+  <p class="nt-meta">{% if i.self %}{{ _('You may use none of this server\'s tools.') }}{% else %}{% trans name=i.name %}{{ name }} offers you no tools through this server now.{% endtrans %}{% endif %}</p>
   {% endfor %}
+  {% endif %}
 </div>
+{% if admin %}{% include "admin/_sajhanet_change_dialog.html" %}{% endif %}
 <script nonce="{{ csp_nonce() }}">
 (function(){
   const q = document.getElementById('nt-q');
+  if (!q) return;
   q.addEventListener('input', () => {
     const s = q.value.trim().toLowerCase();
     document.querySelectorAll('.nt-card').forEach(c => { c.hidden = !!s && !c.dataset.text.includes(s); });

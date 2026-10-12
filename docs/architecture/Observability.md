@@ -92,11 +92,14 @@ units). The live list is the endpoint itself; each family carries `# HELP` and `
 | `sajha_planner_run_seconds` | histogram | `planner`; one planner run, sub-runs included |
 | `sajha_planner_expression_errors_total` | counter | `planner`; `when` expressions that failed at run time (the condition counted as false) |
 | `sajha_planner_load_errors_total` | counter | `planner`; planner files refused at load (the last good version stays in use) |
-| `sajha_planner_chosen_total` | counter | `tool` (`ask` = the Ask SAJHA page), `planner`, `by` (`version`, `caller`, `tool`, `server`, `label`, `rule`, `default`, `escalation`, `stage`) |
+| `sajha_planner_chosen_total` | counter | `tool` (`ask` = the Ask SAJHA page), `planner`, `by` (`version`, `caller`, `tool`, `server`, `label`, `rule`, `default`, `escalation`, `stage`, and from planner learning `learned`, `bandit`, `explore`) |
 | `sajha_auth_failures_total` | counter | `method` (`password`, `bearer`, `apikey`, `session`) |
 | `sajha_auth_lockouts_total` | counter | none |
 | `sajha_sandbox_runs_total` | counter | `backend`, `outcome` (`ok`, `error`, `timeout`, `output_limit`, `runner_error`) |
 | `sajha_sandbox_run_duration_seconds` | histogram | `backend` |
+| `sajha_sandbox_egress_total` | counter | `outcome` (`allowed`, `denied`); egress proxy connections ([Sandbox](Sandbox.md#network-allowlist)) |
+| `sajha_sandbox_pool_containers` | gauge | `state` (`idle`, `busy`, `starting`, `resetting`); warm docker containers of this process ([Sandbox](Sandbox.md#warm-container-pool)) |
+| `sajha_sandbox_pool_events_total` | counter | `event` (`hit`, `miss`, `started`, `start_failed`, `recycled`, `reset_ok`, `reset_failed`, `health_failed`) |
 | `sajha_federation_upstream_up` | gauge (collected) | `upstream`, `state`; 1 when connected. Present only when `sajha/federation` is importable and a manager is running. |
 | `sajha_federation_upstream_calls_total`, `sajha_federation_upstream_failures_total` | counter (collected) | `upstream` |
 | `sajha_federation_upstream_in_flight`, `sajha_federation_upstream_waiting` | gauge (collected) | `upstream`; calls in flight to the upstream and calls waiting for a slot, in this worker ([Gateway scale](Federation.md#gateway-scale)) |

@@ -166,7 +166,7 @@ class SandboxedPythonTool(_SandboxedTool):
         tool_config = {k: self.config[k] for k in SAFE_CONFIG_KEYS if k in self.config}
         res = backend.run({'op': 'python_tool', 'source': self._source(), 'class_name': self.class_name,
                            'arguments': arguments, 'tool_config': tool_config,
-                           'packages': pol.packages}, pol)
+                           'packages': pol.packages, 'tool': self.name}, pol)
         if res.timed_out:
             raise SandboxTimeout(f'{self.name}: exceeded the sandbox time limit of {pol.timeout_seconds}s')
         if res.output_truncated:
@@ -248,7 +248,8 @@ class SandboxedScriptTool(_SandboxedTool):
         backend = get_backend(pol.backend)
         argv = list(SCRIPT_INTERPRETERS[self.script_type]) + [self.script_file] + args
         try:
-            res = backend.run({'op': 'exec', 'files': {self.script_file: content}, 'argv': argv}, pol)
+            res = backend.run({'op': 'exec', 'files': {self.script_file: content}, 'argv': argv,
+                               'tool': self.name}, pol)
         except SandboxError as e:
             return self._fail(str(e), -3)
         if res.timed_out:

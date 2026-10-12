@@ -1,0 +1,111 @@
+{% extends "common/base.html" %}
+<!--
+Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.com
+Plugin catalog (administration): signed plugins from the configured catalog sources, reviewed and
+installed through the review-and-approve gate of Describe a tool.
+Design: docs/security/Security Model.md, "Plugins"
+-->
+{% block title %}{{ _('Plugin Catalog - Admin - SAJHA MCP Server') }}{% endblock %}
+{% block extra_css %}
+<style>
+.pc-meta{font-size:.875rem;color:var(--t-muted)}
+.pc-code{font-family:var(--bs-font-monospace);font-size:.875rem;white-space:pre-wrap;overflow-wrap:anywhere;max-height:22rem;overflow:auto;background:var(--t-inp);color:var(--t-inp-t);border:1px solid var(--t-inp-b);border-radius:6px;padding:.5rem;margin:0}
+.pc-hash{font-family:var(--bs-font-monospace);font-size:.875rem;overflow-wrap:anywhere}
+.obs-pill.pc-warn{background:var(--sajha-warn)}
+.obs-pill{white-space:nowrap}
+.pc-detail{overflow-wrap:anywhere}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+  <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+    <div>
+      <h1 class="h3 mb-0"><i class="bi bi-box-seam me-2" aria-hidden="true"></i>{{ _('Plugin Catalog') }}</h1>
+      <small class="text-muted">{{ _('Plugins signed by a trusted publisher, from the configured catalog sources. Review the files, then approve the install.') }}</small>
+    </div>
+  </div>
+
+  {% if notice %}<div class="alert alert-success" role="status">{{ notice }}</div>{% endif %}
+  {% if error %}<div class="alert alert-danger pc-detail" role="alert">{{ error }}</div>{% endif %}
+  {% if not listing.crypto %}<div class="alert alert-warning" role="status">{% trans %}The <code>cryptography</code> package is not installed: signatures cannot be verified, so nothing can be installed from the catalog.{% endtrans %}</div>{% endif %}
+  {% if listing.allow_unsigned %}<div class="alert alert-info" role="status">{% trans %}Plugins already in the plugins folder load without a trusted signature (with a warning notice) because <code>plugins.allow_unsigned</code> is true. The catalog installs only trusted packages whatever it says.{% endtrans %}</div>{% endif %}
+
+  {% if review %}
+  <div class="card mb-4" id="review">
+    <div class="card-body">
+      <div class="d-flex flex-wrap justify-content-between gap-2">
+        <h2 class="h5 mb-1">{% trans name=review.manifest.name, version=review.manifest.version %}Review: {{ name }} {{ version }}{% endtrans %}</h2>
+        {% if review.installed %}<span class="obs-pill obs-ok">{{ _('installed') }}</span>{% else %}<span class="obs-pill obs-ok">{% trans publisher=review.signature.publisher %}signed by {{ publisher }}{% endtrans %}</span>{% endif %}
+      </div>
+      <p class="pc-meta mb-1">{{ review.manifest.description }}</p>
+      <p class="pc-meta mb-1">{% trans value=review.manifest.author or 'not given', key_id=review.signature.key_id, source=review.source %}Author {{ value }} · key {{ key_id }} · from <code>{{ source }}</code>{% endtrans %}</p>
+      <p class="pc-meta mb-1">{% trans value=(review.manifest.tools or []) | join(', ') or 'listed by the files' %}Tools: {{ value }}{% endtrans %}{% if review.manifest.dependencies %} {% trans value=review.manifest.dependencies | join(', ') %}· Python dependencies: {{ value }}{% endtrans %}{% endif %}{% if review.manifest.config_keys %} {% trans value=review.manifest.config_keys | join(', ') %}· needs {{ value }}{% endtrans %}{% endif %}</p>
+      <p class="mb-2">{{ _('Package hash') }} <span class="pc-hash">{{ review.hash }}</span></p>
+      {% if review.installed_version %}<div class="alert alert-warning py-2" role="status">{% trans installed_version=review.installed_version %}Version {{ installed_version }} is installed; installing replaces it.{% endtrans %}</div>{% endif %}
+    </div>
+    <div class="card-body pt-0">
+      <h3 class="h6">{% trans value=review.files | length %}Files ({{ value }}){% endtrans %}</h3>
+      {% for f in review.files %}
+      <details class="mb-2">
+        <summary><code>{{ f.path }}</code> <span class="pc-meta">{% trans bytes=f.bytes %}{{ bytes }} bytes{% endtrans %}{% if f.truncated %}{{ _(', first 64 KB shown') }}{% endif %}</span></summary>
+        {% if f.text is not none %}<pre class="pc-code mt-1">{{ f.text }}</pre>{% else %}<p class="pc-meta mt-1">{{ _('Binary file; not shown.') }}</p>{% endif %}
+      </details>
+      {% endfor %}
+      {% if not review.installed %}
+      <form method="post" action="/admin/plugins/catalog/install" class="mt-3">
+        <input type="hidden" name="csrf" value="{{ csrf }}">
+        <input type="hidden" name="review" value="{{ review.id }}">
+        <input type="hidden" name="hash" value="{{ review.hash }}">
+        <div class="form-check">
+          <input class="form-check-input" type="checkbox" id="pc-approve" name="approve" value="true" required>
+          <label class="form-check-label" for="pc-approve">{{ _('I reviewed these files and approve installing them; the plugin\'s Python code runs in the server.') }}</label>
+        </div>
+        {% if review.installed_version %}<input type="hidden" name="replace" value="true">{% endif %}
+        <button class="btn btn-sm btn-primary mt-2" type="submit">{{ _('Approve and install') }}</button>
+      </form>
+      {% endif %}
+    </div>
+  </div>
+  {% endif %}
+
+  {% for src, why in listing.errors.items() %}<div class="alert alert-warning pc-detail" role="alert"><code>{{ src }}</code>: {{ why }}</div>{% endfor %}
+
+  {% if not listing.sources %}
+  <div class="alert alert-info" role="status">{% trans %}No catalog source is configured. List local folders, <code>storage:&lt;prefix&gt;</code> entries or <code>https://…/index.json</code> URLs in <code>plugins.catalog.sources</code>.{% endtrans %}</div>
+  {% else %}
+  <p class="pc-meta">{% trans value=listing.trusted_publishers | join(', ') or 'none configured (plugins.trusted_keys, plugins.trusted_keys_dir)' %}Trusted publishers: {{ value }}{% endtrans %}</p>
+  <ul class="list-unstyled mb-4" aria-label="{{ _('Packages in the catalog sources') }}">
+  {% for p in listing.packages %}
+    <li class="card mb-2">
+      <div class="card-body py-2">
+        <div class="d-flex flex-wrap justify-content-between align-items-start gap-2">
+          <div class="pc-detail">
+            <h2 class="h6 mb-0">{{ p.name or p.ref }} <span class="pc-meta">{{ p.version }}</span></h2>
+            <div class="pc-meta">{{ p.description }}</div>
+          </div>
+          <div>
+            {% if p.status == 'trusted' %}<span class="obs-pill obs-ok">{{ _('trusted') }}</span>
+            {% elif p.status in ('unsigned', 'untrusted', 'unavailable') %}<span class="obs-pill pc-warn">{{ p.status }}</span>
+            {% else %}<span class="obs-pill obs-bad">{{ p.status }}</span>{% endif %}
+          </div>
+        </div>
+        <div class="pc-meta pc-detail mt-1">{% trans value=p.publisher or 'none', value2=p.installed_version or 'no', source=p.source %}Publisher {{ value }} · installed {{ value2 }} · from <code>{{ source }}</code>{% endtrans %}</div>
+        {% if p.status != 'trusted' %}<div class="pc-meta pc-detail">{{ p.detail }}</div>{% endif %}
+        {% if p.status == 'trusted' %}
+        <form method="post" action="/admin/plugins/catalog/review" class="mt-2">
+          <input type="hidden" name="csrf" value="{{ csrf }}">
+          <input type="hidden" name="source" value="{{ p.source }}">
+          <input type="hidden" name="ref" value="{{ p.ref }}">
+          <button class="btn btn-sm btn-outline-primary" type="submit" aria-label="{{ _('Review %(name)s %(version)s before installing', name=p.name, version=p.version) }}">{{ _('Review') }}</button>
+        </form>
+        {% endif %}
+      </div>
+    </li>
+  {% else %}
+    <li class="pc-meta">{{ _('The sources hold no packages.') }}</li>
+  {% endfor %}
+  </ul>
+  {% endif %}
+</div>
+{% endblock %}

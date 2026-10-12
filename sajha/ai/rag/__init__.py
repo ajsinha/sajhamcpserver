@@ -5,7 +5,9 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha
 chunking.py splits documents into passages; stores.py defines the store contract
 (``VectorStore``) with the memory and pgvector stores, sqlite_vec.py the default sqlite-vec
 store (a SQLite file of its own), registry.py picks one from ``ai.rag.store``; index.py syncs
-and searches them; tool.py is the ``sajha_search_docs`` MCP tool. Configuration: ``ai.rag``
+and searches them; tool.py is the ``sajha_search_docs`` MCP tool. personal.py is the per-user
+index of documents read through connected accounts (account_sources.py lists and fetches them;
+personal_tool.py is ``sajha_search_my_docs``); ocr.py is the optional OCR. Configuration: ``ai.rag``
 (docs/getting-started/Configuration Reference.md); design: docs/architecture/Intelligence
 Layer.md; writing a store: docs/architecture/Extending the Intelligence Layer.md.
 

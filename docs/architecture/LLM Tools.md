@@ -805,10 +805,89 @@ Rules that keep automatic selection safe and predictable:
 - **Measured.** Metrics per tool: how often each planner is chosen and how often each escalation
   fires, so an operator can see whether the cheap path is good enough.
 
-**Learning from results comes later.** A third mechanism, choosing planners from measured
-outcomes (eval scores offline, and an opt-in bandit across allowed planners online), is on the
-[Roadmap](Roadmap.md) as item L15. It needs history this design does not yet collect at scale,
-and it would reuse the canary machinery for bounded, reversible exploration.
+**Learning from results.** *Status: built.* A third mechanism chooses from measured outcomes, in
+two parts: rules ranked offline that a person approves, and an opt-in online bandit. Neither can
+widen the choice. Both run inside the `classify` stage with `menu: planners` (the shipped `auto`),
+on the candidates it already allows (the tool's `planner_choices`, the eval filter, and the roles
+that may run a role-limited planner such as `code_act`), after the stage's own `rules` and before
+the model is asked. A learned choice costs no model call. The code is
+`sajha/ai/planners_engine/learning.py`; the files and settings are in the
+[Planner Reference](Planner%20Reference.md) §6.6.2.
+
+*What is recorded.* Every automatic choice is written into the run's audit record (`llm_tool_run`
+for an LLM tool, `ai_ask` for Ask SAJHA) and into each eval question's row, as `planner_choice`.
+It holds the tool (`ask` for Ask SAJHA), the question class, the candidates, the planner chosen,
+`by` (`rule`, `model`, `default`, `learned`, `bandit` or `explore`) and the reason. When the run
+ends it also holds the outcome: `success`, `reward`, `escalated`, `stopped_by`, `cost_usd` and
+`latency_ms`. A choice **held** when its planner answered, nothing escalated after it, and the run
+ended by `answer`. Its reward is 1 when it held and 0 when it did not, less
+`cost_weight` × cost and `latency_weight` × seconds, clipped to 0..1. A run paused for input,
+confirmation or a connection has no outcome yet. The question text is not part of `planner_choice`.
+
+*Question classes.* Fixed rules give each question one class, with no model call:
+`multi_part` (two or more questions, or steps such as "and then" or a numbered list), `compare`,
+`compute` (a number plus words such as percent, rate, growth, NPV), `lookup` (a short question
+beginning what, who, where, when or which), or `general`.
+
+*Offline: rank, propose, approve.* The learning job ranks planners per tool and question class. It
+reads two kinds of evidence from the last `window_days` days:
+
+- **Saved eval runs** ([Tool Quality](Tool%20Quality.md) §5). A run on a named planner credits
+  that planner for every question. A question that ran through `auto` credits the planner `auto`
+  chose, and it counts as a pass only when the eval passed and the choice held.
+- **Audit records** that carry a `planner_choice` with an outcome.
+
+A planner's score is its mean quality minus `cost_weight` × its mean cost (USD) minus
+`latency_weight` × its mean latency (seconds). Only planners with `min_samples` outcomes are
+ranked, and a class gets a rule only when at least two planners are ranked. Every tool also gets a
+class `*` ranking that covers all its classes.
+
+Three things run the job: `python -m sajha.ai.planners_engine.learn`, **Rank now and propose** on
+the Planner routing page (`/admin/planner-routing`), and the admin-only tool
+`sajha_planner_routing_propose`. The shipped workflow `planner_routing_learn` calls that tool
+weekly, but its trigger is off until an administrator enables it.
+
+The job writes a **proposal**. It holds the ranked rules, the evidence behind each one (outcomes,
+quality, mean cost and latency, score), a diff against the rules in effect, and a hash. A proposal
+changes nothing until an administrator approves it on the page. Approval requires:
+
+- the proposal's exact hash and an explicit approval (the Describe-a-tool deploy pattern,
+  [Tool Generation](Tool%20Generation.md) §6);
+- that the [policy engine](Policy%20and%20Audit.md) allows the pseudo tool call
+  `planners.routing.approve` with `{"proposal": <id>}`. A `deny` refuses. `require_approval` sends the
+  request to the Approvals page for a second administrator; approving again consumes their grant.
+
+Approved rules become a new numbered version that never changes, and that version becomes active.
+Any earlier version, or none, can be made active again on the page (or with
+`learn rollback N`), and the page keeps a history of approvals and rollbacks.
+
+The active rules work like this: for the tool and the question's class (else the tool's `*`
+ranking), the stage picks the first planner in the rule's order that is among the allowed
+candidates (`by: learned`). `ai.planners.learning.rules: false` ignores approved rules.
+Proposals, approvals, rejections and rollbacks are audited (`planners.routing.*`).
+
+*Online: the bandit (opt in).* With `ai.planners.learning.bandit: true` (optionally only for the
+tools in `bandit_tools`), the bandit keeps arms per tool, class and planner in the
+[state store](Scaling%20and%20State.md): the number of outcomes and their summed reward.
+
+- **Choosing.** It exploits the arm with the best mean reward among those with `bandit_min_samples`
+  outcomes. With probability `bandit_exploration` (at most 0.5) it samples instead, by Thompson
+  sampling or UCB1 (`bandit_algorithm`), but only while explored choices stay at or below that
+  share of the tool's choices in the last `bandit_window_s` seconds. Without enough evidence it
+  defers to the approved rules, then to the model.
+- **Learning.** Every run's reward updates its arm, whatever chose the planner.
+- **Stopping.** The kill switch (the page, or `learn bandit stop`) stops the bandit on every worker
+  at once. A guard sets the switch itself when explored choices succeed less than
+  `bandit_guard_min_success` over `bandit_guard_min_runs` explored outcomes in the window.
+- **Reproducible.** `bandit_seed` makes the random draws repeatable.
+- **What does not count.** Dry runs and runs on a forced model never update the arms.
+
+Limits: the question classes are coarse fixed rules. A run on an LLM tool's own planner (an eval
+set with `tool:`) is credited only when its chain names one planner. Several workers need a shared
+`ai.planners.learning.dir` for the rules and a shared state store (`redis` or `database`) for the
+bandit; with the `memory` store, `learn bandit stop` from the command line reaches only its own
+process, so use the page. The guard compares explored choices with a floor, not with the
+exploited choice.
 
 ---
 

@@ -4,7 +4,7 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
 Studio planner editor (administrators): planner files in config/planners, checked, drawn, dry-run, versioned.
 Reference: docs/architecture/Planner Reference.md §14
 -->
-{% block title %}Planner editor - MCP Studio - SAJHA MCP Server{% endblock %}
+{% block title %}{{ _('Planner editor - MCP Studio - SAJHA MCP Server') }}{% endblock %}
 
 {% block extra_css %}
 <style>
@@ -45,24 +45,22 @@ Reference: docs/architecture/Planner Reference.md §14
 {% block content %}
 {% include "admin/studio/_studio_nav.html" %}
 <div class="container-fluid py-3">
-    <nav aria-label="breadcrumb" class="mb-3">
+    <nav aria-label="{{ _('breadcrumb') }}" class="mb-3">
         <ol class="breadcrumb">
-            <li class="breadcrumb-item"><a href="{{ url_for('dashboard') }}">Dashboard</a></li>
+            <li class="breadcrumb-item"><a href="{{ url_for('dashboard') }}">{{ _('Dashboard') }}</a></li>
             <li class="breadcrumb-item"><a href="{{ url_for('studio_home') }}">MCP Studio</a></li>
-            <li class="breadcrumb-item active" aria-current="page">Planner editor</li>
+            <li class="breadcrumb-item active" aria-current="page">{{ _('Planner editor') }}</li>
         </ol>
     </nav>
 
     <div class="creator-header">
         <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
             <div>
-                <h1 class="h3"><i class="bi bi-signpost-split me-2" aria-hidden="true"></i>Planner editor</h1>
-                <p class="subtitle mb-0">Planners decide how an LLM tool answers: which stages run, how often a loop may repeat and what it may
-                    spend. Edit a planner file, check it against the schema and the P-rules, see its graph, dry-run it on the mock model,
-                    and save it as a new version. Administrators only.</p>
+                <h1 class="h3"><i class="bi bi-signpost-split me-2" aria-hidden="true"></i>{{ _('Planner editor') }}</h1>
+                <p class="subtitle mb-0">{{ _('Planners decide how an LLM tool answers: which stages run, how often a loop may repeat and what it may spend. Edit a planner file, check it against the schema and the P-rules, see its graph, dry-run it on the mock model, and save it as a new version. Administrators only.') }}</p>
             </div>
             <div class="d-flex gap-2 flex-wrap">
-                <a href="{{ guide_url('Planner Reference.md') }}" class="btn btn-outline-light btn-sm"><i class="bi bi-book me-1" aria-hidden="true"></i>Planner reference</a>
+                <a href="{{ guide_url('Planner Reference.md') }}" class="btn btn-outline-light btn-sm"><i class="bi bi-book me-1" aria-hidden="true"></i>{{ _('Planner reference') }}</a>
             </div>
         </div>
     </div>
@@ -72,25 +70,25 @@ Reference: docs/architecture/Planner Reference.md §14
     <div class="row">
         <div class="col-lg-4">
             <div class="form-section">
-                <div class="section-header"><i class="bi bi-list-ul" aria-hidden="true"></i>Planners <span class="badge bg-secondary" id="peCount"></span></div>
+                <div class="section-header"><i class="bi bi-list-ul" aria-hidden="true"></i>{{ _('Planners') }} <span class="badge bg-secondary" id="peCount"></span></div>
                 <div class="section-body">
-                    <ul class="pe-list" id="peList" aria-label="Planners"></ul>
-                    <button type="button" class="btn btn-outline-primary btn-sm mt-2" id="peNew"><i class="bi bi-plus" aria-hidden="true"></i> New planner</button>
+                    <ul class="pe-list" id="peList" aria-label="{{ _('Planners') }}"></ul>
+                    <button type="button" class="btn btn-outline-primary btn-sm mt-2" id="peNew"><i class="bi bi-plus" aria-hidden="true"></i> {{ _('New planner') }}</button>
                 </div>
             </div>
             <div class="form-section" id="peRefusedWrap">
-                <div class="section-header"><i class="bi bi-exclamation-triangle" aria-hidden="true"></i>Load problems</div>
+                <div class="section-header"><i class="bi bi-exclamation-triangle" aria-hidden="true"></i>{{ _('Load problems') }}</div>
                 <div class="section-body small" id="peRefused"></div>
             </div>
             <div class="form-section">
-                <div class="section-header"><i class="bi bi-info-circle" aria-hidden="true"></i>Versions and the last good file</div>
+                <div class="section-header"><i class="bi bi-info-circle" aria-hidden="true"></i>{{ _('Versions and the last good file') }}</div>
                 <div class="section-body small">
-                    <p><code>{{ planner_data.dir }}/&lt;name&gt;.yaml</code> holds the newest version; saving a new version keeps the one it replaces as
+                    <p><code>{{ planner_data.dir }}/&lt;name&gt;.yaml</code> {% trans %}holds the newest version; saving a new version keeps the one it replaces as
                         <code>&lt;name&gt;@&lt;version&gt;.yaml</code>, so tools that pin <code>name@version</code> keep what they were tested with.
-                        A version cannot be saved twice with different content: change <code>version</code>.</p>
-                    <p class="mb-0">The editor never writes a file that fails validation. If a file edited elsewhere fails, the registry keeps
+                        A version cannot be saved twice with different content: change <code>version</code>.{% endtrans %}</p>
+                    <p class="mb-0">{% trans %}The editor never writes a file that fails validation. If a file edited elsewhere fails, the registry keeps
                         the <strong>last good version</strong> of that <code>name@version</code> in use, logs the error and counts it
-                        (<code>sajha_planner_load_errors_total</code>); running tools keep working, and the problem is listed above.</p>
+                        (<code>sajha_planner_load_errors_total</code>); running tools keep working, and the problem is listed above.{% endtrans %}</p>
                 </div>
             </div>
         </div>
@@ -98,25 +96,25 @@ Reference: docs/architecture/Planner Reference.md §14
         <div class="col-lg-8">
             <div class="form-section">
                 <div class="section-header"><i class="bi bi-file-earmark-code" aria-hidden="true"></i>
-                    <span id="peFile">New planner</span> <span class="badge" id="peBadge"></span></div>
+                    <span id="peFile">{{ _('New planner') }}</span> <span class="badge" id="peBadge"></span></div>
                 <div class="section-body">
                     <div class="d-flex flex-wrap gap-2 align-items-end mb-2">
                         <div>
-                            <label class="form-label fw-bold small mb-1" for="peVersion">Version</label>
+                            <label class="form-label fw-bold small mb-1" for="peVersion">{{ _('Version') }}</label>
                             <select id="peVersion" class="form-select form-select-sm" style="min-width: 10rem"></select>
                         </div>
                     </div>
-                    <label class="form-label fw-bold" for="peText">Planner file (YAML)</label>
+                    <label class="form-label fw-bold" for="peText">{{ _('Planner file (YAML)') }}</label>
                     <textarea id="peText" class="form-control pe-code pe-editor" rows="18" spellcheck="false" aria-describedby="peTextHelp"></textarea>
-                    <div class="form-text" id="peTextHelp">Checked as you type. Keys and stage types: the Planner Reference.</div>
+                    <div class="form-text" id="peTextHelp">{{ _('Checked as you type. Keys and stage types: the Planner Reference.') }}</div>
                     <div class="d-flex flex-wrap gap-2 mt-2">
-                        <button type="button" class="btn btn-outline-primary" id="peCheck"><i class="bi bi-check2-square me-1" aria-hidden="true"></i>Check</button>
-                        <button type="button" class="btn btn-success" id="peSave" disabled><i class="bi bi-save me-1" aria-hidden="true"></i>Save as a new version</button>
+                        <button type="button" class="btn btn-outline-primary" id="peCheck"><i class="bi bi-check2-square me-1" aria-hidden="true"></i>{{ _('Check') }}</button>
+                        <button type="button" class="btn btn-success" id="peSave" disabled><i class="bi bi-save me-1" aria-hidden="true"></i>{{ _('Save as a new version') }}</button>
                     </div>
-                    <div class="table-responsive mt-3" tabindex="0" role="region" aria-label="Validation findings">
+                    <div class="table-responsive mt-3" tabindex="0" role="region" aria-label="{{ _('Validation findings') }}">
                         <table class="table table-sm pe-diag mb-0" data-sajha-table="false">
-                            <caption class="visually-hidden">Validation findings</caption>
-                            <thead><tr><th scope="col">Rule</th><th scope="col">Level</th><th scope="col">Where</th><th scope="col">Message</th></tr></thead>
+                            <caption class="visually-hidden">{{ _('Validation findings') }}</caption>
+                            <thead><tr><th scope="col">{{ _('Rule') }}</th><th scope="col">{{ _('Level') }}</th><th scope="col">{{ _('Where') }}</th><th scope="col">{{ _('Message') }}</th></tr></thead>
                             <tbody id="peDiag"></tbody>
                         </table>
                     </div>
@@ -124,17 +122,17 @@ Reference: docs/architecture/Planner Reference.md §14
             </div>
 
             <div class="form-section">
-                <div class="section-header"><i class="bi bi-bezier2" aria-hidden="true"></i>Graph</div>
+                <div class="section-header"><i class="bi bi-bezier2" aria-hidden="true"></i>{{ _('Graph') }}</div>
                 <div class="section-body">
-                    <p class="small text-muted">Stages left to right from <code>start</code>. A bounded edge (<code>max_visits</code>) is dashed in the accent colour with
-                        its bound; dotted edges go where an exhausted bound leads. A dry run highlights the stages it took.</p>
-                    <div class="pe-graph-wrap" tabindex="0" role="region" aria-label="Planner graph, scrollable"><svg class="pe-graph" id="peGraph" role="img" aria-labelledby="peGraphTitle"><title id="peGraphTitle">Planner graph</title></svg></div>
+                    <p class="small text-muted">{% trans %}Stages left to right from <code>start</code>. A bounded edge (<code>max_visits</code>) is dashed in the accent colour with
+                        its bound; dotted edges go where an exhausted bound leads. A dry run highlights the stages it took.{% endtrans %}</p>
+                    <div class="pe-graph-wrap" tabindex="0" role="region" aria-label="{{ _('Planner graph, scrollable') }}"><svg class="pe-graph" id="peGraph" role="img" aria-labelledby="peGraphTitle"><title id="peGraphTitle">{{ _('Planner graph') }}</title></svg></div>
                     <details class="mt-2">
-                        <summary class="fw-bold">Transitions as a table</summary>
-                        <div class="table-responsive" tabindex="0" role="region" aria-label="Transitions">
+                        <summary class="fw-bold">{{ _('Transitions as a table') }}</summary>
+                        <div class="table-responsive" tabindex="0" role="region" aria-label="{{ _('Transitions') }}">
                             <table class="table table-sm pe-diag mb-0 mt-2" data-sajha-table="false">
-                                <caption class="visually-hidden">Transitions</caption>
-                                <thead><tr><th scope="col">From</th><th scope="col">On</th><th scope="col">To</th><th scope="col">Bound</th><th scope="col">When</th></tr></thead>
+                                <caption class="visually-hidden">{{ _('Transitions') }}</caption>
+                                <thead><tr><th scope="col">{{ _('From') }}</th><th scope="col">{{ _('On') }}</th><th scope="col">{{ _('To') }}</th><th scope="col">{{ _('Bound') }}</th><th scope="col">{{ _('When') }}</th></tr></thead>
                                 <tbody id="peEdges"></tbody>
                             </table>
                         </div>
@@ -143,13 +141,13 @@ Reference: docs/architecture/Planner Reference.md §14
             </div>
 
             <div class="form-section">
-                <div class="section-header"><i class="bi bi-play-circle" aria-hidden="true"></i>Dry run</div>
+                <div class="section-header"><i class="bi bi-play-circle" aria-hidden="true"></i>{{ _('Dry run') }}</div>
                 <div class="section-body">
-                    <p class="small text-muted">Runs the planner in the editor (saved or not) against <code>{{ planner_data.dry_run_model }}</code>
-                        (<code>ai.planners.dry_run_model</code>) through <code>POST /api/ai/planners/dry-run</code>. Only read-only tools run; others answer "not run".</p>
-                    <label class="form-label fw-bold" for="peQuestion">Question</label>
+                    <p class="small text-muted">{% trans dry_run_model=planner_data.dry_run_model %}Runs the planner in the editor (saved or not) against <code>{{ dry_run_model }}</code>
+                        (<code>ai.planners.dry_run_model</code>) through <code>POST /api/ai/planners/dry-run</code>. Only read-only tools run; others answer "not run".{% endtrans %}</p>
+                    <label class="form-label fw-bold" for="peQuestion">{{ _('Question') }}</label>
                     <input id="peQuestion" class="form-control" value="What is the percentage change from 80 to 100?">
-                    <button type="button" class="btn btn-primary mt-2" id="peDry"><i class="bi bi-play me-1" aria-hidden="true"></i>Dry run</button>
+                    <button type="button" class="btn btn-primary mt-2" id="peDry"><i class="bi bi-play me-1" aria-hidden="true"></i>{{ _('Dry run') }}</button>
                     <div id="peDryResult" class="mt-2" aria-live="polite"></div>
                 </div>
             </div>
@@ -191,15 +189,15 @@ Reference: docs/architecture/Planner Reference.md §14
             ((p.warnings || []).length ? '<span class="badge bg-warning text-dark">' + p.warnings.length + ' warning' + (p.warnings.length === 1 ? '' : 's') + '</span>' : '') +
             '<small class="w-100">' + esc(p.use_when || p.description || '') + '</small></button></li>').join('');
         $('peList').querySelectorAll('.pe-item').forEach(b => b.addEventListener('click', () => {
-            if (b.dataset.python) { message(b.dataset.name + ' is a Python planner: it has no file to edit here.', 'warning'); return; }
+            if (b.dataset.python) { message(b.dataset.name + _t(' is a Python planner: it has no file to edit here.'), 'warning'); return; }
             open(b.dataset.name);
         }));
         const ref = listing.refused || [];
         $('peRefused').innerHTML = ref.length ? ref.map(r => '<div class="mb-2"><div><code>' + esc(r.file) + '</code> ' +
-            (r.in_use ? '<span class="badge bg-info text-dark">last good ' + esc(r.last_good.join(', ')) + ' in use</span>' : '<span class="badge bg-danger">not loaded</span>') +
+            (r.in_use ? '<span class="badge bg-info text-dark">' + _t('last good') + ' ' + esc(r.last_good.join(', ')) + ' ' + _t('in use') + '</span>' : '<span class="badge bg-danger">' + _t('not loaded') + '</span>') +
             '</div><ul class="mb-0 ps-3">' + r.errors.map(e => '<li>' + esc(e.code) + ' ' + esc(e.location ? e.location + ': ' : '') + esc(e.message) + '</li>').join('') + '</ul>' +
-            '<button type="button" class="btn btn-sm btn-outline-secondary mt-1 pe-open-file" data-name="' + esc(r.name) + '">Open ' + esc(r.file) + '</button></div>').join('')
-            : '<span class="text-muted">Every planner file loads.</span>';
+            '<button type="button" class="btn btn-sm btn-outline-secondary mt-1 pe-open-file" data-name="' + esc(r.name) + '">' + _t('Open') + ' ' + esc(r.file) + '</button></div>').join('')
+            : '<span class="text-muted">' + _t('Every planner file loads.') + '</span>';
         $('peRefused').querySelectorAll('.pe-open-file').forEach(b => b.addEventListener('click', () => open(b.dataset.name)));
     }
 
@@ -209,14 +207,14 @@ Reference: docs/architecture/Planner Reference.md §14
 
     async function open(ref) {
         const data = await call('GET', '/api/studio/planners/' + encodeURIComponent(ref));
-        if (!data.success) { message(data.error || 'Could not open ' + ref, 'danger'); return; }
+        if (!data.success) { message(data.error || _t('Could not open %(name)s', {name: ref}), 'danger'); return; }
         current = {name: data.name, version: data.version};
         $('peFile').textContent = data.file;
         $('peVersion').innerHTML = (data.versions || []).slice().reverse().map(v => '<option value="' + esc(data.name + '@' + v) + '"' +
             (v === data.version ? ' selected' : '') + '>' + esc(v) + '</option>').join('') || '<option>' + esc(data.version || '') + '</option>';
         $('peText').value = data.text;
-        message((data.load_errors || []).length ? data.file + ' does not load as it is on disk; the registry runs the last good version. Fix it and save a new version.'
-                                                 : 'Opened ' + data.file + '.', (data.load_errors || []).length ? 'warning' : 'info');
+        message((data.load_errors || []).length ? _t('%(file)s does not load as it is on disk; the registry runs the last good version. Fix it and save a new version.', {file: data.file})
+                                                 : _t('Opened %(file)s.', {file: data.file}), (data.load_errors || []).length ? 'warning' : 'info');
         show(data);
         mark();
     }
@@ -226,7 +224,7 @@ Reference: docs/architecture/Planner Reference.md §14
         const diags = (chk.errors || []).concat(chk.warnings || []);
         $('peDiag').innerHTML = diags.map(d => '<tr><td><code>' + esc(d.code) + '</code></td><td>' + (d.level === 'error' ? '<span class="text-danger fw-bold">error</span>' : 'warning') +
             '</td><td><code>' + esc(d.location || '') + '</code></td><td>' + esc(d.message) + '</td></tr>').join('') ||
-            '<tr><td colspan="4" class="text-muted">No findings: this file loads.</td></tr>';
+            '<tr><td colspan="4" class="text-muted">' + _t('No findings: this file loads.') + '</td></tr>';
         const b = $('peBadge');
         b.className = 'badge ' + (chk.valid ? 'bg-success' : 'bg-danger');
         b.textContent = chk.valid ? 'valid' : (chk.errors || []).length + ' error' + ((chk.errors || []).length === 1 ? '' : 's');
@@ -237,8 +235,8 @@ Reference: docs/architecture/Planner Reference.md §14
     function drawGraph(g, path) {
         const svg = $('peGraph');
         Array.from(svg.childNodes).forEach(n => { if (n.nodeName !== 'title') svg.removeChild(n); });
-        $('peGraphTitle').textContent = g.nodes.length ? 'Planner graph: ' + g.nodes.length + ' stages, start ' + (g.start || '?') +
-            '. The transitions table below lists every edge.' : 'No graph (a Python planner, or the file does not parse).';
+        $('peGraphTitle').textContent = g.nodes.length ? _t('Planner graph: %(n)s stages, start %(start)s. The transitions table below lists every edge.', {n: g.nodes.length, start: g.start || '?'})
+            : _t('No graph (a Python planner, or the file does not parse).');
         const W = 150, H = 46, GX = 70, GY = 26;
         const byLevel = {};
         g.nodes.forEach(n => { (byLevel[n.level] = byLevel[n.level] || []).push(n); });
@@ -295,54 +293,54 @@ Reference: docs/architecture/Planner Reference.md §14
             grp.appendChild(r);
             const t1 = document.createElementNS(SVG, 'text'); t1.setAttribute('x', q.x + 10); t1.setAttribute('y', q.y + 19); t1.textContent = n.id; grp.appendChild(t1);
             const t2 = document.createElementNS(SVG, 'text'); t2.setAttribute('x', q.x + 10); t2.setAttribute('y', q.y + 36); t2.setAttribute('class', 'type');
-            t2.textContent = n.type + (n.start ? ' · start' : '') + (n.reachable ? '' : ' · unreachable'); grp.appendChild(t2);
+            t2.textContent = n.type + (n.start ? _t(' · start') : '') + (n.reachable ? '' : _t(' · unreachable')); grp.appendChild(t2);
             svg.appendChild(grp);
         });
         $('peEdges').innerHTML = g.edges.map(e => '<tr><td><code>' + esc(e.from) + '</code></td><td>' + esc(e.label) + '</td><td><code>' + esc(e.to) + '</code>' +
-            (e.dangling ? ' <span class="text-danger">(no such stage)</span>' : '') + '</td><td>' + (e.bounded ? 'max_visits ' + esc(e.max_visits) +
-            (e.on_exhausted ? ', then ' + esc(e.on_exhausted) : '') : '—') + '</td><td><code>' + esc(e.when || '') + '</code></td></tr>').join('') ||
-            '<tr><td colspan="5" class="text-muted">No transitions.</td></tr>';
+            (e.dangling ? ' <span class="text-danger">' + _t('(no such stage)') + '</span>' : '') + '</td><td>' + (e.bounded ? 'max_visits ' + esc(e.max_visits) +
+            (e.on_exhausted ? ', ' + esc(_t('then %(stage)s', {stage: e.on_exhausted})) : '') : '—') + '</td><td><code>' + esc(e.when || '') + '</code></td></tr>').join('') ||
+            '<tr><td colspan="5" class="text-muted">' + _t('No transitions.') + '</td></tr>';
     }
 
     async function check() {
         const data = await call('POST', '/admin/studio/planners/check', {text: $('peText').value});
-        if (data.success === false && !data.errors) { message(data.error || 'Could not check', 'danger'); return null; }
+        if (data.success === false && !data.errors) { message(data.error || _t('Could not check'), 'danger'); return null; }
         show(data);
         return data;
     }
 
     $('peText').addEventListener('input', () => { clearTimeout(timer); timer = setTimeout(check, 500); });
-    $('peCheck').addEventListener('click', async () => { const c = await check(); if (c) message(c.valid ? 'The file is valid.' : 'Fix the errors listed below.', c.valid ? 'success' : 'warning'); });
+    $('peCheck').addEventListener('click', async () => { const c = await check(); if (c) message(c.valid ? _t('The file is valid.') : _t('Fix the errors listed below.'), c.valid ? 'success' : 'warning'); });
     $('peVersion').addEventListener('change', () => open($('peVersion').value));
     $('peNew').addEventListener('click', () => {
-        current = {name: null, version: null}; $('peFile').textContent = 'New planner'; $('peVersion').innerHTML = '';
-        $('peText').value = NEW; check(); mark(); message('A new planner: rename it, then save.', 'info');
+        current = {name: null, version: null}; $('peFile').textContent = _t('New planner'); $('peVersion').innerHTML = '';
+        $('peText').value = NEW; check(); mark(); message(_t('A new planner: rename it, then save.'), 'info');
     });
     $('peSave').addEventListener('click', async () => {
         const c = await check();
         if (!c || !c.valid) return;
-        if (!confirm('Save ' + c.name + '@' + c.version + '? Tools that name ' + c.name + ' without a version use it at once.')) return;
+        if (!confirm(_t('Save ') + c.name + '@' + c.version + _t('? Tools that name ') + c.name + _t(' without a version use it at once.'))) return;
         const data = await call('POST', '/admin/studio/planners/save', {text: $('peText').value});
-        if (!data.success) { message(data.error || 'Not saved', 'danger'); return; }
-        message(data.message + ((data.load_errors || []).length ? ' (but it reports load errors: see the list)' : ''), (data.load_errors || []).length ? 'warning' : 'success');
+        if (!data.success) { message(data.error || _t('Not saved'), 'danger'); return; }
+        message(data.message + ((data.load_errors || []).length ? _t(' (but it reports load errors: see the list)') : ''), (data.load_errors || []).length ? 'warning' : 'success');
         const listing = await call('GET', '/api/studio/planners');
         if (listing.success) renderList(listing);
         open(data.name + '@' + data.version);
     });
     $('peDry').addEventListener('click', async () => {
         const c = await check();
-        if (!c || !c.valid) { message('Fix the errors before a dry run.', 'warning'); return; }
+        if (!c || !c.valid) { message(_t('Fix the errors before a dry run.'), 'warning'); return; }
         $('peDry').disabled = true;
-        $('peDryResult').innerHTML = '<span class="text-muted small">Running…</span>';
+        $('peDryResult').innerHTML = '<span class="text-muted small">' + _t('Running…') + '</span>';
         const data = await call('POST', '/api/ai/planners/dry-run', {planner: c.doc, question: $('peQuestion').value});
         $('peDry').disabled = false;
         if (data.error && !data.path) { $('peDryResult').innerHTML = '<div class="alert alert-danger py-2 small">' + esc(data.error) + '</div>'; return; }
         drawGraph(c.graph, data.path || []);
-        $('peDryResult').innerHTML = '<div class="small mb-1">Stage path (' + esc((data.path || []).length) + ' stages, stopped_by <code>' + esc(data.stopped_by) + '</code>):</div>' +
-            '<div class="pe-path" aria-label="Stage path">' + (data.path || []).map(s => '<code>' + esc(s) + '</code>').join('<span aria-hidden="true">→</span>') + '</div>' +
-            ((data.loops_exhausted || []).length ? '<div class="small mt-1 text-warning">Bounds reached: ' + data.loops_exhausted.map(esc).join(', ') + '</div>' : '') +
-            ((data.tool_calls || []).length ? '<div class="small mt-1">Tool calls: ' + data.tool_calls.map(t => '<code>' + esc(t.name) + '</code>' + (t.run ? '' : ' (not run)')).join(', ') + '</div>' : '') +
-            '<div class="small mt-2 fw-bold">Answer</div><div class="small">' + esc(data.answer || '') + '</div>' +
+        $('peDryResult').innerHTML = '<div class="small mb-1">' + _t('Stage path (') + '' + esc((data.path || []).length) + ' ' + _t('stages, stopped_by') + ' <code>' + esc(data.stopped_by) + '</code>):</div>' +
+            '<div class="pe-path" aria-label="' + _t('Stage path') + '">' + (data.path || []).map(s => '<code>' + esc(s) + '</code>').join('<span aria-hidden="true">→</span>') + '</div>' +
+            ((data.loops_exhausted || []).length ? '<div class="small mt-1 text-warning">' + _t('Bounds reached:') + ' ' + data.loops_exhausted.map(esc).join(', ') + '</div>' : '') +
+            ((data.tool_calls || []).length ? '<div class="small mt-1">' + _t('Tool calls:') + ' ' + data.tool_calls.map(t => '<code>' + esc(t.name) + '</code>' + (t.run ? '' : ' (' + _t('not run') + ')')).join(', ') + '</div>' : '') +
+            '<div class="small mt-2 fw-bold">' + _t('Answer') + '</div><div class="small">' + esc(data.answer || '') + '</div>' +
             (data.error ? '<div class="small text-danger mt-1">' + esc(data.error) + '</div>' : '');
     });
 

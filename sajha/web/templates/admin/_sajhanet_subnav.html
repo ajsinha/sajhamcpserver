@@ -1,0 +1,12 @@
+{# Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.com #}
+{# The SAJHA Net management pages, one row of links (set sn_here to the current path). #}
+<nav class="sn-subnav" aria-label="{{ _('SAJHA Net pages') }}">
+  {% for href, label in [('/admin/sajhanet/overview', _('Overview')), ('/admin/sajhanet/reviews', _('Conflicts and reviews')),
+                         ('/admin/sajhanet/users', _('Users across the net')), ('/admin/sajhanet/blocks', _('Access and blocks')),
+                         ('/admin/sajhanet/keys', _('Key directory')), ('/admin/sajhanet/activity', _('Live activity')),
+                         ('/admin/sajhanet/certificates', _('Certificates')), ('/admin/sajhanet/sponsored', _('Sponsored servers')),
+                         ('/admin/sajhanet/snapshots', _('Snapshots')), ('/admin/sajhanet/changes', _('Change history')),
+                         ('/admin/sajhanet/settings', _('Net settings'))] %}
+  <a href="{{ href }}"{% if sn_here == href %} aria-current="page"{% endif %}>{{ label }}</a>
+  {% endfor %}
+</nav>

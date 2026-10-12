@@ -1,7 +1,7 @@
 {
   "name": "extract_metadata",
   "implementation": "sajha.tools.impl.webcrawler_tool_refactored.ExtractMetadataTool",
-  "description": "SEO and structural metadata of one web page: title, meta description and keywords, headings and size.\nReturns {url, status_code, content_type, title, meta_description, meta_keywords, headings: {h1: [...], h2: [...], h3: [...]}, content_length (characters of HTML), extracted_at}.\nInputs (* required): url* (string, absolute http(s) URL).\nget_page_info adds link and image counts and caps headings at 5 per level; extract_content returns the text.\nExample: {\"url\": \"https://example.com\"}",
+  "description": "SEO and structural metadata of one web page: title, meta description and keywords, headings and size.\nReturns {url, status_code, content_type, title, meta_description, meta_keywords, headings: {h1: [...], h2: [...], h3: [...]}, content_length (characters of HTML), extracted_at}.\nInputs (* required): url* (string, absolute http(s) URL), render_js (boolean: run JavaScript first, when enabled).\nget_page_info adds link and image counts and caps headings at 5 per level; extract_content returns the text.\nExample: {\"url\": \"https://example.com\"}",
   "annotations": {"readOnlyHint": true, "idempotentHint": true, "openWorldHint": true},
   "version": "2.9.8",
   "enabled": true,
@@ -11,6 +11,11 @@
       "url": {
         "type": "string",
         "description": "URL of the page to extract metadata from"
+      },
+      "render_js": {
+        "type": "boolean",
+        "default": false,
+        "description": "Run the page's JavaScript in a headless browser first; only when the operator enabled tools.webcrawler.javascript, and every request the page makes still passes the outbound guard"
       }
     },
     "required": ["url"],

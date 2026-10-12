@@ -1,7 +1,7 @@
 {% extends "common/base.html" %}
 {# Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.com #}
 
-{% block title %}MCP Studio - SAJHA MCP Server{% endblock %}
+{% block title %}{{ _('MCP Studio - SAJHA MCP Server') }}{% endblock %}
 
 {% block extra_css %}
 <style>
@@ -310,10 +310,10 @@
 {% include "admin/studio/_folder_field.html" %}
 <div class="container-fluid py-3">
     <!-- Header with Breadcrumb -->
-    <nav aria-label="breadcrumb" class="mb-2">
+    <nav aria-label="{{ _('breadcrumb') }}" class="mb-2">
         <ol class="breadcrumb small">
-            <li class="breadcrumb-item"><a href="{{ url_for('dashboard') }}">Dashboard</a></li>
-            <li class="breadcrumb-item"><a href="{{ url_for('admin_tools') }}">Tools Management</a></li>
+            <li class="breadcrumb-item"><a href="{{ url_for('dashboard') }}">{{ _('Dashboard') }}</a></li>
+            <li class="breadcrumb-item"><a href="{{ url_for('admin_tools') }}">{{ _('Tools Management') }}</a></li>
             <li class="breadcrumb-item active">MCP Studio</li>
         </ol>
     </nav>
@@ -324,17 +324,17 @@
                 <i class="bi bi-magic me-2"></i>MCP Studio
                 <span class="badge studio-version ms-2">v{{ app_version }}</span>
             </h4>
-            <small class="text-muted">Enterprise Visual Tool Creation Platform</small>
+            <small class="text-muted">{{ _('Enterprise Visual Tool Creation Platform') }}</small>
         </div>
         <div>
             <a href="{{ url_for('studio_examples') }}" class="btn btn-outline-info btn-sm me-2">
-                <i class="bi bi-book me-1"></i>Examples
+                <i class="bi bi-book me-1"></i>{{ _('Examples') }}
             </a>
             <a href="{{ guide_url('MCP Studio User Guide.md') }}" class="btn btn-outline-warning btn-sm me-2">
-                <i class="bi bi-question-circle me-1"></i>Help
+                <i class="bi bi-question-circle me-1"></i>{{ _('Help') }}
             </a>
             <a href="{{ url_for('admin_tools') }}" class="btn btn-outline-secondary btn-sm">
-                <i class="bi bi-arrow-left me-1"></i>Back to Tools
+                <i class="bi bi-arrow-left me-1"></i>{{ _('Back to Tools') }}
             </a>
         </div>
     </div>
@@ -343,10 +343,10 @@
     <div class="alert alert-info studio-overview d-flex align-items-center mb-4" role="alert">
         <i class="bi bi-lightbulb-fill me-3 fs-4 text-info"></i>
         <div>
-            <strong>MCP Studio</strong> builds MCP tools in the browser: from Python code with the
+            {% trans %}<strong>MCP Studio</strong> builds MCP tools in the browser: from Python code with the
             <code>@sajhamcptool</code> decorator (the creator on this page, below), a REST endpoint, a SQL query,
             a script, or an enterprise source (Power BI, LiveLink, SharePoint, OLAP). Each creator generates a
-            tool that clients can call without a restart.
+            tool that clients can call without a restart.{% endtrans %}
         </div>
     </div>
     
@@ -358,37 +358,36 @@
                 <div class="card-header d-flex align-items-center">
                     <i class="bi bi-code-slash fs-4 me-2"></i>
                     <div>
-                        <h5 class="mb-0">Python Code Tool</h5>
-                        <small class="opacity-75">@sajhamcptool decorator</small>
+                        <h5 class="mb-0">{{ _('Python Code Tool') }}</h5>
+                        <small class="opacity-75">{{ _('@sajhamcptool decorator') }}</small>
                     </div>
                 </div>
                 <div class="card-body">
                     <p class="card-text">
-                        Write Python functions with our decorator. The system uses AST analysis to 
-                        automatically generate tool configuration and implementation.
+                        {{ _('Write Python functions with our decorator. The system uses AST analysis to automatically generate tool configuration and implementation.') }}
                     </p>
                     <div class="feature-list mb-3">
                         <div class="d-flex align-items-start mb-2">
                             <i class="bi bi-check-circle-fill text-success me-2 mt-1"></i>
-                            <small>Type hints → JSON Schema</small>
+                            <small>{{ _('Type hints → JSON Schema') }}</small>
                         </div>
                         <div class="d-flex align-items-start mb-2">
                             <i class="bi bi-check-circle-fill text-success me-2 mt-1"></i>
-                            <small>Docstrings → Descriptions</small>
+                            <small>{{ _('Docstrings → Descriptions') }}</small>
                         </div>
                         <div class="d-flex align-items-start mb-2">
                             <i class="bi bi-check-circle-fill text-success me-2 mt-1"></i>
-                            <small>Full control over logic</small>
+                            <small>{{ _('Full control over logic') }}</small>
                         </div>
                         <div class="d-flex align-items-start">
                             <i class="bi bi-check-circle-fill text-success me-2 mt-1"></i>
-                            <small>Hot-reload enabled</small>
+                            <small>{{ _('Hot-reload enabled') }}</small>
                         </div>
                     </div>
                 </div>
                 <div class="card-footer bg-transparent border-0 pb-3">
                     <span class="badge bg-primary w-100 py-2">
-                        <i class="bi bi-arrow-down me-1"></i>Currently Active Below
+                        <i class="bi bi-arrow-down me-1"></i>{{ _('Currently Active Below') }}
                     </span>
                 </div>
             </div>
@@ -400,14 +399,13 @@
                 <div class="card-header d-flex align-items-center">
                     <i class="bi bi-cloud-arrow-up fs-4 me-2"></i>
                     <div>
-                        <h5 class="mb-0">REST Service Tool</h5>
-                        <small class="opacity-75">Wrap any REST API</small>
+                        <h5 class="mb-0">{{ _('REST Service Tool') }}</h5>
+                        <small class="opacity-75">{{ _('Wrap any REST API') }}</small>
                     </div>
                 </div>
                 <div class="card-body">
                     <p class="card-text">
-                        Transform any REST API endpoint into an MCP tool. Define the endpoint,
-                        authentication, and schemas through a visual form.
+                        {{ _('Transform any REST API endpoint into an MCP tool. Define the endpoint, authentication, and schemas through a visual form.') }}
                     </p>
                     <div class="feature-list mb-3">
                         <div class="d-flex align-items-start mb-2">
@@ -416,21 +414,21 @@
                         </div>
                         <div class="d-flex align-items-start mb-2">
                             <i class="bi bi-check-circle-fill text-success me-2 mt-1"></i>
-                            <small>API Key &amp; Basic Auth</small>
+                            <small>{{ _('API Key &amp; Basic Auth') }}</small>
                         </div>
                         <div class="d-flex align-items-start mb-2">
                             <i class="bi bi-check-circle-fill text-success me-2 mt-1"></i>
-                            <small>Custom headers &amp; timeout</small>
+                            <small>{{ _('Custom headers &amp; timeout') }}</small>
                         </div>
                         <div class="d-flex align-items-start">
                             <i class="bi bi-check-circle-fill text-success me-2 mt-1"></i>
-                            <small>Path parameter support</small>
+                            <small>{{ _('Path parameter support') }}</small>
                         </div>
                     </div>
                 </div>
                 <div class="card-footer bg-transparent border-0 pb-3">
                     <a href="{{ url_for('studio_rest') }}" class="btn btn-primary w-100">
-                        <i class="bi bi-arrow-right me-1"></i>Open REST Creator
+                        <i class="bi bi-arrow-right me-1"></i>{{ _('Open REST Creator') }}
                     </a>
                 </div>
             </div>
@@ -442,14 +440,13 @@
                 <div class="card-header d-flex align-items-center">
                     <i class="bi bi-database fs-4 me-2"></i>
                     <div>
-                        <h5 class="mb-0">Database Query Tool</h5>
-                        <small class="opacity-75">SQL-based MCP tools</small>
+                        <h5 class="mb-0">{{ _('Database Query Tool') }}</h5>
+                        <small class="opacity-75">{{ _('SQL-based MCP tools') }}</small>
                     </div>
                 </div>
                 <div class="card-body">
                     <p class="card-text">
-                        Create MCP tools that execute SQL queries against databases. 
-                        Define parameters, query templates, and connection details.
+                        {{ _('Create MCP tools that execute SQL queries against databases. Define parameters, query templates, and connection details.') }}
                     </p>
                     <div class="feature-list mb-3">
                         <div class="d-flex align-items-start mb-2">
@@ -458,21 +455,21 @@
                         </div>
                         <div class="d-flex align-items-start mb-2">
                             <i class="bi bi-check-circle-fill text-success me-2 mt-1"></i>
-                            <small>Parameterized queries</small>
+                            <small>{{ _('Parameterized queries') }}</small>
                         </div>
                         <div class="d-flex align-items-start mb-2">
                             <i class="bi bi-check-circle-fill text-success me-2 mt-1"></i>
-                            <small>Auto-generated schemas</small>
+                            <small>{{ _('Auto-generated schemas') }}</small>
                         </div>
                         <div class="d-flex align-items-start">
                             <i class="bi bi-check-circle-fill text-success me-2 mt-1"></i>
-                            <small>Tool literature support</small>
+                            <small>{{ _('Tool literature support') }}</small>
                         </div>
                     </div>
                 </div>
                 <div class="card-footer bg-transparent border-0 pb-3">
                     <a href="{{ url_for('studio_dbquery') }}" class="btn btn-primary w-100">
-                        <i class="bi bi-arrow-right me-1"></i>Open DB Query Creator
+                        <i class="bi bi-arrow-right me-1"></i>{{ _('Open DB Query Creator') }}
                     </a>
                 </div>
             </div>
@@ -484,37 +481,36 @@
                 <div class="card-header d-flex align-items-center">
                     <i class="bi bi-terminal fs-4 me-2"></i>
                     <div>
-                        <h5 class="mb-0">Script Tool</h5>
-                        <small class="opacity-75">Shell & Python scripts</small>
+                        <h5 class="mb-0">{{ _('Script Tool') }}</h5>
+                        <small class="opacity-75">{{ _('Shell & Python scripts') }}</small>
                     </div>
                 </div>
                 <div class="card-body">
                     <p class="card-text">
-                        Create MCP tools from shell scripts, Python scripts, or other executables.
-                        Pass arguments and capture STDOUT/STDERR output.
+                        {{ _('Create MCP tools from shell scripts, Python scripts, or other executables. Pass arguments and capture STDOUT/STDERR output.') }}
                     </p>
                     <div class="feature-list mb-3">
                         <div class="d-flex align-items-start mb-2">
                             <i class="bi bi-check-circle-fill text-success me-2 mt-1"></i>
-                            <small>Bash, Shell, Python, Node.js, Perl, Ruby</small>
+                            <small>{{ _('Bash, Shell, Python, Node.js, Perl, Ruby') }}</small>
                         </div>
                         <div class="d-flex align-items-start mb-2">
                             <i class="bi bi-check-circle-fill text-success me-2 mt-1"></i>
-                            <small>File upload or paste code</small>
+                            <small>{{ _('File upload or paste code') }}</small>
                         </div>
                         <div class="d-flex align-items-start mb-2">
                             <i class="bi bi-check-circle-fill text-success me-2 mt-1"></i>
-                            <small>Configurable timeout & env vars</small>
+                            <small>{{ _('Configurable timeout & env vars') }}</small>
                         </div>
                         <div class="d-flex align-items-start">
                             <i class="bi bi-check-circle-fill text-success me-2 mt-1"></i>
-                            <small>Auto-detects script type</small>
+                            <small>{{ _('Auto-detects script type') }}</small>
                         </div>
                     </div>
                 </div>
                 <div class="card-footer bg-transparent border-0 pb-3">
                     <a href="{{ url_for('studio_script') }}" class="btn btn-primary w-100">
-                        <i class="bi bi-arrow-right me-1"></i>Open Script Creator
+                        <i class="bi bi-arrow-right me-1"></i>{{ _('Open Script Creator') }}
                     </a>
                 </div>
             </div>
@@ -526,37 +522,36 @@
                 <div class="card-header d-flex align-items-center">
                     <i class="bi bi-bar-chart-fill fs-4 me-2"></i>
                     <div>
-                        <h5 class="mb-0">PowerBI Report</h5>
-                        <small class="opacity-75">PDF/PPTX/PNG export</small>
+                        <h5 class="mb-0">{{ _('PowerBI Report') }}</h5>
+                        <small class="opacity-75">{{ _('PDF/PPTX/PNG export') }}</small>
                     </div>
                 </div>
                 <div class="card-body">
                     <p class="card-text">
-                        Create MCP tools that retrieve PowerBI reports as PDF, PPTX, or PNG 
-                        in base64 encoded format.
+                        {{ _('Create MCP tools that retrieve PowerBI reports as PDF, PPTX, or PNG in base64 encoded format.') }}
                     </p>
                     <div class="feature-list mb-3">
                         <div class="d-flex align-items-start mb-2">
                             <i class="bi bi-check-circle-fill text-success me-2 mt-1"></i>
-                            <small>Export to PDF, PPTX, or PNG</small>
+                            <small>{{ _('Export to PDF, PPTX, or PNG') }}</small>
                         </div>
                         <div class="d-flex align-items-start mb-2">
                             <i class="bi bi-check-circle-fill text-success me-2 mt-1"></i>
-                            <small>Azure AD authentication</small>
+                            <small>{{ _('Azure AD authentication') }}</small>
                         </div>
                         <div class="d-flex align-items-start mb-2">
                             <i class="bi bi-check-circle-fill text-success me-2 mt-1"></i>
-                            <small>Base64 encoded output</small>
+                            <small>{{ _('Base64 encoded output') }}</small>
                         </div>
                         <div class="d-flex align-items-start">
                             <i class="bi bi-check-circle-fill text-success me-2 mt-1"></i>
-                            <small>Optional page selection</small>
+                            <small>{{ _('Optional page selection') }}</small>
                         </div>
                     </div>
                 </div>
                 <div class="card-footer bg-transparent border-0 pb-3">
                     <a href="{{ url_for('studio_powerbi') }}" class="btn btn-primary w-100">
-                        <i class="bi bi-arrow-right me-1"></i>Open PowerBI Creator
+                        <i class="bi bi-arrow-right me-1"></i>{{ _('Open PowerBI Creator') }}
                     </a>
                 </div>
             </div>
@@ -569,36 +564,35 @@
                     <i class="bi bi-braces fs-4 me-2"></i>
                     <div>
                         <h5 class="mb-0">PowerBI DAX</h5>
-                        <small class="opacity-75">DAX query execution</small>
+                        <small class="opacity-75">{{ _('DAX query execution') }}</small>
                     </div>
                 </div>
                 <div class="card-body">
                     <p class="card-text">
-                        Create MCP tools that execute DAX queries against PowerBI datasets
-                        and return structured JSON results.
+                        {{ _('Create MCP tools that execute DAX queries against PowerBI datasets and return structured JSON results.') }}
                     </p>
                     <div class="feature-list mb-3">
                         <div class="d-flex align-items-start mb-2">
                             <i class="bi bi-check-circle-fill text-success me-2 mt-1"></i>
-                            <small>Execute DAX queries</small>
+                            <small>{{ _('Execute DAX queries') }}</small>
                         </div>
                         <div class="d-flex align-items-start mb-2">
                             <i class="bi bi-check-circle-fill text-success me-2 mt-1"></i>
-                            <small>Parameterized queries</small>
+                            <small>{{ _('Parameterized queries') }}</small>
                         </div>
                         <div class="d-flex align-items-start mb-2">
                             <i class="bi bi-check-circle-fill text-success me-2 mt-1"></i>
-                            <small>JSON result format</small>
+                            <small>{{ _('JSON result format') }}</small>
                         </div>
                         <div class="d-flex align-items-start">
                             <i class="bi bi-check-circle-fill text-success me-2 mt-1"></i>
-                            <small>Azure AD authentication</small>
+                            <small>{{ _('Azure AD authentication') }}</small>
                         </div>
                     </div>
                 </div>
                 <div class="card-footer bg-transparent border-0 pb-3">
                     <a href="{{ url_for('studio_powerbidax') }}" class="btn btn-primary w-100">
-                        <i class="bi bi-arrow-right me-1"></i>Open DAX Creator
+                        <i class="bi bi-arrow-right me-1"></i>{{ _('Open DAX Creator') }}
                     </a>
                 </div>
             </div>
@@ -611,26 +605,25 @@
                     <i class="bi bi-folder2-open fs-4 me-2"></i>
                     <div>
                         <h5 class="mb-0">IBM LiveLink</h5>
-                        <small class="opacity-75">Document retrieval</small>
+                        <small class="opacity-75">{{ _('Document retrieval') }}</small>
                     </div>
                 </div>
                 <div class="card-body">
                     <p class="card-text">
-                        Create MCP tools to query and download documents from IBM LiveLink
-                        (OpenText Content Server) as base64.
+                        {{ _('Create MCP tools to query and download documents from IBM LiveLink (OpenText Content Server) as base64.') }}
                     </p>
                     <div class="feature-list mb-3">
                         <div class="d-flex align-items-start mb-2">
                             <i class="bi bi-check-circle-fill text-success me-2 mt-1"></i>
-                            <small>Search & list documents</small>
+                            <small>{{ _('Search & list documents') }}</small>
                         </div>
                         <div class="d-flex align-items-start mb-2">
                             <i class="bi bi-check-circle-fill text-success me-2 mt-1"></i>
-                            <small>Download as base64</small>
+                            <small>{{ _('Download as base64') }}</small>
                         </div>
                         <div class="d-flex align-items-start mb-2">
                             <i class="bi bi-check-circle-fill text-success me-2 mt-1"></i>
-                            <small>Basic, OAuth, OTDS auth</small>
+                            <small>{{ _('Basic, OAuth, OTDS auth') }}</small>
                         </div>
                         <div class="d-flex align-items-start">
                             <i class="bi bi-check-circle-fill text-success me-2 mt-1"></i>
@@ -640,7 +633,7 @@
                 </div>
                 <div class="card-footer bg-transparent border-0 pb-3">
                     <a href="{{ url_for('studio_livelink') }}" class="btn btn-primary w-100">
-                        <i class="bi bi-arrow-right me-1"></i>Open LiveLink Creator
+                        <i class="bi bi-arrow-right me-1"></i>{{ _('Open LiveLink Creator') }}
                     </a>
                 </div>
             </div>
@@ -653,36 +646,35 @@
                     <i class="bi bi-microsoft fs-4 me-2"></i>
                     <div>
                         <h5 class="mb-0">SharePoint</h5>
-                        <small class="opacity-75">Microsoft 365</small>
+                        <small class="opacity-75">{{ _('Microsoft 365') }}</small>
                     </div>
                 </div>
                 <div class="card-body">
                     <p class="card-text">
-                        Create MCP tools to interact with Microsoft SharePoint - documents,
-                        lists, sites, and enterprise search.
+                        {{ _('Create MCP tools to interact with Microsoft SharePoint - documents, lists, sites, and enterprise search.') }}
                     </p>
                     <div class="feature-list mb-3">
                         <div class="d-flex align-items-start mb-2">
                             <i class="bi bi-check-circle-fill text-success me-2 mt-1"></i>
-                            <small>Document management (upload, download, versioning)</small>
+                            <small>{{ _('Document management (upload, download, versioning)') }}</small>
                         </div>
                         <div class="d-flex align-items-start mb-2">
                             <i class="bi bi-check-circle-fill text-success me-2 mt-1"></i>
-                            <small>List operations (CRUD, queries)</small>
+                            <small>{{ _('List operations (CRUD, queries)') }}</small>
                         </div>
                         <div class="d-flex align-items-start mb-2">
                             <i class="bi bi-check-circle-fill text-success me-2 mt-1"></i>
-                            <small>Site administration and users</small>
+                            <small>{{ _('Site administration and users') }}</small>
                         </div>
                         <div class="d-flex align-items-start mb-2">
                             <i class="bi bi-check-circle-fill text-success me-2 mt-1"></i>
-                            <small>Enterprise search across content</small>
+                            <small>{{ _('Enterprise search across content') }}</small>
                         </div>
                     </div>
                 </div>
                 <div class="card-footer bg-transparent border-0 pb-3">
                     <a href="{{ url_for('studio_sharepoint') }}" class="btn btn-primary w-100">
-                        <i class="bi bi-arrow-right me-1"></i>Open SharePoint Creator
+                        <i class="bi bi-arrow-right me-1"></i>{{ _('Open SharePoint Creator') }}
                     </a>
                 </div>
             </div>
@@ -694,35 +686,34 @@
                 <div class="card-body">
                     <div class="d-flex justify-content-between align-items-start mb-3">
                         <div>
-                            <h5 class="mb-0">OLAP Analytics</h5>
-                            <small class="opacity-75">Advanced Analytics</small>
+                            <h5 class="mb-0">{{ _('OLAP Analytics') }}</h5>
+                            <small class="opacity-75">{{ _('Advanced Analytics') }}</small>
                         </div>
                         <div class="studio-ico">
                             <i class="bi bi-graph-up-arrow fs-5"></i>
                         </div>
                     </div>
                     <p class="text-muted small mb-3">
-                        Create semantic datasets for advanced OLAP analytics including pivot tables,
-                        rollups, time series analysis, and statistical calculations.
+                        {{ _('Create semantic datasets for advanced OLAP analytics including pivot tables, rollups, time series analysis, and statistical calculations.') }}
                     </p>
                     <div class="d-flex flex-column gap-2 small mb-3">
                         <div class="d-flex align-items-start">
                             <i class="bi bi-check-circle-fill text-success me-2 mt-1"></i>
-                            <small>Pivot Tables & Cross-tabs</small>
+                            <small>{{ _('Pivot Tables & Cross-tabs') }}</small>
                         </div>
                         <div class="d-flex align-items-start">
                             <i class="bi bi-check-circle-fill text-success me-2 mt-1"></i>
-                            <small>Time Series & Period Comparisons</small>
+                            <small>{{ _('Time Series & Period Comparisons') }}</small>
                         </div>
                         <div class="d-flex align-items-start">
                             <i class="bi bi-check-circle-fill text-success me-2 mt-1"></i>
-                            <small>Window Functions & Statistics</small>
+                            <small>{{ _('Window Functions & Statistics') }}</small>
                         </div>
                     </div>
                 </div>
                 <div class="card-footer bg-transparent border-0 pb-3">
                     <a href="{{ url_for('studio_olap') }}" class="btn btn-primary w-100">
-                        <i class="bi bi-arrow-right me-1"></i>Open OLAP Creator
+                        <i class="bi bi-arrow-right me-1"></i>{{ _('Open OLAP Creator') }}
                     </a>
                 </div>
             </div>
@@ -734,33 +725,32 @@
                 <div class="card-header d-flex align-items-center">
                     <i class="bi bi-chat-square-text fs-4 me-2" aria-hidden="true"></i>
                     <div>
-                        <h5 class="mb-0">LLM Tool</h5>
-                        <small class="opacity-75">A language model does the work</small>
+                        <h5 class="mb-0">{{ _('LLM Tool') }}</h5>
+                        <small class="opacity-75">{{ _('A language model does the work') }}</small>
                     </div>
                 </div>
                 <div class="card-body">
                     <p class="card-text">
-                        An assistant over chosen tools, a summariser, a classifier, an extractor or a judge:
-                        mode, model, instructions, allowed tools and limits in one form.
+                        {{ _('An assistant over chosen tools, a summariser, a classifier, an extractor or a judge: mode, model, instructions, allowed tools and limits in one form.') }}
                     </p>
                     <div class="feature-list mb-3">
                         <div class="d-flex align-items-start mb-2">
                             <i class="bi bi-check-circle-fill text-success me-2 mt-1" aria-hidden="true"></i>
-                            <small>Seven modes, schemas generated per mode</small>
+                            <small>{{ _('Seven modes, schemas generated per mode') }}</small>
                         </div>
                         <div class="d-flex align-items-start mb-2">
                             <i class="bi bi-check-circle-fill text-success me-2 mt-1" aria-hidden="true"></i>
-                            <small>Live allow/deny matching, limits within the ceilings</small>
+                            <small>{{ _('Live allow/deny matching, limits within the ceilings') }}</small>
                         </div>
                         <div class="d-flex align-items-start">
                             <i class="bi bi-check-circle-fill text-success me-2 mt-1" aria-hidden="true"></i>
-                            <small>Tried on the mock model before deploy</small>
+                            <small>{{ _('Tried on the mock model before deploy') }}</small>
                         </div>
                     </div>
                 </div>
                 <div class="card-footer bg-transparent border-0 pb-3">
                     <a href="{{ url_for('studio_llm') }}" class="btn btn-primary w-100">
-                        <i class="bi bi-arrow-right me-1" aria-hidden="true"></i>Open LLM Tool Creator
+                        <i class="bi bi-arrow-right me-1" aria-hidden="true"></i>{{ _('Open LLM Tool Creator') }}
                     </a>
                 </div>
             </div>
@@ -769,18 +759,18 @@
     
     <!-- Separator -->
     <hr class="my-4">
-    <h5 class="mb-3 text-muted" id="python-creator" style="scroll-margin-top:90px"><i class="bi bi-code-slash me-2"></i>Python Code Tool Creator</h5>
+    <h5 class="mb-3 text-muted" id="python-creator" style="scroll-margin-top:90px"><i class="bi bi-code-slash me-2"></i>{{ _('Python Code Tool Creator') }}</h5>
     
     <!-- Introduction -->
     <div class="studio-intro">
-        <h4><i class="bi bi-stars me-2"></i>Python Code Tool Creator</h4>
+        <h4><i class="bi bi-stars me-2"></i>{{ _('Python Code Tool Creator') }}</h4>
         <p class="mb-2">
-            Create MCP tools by writing Python functions with the <code>@sajhamcptool</code> decorator.
-            The system automatically generates the tool configuration and implementation files.
+            {% trans %}Create MCP tools by writing Python functions with the <code>@sajhamcptool</code> decorator.
+            The system automatically generates the tool configuration and implementation files.{% endtrans %}
         </p>
         <small class="text-muted">
             <i class="bi bi-info-circle me-1"></i>
-            Your function's type hints define the input/output schemas. Required parameters have no default values.
+            {{ _('Your function\'s type hints define the input/output schemas. Required parameters have no default values.') }}
         </small>
     </div>
     {% include "admin/studio/_sandbox_policy.html" %}
@@ -788,31 +778,31 @@
     <!-- Tool Name Input -->
     <div class="row mb-3">
         <div class="col-md-4">
-            <label class="form-label small">Tool Name</label>
+            <label class="form-label small">{{ _('Tool Name') }}</label>
             <div class="d-flex gap-2">
                 <input type="text" id="toolName" class="form-control tool-name-input flex-grow-1" 
                        placeholder="my_custom_tool" pattern="[a-z][a-z0-9_]*">
-                <button id="deleteExistsBtn" class="btn btn-delete-exists" data-onclick="deleteIfExists()" title="Delete existing tool files">
-                    <i class="bi bi-trash delete-warning-icon"></i>Delete if Exists
+                <button id="deleteExistsBtn" class="btn btn-delete-exists" data-onclick="deleteIfExists()" title="{{ _('Delete existing tool files') }}">
+                    <i class="bi bi-trash delete-warning-icon"></i>{{ _('Delete if Exists') }}
                 </button>
             </div>
             <div id="toolNameFeedback" class="invalid-feedback"></div>
-            <small class="text-muted">Lowercase letters, numbers, and underscores only</small>
+            <small class="text-muted">{{ _('Lowercase letters, numbers, and underscores only') }}</small>
         </div>
         <div class="col-md-8 d-flex align-items-end gap-2">
             <button id="analyzeBtn" class="btn btn-studio btn-analyze" data-onclick="analyzeCode()">
-                <i class="bi bi-search me-1"></i>Analyze Code
+                <i class="bi bi-search me-1"></i>{{ _('Analyze Code') }}
             </button>
             <button id="deployBtn" class="btn btn-studio btn-deploy" data-onclick="deployTool()" disabled>
-                <i class="bi bi-cloud-upload me-1"></i>Deploy Tool
+                <i class="bi bi-cloud-upload me-1"></i>{{ _('Deploy Tool') }}
             </button>
             <button class="btn btn-studio btn-clear" data-onclick="clearAll()">
-                <i class="bi bi-x-circle me-1"></i>Clear
+                <i class="bi bi-x-circle me-1"></i>{{ _('Clear') }}
             </button>
             {% if playground_enabled is defined and playground_enabled() %}
             <button class="btn btn-studio btn-outline-secondary" data-onclick="openInPlayground()"
-                    title="Try this function in the Python Playground (runs in your browser)">
-                <i class="bi bi-filetype-py me-1"></i>Open in playground
+                    title="{{ _('Try this function in the Python Playground (runs in your browser)') }}">
+                <i class="bi bi-filetype-py me-1"></i>{{ _('Open in playground') }}
             </button>
             {% endif %}
         </div>
@@ -820,23 +810,23 @@
     
     <!-- Analysis Info (hidden initially) -->
     <div id="analysisInfo" class="analysis-info" style="display: none;">
-        <h6><i class="bi bi-info-circle me-2"></i>Analysis Result</h6>
+        <h6><i class="bi bi-info-circle me-2"></i>{{ _('Analysis Result') }}</h6>
         <div class="row">
             <div class="col-md-6">
-                <small class="text-muted">Description:</small>
+                <small class="text-muted">{{ _('Description:') }}</small>
                 <p id="toolDescription" class="mb-2"></p>
             </div>
             <div class="col-md-3">
-                <small class="text-muted">Category:</small>
+                <small class="text-muted">{{ _('Category:') }}</small>
                 <p id="toolCategory" class="mb-2"></p>
             </div>
             <div class="col-md-3">
-                <small class="text-muted">Function:</small>
+                <small class="text-muted">{{ _('Function:') }}</small>
                 <p id="toolFunction" class="mb-2 font-monospace"></p>
             </div>
         </div>
         <div>
-            <small class="text-muted">Parameters:</small>
+            <small class="text-muted">{{ _('Parameters:') }}</small>
             <div id="toolParams" class="mt-1"></div>
         </div>
     </div>
@@ -846,13 +836,13 @@
         <!-- Left Panel: Code Editor -->
         <div class="code-editor-panel">
             <div class="panel-header">
-                <h5><i class="bi bi-code-slash me-2"></i>Python Code</h5>
-                <span class="badge bg-secondary">Input</span>
+                <h5><i class="bi bi-code-slash me-2"></i>{{ _('Python Code') }}</h5>
+                <span class="badge bg-secondary">{{ _('Input') }}</span>
             </div>
             <textarea id="codeEditor" class="code-textarea" 
                       placeholder="Paste or type your @sajhamcptool decorated Python function here...">{{ sample_code }}</textarea>
             <div id="codeStatus" class="status-bar">
-                Ready - Enter your code and click "Analyze Code"
+                {{ _('Ready - Enter your code and click "Analyze Code"') }}
             </div>
         </div>
         
@@ -862,7 +852,7 @@
             <div class="output-section">
                 <div class="panel-header">
                     <h5>
-                        <i class="bi bi-filetype-json me-2"></i>Tool Configuration
+                        <i class="bi bi-filetype-json me-2"></i>{{ _('Tool Configuration') }}
                         <span id="jsonFilename" class="file-badge json ms-2" style="display: none;"></span>
                     </h5>
                     <span class="badge bg-info">JSON</span>
@@ -875,7 +865,7 @@
             <div class="output-section">
                 <div class="panel-header">
                     <h5>
-                        <i class="bi bi-filetype-py me-2"></i>Tool Implementation
+                        <i class="bi bi-filetype-py me-2"></i>{{ _('Tool Implementation') }}
                         <span id="pythonFilename" class="file-badge python ms-2" style="display: none;"></span>
                     </h5>
                     <span class="badge bg-success">Python</span>
@@ -887,7 +877,7 @@
     </div>
 </div>
 
-<div id="successBanner" class="alert alert-success d-none mx-3 mt-3"><h5><i class="bi bi-check-circle-fill me-2"></i>Tool Created!</h5><p class="mb-1">Your tool is ready.</p><a href="/tools" class="btn btn-success btn-sm">View Tools</a></div>
+<div id="successBanner" class="alert alert-success d-none mx-3 mt-3"><h5><i class="bi bi-check-circle-fill me-2"></i>{{ _('Tool Created!') }}</h5><p class="mb-1">{{ _('Your tool is ready.') }}</p><a href="/tools" class="btn btn-success btn-sm">{{ _('View Tools') }}</a></div>
 {% endblock %}
 
 
@@ -925,21 +915,21 @@ function validateToolName(name) {
     if (!/^[a-z][a-z0-9_]*$/.test(name)) {
         input.classList.remove('is-valid');
         input.classList.add('is-invalid');
-        feedback.textContent = 'Must start with lowercase letter, use only a-z, 0-9, _';
+        feedback.textContent = _t('Must start with lowercase letter, use only a-z, 0-9, _');
         return false;
     }
     
     if (name.length < 3) {
         input.classList.remove('is-valid');
         input.classList.add('is-invalid');
-        feedback.textContent = 'Must be at least 3 characters';
+        feedback.textContent = _t('Must be at least 3 characters');
         return false;
     }
     
     if (existingTools.includes(name)) {
         input.classList.remove('is-valid');
         input.classList.add('is-invalid');
-        feedback.textContent = 'Tool name already exists';
+        feedback.textContent = _t('Tool name already exists');
         return false;
     }
     
@@ -957,21 +947,21 @@ async function analyzeCode() {
     
     if (!toolName || !validateToolName(toolName)) {
         statusBar.className = 'status-bar error';
-        statusBar.textContent = 'Please enter a valid tool name';
+        statusBar.textContent = _t('Please enter a valid tool name');
         return;
     }
     
     if (!code.trim()) {
         statusBar.className = 'status-bar error';
-        statusBar.textContent = 'Please enter some code';
+        statusBar.textContent = _t('Please enter some code');
         return;
     }
     
     // Show loading
     analyzeBtn.disabled = true;
-    analyzeBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Analyzing...';
+    analyzeBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>' + _t('Analyzing...');
     statusBar.className = 'status-bar';
-    statusBar.textContent = 'Analyzing code...';
+    statusBar.textContent = _t('Analyzing code...');
     
     try {
         const response = await fetch('/admin/studio/analyze', {
@@ -1013,13 +1003,13 @@ async function analyzeCode() {
             analysisComplete = true;
             
             statusBar.className = 'status-bar success';
-            statusBar.textContent = `Analysis complete - Found function "${data.function_name}" with ${data.parameters.length} parameters`;
+            statusBar.textContent = _t('Analysis complete - Found function "%(function_name)s" with %(length)s parameters', {function_name: data.function_name, length: data.parameters.length});
             
             if (data.warnings && data.warnings.length > 0) {
-                statusBar.textContent += ' (with warnings)';
+                statusBar.textContent += ' ' + _t('(with warnings)');
             }
         } else {
-            throw new Error(data.error || 'Analysis failed');
+            throw new Error(data.error || _t('Analysis failed'));
         }
     } catch (error) {
         statusBar.className = 'status-bar error';
@@ -1028,13 +1018,13 @@ async function analyzeCode() {
         analysisComplete = false;
     } finally {
         analyzeBtn.disabled = false;
-        analyzeBtn.innerHTML = '<i class="bi bi-search me-1"></i>Analyze Code';
+        analyzeBtn.innerHTML = '<i class="bi bi-search me-1"></i>' + _t('Analyze Code');
     }
 }
 
 async function deployTool() {
     if (!analysisComplete) {
-        alert('Please analyze the code first');
+        alert(_t('Please analyze the code first'));
         return;
     }
     
@@ -1043,13 +1033,13 @@ async function deployTool() {
     const deployBtn = document.getElementById('deployBtn');
     const statusBar = document.getElementById('codeStatus');
     
-    if (!confirm(`Are you sure you want to deploy the tool "${toolName}"?\n\nThis will create new files in your server.`)) {
+    if (!confirm(_t('Are you sure you want to deploy the tool "%(toolName)s"?\n\nThis will create new files in your server.', {toolName: toolName}))) {
         return;
     }
     
     deployBtn.disabled = true;
-    deployBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Deploying...';
-    statusBar.textContent = 'Deploying tool...';
+    deployBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>' + _t('Deploying...');
+    statusBar.textContent = _t('Deploying tool...');
     
     try {
         const response = await fetch('/admin/studio/deploy', {
@@ -1072,19 +1062,19 @@ async function deployTool() {
             document.getElementById('successBanner').classList.remove('d-none');
             
             statusBar.className = 'status-bar success';
-            statusBar.textContent = `Tool "${toolName}" deployed successfully!`;
+            statusBar.textContent = _t('Tool "%(toolName)s" deployed successfully!', {toolName: toolName});
             
             // Reset form
             analysisComplete = false;
             deployBtn.disabled = true;
         } else {
-            throw new Error(data.error || 'Deployment failed');
+            throw new Error(data.error || _t('Deployment failed'));
         }
     } catch (error) {
         statusBar.className = 'status-bar error';
         statusBar.textContent = error.message;
     } finally {
-        deployBtn.innerHTML = '<i class="bi bi-cloud-upload me-1"></i>Deploy Tool';
+        deployBtn.innerHTML = '<i class="bi bi-cloud-upload me-1"></i>' + _t('Deploy Tool');
     }
 }
 
@@ -1095,24 +1085,24 @@ async function deleteIfExists() {
     
     if (!toolName) {
         statusBar.className = 'status-bar error';
-        statusBar.textContent = 'Please enter a tool name first';
+        statusBar.textContent = _t('Please enter a tool name first');
         return;
     }
     
     // Basic format validation
     if (!/^[a-z][a-z0-9_]*$/.test(toolName) || toolName.length < 3) {
         statusBar.className = 'status-bar error';
-        statusBar.textContent = 'Invalid tool name format';
+        statusBar.textContent = _t('Invalid tool name format');
         return;
     }
     
     // Double confirmation for safety
     const confirmed = confirm(
-        `⚠️ WARNING: This will DELETE the following files if they exist:\n\n` +
+        '⚠️ ' + _t('WARNING: This will DELETE the following files if they exist:') + `\n\n` +
         `• {{ tools_dir() }}/${toolName}.json\n` +
         `• sajha/tools/impl/studio_${toolName}.py\n\n` +
-        `This action CANNOT be undone!\n\n` +
-        `Are you sure you want to proceed?`
+        _t('This action CANNOT be undone!') + `\n\n` +
+        _t('Are you sure you want to proceed?')
     );
     
     if (!confirmed) {
@@ -1121,9 +1111,9 @@ async function deleteIfExists() {
     
     // Second confirmation
     const doubleConfirmed = confirm(
-        `🚨 FINAL CONFIRMATION 🚨\n\n` +
-        `You are about to permanently delete tool "${toolName}".\n\n` +
-        `Click OK to DELETE, or Cancel to abort.`
+        '🚨 ' + _t('FINAL CONFIRMATION') + ` 🚨\n\n` +
+        _t('You are about to permanently delete tool "%(name)s".', {name: toolName}) + `\n\n` +
+        _t('Click OK to DELETE, or Cancel to abort.')
     );
     
     if (!doubleConfirmed) {
@@ -1131,9 +1121,9 @@ async function deleteIfExists() {
     }
     
     deleteBtn.disabled = true;
-    deleteBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Deleting...';
+    deleteBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>' + _t('Deleting...');
     statusBar.className = 'status-bar';
-    statusBar.textContent = 'Deleting tool files...';
+    statusBar.textContent = _t('Deleting tool files...');
     
     try {
         const response = await fetch('/admin/studio/delete', {
@@ -1168,14 +1158,14 @@ async function deleteIfExists() {
             document.getElementById('deployBtn').disabled = true;
             analysisComplete = false;
         } else {
-            throw new Error(data.error || 'Deletion failed');
+            throw new Error(data.error || _t('Deletion failed'));
         }
     } catch (error) {
         statusBar.className = 'status-bar error';
         statusBar.textContent = error.message;
     } finally {
         deleteBtn.disabled = false;
-        deleteBtn.innerHTML = '<i class="bi bi-trash delete-warning-icon"></i>Delete if Exists';
+        deleteBtn.innerHTML = '<i class="bi bi-trash delete-warning-icon"></i>' + _t('Delete if Exists');
     }
 }
 
@@ -1183,11 +1173,11 @@ async function deleteIfExists() {
 // playground (static/js/playground.js) adds a test call below it.
 function openInPlayground() {
     const code = document.getElementById('codeEditor').value;
-    if (!code.trim()) { alert('Write or paste a function first.'); return; }
+    if (!code.trim()) { alert(_t('Write or paste a function first.')); return; }
     try {
         localStorage.setItem('sajha.playground.import', JSON.stringify({code: code, from: 'studio', at: Date.now()}));
     } catch (e) {
-        alert('This browser does not allow storage, so the code cannot be handed to the playground.');
+        alert(_t('This browser does not allow storage, so the code cannot be handed to the playground.'));
         return;
     }
     window.open('/playground', '_blank', 'noopener');
@@ -1204,7 +1194,7 @@ function clearAll() {
     document.getElementById('analysisInfo').style.display = 'none';
     document.getElementById('deployBtn').disabled = true;
     document.getElementById('codeStatus').className = 'status-bar';
-    document.getElementById('codeStatus').textContent = 'Ready - Enter your code and click "Analyze Code"';
+    document.getElementById('codeStatus').textContent = _t('Ready - Enter your code and click "Analyze Code"');
     analysisComplete = false;
 }
 </script>

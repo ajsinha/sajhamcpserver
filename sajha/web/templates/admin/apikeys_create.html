@@ -4,68 +4,68 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
 Create an API key (administration): for a user or without an owner; optionally persistent.
 Guide: docs/security/Security Model.md (API keys)
 -->
-{% block title %}New API key - SAJHA MCP Server{% endblock %}
+{% block title %}{{ _('New API key - SAJHA MCP Server') }}{% endblock %}
 
 {% block content %}
 <div class="container-fluid acct-page" data-apikeys data-csrf="{{ csrf }}">
   <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
     <div>
-      <h1 class="h3 mb-0"><i class="bi bi-plus-circle me-2" aria-hidden="true"></i>New API key</h1>
-      <small class="text-muted">The key is shown once. Users can also create their own at <a href="{{ url_for('account_apikeys_page') }}">My API keys</a>.</small>
+      <h1 class="h3 mb-0"><i class="bi bi-plus-circle me-2" aria-hidden="true"></i>{{ _('New API key') }}</h1>
+      <small class="text-muted">{% trans value=url_for('account_apikeys_page') %}The key is shown once. Users can also create their own at <a href="{{ value }}">My API keys</a>.{% endtrans %}</small>
     </div>
-    <a class="btn btn-sm btn-outline-secondary" href="{{ url_for('apikeys_list') }}"><i class="bi bi-arrow-left me-1" aria-hidden="true"></i>All keys</a>
+    <a class="btn btn-sm btn-outline-secondary" href="{{ url_for('apikeys_list') }}"><i class="bi bi-arrow-left me-1" aria-hidden="true"></i>{{ _('All keys') }}</a>
   </div>
 
   <div id="keyStatus" class="alert" role="status" tabindex="-1" hidden></div>
-  {% if not can_manage %}<div class="alert alert-info" role="status">You are signed in with an API key: keys are created from a console session or with a SAJHA JWT.</div>{% endif %}
+  {% if not can_manage %}<div class="alert alert-info" role="status">{{ _('You are signed in with an API key: keys are created from a console session or with a SAJHA JWT.') }}</div>{% endif %}
 
   <section id="keyOnce" class="alert alert-warning keys-once" role="region" aria-labelledby="keyOnceH" hidden>
-    <h2 class="h6" id="keyOnceH">Copy the new key now (<span id="keyOnceName"></span>)</h2>
-    <p class="small mb-2">This is the only time it is shown. SAJHA stores only its hash.</p>
+    <h2 class="h6" id="keyOnceH">{{ _('Copy the new key now (') }}<span id="keyOnceName"></span>)</h2>
+    <p class="small mb-2">{{ _('This is the only time it is shown. SAJHA stores only its hash.') }}</p>
     <code id="keyOnceValue" class="keys-secret"></code>
     <div class="acct-actions mt-2">
-      <button type="button" class="btn btn-sm btn-primary" id="keyOnceCopy"><i class="bi bi-clipboard me-1" aria-hidden="true"></i>Copy</button>
-      <button type="button" class="btn btn-sm btn-outline-secondary" id="keyOnceDone" data-return="{{ url_for('apikeys_list') }}">Done</button>
+      <button type="button" class="btn btn-sm btn-primary" id="keyOnceCopy"><i class="bi bi-clipboard me-1" aria-hidden="true"></i>{{ _('Copy') }}</button>
+      <button type="button" class="btn btn-sm btn-outline-secondary" id="keyOnceDone" data-return="{{ url_for('apikeys_list') }}">{{ _('Done') }}</button>
     </div>
   </section>
 
   <div class="card">
     <div class="card-body">
       <form data-key-create data-url="/api/admin/apikeys" class="row g-3">
-        <div class="col-md-6"><label class="form-label" for="ckName">Name</label>
-          <input class="form-control" id="ckName" name="name" required maxlength="255" placeholder="e.g. ci-deploy"></div>
-        <div class="col-md-6"><label class="form-label" for="ckOwner">Owner</label>
+        <div class="col-md-6"><label class="form-label" for="ckName">{{ _('Name') }}</label>
+          <input class="form-control" id="ckName" name="name" required maxlength="255" placeholder="{{ _('e.g. ci-deploy') }}"></div>
+        <div class="col-md-6"><label class="form-label" for="ckOwner">{{ _('Owner') }}</label>
           <select class="form-select" id="ckOwner" name="owner">
             {% for u in users %}<option value="{{ u }}"{% if u == user.user_id %} selected{% endif %}>{{ u }}</option>{% endfor %}
-            <option value="">No owner (service identity apikey:&lt;name&gt;, role api_consumer)</option>
+            <option value="">{{ _('No owner (service identity apikey:&lt;name&gt;, role api_consumer)') }}</option>
           </select>
-          <small class="text-muted">The key signs in as this user, with the user's roles.</small></div>
-        <div class="col-12"><label class="form-label" for="ckDesc">Description</label>
+          <small class="text-muted">{{ _('The key signs in as this user, with the user\'s roles.') }}</small></div>
+        <div class="col-12"><label class="form-label" for="ckDesc">{{ _('Description') }}</label>
           <input class="form-control" id="ckDesc" name="description" maxlength="500"></div>
-        <div class="col-md-6"><label class="form-label" for="ckMode">Tools the key may use</label>
+        <div class="col-md-6"><label class="form-label" for="ckMode">{{ _('Tools the key may use') }}</label>
           <select class="form-select" id="ckMode" name="tool_access_mode">
-            <option value="all">All (an owned key: the owner's access)</option>
-            <option value="allowlist">Only these (fnmatch patterns)</option>
-            <option value="denylist">All except these</option>
-            <option value="regex">Names matching these regular expressions</option>
+            <option value="all">{{ _('All (an owned key: the owner\'s access)') }}</option>
+            <option value="allowlist">{{ _('Only these (fnmatch patterns)') }}</option>
+            <option value="denylist">{{ _('All except these') }}</option>
+            <option value="regex">{{ _('Names matching these regular expressions') }}</option>
           </select></div>
-        <div class="col-md-6" data-patterns><label class="form-label" for="ckTools">Patterns (one per line)</label>
+        <div class="col-md-6" data-patterns><label class="form-label" for="ckTools">{{ _('Patterns (one per line)') }}</label>
           <textarea class="form-control font-monospace" id="ckTools" name="tool_list" rows="3" placeholder="wiki_*"></textarea>
-          <small class="text-muted">{{ available_tools|length }} tools loaded; for example {{ available_tools[:3]|join(', ') }}.</small></div>
-        <div class="col-md-6"><label class="form-label" for="ckPrompts">Prompts the key may use (patterns, one per line)</label>
+          <small class="text-muted">{% trans n=available_tools|length, value=available_tools[:3]|join(', ') %}{{ n }} tools loaded; for example {{ value }}.{% endtrans %}</small></div>
+        <div class="col-md-6"><label class="form-label" for="ckPrompts">{{ _('Prompts the key may use (patterns, one per line)') }}</label>
           <textarea class="form-control font-monospace" id="ckPrompts" name="prompt_list" rows="2" placeholder="research_*"></textarea>
-          <small class="text-muted">Empty: every prompt the owner may use, or none when tools are limited to "Only these" or regular expressions.</small></div>
-        <div class="col-md-6"><label class="form-label" for="ckResources">Data resources the key may read (URI patterns, one per line)</label>
+          <small class="text-muted">{{ _('Empty: every prompt the owner may use, or none when tools are limited to "Only these" or regular expressions.') }}</small></div>
+        <div class="col-md-6"><label class="form-label" for="ckResources">{{ _('Data resources the key may read (URI patterns, one per line)') }}</label>
           <textarea class="form-control font-monospace" id="ckResources" name="resource_list" rows="2" placeholder="sajha://data/products.csv"></textarea>
-          <small class="text-muted">Empty: as for prompts.</small></div>
-        <div class="col-md-6"><label class="form-label" for="ckExp">Expires after (days)</label>
-          <input class="form-control" id="ckExp" name="expires_in_days" type="number" min="1" max="3650" placeholder="never"></div>
+          <small class="text-muted">{{ _('Empty: as for prompts.') }}</small></div>
+        <div class="col-md-6"><label class="form-label" for="ckExp">{{ _('Expires after (days)') }}</label>
+          <input class="form-control" id="ckExp" name="expires_in_days" type="number" min="1" max="3650" placeholder="{{ _('never') }}"></div>
         <div class="col-md-6 d-flex align-items-end">
           <div class="form-check">
             <input class="form-check-input" type="checkbox" id="ckPersist" name="persistent">
-            <label class="form-check-label" for="ckPersist">Persistent: also keep its hashed record in the key file, so it works without the database</label>
+            <label class="form-check-label" for="ckPersist">{{ _('Persistent: also keep its hashed record in the key file, so it works without the database') }}</label>
           </div></div>
-        <div class="col-12"><button type="submit" class="btn btn-primary"{% if not can_manage %} disabled{% endif %}><i class="bi bi-key me-1" aria-hidden="true"></i>Create key</button></div>
+        <div class="col-12"><button type="submit" class="btn btn-primary"{% if not can_manage %} disabled{% endif %}><i class="bi bi-key me-1" aria-hidden="true"></i>{{ _('Create key') }}</button></div>
       </form>
     </div>
   </div>

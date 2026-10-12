@@ -2,12 +2,12 @@
 <!--
 Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.com
 -->
-{% block title %}Monitoring - Users - SAJHA MCP Server{% endblock %}
+{% block title %}{{ _('Monitoring - Users - SAJHA MCP Server') }}{% endblock %}
 
 {% block content %}
 <div class="container-fluid">
     <h1 class="h3 mb-4">
-        <i class="bi bi-people"></i> User Activity Monitoring
+        <i class="bi bi-people"></i> {{ _('User Activity Monitoring') }}
     </h1>
     
     <!-- User Statistics -->
@@ -15,7 +15,7 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
         <div class="col-md-3">
             <div class="card text-center">
                 <div class="card-body">
-                    <h5>Total Users</h5>
+                    <h5>{{ _('Total Users') }}</h5>
                     <p class="display-4">{{ users|length }}</p>
                 </div>
             </div>
@@ -23,7 +23,7 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
         <div class="col-md-3">
             <div class="card text-center">
                 <div class="card-body">
-                    <h5>Active Users</h5>
+                    <h5>{{ _('Active Users') }}</h5>
                     <p class="display-4">{{ users|selectattr('enabled')|list|length }}</p>
                 </div>
             </div>
@@ -31,7 +31,7 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
         <div class="col-md-3">
             <div class="card text-center">
                 <div class="card-body">
-                    <h5>Admin Users</h5>
+                    <h5>{{ _('Admin Users') }}</h5>
                     {% set admin_count = namespace(value=0) %}
                     {% for user in users %}
                         {% if user.roles and 'admin' in user.roles %}
@@ -45,7 +45,7 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
         <div class="col-md-3">
             <div class="card text-center">
                 <div class="card-body">
-                    <h5>Online Now</h5>
+                    <h5>{{ _('Online Now') }}</h5>
                     <p class="display-4">0</p>
                 </div>
             </div>
@@ -55,7 +55,7 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
     <!-- User Activity Chart -->
     <div class="card mb-4">
         <div class="card-header card-header-primary">
-            <h5 class="mb-0"><i class="bi bi-activity"></i> User Activity (Last 30 Minutes)</h5>
+            <h5 class="mb-0"><i class="bi bi-activity"></i> {{ _('User Activity (Last 30 Minutes)') }}</h5>
         </div>
         <div class="card-body">
             <div class="sajha-chart"><canvas id="activityChart"></canvas></div>
@@ -65,7 +65,7 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
     <!-- User Activity Table -->
     <div class="card">
         <div class="card-header card-header-primary">
-            <h5 class="mb-0"><i class="bi bi-table"></i> User Sessions (Total: {{ users|length }})</h5>
+            <h5 class="mb-0"><i class="bi bi-table"></i> {% trans n=users|length %}User Sessions (Total: {{ n }}){% endtrans %}</h5>
         </div>
         <div class="card-body">
             {% if users %}
@@ -74,18 +74,18 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
                 <div class="col-md-6">
                     <div class="input-group">
                         <span class="input-group-text"><i class="bi bi-search"></i></span>
-                        <input type="text" class="form-control" id="searchUsers" placeholder="Search by user ID or name...">
+                        <input type="text" class="form-control" id="searchUsers" placeholder="{{ _('Search by user ID or name...') }}">
                     </div>
                 </div>
                 <div class="col-md-6 text-end">
-                    <label for="rowsPerPage" class="me-2">Show:</label>
+                    <label for="rowsPerPage" class="me-2">{{ _('Show:') }}</label>
                     <select id="rowsPerPage" class="form-select d-inline-block" style="width: auto;">
                         <option value="5" selected>5</option>
                         <option value="10">10</option>
                         <option value="50">50</option>
-                        <option value="all">All</option>
+                        <option value="all">{{ _('All') }}</option>
                     </select>
-                    <span class="ms-2">entries</span>
+                    <span class="ms-2">{{ _('entries') }}</span>
                 </div>
             </div>
 
@@ -94,21 +94,21 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
                     <thead>
                         <tr>
                             <th style="cursor: pointer;" id="sortUserId">
-                                User ID <i class="bi bi-arrow-down-up"></i>
+                                {{ _('User ID') }} <i class="bi bi-arrow-down-up"></i>
                             </th>
                             <th style="cursor: pointer;" id="sortUserName">
-                                Name <i class="bi bi-arrow-down-up"></i>
+                                {{ _('Name') }} <i class="bi bi-arrow-down-up"></i>
                             </th>
-                            <th>Role</th>
+                            <th>{{ _('Role') }}</th>
                             <th style="cursor: pointer;" id="sortLastLogin">
-                                Last Login <i class="bi bi-arrow-down-up"></i>
+                                {{ _('Last Login') }} <i class="bi bi-arrow-down-up"></i>
                             </th>
-                            <th>Session Duration</th>
+                            <th>{{ _('Session Duration') }}</th>
                             <th style="cursor: pointer;" id="sortExecutions">
-                                Tool Executions <i class="bi bi-arrow-down-up"></i>
+                                {{ _('Tool Executions') }} <i class="bi bi-arrow-down-up"></i>
                             </th>
                             <th style="cursor: pointer;" id="sortStatus">
-                                Status <i class="bi bi-arrow-down-up"></i>
+                                {{ _('Status') }} <i class="bi bi-arrow-down-up"></i>
                             </th>
                         </tr>
                     </thead>
@@ -126,16 +126,16 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
                                 {% if user.last_login %}
                                 {{ user.last_login }}
                                 {% else %}
-                                <span class="text-muted">Never</span>
+                                <span class="text-muted">{{ _('Never') }}</span>
                                 {% endif %}
                             </td>
                             <td><span class="text-muted">-</span></td>
                             <td>0</td>
                             <td>
                                 {% if user.enabled %}
-                                <span class="badge bg-success">Active</span>
+                                <span class="badge bg-success">{{ _('Active') }}</span>
                                 {% else %}
-                                <span class="badge bg-secondary">Inactive</span>
+                                <span class="badge bg-secondary">{{ _('Inactive') }}</span>
                                 {% endif %}
                             </td>
                         </tr>
@@ -150,14 +150,14 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
                     <div id="tableInfo" class="text-muted"></div>
                 </div>
                 <div class="col-md-6">
-                    <nav aria-label="Users pagination">
+                    <nav aria-label="{{ _('Users pagination') }}">
                         <ul class="pagination justify-content-end mb-0" id="pagination"></ul>
                     </nav>
                 </div>
             </div>
             {% else %}
             <div class="alert alert-warning">
-                <i class="bi bi-exclamation-triangle"></i> No user activity data available.
+                <i class="bi bi-exclamation-triangle"></i> {{ _('No user activity data available.') }}
             </div>
             {% endif %}
         </div>
@@ -178,13 +178,13 @@ const activityChart = new Chart(ctx, {
     data: {
         labels: generateTimeLabels(),
         datasets: [{
-            label: 'Active Users',
+            label: _t('Active Users'),
             data: generateDemoData(30, 0, 10),
             borderColor: T.color('crimson'),
             backgroundColor: T.color('crimson', 0.15),
             tension: 0.1
         }, {
-            label: 'API Requests',
+            label: _t('API Requests'),
             data: generateDemoData(30, 0, 50),
             borderColor: T.color('indigo'),
             backgroundColor: T.color('indigo', 0.15),
@@ -203,7 +203,7 @@ const activityChart = new Chart(ctx, {
                 beginAtZero: true,
                 title: {
                     display: true,
-                    text: 'Count'
+                    text: _t('Count')
                 }
             }
         }
@@ -404,16 +404,16 @@ function renderTable() {
 
         const lastLoginText = user.lastLogin
             ? user.lastLogin
-            : '<span class="text-muted">Never</span>';
+            : '<span class="text-muted">' + _t('Never') + '</span>';
 
         const statusBadge = user.enabled
-            ? '<span class="badge bg-success">Active</span>'
-            : '<span class="badge bg-secondary">Inactive</span>';
+            ? '<span class="badge bg-success">' + _t('Active') + '</span>'
+            : '<span class="badge bg-secondary">' + _t('Inactive') + '</span>';
 
         row.innerHTML = `
             <td><strong>${user.userId}</strong></td>
             <td>${user.userName}</td>
-            <td>${rolesBadges || '<span class="text-muted">No roles</span>'}</td>
+            <td>${rolesBadges || '<span class="text-muted">' + _t('No roles') + '</span>'}</td>
             <td>${lastLoginText}</td>
             <td><span class="text-muted">${user.sessionDuration}</span></td>
             <td>${user.executions}</td>
@@ -425,9 +425,9 @@ function renderTable() {
     // Update info
     if (totalRows > 0) {
         document.getElementById('tableInfo').textContent =
-            `Showing ${start + 1} to ${end} of ${totalRows} entries`;
+            _t('Showing %(from)s to %(to)s of %(total)s entries', {from: start + 1, to: end, total: totalRows});
     } else {
-        document.getElementById('tableInfo').textContent = 'No entries found';
+        document.getElementById('tableInfo').textContent = _t('No entries found');
     }
 
     // Render pagination
@@ -443,7 +443,7 @@ function renderPagination(totalPages) {
     // Previous button
     const prevLi = document.createElement('li');
     prevLi.className = `page-item ${currentPage === 1 ? 'disabled' : ''}`;
-    prevLi.innerHTML = `<a class="page-link" href="#" data-onclick="changePage(${currentPage - 1}); return false;">Previous</a>`;
+    prevLi.innerHTML = `<a class="page-link" href="#" data-onclick="changePage(${currentPage - 1}); return false;">${_t('Previous')}</a>`;
     pagination.appendChild(prevLi);
 
     // Page numbers
@@ -497,7 +497,7 @@ function renderPagination(totalPages) {
     // Next button
     const nextLi = document.createElement('li');
     nextLi.className = `page-item ${currentPage === totalPages ? 'disabled' : ''}`;
-    nextLi.innerHTML = `<a class="page-link" href="#" data-onclick="changePage(${currentPage + 1}); return false;">Next</a>`;
+    nextLi.innerHTML = `<a class="page-link" href="#" data-onclick="changePage(${currentPage + 1}); return false;">${_t('Next')}</a>`;
     pagination.appendChild(nextLi);
 }
 

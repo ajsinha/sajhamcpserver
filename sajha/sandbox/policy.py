@@ -35,7 +35,10 @@ logger = logging.getLogger(__name__)
 _ENV_NAME = re.compile(r'^[A-Za-z_][A-Za-z0-9_]{0,127}$')
 #: Set by the sandbox itself; a tool cannot override them.
 RESERVED_ENV = {'HOME', 'TMPDIR', 'TMP', 'TEMP', 'PWD', 'LD_PRELOAD', 'LD_LIBRARY_PATH',
-                'PYTHONPATH', 'PYTHONHOME', 'PYTHONSTARTUP', 'BASH_ENV', 'ENV'}
+                'PYTHONPATH', 'PYTHONHOME', 'PYTHONSTARTUP', 'BASH_ENV', 'ENV',
+                # the egress proxy's (sajha/sandbox/egress.py::proxy_env)
+                'HTTP_PROXY', 'HTTPS_PROXY', 'ALL_PROXY', 'NO_PROXY',
+                'http_proxy', 'https_proxy', 'all_proxy', 'no_proxy'}
 
 
 class PolicyError(ValueError):

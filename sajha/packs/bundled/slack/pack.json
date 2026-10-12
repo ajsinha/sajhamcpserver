@@ -1,0 +1,51 @@
+{
+  "format": 1,
+  "id": "slack",
+  "title": "Slack",
+  "version": "1.0.0",
+  "description": "Post messages, list channels, read history and look up users in Slack, as the signed-in user (a user token).",
+  "provider": {
+    "id": "slack",
+    "template": "slack",
+    "scopes": [
+      "chat:write",
+      "channels:read",
+      "channels:history",
+      "groups:read",
+      "users:read"
+    ]
+  },
+  "install_fields": [
+    "client_id",
+    "client_secret_ref"
+  ],
+  "api": {
+    "spec": "openapi.json",
+    "prefix": "slack",
+    "base_url": "https://slack.com/api",
+    "folder": "slack_pack",
+    "security_scheme": "slackAuth",
+    "scopes": [
+      "chat:write",
+      "channels:read",
+      "channels:history",
+      "users:read"
+    ],
+    "operations": [
+      "POST /chat.postMessage",
+      "GET /conversations.list",
+      "GET /conversations.history",
+      "GET /users.info"
+    ],
+    "spec_sha256": "ea40afaa8c317fee0527d8fa8886fd2d1fc77a49cf2ecead6dea969bc089f6e0"
+  },
+  "source": {
+    "url": "https://github.com/slackapi/slack-api-specs",
+    "file": "web-api/slack_web_openapi_v2.json",
+    "revision": "bc08db49625630e3585bf2f1322128ea04f2a7f3",
+    "licence": "MIT",
+    "licence_file": "LICENSE",
+    "retrieved": "2026-10-11",
+    "changes": "Trimmed for SAJHA: only the operations listed in pack.json and the components they reference are kept; examples, externalDocs and x- extensions are removed; info.description replaced by this notice. The token parameter is removed from every operation: the linked account sends the user token as Authorization: Bearer."
+  }
+}

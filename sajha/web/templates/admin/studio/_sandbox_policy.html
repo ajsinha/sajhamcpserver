@@ -5,21 +5,21 @@
     <summary class="card-header d-flex align-items-center" style="cursor:pointer">
         <i class="bi bi-shield-lock me-2"></i>
         {% if sandbox.sandboxed %}
-        <span>Runs in the sandbox: backend <code>{{ sandbox.backend }}</code>,
-            network <code>{{ sandbox.policy.network }}</code>,
-            {{ sandbox.policy.timeout_seconds }}s, {{ sandbox.policy.memory_mb }} MB</span>
+        <span>{% trans backend=sandbox.backend, network=sandbox.policy.network, timeout_seconds=sandbox.policy.timeout_seconds, memory_mb=sandbox.policy.memory_mb %}Runs in the sandbox: backend <code>{{ backend }}</code>,
+            network <code>{{ network }}</code>,
+            {{ timeout_seconds }}s, {{ memory_mb }} MB{% endtrans %}</span>
         {% else %}
-        <span class="text-warning">Sandbox off (<code>sandbox.enforce_for_generated_tools: false</code>):
-            this tool will run inside the server process</span>
+        <span class="text-warning">{% trans %}Sandbox off (<code>sandbox.enforce_for_generated_tools: false</code>):
+            this tool will run inside the server process{% endtrans %}</span>
         {% endif %}
     </summary>
     <div class="card-body small">
         <p class="mb-2">
-            The tool's code never runs in the server: each call starts a fresh sandbox that cannot read the
+            {% trans value=guide_url('Sandbox.md') %}The tool's code never runs in the server: each call starts a fresh sandbox that cannot read the
             server's files, configuration or environment, and gets only what its policy grants. Change the
             policy in the tool's JSON <code>sandbox</code> block; the administrator's
             <code>sandbox.defaults</code> fill unset values and <code>sandbox.max</code> caps them.
-            <a href="{{ guide_url('Sandbox.md') }}">Sandbox design</a>.
+            <a href="{{ value }}">Sandbox design</a>.{% endtrans %}
         </p>
         <div class="row">
             <div class="col-md-5">
@@ -29,7 +29,7 @@
                     <tr><td><code>{{ key }}</code></td><td>{{ sandbox.policy[key] }}</td></tr>
                     {% endfor %}
                     <tr><td><code>secrets</code></td>
-                        <td>{% if sandbox.secrets_allowlist %}may request: {{ sandbox.secrets_allowlist | join(', ') }}{% else %}none allowlisted{% endif %}</td></tr>
+                        <td>{% if sandbox.secrets_allowlist %}{% trans value=sandbox.secrets_allowlist | join(', ') %}may request: {{ value }}{% endtrans %}{% else %}{{ _('none allowlisted') }}{% endif %}</td></tr>
                     </tbody>
                 </table>
             </div>

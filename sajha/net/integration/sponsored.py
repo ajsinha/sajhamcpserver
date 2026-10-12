@@ -198,11 +198,13 @@ class _Rules(plugins.RuleEvaluator):
 
 
 class _Identity(plugins.IdentityResolver):
-    """The sponsor's resolvers, the sponsored participant counting as the call's audience."""
+    """The sponsor's resolvers, the sponsored participant counting as the call's audience: an assertion or a
+    host-scoped token must name it (``receiver``), never the sponsor."""
     name = 'sponsored'
 
-    def __init__(self, inner: plugins.IdentityResolver):
+    def __init__(self, inner: plugins.IdentityResolver, receiver: str = ''):
         self.inner = inner
+        self.receiver = receiver
 
     def outbound_headers(self, user):
         return {}
@@ -210,6 +212,8 @@ class _Identity(plugins.IdentityResolver):
     def resolve(self, headers, sender, **kw):
         kw = dict(kw)
         kw['audience'] = None
+        if self.receiver:
+            kw['receiver'] = self.receiver
         import inspect
         params = inspect.signature(self.inner.resolve).parameters
         if not any(p.kind == p.VAR_KEYWORD for p in params.values()):
@@ -325,7 +329,14 @@ class Sponsorships:
         if sp.instance_name == main.name:
             raise RuntimeError(f'{sp.instance_name} is this server\'s own name in {sp.net}')
         key, cert = self._identity(rt, sp)
-        listed = [i for i in (main.cfg.user_identity or []) if i in ('api_key', 'none')]
+        # the sponsor's resolvers for this net, the sponsored participant as the receiver (an assertion or a
+        # token for it, never for the sponsor); a custom resolver is the sponsor's own and is not offered
+        listed = [i for i in (main.cfg.user_identity or []) if i in ('api_key', 'assertion', 'token_exchange', 'none')]
+        a = getattr(self.svc, 'authz', None)
+        ident = getattr(a, 'identity', None) if a is not None else None
+        tx = (getattr(ident, 'resolvers', None) or {}).get('token_exchange') if ident is not None else None
+        if tx is None or sp.net not in (getattr(a, 'nets', None) or {}):
+            listed = [i for i in listed if i != 'token_exchange']
         files = self._files(sp.net, sp.instance_name)
         cfg = replace(rt.cfg, instance_name=sp.instance_name, kind='sponsored', sponsor=main.name,
                       vendor=sp.vendor, rename=dict(sp.rename),
@@ -355,6 +366,11 @@ class Sponsorships:
             node.extra_features.append('residency')
         if 'mrtr' in main.extra_features and 'mrtr' not in node.extra_features:
             node.extra_features.append('mrtr')              # §15.6: its proxied tools' input requests relay too
+        if 'token_exchange' in listed:                      # §15.9: the token endpoint, tokens for this participant
+            if 'token_exchange' not in node.extra_features:
+                node.extra_features.append('token_exchange')
+            node.handlers['/sajhanet/v1/token'] = (
+                lambda data, v, tx=tx, st=a.nets[sp.net], me=sp.instance_name: tx.serve_token(st, data, v, me=me))
         book.start()
 
         def execute(ctx: CallContext, arguments: Dict[str, Any], source=source):
@@ -378,7 +394,7 @@ class Sponsorships:
                     'capabilities': {'tools': {}, 'extensions': {'io.sajha/net': ext}}}}
             return {'jsonrpc': '2.0', 'id': rid, 'error': {'code': -32601,
                                                           'message': f'{msg.get("method")} is not served to net peers'}}
-        host = HostServer(book, execute=execute, identity=_Identity(identity), rules=srules,
+        host = HostServer(book, execute=execute, identity=_Identity(identity, sp.instance_name), rules=srules,
                           max_hops=int(s.for_net(sp.net, 'max_hops')), max_chain=s.max_call_chain,
                           own_identities=lambda n=sp.net, nm=sp.instance_name: [f'{n}/{nm}'], other=other,
                           calls_per_minute=s.host_calls_per_minute, audit=catalogs._audit).attach()

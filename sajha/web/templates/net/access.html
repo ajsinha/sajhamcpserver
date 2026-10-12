@@ -1,6 +1,6 @@
 {% extends "common/base.html" %}
 {# Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.com #}
-{% block title %}Your net access - SAJHA Net - SAJHA MCP Server{% endblock %}
+{% block title %}{{ _('Your net access - SAJHA Net - SAJHA MCP Server') }}{% endblock %}
 {% block extra_css %}
 <style>
 .na-net{border:1px solid var(--t-card-b);border-radius:var(--radius-lg);background:var(--t-card);margin-bottom:1rem}
@@ -23,31 +23,31 @@
 <div class="container-fluid">
   <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
     <div>
-      <h1 class="h3 mb-0"><i class="bi bi-person-check me-2" aria-hidden="true"></i>Your net access</h1>
-      <small class="text-muted">Every tool other instances offer through this server, where each runs, and which of them you may use from here</small>
+      <h1 class="h3 mb-0"><i class="bi bi-person-check me-2" aria-hidden="true"></i>{{ _('Your net access') }}</h1>
+      <small class="text-muted">{{ _('Every tool other instances offer through this server, where each runs, and which of them you may use from here') }}</small>
     </div>
     <div class="d-flex gap-2">
-      <a class="btn btn-sm btn-outline-secondary" href="/net/instances">Instances</a>
-      <a class="btn btn-sm btn-outline-primary" href="/net/access" aria-label="Reload"><i class="bi bi-arrow-clockwise" aria-hidden="true"></i></a>
+      <a class="btn btn-sm btn-outline-secondary" href="/net/instances">{{ _('Instances') }}</a>
+      <a class="btn btn-sm btn-outline-primary" href="/net/access" aria-label="{{ _('Reload') }}"><i class="bi bi-arrow-clockwise" aria-hidden="true"></i></a>
     </div>
   </div>
 
-  <p class="na-meta">On this server you may use {{ view.local_usable }} of its {{ view.local_total }} own tools
+  <p class="na-meta">{% trans local_usable=view.local_usable, local_total=view.local_total %}On this server you may use {{ local_usable }} of its {{ local_total }} own tools
     (<a href="/net/instances/this">this server's tools</a>). Below, the remote ones. This server decides what it lists for you;
-    the host checks your access again on every call, so a tool listed as usable can still be refused there.</p>
+    the host checks your access again on every call, so a tool listed as usable can still be refused there.{% endtrans %}</p>
 
   {% if not view.enabled %}
   <div class="alert alert-info small" role="status">
     <i class="bi bi-info-circle me-1" aria-hidden="true"></i>
-    SAJHA Net is off, so this server is a net of one: there are no remote tools to use.
+    {{ _('SAJHA Net is off, so this server is a net of one: there are no remote tools to use.') }}
   </div>
   {% else %}
-  <form class="na-bar" role="search" data-onsubmit="return false" aria-label="Filter remote tools">
-    <div><label class="form-label small" for="na-q">Search</label>
-      <input class="form-control form-control-sm" id="na-q" placeholder="tool or instance" autocomplete="off"></div>
-    <div><label class="form-label small" for="na-show">Show</label>
-      <select class="form-select form-select-sm" id="na-show"><option value="">Every tool</option>
-        <option value="yes">Only those you may use</option><option value="no">Only those you may not use</option></select></div>
+  <form class="na-bar" role="search" data-onsubmit="return false" aria-label="{{ _('Filter remote tools') }}">
+    <div><label class="form-label small" for="na-q">{{ _('Search') }}</label>
+      <input class="form-control form-control-sm" id="na-q" placeholder="{{ _('tool or instance') }}" autocomplete="off"></div>
+    <div><label class="form-label small" for="na-show">{{ _('Show') }}</label>
+      <select class="form-select form-select-sm" id="na-show"><option value="">{{ _('Every tool') }}</option>
+        <option value="yes">{{ _('Only those you may use') }}</option><option value="no">{{ _('Only those you may not use') }}</option></select></div>
   </form>
   <p class="na-meta" id="na-count" role="status" aria-live="polite"></p>
   {% endif %}
@@ -55,32 +55,32 @@
   {% for n in view.nets %}
   <section class="na-net" aria-labelledby="na-net-{{ loop.index }}">
     <div class="na-head">
-      <h2 id="na-net-{{ loop.index }}">{{ n.net }} <span class="na-meta">as <code>{{ n.instance }}</code></span></h2>
-      <span class="na-meta">{{ n.usable }} of {{ n.listed }} remote tools usable by you</span>
+      <h2 id="na-net-{{ loop.index }}">{{ n.net }} <span class="na-meta">{% trans instance=n.instance %}as <code>{{ instance }}</code>{% endtrans %}</span></h2>
+      <span class="na-meta">{% trans usable=n.usable, listed=n.listed %}{{ usable }} of {{ listed }} remote tools usable by you{% endtrans %}</span>
     </div>
-    <div class="table-responsive" tabindex="0" role="region" aria-label="Remote tools in {{ n.net }}">
+    <div class="table-responsive" tabindex="0" role="region" aria-label="{{ _('Remote tools in %(net)s', net=n.net) }}">
     <table class="na-table">
-      <caption class="visually-hidden">Remote tools in {{ n.net }} and whether you may use them</caption>
-      <thead><tr><th scope="col">Tool</th><th scope="col">You</th><th scope="col">Hosts, in resolution order</th></tr></thead>
+      <caption class="visually-hidden">{% trans net=n.net %}Remote tools in {{ net }} and whether you may use them{% endtrans %}</caption>
+      <thead><tr><th scope="col">{{ _('Tool') }}</th><th scope="col">{{ _('You') }}</th><th scope="col">{{ _('Hosts, in resolution order') }}</th></tr></thead>
       <tbody>
       {% for t in n.tools %}
         <tr class="na-row" data-use="{{ 'yes' if t.usable_hosts else 'no' }}"
             data-text="{{ t.name|lower }} {% for h in t.hosts %}{{ h.instance|lower }} {% endfor %}">
-          <td><code>{{ t.name }}</code>{% if t.alias %}<div class="na-meta">plain name <code>{{ t.alias }}</code></div>{% endif %}
-            {% if t.local %}<div class="na-meta">this server has its own {{ t.name }}; the plain name calls it</div>{% endif %}
-            {% if t.held_by_disabled %}<div class="na-meta">a disabled tool of this server holds the plain name {{ t.name }}; use a qualified name</div>{% endif %}</td>
-          <td>{% if t.usable_hosts %}<span class="st st-yes">may use</span> <span class="na-meta">{{ t.usable_hosts }} of {{ t.hosts|length }} hosts</span>
-              {% else %}<span class="st st-no">may not use</span>{% endif %}</td>
+          <td><code>{{ t.name }}</code>{% if t.alias %}<div class="na-meta">{% trans alias=t.alias %}plain name <code>{{ alias }}</code>{% endtrans %}</div>{% endif %}
+            {% if t.local %}<div class="na-meta">{% trans name=t.name %}this server has its own {{ name }}; the plain name calls it{% endtrans %}</div>{% endif %}
+            {% if t.held_by_disabled %}<div class="na-meta">{% trans name=t.name %}a disabled tool of this server holds the plain name {{ name }}; use a qualified name{% endtrans %}</div>{% endif %}</td>
+          <td>{% if t.usable_hosts %}<span class="st st-yes">{{ _('may use') }}</span> <span class="na-meta">{% trans usable_hosts=t.usable_hosts, n=t.hosts|length %}{{ usable_hosts }} of {{ n }} hosts{% endtrans %}</span>
+              {% else %}<span class="st st-no">{{ _('may not use') }}</span>{% endif %}</td>
           <td><ul class="na-hosts">{% for h in t.hosts %}
             <li>{% if h.order is not none %}{{ h.order + 1 }}. {% endif %}<a href="/net/instances/{{ n.net|urlencode }}/{{ h.instance|urlencode }}"><code>{{ h.instance }}</code></a>
               {% if h.state != 'active' %}<span class="st st-{{ h.state }}">{{ h.state }}</span>{% endif %}
-              {% if h.member_state and h.member_state != 'alive' %}<span class="na-meta">instance {{ h.member_state }}</span>{% endif %}
-              {% if h.usable %}<span class="na-meta">you may use</span>{% else %}<span class="na-meta">not for you</span>{% endif %}
-              {% if h.try_it %}<a class="btn btn-sm btn-outline-primary py-0 ms-1" href="/tools/{{ h.try_it|urlencode }}/execute">Try it<span class="visually-hidden"> {{ h.qualified_name }}</span></a>{% endif %}</li>
+              {% if h.member_state and h.member_state != 'alive' %}<span class="na-meta">{% trans member_state=h.member_state %}instance {{ member_state }}{% endtrans %}</span>{% endif %}
+              {% if h.usable %}<span class="na-meta">{{ _('you may use') }}</span>{% else %}<span class="na-meta">{{ _('not for you') }}</span>{% endif %}
+              {% if h.try_it %}<a class="btn btn-sm btn-outline-primary py-0 ms-1" href="/tools/{{ h.try_it|urlencode }}/execute">{{ _('Try it') }}<span class="visually-hidden"> {{ h.qualified_name }}</span></a>{% endif %}</li>
           {% endfor %}</ul></td>
         </tr>
       {% else %}
-        <tr><td colspan="3" class="na-meta">No other instance offers tools in {{ n.net }} now.</td></tr>
+        <tr><td colspan="3" class="na-meta">{% trans net=n.net %}No other instance offers tools in {{ net }} now.{% endtrans %}</td></tr>
       {% endfor %}
       </tbody>
     </table>
@@ -100,7 +100,7 @@
       const ok = (!s || r.dataset.text.includes(s)) && (!u || r.dataset.use === u);
       r.hidden = !ok; if (ok) shown++;
     });
-    out.textContent = shown === total ? (total + ' remote tools') : (shown + ' of ' + total + ' remote tools shown');
+    out.textContent = shown === total ? _t('%(n)s remote tools', {n: total}) : _t('%(shown)s of %(n)s remote tools shown', {shown: shown, n: total});
   }
   q.addEventListener('input', apply); show.addEventListener('input', apply); apply();
 })();

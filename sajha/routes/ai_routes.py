@@ -823,3 +823,77 @@ async def api_docs_delete_upload(filename: str, auth: AuthContext = Depends(requ
     if not ok:
         return JSONResponse({'error': 'no such upload'}, status_code=404)
     return JSONResponse({'deleted': filename})
+
+
+# ── My documents: sources read through the caller's connected accounts (ai.rag.accounts) ──
+
+def _personal_or_error(auth: AuthContext):
+    from sajha.ai.rag.personal import get_personal_index, is_user, personal_error
+    idx = get_personal_index()
+    if idx is None:
+        why = personal_error() or 'ai.rag.accounts.sources is empty'
+        return None, JSONResponse({'error': f'documents from connected accounts are not set up ({why})'},
+                                  status_code=503)
+    if not is_user(auth.user_id):
+        return None, JSONResponse({'error': 'documents from connected accounts belong to signed-in users'},
+                                  status_code=403)
+    return idx, None
+
+
+@router.get('/api/ai/docs/mine')
+async def api_my_docs_status(auth: AuthContext = Depends(require_auth)):
+    """The caller's connected-account sources: linked or not, documents indexed, the last sync."""
+    from starlette.concurrency import run_in_threadpool
+    idx, err = _personal_or_error(auth)
+    if err:
+        return err
+    return JSONResponse(await run_in_threadpool(lambda: idx.status(auth.user_id)))
+
+
+@router.post('/api/ai/docs/mine/sync')
+async def api_my_docs_sync(request: Request, auth: AuthContext = Depends(require_auth)):
+    """Sync the caller's sources in the background ({"sources": [...]} for some; {"force": true}
+    re-reads every file); 202 with the sources started."""
+    idx, err = _personal_or_error(auth)
+    if err:
+        return err
+    try:
+        data = await request.json()
+    except Exception:
+        data = {}
+    data = data if isinstance(data, dict) else {}
+    names = data.get('sources')
+    if names is not None and not (isinstance(names, list) and all(isinstance(n, str) for n in names)):
+        return JSONResponse({'error': 'sources must be a list of source names'}, status_code=400)
+    unknown = [n for n in names or [] if idx.source(n) is None]
+    if unknown:
+        return JSONResponse({'error': f'no such source: {", ".join(unknown)}'}, status_code=400)
+    started = idx.sync_in_background(auth.user_id, names, bool(data.get('force')))
+    return JSONResponse({'syncing': started}, status_code=202)
+
+
+@router.post('/api/ai/docs/mine/search')
+async def api_my_docs_search(request: Request, auth: AuthContext = Depends(require_auth)):
+    """Search the caller's own documents: {query, top_k?, source?} -> cited passages."""
+    from starlette.concurrency import run_in_threadpool
+    idx, err = _personal_or_error(auth)
+    if err:
+        return err
+    try:
+        data = await request.json()
+    except Exception:
+        data = None
+    if not isinstance(data, dict) or not str(data.get('query') or '').strip():
+        return JSONResponse({'error': 'body must be JSON: {"query": "..."}'}, status_code=400)
+    try:
+        top_k = int(data.get('top_k') or 0) or None
+    except (TypeError, ValueError):
+        return JSONResponse({'error': 'top_k must be an integer'}, status_code=400)
+    source = str(data.get('source') or '').strip() or None
+    if source and idx.source(source) is None:
+        return JSONResponse({'error': f'no such source {source!r}'}, status_code=400)
+    names = [source] if source else None
+    query = str(data['query']).strip()[:1000]
+    syncing = idx.refresh_in_background(auth.user_id, names)
+    results = await run_in_threadpool(lambda: idx.search(auth.user_id, query, top_k, names))
+    return JSONResponse({'query': query, 'results': results, 'count': len(results), 'syncing': syncing})

@@ -46,7 +46,8 @@ _VAR = re.compile(r'\$\{([A-Za-z_][A-Za-z0-9_]*)(?::([^}]*))?\}')
 _SECRET_HEADER = re.compile(r'authorization|api[-_]?key|token|secret|cookie|password', re.I)
 _TRANSPORT = {'http': 'streamable_http', 'streamable_http': 'streamable_http', 'streamable-http': 'streamable_http',
               'streamablehttp': 'streamable_http', 'sse': 'sse', 'stdio': 'stdio'}
-SAJHA_KEYS = ('vendor', EXTERNAL_KEY, 'tools', 'prefix', 'enabled', 'title', 'timeout_seconds', 'cwd', 'auth')
+SAJHA_KEYS = ('vendor', EXTERNAL_KEY, 'tools', 'prefix', 'enabled', 'title', 'timeout_seconds', 'cwd', 'auth',
+              'isolation', 'container')
 STANDARD_KEYS = ('url', 'headers', 'command', 'args', 'env', 'type', 'transport')
 
 
@@ -126,6 +127,9 @@ def parse(data: Any) -> Parsed:
             up['env'] = {str(k): expand(str(v)) for k, v in env.items()}
         if e.get('cwd'):
             up['cwd'] = expand(str(e['cwd']))
+        for k in ('isolation', 'container'):              # stdio: sajha/federation/container.py
+            if e.get(k) not in (None, '', {}):
+                up[k] = e[k]
         for k in ('title', 'timeout_seconds'):
             if e.get(k) not in (None, ''):
                 up[k] = e[k]

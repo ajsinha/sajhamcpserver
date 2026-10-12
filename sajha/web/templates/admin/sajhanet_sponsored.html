@@ -1,0 +1,66 @@
+{% extends "common/base.html" %}
+{# Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.com #}
+{% set sn_here = '/admin/sajhanet/sponsored' %}
+{% block title %}{{ _('Sponsored servers - SAJHA Net - Admin - SAJHA MCP Server') }}{% endblock %}
+{% block extra_css %}{% include "admin/_sajhanet_mgmt_css.html" %}{% endblock %}
+{% block content %}
+<div class="container-fluid" data-sn-csrf="{{ csrf }}">
+  <div class="mb-3">
+    <h1 class="h3 mb-0"><i class="bi bi-person-badge me-2" aria-hidden="true"></i>{{ _('Sponsored servers') }}</h1>
+    <small class="text-muted">{{ _('Plain MCP servers this server proxies and brings into a net as members of their own, under their own instance names') }}</small>
+  </div>
+  {% include "admin/_sajhanet_subnav.html" %}
+  <p class="small" data-sn-status role="status" aria-live="polite"></p>
+  {% if not view.enabled %}
+  <div class="alert alert-info small" role="status">{% trans %}SAJHA Net is off: nothing can be sponsored. Set <code>sajhanet.enabled: true</code> and list the nets under <code>sajhanet.nets</code>, then restart.{% endtrans %}</div>
+  {% else %}
+  <section class="sn-box" aria-labelledby="h-list">
+    <h2 id="h-list">{{ _('Sponsored here') }}</h2>
+    <div class="sn-body"><div class="table-responsive"><table class="sn-table">
+      <thead><tr><th scope="col">{{ _('Instance') }}</th><th scope="col">{{ _('Upstream') }}</th><th scope="col">{{ _('State') }}</th><th scope="col" class="opt">{{ _('Tools offered') }}</th><th scope="col">{{ _('Actions') }}</th></tr></thead>
+      <tbody>
+      {% for s in view.sponsored %}
+        {% set ok = s.running and s.joined %}
+        <tr><td><a href="/net/instances/{{ s.net|urlencode }}/{{ s.instance_name|urlencode }}"><code>{{ s.instance_name }}</code></a><div class="sn-meta">{% trans net=s.net, vendor=s.vendor, source=s.source %}{{ net }} · vendor {{ vendor }} · from {{ source }}{% endtrans %}</div></td>
+          <td><code>{{ s.upstream }}</code></td>
+          <td><span class="st st-{{ 'ok' if ok else 'warning' }}">{{ _('joined') if ok else (_('running') if s.running else _('not running')) }}</span>{% if s.error %}<div class="sn-meta">{{ s.error }}</div>{% endif %}</td>
+          <td class="opt">{{ s.tools|length }}{% if s.tools %}: {{ s.tools[:6]|join(', ') }}{% if s.tools|length > 6 %} …{% endif %}{% endif %}</td>
+          <td class="sn-actions">{% if s.source == 'admin' %}
+            <button class="btn btn-sm btn-outline-danger" type="button" data-sn-action data-method="DELETE" data-url="/api/sajhanet/sponsored/{{ s.net|urlencode }}/{{ s.instance_name|urlencode }}" data-net="{{ s.net }}" data-kind="sponsor_remove"
+              data-blast='{{ {"instance": s.instance_name}|tojson }}' data-effect="{{ _('Stop sponsoring %(instance)s: it leaves the net and its tools disappear for the other members.', instance=s.instance_name) }}">{{ _('Stop sponsoring') }}</button>
+            {% else %}<span class="sn-meta">{% trans %}In <code>sajhanet.sponsored</code>: remove it there.{% endtrans %}</span>{% endif %}
+            {% if s.error and not s.joined %}
+            <form class="d-flex flex-wrap gap-1 mt-1" data-sn-form data-method="POST" data-url="/api/sajhanet/sponsored/{{ s.net|urlencode }}/{{ s.instance_name|urlencode }}/enroll" data-net="{{ s.net }}" data-final
+                  data-effect="{{ _('Obtain a certificate for this sponsored member from the net\'s CA with a token for its name.') }}">
+              <label class="visually-hidden" for="ca-{{ loop.index }}">{{ _('CA URL') }}</label><input class="form-control form-control-sm" id="ca-{{ loop.index }}" name="ca_url" placeholder="{{ _('CA URL') }}" required autocomplete="off">
+              <label class="visually-hidden" for="tk-{{ loop.index }}">{{ _('Token') }}</label><input class="form-control form-control-sm" id="tk-{{ loop.index }}" name="token" placeholder="{{ _('Token') }}" required autocomplete="off">
+              <button class="btn btn-sm btn-outline-primary" type="submit">{{ _('Enroll') }}</button></form>{% endif %}</td></tr>
+      {% else %}<tr><td colspan="5" class="sn-meta">{{ _('This server sponsors no MCP server.') }}</td></tr>{% endfor %}
+      </tbody></table></div></div>
+  </section>
+
+  <section class="sn-box" aria-labelledby="h-add">
+    <h2 id="h-add">{{ _('Sponsor a proxied MCP server') }}</h2>
+    <div class="sn-body">
+      <form class="row g-2 align-items-end" data-sn-form data-method="POST" data-url="/api/sajhanet/sponsored" data-net="" data-kind="sponsor_add"
+            data-effect="{{ _('The proxied server joins the net as a member of its own; this server answers for it.') }}">
+        <div class="col-6 col-md-2"><label class="form-label small" for="sp-net">{{ _('Net') }}</label>
+          <select class="form-select form-select-sm" id="sp-net" name="net">{% for x in view.nets %}<option>{{ x }}</option>{% endfor %}</select></div>
+        <div class="col-6 col-md-2"><label class="form-label small" for="sp-up">{{ _('Upstream') }}</label>
+          <input class="form-control form-control-sm" id="sp-up" name="upstream" list="sp-ups" required autocomplete="off">
+          <datalist id="sp-ups">{% for u in view.upstreams %}<option value="{{ u }}">{% endfor %}</datalist></div>
+        <div class="col-6 col-md-2"><label class="form-label small" for="sp-name">{{ _('Instance name') }}</label>
+          <input class="form-control form-control-sm" id="sp-name" name="instance_name" required autocomplete="off"></div>
+        <div class="col-6 col-md-2"><label class="form-label small" for="sp-v">{{ _('Vendor') }}</label>
+          <input class="form-control form-control-sm" id="sp-v" name="vendor" required autocomplete="off"></div>
+        <div class="col-6 col-md-2"><label class="form-label small" for="sp-r">{{ _('Region (optional)') }}</label>
+          <input class="form-control form-control-sm" id="sp-r" name="region" autocomplete="off"></div>
+        <div class="col-auto"><button class="btn btn-sm btn-success" type="submit">{{ _('Sponsor') }}</button></div>
+      </form>
+      <p class="sn-meta mt-2 mb-0">{% trans %}Renames and tool globs are set with the admin API or in <code>sajhanet.sponsored</code>. Upstreams are the proxied MCP servers on <a href="/admin/federation">Proxied MCP servers</a>.{% endtrans %}</p>
+    </div>
+  </section>
+  {% endif %}
+</div>
+{% include "admin/_sajhanet_change_dialog.html" %}
+{% endblock %}

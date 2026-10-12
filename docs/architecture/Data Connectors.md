@@ -308,25 +308,29 @@ a connection with `"query": false`, and suits policies that constrain arguments.
 
 Vector stores answer a nearest-neighbour search; the query text is embedded through the
 intelligence layer's gateway (`vector.embedding_model`, default the `embedding` alias), or the
-caller passes a `vector`. Two vector databases are supported, chosen because one runs inside a
-database many sites already have and the other is the most common dedicated vector store; both
-need no extra Python package:
+caller passes a `vector`. Four vector databases and two search engines are supported; none
+needs an extra Python package (Weaviate and Chroma are reached over their HTTP APIs, not their
+SDKs, so a missing SDK cannot stop anything):
 
 | Kind | How | Tools |
 |---|---|---|
 | `pgvector` | a PostgreSQL connection with a `vector` block (`table`, `vector_column`, `text_column`, `id_column`, `metadata_columns`, `distance`: `cosine`, `l2` or `inner`); the search is a parameterised `ORDER BY <col> <=> $vector LIMIT k` on the read-only session | the SQL tools and `<id>__search` |
 | `qdrant` | the Qdrant REST API (`options.url`, `secrets.api_key`); collections allowlisted by `allow.tables`; optional `vector.vector_name` for named vectors | `<id>__list_collections`, `<id>__describe_collection`, `<id>__search` |
 | `elasticsearch`, `opensearch` | the REST API (`options.url`, `secrets.api_key` or `options.user` + `secrets.password`); indices allowlisted by `allow.tables`; full-text `simple_query_string`, plus k-NN when `vector.vector_field` is set | `<id>__list_collections`, `<id>__describe_collection`, `<id>__search` |
+| `weaviate` | REST and GraphQL (`options.url`, `secrets.api_key` as a bearer token; `sajha/connectors/vector_weaviate.py`); classes allowlisted by `allow.tables`; one GraphQL `Get` that SAJHA writes: `nearVector` (optional `vector.vector_name` for a named vector), or `bm25` keyword search when `vector.embedding_model` is `none`; filter fields must be properties of the class and values must fit their type; masked `hide` properties are not selected | `<id>__list_collections`, `<id>__describe_collection`, `<id>__search` |
+| `chroma` | the HTTP API (`options.url`; `options.api_version` `v2`, the default, under `options.tenant` and `options.database`, or `v1`; `secrets.api_key` as `X-Chroma-Token`, or as a bearer token with `options.auth_header: authorization`; `sajha/connectors/vector_chroma.py`); collections allowlisted by `allow.tables`; describing one gives its count, dimension and the metadata keys of a sample; `vector.distance` turns distances into scores | `<id>__list_collections`, `<id>__describe_collection`, `<id>__search` |
 
 `filters` on a search are equality matches on metadata (payload, `_source`) fields, built by
-SAJHA (a Qdrant `must` filter, an Elasticsearch `term` filter, a bound SQL parameter); the
-caller never sends query DSL. Results are `{"id", "score", "text", "metadata"}` with masking
-applied to `metadata`. Weaviate and Chroma are not built: both are reachable today through
-federation of their MCP servers, and the adapter interface (`VectorAdapter` in
-`sajha/connectors/vector.py`) is small enough to add one.
+SAJHA (a Qdrant `must` filter, an Elasticsearch `term` filter, a Weaviate `where` filter, a
+Chroma `$eq` filter, a bound SQL parameter); the caller never sends query DSL. Results are
+`{"id", "score", "text", "metadata"}` with masking applied to `metadata`. Requests to Qdrant,
+Elasticsearch, OpenSearch, Weaviate and Chroma use the connector's own HTTP client: the
+administrator sets the URL, and it does not pass through the tools' outbound fetch guard.
+Another store is one more `VectorAdapter` (`sajha/connectors/vector.py`).
 
 This is separate from Ask SAJHA's own document index (`ai.rag`, `sajha/ai/rag/`), which keeps
-SAJHA's guides and admin uploads; a connector searches a store the enterprise already has.
+SAJHA's guides, admin uploads and, per user, documents read through connected accounts; a
+connector searches a store the enterprise already has.
 
 ---
 
@@ -404,7 +408,8 @@ API Import. The catalog and the pools are per process.
 * Without sqlglot the guard is conservative (refuses more), and the table allowlist relies on
   `FROM` and `JOIN` scanning.
 * There is no write access and no stored-procedure call, by design.
-* Weaviate and Chroma adapters are not built (section 9).
+* Weaviate is searched without multi-tenancy (no tenant is named) and Chroma's search is by
+  vector only (its server-side embedding functions are not used).
 * Snowflake, BigQuery and Databricks are tested with mocked DB-API connections; PostgreSQL,
   MySQL, SQLite and DuckDB against real databases.
 

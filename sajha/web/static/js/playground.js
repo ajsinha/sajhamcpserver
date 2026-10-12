@@ -45,10 +45,10 @@
   // ── the worker ─────────────────────────────────────────────────────────────
   function startWorker() {
     if (!DATA.assetsOk) {
-      setStatus('error', 'Python runtime not installed on this server');
+      setStatus('error', _t('Python runtime not installed on this server'));
       return;
     }
-    if (typeof Worker === 'undefined') { setStatus('error', 'This browser has no Web Workers'); return; }
+    if (typeof Worker === 'undefined') { setStatus('error', _t('This browser has no Web Workers')); return; }
     ready = false;
     interrupt = null;
     if (window.crossOriginIsolated && typeof SharedArrayBuffer !== 'undefined') {
@@ -57,15 +57,15 @@
     try {
       worker = new Worker('/api/playground/worker.js', {type: 'module', name: 'sajha-python'});
     } catch (e) {
-      setStatus('error', 'Could not start the Python worker: ' + e.message);
+      setStatus('error', _t('Could not start the Python worker: %(error)s', {error: e.message}));
       return;
     }
     worker.onmessage = onWorkerMessage;
     worker.onerror = function (e) {
-      setStatus('error', 'Python worker error: ' + (e.message || 'see the browser console'));
+      setStatus('error', _t('Python worker error: %(error)s', {error: e.message || _t('see the browser console')}));
       finishRun(false);
     };
-    setStatus('loading', 'Starting…');
+    setStatus('loading', _t('Starting…'));
     worker.postMessage({type: 'init', indexURL: DATA.indexURL, interruptBuffer: interrupt});
     setBusy();
   }
@@ -81,7 +81,7 @@
       if (m.phase === 'ready') {
         ready = true;
         if (m.text !== 'Ready') readyText = m.text;
-        setStatus(running ? 'busy' : 'ready', running ? 'Running…' : readyText);
+        setStatus(running ? 'busy' : 'ready', running ? _t('Running…') : readyText);
         pump();
       } else if (m.phase === 'packages') {
         setStatus('loading', m.text);
@@ -99,7 +99,7 @@
       finishRun(m.ok, m.ms);
     }
   }
-  var readyText = 'Ready';
+  var readyText = _t('Ready');
 
   function showPackages(names) {
     var el = $('pgPackageList');
@@ -135,7 +135,7 @@
     c.el.classList.remove('pg-queued');
     clearOutput(c);
     if (interrupt) Atomics.store(interrupt, 0, 0);
-    setStatus('busy', 'Running…');
+    setStatus('busy', _t('Running…'));
     setBusy();
     worker.postMessage({type: 'run', id: c.id, code: c.editor.getValue()});
   }
@@ -147,7 +147,7 @@
       execCount += 1;
       c.countEl.textContent = '[' + execCount + ']';
       c.el.classList.toggle('pg-failed', !ok);
-      if (typeof ms === 'number') c.countEl.title = 'Ran in ' + ms + ' ms';
+      if (typeof ms === 'number') c.countEl.title = _t('Ran in %(ms)s ms', {ms: ms});
       if (!ok) { queue.forEach(function (q) { q.el.classList.remove('pg-queued'); q.countEl.textContent = '[ ]'; }); queue = []; }
     }
     if (ready) setStatus('ready', readyText);
@@ -161,11 +161,11 @@
     if (!running) return;
     if (interrupt) {
       Atomics.store(interrupt, 0, 2);       // SIGINT: Python raises KeyboardInterrupt
-      setStatus('busy', 'Stopping…');
+      setStatus('busy', _t('Stopping…'));
     } else {
       // Not cross-origin isolated: the only way to stop is to restart Python.
       var c = running;
-      appendOutput(c, 'stderr', 'Stopped by restarting Python (variables were lost).\n');
+      appendOutput(c, 'stderr', _t('Stopped by restarting Python (variables were lost).') + '\n');
       stopWorker();
       running = null;
       c.countEl.textContent = '[!]';
@@ -180,7 +180,7 @@
     execCount = 0;
     cells.forEach(function (c) { clearOutput(c); c.countEl.textContent = '[ ]'; c.el.classList.remove('pg-failed', 'pg-queued'); });
     $('pgPackageList').className = 'text-muted';
-    $('pgPackageList').textContent = 'none loaded yet — imports load on first run';
+    $('pgPackageList').textContent = _t('none loaded yet — imports load on first run');
     startWorker();
   }
 
@@ -192,7 +192,7 @@
     if (kind === 'stdout' || kind === 'stderr') {
       if (c.chars > MAX_OUT) return;
       c.chars += text.length;
-      if (c.chars > MAX_OUT) text = text.slice(0, Math.max(0, text.length - (c.chars - MAX_OUT))) + '\n… output truncated\n';
+      if (c.chars > MAX_OUT) text = text.slice(0, Math.max(0, text.length - (c.chars - MAX_OUT))) + '\n… ' + _t('output truncated') + '\n';
       var last = out.lastElementChild;
       if (!last || last.getAttribute('data-kind') !== kind) {
         last = document.createElement('pre');
@@ -214,7 +214,7 @@
     } else if (kind === 'image/png') {
       var img = document.createElement('img');
       img.className = 'pg-img';
-      img.alt = 'Figure';
+      img.alt = _t('Figure');
       img.src = 'data:image/png;base64,' + text;
       out.appendChild(img);
     }
@@ -274,7 +274,7 @@
         }
       },
       onChange: saveDraftSoon,
-      label: 'Python code, cell',
+      label: _t('Python code, cell'),
     });
     node.querySelector('.pg-cell-run').addEventListener('click', function () { enqueue(c); });
     node.querySelector('.pg-cell-del').addEventListener('click', function () { deleteCell(c); });
@@ -334,7 +334,7 @@
     var out = (nb.cells || []).filter(function (c) { return c.cell_type === 'code'; }).map(function (c) {
       return Array.isArray(c.source) ? c.source.join('') : String(c.source || '');
     });
-    if (!out.length) throw new Error('the notebook has no code cells');
+    if (!out.length) throw new Error(_t('the notebook has no code cells'));
     return out;
   }
 
@@ -350,15 +350,15 @@
 
   function upload(file) {
     if (!file) return;
-    if (file.size > 2 * 1024 * 1024) { flash('That file is larger than 2 MB.'); return; }
+    if (file.size > 2 * 1024 * 1024) { flash(_t('That file is larger than 2 MB.')); return; }
     var r = new FileReader();
     r.onload = function () {
       try {
         var list = /\.ipynb$/i.test(file.name) ? fromIpynb(String(r.result)) : fromPy(String(r.result));
-        if (!isBlank() && !window.confirm('Replace the current cells with ' + file.name + '?')) return;
+        if (!isBlank() && !window.confirm(_t('Replace the current cells with %(file)s?', {file: file.name}))) return;
         setNotebook(list);
-        flash('Opened ' + file.name + ' (' + list.length + ' cell' + (list.length === 1 ? '' : 's') + ').');
-      } catch (e) { flash('Could not open ' + file.name + ': ' + e.message); }
+        flash(_nt('Opened %(file)s (%(num)s cell).', 'Opened %(file)s (%(num)s cells).', list.length, {file: file.name}));
+      } catch (e) { flash(_t('Could not open %(file)s: %(error)s', {file: file.name, error: e.message})); }
     };
     r.readAsText(file);
   }
@@ -380,7 +380,7 @@
   function testCall(code) {
     var m = /@sajhamcptool[\s\S]*?def\s+([A-Za-z_]\w*)\s*\(([\s\S]*?)\)\s*(->[^:]*)?:/.exec(code) ||
             /def\s+([A-Za-z_]\w*)\s*\(([\s\S]*?)\)\s*(->[^:]*)?:/.exec(code);
-    if (!m) return '# Call your function here to try it.';
+    if (!m) return '# ' + _t('Call your function here to try it.');
     var args = [];
     m[2].split(',').forEach(function (p) {
       p = p.trim();
@@ -388,7 +388,7 @@
       var name = p.split(':')[0].trim(), type = p.indexOf(':') >= 0 ? p.split(':')[1] : '';
       args.push(name + '=' + sampleArg(type));
     });
-    return '# Try the tool function here (edit the arguments), as the server would call it.\n' +
+    return '# ' + _t('Try the tool function here (edit the arguments), as the server would call it.') + '\n' +
            m[1] + '(' + args.join(', ') + ')';
   }
 
@@ -408,7 +408,7 @@
   function example(id) {
     var ex = (DATA.examples || []).filter(function (e) { return e.id === id; })[0];
     if (!ex) return;
-    if (!isBlank() && !window.confirm('Replace the current cells with the "' + ex.title + '" example?')) return;
+    if (!isBlank() && !window.confirm(_t('Replace the current cells with the "%(title)s" example?', {title: ex.title}))) return;
     setNotebook(ex.cells);
     cells[0].editor.focus();
   }
@@ -419,15 +419,15 @@
   $('pgAddCell').addEventListener('click', function () { addCell('').editor.focus(); });
   $('pgExamples').addEventListener('change', function () { example(this.value); this.value = ''; });
   $('pgSave').addEventListener('click', function () {
-    flash(store(KEY_SAVED, JSON.stringify(sources())) ? 'Saved in this browser.' : 'This browser does not allow saving here.');
+    flash(store(KEY_SAVED, JSON.stringify(sources())) ? _t('Saved in this browser.') : _t('This browser does not allow saving here.'));
   });
   $('pgLoad').addEventListener('click', function () {
     var raw = load(KEY_SAVED), list = null;
     try { list = raw ? JSON.parse(raw) : null; } catch (e) { list = null; }
-    if (!Array.isArray(list)) { flash('Nothing saved in this browser yet.'); return; }
-    if (!isBlank() && !window.confirm('Replace the current cells with the saved notebook?')) return;
+    if (!Array.isArray(list)) { flash(_t('Nothing saved in this browser yet.')); return; }
+    if (!isBlank() && !window.confirm(_t('Replace the current cells with the saved notebook?'))) return;
     setNotebook(list);
-    flash('Loaded the saved notebook.');
+    flash(_t('Loaded the saved notebook.'));
   });
   $('pgDownload').addEventListener('click', download);
   $('pgUpload').addEventListener('change', function () { upload(this.files && this.files[0]); this.value = ''; });
@@ -442,7 +442,7 @@
     var first = (DATA.examples || [])[0];
     initial = first ? first.cells : ['print("Hello from Python in your browser")'];
   }
-  if (!window.SajhaEditor) { setStatus('error', 'The editor did not load'); return; }
+  if (!window.SajhaEditor) { setStatus('error', _t('The editor did not load')); return; }
   setNotebook(initial);
   startWorker();
   setBusy();

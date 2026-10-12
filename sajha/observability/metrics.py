@@ -294,6 +294,12 @@ SANDBOX_RUNS = Counter(REGISTRY, 'sajha_sandbox_runs_total', 'Sandbox runs by ba
                        ('backend', 'outcome'))
 SANDBOX_LATENCY = Histogram(REGISTRY, 'sajha_sandbox_run_duration_seconds', 'Sandbox run duration in seconds.',
                             ('backend',))
+SANDBOX_EGRESS = Counter(REGISTRY, 'sajha_sandbox_egress_total',
+                         'Sandbox egress proxy connections by outcome (allowed, denied).', ('outcome',))
+SANDBOX_POOL_CONTAINERS = Gauge(REGISTRY, 'sajha_sandbox_pool_containers',
+                                'Warm sandbox containers of this process by state.', ('state',))
+SANDBOX_POOL_EVENTS = Counter(REGISTRY, 'sajha_sandbox_pool_events_total', 'Warm sandbox container pool events.',
+                              ('event',))
 ALERTS_FIRED = Counter(REGISTRY, 'sajha_alerts_fired_total', 'In-process alert rules fired.', ('rule',))
 USAGE_DROPPED = Counter(REGISTRY, 'sajha_usage_events_dropped_total',
                         'Usage-ledger rows dropped because the write queue was full.')
@@ -736,6 +742,25 @@ def record_sandbox_run(result: Any) -> None:
         outcome = 'error'
     SANDBOX_RUNS.inc((backend, outcome))
     SANDBOX_LATENCY.observe((backend,), float(getattr(result, 'duration_ms', 0.0) or 0.0) / 1000.0)
+
+
+@_guard
+def record_sandbox_egress(outcome: str) -> None:
+    """One egress proxy decision (sajha/sandbox/egress.py): allowed or denied."""
+    SANDBOX_EGRESS.inc((outcome,))
+
+
+@_guard
+def record_sandbox_pool_event(event: str) -> None:
+    """A warm pool event (sajha/sandbox/pool.py): hit, miss, started, start_failed, recycled,
+    reset_ok, reset_failed, health_failed."""
+    SANDBOX_POOL_EVENTS.inc((event,))
+
+
+@_guard
+def set_sandbox_pool_containers(state: str, n: int) -> None:
+    """Warm containers by state: idle, busy, starting, resetting."""
+    SANDBOX_POOL_CONTAINERS.set((state,), n)
 
 
 @_guard

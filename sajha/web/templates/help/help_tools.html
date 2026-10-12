@@ -2,24 +2,24 @@
 {# Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.com #}
 {# The live tool catalog: derived from the tools registry on every request
    (sajha/web/help_catalog.py::live_tool_groups), so it is never out of date. #}
-{% block title %}Tool catalog - Help - {{ app_name }}{% endblock %}
+{% block title %}{% trans app_name=app_name %}Tool catalog - Help - {{ app_name }}{% endtrans %}{% endblock %}
 
 {% block content %}
 <div class="container-fluid">
-    <nav class="help-crumbs" aria-label="Breadcrumb"><a href="/help"><i class="bi bi-life-preserver me-1" aria-hidden="true"></i>Help</a><i class="bi bi-chevron-right" aria-hidden="true"></i><a href="/help/c/tools">Tools and prompts</a><i class="bi bi-chevron-right" aria-hidden="true"></i><span>Tool catalog</span></nav>
+    <nav class="help-crumbs" aria-label="{{ _('Breadcrumb') }}"><a href="/help"><i class="bi bi-life-preserver me-1" aria-hidden="true"></i>{{ _('Help') }}</a><i class="bi bi-chevron-right" aria-hidden="true"></i><a href="/help/c/tools">{{ _('Tools and prompts') }}</a><i class="bi bi-chevron-right" aria-hidden="true"></i><span>{{ _('Tool catalog') }}</span></nav>
     <div class="help-topic-hero">
         <div class="ico"><i class="bi bi-grid-3x3-gap" aria-hidden="true"></i></div>
         <div>
-            <h1>Tool catalog</h1>
-            <p>What this server has loaded right now: {{ catalog_live.total_tools }} tools in {{ catalog_live.total_groups }} domains.
+            <h1>{{ _('Tool catalog') }}</h1>
+            <p>{% trans total_tools=catalog_live.total_tools, total_groups=catalog_live.total_groups %}What this server has loaded right now: {{ total_tools }} tools in {{ total_groups }} domains.
                A tool's domain is its tool folder, a proxied server's prefix, or Unfiled (the root of the tools directory);
-               <a href="/tools/domains">Tool domains</a> has the same grouping with your visible counts.</p>
+               <a href="/tools/domains">Tool domains</a> has the same grouping with your visible counts.{% endtrans %}</p>
         </div>
     </div>
 
     <div class="help-search">
         <i class="bi bi-search" aria-hidden="true"></i>
-        <input id="toolGroupSearch" type="search" autocomplete="off" placeholder="Filter domains and example tools&hellip;" aria-label="Filter tool domains">
+        <input id="toolGroupSearch" type="search" autocomplete="off" placeholder="{{ _('Filter domains and example tools&hellip;') }}" aria-label="{{ _('Filter tool domains') }}">
     </div>
 
     <div class="row g-3" id="toolGroupGrid">
@@ -29,7 +29,7 @@
             <div class="card h-100">
                 <div class="card-header d-flex align-items-center" style="background:{{ tok }};color:var(--sajha-on-crimson)">
                     <i class="bi {{ g.icon }} me-2" aria-hidden="true"></i><strong>{{ g.label }}</strong>
-                    <span class="badge ms-auto" style="background:var(--sajha-surface);color:var(--sajha-ink)">{{ g.tool_count }} tools</span>
+                    <span class="badge ms-auto" style="background:var(--sajha-surface);color:var(--sajha-ink)">{% trans tool_count=g.tool_count %}{{ tool_count }} tools{% endtrans %}</span>
                 </div>
                 <div class="card-body">
                     <ul class="list-unstyled small mb-0">
@@ -39,18 +39,18 @@
                     </ul>
                 </div>
                 <div class="card-footer d-flex align-items-center">
-                    <small class="text-muted"><i class="bi bi-check-circle me-1" aria-hidden="true"></i>{{ g.enabled_count }} enabled</small>
-                    {% if session.token %}<a href="{{ g.href }}" class="btn btn-sm btn-outline-secondary ms-auto"><i class="bi bi-eye me-1" aria-hidden="true"></i>View</a>{% endif %}
+                    <small class="text-muted"><i class="bi bi-check-circle me-1" aria-hidden="true"></i>{{ g.enabled_count }} {{ _('enabled') }}</small>
+                    {% if session.token %}<a href="{{ g.href }}" class="btn btn-sm btn-outline-secondary ms-auto"><i class="bi bi-eye me-1" aria-hidden="true"></i>{{ _('View') }}</a>{% endif %}
                 </div>
             </div>
         </div>
         {% endfor %}
     </div>
-    <div id="helpNoHits" class="help-none"><i class="bi bi-search" aria-hidden="true"></i> No domain matches.</div>
+    <div id="helpNoHits" class="help-none"><i class="bi bi-search" aria-hidden="true"></i> {{ _('No domain matches.') }}</div>
 
     <div class="help-box concept mt-4">
-        <div class="hb-title">Each provider's tools, parameters and API keys</div>
-        are documented in its reference guide, under <a href="/help/c/tools">Tools and prompts</a>.
+        <div class="hb-title">{{ _('Each provider\'s tools, parameters and API keys') }}</div>
+        {% trans %}are documented in its reference guide, under <a href="/help/c/tools">Tools and prompts</a>.{% endtrans %}
     </div>
 
     {% include "help/_help_footer.html" %}

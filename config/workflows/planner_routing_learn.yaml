@@ -1,0 +1,18 @@
+# SAJHA shipped workflow: rank planners from results every week and write a routing proposal.
+#
+# Installed at start-up when no workflow of this name exists, owned by the administrator "admin"
+# (sajha/workflows/shipped.py). Its trigger is off: enable it on the Workflows page to run the job
+# on a schedule. A proposal changes nothing until an administrator approves it on the Planner
+# routing page (/admin/planner-routing). Design: docs/architecture/LLM Tools.md §9.13.
+name: planner_routing_learn
+description: Rank planners per tool and question class from eval runs and recorded outcomes, and write a routing proposal for review
+concurrency: 1
+timeout_seconds: 600
+steps:
+  - id: propose
+    kind: tool
+    tool: sajha_planner_routing_propose
+    params: {}
+    timeout_seconds: 540
+triggers:
+  - {id: weekly, type: cron, cron: "0 5 * * 1", timezone: UTC, enabled: false}

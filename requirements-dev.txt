@@ -8,6 +8,11 @@
 # (the test is skipped without it).
 python-pptx>=1.0.2,<2.0.0
 
+# ── Console translations (scripts/i18n.py extract|update|compile|check) ──
+# The server reads the compiled .mo files with the stdlib gettext; Babel only builds them.
+# tests/test_console_languages.py skips its catalog checks without it.
+Babel>=2.12,<3.0
+
 # ── Tests (python -m pytest -q tests clientsdk/tests sajhanet_agent/tests; CI: .github/workflows/tests.yml) ──
 # pytest itself is in requirements.txt. Without these the matching tests skip or take the
 # fallback path; CI installs them so every path runs.

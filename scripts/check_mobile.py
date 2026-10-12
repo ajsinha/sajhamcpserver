@@ -93,6 +93,16 @@ ROUTES: List[Tuple[str, bool]] = [
     ('/net/instances/this', True),
     ('/admin/sajhanet/overview', True),
     ('/net/access', True),
+    ('/admin/sajhanet/reviews', True),          # SAJHA Net management pages (design §17.1)
+    ('/admin/sajhanet/users', True),
+    ('/admin/sajhanet/blocks', True),
+    ('/admin/sajhanet/keys', True),
+    ('/admin/sajhanet/snapshots', True),
+    ('/admin/sajhanet/activity', True),
+    ('/admin/sajhanet/certificates', True),
+    ('/admin/sajhanet/settings', True),
+    ('/admin/sajhanet/sponsored', True),
+    ('/admin/sajhanet/changes', True),
     ('/admin/connectors', True),
     ('/admin/policies', True),
     ('/admin/approvals', True),
@@ -123,7 +133,9 @@ ROUTES: List[Tuple[str, bool]] = [
     ('/reports/library', True),
     ('/admin/tool-health', True),
     ('/admin/tool-versions', True),
+    ('/admin/plugins/catalog', True),
     ('/admin/evals', True),
+    ('/admin/planner-routing', True),
     ('/account/password', True),
 ]
 

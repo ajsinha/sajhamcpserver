@@ -5,107 +5,103 @@
    shortlist lights up and the tool chain is drawn as the events arrive. Behaviour:
    static/js/ask.js; drawing: static/js/constellation.js (shared with the landing page);
    styles: the "Ask SAJHA" block in static/css/style.css. #}
-{% block title %}Ask SAJHA - SAJHA MCP Server{% endblock %}
+{% block title %}{{ _('Ask SAJHA - SAJHA MCP Server') }}{% endblock %}
 {% block content %}
 <div class="ask-page">
     <header class="ask-top">
         <div class="ask-top-text">
             <h1 class="h3 mb-1"><i class="bi bi-stars" aria-hidden="true"></i> Ask SAJHA</h1>
-            <p class="ask-sub">Ask in plain words. SAJHA picks tools from its catalog, runs them with your permissions, and answers with its sources and a confidence score.</p>
+            <p class="ask-sub">{{ _('Ask in plain words. SAJHA picks tools from its catalog, runs them with your permissions, and answers with its sources and a confidence score.') }}</p>
         </div>
         <div class="ask-top-tools">
             <span class="ask-pill ask-pill-mock" id="askMock" hidden
-                  title="No real LLM provider is enabled: the mock planner is answering. It plans from keywords and numbers in your question; see the Intelligence Layer guide to enable a provider.">
-                <i class="bi bi-cpu" aria-hidden="true"></i> Mock model active</span>
-            <label class="ask-model" for="askModel"><span>Model</span>
+                  title="{{ _('No real LLM provider is enabled: the mock planner is answering. It plans from keywords and numbers in your question; see the Intelligence Layer guide to enable a provider.') }}">
+                <i class="bi bi-cpu" aria-hidden="true"></i> {{ _('Mock model active') }}</span>
+            <label class="ask-model" for="askModel"><span>{{ _('Model') }}</span>
                 <select id="askModel" class="form-select form-select-sm">
-                    <option value="">default</option>
+                    <option value="">{{ _('default') }}</option>
                 </select></label>
             <button type="button" class="btn btn-sm btn-outline-secondary" id="askNew">
-                <i class="bi bi-plus-lg" aria-hidden="true"></i> New chat</button>
+                <i class="bi bi-plus-lg" aria-hidden="true"></i> {{ _('New chat') }}</button>
         </div>
     </header>
 
     {% if not ask_data.enabled %}
     <div class="alert alert-warning" role="alert">
         <i class="bi bi-exclamation-triangle" aria-hidden="true"></i>
-        Asking is switched off on this server (<code>ai.ask.enabled</code>), so questions will be refused.
+        {% trans %}Asking is switched off on this server (<code>ai.ask.enabled</code>), so questions will be refused.{% endtrans %}
     </div>
     {% endif %}
 
     <div class="ask-grid">
         <section class="ask-chat" aria-labelledby="askChatTitle">
-            <h2 class="visually-hidden" id="askChatTitle">Conversation</h2>
+            <h2 class="visually-hidden" id="askChatTitle">{{ _('Conversation') }}</h2>
             <div class="ask-log" id="askLog" tabindex="-1">
                 <div class="ask-empty" id="askEmpty">
                     <div class="ask-empty-mark" aria-hidden="true"><i class="bi bi-stars"></i></div>
-                    <p class="ask-empty-title">What would you like to know?</p>
-                    <p class="ask-empty-text">Each question is answered on its own: SAJHA does not see earlier questions.
-                        Pick an example below or write your own.</p>
+                    <p class="ask-empty-title">{{ _('What would you like to know?') }}</p>
+                    <p class="ask-empty-text">{{ _('Each question is answered on its own: SAJHA does not see earlier questions. Pick an example below or write your own.') }}</p>
                 </div>
             </div>
             <div class="visually-hidden" id="askLive" aria-live="polite" aria-atomic="true"></div>
 
             <form class="ask-compose" id="askForm" autocomplete="off">
-                <div class="ask-examples" role="group" aria-label="Example questions" id="askExamples">
+                <div class="ask-examples" role="group" aria-label="{{ _('Example questions') }}" id="askExamples">
                     {% for q in ask_data.examples %}
                     <button type="button" class="ask-chip" data-q="{{ q }}">{{ q }}</button>
                     {% endfor %}
                 </div>
                 <div class="ask-input-wrap">
-                    <label class="visually-hidden" for="askInput">Your question</label>
+                    <label class="visually-hidden" for="askInput">{{ _('Your question') }}</label>
                     <textarea id="askInput" rows="2" maxlength="8000" aria-describedby="askHint"
                               placeholder="Ask about markets, rates, filings or a calculation…"></textarea>
                     <div class="ask-compose-bar">
-                        <span class="ask-hint" id="askHint">Enter to send · Shift+Enter for a new line</span>
+                        <span class="ask-hint" id="askHint">{{ _('Enter to send · Shift+Enter for a new line') }}</span>
                         <button type="button" class="btn btn-sm btn-outline-danger" id="askStop" hidden>
-                            <i class="bi bi-stop-fill" aria-hidden="true"></i> Stop</button>
+                            <i class="bi bi-stop-fill" aria-hidden="true"></i> {{ _('Stop') }}</button>
                         <button type="submit" class="btn btn-sm btn-primary" id="askSend">
-                            <i class="bi bi-send" aria-hidden="true"></i> Send</button>
+                            <i class="bi bi-send" aria-hidden="true"></i> {{ _('Send') }}</button>
                     </div>
                 </div>
             </form>
         </section>
 
         <aside class="ask-sky-col" aria-labelledby="askSkyTitle">
-            <h2 class="visually-hidden" id="askSkyTitle">Tool sky</h2>
-            <div class="ask-filter" role="search" aria-label="Filter the tool sky">
-                <label class="ask-filter-label" for="askFilter"><i class="bi bi-funnel" aria-hidden="true"></i> Filter tools (regex)</label>
+            <h2 class="visually-hidden" id="askSkyTitle">{{ _('Tool sky') }}</h2>
+            <div class="ask-filter" role="search" aria-label="{{ _('Filter the tool sky') }}">
+                <label class="ask-filter-label" for="askFilter"><i class="bi bi-funnel" aria-hidden="true"></i> {{ _('Filter tools (regex)') }}</label>
                 <div class="ask-filter-box">
                     <input type="search" id="askFilter" class="form-control form-control-sm" spellcheck="false" autocomplete="off"
-                           placeholder="e.g. ^calc or bond|yield" aria-describedby="askFilterMsg askFilterErr askFilterHelp">
-                    <button type="button" class="ask-filter-clear" id="askFilterClear" hidden aria-label="Clear the filter">
+                           placeholder="{{ _('e.g. ^calc or bond|yield') }}" aria-describedby="askFilterMsg askFilterErr askFilterHelp">
+                    <button type="button" class="ask-filter-clear" id="askFilterClear" hidden aria-label="{{ _('Clear the filter') }}">
                         <i class="bi bi-x-lg" aria-hidden="true"></i></button>
                 </div>
                 <span class="ask-filter-msg" id="askFilterMsg" aria-live="polite"></span>
                 <div class="ask-filter-note">
-                    <span class="ask-filter-help" id="askFilterHelp">Matches tool names, groups and descriptions, ignoring case (or write <code>/pattern/flags</code>).
-                        Only the sky changes: the filter does not change which tools SAJHA uses to answer.</span>
+                    <span class="ask-filter-help" id="askFilterHelp">{% trans %}Matches tool names, groups and descriptions, ignoring case (or write <code>/pattern/flags</code>).
+                        Only the sky changes: the filter does not change which tools SAJHA uses to answer.{% endtrans %}</span>
                     <span class="ask-filter-err" id="askFilterErr" aria-live="polite"></span>
                 </div>
             </div>
-            <div class="ask-sky" id="askSky" title="Every star is a tool this server has loaded, grouped by provider. When you ask, the tools SAJHA considers light up and a line runs to each tool it calls, with that call's result. Point at a star (or tap it) to see its tool; click to pin, Escape to close.">
+            <div class="ask-sky" id="askSky" title="{{ _('Every star is a tool this server has loaded, grouped by provider. When you ask, the tools SAJHA considers light up and a line runs to each tool it calls, with that call\'s result. Point at a star (or tap it) to see its tool; click to pin, Escape to close.') }}">
                 <canvas id="askSkyCanvas" aria-hidden="true"></canvas>
                 <div class="ask-sky-status" id="askSkyStatus" aria-hidden="true">
-                    <span class="ask-sky-dot" aria-hidden="true"></span><span id="askSkyStatusText">Waiting for a question</span></div>
+                    <span class="ask-sky-dot" aria-hidden="true"></span><span id="askSkyStatusText">{{ _('Waiting for a question') }}</span></div>
                 <div class="ask-sky-stats" id="askSkyStats" aria-hidden="true"></div>
             </div>
             <section class="ask-calls" aria-labelledby="askCallsTitle">
                 <div class="ask-calls-head">
-                    <h3 id="askCallsTitle">Servers and tools</h3>
+                    <h3 id="askCallsTitle">{{ _('Servers and tools') }}</h3>
                     <span class="ask-calls-tools">
-                        <span class="ask-calls-count" id="askCallsCount">No calls yet</span>
+                        <span class="ask-calls-count" id="askCallsCount">{{ _('No calls yet') }}</span>
                         <button type="button" class="ask-calls-clear" id="askCallsClear" aria-controls="askCallsLog">
-                            <i class="bi bi-eraser" aria-hidden="true"></i> Clear</button>
+                            <i class="bi bi-eraser" aria-hidden="true"></i> {{ _('Clear') }}</button>
                     </span>
                 </div>
                 <ol class="ask-calls-log" id="askCallsLog" role="log" aria-live="polite" aria-relevant="additions"
-                    aria-label="Each server SAJHA contacts and the tool it runs, newest last"></ol>
+                    aria-label="{{ _('Each server SAJHA contacts and the tool it runs, newest last') }}"></ol>
             </section>
-            <p class="ask-sky-cap">Every star is a tool this server has loaded, grouped by provider. When you ask, the
-                tools SAJHA considers light up and a line runs to each tool it calls, with that call's result.
-                Point at a star (or tap it) to see its tool; click to pin, Escape to close.
-                The conversation holds the same steps in text.</p>
+            <p class="ask-sky-cap">{{ _('Every star is a tool this server has loaded, grouped by provider. When you ask, the tools SAJHA considers light up and a line runs to each tool it calls, with that call\'s result. Point at a star (or tap it) to see its tool; click to pin, Escape to close. The conversation holds the same steps in text.') }}</p>
         </aside>
     </div>
 </div>

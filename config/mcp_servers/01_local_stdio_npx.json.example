@@ -1,9 +1,11 @@
 {
-  "_comment": "Open-source reference servers run on this machine over stdio with npx (needs Node.js). Requires federation.allow_stdio: true. Each server's tools are published as <vendor>__<tool>.",
+  "_comment": "Open-source reference servers over stdio with npx. Requires federation.allow_stdio: true. Each runs in its own container (an image with Node.js; npx fetches the package, so the registry must be reachable) unless it says isolation: none. Each server's tools are published as <vendor>__<tool>.",
   "mcpServers": {
     "filesystem": {
       "command": "npx",
       "args": ["-y", "@modelcontextprotocol/server-filesystem", "/srv/shared-docs"],
+      "container": {"image": "node:22-slim", "mounts": ["/srv/shared-docs:/srv/shared-docs"], "tmpfs_mb": 512,
+                    "network": "allowlist", "allow_hosts": ["registry.npmjs.org:443"]},
       "vendor": "mcp_reference",
       "prefix": "files",
       "tools": ["read_*", "list_*", "search_files", "get_file_info"],
@@ -12,16 +14,21 @@
     "memory": {
       "command": "npx",
       "args": ["-y", "@modelcontextprotocol/server-memory"],
-      "env": {"MEMORY_FILE_PATH": "/var/lib/sajha/mcp-memory.json"}
+      "env": {"MEMORY_FILE_PATH": "/var/lib/sajha/mcp-memory.json"},
+      "isolation": "none",
+      "_isolation_comment": "It writes its memory file on the host, and container mounts are read-only, so it runs as a process of SAJHA (a warning notice says so)."
     },
     "sequential_thinking": {
       "command": "npx",
-      "args": ["-y", "@modelcontextprotocol/server-sequential-thinking"]
+      "args": ["-y", "@modelcontextprotocol/server-sequential-thinking"],
+      "container": {"image": "node:22-slim", "tmpfs_mb": 512, "network": "allowlist", "allow_hosts": ["registry.npmjs.org:443"]}
     },
     "playwright": {
       "command": "npx",
       "args": ["-y", "@playwright/mcp@latest", "--headless"],
-      "vendor": "microsoft"
+      "vendor": "microsoft",
+      "isolation": "none",
+      "_isolation_comment": "A browser that browses: give it an image with Playwright's browsers and network access before you set container instead."
     }
   }
 }

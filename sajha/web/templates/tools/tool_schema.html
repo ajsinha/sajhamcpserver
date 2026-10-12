@@ -2,47 +2,47 @@
 <!--
 Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.com
 -->
-{% block title %}{{ tool.name }} - Schema - SAJHA MCP Server{% endblock %}
+{% block title %}{% trans name=tool.name %}{{ name }} - Schema - SAJHA MCP Server{% endtrans %}{% endblock %}
 
 {% block content %}
 <div class="container-fluid">
     <div class="mb-3">
         <a href="{{ url_for('dashboard') }}" class="btn btn-sm btn-outline-secondary">
-            <i class="bi bi-speedometer2"></i> Back to Dashboard
+            <i class="bi bi-speedometer2"></i> {{ _('Back to Dashboard') }}
         </a>
         <a href="{{ url_for('tools_list') }}" class="btn btn-sm btn-outline-primary">
-            <i class="bi bi-list"></i> Back to Tools
+            <i class="bi bi-list"></i> {{ _('Back to Tools') }}
         </a>
     </div>
 
     <h1 class="h3 mb-4">
-        <i class="bi bi-file-code"></i> Tool Schema: {{ tool.name }}
+        <i class="bi bi-file-code"></i> {% trans name=tool.name %}Tool Schema: {{ name }}{% endtrans %}
     </h1>
 
     <!-- Basic Information -->
     <div class="card mb-4">
         <div class="card-header card-header-primary">
-            <h5 class="mb-0"><i class="bi bi-info-circle"></i> Basic Information</h5>
+            <h5 class="mb-0"><i class="bi bi-info-circle"></i> {{ _('Basic Information') }}</h5>
         </div>
         <div class="card-body">
             <div class="row">
                 <div class="col-md-6">
                     <table class="table table-borderless">
                         <tr>
-                            <th style="width: 150px;">Tool Name:</th>
+                            <th style="width: 150px;">{{ _('Tool Name:') }}</th>
                             <td><strong>{{ tool.name }}</strong></td>
                         </tr>
                         <tr>
-                            <th>Version:</th>
+                            <th>{{ _('Version:') }}</th>
                             <td>{{ tool_version }}</td>
                         </tr>
                         <tr>
-                            <th>Status:</th>
+                            <th>{{ _('Status:') }}</th>
                             <td>
                                 {% if tool_enabled %}
-                                    <span class="badge bg-success">Enabled</span>
+                                    <span class="badge bg-success">{{ _('Enabled') }}</span>
                                 {% else %}
-                                    <span class="badge bg-danger">Disabled</span>
+                                    <span class="badge bg-danger">{{ _('Disabled') }}</span>
                                 {% endif %}
                             </td>
                         </tr>
@@ -51,7 +51,7 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
                 <div class="col-md-6">
                     <table class="table table-borderless">
                         <tr>
-                            <th style="width: 150px;">Description:</th>
+                            <th style="width: 150px;">{{ _('Description:') }}</th>
                             <td>{{ tool.description }}</td>
                         </tr>
                     </table>
@@ -63,7 +63,7 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
     <!-- Input Schema -->
     <div class="card mb-4">
         <div class="card-header card-header-info">
-            <h5 class="mb-0"><i class="bi bi-code-square"></i> Input Schema</h5>
+            <h5 class="mb-0"><i class="bi bi-code-square"></i> {{ _('Input Schema') }}</h5>
         </div>
         <div class="card-body">
             {% if tool.inputSchema and tool.inputSchema.properties %}
@@ -71,11 +71,11 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
                     <table class="table table-hover">
                         <thead>
                             <tr>
-                                <th>Parameter Name</th>
-                                <th>Type</th>
-                                <th>Required</th>
-                                <th>Description</th>
-                                <th>Details</th>
+                                <th>{{ _('Parameter Name') }}</th>
+                                <th>{{ _('Type') }}</th>
+                                <th>{{ _('Required') }}</th>
+                                <th>{{ _('Description') }}</th>
+                                <th>{{ _('Details') }}</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -87,16 +87,16 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
                                 </td>
                                 <td>
                                     {% if tool.inputSchema.required and prop_name in tool.inputSchema.required %}
-                                        <span class="badge bg-danger">REQUIRED</span>
+                                        <span class="badge bg-danger">{{ _('REQUIRED') }}</span>
                                     {% else %}
-                                        <span class="badge bg-secondary">Optional</span>
+                                        <span class="badge bg-secondary">{{ _('Optional') }}</span>
                                     {% endif %}
                                 </td>
                                 <td>
                                     {% if prop_details.description %}
                                         {{ prop_details.description }}
                                     {% else %}
-                                        <span class="text-muted">No description</span>
+                                        <span class="text-muted">{{ _('No description') }}</span>
                                     {% endif %}
                                 </td>
                                 <td>
@@ -104,48 +104,48 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
                                             data-bs-toggle="collapse"
                                             data-bs-target="#details-{{ loop.index }}"
                                             aria-expanded="false">
-                                        <i class="bi bi-chevron-down"></i> Details
+                                        <i class="bi bi-chevron-down"></i> {{ _('Details') }}
                                     </button>
                                 </td>
                             </tr>
                             <tr class="collapse" id="details-{{ loop.index }}">
                                 <td colspan="5" class="bg-light">
                                     <div class="p-3">
-                                        <h6>Additional Details for <code>{{ prop_name }}</code></h6>
+                                        <h6>{% trans prop_name=prop_name %}Additional Details for <code>{{ prop_name }}</code>{% endtrans %}</h6>
                                         <ul class="mb-0">
                                             {% if prop_details.default is defined %}
-                                                <li><strong>Default Value:</strong> <code>{{ prop_details.default }}</code></li>
+                                                <li>{% trans default=prop_details.default %}<strong>Default Value:</strong> <code>{{ default }}</code>{% endtrans %}</li>
                                             {% endif %}
                                             {% if prop_details.enum %}
-                                                <li><strong>Allowed Values:</strong>
+                                                <li><strong>{{ _('Allowed Values:') }}</strong>
                                                     {% for val in prop_details.enum %}
                                                         <span class="badge bg-secondary">{{ val }}</span>
                                                     {% endfor %}
                                                 </li>
                                             {% endif %}
                                             {% if prop_details.minimum is defined %}
-                                                <li><strong>Minimum:</strong> {{ prop_details.minimum }}</li>
+                                                <li>{% trans minimum=prop_details.minimum %}<strong>Minimum:</strong> {{ minimum }}{% endtrans %}</li>
                                             {% endif %}
                                             {% if prop_details.maximum is defined %}
-                                                <li><strong>Maximum:</strong> {{ prop_details.maximum }}</li>
+                                                <li>{% trans maximum=prop_details.maximum %}<strong>Maximum:</strong> {{ maximum }}{% endtrans %}</li>
                                             {% endif %}
                                             {% if prop_details.minLength is defined %}
-                                                <li><strong>Minimum Length:</strong> {{ prop_details.minLength }}</li>
+                                                <li>{% trans value=prop_details.minLength %}<strong>Minimum Length:</strong> {{ value }}{% endtrans %}</li>
                                             {% endif %}
                                             {% if prop_details.maxLength is defined %}
-                                                <li><strong>Maximum Length:</strong> {{ prop_details.maxLength }}</li>
+                                                <li>{% trans value=prop_details.maxLength %}<strong>Maximum Length:</strong> {{ value }}{% endtrans %}</li>
                                             {% endif %}
                                             {% if prop_details.pattern %}
-                                                <li><strong>Pattern:</strong> <code>{{ prop_details.pattern }}</code></li>
+                                                <li>{% trans pattern=prop_details.pattern %}<strong>Pattern:</strong> <code>{{ pattern }}</code>{% endtrans %}</li>
                                             {% endif %}
                                             {% if prop_details.items %}
-                                                <li><strong>Array Items Type:</strong> {{ prop_details.items.type }}</li>
+                                                <li>{% trans type=prop_details.items.type %}<strong>Array Items Type:</strong> {{ type }}{% endtrans %}</li>
                                                 {% if prop_details.items.description %}
-                                                    <li><strong>Items Description:</strong> {{ prop_details.items.description }}</li>
+                                                    <li>{% trans description=prop_details.items.description %}<strong>Items Description:</strong> {{ description }}{% endtrans %}</li>
                                                 {% endif %}
                                             {% endif %}
                                             {% if prop_details.properties %}
-                                                <li><strong>Object Properties:</strong> {{ prop_details.properties.keys()|list|join(', ') }}</li>
+                                                <li>{% trans value=prop_details.properties.keys()|list|join(', ') %}<strong>Object Properties:</strong> {{ value }}{% endtrans %}</li>
                                             {% endif %}
                                         </ul>
                                     </div>
@@ -157,7 +157,7 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
                 </div>
             {% else %}
                 <div class="alert alert-info">
-                    <i class="bi bi-info-circle"></i> This tool does not require any input parameters.
+                    <i class="bi bi-info-circle"></i> {{ _('This tool does not require any input parameters.') }}
                 </div>
             {% endif %}
         </div>
@@ -166,12 +166,12 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
     <!-- JSON Schema (Raw) -->
     <div class="card mb-4">
         <div class="card-header card-header-secondary">
-            <h5 class="mb-0"><i class="bi bi-braces"></i> JSON Schema (Raw)</h5>
+            <h5 class="mb-0"><i class="bi bi-braces"></i> {{ _('JSON Schema (Raw)') }}</h5>
         </div>
         <div class="card-body">
             <pre class="border rounded p-3" style="background-color: var(--sajha-canvas); color: var(--sajha-ink); max-height: 400px; overflow-y: auto; font-family: 'Courier New', monospace;"><code>{{ schema_json }}</code></pre>
             <button class="btn btn-sm btn-outline-primary mt-2" data-onclick="copyToClipboard('schema')">
-                <i class="bi bi-clipboard"></i> Copy to Clipboard
+                <i class="bi bi-clipboard"></i> {{ _('Copy to Clipboard') }}
             </button>
         </div>
     </div>
@@ -179,21 +179,21 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
     <!-- JSON Configuration -->
     <div class="card mb-4">
         <div class="card-header card-header-warning text-dark">
-            <h5 class="mb-0"><i class="bi bi-file-earmark-code"></i> JSON Configuration (from {{ tools_dir() }})</h5>
+            <h5 class="mb-0"><i class="bi bi-file-earmark-code"></i> {% trans value=tools_dir() %}JSON Configuration (from {{ value }}){% endtrans %}</h5>
         </div>
         <div class="card-body">
             {% if config_json %}
                 <pre class="border rounded p-3" style="background-color: var(--sajha-canvas); color: var(--sajha-ink); max-height: 400px; overflow-y: auto; font-family: 'Courier New', monospace;"><code>{{ config_json }}</code></pre>
                 <button class="btn btn-sm btn-outline-primary mt-2" data-onclick="copyToClipboard('config')">
-                    <i class="bi bi-clipboard"></i> Copy to Clipboard
+                    <i class="bi bi-clipboard"></i> {{ _('Copy to Clipboard') }}
                 </button>
             {% elif not is_admin %}
                 <div class="alert alert-info">
-                    <i class="bi bi-info-circle"></i> The configuration is shown to administrators only (it holds resolved settings).
+                    <i class="bi bi-info-circle"></i> {{ _('The configuration is shown to administrators only (it holds resolved settings).') }}
                 </div>
             {% else %}
                 <div class="alert alert-info">
-                    <i class="bi bi-info-circle"></i> No configuration file found for this tool in {{ tools_dir() }}.
+                    <i class="bi bi-info-circle"></i> {% trans value=tools_dir() %}No configuration file found for this tool in {{ value }}.{% endtrans %}
                 </div>
             {% endif %}
         </div>
@@ -202,22 +202,22 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
     <!-- Literature Content -->
     <div class="card mb-4">
         <div class="card-header card-header-secondary">
-            <h5 class="mb-0"><i class="bi bi-book"></i> Literature Content</h5>
+            <h5 class="mb-0"><i class="bi bi-book"></i> {{ _('Literature Content') }}</h5>
         </div>
         <div class="card-body">
             <div class="mb-3">
                 <label for="literatureContent" class="form-label">
-                    Tool documentation, usage examples, and additional information:
+                    {{ _('Tool documentation, usage examples, and additional information:') }}
                 </label>
                 <textarea class="form-control" id="literatureContent" rows="15"
                           style="font-family: 'Courier New', monospace; font-size: 0.9em;">{{ literature_content }}</textarea>
             </div>
             <div class="d-flex gap-2">
                 <button class="btn btn-primary" data-onclick="saveLiterature()">
-                    <i class="bi bi-save"></i> Save Literature
+                    <i class="bi bi-save"></i> {{ _('Save Literature') }}
                 </button>
                 <button class="btn btn-outline-secondary" data-onclick="copyToClipboard('literature')">
-                    <i class="bi bi-clipboard"></i> Copy to Clipboard
+                    <i class="bi bi-clipboard"></i> {{ _('Copy to Clipboard') }}
                 </button>
             </div>
             <div id="literatureSaveStatus" class="mt-2"></div>
@@ -227,21 +227,21 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
     <!-- Actions -->
     <div class="card">
         <div class="card-header card-header-success">
-            <h5 class="mb-0"><i class="bi bi-lightning"></i> Quick Actions</h5>
+            <h5 class="mb-0"><i class="bi bi-lightning"></i> {{ _('Quick Actions') }}</h5>
         </div>
         <div class="card-body">
             <a href="{{ url_for('tool_execute', tool_name=tool.name) }}" class="btn btn-success">
-                <i class="bi bi-play-circle"></i> Execute This Tool
+                <i class="bi bi-play-circle"></i> {{ _('Execute This Tool') }}
             </a>
             <a href="{{ url_for('tools_list') }}" class="btn btn-outline-primary">
-                <i class="bi bi-list"></i> View All Tools
+                <i class="bi bi-list"></i> {{ _('View All Tools') }}
             </a>
             <a href="{{ url_for('dashboard') }}" class="btn btn-outline-secondary">
-                <i class="bi bi-speedometer2"></i> Back to Dashboard
+                <i class="bi bi-speedometer2"></i> {{ _('Back to Dashboard') }}
             </a>
             {% if user and user.roles and 'admin' in user.roles %}
             <a href="{{ url_for('tool_config_page', tool_name=tool.name) }}" class="btn btn-outline-warning">
-                <i class="bi bi-gear"></i> Edit Configuration
+                <i class="bi bi-gear"></i> {{ _('Edit Configuration') }}
             </a>
             {% endif %}
         </div>
@@ -261,7 +261,7 @@ function copyToClipboard(type) {
         {% if config_json %}
         textToCopy = {{ config_json|tojson }};
         {% else %}
-        alert('No configuration available to copy');
+        alert(_t('No configuration available to copy'));
         return;
         {% endif %}
     } else if (type === 'literature') {
@@ -271,15 +271,15 @@ function copyToClipboard(type) {
     navigator.clipboard.writeText(textToCopy).then(function() {
         let message;
         if (type === 'schema') {
-            message = 'Schema';
+            message = _t('Schema');
         } else if (type === 'config') {
-            message = 'Configuration';
+            message = _t('Configuration');
         } else if (type === 'literature') {
-            message = 'Literature content';
+            message = _t('Literature content');
         }
-        alert(message + ' copied to clipboard!');
+        alert(message + _t(' copied to clipboard!'));
     }, function() {
-        alert('Failed to copy to clipboard');
+        alert(_t('Failed to copy to clipboard'));
     });
 }
 
@@ -289,7 +289,7 @@ function saveLiterature() {
     const toolName = '{{ tool.name }}';
 
     // Show loading message
-    statusDiv.innerHTML = '<div class="alert alert-info"><i class="bi bi-hourglass-split"></i> Saving literature content...</div>';
+    statusDiv.innerHTML = '<div class="alert alert-info"><i class="bi bi-hourglass-split"></i> ' + _t('Saving literature content...') + '</div>';
 
     // Create form data
     const formData = new FormData();
@@ -309,11 +309,11 @@ function saveLiterature() {
                 statusDiv.innerHTML = '';
             }, 3000);
         } else {
-            statusDiv.innerHTML = '<div class="alert alert-danger"><i class="bi bi-exclamation-triangle"></i> Error: ' + data.error + '</div>';
+            statusDiv.innerHTML = '<div class="alert alert-danger"><i class="bi bi-exclamation-triangle"></i> ' + _t('Error:') + ' ' + data.error + '</div>';
         }
     })
     .catch(error => {
-        statusDiv.innerHTML = '<div class="alert alert-danger"><i class="bi bi-exclamation-triangle"></i> Error saving literature: ' + error + '</div>';
+        statusDiv.innerHTML = '<div class="alert alert-danger"><i class="bi bi-exclamation-triangle"></i> ' + _t('Error saving literature:') + ' ' + error + '</div>';
     });
 }
 </script>

@@ -1,22 +1,22 @@
 {% extends "common/base.html" %}
 {# Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.com #}
 {# The guide library: every guide under docs/, grouped by folder (sajha/web/guides.py). #}
-{% block title %}Guides - Help - {{ app_name }}{% endblock %}
+{% block title %}{{ _('Guides') }} - {{ _('Help') }} - {{ app_name }}{% endblock %}
 
 {% block content %}
 <div class="container-fluid">
-    <nav class="help-crumbs" aria-label="Breadcrumb"><a href="/help"><i class="bi bi-life-preserver me-1" aria-hidden="true"></i>Help</a><i class="bi bi-chevron-right" aria-hidden="true"></i><span>Guides</span></nav>
+    <nav class="help-crumbs" aria-label="{{ _('Breadcrumb') }}"><a href="/help"><i class="bi bi-life-preserver me-1" aria-hidden="true"></i>{{ _('Help') }}</a><i class="bi bi-chevron-right" aria-hidden="true"></i><span>{{ _('Guides') }}</span></nav>
     <div class="help-topic-hero">
         <div class="ico"><i class="bi bi-collection" aria-hidden="true"></i></div>
         <div>
-            <h1>Guide library</h1>
-            <p>Every guide, by folder. Each owns one topic; definitions are in the <a href="/glossary">glossary</a>.</p>
+            <h1>{{ _('Guide library') }}</h1>
+            <p>{% trans %}Every guide, by folder. Each owns one topic; definitions are in the <a href="/glossary">glossary</a>.{% endtrans %}</p>
         </div>
     </div>
 
     <div class="help-search">
         <i class="bi bi-search" aria-hidden="true"></i>
-        <input id="helpSearch" type="search" autocomplete="off" placeholder="Filter {{ guide_count }} guides&hellip;" aria-label="Filter guides">
+        <input id="helpSearch" type="search" autocomplete="off" placeholder="{{ _('Filter %(n)s guides…', n=guide_count) }}" aria-label="{{ _('Filter guides') }}">
     </div>
     <div class="cat-chips mb-3">
         {% for f in folders %}<a class="chip" href="#f-{{ f.folder|replace('/', '-') }}">{{ f.label }} <span>{{ f.guides|length }}</span></a>{% endfor %}
@@ -37,7 +37,7 @@
         </div>
     {% endfor %}
     </div>
-    <div id="helpNoHits" class="help-none"><i class="bi bi-search" aria-hidden="true"></i> No guide matches.</div>
+    <div id="helpNoHits" class="help-none"><i class="bi bi-search" aria-hidden="true"></i> {{ _('No guide matches.') }}</div>
 
     {% include "help/_help_footer.html" %}
 </div>

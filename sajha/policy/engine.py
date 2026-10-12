@@ -262,15 +262,21 @@ class PolicyEngine:
 
     def residency(self, call: Call) -> Decision:
         """A residency decision (SAJHA Net, design §12): only residency rules (those naming data classes,
-        a flow or a destination) take part; deny overrides; ``require_approval`` refuses (a net call cannot
-        wait for an approval); ``redact.data_classes`` of the matching rules are collected. With
+        a flow or a destination) take part; deny overrides; then ``require_approval`` gives that effect (the
+        home asks a person to approve arguments leaving it; anywhere else the caller refuses it, since a call
+        cannot wait); ``redact.data_classes`` of the matching rules are collected. With
         ``default_effect: deny``, classified data needs a matching ``allow`` rule. Pure: no counters."""
         rules = [r for r in self.rules() if r.match.residency and r.match.matches(call)]
         d = Decision(effect='allow', matched=rules)
-        stop = next((r for r in rules if r.effect in ('deny', 'require_approval')), None)
+        stop = next((r for r in rules if r.effect == 'deny'), None)
         if stop is not None:
             d.effect, d.kind, d.rule = 'deny', 'deny', stop.key
             d.reason = stop.reason or f'refused by residency rule {stop.key}'
+            return d
+        appr = next((r for r in rules if r.effect == 'require_approval'), None)
+        if appr is not None:
+            d.effect, d.kind, d.rule, d.approval_rule = 'require_approval', 'approval_required', appr.key, appr
+            d.reason = appr.reason or f'residency rule {appr.key} requires approval'
             return d
         allow = next((r for r in rules if r.effect == 'allow'), None)
         if call.data_classes and allow is None and \

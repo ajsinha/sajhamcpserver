@@ -1,0 +1,18 @@
+{# Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.com #}
+{# The one confirmation every SAJHA Net change goes through: its effect, its blast radius, a required
+   reason, and whether it can be undone (static/js/sajhanet_console.js). #}
+<dialog id="sn-dialog" aria-labelledby="sn-dialog-title">
+  <h2 class="h5" id="sn-dialog-title">{{ _('Confirm this change') }}</h2>
+  <p class="mb-2" data-role="effect"></p>
+  <p class="sn-meta mb-2" data-role="blast" aria-live="polite"></p>
+  <p class="sn-meta mb-2" data-role="undo">{{ _('It goes into the change history, from which it can be undone.') }}</p>
+  <p class="sn-meta mb-2 sn-bad" data-role="final" hidden>{{ _('This change cannot be undone.') }}</p>
+  <label class="form-label small" for="sn-reason">{{ _('Reason (required)') }}</label>
+  <textarea class="form-control form-control-sm mb-2" id="sn-reason" rows="2" maxlength="500" required></textarea>
+  <p class="small sn-bad mb-2" data-role="out" role="status" aria-live="polite"></p>
+  <div class="d-flex justify-content-end gap-2">
+    <button class="btn btn-sm btn-outline-secondary" type="button" data-sn-cancel>{{ _('Cancel') }}</button>
+    <button class="btn btn-sm btn-danger" type="button" data-sn-confirm>{{ _('Confirm') }}</button>
+  </div>
+</dialog>
+<script src="{{ url_for('static', filename='js/sajhanet_console.js') }}?v={{ app_version }}"></script>

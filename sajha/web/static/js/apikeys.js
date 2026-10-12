@@ -79,10 +79,10 @@
   if (copyBtn) {
     copyBtn.addEventListener('click', function () {
       var text = onceValue ? onceValue.textContent : '';
-      var ok = function () { copyBtn.textContent = 'Copied'; };
+      var ok = function () { copyBtn.textContent = _t('Copied'); };
       if (navigator.clipboard && navigator.clipboard.writeText) {
-        navigator.clipboard.writeText(text).then(ok, function () { window.prompt('Copy the key', text); });
-      } else { window.prompt('Copy the key', text); }
+        navigator.clipboard.writeText(text).then(ok, function () { window.prompt(_t('Copy the key'), text); });
+      } else { window.prompt(_t('Copy the key'), text); }
     });
   }
   var closeBtn = document.getElementById('keyOnceDone');

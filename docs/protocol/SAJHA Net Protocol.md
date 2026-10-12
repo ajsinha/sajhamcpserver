@@ -7,10 +7,9 @@ alone. The SAJHA Net guide owns the rationale, the console, storage and configur
 owns the bytes on the wire. Where the two disagree, report it: neither is automatically right.
 
 **SAJHA's implementation** (target S), the agent (A) and the library (L) implement every section
-except: the `visibility` feature (§10.5); host-side tasks on forwarded calls (§15.6);
-forwarding on the 2025-11-25 era (§6.4: SAJHA always
-forwards on 2026-07-28); and, for the agent and sponsored participants, streamed forwarded calls
-(§15.10: they do not list `streaming`, so homes ask them for JSON answers only). The library provides the
+except, for the agent and sponsored participants, streamed forwarded calls and host-side tasks (§15.10,
+§15.6: they do not list `streaming` or `tasks`, so homes ask them for JSON answers only) and the
+`visibility` feature (§10.5). The library provides the
 event chain of §8.9. The conformance ids these leave uncovered, and what SAJHA advertises, are in
 [SAJHA Net](../architecture/SAJHA%20Net.md#55-what-is-built) §5.5 and §5.9.
 
@@ -339,9 +338,10 @@ SAJHA (target S) lists, per net: `gossip` (with the `gossip` membership), `ca` (
 `builtin_ca` net), `catalog`, `blocks`, `key_directory` and `key_verification` (with key directories),
 `residency`, `token_exchange` (when its `user_identity` lists it) and `reexport` (when re-export is on for
 the net), and `streaming`, `progress`, `cancellation` and `mrtr` (unless `sajhanet.streaming.enabled` is
-off; a sponsored participant lists `mrtr` with its sponsor). It does not list `visibility`, `tasks` or
-`llm_tools`; its LLM tools carry `llm_tool: true` in their
-catalog metadata (§10.2) all the same.
+off; a sponsored participant lists `mrtr` with its sponsor), `visibility` (with key directories, unless
+`sajhanet.visibility.enabled` is off) and `tasks` (unless `sajhanet.tasks.enabled` or `mcp.tasks.enabled`
+is off; not for a sponsored participant). It does not list `llm_tools`; its LLM tools carry
+`llm_tool: true` in their catalog metadata (§10.2) all the same.
 
 `user_identity` lists the identity resolvers the participant accepts as a host and can produce as a
 home: `api_key` (§15.3), `assertion` (§15.5), `token_exchange` (§15.9; RFC 8693 shaped, between two
@@ -366,10 +366,20 @@ absent.
 
 A home MUST forward on 2026-07-28 when the host lists it in `supportedVersions`, and otherwise MAY
 forward on 2025-11-25 with one MCP session per (net, home, host). Streaming, input requests and tasks on
-a hop (§15.6, §15.10) are defined for 2026-07-28 hops only; SAJHA forwards on 2026-07-28 only and does
-not use the 2025-11-25 form (§22). A 2025-11-25 session created by a signed
+a hop (§15.6, §15.10) are defined for 2026-07-28 hops only (§22). A 2025-11-25 session created by a signed
 request from participant X in net N MUST only be used by signed requests from X in N
 (`Mcp-Session-Id` is not an identity; every request is signed and its user resolved individually).
+
+SAJHA as a home forwards on 2026-07-28. A host that does not serve it answers the signed request with the
+MCP error `-32022` (HTTP 400, `data.supported` listing the versions it serves) before anything else is
+checked; when `data.supported` lists 2025-11-25, the home sends a signed `initialize` (protocol version
+2025-11-25, the client declaration of §6.3), keeps the `Mcp-Session-Id` of the signed answer for that
+(net, host), and repeats the call on 2025-11-25 with that header, without streaming, input requests or
+tasks. SAJHA as a host answers a signed `initialize` with a new `Mcp-Session-Id` bound to the net and the
+sending participant (kept in the state store for an hour). A signed request whose `Mcp-Session-Id` is
+unknown, expired, or bound to another participant or net is refused before anything else with HTTP 404 and
+`-32014` reason `session_invalid` (`executed: false`); a home whose session is refused opens a new one
+once.
 
 ## 7. Transport
 
@@ -1732,8 +1742,9 @@ chosen by §6.4, in the net the chosen host was learned in, with `params.name` s
 own tool name (not the qualified name or the tool part) and the arguments unchanged after the home's
 own checks. The home SHOULD add
 `params._meta["io.sajha/net"] = {"home": "<home>", "qualified_name": "<net>__<prefix>__<tool part>"}`
-for the host's audit, on the second and later attempts of one call (§15.8), `"attempt": <n>`, and, when
-the call is made from inside tools running one inside another, `"depth": <n>` (§16). Arguments travel in the body, covered by `Content-Digest`; any `Mcp-Param-*` headers
+for the host's audit, on the second and later attempts of one call (§15.8), `"attempt": <n>`, when
+the call is made from inside tools running one inside another, `"depth": <n>` (§16), when it asks for a
+stream `"stream": 1` (§15.10), and when it asks for a task held at the host `"task": 1` (§15.6). Arguments travel in the body, covered by `Content-Digest`; any `Mcp-Param-*` headers
 mirroring them are covered by the signature (§8.5).
 
 ### 15.2 Headers
@@ -1894,14 +1905,26 @@ request whose user the host resolves again; no session state rides on the hop.
   `input_required` becomes its own, with the next host's state inside its own `requestState`.
 - **Tasks** (`tasks` on both sides). A task created at the host is scoped to the resolved net user; the
   home relays `tasks/get`, `tasks/update` and `tasks/cancel` as signed requests with the same identity
-  headers.
+  headers. The home asks for one by setting `params._meta["io.sajha/net"].task` to 1 and declaring the
+  tasks extension in `params._meta["io.modelcontextprotocol/clientCapabilities"]`; such a call is answered
+  with JSON, never a stream. The host runs steps 1 to 9 of §15.4 as for any call (a refusal there is the
+  answer, with `executed: false`), then creates the task, owned by the net, the sending participant and the
+  resolved user, and answers at once with the `CreateTaskResult` (`resultType: "task"`, `taskId`, status,
+  `pollIntervalMs`). Steps 10 to 12 run in the task, not bounded by the hop's deadline: a refusal there
+  fails the task with the refusal as its `error` (with `data["io.sajha/net"]`), a tool asking for input
+  makes it `input_required`. Each `tasks/*` request is signed with `Sajha-Net-Hop: 1`, the home as the only
+  visited participant, and the same identity headers a call would carry (the user is resolved again,
+  steps 1 to 6); a task of another participant, another user or none is `-32602 Unknown taskId`. The
+  result in `tasks/get` is the call's result, with `_meta["io.sajha/net"].instance`.
 - A destructive tool still needs confirmation at the home (design §9); the host may require its own
   approval (`-32011 approval_required`).
 
-SAJHA relays progress, log, cancellation and input requests. It does not list `tasks`: host-side tasks are
-deferred (§22 decision 42). A task-augmented call at the home wraps the forwarded call: the task runs it
-(streamed when the host lists `streaming`), and `tasks/cancel` at the home cancels the task's context,
-which closes the stream and so cancels the call at the host.
+SAJHA relays progress, log, cancellation and input requests, and lists `tasks`. As a home it forwards a
+call task-augmented when its own caller runs the proxy as a task and the host lists `tasks`; its own task
+then names the host's task and follows it (`tasks/get` at the home relays one signed `tasks/get`), so it
+survives a restart of the home. With a host that does not list `tasks`, the home's task wraps the
+forwarded call as before: the task runs it (streamed when the host lists `streaming`), and `tasks/cancel`
+at the home cancels the task's context, which closes the stream and so cancels the call at the host.
 
 ### 15.7 What the home's caller sees
 
@@ -2100,7 +2123,7 @@ already and never emits `-32002` on the modern path):
 | `-32011` | Authorization refused | `export`, `access`, `policy`, `approval_required`, `remote_admin`, `contract_conflict` (the tool is quarantined at the host, §10.7) | host | 200 |
 | `-32012` | Residency refused | `residency_arguments` (home), `residency_result` (host) | either | 200 |
 | `-32013` | Identity refused | `key_unknown`, `key_disabled`, `key_expired`, `key_revoked`, `key_not_from_home`, `no_account`, `assertion_invalid`, `token_invalid`, `https_required`, `anonymous`, `ambiguous_credentials` | host (home for `https_required`, `anonymous`) | 200 |
-| `-32014` | Peer refused | the 401 and 403 reasons of §7.4 that apply to authentication and revocation | host | 401 or 403 as in §7.4 |
+| `-32014` | Peer refused | the 401 and 403 reasons of §7.4 that apply to authentication and revocation; `session_invalid` (a 2025-11-25 session of another participant, or none, §6.4) | host | 401 or 403 as in §7.4; 404 for `session_invalid` |
 | `-32015` | Blocked | `instance`, `inbound`, `outbound`, `tool`, `user` | either | 200 |
 | `-32016` | Hop refused | `hop_limit`, `loop`, `hop_inconsistent`, `chain_limit` | host (home too, §16) | 200 |
 | `-32602` | Request state refused | `state_invalid` (the `requestState` of an answer to an input request is not this host's, has expired, or was issued for another tool, arguments, participant or user, §15.6) | host | 200 |
@@ -2782,15 +2805,17 @@ The design leaves these open or states them loosely; this specification decides 
 40. **Streaming, input requests and tasks are defined on 2026-07-28 hops only** (owner decision; §6.4,
     §15.6). Each request, including each round of an input request, is separately signed and its user
     resolved again, and no session state rides on a hop; the home translates to its caller's era.
-    SAJHA forwards on 2026-07-28 only, so CALL-12 is not run against it. Cancellation is the closing of the
+    SAJHA forwards on 2025-11-25 only to a host that refuses 2026-07-28 (§6.4), and binds the sessions it
+    issues as a host (CALL-12). Cancellation is the closing of the
     stream, MCP's own mechanism on that era; a signed `notifications/cancelled` on a hop may be added if an
     intermediary is found that holds streams open.
 41. **No partial-content message** (§15.10). An MCP `tools/call` result is whole in both eras; partial work
     travels as progress `message` text and log `data`, which every client can show, rather than as a
     notification no client could render.
-42. **Host-side tasks are deferred** (owner decision; §15.6). A task at the home can wrap a streamed call
-    (polling and cancellation for remote tools); tasks held at the host, which would survive a home
-    restart or outlast the hop's deadline, are a later item, so SAJHA does not list `tasks`.
+42. **Tasks are held at the host** (§15.6). A task at the home that wrapped a forwarded call died with a
+    restart of the home and was bounded by the hop's deadline; the host now holds the task and the home
+    follows it with signed `tasks/*` requests, so a long remote job outlives both. A home whose host does
+    not list `tasks` still wraps the call in a task of its own.
 
 ## 23. References
 

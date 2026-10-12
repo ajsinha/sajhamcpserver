@@ -3,7 +3,7 @@
 {# Reports > one report (docs/architecture/Reports.md §9): its parameters and sections, and the runs the
    viewer may see (the runner's own, or every run for an administrator) with their files.
    sajha/routes/report_library_routes.py. #}
-{% block title %}{{ report.title }} - Reports - SAJHA MCP Server{% endblock %}
+{% block title %}{% trans title=report.title %}{{ title }} - Reports - SAJHA MCP Server{% endtrans %}{% endblock %}
 
 {% block extra_css %}
 <style>
@@ -17,48 +17,48 @@
 
 {% block content %}
 <div class="container-fluid">
-    <nav aria-label="breadcrumb"><ol class="breadcrumb mb-2">
-        <li class="breadcrumb-item"><a href="/reports/library">Reports</a></li>
+    <nav aria-label="{{ _('breadcrumb') }}"><ol class="breadcrumb mb-2">
+        <li class="breadcrumb-item"><a href="/reports/library">{{ _('Reports') }}</a></li>
         <li class="breadcrumb-item active" aria-current="page">{{ report.title }}</li></ol></nav>
     <div class="rep-head d-flex flex-wrap justify-content-between align-items-start gap-2 mb-2">
         <div>
             <h1 class="h3 mb-1">{{ report.title }}</h1>
-            <div class="small text-muted"><code>{{ report.tool }}</code>{% if report.owner %} · owner {{ report.owner }}{% endif %} · {{ report.classification }}</div>
+            <div class="small text-muted"><code>{{ report.tool }}</code>{% if report.owner %} {% trans owner=report.owner %}· owner {{ owner }}{% endtrans %}{% endif %} · {{ report.classification }}</div>
         </div>
-        {% if report.run_href %}<a class="btn btn-primary" href="{{ report.run_href }}"><i class="bi bi-play-fill me-1" aria-hidden="true"></i>Run</a>{% endif %}
+        {% if report.run_href %}<a class="btn btn-primary" href="{{ report.run_href }}"><i class="bi bi-play-fill me-1" aria-hidden="true"></i>{{ _('Run') }}</a>{% endif %}
     </div>
     {% if report.description %}<p class="rep-desc">{{ report.description }}</p>{% endif %}
 
     <div class="row g-3">
         <div class="col-12 col-lg-5">
-            <div class="card h-100"><div class="card-header">Parameters</div><div class="card-body">
+            <div class="card h-100"><div class="card-header">{{ _('Parameters') }}</div><div class="card-body">
                 {% if parameters %}
                 <div class="table-responsive"><table class="table table-sm rep-params mb-0">
-                    <thead><tr><th scope="col">Name</th><th scope="col">Type</th><th scope="col">Description</th></tr></thead>
+                    <thead><tr><th scope="col">{{ _('Name') }}</th><th scope="col">{{ _('Type') }}</th><th scope="col">{{ _('Description') }}</th></tr></thead>
                     <tbody>{% for p in parameters %}<tr>
-                        <td><code>{{ p.name }}</code>{% if p.required %} <span class="badge text-bg-warning">required</span>{% endif %}</td>
+                        <td><code>{{ p.name }}</code>{% if p.required %} <span class="badge text-bg-warning">{{ _('required') }}</span>{% endif %}</td>
                         <td>{{ p.type }}</td>
-                        <td>{{ p.description }}{% if p.default is not none %} <span class="text-muted">(default {{ p.default }})</span>{% endif %}</td>
+                        <td>{{ p.description }}{% if p.default is not none %} <span class="text-muted">{% trans default=p.default %}(default {{ default }}){% endtrans %}</span>{% endif %}</td>
                     </tr>{% endfor %}</tbody>
                 </table></div>
-                {% else %}<p class="text-muted mb-0">This report takes no parameters.</p>{% endif %}
-                <h2 class="h6 mt-3">Sections</h2>
+                {% else %}<p class="text-muted mb-0">{{ _('This report takes no parameters.') }}</p>{% endif %}
+                <h2 class="h6 mt-3">{{ _('Sections') }}</h2>
                 <ul class="mb-0">{% for s in sections %}<li>{{ s.title }} <span class="text-muted small">({{ s.kind }})</span></li>{% endfor %}</ul>
             </div></div>
         </div>
         <div class="col-12 col-lg-7">
-            <div class="card h-100"><div class="card-header">Runs {% if is_admin %}(every runner){% else %}(yours){% endif %}</div><div class="card-body">
+            <div class="card h-100"><div class="card-header">{{ _('Runs') }} {% if is_admin %}{{ _('(every runner)') }}{% else %}{{ _('(yours)') }}{% endif %}</div><div class="card-body">
                 {% if runs %}
                 <div class="table-responsive"><table class="table table-sm rep-runs mb-0">
-                    <thead><tr><th scope="col">Started</th><th scope="col">Status</th>{% if is_admin %}<th scope="col">Runner</th>{% endif %}<th scope="col">Files</th></tr></thead>
+                    <thead><tr><th scope="col">{{ _('Started') }}</th><th scope="col">{{ _('Status') }}</th>{% if is_admin %}<th scope="col">{{ _('Runner') }}</th>{% endif %}<th scope="col">{{ _('Files') }}</th></tr></thead>
                     <tbody>{% for r in runs %}<tr>
                         <td><span title="{{ r.run_id }}">{{ (r.started_at or '')[:19]|replace('T', ' ') }}</span></td>
-                        <td>{{ r.status }}{% if r.warnings %} <span class="badge text-bg-warning" title="warnings">{{ r.warnings }}</span>{% endif %}</td>
+                        <td>{{ r.status }}{% if r.warnings %} <span class="badge text-bg-warning" title="{{ _('warnings') }}">{{ r.warnings }}</span>{% endif %}</td>
                         {% if is_admin %}<td>{{ r.runner }}</td>{% endif %}
-                        <td class="rep-files">{% for f in r.files %}<a class="me-2" href="{{ f.href }}" download><i class="bi bi-download me-1" aria-hidden="true"></i>{{ f.label }}</a>{% else %}<span class="text-muted">none</span>{% endfor %}</td>
+                        <td class="rep-files">{% for f in r.files %}<a class="me-2" href="{{ f.href }}" download><i class="bi bi-download me-1" aria-hidden="true"></i>{{ f.label }}</a>{% else %}<span class="text-muted">{{ _('none') }}</span>{% endfor %}</td>
                     </tr>{% endfor %}</tbody>
                 </table></div>
-                {% else %}<p class="text-muted mb-0">No runs yet.{% if report.run_href %} Run the report to see it here.{% endif %}</p>{% endif %}
+                {% else %}<p class="text-muted mb-0">{{ _('No runs yet.') }}{% if report.run_href %} {{ _('Run the report to see it here.') }}{% endif %}</p>{% endif %}
             </div></div>
         </div>
     </div>

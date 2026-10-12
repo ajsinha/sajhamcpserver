@@ -1,6 +1,6 @@
 {% extends "common/base.html" %}
 {# Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.com #}
-{% block title %}Composite Tool Builder — {{ app_name }}{% endblock %}
+{% block title %}{% trans app_name=app_name %}Composite Tool Builder — {{ app_name }}{% endtrans %}{% endblock %}
 {% block content %}
 {% include "admin/studio/_studio_nav.html" %}
 <div class="container-fluid mt-4">
@@ -10,8 +10,8 @@
                 <div class="d-flex align-items-center">
                     <i class="bi bi-boxes me-3" style="font-size: 2.5rem;"></i>
                     <div>
-                        <h2 class="mb-1">Composite Tool Builder</h2>
-                        <p class="mb-0 opacity-75">Chain multiple tools into one MCP call — sibling (parallel) or parent-child (fan-out)</p>
+                        <h2 class="mb-1">{{ _('Composite Tool Builder') }}</h2>
+                        <p class="mb-0 opacity-75">{{ _('Chain multiple tools into one MCP call — sibling (parallel) or parent-child (fan-out)') }}</p>
                     </div>
                 </div>
             </div>
@@ -22,70 +22,70 @@
         <div class="col-md-4">
             <div class="card mb-4">
                 <div class="card-header card-header-primary d-flex justify-content-between">
-                    <span><i class="bi bi-list-ul me-2"></i>Composite Tools</span>
+                    <span><i class="bi bi-list-ul me-2"></i>{{ _('Composite Tools') }}</span>
                     <button class="btn btn-sm btn-outline-light" data-onclick="newComposite()"><i class="bi bi-plus-lg"></i></button>
                 </div>
-                <div class="card-body p-0" id="toolList"><div class="text-center py-4 text-muted"><div class="skeleton skeleton-card mb-2"></div><small>Loading composites...</small></div></div>
+                <div class="card-body p-0" id="toolList"><div class="text-center py-4 text-muted"><div class="skeleton skeleton-card mb-2"></div><small>{{ _('Loading composites...') }}</small></div></div>
             </div>
         </div>
         <!-- Right: Builder form -->
         <div class="col-md-8">
             <div class="card mb-4">
                 <div class="card-header card-header-success">
-                    <i class="bi bi-pencil-square me-2"></i><span id="formTitle">New Composite Tool</span>
+                    <i class="bi bi-pencil-square me-2"></i><span id="formTitle">{{ _('New Composite Tool') }}</span>
                 </div>
                 <div class="card-body">
                     <div class="row mb-3">
-                        <div class="col-md-6"><label class="form-label fw-bold">Name</label><input class="form-control" id="ctName" placeholder="market_snapshot"></div>
-                        <div class="col-md-3"><label class="form-label fw-bold">Arrangement</label>
+                        <div class="col-md-6"><label class="form-label fw-bold">{{ _('Name') }}</label><input class="form-control" id="ctName" placeholder="market_snapshot"></div>
+                        <div class="col-md-3"><label class="form-label fw-bold">{{ _('Arrangement') }}</label>
                             <select class="form-select" id="ctArrangement" data-onchange="updateUI()">
-                                <option value="sibling">Sibling (parallel)</option>
-                                <option value="parent_child">Parent → Child (fan-out)</option>
+                                <option value="sibling">{{ _('Sibling (parallel)') }}</option>
+                                <option value="parent_child">{{ _('Parent → Child (fan-out)') }}</option>
                             </select>
                         </div>
-                        <div class="col-md-3"><label class="form-label fw-bold">Master output key</label><input class="form-control" id="ctMasterKey" value="master"></div>
+                        <div class="col-md-3"><label class="form-label fw-bold">{{ _('Master output key') }}</label><input class="form-control" id="ctMasterKey" value="master"></div>
                     </div>
-                    <div class="mb-3"><label class="form-label fw-bold">Description</label><input class="form-control" id="ctDesc" placeholder="Describe what this composite tool does"></div>
+                    <div class="mb-3"><label class="form-label fw-bold">{{ _('Description') }}</label><input class="form-control" id="ctDesc" placeholder="{{ _('Describe what this composite tool does') }}"></div>
                     <div class="row mb-3">
-                        <div class="col-md-6"><label class="form-label fw-bold">Master tool</label>
+                        <div class="col-md-6"><label class="form-label fw-bold">{{ _('Master tool') }}</label>
                             <select class="form-select" id="ctMaster">
                                 {% for t in tool_names %}<option value="{{ t }}">{{ t }}</option>{% endfor %}
                             </select>
                         </div>
                         <div class="col-md-6" id="recordPathGroup" style="display:none">
-                            <label class="form-label fw-bold">Record path <small class="text-muted">(path to array in master output)</small></label>
-                            <input class="form-control" id="ctRecordPath" placeholder="rows">
+                            <label class="form-label fw-bold">{% trans %}Record path <small class="text-muted">(path to array in master output)</small>{% endtrans %}</label>
+                            <input class="form-control" id="ctRecordPath" placeholder="{{ _('rows') }}">
                         </div>
                     </div>
                     <hr>
                     <div class="d-flex justify-content-between align-items-center mb-3">
-                        <h6 class="mb-0"><i class="bi bi-diagram-3 me-2"></i>Steps</h6>
-                        <button class="btn btn-sm btn-outline-success" data-onclick="addStep()"><i class="bi bi-plus-lg me-1"></i>Add Step</button>
+                        <h6 class="mb-0"><i class="bi bi-diagram-3 me-2"></i>{{ _('Steps') }}</h6>
+                        <button class="btn btn-sm btn-outline-success" data-onclick="addStep()"><i class="bi bi-plus-lg me-1"></i>{{ _('Add Step') }}</button>
                     </div>
                     <div id="stepsContainer"></div>
 
                     <!-- #17 Visual Flow Diagram -->
                     <div class="card mt-3" id="flowDiagram">
-                        <div class="card-header py-2"><i class="bi bi-diagram-3 me-2"></i>Flow Diagram</div>
+                        <div class="card-header py-2"><i class="bi bi-diagram-3 me-2"></i>{{ _('Flow Diagram') }}</div>
                         <div class="card-body p-2">
                             <svg id="flowSvg" width="100%" height="120" style="min-height:80px"></svg>
                         </div>
                     </div>
                     <hr>
                     <div class="d-flex gap-2">
-                        <button class="btn btn-primary" data-onclick="saveComposite()"><i class="bi bi-check-lg me-1"></i>Save</button>
-                        <button class="btn btn-outline-info" data-onclick="previewSchema()"><i class="bi bi-eye me-1"></i>Preview Schema</button>
-                        <button class="btn btn-outline-danger ms-auto" data-onclick="deleteComposite()" id="btnDelete" style="display:none"><i class="bi bi-trash me-1"></i>Delete</button>
+                        <button class="btn btn-primary" data-onclick="saveComposite()"><i class="bi bi-check-lg me-1"></i>{{ _('Save') }}</button>
+                        <button class="btn btn-outline-info" data-onclick="previewSchema()"><i class="bi bi-eye me-1"></i>{{ _('Preview Schema') }}</button>
+                        <button class="btn btn-outline-danger ms-auto" data-onclick="deleteComposite()" id="btnDelete" style="display:none"><i class="bi bi-trash me-1"></i>{{ _('Delete') }}</button>
                     </div>
                 </div>
             </div>
             <!-- Schema preview -->
             <div class="card mb-4" id="schemaCard" style="display:none">
-                <div class="card-header card-header-info"><i class="bi bi-braces me-2"></i>Auto-Generated Schemas</div>
+                <div class="card-header card-header-info"><i class="bi bi-braces me-2"></i>{{ _('Auto-Generated Schemas') }}</div>
                 <div class="card-body">
                     <div class="row">
-                        <div class="col-md-6"><h6>Input schema</h6><pre class="bg-light p-3 rounded small" id="inputSchema" style="max-height:300px;overflow:auto"></pre></div>
-                        <div class="col-md-6"><h6>Output schema</h6><pre class="bg-light p-3 rounded small" id="outputSchema" style="max-height:300px;overflow:auto"></pre></div>
+                        <div class="col-md-6"><h6>{{ _('Input schema') }}</h6><pre class="bg-light p-3 rounded small" id="inputSchema" style="max-height:300px;overflow:auto"></pre></div>
+                        <div class="col-md-6"><h6>{{ _('Output schema') }}</h6><pre class="bg-light p-3 rounded small" id="outputSchema" style="max-height:300px;overflow:auto"></pre></div>
                     </div>
                 </div>
             </div>
@@ -113,15 +113,15 @@ function addStep() {
     var idx = $('#stepsContainer .step-row').length;
     var opts = allTools.map(t => '<option value="' + t + '">' + t + '</option>').join('');
     var html = '<div class="step-row card mb-2 p-3 bg-light">';
-    html += '<div class="d-flex justify-content-between mb-2"><strong>Step ' + (idx + 1) + '</strong><button class="btn btn-sm btn-outline-danger" data-onclick="sajhaRemoveClosest(this, \'.step-row\')"><i class="bi bi-x"></i></button></div>';
+    html += '<div class="d-flex justify-content-between mb-2"><strong>' + _t('Step') + ' ' + (idx + 1) + '</strong><button class="btn btn-sm btn-outline-danger" data-onclick="sajhaRemoveClosest(this, \'.step-row\')"><i class="bi bi-x"></i></button></div>';
     html += '<div class="row">';
-    html += '<div class="col-md-4 mb-2"><label class="form-label small fw-bold">Tool</label><select class="form-select form-select-sm step-tool">' + opts + '</select></div>';
-    html += '<div class="col-md-3 mb-2"><label class="form-label small fw-bold">Output key</label><input class="form-control form-control-sm step-key" placeholder="result_key" value="step_' + idx + '"></div>';
-    html += '<div class="col-md-2 mb-2"><label class="form-label small fw-bold">Mode</label><select class="form-select form-select-sm exec-mode"><option value="parallel">Parallel</option><option value="for_each_record">For each record</option></select></div>';
-    html += '<div class="col-md-3 mb-2"><label class="form-label small fw-bold">Param mapping <small class="text-muted">(JSON)</small></label><input class="form-control form-control-sm step-mapping" placeholder=\'{"symbol":"$.ticker"}\'></div>';
+    html += '<div class="col-md-4 mb-2"><label class="form-label small fw-bold">' + _t('Tool') + '</label><select class="form-select form-select-sm step-tool">' + opts + '</select></div>';
+    html += '<div class="col-md-3 mb-2"><label class="form-label small fw-bold">' + _t('Output key') + '</label><input class="form-control form-control-sm step-key" placeholder="result_key" value="step_' + idx + '"></div>';
+    html += '<div class="col-md-2 mb-2"><label class="form-label small fw-bold">' + _t('Mode') + '</label><select class="form-select form-select-sm exec-mode"><option value="parallel">' + _t('Parallel') + '</option><option value="for_each_record">' + _t('For each record') + '</option></select></div>';
+    html += '<div class="col-md-3 mb-2"><label class="form-label small fw-bold">' + _t('Param mapping') + ' <small class="text-muted">(JSON)</small></label><input class="form-control form-control-sm step-mapping" placeholder=\'{"symbol":"$.ticker"}\'></div>';
     html += '</div>';
-    html += '<div class="row"><div class="col-md-6"><label class="form-label small fw-bold">Static params <small class="text-muted">(JSON)</small></label><input class="form-control form-control-sm step-static" placeholder=\'{"limit":5}\'></div>';
-    html += '<div class="col-md-6"><label class="form-label small fw-bold">Condition <small class="text-muted">(optional)</small></label><input class="form-control form-control-sm step-condition" placeholder=""></div></div>';
+    html += '<div class="row"><div class="col-md-6"><label class="form-label small fw-bold">' + _t('Static params') + ' <small class="text-muted">(JSON)</small></label><input class="form-control form-control-sm step-static" placeholder=\'{"limit":5}\'></div>';
+    html += '<div class="col-md-6"><label class="form-label small fw-bold">' + _t('Condition') + ' <small class="text-muted">' + _t('(optional)') + '</small></label><input class="form-control form-control-sm step-condition" placeholder=""></div></div>';
     html += '</div>';
     $('#stepsContainer').append(html);
     updateUI();
@@ -160,12 +160,12 @@ function saveComposite() {
     var url = editingName ? '/api/composite-tools/' + editingName : '/api/composite-tools';
     $.ajax({url: url, method: method, contentType: 'application/json', data: JSON.stringify(payload),
         success: function(r) { loadList(); editingName = payload.name; $('#btnDelete').show(); previewSchema(); },
-        error: function(xhr) { alert(xhr.responseJSON?.error || 'Error saving'); }
+        error: function(xhr) { alert(xhr.responseJSON?.error || _t('Error saving')); }
     });
 }
 
 function deleteComposite() {
-    if (!editingName || !confirm('Delete composite tool "' + editingName + '"?')) return;
+    if (!editingName || !confirm(_t('Delete composite tool "%(name)s"?', {name: editingName}))) return;
     $.ajax({url: '/api/composite-tools/' + editingName, method: 'DELETE',
         success: function() { newComposite(); loadList(); }});
 }
@@ -181,7 +181,7 @@ function previewSchema() {
         // If not saved yet, just save first
         if (!editingName) { saveComposite(); return; }
         $('#schemaCard').show();
-        $('#inputSchema').text('Save the tool first to preview schemas');
+        $('#inputSchema').text(_t('Save the tool first to preview schemas'));
         $('#outputSchema').text('');
     });
 }
@@ -190,25 +190,25 @@ function loadList() {
     $.getJSON('/api/composite-tools', function(d) {
         var html = '<div class="list-group list-group-flush">';
         (d.tools || []).forEach(function(t) {
-            var badge = t.arrangement === 'parent_child' ? '<span class="badge bg-warning text-dark">Parent→Child</span>' : '<span class="badge bg-info">Sibling</span>';
-            var statusBadge = t.enabled ? '' : ' <span class="badge bg-secondary">Disabled</span>';
+            var badge = t.arrangement === 'parent_child' ? '<span class="badge bg-warning text-dark">' + _t('Parent→Child') + '</span>' : '<span class="badge bg-info">' + _t('Sibling') + '</span>';
+            var statusBadge = t.enabled ? '' : ' <span class="badge bg-secondary">' + _t('Disabled') + '</span>';
             html += '<a class="list-group-item list-group-item-action" href="#" data-onclick="loadComposite(\'' + t.name + '\');return false">';
             html += '<div class="d-flex justify-content-between"><strong>' + t.name + '</strong>' + badge + statusBadge + '</div>';
-            html += '<small class="text-muted">Master: ' + t.master_tool + ' + ' + t.steps.length + ' steps</small>';
+            html += '<small class="text-muted">' + _t('Master: %(tool)s + %(n)s steps', {tool: t.master_tool, n: t.steps.length}) + '</small>';
             html += '</a>';
         });
-        if (!d.tools || !d.tools.length) html += '<div class="empty-state py-3"><i class="bi bi-boxes" style="font-size:2rem"></i><p class="mb-2">No composite tools yet</p><small class="text-muted">Use the form to create one →</small></div>';
+        if (!d.tools || !d.tools.length) html += '<div class="empty-state py-3"><i class="bi bi-boxes" style="font-size:2rem"></i><p class="mb-2">' + _t('No composite tools yet') + '</p><small class="text-muted">' + _t('Use the form to create one →') + '</small></div>';
         html += '</div>';
         $('#toolList').html(html);
     }).fail(function(xhr) {
-        $('#toolList').html('<div class="p-3 text-center text-danger"><i class="bi bi-exclamation-triangle me-1"></i>Failed to load: ' + (xhr.responseJSON?.error || xhr.statusText) + '</div>');
+        $('#toolList').html('<div class="p-3 text-center text-danger"><i class="bi bi-exclamation-triangle me-1"></i>' + _t('Failed to load:') + ' ' + (xhr.responseJSON?.error || xhr.statusText) + '</div>');
     });
 }
 
 function loadComposite(name) {
     $.getJSON('/api/composite-tools/' + name, function(d) {
         editingName = name;
-        $('#formTitle').text('Edit: ' + name);
+        $('#formTitle').text(_t('Edit: %(name)s', {name: name}));
         $('#ctName').val(d.name).prop('disabled', true);
         $('#ctDesc').val(d.description);
         $('#ctArrangement').val(d.arrangement);
@@ -238,7 +238,7 @@ function loadComposite(name) {
 
 function newComposite() {
     editingName = null;
-    $('#formTitle').text('New Composite Tool');
+    $('#formTitle').text(_t('New Composite Tool'));
     $('#ctName').val('').prop('disabled', false);
     $('#ctDesc, #ctRecordPath, #ctMasterKey').val('');
     $('#ctMasterKey').val('master');
@@ -310,7 +310,7 @@ function updateFlowDiagram() {
         // Master box
         html += '<rect x="'+cx+'" y="'+cy+'" width="'+boxW+'" height="'+boxH+'" rx="6" fill="'+masterFill+'"/>';
         html += '<text x="'+(cx+boxW/2)+'" y="'+(cy+boxH/2+4)+'" text-anchor="middle" fill="'+textFill+'" font-size="10" font-weight="bold">'+truncate(master,14)+'</text>';
-        html += '<text x="'+(cx+boxW+8)+'" y="'+(cy+boxH/2+3)+'" fill="'+labelFill+'" font-size="8" opacity="0.6">for each →</text>';
+        html += '<text x="'+(cx+boxW+8)+'" y="'+(cy+boxH/2+3)+'" fill="'+labelFill+'" font-size="8" opacity="0.6">' + _t('for each →') + '</text>';
 
         for (var i = 0; i < n; i++) {
             var ny = cy + boxH + arrowLen + i * (boxH + arrowLen);
@@ -355,7 +355,7 @@ function enableDragDrop() {
                 container.insertBefore(window._dragEl, this);
                 // Renumber steps
                 container.querySelectorAll('.step-row').forEach(function(r, i) {
-                    r.querySelector('strong').textContent = 'Step ' + (i + 1);
+                    r.querySelector('strong').textContent = _t('Step ') + (i + 1);
                 });
                 updateFlowDiagram();
             }

@@ -4,96 +4,96 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
 API keys (administration): every key, its owner and state; assign owners to older keys;
 rotate, disable, revoke, mark persistent. Guide: docs/security/Security Model.md (API keys)
 -->
-{% block title %}API keys - SAJHA MCP Server{% endblock %}
+{% block title %}{{ _('API keys - SAJHA MCP Server') }}{% endblock %}
 
 {% block content %}
 <div class="container-fluid acct-page" data-apikeys data-csrf="{{ csrf }}">
   <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
     <div>
-      <h1 class="h3 mb-0"><i class="bi bi-key me-2" aria-hidden="true"></i>API keys</h1>
-      <small class="text-muted">A key with an owner signs in as that user, with the user's roles; the key's tool access narrows it further. A key without an owner keeps the older service identity (role <code>api_consumer</code>) until you assign one.</small>
+      <h1 class="h3 mb-0"><i class="bi bi-key me-2" aria-hidden="true"></i>{{ _('API keys') }}</h1>
+      <small class="text-muted">{% trans %}A key with an owner signs in as that user, with the user's roles; the key's tool access narrows it further. A key without an owner keeps the older service identity (role <code>api_consumer</code>) until you assign one.{% endtrans %}</small>
     </div>
     <div class="acct-actions">
-      <a class="btn btn-sm btn-outline-primary" href="{{ url_for('account_apikeys_page') }}"><i class="bi bi-person me-1" aria-hidden="true"></i>My keys</a>
-      <a class="btn btn-sm btn-outline-primary" href="{{ url_for('apikeys_file_page') }}"><i class="bi bi-file-earmark-lock me-1" aria-hidden="true"></i>Keys file</a>
-      <a class="btn btn-sm btn-primary" href="{{ url_for('apikey_create_page') }}"><i class="bi bi-plus-circle me-1" aria-hidden="true"></i>New key</a>
+      <a class="btn btn-sm btn-outline-primary" href="{{ url_for('account_apikeys_page') }}"><i class="bi bi-person me-1" aria-hidden="true"></i>{{ _('My keys') }}</a>
+      <a class="btn btn-sm btn-outline-primary" href="{{ url_for('apikeys_file_page') }}"><i class="bi bi-file-earmark-lock me-1" aria-hidden="true"></i>{{ _('Keys file') }}</a>
+      <a class="btn btn-sm btn-primary" href="{{ url_for('apikey_create_page') }}"><i class="bi bi-plus-circle me-1" aria-hidden="true"></i>{{ _('New key') }}</a>
     </div>
   </div>
 
   <div id="keyStatus" class="alert" role="status" tabindex="-1" hidden></div>
-  {% if not can_manage %}<div class="alert alert-info" role="status">You are signed in with an API key: keys are managed from a console session or with a SAJHA JWT.</div>{% endif %}
+  {% if not can_manage %}<div class="alert alert-info" role="status">{{ _('You are signed in with an API key: keys are managed from a console session or with a SAJHA JWT.') }}</div>{% endif %}
 
   <section id="keyOnce" class="alert alert-warning keys-once" role="region" aria-labelledby="keyOnceH" hidden>
-    <h2 class="h6" id="keyOnceH">Copy the new key now (<span id="keyOnceName"></span>)</h2>
-    <p class="small mb-2">This is the only time it is shown.</p>
+    <h2 class="h6" id="keyOnceH">{{ _('Copy the new key now (') }}<span id="keyOnceName"></span>)</h2>
+    <p class="small mb-2">{{ _('This is the only time it is shown.') }}</p>
     <code id="keyOnceValue" class="keys-secret"></code>
     <div class="acct-actions mt-2">
-      <button type="button" class="btn btn-sm btn-primary" id="keyOnceCopy"><i class="bi bi-clipboard me-1" aria-hidden="true"></i>Copy</button>
-      <button type="button" class="btn btn-sm btn-outline-secondary" id="keyOnceDone">Done</button>
+      <button type="button" class="btn btn-sm btn-primary" id="keyOnceCopy"><i class="bi bi-clipboard me-1" aria-hidden="true"></i>{{ _('Copy') }}</button>
+      <button type="button" class="btn btn-sm btn-outline-secondary" id="keyOnceDone">{{ _('Done') }}</button>
     </div>
   </section>
 
   <div class="acct-tiles keys-tiles mb-3">
-    <div class="obs-tile obs-tile-accent"><div class="obs-label">Keys</div><div class="obs-value">{{ stats.total }}</div><div class="obs-sub">{{ stats.active }} active</div></div>
-    <div class="obs-tile"><div class="obs-label">Without an owner</div><div class="obs-value">{{ stats.unowned }}</div><div class="obs-sub">sign in as <code>apikey:&lt;name&gt;</code></div></div>
-    <div class="obs-tile"><div class="obs-label">Persistent</div><div class="obs-value">{{ stats.persistent }}</div><div class="obs-sub">also in the key file</div></div>
-    <div class="obs-tile"><div class="obs-label">Revoked</div><div class="obs-value">{{ stats.revoked }}</div><div class="obs-sub">kept as records</div></div>
+    <div class="obs-tile obs-tile-accent"><div class="obs-label">{{ _('Keys') }}</div><div class="obs-value">{{ stats.total }}</div><div class="obs-sub">{% trans active=stats.active %}{{ active }} active{% endtrans %}</div></div>
+    <div class="obs-tile"><div class="obs-label">{{ _('Without an owner') }}</div><div class="obs-value">{{ stats.unowned }}</div><div class="obs-sub">{% trans %}sign in as <code>apikey:&lt;name&gt;</code>{% endtrans %}</div></div>
+    <div class="obs-tile"><div class="obs-label">{{ _('Persistent') }}</div><div class="obs-value">{{ stats.persistent }}</div><div class="obs-sub">{{ _('also in the key file') }}</div></div>
+    <div class="obs-tile"><div class="obs-label">{{ _('Revoked') }}</div><div class="obs-value">{{ stats.revoked }}</div><div class="obs-sub">{{ _('kept as records') }}</div></div>
   </div>
 
   {% if stats.unowned %}
-  <div class="alert alert-warning" role="status"><i class="bi bi-person-exclamation me-1" aria-hidden="true"></i>{{ stats.unowned }} key(s) have no owner. Assign each to the user it acts for: it then signs in as that user, with the user's roles.
-    <a href="?owner=-">Show them</a>.</div>
+  <div class="alert alert-warning" role="status"><i class="bi bi-person-exclamation me-1" aria-hidden="true"></i>{% trans unowned=stats.unowned %}{{ unowned }} key(s) have no owner. Assign each to the user it acts for: it then signs in as that user, with the user's roles.
+    <a href="?owner=-">Show them</a>.{% endtrans %}</div>
   {% endif %}
 
   <form class="row g-2 align-items-end mb-3" method="get" action="/admin/apikeys">
-    <div class="col-sm-4 col-md-3"><label class="form-label small" for="fOwner">Owner</label>
+    <div class="col-sm-4 col-md-3"><label class="form-label small" for="fOwner">{{ _('Owner') }}</label>
       <select class="form-select form-select-sm" id="fOwner" name="owner">
-        <option value="">any</option>
-        <option value="-"{% if filter_owner == '-' %} selected{% endif %}>no owner</option>
+        <option value="">{{ _('any') }}</option>
+        <option value="-"{% if filter_owner == '-' %} selected{% endif %}>{{ _('no owner') }}</option>
         {% for u in users %}<option value="{{ u }}"{% if u == filter_owner %} selected{% endif %}>{{ u }}</option>{% endfor %}
       </select></div>
-    <div class="col-sm-4 col-md-3"><label class="form-label small" for="fStatus">Status</label>
+    <div class="col-sm-4 col-md-3"><label class="form-label small" for="fStatus">{{ _('Status') }}</label>
       <select class="form-select form-select-sm" id="fStatus" name="status">
-        <option value="">any</option>
+        <option value="">{{ _('any') }}</option>
         {% for s in ('active', 'disabled', 'expired', 'revoked') %}<option value="{{ s }}"{% if s == filter_status %} selected{% endif %}>{{ s }}</option>{% endfor %}
       </select></div>
-    <div class="col-auto"><button class="btn btn-sm btn-primary" type="submit">Filter</button></div>
+    <div class="col-auto"><button class="btn btn-sm btn-primary" type="submit">{{ _('Filter') }}</button></div>
   </form>
 
   <div class="card">
     <div class="table-responsive">
       <table class="table table-sm align-middle mb-0 obs-table sajha-stack">
-        <thead><tr><th scope="col">Key</th><th scope="col">Owner</th><th scope="col">Tools</th><th scope="col">Status</th>
-          <th scope="col">Last used</th><th scope="col"><span class="visually-hidden">Actions</span></th></tr></thead>
+        <thead><tr><th scope="col">{{ _('Key') }}</th><th scope="col">{{ _('Owner') }}</th><th scope="col">{{ _('Tools') }}</th><th scope="col">{{ _('Status') }}</th>
+          <th scope="col">{{ _('Last used') }}</th><th scope="col"><span class="visually-hidden">{{ _('Actions') }}</span></th></tr></thead>
         <tbody>
         {% for k in apikeys %}
           <tr>
-            <td data-label="Key"><a href="{{ url_for('apikey_view', key_id=k.id) }}"><strong>{{ k.name }}</strong></a>
-              <br><code>{{ k.prefix }}…</code>{% if k.is_default %} <span class="acct-badge">default</span>{% endif %}{% if k.persistent %} <span class="acct-badge">persistent</span>{% endif %}</td>
-            <td data-label="Owner">{% if k.owner %}{{ k.owner }}{% else %}
+            <td data-label="{{ _('Key') }}"><a href="{{ url_for('apikey_view', key_id=k.id) }}"><strong>{{ k.name }}</strong></a>
+              <br><code>{{ k.prefix }}…</code>{% if k.is_default %} <span class="acct-badge">{{ _('default') }}</span>{% endif %}{% if k.persistent %} <span class="acct-badge">{{ _('persistent') }}</span>{% endif %}</td>
+            <td data-label="{{ _('Owner') }}">{% if k.owner %}{{ k.owner }}{% else %}
               <div class="d-flex flex-wrap gap-1 align-items-center">
-                <label class="visually-hidden" for="own-{{ k.id }}">Owner for {{ k.name }}</label>
+                <label class="visually-hidden" for="own-{{ k.id }}">{% trans name=k.name %}Owner for {{ name }}{% endtrans %}</label>
                 <select class="form-select form-select-sm keys-owner" id="own-{{ k.id }}" name="owner"{% if k.status == 'revoked' or not can_manage %} disabled{% endif %}>
-                  <option value="">— none —</option>{% for u in users %}<option value="{{ u }}">{{ u }}</option>{% endfor %}
+                  <option value="">{{ _('— none —') }}</option>{% for u in users %}<option value="{{ u }}">{{ u }}</option>{% endfor %}
                 </select>
                 {% if k.status != 'revoked' and can_manage %}<button type="button" class="btn btn-sm btn-outline-primary" data-key-action="post" data-url="/api/admin/apikeys/{{ k.id }}/owner" data-body-from="own-{{ k.id }}"
-                  data-confirm="Assign this key to the chosen user? It will sign in as that user, with the user's roles.">Assign</button>{% endif %}
+                  data-confirm="{{ _('Assign this key to the chosen user? It will sign in as that user, with the user\'s roles.') }}">{{ _('Assign') }}</button>{% endif %}
               </div>{% endif %}</td>
-            <td data-label="Tools">{% if k.tool_access_mode == 'all' %}{{ 'owner\'s access' if k.owner else 'all' }}{% else %}{{ k.tool_access_mode }} ({{ k.tool_access_list|length }}){% endif %}</td>
-            <td data-label="Status">{% if k.status == 'active' %}<span class="obs-pill obs-ok">active</span>{% elif k.status == 'revoked' %}<span class="obs-pill obs-bad" title="{{ k.revoked_at }} by {{ k.revoked_by }}">revoked</span>{% else %}<span class="acct-badge">{{ k.status }}</span>{% endif %}</td>
-            <td data-label="Last used">{{ k.last_used or '—' }}</td>
+            <td data-label="{{ _('Tools') }}">{% if k.tool_access_mode == 'all' %}{{ _('owner\'s access') if k.owner else _('all') }}{% else %}{{ k.tool_access_mode }} ({{ k.tool_access_list|length }}){% endif %}</td>
+            <td data-label="{{ _('Status') }}">{% if k.status == 'active' %}<span class="obs-pill obs-ok">{{ _('active') }}</span>{% elif k.status == 'revoked' %}<span class="obs-pill obs-bad" title="{{ _('%(revoked_at)s by %(revoked_by)s', revoked_at=k.revoked_at, revoked_by=k.revoked_by) }}">{{ _('revoked') }}</span>{% else %}<span class="acct-badge">{{ k.status }}</span>{% endif %}</td>
+            <td data-label="{{ _('Last used') }}">{{ k.last_used or '—' }}</td>
             <td class="text-end">
               {% if can_manage and k.status != 'revoked' %}
-              <div class="btn-group btn-group-sm" role="group" aria-label="Actions for {{ k.name }}">
+              <div class="btn-group btn-group-sm" role="group" aria-label="{{ _('Actions for %(name)s', name=k.name) }}">
                 <button type="button" class="btn btn-outline-secondary" data-key-action="post" data-url="/api/admin/apikeys/{{ k.id }}/enabled"
-                        data-body='{"enabled": {{ 'false' if k.enabled else 'true' }}}' title="{{ 'Disable' if k.enabled else 'Enable' }}" aria-label="{{ 'Disable' if k.enabled else 'Enable' }} {{ k.name }}">
+                        data-body='{"enabled": {{ 'false' if k.enabled else 'true' }}}' title="{{ _('Disable') if k.enabled else _('Enable') }}" aria-label="{{ _('Disable') if k.enabled else _('Enable') }} {{ k.name }}">
                   <i class="bi bi-{{ 'pause-circle' if k.enabled else 'play-circle' }}" aria-hidden="true"></i></button>
                 <button type="button" class="btn btn-outline-primary" data-key-action="post" data-url="/api/admin/apikeys/{{ k.id }}/rotate"
-                        data-confirm="Rotate {{ k.name }}? The current key stops working now." title="Rotate" aria-label="Rotate {{ k.name }}">
+                        data-confirm="{{ _('Rotate %(name)s? The current key stops working now.', name=k.name) }}" title="{{ _('Rotate') }}" aria-label="{{ _('Rotate %(name)s', name=k.name) }}">
                   <i class="bi bi-arrow-repeat" aria-hidden="true"></i></button>
                 {% if not k.is_default %}
                 <button type="button" class="btn btn-outline-danger" data-key-action="post" data-url="/api/admin/apikeys/{{ k.id }}/revoke"
-                        data-confirm="Revoke {{ k.name }}? It stops working now and cannot be enabled again." title="Revoke" aria-label="Revoke {{ k.name }}">
+                        data-confirm="{{ _('Revoke %(name)s? It stops working now and cannot be enabled again.', name=k.name) }}" title="{{ _('Revoke') }}" aria-label="{{ _('Revoke %(name)s', name=k.name) }}">
                   <i class="bi bi-x-circle" aria-hidden="true"></i></button>
                 {% endif %}
               </div>
@@ -101,14 +101,14 @@ rotate, disable, revoke, mark persistent. Guide: docs/security/Security Model.md
             </td>
           </tr>
         {% else %}
-          <tr><td colspan="6" class="text-muted text-center py-3">No API keys{% if filter_owner or filter_status %} match the filter{% endif %}.</td></tr>
+          <tr><td colspan="6" class="text-muted text-center py-3">{{ _('No API keys') }}{% if filter_owner or filter_status %} {{ _('match the filter') }}{% endif %}.</td></tr>
         {% endfor %}
         </tbody>
       </table>
     </div>
   </div>
 
-  <p class="small text-muted mt-3 mb-0">Send a key as <code>X-API-Key: sja_…</code> (or <code>Authorization: sja_…</code>). Every change is in the audit log.</p>
+  <p class="small text-muted mt-3 mb-0">{% trans %}Send a key as <code>X-API-Key: sja_…</code> (or <code>Authorization: sja_…</code>). Every change is in the audit log.{% endtrans %}</p>
 </div>
 {% endblock %}
 

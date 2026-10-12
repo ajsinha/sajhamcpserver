@@ -12,12 +12,14 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
 
 from __future__ import annotations
 
+import json
 import os
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
 from sajha.net import names
+from sajha.net.discovery import problems as discovery_problems
 from sajha.net.models import EXTERNAL_KEY, CASettings, GossipSettings, IdentitySettings, NetConfig, PeerCacheSettings
 
 GOSSIP_KEYS = ('gossip_interval_ms', 'ping_timeout_ms', 'indirect_probes', 'suspect_timeout_seconds',
@@ -124,6 +126,16 @@ def shared() -> Shared:
                                      interval_minutes=_num(_g('peer_cache.interval_minutes', 10), 10),
                                      max_age_days=_num(_g('peer_cache.max_age_days', 7), 7))
     return s
+
+
+def _discovery(v: Any) -> List[Dict[str, Any]]:
+    """``discovery`` sources (sajha/net/discovery.py), from YAML or a JSON string."""
+    if isinstance(v, str) and v.strip():
+        try:
+            v = json.loads(v)
+        except ValueError:
+            return [{'type': v}]                     # reported as a problem by the caller
+    return [dict(x) if isinstance(x, dict) else {'type': x} for x in (v or [])] if isinstance(v, list) else []
 
 
 def _rename(v: Any) -> Dict[str, str]:
@@ -239,6 +251,7 @@ def net_configs(s: Optional[Shared] = None, bind_host: str = '0.0.0.0', port: in
     """Every configured net as a :class:`NetConfig`, and configuration errors by net name."""
     from sajha.core.net_extension import configured_nets
     s = s or shared()
+    raw = _raw()
     out: List[NetConfig] = []
     errors: Dict[str, str] = {}
     seen = set()
@@ -297,8 +310,10 @@ def net_configs(s: Optional[Shared] = None, bind_host: str = '0.0.0.0', port: in
             admission=s.admission, membership=s.membership, gossip=gossip,
             max_injections_per_minute=s.max_injections_per_minute,
             vendor=str(entry.get('vendor') or s.vendor).strip(),
-            rename=_rename(entry.get('rename')) if entry.get('rename') is not None else dict(s.rename))
-        bad = naming_problem(cfg.vendor, cfg.rename)
+            rename=_rename(entry.get('rename')) if entry.get('rename') is not None else dict(s.rename),
+            discovery=_discovery(entry.get('discovery') if entry.get('discovery') is not None
+                                 else (os.environ.get('SAJHA_SAJHANET_DISCOVERY') or raw.get('discovery'))))
+        bad = naming_problem(cfg.vendor, cfg.rename) or '; '.join(discovery_problems(cfg.discovery))
         if not bad and entry.get(EXTERNAL_KEY) is not None:
             bad = (f'{EXTERNAL_KEY} is not a key of a net entry: this server is always a member of its nets; to '
                    f'offer another server\'s tools under its vendor\'s prefix, list it in sajhanet.external_servers')

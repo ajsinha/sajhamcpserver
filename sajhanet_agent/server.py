@@ -3,6 +3,8 @@ The agent's HTTP listener: the standard library's threading HTTP server in front
 :meth:`sajhanet_agent.agent.Agent.handle` (``/sajhanet/v1/...`` and the signed MCP endpoint), plus
 ``GET /healthz``. TLS when a certificate and key are given; behind a TLS proxy, ``trust_proxy_tls``
 counts requests as secure (forwarded API keys are accepted only over HTTPS, protocol §15.3).
+:func:`make_client_server` is the home's second listener: MCP for local clients
+(:meth:`sajhanet_agent.home.Home.handle_client`), on loopback unless told otherwise.
 
 Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.com
 """
@@ -76,4 +78,52 @@ def make_server(agent, host: str = '0.0.0.0', port: int = 8790, tls_cert: str = 
         ctx = ssl.create_default_context(ssl.Purpose.CLIENT_AUTH)
         ctx.load_cert_chain(tls_cert, tls_key or None)
         httpd.socket = ctx.wrap_socket(httpd.socket, server_side=True)
+    return httpd
+
+
+def make_client_server(agent, host: str = '127.0.0.1', port: int = 8791) -> ThreadingHTTPServer:
+    """The listener for local MCP clients of an agent that is a home (``/mcp``, Streamable HTTP, JSON)."""
+
+    class Handler(BaseHTTPRequestHandler):
+        server_version = 'sajhanet-agent'
+        sys_version = ''
+
+        def log_message(self, fmt, *args):
+            logger.debug('client %s %s', self.address_string(), fmt % args)
+
+        def _serve(self, method: str) -> None:
+            u = urlsplit(self.path)
+            n = int(self.headers.get('content-length') or 0)
+            if n > MAX_BODY:
+                return self._send(413, {}, b'')
+            body = self.rfile.read(n) if n else b''
+            headers = {k.lower(): v for k, v in self.headers.items()}
+            try:
+                status, h, out = agent.handle_client(method, u.path, headers, body)
+            except Exception as e:
+                logger.warning(f'client request {method} {u.path} failed: {e}', exc_info=True)
+                return self._send(500, {}, b'')
+            self._send(status, h, out)
+
+        def _send(self, status, headers, body) -> None:
+            self.send_response(status)
+            for k, v in (headers or {}).items():
+                if k.lower() not in ('content-length', 'connection', 'transfer-encoding'):
+                    self.send_header(k, v)
+            self.send_header('content-length', str(len(body or b'')))
+            self.end_headers()
+            if body:
+                self.wfile.write(body)
+
+        def do_GET(self):
+            self._serve('GET')
+
+        def do_POST(self):
+            self._serve('POST')
+
+        def do_DELETE(self):
+            self._serve('DELETE')
+
+    httpd = ThreadingHTTPServer((host, port), Handler)
+    httpd.daemon_threads = True
     return httpd

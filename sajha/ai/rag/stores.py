@@ -126,8 +126,9 @@ class VectorStore:
 
     def replace_document(self, source: str, document: str, doc_hash: str, embedder: str,
                          chunks: Iterable[StoredChunk]) -> int:
-        """Replace a document's passages atomically. ``chunks`` may be a generator (the index
-        embeds batch by batch while the store consumes it): read it once, in order. A different
+        """Replace a document's passages atomically. ``chunks`` may be a generator: read it once,
+        in order (the shipped indexes pass a list embedded before the call, so no transaction
+        waits on a model; an extension may still pass a generator). A different
         ``embedder`` than the stored one clears the store first; a vector dimension that differs
         under the same embedder raises ``DimensionChanged``. Returns the number stored."""
         raise NotImplementedError

@@ -140,6 +140,7 @@ def request(method: str, url: str, *, params: Optional[Sequence[Tuple[str, str]]
     if params:
         target = target.copy_merge_params(list(params))
     hops = 0
+    first_origin = (target.scheme, target.host, target.port)
     while True:
         current = str(target)
         if vet is None:
@@ -148,6 +149,10 @@ def request(method: str, url: str, *, params: Optional[Sequence[Tuple[str, str]]
         else:
             host, port, ip = vet(current)
         send_headers = dict(headers or {})
+        if (target.scheme, target.host, target.port) != first_origin:
+            # a redirect to another origin never carries the caller's credentials
+            send_headers = {k: v for k, v in send_headers.items()
+                            if k.lower() not in ('authorization', 'cookie', 'proxy-authorization')}
         if ip is None:                              # through the configured proxy
             if not proxy:
                 raise FetchError(f'host {host} has no checked address and no proxy is configured')

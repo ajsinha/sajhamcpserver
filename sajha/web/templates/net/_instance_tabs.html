@@ -1,0 +1,7 @@
+{# Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.com #}
+{# An instance's tabs for administrators (design §17.1): links, so each tab has its own address. #}
+{% set labels = {'tools': _('Tools'), 'traffic': _('Traffic'), 'users': _('Users'), 'keys': _('Keys'), 'blocks': _('Blocks'), 'history': _('History')} %}
+<nav class="sn-subnav" aria-label="{{ _('Instance tabs') }}" data-sn-csrf="{{ csrf }}">
+  {% for t in tabs %}<a href="?tab={{ t }}"{% if t == tab %} aria-current="page"{% endif %}>{{ labels[t] }}</a>{% endfor %}
+</nav>
+<p class="small" data-sn-status role="status" aria-live="polite"></p>

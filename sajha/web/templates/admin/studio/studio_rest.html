@@ -2,7 +2,7 @@
 <!--
 Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.com
 -->
-{% block title %}REST Service Tool Creator - MCP Studio - SAJHA MCP Server{% endblock %}
+{% block title %}{{ _('REST Service Tool Creator - MCP Studio - SAJHA MCP Server') }}{% endblock %}
 
 {% block extra_css %}
 <style>
@@ -272,11 +272,11 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
 {% include "admin/studio/_folder_field.html" %}
 <div class="container-fluid py-3 rest-creator-container">
     <!-- Breadcrumb -->
-    <nav aria-label="breadcrumb" class="mb-3">
+    <nav aria-label="{{ _('breadcrumb') }}" class="mb-3">
         <ol class="breadcrumb">
-            <li class="breadcrumb-item"><a href="{{ url_for('dashboard') }}">Dashboard</a></li>
+            <li class="breadcrumb-item"><a href="{{ url_for('dashboard') }}">{{ _('Dashboard') }}</a></li>
             <li class="breadcrumb-item"><a href="{{ url_for('studio_home') }}">MCP Studio</a></li>
-            <li class="breadcrumb-item active">REST Service Tool Creator</li>
+            <li class="breadcrumb-item active">{{ _('REST Service Tool Creator') }}</li>
         </ol>
     </nav>
 
@@ -285,20 +285,19 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
         <div class="d-flex justify-content-between align-items-center">
             <div>
                 <h3>
-                    <i class="bi bi-cloud-arrow-up me-2"></i>REST Service Tool Creator
+                    <i class="bi bi-cloud-arrow-up me-2"></i>{{ _('REST Service Tool Creator') }}
                     <span class="badge bg-light text-dark ms-2" style="font-size: 0.5em;">v{{ app_version }}</span>
                 </h3>
                 <p class="subtitle mb-0">
-                    Transform any REST API endpoint into an MCP-compliant tool. Define the endpoint, authentication, 
-                    request/response schemas, and deploy instantly. Generated tools support hot-reload and multi-encoding.
+                    {{ _('Transform any REST API endpoint into an MCP-compliant tool. Define the endpoint, authentication, request/response schemas, and deploy instantly. Generated tools support hot-reload and multi-encoding.') }}
                 </p>
             </div>
             <div class="d-flex gap-2">
                 <a href="{{ guide_url('MCP Studio REST Tool Creator Guide.md') }}" class="btn btn-outline-light btn-sm">
-                    <i class="bi bi-question-circle me-1"></i>Help
+                    <i class="bi bi-question-circle me-1"></i>{{ _('Help') }}
                 </a>
                 <a href="{{ url_for('studio_home') }}" class="btn btn-outline-light btn-sm">
-                    <i class="bi bi-arrow-left me-1"></i>Back to Studio
+                    <i class="bi bi-arrow-left me-1"></i>{{ _('Back to Studio') }}
                 </a>
             </div>
         </div>
@@ -314,34 +313,34 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
             <div class="form-section">
                 <div class="section-header">
                     <i class="bi bi-info-circle"></i>
-                    Basic Information
+                    {{ _('Basic Information') }}
                 </div>
                 <div class="section-body">
                     <div class="row mb-3">
                         <div class="col-md-6">
-                            <label class="form-label fw-bold">Tool Name <span class="text-danger">*</span></label>
+                            <label class="form-label fw-bold">{{ _('Tool Name') }} <span class="text-danger">*</span></label>
                             <input type="text" id="toolName" class="form-control" 
                                    placeholder="my_api_tool" pattern="[a-z][a-z0-9_]*">
-                            <div class="form-text">Lowercase letters, numbers, and underscores only (min 3 chars)</div>
+                            <div class="form-text">{{ _('Lowercase letters, numbers, and underscores only (min 3 chars)') }}</div>
                         </div>
                         <div class="col-md-6">
-                            <label class="form-label fw-bold">Category</label>
+                            <label class="form-label fw-bold">{{ _('Category') }}</label>
                             <input type="text" id="toolCategory" class="form-control" 
-                                   value="REST API" placeholder="e.g., Finance, Weather, Data">
+                                   value="REST API" placeholder="{{ _('e.g., Finance, Weather, Data') }}">
                         </div>
                     </div>
                     <div class="mb-3">
-                        <label class="form-label fw-bold">Description <span class="text-danger">*</span></label>
+                        <label class="form-label fw-bold">{{ _('Description') }} <span class="text-danger">*</span></label>
                         <textarea id="toolDescription" class="form-control" rows="2" 
                                   placeholder="Describe what this tool does..."></textarea>
                     </div>
                     <div class="mb-3">
-                        <label class="form-label fw-bold">Tags</label>
+                        <label class="form-label fw-bold">{{ _('Tags') }}</label>
                         <div class="tag-input-container" id="tagsContainer">
                             <input type="text" class="tag-input" id="tagInput" 
-                                   placeholder="Type tag and press Enter">
+                                   placeholder="{{ _('Type tag and press Enter') }}">
                         </div>
-                        <div class="form-text">Press Enter to add tags</div>
+                        <div class="form-text">{{ _('Press Enter to add tags') }}</div>
                     </div>
                 </div>
             </div>
@@ -350,11 +349,11 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
             <div class="form-section">
                 <div class="section-header success">
                     <i class="bi bi-globe"></i>
-                    Endpoint Configuration
+                    {{ _('Endpoint Configuration') }}
                 </div>
                 <div class="section-body">
                     <div class="mb-3">
-                        <label class="form-label fw-bold">HTTP Method <span class="text-danger">*</span></label>
+                        <label class="form-label fw-bold">{{ _('HTTP Method') }} <span class="text-danger">*</span></label>
                         <div class="method-select">
                             <button type="button" class="method-btn get active" data-method="GET">GET</button>
                             <button type="button" class="method-btn post" data-method="POST">POST</button>
@@ -364,16 +363,16 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
                         </div>
                     </div>
                     <div class="mb-3">
-                        <label class="form-label fw-bold">REST Endpoint URL <span class="text-danger">*</span></label>
+                        <label class="form-label fw-bold">{{ _('REST Endpoint URL') }} <span class="text-danger">*</span></label>
                         <input type="url" id="endpointUrl" class="form-control form-control-lg" 
                                placeholder="https://api.example.com/v1/data">
                         <div class="form-text">
-                            Use <code>{param_name}</code> for path parameters (e.g., <code>https://api.example.com/users/{user_id}</code>)
+                            {% trans %}Use <code>{param_name}</code> for path parameters (e.g., <code>https://api.example.com/users/{user_id}</code>){% endtrans %}
                         </div>
                     </div>
                     <div class="row">
                         <div class="col-md-6">
-                            <label class="form-label fw-bold">Content Type</label>
+                            <label class="form-label fw-bold">{{ _('Content Type') }}</label>
                             <select id="contentType" class="form-select">
                                 <option value="application/json" selected>application/json</option>
                                 <option value="application/x-www-form-urlencoded">application/x-www-form-urlencoded</option>
@@ -382,7 +381,7 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
                             </select>
                         </div>
                         <div class="col-md-6">
-                            <label class="form-label fw-bold">Timeout (seconds)</label>
+                            <label class="form-label fw-bold">{{ _('Timeout (seconds)') }}</label>
                             <input type="number" id="timeout" class="form-control" value="30" min="1" max="300">
                         </div>
                     </div>
@@ -393,26 +392,26 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
             <div class="form-section">
                 <div class="section-header warning">
                     <i class="bi bi-shield-lock"></i>
-                    Authentication (Optional)
+                    {{ _('Authentication (Optional)') }}
                 </div>
                 <div class="section-body">
                     <div class="auth-toggle">
                         <div class="form-check">
                             <input class="form-check-input" type="radio" name="authType" id="authNone" value="none" checked>
                             <label class="form-check-label" for="authNone">
-                                <i class="bi bi-unlock me-1"></i>No Auth
+                                <i class="bi bi-unlock me-1"></i>{{ _('No Auth') }}
                             </label>
                         </div>
                         <div class="form-check">
                             <input class="form-check-input" type="radio" name="authType" id="authApiKey" value="apikey">
                             <label class="form-check-label" for="authApiKey">
-                                <i class="bi bi-key me-1"></i>API Key
+                                <i class="bi bi-key me-1"></i>{{ _('API Key') }}
                             </label>
                         </div>
                         <div class="form-check">
                             <input class="form-check-input" type="radio" name="authType" id="authBasic" value="basic">
                             <label class="form-check-label" for="authBasic">
-                                <i class="bi bi-person-lock me-1"></i>Basic Auth
+                                <i class="bi bi-person-lock me-1"></i>{{ _('Basic Auth') }}
                             </label>
                         </div>
                     </div>
@@ -421,12 +420,12 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
                     <div id="apiKeyFields" class="auth-section" style="display: none;">
                         <div class="row">
                             <div class="col-md-6">
-                                <label class="form-label">API Key Header Name</label>
+                                <label class="form-label">{{ _('API Key Header Name') }}</label>
                                 <input type="text" id="apiKeyHeader" class="form-control" value="X-API-Key">
                             </div>
                             <div class="col-md-6">
-                                <label class="form-label">API Key Value</label>
-                                <input type="password" id="apiKeyValue" class="form-control" placeholder="Your API key">
+                                <label class="form-label">{{ _('API Key Value') }}</label>
+                                <input type="password" id="apiKeyValue" class="form-control" placeholder="{{ _('Your API key') }}">
                             </div>
                         </div>
                     </div>
@@ -435,12 +434,12 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
                     <div id="basicAuthFields" class="auth-section" style="display: none;">
                         <div class="row">
                             <div class="col-md-6">
-                                <label class="form-label">Username</label>
-                                <input type="text" id="basicAuthUsername" class="form-control" placeholder="Username">
+                                <label class="form-label">{{ _('Username') }}</label>
+                                <input type="text" id="basicAuthUsername" class="form-control" placeholder="{{ _('Username') }}">
                             </div>
                             <div class="col-md-6">
-                                <label class="form-label">Password</label>
-                                <input type="password" id="basicAuthPassword" class="form-control" placeholder="Password">
+                                <label class="form-label">{{ _('Password') }}</label>
+                                <input type="password" id="basicAuthPassword" class="form-control" placeholder="{{ _('Password') }}">
                             </div>
                         </div>
                     </div>
@@ -451,22 +450,22 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
             <div class="form-section">
                 <div class="section-header secondary collapse-toggle" data-bs-toggle="collapse" data-bs-target="#headersCollapse">
                     <i class="bi bi-list-ul"></i>
-                    Custom HTTP Headers (Optional)
+                    {{ _('Custom HTTP Headers (Optional)') }}
                     <i class="bi bi-chevron-down ms-auto"></i>
                 </div>
                 <div class="collapse" id="headersCollapse">
                     <div class="section-body">
                         <div id="headersList">
                             <div class="header-row d-flex gap-2 mb-2">
-                                <input type="text" class="form-control header-name" placeholder="Header Name">
-                                <input type="text" class="form-control header-value" placeholder="Header Value">
+                                <input type="text" class="form-control header-name" placeholder="{{ _('Header Name') }}">
+                                <input type="text" class="form-control header-value" placeholder="{{ _('Header Value') }}">
                                 <button type="button" class="btn btn-outline-danger btn-sm" data-onclick="removeHeader(this)">
                                     <i class="bi bi-trash"></i>
                                 </button>
                             </div>
                         </div>
                         <button type="button" class="btn btn-outline-primary btn-sm" data-onclick="addHeader()">
-                            <i class="bi bi-plus me-1"></i>Add Header
+                            <i class="bi bi-plus me-1"></i>{{ _('Add Header') }}
                         </button>
                     </div>
                 </div>
@@ -476,11 +475,11 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
             <div class="form-section" id="requestSchemaSection">
                 <div class="section-header info">
                     <i class="bi bi-send"></i>
-                    Request Schema (JSON Schema)
+                    {{ _('Request Schema (JSON Schema)') }}
                 </div>
                 <div class="section-body">
                     <p class="text-muted small mb-2">
-                        Define the input parameters as JSON Schema. This will be used for input validation.
+                        {{ _('Define the input parameters as JSON Schema. This will be used for input validation.') }}
                     </p>
                     <textarea id="requestSchema" class="form-control schema-editor" rows="10">{
   "type": "object",
@@ -504,15 +503,15 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
             <div class="form-section">
                 <div class="section-header">
                     <i class="bi bi-file-earmark-text"></i>
-                    Response Format
+                    {{ _('Response Format') }}
                 </div>
                 <div class="section-body">
                     <p class="text-muted small mb-3">
-                        Select the format of the API response. The tool will automatically parse the response accordingly.
+                        {{ _('Select the format of the API response. The tool will automatically parse the response accordingly.') }}
                     </p>
                     <div class="row mb-3">
                         <div class="col-md-6">
-                            <label class="form-label fw-bold">Response Content Type</label>
+                            <label class="form-label fw-bold">{{ _('Response Content Type') }}</label>
                             <div class="format-select d-flex flex-wrap gap-2">
                                 <button type="button" class="format-btn active" data-format="json">
                                     <i class="bi bi-braces me-1"></i>JSON
@@ -524,7 +523,7 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
                                     <i class="bi bi-file-earmark-code me-1"></i>XML
                                 </button>
                                 <button type="button" class="format-btn" data-format="text">
-                                    <i class="bi bi-file-text me-1"></i>Text
+                                    <i class="bi bi-file-text me-1"></i>{{ _('Text') }}
                                 </button>
                             </div>
                         </div>
@@ -534,29 +533,29 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
                     <div id="csvOptions" class="csv-options-panel" style="display: none;">
                         <div class="alert alert-info py-2 mb-3">
                             <i class="bi bi-info-circle me-2"></i>
-                            <strong>CSV Parsing:</strong> The response will be parsed into structured rows and columns.
+                            {% trans %}<strong>CSV Parsing:</strong> The response will be parsed into structured rows and columns.{% endtrans %}
                         </div>
                         <div class="row">
                             <div class="col-md-4">
-                                <label class="form-label">Delimiter</label>
+                                <label class="form-label">{{ _('Delimiter') }}</label>
                                 <select id="csvDelimiter" class="form-select form-select-sm">
-                                    <option value="," selected>Comma (,)</option>
-                                    <option value=";">Semicolon (;)</option>
-                                    <option value="&#9;">Tab</option>
-                                    <option value="|">Pipe (|)</option>
+                                    <option value="," selected>{{ _('Comma (,)') }}</option>
+                                    <option value=";">{{ _('Semicolon (;)') }}</option>
+                                    <option value="&#9;">{{ _('Tab') }}</option>
+                                    <option value="|">{{ _('Pipe (|)') }}</option>
                                 </select>
                             </div>
                             <div class="col-md-4">
-                                <label class="form-label">Header Row</label>
+                                <label class="form-label">{{ _('Header Row') }}</label>
                                 <select id="csvHasHeader" class="form-select form-select-sm">
-                                    <option value="true" selected>First row is header</option>
-                                    <option value="false">No header row</option>
+                                    <option value="true" selected>{{ _('First row is header') }}</option>
+                                    <option value="false">{{ _('No header row') }}</option>
                                 </select>
                             </div>
                             <div class="col-md-4">
-                                <label class="form-label">Skip Rows</label>
+                                <label class="form-label">{{ _('Skip Rows') }}</label>
                                 <input type="number" id="csvSkipRows" class="form-control form-control-sm" value="0" min="0" max="100">
-                                <div class="form-text">Rows to skip before header/data</div>
+                                <div class="form-text">{{ _('Rows to skip before header/data') }}</div>
                             </div>
                         </div>
                     </div>
@@ -567,13 +566,13 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
             <div class="form-section">
                 <div class="section-header info collapse-toggle" data-bs-toggle="collapse" data-bs-target="#responseCollapse">
                     <i class="bi bi-download"></i>
-                    Response Schema (Optional - for JSON/XML)
+                    {{ _('Response Schema (Optional - for JSON/XML)') }}
                     <i class="bi bi-chevron-down ms-auto"></i>
                 </div>
                 <div class="collapse" id="responseCollapse">
                     <div class="section-body">
                         <p class="text-muted small mb-2">
-                            Define the expected response format as JSON Schema. For CSV responses, schema is auto-generated.
+                            {{ _('Define the expected response format as JSON Schema. For CSV responses, schema is auto-generated.') }}
                         </p>
                         <textarea id="responseSchema" class="form-control schema-editor" rows="8">{
   "type": "object",
@@ -589,13 +588,13 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
             <!-- Action Buttons -->
             <div class="d-flex gap-3 mb-4">
                 <button type="button" id="previewBtn" class="btn btn-primary btn-action" data-onclick="previewTool()">
-                    <i class="bi bi-eye me-2"></i>Preview Tool
+                    <i class="bi bi-eye me-2"></i>{{ _('Preview Tool') }}
                 </button>
                 <button type="button" id="deployBtn" class="btn btn-success btn-action" data-onclick="deployTool()" disabled>
-                    <i class="bi bi-cloud-upload me-2"></i>Deploy Tool
+                    <i class="bi bi-cloud-upload me-2"></i>{{ _('Deploy Tool') }}
                 </button>
                 <button type="button" class="btn btn-outline-secondary btn-action" data-onclick="clearForm()">
-                    <i class="bi bi-x-circle me-2"></i>Clear
+                    <i class="bi bi-x-circle me-2"></i>{{ _('Clear') }}
                 </button>
             </div>
         </div>
@@ -606,37 +605,37 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
             <div class="form-section">
                 <div class="section-header">
                     <i class="bi bi-lightbulb"></i>
-                    Quick Examples - Click to Load
+                    {{ _('Quick Examples - Click to Load') }}
                 </div>
                 <div class="section-body">
                     <div class="example-card" data-onclick="loadExample('weather')">
-                        <h6><i class="bi bi-cloud-sun me-1"></i>Open-Meteo Weather</h6>
-                        <p>Free weather API - no auth required</p>
+                        <h6><i class="bi bi-cloud-sun me-1"></i>{{ _('Open-Meteo Weather') }}</h6>
+                        <p>{{ _('Free weather API - no auth required') }}</p>
                         <span class="method-badge bg-success text-white">GET</span>
                     </div>
                     <div class="example-card" data-onclick="loadExample('jsonplaceholder')">
-                        <h6><i class="bi bi-file-post me-1"></i>JSONPlaceholder Posts</h6>
-                        <p>Demo REST API - Create posts</p>
+                        <h6><i class="bi bi-file-post me-1"></i>{{ _('JSONPlaceholder Posts') }}</h6>
+                        <p>{{ _('Demo REST API - Create posts') }}</p>
                         <span class="method-badge bg-primary text-white">POST</span>
                     </div>
                     <div class="example-card" data-onclick="loadExample('github')">
-                        <h6><i class="bi bi-github me-1"></i>GitHub User Info</h6>
-                        <p>Path parameter example: /users/{username}</p>
+                        <h6><i class="bi bi-github me-1"></i>{{ _('GitHub User Info') }}</h6>
+                        <p>{{ _('Path parameter example: /users/{username}') }}</p>
                         <span class="method-badge bg-success text-white">GET</span>
                     </div>
                     <div class="example-card" data-onclick="loadExample('coinbase')">
-                        <h6><i class="bi bi-currency-bitcoin me-1"></i>Coinbase Prices</h6>
-                        <p>Cryptocurrency spot prices</p>
+                        <h6><i class="bi bi-currency-bitcoin me-1"></i>{{ _('Coinbase Prices') }}</h6>
+                        <p>{{ _('Cryptocurrency spot prices') }}</p>
                         <span class="method-badge bg-success text-white">GET</span>
                     </div>
                     <div class="example-card" data-onclick="loadExample('catfact')">
-                        <h6><i class="bi bi-emoji-smile me-1"></i>Random Cat Facts</h6>
-                        <p>Simple no-parameter API</p>
+                        <h6><i class="bi bi-emoji-smile me-1"></i>{{ _('Random Cat Facts') }}</h6>
+                        <p>{{ _('Simple no-parameter API') }}</p>
                         <span class="method-badge bg-success text-white">GET</span>
                     </div>
                     <div class="example-card example-accent" data-onclick="loadExample('fred_csv')">
-                        <h6><i class="bi bi-file-earmark-spreadsheet me-1 text-primary"></i>FRED Economic Data</h6>
-                        <p>CSV response example - economic data</p>
+                        <h6><i class="bi bi-file-earmark-spreadsheet me-1 text-primary"></i>{{ _('FRED Economic Data') }}</h6>
+                        <p>{{ _('CSV response example - economic data') }}</p>
                         <span class="method-badge bg-success text-white">GET</span>
                         <span class="method-badge bg-primary text-white ms-1">CSV</span>
                     </div>
@@ -646,7 +645,7 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
             <!-- Preview Panel -->
             <div class="preview-panel" id="previewPanel" style="display: none;">
                 <div class="preview-header">
-                    <h6><i class="bi bi-code-slash me-2"></i>Generated Code Preview</h6>
+                    <h6><i class="bi bi-code-slash me-2"></i>{{ _('Generated Code Preview') }}</h6>
                 </div>
                 <div class="preview-content" id="previewContent">
                     <!-- Preview content will be inserted here -->
@@ -657,16 +656,16 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
             <div class="form-section mt-3">
                 <div class="section-header info collapse-toggle" data-bs-toggle="collapse" data-bs-target="#schemaHelp">
                     <i class="bi bi-code-square"></i>
-                    JSON Schema Quick Reference
+                    {{ _('JSON Schema Quick Reference') }}
                     <i class="bi bi-chevron-down ms-auto"></i>
                 </div>
                 <div class="collapse" id="schemaHelp">
                     <div class="section-body">
                         <div class="small">
-                            <p class="mb-2"><strong>Supported Types:</strong></p>
+                            <p class="mb-2"><strong>{{ _('Supported Types:') }}</strong></p>
                             <code class="d-block mb-2 p-2 bg-light">string, integer, number, boolean, array, object</code>
                             
-                            <p class="mb-2"><strong>Example with constraints:</strong></p>
+                            <p class="mb-2"><strong>{{ _('Example with constraints:') }}</strong></p>
 <pre class="p-2 bg-light mb-2" style="font-size: 12px;">{
   "type": "object",
   "properties": {
@@ -688,7 +687,7 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
   "required": ["name", "email"]
 }</pre>
                             <a href="https://json-schema.org/understanding-json-schema/" target="_blank" class="btn btn-sm btn-outline-info w-100">
-                                <i class="bi bi-box-arrow-up-right me-1"></i>JSON Schema Docs
+                                <i class="bi bi-box-arrow-up-right me-1"></i>{{ _('JSON Schema Docs') }}
                             </a>
                         </div>
                     </div>
@@ -699,24 +698,24 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
             <div class="form-section mt-3">
                 <div class="section-header secondary">
                     <i class="bi bi-question-circle"></i>
-                    Quick Help
+                    {{ _('Quick Help') }}
                 </div>
                 <div class="section-body">
                     <ul class="small mb-0">
                         <li class="mb-2">
-                            <strong>Tool Name:</strong> Use lowercase with underscores (e.g., <code>get_weather</code>)
+                            {% trans %}<strong>Tool Name:</strong> Use lowercase with underscores (e.g., <code>get_weather</code>){% endtrans %}
                         </li>
                         <li class="mb-2">
-                            <strong>Path Parameters:</strong> Use <code>{param}</code> in URL (e.g., <code>/users/{id}</code>)
+                            {% trans %}<strong>Path Parameters:</strong> Use <code>{param}</code> in URL (e.g., <code>/users/{id}</code>){% endtrans %}
                         </li>
                         <li class="mb-2">
-                            <strong>Request Schema:</strong> Define inputs as JSON Schema for automatic validation
+                            {% trans %}<strong>Request Schema:</strong> Define inputs as JSON Schema for automatic validation{% endtrans %}
                         </li>
                         <li class="mb-2">
-                            <strong>Authentication:</strong> Credentials stored securely in generated tool config
+                            {% trans %}<strong>Authentication:</strong> Credentials stored securely in generated tool config{% endtrans %}
                         </li>
                         <li class="mb-2">
-                            <strong>Multi-Encoding:</strong> Generated tools support UTF-8, Latin-1, and Asian encodings
+                            {% trans %}<strong>Multi-Encoding:</strong> Generated tools support UTF-8, Latin-1, and Asian encodings{% endtrans %}
                         </li>
                     </ul>
                 </div>
@@ -725,8 +724,8 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
             <!-- Tool Registry Info -->
             <div class="alert alert-secondary mt-3 small">
                 <i class="bi bi-info-circle me-2"></i>
-                <strong>After Deploy:</strong> Your tool will be immediately available in the Tools Registry 
-                and can be called via MCP protocol. Hot-reload will automatically detect new tools.
+                {% trans %}<strong>After Deploy:</strong> Your tool will be immediately available in the Tools Registry 
+                and can be called via MCP protocol. Hot-reload will automatically detect new tools.{% endtrans %}
             </div>
         </div>
     </div>
@@ -734,11 +733,11 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
 
 <!-- Success Banner (replaced modal) -->
 <div id="successBanner" class="alert alert-success d-none mx-3 mt-3" role="alert">
-    <h5><i class="bi bi-check-circle-fill me-2"></i>Tool Created Successfully!</h5>
-    <p class="mb-2">Your tool has been saved and is ready to use.</p>
+    <h5><i class="bi bi-check-circle-fill me-2"></i>{{ _('Tool Created Successfully!') }}</h5>
+    <p class="mb-2">{{ _('Your tool has been saved and is ready to use.') }}</p>
     <div class="d-flex gap-2">
-        <a href="/tools" class="btn btn-success btn-sm">View Tools</a>
-        <button class="btn btn-outline-success btn-sm" data-onclick="sajhaHideClosest(this, '.alert')">Dismiss</button>
+        <a href="/tools" class="btn btn-success btn-sm">{{ _('View Tools') }}</a>
+        <button class="btn btn-outline-success btn-sm" data-onclick="sajhaHideClosest(this, '.alert')">{{ _('Dismiss') }}</button>
     </div>
 </div>
 {% endblock %}
@@ -795,13 +794,11 @@ function updateRequestSchemaVisibility() {
     if (selectedMethod === 'GET' || selectedMethod === 'DELETE') {
         section.querySelector('.section-header').innerHTML = `
             <i class="bi bi-send"></i>
-            Query Parameters Schema (JSON Schema)
-        `;
+            ` + _t('Query Parameters Schema (JSON Schema)');
     } else {
         section.querySelector('.section-header').innerHTML = `
             <i class="bi bi-send"></i>
-            Request Body Schema (JSON Schema)
-        `;
+            ` + _t('Request Body Schema (JSON Schema)');
     }
 }
 
@@ -854,8 +851,8 @@ function addHeader() {
     const row = document.createElement('div');
     row.className = 'header-row d-flex gap-2 mb-2';
     row.innerHTML = `
-        <input type="text" class="form-control header-name" placeholder="Header Name">
-        <input type="text" class="form-control header-value" placeholder="Header Value">
+        <input type="text" class="form-control header-name" placeholder="${_t('Header Name')}">
+        <input type="text" class="form-control header-value" placeholder="${_t('Header Value')}">
         <button type="button" class="btn btn-outline-danger btn-sm" data-onclick="removeHeader(this)">
             <i class="bi bi-trash"></i>
         </button>
@@ -882,7 +879,7 @@ function getFormData() {
     try {
         requestSchema = JSON.parse(document.getElementById('requestSchema').value);
     } catch (e) {
-        throw new Error('Invalid request schema JSON');
+        throw new Error(_t('Invalid request schema JSON'));
     }
     try {
         responseSchema = JSON.parse(document.getElementById('responseSchema').value);
@@ -931,20 +928,20 @@ function showStatus(message, type) {
 async function previewTool() {
     const btn = document.getElementById('previewBtn');
     btn.disabled = true;
-    btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Generating...';
+    btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>' + _t('Generating...');
     
     try {
         const data = getFormData();
         
         // Basic validation
         if (!data.name || data.name.length < 3) {
-            throw new Error('Tool name must be at least 3 characters');
+            throw new Error(_t('Tool name must be at least 3 characters'));
         }
         if (!data.endpoint) {
-            throw new Error('Endpoint URL is required');
+            throw new Error(_t('Endpoint URL is required'));
         }
         if (!data.description) {
-            throw new Error('Description is required');
+            throw new Error(_t('Description is required'));
         }
         
         const response = await fetch('/admin/studio/rest/preview', {
@@ -964,24 +961,24 @@ async function previewTool() {
             
             // Enable deploy
             document.getElementById('deployBtn').disabled = false;
-            showStatus('Preview generated successfully!', 'success');
+            showStatus(_t('Preview generated successfully!'), 'success');
         } else {
-            throw new Error(result.error || 'Preview failed');
+            throw new Error(result.error || _t('Preview failed'));
         }
     } catch (error) {
         showStatus(error.message, 'error');
     } finally {
         btn.disabled = false;
-        btn.innerHTML = '<i class="bi bi-eye me-2"></i>Preview Tool';
+        btn.innerHTML = '<i class="bi bi-eye me-2"></i>' + _t('Preview Tool');
     }
 }
 
 async function deployTool() {
-    if (!confirm('Are you sure you want to deploy this REST tool?')) return;
+    if (!confirm(_t('Are you sure you want to deploy this REST tool?'))) return;
     
     const btn = document.getElementById('deployBtn');
     btn.disabled = true;
-    btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Deploying...';
+    btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>' + _t('Deploying...');
     
     try {
         const data = getFormData();
@@ -1002,15 +999,15 @@ async function deployTool() {
             document.getElementById('successBanner').classList.remove('d-none');
             document.getElementById('successBanner').scrollIntoView({behavior:'smooth'});
             
-            showStatus('Tool deployed successfully!', 'success');
+            showStatus(_t('Tool deployed successfully!'), 'success');
         } else {
-            throw new Error(result.error || 'Deployment failed');
+            throw new Error(result.error || _t('Deployment failed'));
         }
     } catch (error) {
         showStatus(error.message, 'error');
     } finally {
         btn.disabled = false;
-        btn.innerHTML = '<i class="bi bi-cloud-upload me-2"></i>Deploy Tool';
+        btn.innerHTML = '<i class="bi bi-cloud-upload me-2"></i>' + _t('Deploy Tool');
     }
 }
 
@@ -1197,7 +1194,7 @@ function loadExample(type) {
         csvOptions.style.display = 'none';
     }
     
-    showStatus(`Loaded "${type}" example`, 'success');
+    showStatus(_t('Loaded "%(type)s" example', {type: type}), 'success');
 }
 </script>
 {% endblock %}

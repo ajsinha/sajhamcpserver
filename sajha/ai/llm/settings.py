@@ -386,6 +386,11 @@ class RagSettings(Layered):
     vector_weight: float = 0.5                 # the vector ranking's weight in the fusion (BM25's is 1)
     max_upload_bytes: int = 2_000_000
     build_on_start: bool = True                # build in a background thread at start-up
+    # OCR for scanned PDFs (and images from account sources): needs an optional engine (sajha/ai/rag/ocr.py)
+    ocr: bool = False
+    # Documents read through users' connected accounts, indexed per user (sajha/ai/rag/personal.py,
+    # validated there as PersonalDocsSettings): {sources: [...], store, path, ...}
+    accounts: Dict[str, Any] = Field(default_factory=dict)
 
 
 class OpenAIAPISettings(Layered):

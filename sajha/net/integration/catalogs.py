@@ -36,7 +36,7 @@ import copy
 import json
 import logging
 import threading
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from typing import Any, Callable, Dict, List, Optional, Tuple
 
 from sajha.net import EXTENSION_ID, names, plugins
@@ -49,6 +49,7 @@ from sajha.tools.base_mcp_tool import BaseMCPTool
 logger = logging.getLogger(__name__)
 
 NOTICE_LINK = '/help/guides/SAJHA%20Net.md'
+HOST_TASKS = '_host_tasks'          # a proxy's meta marker (never listed): its host lists ``tasks``
 LISTED_STATES = ('active', 'unavailable')
 
 
@@ -88,6 +89,10 @@ class CatalogSettings:
     limits: Limits = field(default_factory=Limits)
     peer: PeerSettings = field(default_factory=PeerSettings)
     streaming: StreamSettings = field(default_factory=StreamSettings)
+    tasks: bool = True                 # host-side tasks (protocol §15.6): sajhanet.tasks.enabled and mcp.tasks.enabled
+    visibility_cache_seconds: float = 60.0     # how long a host's visibility answer is kept (protocol §10.5)
+    peer_shared: str = 'auto'          # breakers and per-peer rate limits across workers: auto | true | false
+    cache_seconds: float = 0.0         # cached results of read-only remote tools, per caller (0: never cached)
     host_calls_per_minute: int = 600
     anonymous_may_call_remote: bool = False
     per_net: Dict[str, Dict[str, Any]] = field(default_factory=dict)
@@ -148,6 +153,14 @@ def load_settings() -> CatalogSettings:
     if st.heartbeat_seconds >= st.idle_timeout_seconds:      # a heartbeat must come before the home gives up
         st.heartbeat_seconds = max(0.1, st.idle_timeout_seconds / 3)
     s.streaming = st
+    from sajha.net.integration.tasks import enabled as tasks_enabled
+    s.tasks = tasks_enabled()
+    s.visibility_cache_seconds = max(1.0, _num(_g('visibility.cache_seconds', 60), 60))
+    ps = str(_g('peer.shared', 'auto')).strip().lower()
+    s.peer_shared = {'1': 'true', 'yes': 'true', 'on': 'true', '0': 'false', 'no': 'false', 'off': 'false'}.get(ps, ps)
+    if s.peer_shared not in ('auto', 'true', 'false'):
+        s.peer_shared = 'auto'
+    s.cache_seconds = max(0.0, _num(_g('cache.ttl_seconds', 0), 0))
     s.anonymous_may_call_remote = parse_bool(_g('anonymous_may_call_remote', 'false'), False)
     from sajha.net.integration.config import external_servers
     s.external_servers, s.external_errors = external_servers(raw)
@@ -312,6 +325,8 @@ class NetProxyTool(BaseMCPTool):
     def __init__(self, catalogs: 'NetCatalogs', name: str, definition: Dict[str, Any], meta: Dict[str, Any],
                  fingerprint: str, alias: bool = False):
         from sajha.federation.security import correct_annotations
+        meta = dict(meta)
+        host_tasks = bool(meta.pop(HOST_TASKS, False))
         cfg = {'name': name, 'description': definition.get('description') or '',
                'inputSchema': definition.get('inputSchema') or {'type': 'object', 'properties': {}},
                'outputSchema': definition.get('outputSchema') or {},
@@ -320,6 +335,8 @@ class NetProxyTool(BaseMCPTool):
                'annotations': correct_annotations(definition.get('annotations'))}
         if definition.get('title'):
             cfg['title'] = definition['title']
+        if host_tasks:
+            cfg['execution'] = {'taskSupport': 'optional'}   # a task-augmented call: the host holds the task
         super().__init__(cfg)
         self.catalogs = catalogs
         self.definition = definition
@@ -437,10 +454,18 @@ class NetCatalogs:
             for f in ('streaming', 'progress', 'cancellation', 'mrtr'):
                 if f not in node.extra_features:
                     node.extra_features.append(f)
+        host_tasks = None
+        if s.tasks:                                         # §6.2, §15.6: tasks held here for forwarded calls
+            from sajha.net.integration.tasks import NetHostTasks, register_home
+            host_tasks = NetHostTasks(self, net, node.name)
+            register_home(net, node.name, self)
+            if 'tasks' not in node.extra_features:
+                node.extra_features.append('tasks')
         node.observers.append(lambda kind, data, net=net: self._on_event(net, kind, data))
         book.start()
         self.books[net] = book
-        host = HostServer(book, execute=self._execute, identity=identity, rules=rules,
+        host = HostServer(book, execute=self._execute, identity=identity, rules=rules, tasks=host_tasks,
+                          shared_limits=self.shared_peers(),
                           max_hops=int(s.for_net(net, 'max_hops')), max_chain=s.max_call_chain,
                           own_identities=lambda: [f'{n}/{b.node.name}' for n, b in self.books.items()],
                           other=lambda msg, v, net=net: self._other(net, msg, v),
@@ -525,7 +550,20 @@ class NetCatalogs:
                              default_timeout=self.settings.default_timeout_seconds, identity=identity, rules=rules,
                              peer=self.settings.peer, clock=self.svc.clock, audit=self._audit,
                              screen_result=_screen_result, max_hops=self.settings.max_hops,
-                             max_chain=self.settings.max_call_chain, streaming=self.settings.streaming)
+                             max_chain=self.settings.max_call_chain, streaming=self.settings.streaming,
+                             tasks=self.settings.tasks)
+        self.router.peer = replace(self.router.peer, shared=self.shared_peers())
+
+    def shared_peers(self) -> bool:
+        """Breakers and per-peer rate limits in the state store (``sajhanet.peer.shared``; ``auto``: when the state
+        store is shared, so several workers count together)."""
+        v = self.settings.peer_shared
+        if v == 'auto':
+            try:
+                return bool(getattr(self.svc.store, 'shared', False))
+            except Exception:
+                return False
+        return v == 'true'
 
     def _local_names(self) -> List[str]:
         reg = self.registry
@@ -667,6 +705,11 @@ class NetCatalogs:
             m['alias'] = alias
         if r['state'] != 'active':
             m['state'] = r['state']
+        if self.settings.tasks:                      # the host holds tasks (§15.6): offer the proxy as a task
+            b = self.books.get(r['net'])
+            mem = b.node.member(r['host_instance']) if b is not None else None
+            if 'tasks' in (((mem or {}).get('record') or {}).get('features') or []):
+                m[HOST_TASKS] = True
         lat = self.router.latency_p50(r['net'], r['host_instance']) if self.router else None
         if lat is not None:
             m['latency_ms_p50'] = int(lat)
@@ -720,11 +763,185 @@ class NetCatalogs:
         from sajha.core import inner_calls
         hop_in, depth = inner_calls.outgoing()      # a call made while serving a forwarded one continues its chain
         target, answers = mrtr_answers(name)
+        # the body of a task the caller asked for (sajha.core.mcp_tasks), this proxy being the task's tool: a host
+        # that lists ``tasks`` holds the task itself (protocol §15.6) and the home's task follows it
+        from sajha.core import mcp_tool_context as mtc
+        tctx = mtc.current_context()
+        in_task = bool(getattr(tctx, 'task_id', None)) and getattr(tctx, 'tool_name', None) == name \
+            and getattr(tctx, 'remote_task', None) is None and not answers
+        ck = None if in_task or answers else self._cache_key(name, arguments, user)
+        if ck is not None:
+            hit = ck[0].get(ck[1])
+            if isinstance(hit, dict):
+                meta = dict((hit.get('_meta') or {}).get(EXTENSION_ID) or {}, cached=True)
+                self.counters[('cache', 'hit')] = self.counters.get(('cache', 'hit'), 0) + 1
+                return dict(hit, _meta=dict(hit.get('_meta') or {}, **{EXTENSION_ID: meta}))
         out = self.router.call(target, arguments, user=user, traceparent=tp, hop_in=hop_in, depth=depth,
-                               **answers, **stream_hooks(self._event_rule(name, user)))
-        if (out or {}).get('resultType') == 'input_required':
+                               task=in_task, **answers, **stream_hooks(self._event_rule(name, user)))
+        if in_task and (out or {}).get('resultType') == 'task':
+            from sajha.net.integration.tasks import remote_of
+            meta = ((out or {}).get('_meta') or {}).get(EXTENSION_ID) or {}
+            b = self.books.get(str(meta.get('net') or ''))
+            remote = remote_of(name, out, b.node.name) if b is not None else None
+            if remote is not None:
+                tctx.remote_task = remote
+                return {'content': [{'type': 'text', 'text': f'{name} continues as a task at {remote["host"]}'}]}
+        if (out or {}).get('resultType') in ('input_required', 'task'):
+            if out.get('resultType') == 'task':      # never expected outside a task; nothing to follow it with
+                return {'content': [{'type': 'text', 'text': f'{name}: the host answered with a task this server '
+                                                             f'cannot follow here'}], 'isError': True}
             return mrtr_ask(name, out)
-        return self._arrived(name, out, user)
+        out = self._arrived(name, out, user)
+        if ck is not None and isinstance(out, dict) and not out.get('isError') \
+                and out.get('resultType') in (None, 'complete'):
+            try:
+                ck[0].set(ck[1], out, ttl=self.settings.cache_seconds)
+            except Exception as e:                 # a result too large for the store, or the store is down
+                logger.debug(f'SAJHA Net: result of {name} not cached: {e}')
+        return out
+
+    def _cache_key(self, name: str, arguments: Dict[str, Any], user: Dict[str, Any]):
+        """``(kv, key)`` under which the result of this call is cached (``sajhanet.cache.ttl_seconds``), or None:
+        only a read-only, non-destructive remote tool, only for a signed-in caller, keyed by the caller, the name
+        and the arguments, so one user never receives another's result."""
+        if self.settings.cache_seconds <= 0 or not user.get('authenticated'):
+            return None
+        proxy = self._proxies.get(name)
+        if proxy is None:
+            return None
+        ann = (proxy.config or {}).get('annotations') or {}
+        if ann.get('readOnlyHint') is not True or ann.get('destructiveHint') is True:
+            return None
+        b = self.books.get(str(proxy.meta.get('net') or ''))
+        if b is None:
+            return None
+        import hashlib
+        raw = json.dumps([str(user.get('user_id') or ''), sorted(user.get('roles') or []), name, arguments],
+                         sort_keys=True, separators=(',', ':'), default=str)
+        return b.kv, 'res:' + hashlib.sha256(raw.encode('utf-8')).hexdigest()
+
+    # ── visibility (protocol §10.5) ────────────────────────────────
+
+    def visibility_filter(self) -> Callable[[Dict[str, Any]], bool]:
+        """For one ``tools/list``: a predicate on proxy entries that hides the tools of hosts listing
+        ``visibility`` which say the caller may not call them (design §11.3: no account there, blocked, or
+        not offered to that user). Advice only, so it fails open: a host that cannot be asked, a key the host
+        does not know as this server's (a per-member key, the test admin key), or no signed-in caller hides
+        nothing. Answers are cached per host and key for ``sajhanet.visibility.cache_seconds``."""
+        user = _caller_user()
+        if not user.get('authenticated') or self.router is None:
+            return lambda t: True
+        memo: Dict[Tuple[str, str], Optional[Dict[str, Any]]] = {}
+        kid_box: List[Optional[str]] = []
+        rows_box: List[Dict[str, Dict[str, Any]]] = []
+
+        def key_id() -> Optional[str]:
+            if not kid_box:
+                kid = None
+                a = getattr(self.svc, 'authz', None)
+                if a is not None and hasattr(a, 'key_for'):
+                    try:
+                        _raw, kid = a.key_for(dict(user))      # the key a call would carry; the raw key is dropped
+                        del _raw
+                    except Exception as e:
+                        logger.debug(f'SAJHA Net visibility: key of {user.get("user_id")}: {e}')
+                kid_box.append(str(kid) if kid and not str(kid).startswith('peer-key:') else None)
+            return kid_box[0]
+
+        def answer(net: str, host: str) -> Optional[Dict[str, Any]]:
+            if (net, host) not in memo:
+                memo[(net, host)] = None
+                b = self.books.get(net)
+                m = b.node.member(host) if b is not None else None
+                if m is not None and 'visibility' in ((m.get('record') or {}).get('features') or []):
+                    kid = key_id()
+                    if kid:
+                        memo[(net, host)] = self._visibility(b, m, kid)
+            return memo[(net, host)]
+
+        def host_allows(net: str, host: str, host_tool: str) -> bool:
+            v = answer(net, host)
+            if not isinstance(v, dict) or v.get('reason') in ('not_home', 'key_unusable'):
+                return True
+            if v.get('reason'):
+                return False
+            return host_tool in (v.get('tools') or [])
+
+        def visible(t: Dict[str, Any]) -> bool:
+            meta = (t.get('_meta') or {}).get(EXTENSION_ID) or {}
+            quals = meta.get('resolution') or [meta.get('qualified_name')]
+            if len(quals) > 1 and not rows_box:
+                rows_box.append({r['qualified_name']: r for r in self.router.rows()})
+            rows = rows_box[0] if len(quals) > 1 else {}
+            for q in quals:
+                r = rows.get(q) if rows else None
+                net = r['net'] if r else str(meta.get('net') or '')
+                host = r['host_instance'] if r else str(meta.get('instance') or '')
+                host_tool = r['host_tool'] if r else str(meta.get('host_tool') or '')
+                if net and host and host_allows(net, host, host_tool):
+                    return True
+            return False
+        return visible
+
+    def _visibility(self, book: CatalogBook, m: Dict[str, Any], kid: str) -> Optional[Dict[str, Any]]:
+        """The host's visibility answer for one of this server's key ids (cached in the state store)."""
+        ck = f'vis:{m["name"]}:{kid}'
+        hit = book.kv.get(ck)
+        if isinstance(hit, dict):
+            return hit
+        try:
+            x = book.node.request(m['record']['url'], '/sajhanet/v1/catalog/visibility', {'key_ids': [kid]},
+                                  m['name'])
+            v = ((x.body or {}).get('visibility') or {}).get(kid)
+        except Exception as e:
+            logger.debug(f'SAJHA Net visibility from {m["name"]}: {e}')
+            return None
+        if not isinstance(v, dict):
+            return None
+        clean = {'tools': [str(n) for n in (v.get('tools') or [])][:5000]}
+        if v.get('reason'):
+            clean['reason'] = str(v['reason'])[:40]
+        book.kv.set(ck, clean, ttl=max(1.0, float(self.settings.visibility_cache_seconds)))
+        return clean
+
+    def task_result(self, remote: Dict[str, Any], result: Dict[str, Any], user: Dict[str, Any]) -> Dict[str, Any]:
+        """The result of a host's task (protocol §15.6) as this server returns a forwarded call's result: screened
+        (untrusted text), with ``_meta["io.sajha/net"]`` naming the host, and this server's residency on arrival."""
+        out = dict(result or {})
+        out.pop('resultType', None)
+        try:
+            out = _screen_result(out)
+        except Exception as e:
+            logger.warning(f'SAJHA Net: task result screening failed: {e}')
+        meta = dict((out.get('_meta') or {}).get(EXTENSION_ID) or {})
+        meta.update(net=remote.get('net'), instance=remote.get('host'), qualified_name=remote.get('qualified_name'),
+                    task_id=remote.get('task_id'))
+        if remote.get('trace_id'):
+            meta['trace_id'] = remote['trace_id']
+        out['_meta'] = dict(out.get('_meta') or {}, **{EXTENSION_ID: meta})
+        return self._arrived(str(remote.get('name') or ''), out, user)
+
+    def check_task_answers(self, remote: Dict[str, Any], responses: Dict[str, Any],
+                           user: Dict[str, Any]) -> Dict[str, Any]:
+        """The caller's answers to a host task's input requests, checked by this server's residency rules as
+        arguments are before they leave (protocol §15.6); a refused answer raises ``PermissionError``."""
+        from sajha.net.routing import _decide
+        router = self.router
+        out: Dict[str, Any] = {}
+        for key, answer in (responses or {}).items():
+            content = answer.get('content') if isinstance(answer, dict) else None
+            value = content if isinstance(content, dict) else answer
+            d = _decide(router.rules, 'residency_arguments', {
+                'net': remote.get('net'), 'host': remote.get('host'), 'tool': remote.get('qualified_name'),
+                'user': user, 'arguments': value, 'qualified_name': remote.get('qualified_name'),
+                'trace_id': remote.get('trace_id') or ''})
+            if not d.allow:
+                raise PermissionError(f'the answer to {key} carries data that may not go to {remote.get("host")} '
+                                      f'(data residency)')
+            if isinstance(d.value, dict):
+                value = d.value
+            out[key] = dict(answer, content=value) if isinstance(content, dict) else value
+        return out
 
     def _event_rule(self, name: str, user: Dict[str, Any]):
         """Residency on each streamed event as it arrives (``residency.on_event``), for the proxy ``name``."""
@@ -1459,7 +1676,9 @@ def listed(tools: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
     if c is None or not c.books:
         return tools
     from sajha.net.integration.residency import offered
+    visible = c.visibility_filter()
     return [t for t in tools if isinstance(t, dict) and (
-        (((t.get('_meta') or {}).get(EXTENSION_ID) or {}).get('locality') == 'remote' and offered(t.get('name', '')))
+        (((t.get('_meta') or {}).get(EXTENSION_ID) or {}).get('locality') == 'remote' and offered(t.get('name', ''))
+         and visible(t))
         or (((t.get('_meta') or {}).get(EXTENSION_ID) or {}).get('locality') != 'remote'
             and not c.local_quarantine(t.get('name', ''))))]

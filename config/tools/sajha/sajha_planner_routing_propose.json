@@ -1,0 +1,71 @@
+{
+  "name": "sajha_planner_routing_propose",
+  "implementation": "sajha.tools.impl.planner_routing_tool.PlannerRoutingProposeTool",
+  "title": "Propose planner routing rules from results",
+  "description": "Ranks planners per tool and question class from saved eval runs and recorded outcomes of automatic planner choices, and writes a proposal that takes effect only when an administrator approves it on the Planner routing page; administrators only.\nReturns {id, status, hash, changes, evidence: {eval_outcomes, run_outcomes, tools}, rules}; with dry_run true nothing is written and id is empty.\nInputs (none required): dry_run (boolean, default false).\nExample: {\"dry_run\": true}\nRun on a schedule by the shipped planner_routing_learn workflow (its trigger is off until enabled).",
+  "version": "1.0.0",
+  "enabled": true,
+  "inputSchema": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+      "dry_run": {
+        "type": "boolean",
+        "default": false,
+        "description": "Rank and return the rules without writing a proposal"
+      }
+    },
+    "examples": [
+      {
+        "dry_run": true
+      }
+    ]
+  },
+  "outputSchema": {
+    "type": "object",
+    "required": [
+      "status",
+      "hash",
+      "changes",
+      "evidence"
+    ],
+    "properties": {
+      "id": {
+        "type": "string"
+      },
+      "status": {
+        "type": "string"
+      },
+      "hash": {
+        "type": "string"
+      },
+      "changes": {
+        "type": "integer"
+      },
+      "evidence": {
+        "type": "object"
+      },
+      "rules": {
+        "type": "object"
+      }
+    }
+  },
+  "annotations": {
+    "readOnlyHint": false,
+    "destructiveHint": false,
+    "idempotentHint": false,
+    "openWorldHint": false,
+    "title": "Propose planner routing rules from results"
+  },
+  "metadata": {
+    "author": "Ashutosh Sinha",
+    "email": "ajsinha@gmail.com",
+    "copyright": "Copyright All rights Reserved 2025-2030, Ashutosh Sinha",
+    "category": "Intelligence",
+    "tags": [
+      "ai",
+      "planner",
+      "learning"
+    ]
+  }
+}

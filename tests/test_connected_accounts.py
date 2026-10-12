@@ -804,7 +804,7 @@ def test_ask_shows_a_connect_prompt(env):
 
 def test_ask_page_script_renders_the_connect_card():
     js = open('sajha/web/static/js/ask.js', encoding='utf-8').read()
-    assert "case 'needs_connection':" in js and "'Connect ' + p.provider_title" in js
+    assert "case 'needs_connection':" in js and "_t('Connect %(provider)s', {provider: p.provider_title})" in js
 
 
 # ── the pages ───────────────────────────────────────────────────────

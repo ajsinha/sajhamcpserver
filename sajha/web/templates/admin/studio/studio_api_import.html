@@ -4,7 +4,7 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
 Studio "Import an API": OpenAPI 3.x / Swagger 2.0 / GraphQL → a reviewed set of tools.
 Design: docs/architecture/API Import.md
 -->
-{% block title %}Import an API - MCP Studio - SAJHA MCP Server{% endblock %}
+{% block title %}{{ _('Import an API - MCP Studio - SAJHA MCP Server') }}{% endblock %}
 
 {% block extra_css %}
 <style>
@@ -37,24 +37,23 @@ Design: docs/architecture/API Import.md
 {% set folder_placeholder = "empty: the import's prefix" %}
 {% include "admin/studio/_folder_field.html" %}
 <div class="container-fluid py-3">
-    <nav aria-label="breadcrumb" class="mb-3">
+    <nav aria-label="{{ _('breadcrumb') }}" class="mb-3">
         <ol class="breadcrumb">
-            <li class="breadcrumb-item"><a href="{{ url_for('dashboard') }}">Dashboard</a></li>
+            <li class="breadcrumb-item"><a href="{{ url_for('dashboard') }}">{{ _('Dashboard') }}</a></li>
             <li class="breadcrumb-item"><a href="{{ url_for('studio_home') }}">MCP Studio</a></li>
-            <li class="breadcrumb-item active">Import an API</li>
+            <li class="breadcrumb-item active">{{ _('Import an API') }}</li>
         </ol>
     </nav>
 
     <div class="creator-header">
         <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
             <div>
-                <h3><i class="bi bi-filetype-json me-2"></i>Import an API</h3>
-                <p class="subtitle mb-0">Point SAJHA at an OpenAPI 3.x or Swagger 2.0 description, or a GraphQL
-                    endpoint, review the operations it describes, and deploy the ones you choose as tools.</p>
+                <h3><i class="bi bi-filetype-json me-2"></i>{{ _('Import an API') }}</h3>
+                <p class="subtitle mb-0">{{ _('Point SAJHA at an OpenAPI 3.x or Swagger 2.0 description, or a GraphQL endpoint, review the operations it describes, and deploy the ones you choose as tools.') }}</p>
             </div>
             <div class="d-flex gap-2">
-                <a href="{{ guide_url('API Import.md') }}" class="btn btn-outline-light btn-sm"><i class="bi bi-question-circle me-1"></i>Design</a>
-                <a href="{{ guide_url('TUTORIAL_19_import_an_openapi_spec.md') }}" class="btn btn-outline-light btn-sm"><i class="bi bi-mortarboard me-1"></i>Tutorial</a>
+                <a href="{{ guide_url('API Import.md') }}" class="btn btn-outline-light btn-sm"><i class="bi bi-question-circle me-1"></i>{{ _('Design') }}</a>
+                <a href="{{ guide_url('TUTORIAL_19_import_an_openapi_spec.md') }}" class="btn btn-outline-light btn-sm"><i class="bi bi-mortarboard me-1"></i>{{ _('Tutorial') }}</a>
             </div>
         </div>
     </div>
@@ -65,7 +64,7 @@ Design: docs/architecture/API Import.md
         <div class="col-xl-8">
             <!-- 1. Source -->
             <div class="form-section">
-                <div class="section-header"><i class="bi bi-box-arrow-in-down"></i>1. Source</div>
+                <div class="section-header"><i class="bi bi-box-arrow-in-down"></i>{{ _('1. Source') }}</div>
                 <div class="section-body">
                     <div class="d-flex gap-3 mb-3">
                         <label class="form-check"><input class="form-check-input" type="radio" name="aiKind" value="openapi" checked> OpenAPI 3.x / Swagger 2.0</label>
@@ -73,24 +72,24 @@ Design: docs/architecture/API Import.md
                     </div>
                     <div class="row g-2">
                         <div class="col-md-8">
-                            <label class="form-label fw-bold" for="aiUrl" id="aiUrlLabel">Spec URL</label>
+                            <label class="form-label fw-bold" for="aiUrl" id="aiUrlLabel">{{ _('Spec URL') }}</label>
                             <input type="url" id="aiUrl" class="form-control" placeholder="https://example.com/openapi.json">
-                            <div class="form-text">Fetched by the server through the SSRF guard{% if allow_localhost %} (localhost allowed){% endif %}{% if allow_private %} (private networks allowed){% endif %}.</div>
+                            <div class="form-text">{{ _('Fetched by the server through the SSRF guard') }}{% if allow_localhost %} {{ _('(localhost allowed)') }}{% endif %}{% if allow_private %} {{ _('(private networks allowed)') }}{% endif %}.</div>
                         </div>
                         <div class="col-md-4">
-                            <label class="form-label fw-bold" for="aiPrefix">Prefix (API id)</label>
-                            <input type="text" id="aiPrefix" class="form-control" placeholder="from the title" pattern="[a-z][a-z0-9_]{1,30}">
-                            <div class="form-text">Tool names start with it.</div>
+                            <label class="form-label fw-bold" for="aiPrefix">{{ _('Prefix (API id)') }}</label>
+                            <input type="text" id="aiPrefix" class="form-control" placeholder="{{ _('from the title') }}" pattern="[a-z][a-z0-9_]{1,30}">
+                            <div class="form-text">{{ _('Tool names start with it.') }}</div>
                         </div>
                     </div>
                     <div class="mt-2">
-                        <label class="form-label fw-bold" for="aiFile">…or upload / paste</label>
+                        <label class="form-label fw-bold" for="aiFile">{{ _('…or upload / paste') }}</label>
                         <input type="file" id="aiFile" class="form-control form-control-sm mb-2" accept=".json,.yaml,.yml">
                         <textarea id="aiText" class="form-control font-monospace" rows="4" placeholder="Paste a JSON or YAML spec, or a GraphQL introspection result (JSON)"></textarea>
                     </div>
                     <div class="mt-3 d-flex gap-2">
-                        <button class="btn btn-primary" id="aiParse"><i class="bi bi-search me-1"></i>Read the API</button>
-                        <button class="btn btn-outline-secondary" id="aiClear">Clear</button>
+                        <button class="btn btn-primary" id="aiParse"><i class="bi bi-search me-1"></i>{{ _('Read the API') }}</button>
+                        <button class="btn btn-outline-secondary" id="aiClear">{{ _('Clear') }}</button>
                     </div>
                 </div>
             </div>
@@ -98,31 +97,31 @@ Design: docs/architecture/API Import.md
             <div id="aiPlan" class="d-none">
                 <!-- 2. API, server -->
                 <div class="form-section">
-                    <div class="section-header"><i class="bi bi-hdd-network"></i>2. API and base URL</div>
+                    <div class="section-header"><i class="bi bi-hdd-network"></i>{{ _('2. API and base URL') }}</div>
                     <div class="section-body">
                         <div id="aiApiInfo" class="mb-2"></div>
                         <div id="aiWarnings"></div>
                         <div class="row g-2">
                             <div class="col-md-6" id="aiServerWrap">
-                                <label class="form-label fw-bold" for="aiServer">Server</label>
+                                <label class="form-label fw-bold" for="aiServer">{{ _('Server') }}</label>
                                 <select id="aiServer" class="form-select form-select-sm"></select>
                                 <div id="aiServerVars" class="mt-2"></div>
                             </div>
                             <div class="col-md-6">
-                                <label class="form-label fw-bold" for="aiBaseUrl">Base URL override</label>
+                                <label class="form-label fw-bold" for="aiBaseUrl">{{ _('Base URL override') }}</label>
                                 <input type="url" id="aiBaseUrl" class="form-control form-control-sm" placeholder="https://api.example.com/v1">
-                                <div class="form-text">Effective: <code id="aiEffective"></code></div>
+                                <div class="form-text">{% trans %}Effective: <code id="aiEffective"></code>{% endtrans %}</div>
                             </div>
                             <div class="col-md-3">
-                                <label class="form-label fw-bold" for="aiTimeout">Timeout (s)</label>
-                                <input type="number" min="1" id="aiTimeout" class="form-control form-control-sm" placeholder="default">
+                                <label class="form-label fw-bold" for="aiTimeout">{{ _('Timeout (s)') }}</label>
+                                <input type="number" min="1" id="aiTimeout" class="form-control form-control-sm" placeholder="{{ _('default') }}">
                             </div>
                             <div class="col-md-3">
-                                <label class="form-label fw-bold" for="aiRate">Calls / minute</label>
-                                <input type="number" min="0" id="aiRate" class="form-control form-control-sm" placeholder="no limit">
+                                <label class="form-label fw-bold" for="aiRate">{{ _('Calls / minute') }}</label>
+                                <input type="number" min="0" id="aiRate" class="form-control form-control-sm" placeholder="{{ _('no limit') }}">
                             </div>
                             <div class="col-md-3 ai-gql-only d-none">
-                                <label class="form-label fw-bold" for="aiDepth">Selection depth</label>
+                                <label class="form-label fw-bold" for="aiDepth">{{ _('Selection depth') }}</label>
                                 <input type="number" min="1" max="5" id="aiDepth" class="form-control form-control-sm" placeholder="2">
                             </div>
                         </div>
@@ -131,44 +130,44 @@ Design: docs/architecture/API Import.md
 
                 <!-- 3. Authentication -->
                 <div class="form-section">
-                    <div class="section-header"><i class="bi bi-key"></i>3. Authentication</div>
+                    <div class="section-header"><i class="bi bi-key"></i>{{ _('3. Authentication') }}</div>
                     <div class="section-body">
-                        <p class="small text-muted mb-2">Secrets are <strong>references</strong>, never values:
-                            <code>env:NAME</code>, <code>file:/path</code> or <code>db:llm_providers/&lt;type&gt;</code>.
-                            {% if connected_accounts %}Per-user OAuth can use the caller's connected account.{% else %}Per-user OAuth needs the connected-accounts feature, which is not installed; use a static credential.{% endif %}</p>
+                        <p class="small text-muted mb-2">{% trans %}Secrets are <strong>references</strong>, never values:
+                            <code>env:NAME</code>, <code>file:/path</code> or <code>db:llm_providers/&lt;type&gt;</code>.{% endtrans %}
+                            {% if connected_accounts %}{{ _('Per-user OAuth can use the caller\'s connected account.') }}{% else %}{{ _('Per-user OAuth needs the connected-accounts feature, which is not installed; use a static credential.') }}{% endif %}</p>
                         <div id="aiAuth"></div>
-                        <button class="btn btn-sm btn-outline-secondary" id="aiAddAuth"><i class="bi bi-plus"></i> Add a credential applied to every operation</button>
+                        <button class="btn btn-sm btn-outline-secondary" id="aiAddAuth"><i class="bi bi-plus"></i> {{ _('Add a credential applied to every operation') }}</button>
                     </div>
                 </div>
 
                 <!-- 4. Operations -->
                 <div class="form-section">
-                    <div class="section-header"><i class="bi bi-list-check"></i>4. Operations</div>
+                    <div class="section-header"><i class="bi bi-list-check"></i>{{ _('4. Operations') }}</div>
                     <div class="section-body">
                         <div class="row g-2 mb-2">
-                            <div class="col-md-4"><input id="aiFilterPath" class="form-control form-control-sm" placeholder="path contains, or glob /pets/*"></div>
-                            <div class="col-md-4"><select id="aiFilterTags" class="form-select form-select-sm" multiple size="2" aria-label="Tags"></select></div>
+                            <div class="col-md-4"><input id="aiFilterPath" class="form-control form-control-sm" placeholder="{{ _('path contains, or glob /pets/*') }}"></div>
+                            <div class="col-md-4"><select id="aiFilterTags" class="form-select form-select-sm" multiple size="2" aria-label="{{ _('Tags') }}"></select></div>
                             <div class="col-md-4 small" id="aiFilterMethods"></div>
                             <div class="col-12 d-flex gap-2 align-items-center">
-                                <label class="form-check small mb-0"><input type="checkbox" class="form-check-input" id="aiHideDeprecated"> hide deprecated</label>
-                                <button class="btn btn-sm btn-outline-primary" id="aiApplyFilter">Apply filter</button>
-                                <button class="btn btn-sm btn-outline-secondary" id="aiAll">Select all</button>
-                                <button class="btn btn-sm btn-outline-secondary" id="aiNone">Select none</button>
+                                <label class="form-check small mb-0"><input type="checkbox" class="form-check-input" id="aiHideDeprecated"> {{ _('hide deprecated') }}</label>
+                                <button class="btn btn-sm btn-outline-primary" id="aiApplyFilter">{{ _('Apply filter') }}</button>
+                                <button class="btn btn-sm btn-outline-secondary" id="aiAll">{{ _('Select all') }}</button>
+                                <button class="btn btn-sm btn-outline-secondary" id="aiNone">{{ _('Select none') }}</button>
                                 <span class="small text-muted ms-auto" id="aiCounts"></span>
                             </div>
                         </div>
                         <div class="table-responsive">
                             <table class="table table-sm ai-ops">
-                                <thead><tr><th></th><th>Status</th><th>Operation</th><th>Tool name</th><th>Hints</th><th title="Follow pages (GET only; off by default)">Pages</th></tr></thead>
+                                <thead><tr><th></th><th>{{ _('Status') }}</th><th>{{ _('Operation') }}</th><th>{{ _('Tool name') }}</th><th>{{ _('Hints') }}</th><th title="{{ _('Follow pages (GET only; off by default)') }}">{{ _('Pages') }}</th></tr></thead>
                                 <tbody id="aiOps"></tbody>
                             </table>
                         </div>
                         <div id="aiRemovedWrap" class="d-none">
-                            <h6 class="mt-2">Gone from the spec</h6>
+                            <h6 class="mt-2">{{ _('Gone from the spec') }}</h6>
                             <div id="aiRemoved"></div>
                         </div>
                         <div class="d-flex gap-2 mt-3">
-                            <button class="btn btn-success" id="aiDeploy"><i class="bi bi-rocket-takeoff me-1"></i>Deploy selected</button>
+                            <button class="btn btn-success" id="aiDeploy"><i class="bi bi-rocket-takeoff me-1"></i>{{ _('Deploy selected') }}</button>
                         </div>
                         <div id="aiDeployResult" class="mt-2"></div>
                     </div>
@@ -176,11 +175,11 @@ Design: docs/architecture/API Import.md
 
                 <!-- 5. Test -->
                 <div class="form-section">
-                    <div class="section-header"><i class="bi bi-play-circle"></i>5. Test-call an operation</div>
+                    <div class="section-header"><i class="bi bi-play-circle"></i>{{ _('5. Test-call an operation') }}</div>
                     <div class="section-body">
-                        <select id="aiTestOp" class="form-select form-select-sm mb-2" aria-label="Operation to test"></select>
+                        <select id="aiTestOp" class="form-select form-select-sm mb-2" aria-label="{{ _('Operation to test') }}"></select>
                         <textarea id="aiTestArgs" class="form-control font-monospace mb-2" rows="4" aria-label="Arguments (JSON)">{}</textarea>
-                        <button class="btn btn-outline-primary btn-sm" id="aiTest"><i class="bi bi-play me-1"></i>Call once (not deployed)</button>
+                        <button class="btn btn-outline-primary btn-sm" id="aiTest"><i class="bi bi-play me-1"></i>{{ _('Call once (not deployed)') }}</button>
                         <pre id="aiTestResult" class="ai-pre mt-2 d-none"></pre>
                     </div>
                 </div>
@@ -189,17 +188,15 @@ Design: docs/architecture/API Import.md
 
         <div class="col-xl-4">
             <div class="form-section">
-                <div class="section-header"><i class="bi bi-collection"></i>Imported APIs</div>
-                <div class="section-body" id="aiApis"><span class="text-muted small">Loading…</span></div>
+                <div class="section-header"><i class="bi bi-collection"></i>{{ _('Imported APIs') }}</div>
+                <div class="section-body" id="aiApis"><span class="text-muted small">{{ _('Loading…') }}</span></div>
             </div>
             <div class="form-section">
-                <div class="section-header"><i class="bi bi-info-circle"></i>How it works</div>
+                <div class="section-header"><i class="bi bi-info-circle"></i>{{ _('How it works') }}</div>
                 <div class="section-body small">
-                    <p>Each selected operation becomes one tool with a JSON config and the shared executor; no code is
-                        generated. Arguments are validated against the generated input schema; GET is marked read-only,
-                        DELETE/PUT/PATCH destructive.</p>
-                    <p class="mb-0">At most <strong>{{ max_tools }}</strong> tools per API (<code>api_import.max_tools</code>).
-                        Importing again under the same prefix shows what changed.</p>
+                    <p>{{ _('Each selected operation becomes one tool with a JSON config and the shared executor; no code is generated. Arguments are validated against the generated input schema; GET is marked read-only, DELETE/PUT/PATCH destructive.') }}</p>
+                    <p class="mb-0">{% trans max_tools=max_tools %}At most <strong>{{ max_tools }}</strong> tools per API (<code>api_import.max_tools</code>).
+                        Importing again under the same prefix shows what changed.{% endtrans %}</p>
                 </div>
             </div>
         </div>
@@ -269,10 +266,10 @@ Design: docs/architecture/API Import.md
         if (o.method !== 'GET') return '';
         const cfg = o.paginate || {};
         const opts = Object.entries(cfg).filter(([k, v]) => k !== 'mode' && v !== '' && v !== null).map(([k, v]) => k + '=' + v).join(' ');
-        return '<select class="form-select form-select-sm ai-pg-mode" data-key="' + esc(o.key) + '" aria-label="follow pages of ' + esc(o.key) + '">' +
+        return '<select class="form-select form-select-sm ai-pg-mode" data-key="' + esc(o.key) + '" aria-label="' + esc(_t('follow pages of %(op)s', {op: o.key})) + '">' +
             PG_MODES.map(m => '<option' + ((cfg.mode || 'off') === m ? ' selected' : '') + '>' + m + '</option>').join('') + '</select>' +
             '<input class="form-control form-control-sm mt-1 ai-pg-opts" data-key="' + esc(o.key) + '" value="' + esc(opts) + '"' +
-            ' placeholder="items=data next_field=meta.next max_pages=5" aria-label="pagination options of ' + esc(o.key) + '">';
+            ' placeholder="items=data next_field=meta.next max_pages=5" aria-label="' + esc(_t('pagination options of %(op)s', {op: o.key})) + '">';
     }
     function pagingRequest() {
         const modes = document.querySelectorAll('.ai-pg-mode');
@@ -293,21 +290,21 @@ Design: docs/architecture/API Import.md
 
     // ── auth rows ───────────────────────────────────────────────
     const FIELDS = {
-        apiKey: [['in', 'header | query | cookie'], ['name', 'header / parameter name'], ['value_ref', 'env:API_KEY']],
+        apiKey: [['in', 'header | query | cookie'], ['name', _t('header / parameter name')], ['value_ref', 'env:API_KEY']],
         bearer: [['token_ref', 'env:API_TOKEN']],
-        basic: [['username', 'user name'], ['password_ref', 'env:API_PASSWORD']],
-        oauth2_client_credentials: [['token_url', 'https://…/oauth/token'], ['client_id', 'client id'], ['client_secret_ref', 'env:CLIENT_SECRET'], ['scopes', 'space separated']],
-        connected_account: [['provider', 'provider id'], ['scopes', 'space separated']],
+        basic: [['username', _t('user name')], ['password_ref', 'env:API_PASSWORD']],
+        oauth2_client_credentials: [['token_url', 'https://…/oauth/token'], ['client_id', _t('client id')], ['client_secret_ref', 'env:CLIENT_SECRET'], ['scopes', _t('space separated')]],
+        connected_account: [['provider', _t('provider id')], ['scopes', _t('space separated')]],
     };
     function addAuthRow(name, scheme, preset, custom) {
         const row = document.createElement('div');
         row.className = 'ai-auth-row';
         const types = ['none', 'apiKey', 'bearer', 'basic', 'oauth2_client_credentials'].concat(CONNECTED ? ['connected_account'] : []);
-        let html = '<div class="row g-2 align-items-end"><div class="col-md-4"><label class="form-label small mb-0">Scheme</label>' +
+        let html = '<div class="row g-2 align-items-end"><div class="col-md-4"><label class="form-label small mb-0">' + _t('Scheme') + '</label>' +
             '<input class="form-control form-control-sm" data-f="scheme" value="' + esc(name) + '"' + (custom ? '' : ' readonly') + '></div>' +
-            '<div class="col-md-4"><label class="form-label small mb-0">Credential type</label><select class="form-select form-select-sm" data-f="type">' +
+            '<div class="col-md-4"><label class="form-label small mb-0">' + _t('Credential type') + '</label><select class="form-select form-select-sm" data-f="type">' +
             types.map(t => '<option value="' + t + '"' + (t === preset.type ? ' selected' : '') + '>' + t + '</option>').join('') + '</select></div>' +
-            '<div class="col-md-4 small text-muted">' + esc(scheme ? describeScheme(scheme) : 'applied to every operation') + '</div></div>';
+            '<div class="col-md-4 small text-muted">' + esc(scheme ? describeScheme(scheme) : _t('applied to every operation')) + '</div></div>';
         Object.keys(FIELDS).forEach(t => {
             html += '<div class="row g-2 mt-1 ai-fields-' + t + (t === preset.type ? '' : ' d-none') + '">';
             FIELDS[t].forEach(([k, ph]) => {
@@ -322,7 +319,7 @@ Design: docs/architecture/API Import.md
         $('aiAuth').appendChild(row);
     }
     function describeScheme(s) {
-        if (s.type === 'apiKey') return 'API key in ' + s.in + ' "' + s.name + '"';
+        if (s.type === 'apiKey') return _t('API key in %(where)s "%(name)s"', {where: s.in, name: s.name});
         if (s.type === 'http') return 'HTTP ' + s.scheme;
         if (s.type === 'oauth2') return 'OAuth 2.0 (' + (s.flows || []).join(', ') + ')';
         return s.type || '';
@@ -345,10 +342,10 @@ Design: docs/architecture/API Import.md
         $('aiPrefix').value = api.prefix;
         $('aiApiInfo').innerHTML = '<strong>' + esc(api.title) + '</strong> ' + esc(api.version) +
             ' <span class="badge bg-secondary">' + esc(api.spec_version) + '</span>' +
-            (data.reimport ? ' <span class="badge ai-status-changed">re-import of ' + esc(api.prefix) + '</span>' : '') +
+            (data.reimport ? ' <span class="badge ai-status-changed">' + _t('re-import of') + ' ' + esc(api.prefix) + '</span>' : '') +
             (api.description ? '<div class="small text-muted mt-1">' + esc(api.description.slice(0, 400)) + '</div>' : '');
         $('aiWarnings').innerHTML = (data.warnings || []).map(w => '<div class="alert alert-warning py-1 small mb-2">' + esc(w) + '</div>').join('');
-        $('aiEffective').textContent = api.base_url || '(none)';
+        $('aiEffective').textContent = api.base_url || _t('(none)');
         document.querySelectorAll('.ai-gql-only').forEach(e => e.classList.toggle('d-none', api.kind !== 'graphql'));
         $('aiServerWrap').classList.toggle('d-none', !(api.servers || []).length);
         const prevServer = $('aiServer').value;
@@ -376,19 +373,19 @@ Design: docs/architecture/API Import.md
                 (a.idempotentHint ? '<span class="badge bg-secondary ai-hint">idempotent</span>' : '') +
                 (o.deprecated ? '<span class="badge bg-warning text-dark ai-hint">deprecated</span>' : '') +
                 (o.pagination.length ? '<span class="badge bg-light text-dark ai-hint">paged</span>' : '') +
-                (o.files ? '<span class="badge bg-light text-dark ai-hint">file upload</span>' : '');
+                (o.files ? '<span class="badge bg-light text-dark ai-hint">' + _t('file upload') + '</span>' : '');
             const flags = (o.unsupported ? '<div class="ai-flag">' + esc(o.unsupported) + '</div>' : '') +
-                (o.conflict ? '<div class="ai-flag">name used by ' + esc(o.conflict) + '; rename it</div>' : '') +
-                (o.flagged ? '<div class="ai-flag">description screened</div>' : '');
+                (o.conflict ? '<div class="ai-flag">' + _t('name used by') + ' ' + esc(o.conflict) + '' + _t('; rename it') + '</div>' : '') +
+                (o.flagged ? '<div class="ai-flag">' + _t('description screened') + '</div>' : '');
             return '<tr><td><input type="checkbox" class="form-check-input ai-sel" data-key="' + esc(o.key) + '"' +
                 (o.selected ? ' checked' : '') + (o.unsupported ? ' disabled' : '') + ' aria-label="select ' + esc(o.key) + '"></td>' +
                 '<td><span class="badge ai-status-' + o.status + '">' + o.status + '</span></td>' +
                 '<td><span class="ai-method">' + esc(o.method) + '</span> <span class="ai-path">' + esc(o.path || o.operation_id) + '</span>' +
                 '<div class="small text-muted">' + esc(o.summary) + '</div>' + flags + '</td>' +
-                '<td><input class="form-control form-control-sm ai-name" data-key="' + esc(o.key) + '" data-orig="' + esc(o.name) + '" value="' + esc(o.name) + '" aria-label="tool name"></td>' +
+                '<td><input class="form-control form-control-sm ai-name" data-key="' + esc(o.key) + '" data-orig="' + esc(o.name) + '" value="' + esc(o.name) + '" aria-label="' + esc(_t('tool name')) + '"></td>' +
                 '<td>' + hints + '</td><td>' + pagingCell(o) + '</td></tr>';
         }).join('');
-        $('aiCounts').textContent = data.counts.shown + ' of ' + data.counts.total + ' operations shown; at most ' + data.max_tools + ' tools';
+        $('aiCounts').textContent = data.counts.shown + ' of ' + data.counts.total + _t(' operations shown; at most ') + data.max_tools + ' tools';
         $('aiRemovedWrap').classList.toggle('d-none', !(data.removed || []).length);
         $('aiRemoved').innerHTML = (data.removed || []).map(r => '<label class="d-block small"><input type="checkbox" class="form-check-input ai-rm" data-key="' + esc(r.key) + '"> remove <code>' + esc(r.name) + '</code> (' + esc(r.key) + ')</label>').join('');
         $('aiTestOp').innerHTML = data.operations.filter(o => !o.unsupported).map(o => '<option value="' + esc(o.key) + '">' + esc(o.key) + '</option>').join('');
@@ -424,9 +421,9 @@ Design: docs/architecture/API Import.md
 
     // ── actions ─────────────────────────────────────────────────
     async function parse(savedAuth) {
-        message('Reading the API…', 'info');
+        message(_t('Reading the API…'), 'info');
         const data = await post('/parse', request());
-        if (!data.success) { message(data.error || 'Could not read the API', 'danger'); return; }
+        if (!data.success) { message(data.error || _t('Could not read the API'), 'danger'); return; }
         message('');
         render(data, savedAuth);
     }
@@ -437,10 +434,10 @@ Design: docs/architecture/API Import.md
         const apis = data.apis || [];
         $('aiApis').innerHTML = apis.length ? apis.map(a => '<div class="mb-2 pb-2 border-bottom"><strong>' + esc(a.api_id) + '</strong> ' +
             '<span class="badge bg-secondary">' + esc(a.kind) + '</span> <span class="small text-muted">' + esc(a.title) + ' ' + esc(a.version) + '</span>' +
-            '<div class="small">' + a.tools.length + ' tool(s), ' + a.loaded + ' loaded · <code>' + esc(a.server_url) + '</code></div>' +
+            '<div class="small">' + a.tools.length + ' tool(s), ' + a.loaded + ' ' + _t('loaded ·') + ' <code>' + esc(a.server_url) + '</code></div>' +
             '<div class="mt-1 d-flex gap-1"><button class="btn btn-sm btn-outline-primary" data-reimport="' + esc(a.api_id) + '">Re-import</button>' +
-            '<button class="btn btn-sm btn-outline-danger" data-delete="' + esc(a.api_id) + '">Delete</button></div></div>').join('')
-            : '<span class="text-muted small">Nothing imported yet.</span>';
+            '<button class="btn btn-sm btn-outline-danger" data-delete="' + esc(a.api_id) + '">' + _t('Delete') + '</button></div></div>').join('')
+            : '<span class="text-muted small">' + _t('Nothing imported yet.') + '</span>';
     }
 
     $('aiApis').addEventListener('click', async (e) => {
@@ -453,12 +450,12 @@ Design: docs/architecture/API Import.md
             $('aiUrl').value = q.url || ''; $('aiPrefix').value = q.prefix; $('aiBaseUrl').value = q.base_url || '';
             $('aiTimeout').value = q.timeout_seconds || ''; $('aiRate').value = q.rate_limit_per_minute || '';
             $('aiDepth').value = q.graphql_depth || ''; $('aiFilterPath').value = (q.filters || {}).path || '';
-            if (q.uploaded) { $('aiText').value = ''; message('This API was uploaded: upload or paste the new version, then press Read the API.', 'warning'); $('aiAuth').innerHTML = ''; return; }
+            if (q.uploaded) { $('aiText').value = ''; message(_t('This API was uploaded: upload or paste the new version, then press Read the API.'), 'warning'); $('aiAuth').innerHTML = ''; return; }
             $('aiText').value = '';
             $('aiOps').innerHTML = '';             // the saved pagination comes back with the plan
             await parse(q.auth || {});
         }
-        if (del && confirm('Delete ' + del.dataset.delete + ' and all its tools?')) {
+        if (del && confirm(_t('Delete ') + del.dataset.delete + _t(' and all its tools?'))) {
             const data = await post('/delete', {api_id: del.dataset.delete});
             message(data.success ? data.message : data.error, data.success ? 'success' : 'danger');
             loadApis();
@@ -474,7 +471,7 @@ Design: docs/architecture/API Import.md
     $('aiTestOp').addEventListener('change', skeleton);
     $('aiClear').addEventListener('click', () => { $('aiText').value = ''; $('aiFile').value = ''; $('aiUrl').value = ''; $('aiPrefix').value = ''; $('aiPlan').classList.add('d-none'); $('aiAuth').innerHTML = ''; message(''); });
     document.querySelectorAll('input[name=aiKind]').forEach(r => r.addEventListener('change', () => {
-        $('aiUrlLabel').textContent = kind() === 'graphql' ? 'GraphQL endpoint' : 'Spec URL';
+        $('aiUrlLabel').textContent = kind() === 'graphql' ? _t('GraphQL endpoint') : _t('Spec URL');
     }));
     $('aiFile').addEventListener('change', async (e) => {
         const f = e.target.files[0];
@@ -483,23 +480,23 @@ Design: docs/architecture/API Import.md
 
     $('aiTest').addEventListener('click', async () => {
         let args;
-        try { args = JSON.parse($('aiTestArgs').value || '{}'); } catch (e) { message('Arguments must be JSON', 'danger'); return; }
+        try { args = JSON.parse($('aiTestArgs').value || '{}'); } catch (e) { message(_t('Arguments must be JSON'), 'danger'); return; }
         const data = await post('/test', request({operation: $('aiTestOp').value, arguments: args}));
         const out = $('aiTestResult');
         out.classList.remove('d-none');
-        out.textContent = data.success ? JSON.stringify(data.result, null, 2) : ('Error: ' + (data.error || 'failed'));
+        out.textContent = data.success ? JSON.stringify(data.result, null, 2) : _t('Error: %(error)s', {error: data.error || _t('failed')});
     });
 
     $('aiDeploy').addEventListener('click', async () => {
         const selected = [...document.querySelectorAll('.ai-sel:checked')].map(c => c.dataset.key);
         const remove = [...document.querySelectorAll('.ai-rm:checked')].map(c => c.dataset.key);
-        if (!selected.length && !remove.length) { message('Select at least one operation', 'warning'); return; }
+        if (!selected.length && !remove.length) { message(_t('Select at least one operation'), 'warning'); return; }
         const data = await post('/deploy', request({selected, remove}));
         const box = $('aiDeployResult');
         if (data.error) { box.innerHTML = '<div class="alert alert-danger py-2">' + esc(data.error) + '</div>'; return; }
         box.innerHTML = '<div class="alert alert-' + (data.success ? 'success' : 'warning') + ' py-2">' + esc(data.message) +
             ((data.failed || []).length ? '<ul class="mb-0">' + data.failed.map(f => '<li>' + esc(f.name) + ': ' + esc(f.error) + '</li>').join('') + '</ul>' : '') +
-            ([].concat(data.deployed || [], data.updated || []).length ? '<div class="small mt-1">Tools: ' + [].concat(data.deployed || [], data.updated || []).map(n => '<a href="/tools/' + encodeURIComponent(n) + '/execute">' + esc(n) + '</a>').join(', ') + '</div>' : '') + '</div>';
+            ([].concat(data.deployed || [], data.updated || []).length ? '<div class="small mt-1">' + _t('Tools:') + ' ' + [].concat(data.deployed || [], data.updated || []).map(n => '<a href="/tools/' + encodeURIComponent(n) + '/execute">' + esc(n) + '</a>').join(', ') + '</div>' : '') + '</div>';
         loadApis();
         parse();
     });
@@ -509,7 +506,7 @@ Design: docs/architecture/API Import.md
     if (qs.get('url')) {
         $('aiUrl').value = qs.get('url');
         if (qs.get('prefix')) $('aiPrefix').value = qs.get('prefix');
-        message('Prefilled from Describe a tool. Press Read the API to review its operations.', 'info');
+        message(_t('Prefilled from Describe a tool. Press Read the API to review its operations.'), 'info');
     }
 
     loadApis();

@@ -1,0 +1,15 @@
+{# Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.com #}
+{# A net's change history with Undo (changes, net): the Change history page and an instance's History tab. #}
+<div class="table-responsive"><table class="sn-table">
+  <thead><tr><th scope="col">{{ _('When, who') }}</th><th scope="col">{{ _('Change') }}</th><th scope="col">{{ _('Reason') }}</th><th scope="col">{{ _('Undo') }}</th></tr></thead>
+  <tbody>
+  {% for c in changes %}
+    <tr><td>{{ c.at }}<div class="sn-meta">{{ c.by }}</div></td>
+      <td>{{ c.summary }}{% if c.undo_of %} <span class="sn-meta">{% trans id=c.undo_of %}(undoes {{ id }}){% endtrans %}</span>{% endif %}<div class="sn-meta"><code>{{ c.kind }}</code> · {{ c.id }}</div></td>
+      <td>{{ c.reason or '—' }}</td>
+      <td>{% if c.undone_at %}<span class="st st-undone">{{ _('undone') }}</span><div class="sn-meta">{% trans at=c.undone_at, by=c.undone_by, why=c.undo_reason %}{{ at }} by {{ by }}: {{ why }}{% endtrans %}</div>
+        {% elif c.undo %}<button class="btn btn-sm btn-outline-primary" type="button" data-sn-action data-method="POST" data-url="/api/sajhanet/nets/{{ net|urlencode }}/changes/{{ c.id|urlencode }}/undo" data-net="{{ net }}"
+            data-effect="{{ _('Undo: %(summary)s. The undo is a change of its own, recorded and undoable.', summary=c.summary) }}">{{ _('Undo') }}</button>
+        {% else %}<span class="st st-final" title="{{ c.final or '' }}">{{ _('final') }}</span><div class="sn-meta">{{ c.final or '' }}</div>{% endif %}</td></tr>
+  {% else %}<tr><td colspan="4" class="sn-meta">{{ _('No changes recorded yet.') }}</td></tr>{% endfor %}
+  </tbody></table></div>

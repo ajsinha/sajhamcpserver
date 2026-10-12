@@ -1,7 +1,7 @@
 {
   "name": "get_page_info",
   "implementation": "sajha.tools.impl.webcrawler_tool_refactored.GetPageInfoTool",
-  "description": "Summary statistics of one web page: title, meta tags, heading counts and samples, link and image counts, size.\nReturns {url, status_code, content_type, title, meta_description, meta_keywords, headings: {h1_count, h2_count, h3_count, h1, h2, h3 (first 5 each)}, link_count, image_count, content_length (characters of HTML), retrieved_at}.\nInputs (* required): url* (string, absolute http(s) URL).\nFor the links themselves use extract_links; for text extract_content; for all headings extract_metadata.\nExample: {\"url\": \"https://example.com\"}",
+  "description": "Summary statistics of one web page: title, meta tags, heading counts and samples, link and image counts, size.\nReturns {url, status_code, content_type, title, meta_description, meta_keywords, headings: {h1_count, h2_count, h3_count, h1, h2, h3 (first 5 each)}, link_count, image_count, content_length (characters of HTML), retrieved_at}.\nInputs (* required): url* (string, absolute http(s) URL), render_js (boolean: run JavaScript first, when enabled).\nFor the links themselves use extract_links; for text extract_content; for all headings extract_metadata.\nExample: {\"url\": \"https://example.com\"}",
   "annotations": {"readOnlyHint": true, "idempotentHint": true, "openWorldHint": true},
   "version": "2.9.8",
   "enabled": true,
@@ -11,6 +11,11 @@
       "url": {
         "type": "string",
         "description": "URL of the page to analyze"
+      },
+      "render_js": {
+        "type": "boolean",
+        "default": false,
+        "description": "Run the page's JavaScript in a headless browser first; only when the operator enabled tools.webcrawler.javascript, and every request the page makes still passes the outbound guard"
       }
     },
     "required": ["url"],

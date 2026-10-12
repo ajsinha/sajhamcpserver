@@ -2,7 +2,7 @@
 <!--
 Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.com
 -->
-{% block title %}SharePoint Tool Creator - MCP Studio - SAJHA MCP Server{% endblock %}
+{% block title %}{{ _('SharePoint Tool Creator - MCP Studio - SAJHA MCP Server') }}{% endblock %}
 
 {% block extra_css %}
 <style>
@@ -142,15 +142,15 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
         <div class="d-flex justify-content-between align-items-start">
             <div>
                 <h3>
-                    <i class="bi bi-microsoft me-2"></i>SharePoint Tool Creator
+                    <i class="bi bi-microsoft me-2"></i>{{ _('SharePoint Tool Creator') }}
                     <span class="badge bg-light text-dark ms-2" style="font-size: 0.5em;">v{{ app_version }}</span>
                 </h3>
                 <p class="subtitle mb-0">
-                    Create MCP tools that integrate with Microsoft SharePoint - documents, lists, sites, and search
+                    {{ _('Create MCP tools that integrate with Microsoft SharePoint - documents, lists, sites, and search') }}
                 </p>
             </div>
             <a href="{{ url_for('studio.studio_home') }}" class="btn btn-outline-light">
-                <i class="bi bi-arrow-left me-1"></i>Back to Studio
+                <i class="bi bi-arrow-left me-1"></i>{{ _('Back to Studio') }}
             </a>
         </div>
     </div>
@@ -163,25 +163,25 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
                 <div class="form-section">
                     <div class="section-header">
                         <i class="bi bi-grid-3x3-gap"></i>
-                        <span>1. Select Tool Type</span>
+                        <span>{{ _('1. Select Tool Type') }}</span>
                     </div>
                     <div class="section-body">
                         <div class="tool-type-select">
                             <div class="tool-type-btn active" data-type="documents">
                                 <i class="bi bi-file-earmark-text"></i>
-                                Documents
+                                {{ _('Documents') }}
                             </div>
                             <div class="tool-type-btn" data-type="lists">
                                 <i class="bi bi-list-ul"></i>
-                                Lists
+                                {{ _('Lists') }}
                             </div>
                             <div class="tool-type-btn" data-type="sites">
                                 <i class="bi bi-globe"></i>
-                                Sites
+                                {{ _('Sites') }}
                             </div>
                             <div class="tool-type-btn" data-type="search">
                                 <i class="bi bi-search"></i>
-                                Search
+                                {{ _('Search') }}
                             </div>
                         </div>
                         <input type="hidden" id="tool_type" name="tool_type" value="documents">
@@ -192,36 +192,36 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
                 <div class="form-section">
                     <div class="section-header">
                         <i class="bi bi-info-circle"></i>
-                        <span>2. Basic Information</span>
+                        <span>{{ _('2. Basic Information') }}</span>
                     </div>
                     <div class="section-body">
                         <div class="row g-3">
                             <div class="col-md-6">
-                                <label class="form-label">Tool Name <span class="text-danger">*</span></label>
+                                <label class="form-label">{{ _('Tool Name') }} <span class="text-danger">*</span></label>
                                 <input type="text" class="form-control" id="name" name="name" 
                                        placeholder="e.g., sharepoint_project_docs" required
                                        pattern="[a-z][a-z0-9_]*">
-                                <div class="form-text">Lowercase with underscores (e.g., my_sharepoint_tool)</div>
+                                <div class="form-text">{{ _('Lowercase with underscores (e.g., my_sharepoint_tool)') }}</div>
                             </div>
                             <div class="col-md-6">
-                                <label class="form-label">Version</label>
+                                <label class="form-label">{{ _('Version') }}</label>
                                 <input type="text" class="form-control" id="version" name="version" 
                                        value="{{ app_version }}">
                             </div>
                             <div class="col-12">
-                                <label class="form-label">Description <span class="text-danger">*</span></label>
+                                <label class="form-label">{{ _('Description') }} <span class="text-danger">*</span></label>
                                 <textarea class="form-control" id="description" name="description" 
                                           rows="2" placeholder="Describe what this tool does..." required></textarea>
                             </div>
                             <div class="col-md-6">
-                                <label class="form-label">Category</label>
+                                <label class="form-label">{{ _('Category') }}</label>
                                 <input type="text" class="form-control" id="category" name="category" 
                                        value="Document Management">
                             </div>
                             <div class="col-md-6">
-                                <label class="form-label">Tags</label>
+                                <label class="form-label">{{ _('Tags') }}</label>
                                 <input type="text" class="form-control" id="tags" name="tags" 
-                                       placeholder="sharepoint, microsoft, documents">
+                                       placeholder="{{ _('sharepoint, microsoft, documents') }}">
                             </div>
                         </div>
                     </div>
@@ -231,27 +231,27 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
                 <div class="form-section">
                     <div class="section-header">
                         <i class="bi bi-link-45deg"></i>
-                        <span>3. SharePoint Connection</span>
+                        <span>{{ _('3. SharePoint Connection') }}</span>
                     </div>
                     <div class="section-body">
                         <div class="row g-3">
                             <div class="col-12">
-                                <label class="form-label">SharePoint Site URL <span class="text-danger">*</span></label>
+                                <label class="form-label">{{ _('SharePoint Site URL') }} <span class="text-danger">*</span></label>
                                 <input type="text" class="form-control" id="site_url" name="site_url" 
                                        placeholder="https://tenant.sharepoint.com/sites/mysite" required>
                                 <div class="variable-hint">
-                                    Use variable: <code>${sharepoint.site.url}</code>
+                                    {% trans %}Use variable: <code>${sharepoint.site.url}</code>{% endtrans %}
                                 </div>
                             </div>
                             <div class="col-md-6">
-                                <label class="form-label">Default Folder Path</label>
+                                <label class="form-label">{{ _('Default Folder Path') }}</label>
                                 <input type="text" class="form-control" id="default_folder" name="default_folder" 
                                        value="/Shared Documents">
                             </div>
                             <div class="col-md-6">
-                                <label class="form-label">Default List Name</label>
+                                <label class="form-label">{{ _('Default List Name') }}</label>
                                 <input type="text" class="form-control" id="default_list" name="default_list" 
-                                       placeholder="e.g., Tasks, Projects">
+                                       placeholder="{{ _('e.g., Tasks, Projects') }}">
                             </div>
                         </div>
                     </div>
@@ -261,42 +261,42 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
                 <div class="form-section">
                     <div class="section-header secondary">
                         <i class="bi bi-shield-lock"></i>
-                        <span>4. Azure AD Authentication</span>
+                        <span>{{ _('4. Azure AD Authentication') }}</span>
                     </div>
                     <div class="section-body">
                         <div class="row g-3">
                             <div class="col-md-6">
-                                <label class="form-label">Authentication Type</label>
+                                <label class="form-label">{{ _('Authentication Type') }}</label>
                                 <select class="form-select" id="auth_type" name="auth_type">
-                                    <option value="client_credentials" selected>Client Credentials (App-Only)</option>
-                                    <option value="certificate">Certificate</option>
-                                    <option value="user_credentials">User Credentials (ROPC)</option>
+                                    <option value="client_credentials" selected>{{ _('Client Credentials (App-Only)') }}</option>
+                                    <option value="certificate">{{ _('Certificate') }}</option>
+                                    <option value="user_credentials">{{ _('User Credentials (ROPC)') }}</option>
                                 </select>
                             </div>
                             <div class="col-md-6">
-                                <label class="form-label">Tenant ID <span class="text-danger">*</span></label>
+                                <label class="form-label">{{ _('Tenant ID') }} <span class="text-danger">*</span></label>
                                 <input type="text" class="form-control" id="tenant_id" name="tenant_id" 
-                                       placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx" required>
-                                <div class="variable-hint">Use variable: <code>${azure.tenant.id}</code></div>
+                                       placeholder="{{ _('xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx') }}" required>
+                                <div class="variable-hint">{% trans %}Use variable: <code>${azure.tenant.id}</code>{% endtrans %}</div>
                             </div>
                             <div class="col-md-6">
-                                <label class="form-label">Client ID <span class="text-danger">*</span></label>
+                                <label class="form-label">{{ _('Client ID') }} <span class="text-danger">*</span></label>
                                 <input type="text" class="form-control" id="client_id" name="client_id" 
-                                       placeholder="App Registration Client ID" required>
-                                <div class="variable-hint">Use variable: <code>${sharepoint.client.id}</code></div>
+                                       placeholder="{{ _('App Registration Client ID') }}" required>
+                                <div class="variable-hint">{% trans %}Use variable: <code>${sharepoint.client.id}</code>{% endtrans %}</div>
                             </div>
                             <div class="col-md-6">
-                                <label class="form-label">Client Secret</label>
+                                <label class="form-label">{{ _('Client Secret') }}</label>
                                 <input type="password" class="form-control" id="client_secret" name="client_secret" 
-                                       placeholder="App Registration Client Secret">
-                                <div class="variable-hint">Use variable: <code>${sharepoint.client.secret}</code></div>
+                                       placeholder="{{ _('App Registration Client Secret') }}">
+                                <div class="variable-hint">{% trans %}Use variable: <code>${sharepoint.client.secret}</code>{% endtrans %}</div>
                             </div>
                         </div>
                         <div class="alert alert-info mt-3 mb-0">
                             <i class="bi bi-info-circle me-2"></i>
-                            <strong>Setup Required:</strong> Create an Azure AD App Registration with SharePoint API permissions.
+                            {% trans %}<strong>Setup Required:</strong> Create an Azure AD App Registration with SharePoint API permissions.
                             <a href="https://docs.microsoft.com/en-us/sharepoint/dev/sp-add-ins/register-sharepoint-add-ins" 
-                               target="_blank">Learn more</a>
+                               target="_blank">Learn more</a>{% endtrans %}
                         </div>
                     </div>
                 </div>
@@ -305,159 +305,159 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
                 <div class="form-section">
                     <div class="section-header success">
                         <i class="bi bi-gear"></i>
-                        <span>5. Select Operations</span>
+                        <span>{{ _('5. Select Operations') }}</span>
                     </div>
                     <div class="section-body">
-                        <p class="text-muted mb-3">Select which operations to enable for this tool:</p>
+                        <p class="text-muted mb-3">{{ _('Select which operations to enable for this tool:') }}</p>
                         
                         <!-- Document Operations -->
                         <div id="operations-documents">
-                            <h6 class="mb-3"><i class="bi bi-file-earmark me-2"></i>Document Operations</h6>
+                            <h6 class="mb-3"><i class="bi bi-file-earmark me-2"></i>{{ _('Document Operations') }}</h6>
                             <div class="d-flex flex-wrap">
                                 <label class="operation-checkbox">
                                     <input type="checkbox" name="operations[]" value="list_files" checked>
-                                    <span class="ms-2">List Files</span>
+                                    <span class="ms-2">{{ _('List Files') }}</span>
                                 </label>
                                 <label class="operation-checkbox">
                                     <input type="checkbox" name="operations[]" value="get_file" checked>
-                                    <span class="ms-2">Get File</span>
+                                    <span class="ms-2">{{ _('Get File') }}</span>
                                 </label>
                                 <label class="operation-checkbox">
                                     <input type="checkbox" name="operations[]" value="download" checked>
-                                    <span class="ms-2">Download</span>
+                                    <span class="ms-2">{{ _('Download') }}</span>
                                 </label>
                                 <label class="operation-checkbox">
                                     <input type="checkbox" name="operations[]" value="upload">
-                                    <span class="ms-2">Upload</span>
+                                    <span class="ms-2">{{ _('Upload') }}</span>
                                 </label>
                                 <label class="operation-checkbox">
                                     <input type="checkbox" name="operations[]" value="search" checked>
-                                    <span class="ms-2">Search</span>
+                                    <span class="ms-2">{{ _('Search') }}</span>
                                 </label>
                                 <label class="operation-checkbox">
                                     <input type="checkbox" name="operations[]" value="get_metadata" checked>
-                                    <span class="ms-2">Get Metadata</span>
+                                    <span class="ms-2">{{ _('Get Metadata') }}</span>
                                 </label>
                                 <label class="operation-checkbox">
                                     <input type="checkbox" name="operations[]" value="update_metadata">
-                                    <span class="ms-2">Update Metadata</span>
+                                    <span class="ms-2">{{ _('Update Metadata') }}</span>
                                 </label>
                                 <label class="operation-checkbox">
                                     <input type="checkbox" name="operations[]" value="get_versions">
-                                    <span class="ms-2">Get Versions</span>
+                                    <span class="ms-2">{{ _('Get Versions') }}</span>
                                 </label>
                                 <label class="operation-checkbox">
                                     <input type="checkbox" name="operations[]" value="check_out">
-                                    <span class="ms-2">Check Out</span>
+                                    <span class="ms-2">{{ _('Check Out') }}</span>
                                 </label>
                                 <label class="operation-checkbox">
                                     <input type="checkbox" name="operations[]" value="check_in">
-                                    <span class="ms-2">Check In</span>
+                                    <span class="ms-2">{{ _('Check In') }}</span>
                                 </label>
                                 <label class="operation-checkbox">
                                     <input type="checkbox" name="operations[]" value="move">
-                                    <span class="ms-2">Move</span>
+                                    <span class="ms-2">{{ _('Move') }}</span>
                                 </label>
                                 <label class="operation-checkbox">
                                     <input type="checkbox" name="operations[]" value="copy">
-                                    <span class="ms-2">Copy</span>
+                                    <span class="ms-2">{{ _('Copy') }}</span>
                                 </label>
                                 <label class="operation-checkbox">
                                     <input type="checkbox" name="operations[]" value="delete">
-                                    <span class="ms-2">Delete</span>
+                                    <span class="ms-2">{{ _('Delete') }}</span>
                                 </label>
                             </div>
                         </div>
                         
                         <!-- List Operations -->
                         <div id="operations-lists" style="display: none;">
-                            <h6 class="mb-3"><i class="bi bi-list-ul me-2"></i>List Operations</h6>
+                            <h6 class="mb-3"><i class="bi bi-list-ul me-2"></i>{{ _('List Operations') }}</h6>
                             <div class="d-flex flex-wrap">
                                 <label class="operation-checkbox">
                                     <input type="checkbox" name="operations[]" value="get_lists" checked>
-                                    <span class="ms-2">Get Lists</span>
+                                    <span class="ms-2">{{ _('Get Lists') }}</span>
                                 </label>
                                 <label class="operation-checkbox">
                                     <input type="checkbox" name="operations[]" value="get_list_items" checked>
-                                    <span class="ms-2">Get Items</span>
+                                    <span class="ms-2">{{ _('Get Items') }}</span>
                                 </label>
                                 <label class="operation-checkbox">
                                     <input type="checkbox" name="operations[]" value="get_item" checked>
-                                    <span class="ms-2">Get Item</span>
+                                    <span class="ms-2">{{ _('Get Item') }}</span>
                                 </label>
                                 <label class="operation-checkbox">
                                     <input type="checkbox" name="operations[]" value="create_item">
-                                    <span class="ms-2">Create Item</span>
+                                    <span class="ms-2">{{ _('Create Item') }}</span>
                                 </label>
                                 <label class="operation-checkbox">
                                     <input type="checkbox" name="operations[]" value="update_item">
-                                    <span class="ms-2">Update Item</span>
+                                    <span class="ms-2">{{ _('Update Item') }}</span>
                                 </label>
                                 <label class="operation-checkbox">
                                     <input type="checkbox" name="operations[]" value="delete_item">
-                                    <span class="ms-2">Delete Item</span>
+                                    <span class="ms-2">{{ _('Delete Item') }}</span>
                                 </label>
                                 <label class="operation-checkbox">
                                     <input type="checkbox" name="operations[]" value="get_list_schema" checked>
-                                    <span class="ms-2">Get Schema</span>
+                                    <span class="ms-2">{{ _('Get Schema') }}</span>
                                 </label>
                                 <label class="operation-checkbox">
                                     <input type="checkbox" name="operations[]" value="query_items" checked>
-                                    <span class="ms-2">Query Items</span>
+                                    <span class="ms-2">{{ _('Query Items') }}</span>
                                 </label>
                             </div>
                         </div>
                         
                         <!-- Site Operations -->
                         <div id="operations-sites" style="display: none;">
-                            <h6 class="mb-3"><i class="bi bi-globe me-2"></i>Site Operations</h6>
+                            <h6 class="mb-3"><i class="bi bi-globe me-2"></i>{{ _('Site Operations') }}</h6>
                             <div class="d-flex flex-wrap">
                                 <label class="operation-checkbox">
                                     <input type="checkbox" name="operations[]" value="get_site_info" checked>
-                                    <span class="ms-2">Get Site Info</span>
+                                    <span class="ms-2">{{ _('Get Site Info') }}</span>
                                 </label>
                                 <label class="operation-checkbox">
                                     <input type="checkbox" name="operations[]" value="get_subsites" checked>
-                                    <span class="ms-2">Get Subsites</span>
+                                    <span class="ms-2">{{ _('Get Subsites') }}</span>
                                 </label>
                                 <label class="operation-checkbox">
                                     <input type="checkbox" name="operations[]" value="get_users" checked>
-                                    <span class="ms-2">Get Users</span>
+                                    <span class="ms-2">{{ _('Get Users') }}</span>
                                 </label>
                                 <label class="operation-checkbox">
                                     <input type="checkbox" name="operations[]" value="get_groups" checked>
-                                    <span class="ms-2">Get Groups</span>
+                                    <span class="ms-2">{{ _('Get Groups') }}</span>
                                 </label>
                                 <label class="operation-checkbox">
                                     <input type="checkbox" name="operations[]" value="get_permissions">
-                                    <span class="ms-2">Get Permissions</span>
+                                    <span class="ms-2">{{ _('Get Permissions') }}</span>
                                 </label>
                                 <label class="operation-checkbox">
                                     <input type="checkbox" name="operations[]" value="get_content_types">
-                                    <span class="ms-2">Content Types</span>
+                                    <span class="ms-2">{{ _('Content Types') }}</span>
                                 </label>
                             </div>
                         </div>
                         
                         <!-- Search Operations -->
                         <div id="operations-search" style="display: none;">
-                            <h6 class="mb-3"><i class="bi bi-search me-2"></i>Search Types</h6>
+                            <h6 class="mb-3"><i class="bi bi-search me-2"></i>{{ _('Search Types') }}</h6>
                             <div class="d-flex flex-wrap">
                                 <label class="operation-checkbox">
                                     <input type="checkbox" name="operations[]" value="all" checked>
-                                    <span class="ms-2">Search All</span>
+                                    <span class="ms-2">{{ _('Search All') }}</span>
                                 </label>
                                 <label class="operation-checkbox">
                                     <input type="checkbox" name="operations[]" value="documents" checked>
-                                    <span class="ms-2">Documents</span>
+                                    <span class="ms-2">{{ _('Documents') }}</span>
                                 </label>
                                 <label class="operation-checkbox">
                                     <input type="checkbox" name="operations[]" value="people" checked>
-                                    <span class="ms-2">People</span>
+                                    <span class="ms-2">{{ _('People') }}</span>
                                 </label>
                                 <label class="operation-checkbox">
                                     <input type="checkbox" name="operations[]" value="sites" checked>
-                                    <span class="ms-2">Sites</span>
+                                    <span class="ms-2">{{ _('Sites') }}</span>
                                 </label>
                             </div>
                         </div>
@@ -468,45 +468,45 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
                 <div class="form-section">
                     <div class="section-header secondary">
                         <i class="bi bi-sliders"></i>
-                        <span>6. Options</span>
+                        <span>{{ _('6. Options') }}</span>
                     </div>
                     <div class="section-body">
                         <div class="row g-3">
                             <div class="col-md-4">
-                                <label class="form-label">Max File Size (MB)</label>
+                                <label class="form-label">{{ _('Max File Size (MB)') }}</label>
                                 <input type="number" class="form-control" id="max_file_size_mb" 
                                        name="max_file_size_mb" value="100" min="1" max="500">
                             </div>
                             <div class="col-md-4">
-                                <label class="form-label">Cache TTL (seconds)</label>
+                                <label class="form-label">{{ _('Cache TTL (seconds)') }}</label>
                                 <input type="number" class="form-control" id="cache_ttl_seconds" 
                                        name="cache_ttl_seconds" value="300" min="0" max="3600">
                             </div>
                             <div class="col-md-4">
-                                <label class="form-label">Allowed File Types</label>
+                                <label class="form-label">{{ _('Allowed File Types') }}</label>
                                 <input type="text" class="form-control" id="allowed_file_types" 
-                                       name="allowed_file_types" placeholder="docx,pdf,xlsx (empty=all)">
+                                       name="allowed_file_types" placeholder="{{ _('docx,pdf,xlsx (empty=all)') }}">
                             </div>
                             <div class="col-12">
                                 <div class="form-check form-switch">
                                     <input class="form-check-input" type="checkbox" id="enable_version_control" 
                                            name="enable_version_control" checked>
                                     <label class="form-check-label" for="enable_version_control">
-                                        Enable Version Control
+                                        {{ _('Enable Version Control') }}
                                     </label>
                                 </div>
                                 <div class="form-check form-switch">
                                     <input class="form-check-input" type="checkbox" id="enable_metadata" 
                                            name="enable_metadata" checked>
                                     <label class="form-check-label" for="enable_metadata">
-                                        Enable Metadata Operations
+                                        {{ _('Enable Metadata Operations') }}
                                     </label>
                                 </div>
                                 <div class="form-check form-switch">
                                     <input class="form-check-input" type="checkbox" id="cache_enabled" 
                                            name="cache_enabled" checked>
                                     <label class="form-check-label" for="cache_enabled">
-                                        Enable Caching
+                                        {{ _('Enable Caching') }}
                                     </label>
                                 </div>
                             </div>
@@ -517,10 +517,10 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
                 <!-- Deploy Button -->
                 <div class="d-flex gap-3 justify-content-end mt-4">
                     <button type="button" class="btn btn-outline-secondary" id="btn-preview">
-                        <i class="bi bi-eye me-2"></i>Preview Configuration
+                        <i class="bi bi-eye me-2"></i>{{ _('Preview Configuration') }}
                     </button>
                     <button type="submit" class="btn btn-success btn-deploy">
-                        <i class="bi bi-rocket-takeoff me-2"></i>Deploy Tool
+                        <i class="bi bi-rocket-takeoff me-2"></i>{{ _('Deploy Tool') }}
                     </button>
                 </div>
             </form>
@@ -531,7 +531,7 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
             <div class="form-section sticky-top" style="top: 20px;">
                 <div class="section-header">
                     <i class="bi bi-code-slash"></i>
-                    <span>Configuration Preview</span>
+                    <span>{{ _('Configuration Preview') }}</span>
                 </div>
                 <div class="section-body p-0">
                     <pre class="preview-code mb-0" id="config-preview">{
@@ -554,35 +554,35 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
             <div class="form-section mt-4">
                 <div class="section-header secondary">
                     <i class="bi bi-question-circle"></i>
-                    <span>Quick Help</span>
+                    <span>{{ _('Quick Help') }}</span>
                 </div>
                 <div class="section-body">
-                    <h6>Azure AD Setup</h6>
+                    <h6>{{ _('Azure AD Setup') }}</h6>
                     <ol class="small mb-3">
-                        <li>Go to Azure Portal → Azure AD → App registrations</li>
-                        <li>Create new registration</li>
-                        <li>Add API permissions: SharePoint → Sites.Read.All</li>
-                        <li>Create a client secret</li>
-                        <li>Copy Tenant ID, Client ID, and Secret</li>
+                        <li>{{ _('Go to Azure Portal → Azure AD → App registrations') }}</li>
+                        <li>{{ _('Create new registration') }}</li>
+                        <li>{{ _('Add API permissions: SharePoint → Sites.Read.All') }}</li>
+                        <li>{{ _('Create a client secret') }}</li>
+                        <li>{{ _('Copy Tenant ID, Client ID, and Secret') }}</li>
                     </ol>
                     
-                    <h6>Variable Reference</h6>
+                    <h6>{{ _('Variable Reference') }}</h6>
                     <table class="table table-sm small">
                         <tr>
                             <td><code>${sharepoint.site.url}</code></td>
-                            <td>Site URL from properties</td>
+                            <td>{{ _('Site URL from properties') }}</td>
                         </tr>
                         <tr>
                             <td><code>${azure.tenant.id}</code></td>
-                            <td>Azure AD tenant ID</td>
+                            <td>{{ _('Azure AD tenant ID') }}</td>
                         </tr>
                         <tr>
                             <td><code>${sharepoint.client.id}</code></td>
-                            <td>App registration client ID</td>
+                            <td>{{ _('App registration client ID') }}</td>
                         </tr>
                         <tr>
                             <td><code>${sharepoint.client.secret}</code></td>
-                            <td>App registration secret</td>
+                            <td>{{ _('App registration secret') }}</td>
                         </tr>
                     </table>
                 </div>
@@ -705,14 +705,14 @@ document.addEventListener('DOMContentLoaded', function() {
             const result = await response.json();
             
             if (result.success) {
-                alert('Tool deployed successfully!\n\nTool: ' + result.tool_name + '\nFile: ' + result.config_file);
+                alert(_t('Tool deployed successfully!') + '\n\n' + _t('Tool: %(name)s', {name: result.tool_name}) + '\n' + _t('File: %(file)s', {file: result.config_file}));
                 window.location.href = '{{ url_for("tools_list") }}';
             } else {
-                alert('Error: ' + (result.error || 'Unknown error'));
+                alert(_t('Error:') + ' ' + (result.error || _t('Unknown error')));
             }
         } catch (error) {
             console.error('Deploy error:', error);
-            alert('Error deploying tool: ' + error.message);
+            alert(_t('Error deploying tool: ') + error.message);
         }
     });
     

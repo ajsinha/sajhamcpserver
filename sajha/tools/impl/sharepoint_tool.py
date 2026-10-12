@@ -11,6 +11,10 @@ API, ``<site>/_api``, does not accept app-only tokens obtained with a client sec
 is not used.) The app needs Graph application permissions such as ``Sites.Read.All`` (read)
 or ``Sites.ReadWrite.All`` (writes), or ``Sites.Selected`` granted on the site.
 
+With ``authentication.type: delegated`` the tools act as the caller instead, with the token of
+the caller's connected Microsoft account; files larger than the simple-upload limit go through a
+Graph upload session (both in sajha/tools/impl/sharepoint_upload.py).
+
 Configuration (``config/tools/sharepoint/sharepoint_*.json``): ``site_url`` and an ``authentication``
 block (``type``, ``tenant_id``, ``client_id``, ``client_secret``), normally
 ``${sharepoint.site.url}``, ``${azure.tenant.id}``, ``${sharepoint.client.id}`` and
@@ -28,6 +32,7 @@ from typing import Any, Dict, List, Optional, Tuple
 import requests
 
 from sajha.tools.base_mcp_tool import BaseMCPTool
+from sajha.tools.impl import sharepoint_upload as spu
 
 logger = logging.getLogger(__name__)
 
@@ -74,15 +79,26 @@ class SharePointAuthenticator:
     def auth_type(self) -> str:
         return self.config.get('type') or self.config.get('auth_type') or 'client_credentials'
 
+    @property
+    def delegated(self) -> bool:
+        return self.auth_type == spu.DELEGATED
+
+    @property
+    def provider(self) -> str:
+        return str(self.config.get('connected_account') or 'microsoft')
+
     def get_access_token(self) -> str:
-        """A valid access token, requested again when the cached one is about to expire."""
+        """A valid access token: the caller's (delegated, never cached here), or the app's,
+        requested again when the cached one is about to expire."""
+        if self.delegated:
+            return spu.delegated_token(self.provider)
         with self._lock:
             if self.access_token and self.token_expiry and datetime.now() < self.token_expiry:
                 return self.access_token
             if self.auth_type != 'client_credentials':
                 raise SharePointConfigError(
                     f"Unsupported SharePoint authentication type '{self.auth_type}': "
-                    "only 'client_credentials' is implemented")
+                    "use 'client_credentials' or 'delegated'")
             return self._get_client_credentials_token()
 
     def _get_client_credentials_token(self) -> str:
@@ -115,8 +131,12 @@ class SharePointBaseTool(BaseMCPTool):
     """Shared Graph plumbing: configuration, token, site lookup, paths, requests."""
 
     def __init__(self, config: Dict = None):
+        config = dict(config or {})
+        bind = spu.delegated_auth_block(config.get('authentication') or {})
+        if bind and not config.get('auth'):
+            config['auth'] = bind        # every call is bound to the caller's connected account
         super().__init__(config)
-        self.config = config or {}
+        self.config = config
         self.site_url = (self.config.get('site_url') or '').strip()
         self.authenticator: Optional[SharePointAuthenticator] = None
         self._site_id: Optional[str] = None
@@ -164,8 +184,18 @@ class SharePointBaseTool(BaseMCPTool):
                headers: Optional[Dict[str, str]] = None, raw: bool = False):
         """One Graph call. ``path`` is already URL-encoded; ``params`` are encoded here."""
         url = path if path.startswith('https://') else f'{GRAPH_ROOT}{path}'
+        delegated = bool(self.authenticator and self.authenticator.delegated)
+        if delegated and urllib.parse.urlsplit(url).hostname != 'graph.microsoft.com':
+            raise RuntimeError('a caller\'s token is only sent to graph.microsoft.com')
         response = requests.request(method, url, params=params, json=json_body, data=data,
                                     headers=self._headers(headers), timeout=HTTP_TIMEOUT)
+        if delegated and response.status_code == 401:
+            # refresh the caller's token once; a second refusal asks them to reconnect
+            spu.refresh_delegated(self.authenticator.provider, self.name, final=False)
+            response = requests.request(method, url, params=params, json=json_body, data=data,
+                                        headers=self._headers(headers), timeout=HTTP_TIMEOUT)
+            if response.status_code == 401:
+                spu.refresh_delegated(self.authenticator.provider, self.name, final=True)
         if response.status_code >= 400:
             detail = ''
             try:
@@ -236,7 +266,13 @@ class SharePointBaseTool(BaseMCPTool):
             result['execution_time_ms'] = round((time.time() - start) * 1000, 2)
             result['success'] = True
             return result
+        except spu.UploadInterrupted as e:
+            return {'success': False, 'error': str(e), 'resumable': True, 'upload_url': e.upload_url,
+                    'bytes_uploaded': e.uploaded, 'size': e.total}
         except Exception as e:
+            from sajha.core.mcp_mrtr import InputRequired
+            if isinstance(e, InputRequired):       # "connect your account": each front end answers it
+                raise
             logger.error(f'{label} error: {e}', exc_info=not isinstance(e, SharePointConfigError))
             return {'success': False, 'error': str(e)}
 
@@ -266,8 +302,9 @@ class SharePointDocumentTool(SharePointBaseTool):
 
     #: Upper bound on items walked by list_files with recursive=true.
     MAX_RECURSIVE_ITEMS = 1000
-    #: Graph's simple upload (PUT .../content) takes files up to 250 MB; keep it modest.
-    MAX_UPLOAD_BYTES = 4 * 1024 * 1024
+    #: Files up to this size use Graph's simple upload (PUT .../content); larger ones an upload
+    #: session, up to the tool config's max_upload_bytes (sharepoint_upload.DEFAULT_MAX_UPLOAD).
+    MAX_UPLOAD_BYTES = spu.SIMPLE_UPLOAD_LIMIT
 
     def execute(self, arguments: Dict[str, Any]) -> Dict[str, Any]:
         operation = arguments.get('operation', 'list_files')
@@ -337,25 +374,40 @@ class SharePointDocumentTool(SharePointBaseTool):
             out['download_ready'] = True
         return out
 
+    def _upload_content(self, args: Dict) -> bytes:
+        limit = spu.max_upload_bytes(self.config)
+        if args.get('source_path'):
+            return spu.read_source(self.config, args['source_path'], limit)
+        encoded = self._need(args, 'content_base64')
+        if len(encoded) > limit * 4 // 3 + 4:
+            raise ValueError(f'File too large (limit {limit} bytes, max_upload_bytes)')
+        try:
+            content = base64.b64decode(encoded, validate=True)
+        except Exception:
+            raise ValueError("'content_base64' is not valid base64")
+        if len(content) > limit:
+            raise ValueError(f'File too large ({len(content)} bytes; limit {limit}, max_upload_bytes)')
+        return content
+
     def _upload_file(self, args: Dict) -> Dict:
         file_name = self._need(args, 'file_name')
         if '/' in file_name or '\\' in file_name:
             raise ValueError("'file_name' must be a plain file name; put the folder in 'folder_path'")
-        try:
-            content = base64.b64decode(self._need(args, 'content_base64'), validate=True)
-        except Exception:
-            raise ValueError("'content_base64' is not valid base64")
-        if len(content) > self.MAX_UPLOAD_BYTES:
-            raise ValueError(f'File too large for a simple upload ({len(content)} bytes; '
-                             f'limit {self.MAX_UPLOAD_BYTES})')
+        content = self._upload_content(args)
         folder = self.drive_path(args.get('folder_path', ''))
         target = f'{folder}/{file_name}' if folder else file_name
         conflict = 'replace' if args.get('overwrite', False) else 'fail'
-        item = self._graph('PUT', f'{self.item_ref(target)}/content',
-                           params={'@microsoft.graph.conflictBehavior': conflict}, data=content,
-                           headers={'Content-Type': 'application/octet-stream'})
+        resume = str(args.get('resume_upload_url') or '')
+        if resume or len(content) > self.MAX_UPLOAD_BYTES:
+            item = spu.upload_large(self, target, file_name, content, conflict, resume_url=resume)
+            method = 'upload_session'
+        else:
+            item = self._graph('PUT', f'{self.item_ref(target)}/content',
+                               params={'@microsoft.graph.conflictBehavior': conflict}, data=content,
+                               headers={'Content-Type': 'application/octet-stream'})
+            method = 'simple'
         return {'uploaded': True, 'file_name': file_name, 'file_url': item.get('webUrl'),
-                'id': item.get('id'), 'size': item.get('size')}
+                'id': item.get('id'), 'size': item.get('size'), 'method': method}
 
     def _search_documents(self, args: Dict) -> Dict:
         query = args.get('query') or '*'

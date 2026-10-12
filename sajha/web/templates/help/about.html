@@ -5,7 +5,7 @@ About: what SAJHA is, and what this server is running now. Every number on this 
 read from the running server (tools registry, prompts registry, protocol version lists in
 sajha/core); every claim links to the guide that owns it. Nothing is counted by hand.
 -->
-{% block title %}About - {{ app_name }}{% endblock %}
+{% block title %}{% trans app_name=app_name %}About - {{ app_name }}{% endtrans %}{% endblock %}
 
 {% block content %}
 <div class="container py-2">
@@ -13,99 +13,97 @@ sajha/core); every claim links to the guide that owns it. Nothing is counted by 
     <div class="about-hero">
         <i class="bi bi-diagram-3 d-block mb-2" style="font-size:2.75rem;position:relative" aria-hidden="true"></i>
         <h1>SAJHA</h1>
-        <p>A Model Context Protocol server for data and utility tools, prompts, and the people who run them</p>
-        <span class="version-badge">{{ app_version }} · MCP {{ modern_versions|join(', ') }} and {{ handshake_versions[0] }}</span>
+        <p>{{ _('A Model Context Protocol server for data and utility tools, prompts, and the people who run them') }}</p>
+        <span class="version-badge">{% trans app_version=app_version, modern_versions=modern_versions|join(', '), value=handshake_versions[0] %}{{ app_version }} · MCP {{ modern_versions }} and {{ value }}{% endtrans %}</span>
     </div>
 
     <div class="row mb-4 g-4">
         <div class="col-lg-7">
             <div class="card h-100">
-                <div class="card-header card-header-primary"><i class="bi bi-journal-text me-2" aria-hidden="true"></i>What SAJHA is</div>
+                <div class="card-header card-header-primary"><i class="bi bi-journal-text me-2" aria-hidden="true"></i>{{ _('What SAJHA is') }}</div>
                 <div class="card-body">
-                    <p>SAJHA turns a catalog of data and utility tools (market data, central banks, public
-                        statistics, filings, search, analytics, calculators) and reusable prompts into something
-                        any MCP client can discover and call: an AI assistant, an agent framework or a script.</p>
-                    <p class="mb-0">Around that core it adds what running such a server needs: a web console, users
+                    <p>{{ _('SAJHA turns a catalog of data and utility tools (market data, central banks, public statistics, filings, search, analytics, calculators) and reusable prompts into something any MCP client can discover and call: an AI assistant, an agent framework or a script.') }}</p>
+                    <p class="mb-0">{% trans value=guide_url('How SAJHA Fits Together.md'), value2=url_for('comparison_page') %}Around that core it adds what running such a server needs: a web console, users
                         and roles, API keys, OAuth 2.1 on <code>/mcp</code>, a sandbox for user code, a visual tool builder,
                         tool composition, proxied MCP servers, SAJHA Net for sharing tools between servers, an
                         intelligence layer that answers questions with the tools, LLM tools, workflows, policies and
                         a tamper-evident audit, caching, circuit breakers, observability, shared state for several workers and
                         pluggable storage.
-                        <a href="{{ guide_url('How SAJHA Fits Together.md') }}">How SAJHA fits together</a> ·
-                        <a href="{{ url_for('comparison_page') }}">How it compares</a>.</p>
+                        <a href="{{ value }}">How SAJHA fits together</a> ·
+                        <a href="{{ value2 }}">How it compares</a>.{% endtrans %}</p>
                 </div>
             </div>
         </div>
         <div class="col-lg-5">
             <div class="card h-100">
-                <div class="card-header card-header-info"><i class="bi bi-translate me-2" aria-hidden="true"></i>The name</div>
+                <div class="card-header card-header-info"><i class="bi bi-translate me-2" aria-hidden="true"></i>{{ _('The name') }}</div>
                 <div class="card-body d-flex align-items-center">
                     <div class="rounded-circle d-none d-sm-inline-flex align-items-center justify-content-center me-3 flex-shrink-0" style="width:84px;height:84px;background:var(--sajha-crimson-tint)">
                         <span style="font-size:2rem;font-family:'Noto Sans Devanagari',sans-serif;color: var(--t-accent-text)">साझा</span>
                     </div>
-                    <p class="small mb-0"><strong>SAJHA</strong> (Hindi: साझा, Urdu: ساجھا) means <em>shared</em>, <em>common</em>
-                        or <em>collaborative</em>: one server whose tools many clients share.</p>
+                    <p class="small mb-0">{% trans %}<strong>SAJHA</strong> (Hindi: साझा, Urdu: ساجھا) means <em>shared</em>, <em>common</em>
+                        or <em>collaborative</em>: one server whose tools many clients share.{% endtrans %}</p>
                 </div>
             </div>
         </div>
     </div>
 
-    <h2 class="h5 mb-3"><i class="bi bi-activity me-2" aria-hidden="true"></i>Running now</h2>
+    <h2 class="h5 mb-3"><i class="bi bi-activity me-2" aria-hidden="true"></i>{{ _('Running now') }}</h2>
     <div class="row g-3 mb-4">
         <div class="col-sm-6 col-lg-3"><a class="stat-tile text-decoration-none" href="/help/tools">
             <span class="ico"><i class="bi bi-tools" aria-hidden="true"></i></span>
-            <span><span class="num d-block">{{ catalog_live.total_tools }}</span><span class="lbl">Tools loaded</span></span></a></div>
+            <span><span class="num d-block">{{ catalog_live.total_tools }}</span><span class="lbl">{{ _('Tools loaded') }}</span></span></a></div>
         <div class="col-sm-6 col-lg-3"><a class="stat-tile text-decoration-none" href="/help/tools">
             <span class="ico"><i class="bi bi-grid-3x3-gap" aria-hidden="true"></i></span>
-            <span><span class="num d-block">{{ catalog_live.total_groups }}</span><span class="lbl">Tool domains</span></span></a></div>
+            <span><span class="num d-block">{{ catalog_live.total_groups }}</span><span class="lbl">{{ _('Tool domains') }}</span></span></a></div>
         <div class="col-sm-6 col-lg-3"><div class="stat-tile">
             <span class="ico"><i class="bi bi-chat-square-text" aria-hidden="true"></i></span>
-            <span><span class="num d-block">{{ prompts_count }}</span><span class="lbl">Prompts</span></span></div></div>
+            <span><span class="num d-block">{{ prompts_count }}</span><span class="lbl">{{ _('Prompts') }}</span></span></div></div>
         <div class="col-sm-6 col-lg-3"><div class="stat-tile">
             <span class="ico"><i class="bi bi-diagram-3" aria-hidden="true"></i></span>
-            <span><span class="num d-block">{{ (modern_versions + handshake_versions)|length }}</span><span class="lbl">Protocol versions</span></span></div></div>
+            <span><span class="num d-block">{{ (modern_versions + handshake_versions)|length }}</span><span class="lbl">{{ _('Protocol versions') }}</span></span></div></div>
     </div>
 
     <div class="row g-4 mb-4">
         <div class="col-lg-6">
             <div class="card h-100">
-                <div class="card-header card-header-success"><i class="bi bi-diagram-3 me-2" aria-hidden="true"></i>Protocol</div>
+                <div class="card-header card-header-success"><i class="bi bi-diagram-3 me-2" aria-hidden="true"></i>{{ _('Protocol') }}</div>
                 <div class="card-body">
-                    <p class="small">One <code>/mcp</code> endpoint serves both eras, chosen per request:</p>
+                    <p class="small">{% trans %}One <code>/mcp</code> endpoint serves both eras, chosen per request:{% endtrans %}</p>
                     <ul class="cap-list small">
-                        <li><strong>Stateless</strong> ({{ modern_versions|join(', ') }}): no handshake and no session; every request is complete in itself.</li>
-                        <li><strong>Session-based</strong> ({{ handshake_versions|join(', ') }}): <code>initialize</code> first, then requests on the session.</li>
+                        <li>{% trans modern_versions=modern_versions|join(', ') %}<strong>Stateless</strong> ({{ modern_versions }}): no handshake and no session; every request is complete in itself.{% endtrans %}</li>
+                        <li>{% trans handshake_versions=handshake_versions|join(', ') %}<strong>Session-based</strong> ({{ handshake_versions }}): <code>initialize</code> first, then requests on the session.{% endtrans %}</li>
                     </ul>
-                    <p class="small mb-0">How it works: the <a href="{{ guide_url('MCP Protocol Guide.md') }}">MCP Protocol Guide</a>.
+                    <p class="small mb-0">{% trans value=guide_url('MCP Protocol Guide.md'), value2=guide_url('MCP 2026-07-28 Compliance.md'), value3=guide_url('MCP 2025-11-25 Compliance.md') %}How it works: the <a href="{{ value }}">MCP Protocol Guide</a>.
                         What was tested, with the conformance-suite results and known limits:
-                        <a href="{{ guide_url('MCP 2026-07-28 Compliance.md') }}">2026-07-28</a> and
-                        <a href="{{ guide_url('MCP 2025-11-25 Compliance.md') }}">2025-11-25</a> compliance reports.</p>
+                        <a href="{{ value2 }}">2026-07-28</a> and
+                        <a href="{{ value3 }}">2025-11-25</a> compliance reports.{% endtrans %}</p>
                 </div>
             </div>
         </div>
         <div class="col-lg-6">
             <div class="card h-100">
-                <div class="card-header card-header-danger"><i class="bi bi-shield-lock me-2" aria-hidden="true"></i>Access</div>
+                <div class="card-header card-header-danger"><i class="bi bi-shield-lock me-2" aria-hidden="true"></i>{{ _('Access') }}</div>
                 <div class="card-body">
                     <ul class="cap-list small">
-                        <li>SAJHA's own credentials: a login session, a SAJHA JWT, or an API key limited to the tools it may call. Roles decide what each account can do in the console.</li>
-                        <li>OAuth 2.1 on <code>/mcp</code>, set by <code>mcp.auth.mode</code>: <code>off</code> (the default), <code>optional</code> or <code>required</code>; tokens from the built-in authorization server or an external issuer.</li>
-                        <li>Console single sign-on with an organisation's OpenID Connect identity provider (<code>auth.sso</code>, off by default), alongside passwords and API keys. OAuth on <code>/mcp</code> is separate from it, and SAJHA is not an OpenID Connect provider.</li>
+                        <li>{{ _('SAJHA\'s own credentials: a login session, a SAJHA JWT, or an API key limited to the tools it may call. Roles decide what each account can do in the console.') }}</li>
+                        <li>{% trans %}OAuth 2.1 on <code>/mcp</code>, set by <code>mcp.auth.mode</code>: <code>off</code> (the default), <code>optional</code> or <code>required</code>; tokens from the built-in authorization server or an external issuer.{% endtrans %}</li>
+                        <li>{% trans %}Console single sign-on with an organisation's OpenID Connect identity provider (<code>auth.sso</code>, off by default), alongside passwords and API keys. OAuth on <code>/mcp</code> is separate from it, and SAJHA is not an OpenID Connect provider.{% endtrans %}</li>
                     </ul>
                     {% if is_admin and oauth_mode is defined %}
-                    <p class="small mb-2"><span class="badge bg-secondary">This server</span>
-                        <code>mcp.auth.mode</code> = <code>{{ oauth_mode }}</code>{% if oauth_mode != 'off' %}, {{ 'built-in authorization server' if oauth_builtin else 'external issuer' }}{% endif %}
-                        · database: <code>{{ db_type }}</code></p>
+                    <p class="small mb-2"><span class="badge bg-secondary">{{ _('This server') }}</span>
+                        <code>mcp.auth.mode</code> = <code>{{ oauth_mode }}</code>{% if oauth_mode != 'off' %}, {{ _('built-in authorization server') if oauth_builtin else _('external issuer') }}{% endif %}
+                        {% trans db_type=db_type %}· database: <code>{{ db_type }}</code>{% endtrans %}</p>
                     {% endif %}
-                    <p class="small mb-0"><a href="{{ guide_url('OAuth Guide.md') }}">OAuth Guide</a> ·
-                        <a href="{{ guide_url('Security Model.md') }}">Security Model</a></p>
+                    <p class="small mb-0">{% trans value=guide_url('OAuth Guide.md'), value2=guide_url('Security Model.md') %}<a href="{{ value }}">OAuth Guide</a> ·
+                        <a href="{{ value2 }}">Security Model</a>{% endtrans %}</p>
                 </div>
             </div>
         </div>
     </div>
 
     <div class="card mb-4">
-        <div class="card-header card-header-secondary"><i class="bi bi-lightning-charge me-2" aria-hidden="true"></i>What else it does</div>
+        <div class="card-header card-header-secondary"><i class="bi bi-lightning-charge me-2" aria-hidden="true"></i>{{ _('What else it does') }}</div>
         <div class="card-body">
             <div class="row g-3">
                 {% set caps = [
@@ -137,14 +135,14 @@ sajha/core); every claim links to the guide that owns it. Nothing is counted by 
     </div>
 
     <div class="card mb-2">
-        <div class="card-header card-header-secondary"><i class="bi bi-c-circle me-2" aria-hidden="true"></i>Copyright and contact</div>
+        <div class="card-header card-header-secondary"><i class="bi bi-c-circle me-2" aria-hidden="true"></i>{{ _('Copyright and contact') }}</div>
         <div class="card-body text-center">
-            <p class="mb-1">Copyright © {{ app_copyright_years }} {{ app_author }}</p>
-            <p class="text-muted small mb-3">All rights reserved.</p>
+            <p class="mb-1">{% trans app_copyright_years=app_copyright_years, app_author=app_author %}Copyright © {{ app_copyright_years }} {{ app_author }}{% endtrans %}</p>
+            <p class="text-muted small mb-3">{{ _('All rights reserved.') }}</p>
             <a href="mailto:{{ app_email }}" class="btn btn-sm btn-outline-primary me-2"><i class="bi bi-envelope me-1" aria-hidden="true"></i>{{ app_email }}</a>
             <a href="{{ app_github_repo }}" target="_blank" rel="noopener" class="btn btn-sm btn-outline-secondary me-2"><i class="bi bi-github me-1" aria-hidden="true"></i>{{ app_github_repo_name }}</a>
-            <a href="https://modelcontextprotocol.io" target="_blank" rel="noopener" class="btn btn-sm btn-outline-secondary me-2"><i class="bi bi-box-arrow-up-right me-1" aria-hidden="true"></i>MCP specification</a>
-            <a href="/api/docs" class="btn btn-sm btn-outline-secondary"><i class="bi bi-braces me-1" aria-hidden="true"></i>API docs</a>
+            <a href="https://modelcontextprotocol.io" target="_blank" rel="noopener" class="btn btn-sm btn-outline-secondary me-2"><i class="bi bi-box-arrow-up-right me-1" aria-hidden="true"></i>{{ _('MCP specification') }}</a>
+            <a href="/api/docs" class="btn btn-sm btn-outline-secondary"><i class="bi bi-braces me-1" aria-hidden="true"></i>{{ _('API docs') }}</a>
         </div>
     </div>
 

@@ -2,7 +2,7 @@
 <!--
 Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.com
 -->
-{% block title %}IBM LiveLink Document Tool Creator - MCP Studio - SAJHA MCP Server{% endblock %}
+{% block title %}{{ _('IBM LiveLink Document Tool Creator - MCP Studio - SAJHA MCP Server') }}{% endblock %}
 
 {% block extra_css %}
 <style>
@@ -177,11 +177,11 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
             </div>
             <div>
                 <h3 class="mb-0">
-                    <i class="bi bi-file-earmark-binary me-2"></i>IBM LiveLink Document Tool Creator
+                    <i class="bi bi-file-earmark-binary me-2"></i>{{ _('IBM LiveLink Document Tool Creator') }}
                     <span class="badge bg-light text-dark ms-2" style="font-size: 0.5em;">v{{ app_version }}</span>
                 </h3>
                 <p class="subtitle mb-0">
-                    Create MCP tools to query and download documents from OpenText Content Server
+                    {{ _('Create MCP tools to query and download documents from OpenText Content Server') }}
                 </p>
             </div>
         </div>
@@ -197,29 +197,29 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
             <div class="form-section">
                 <div class="section-header primary">
                     <i class="bi bi-info-circle"></i>
-                    Tool Information
+                    {{ _('Tool Information') }}
                 </div>
                 <div class="section-body">
                     <div class="mb-3">
-                        <label class="form-label fw-bold">Tool Name <span class="text-danger">*</span></label>
+                        <label class="form-label fw-bold">{{ _('Tool Name') }} <span class="text-danger">*</span></label>
                         <input type="text" id="toolName" class="form-control" placeholder="e.g., company_docs">
-                        <div class="help-text">Lowercase letters, numbers, underscores only.</div>
+                        <div class="help-text">{{ _('Lowercase letters, numbers, underscores only.') }}</div>
                     </div>
                     
                     <div class="mb-3">
-                        <label class="form-label fw-bold">Description <span class="text-danger">*</span></label>
+                        <label class="form-label fw-bold">{{ _('Description') }} <span class="text-danger">*</span></label>
                         <textarea id="description" class="form-control" rows="2" 
                                   placeholder="e.g., Query and download documents from company LiveLink server"></textarea>
                     </div>
                     
                     <div class="row">
                         <div class="col-md-6">
-                            <label class="form-label fw-bold">Tags</label>
-                            <input type="text" id="tags" class="form-control" placeholder="livelink, documents, ecm">
+                            <label class="form-label fw-bold">{{ _('Tags') }}</label>
+                            <input type="text" id="tags" class="form-control" placeholder="{{ _('livelink, documents, ecm') }}">
                         </div>
                         <div class="col-md-6">
-                            <label class="form-label fw-bold">Author</label>
-                            <input type="text" id="author" class="form-control" placeholder="Optional">
+                            <label class="form-label fw-bold">{{ _('Author') }}</label>
+                            <input type="text" id="author" class="form-control" placeholder="{{ _('Optional') }}">
                         </div>
                     </div>
                 </div>
@@ -229,28 +229,28 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
             <div class="form-section">
                 <div class="section-header">
                     <i class="bi bi-server"></i>
-                    Server Configuration
+                    {{ _('Server Configuration') }}
                 </div>
                 <div class="section-body">
                     <div class="mb-3">
-                        <label class="form-label fw-bold">Server URL <span class="text-danger">*</span></label>
+                        <label class="form-label fw-bold">{{ _('Server URL') }} <span class="text-danger">*</span></label>
                         <input type="text" id="serverUrl" class="form-control" 
                                placeholder="https://livelink.company.com/otcs/cs.exe">
-                        <div class="help-text">LiveLink/Content Server base URL</div>
+                        <div class="help-text">{{ _('LiveLink/Content Server base URL') }}</div>
                     </div>
                     
                     <div class="row">
                         <div class="col-md-6">
-                            <label class="form-label fw-bold">API Version</label>
+                            <label class="form-label fw-bold">{{ _('API Version') }}</label>
                             <select id="apiVersion" class="form-select">
-                                <option value="v2" selected>v2 (Recommended)</option>
-                                <option value="v1">v1 (Legacy)</option>
+                                <option value="v2" selected>{{ _('v2 (Recommended)') }}</option>
+                                <option value="v1">{{ _('v1 (Legacy)') }}</option>
                             </select>
                         </div>
                         <div class="col-md-6">
-                            <label class="form-label fw-bold">Default Parent Folder ID</label>
-                            <input type="text" id="defaultParentId" class="form-control" placeholder="Optional">
-                            <div class="help-text">Default folder for list operations</div>
+                            <label class="form-label fw-bold">{{ _('Default Parent Folder ID') }}</label>
+                            <input type="text" id="defaultParentId" class="form-control" placeholder="{{ _('Optional') }}">
+                            <div class="help-text">{{ _('Default folder for list operations') }}</div>
                         </div>
                     </div>
                 </div>
@@ -260,26 +260,26 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
             <div class="form-section">
                 <div class="section-header success">
                     <i class="bi bi-shield-lock"></i>
-                    Authentication
+                    {{ _('Authentication') }}
                 </div>
                 <div class="section-body">
                     <div class="mb-3">
-                        <label class="form-label fw-bold">Authentication Type</label>
+                        <label class="form-label fw-bold">{{ _('Authentication Type') }}</label>
                         <div class="auth-type-select">
                             <button type="button" class="auth-type-btn active" data-auth="basic">
                                 <i class="bi bi-key"></i>
-                                Basic Auth
-                                <small>Username/Password</small>
+                                {% trans %}Basic Auth
+                                <small>Username/Password</small>{% endtrans %}
                             </button>
                             <button type="button" class="auth-type-btn" data-auth="otds">
                                 <i class="bi bi-shield-check"></i>
-                                OTDS
-                                <small>OpenText Directory</small>
+                                {% trans %}OTDS
+                                <small>OpenText Directory</small>{% endtrans %}
                             </button>
                             <button type="button" class="auth-type-btn" data-auth="oauth">
                                 <i class="bi bi-cloud-check"></i>
-                                OAuth
-                                <small>Token-based</small>
+                                {% trans %}OAuth
+                                <small>Token-based</small>{% endtrans %}
                             </button>
                         </div>
                     </div>
@@ -287,11 +287,11 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
                     <div id="basicAuthFields">
                         <div class="row">
                             <div class="col-md-6">
-                                <label class="form-label fw-bold">Username Env Variable</label>
+                                <label class="form-label fw-bold">{{ _('Username Env Variable') }}</label>
                                 <input type="text" id="usernameEnv" class="form-control" value="LIVELINK_USERNAME">
                             </div>
                             <div class="col-md-6">
-                                <label class="form-label fw-bold">Password Env Variable</label>
+                                <label class="form-label fw-bold">{{ _('Password Env Variable') }}</label>
                                 <input type="text" id="passwordEnv" class="form-control" value="LIVELINK_PASSWORD">
                             </div>
                         </div>
@@ -299,15 +299,15 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
                     
                     <div id="oauthFields" style="display: none;">
                         <div class="mb-3">
-                            <label class="form-label fw-bold">OAuth Token Env Variable</label>
+                            <label class="form-label fw-bold">{{ _('OAuth Token Env Variable') }}</label>
                             <input type="text" id="oauthTokenEnv" class="form-control" value="LIVELINK_OAUTH_TOKEN">
                         </div>
                     </div>
                     
                     <div class="info-box mt-3">
-                        <h6 class="text-primary mb-2"><i class="bi bi-info-circle me-2"></i>Security Note</h6>
-                        <p class="mb-0 small">Credentials are stored in environment variables, never in code. 
-                        Set <code>LIVELINK_USERNAME</code> and <code>LIVELINK_PASSWORD</code> before running.</p>
+                        <h6 class="text-primary mb-2"><i class="bi bi-info-circle me-2"></i>{{ _('Security Note') }}</h6>
+                        <p class="mb-0 small">{% trans %}Credentials are stored in environment variables, never in code. 
+                        Set <code>LIVELINK_USERNAME</code> and <code>LIVELINK_PASSWORD</code> before running.{% endtrans %}</p>
                     </div>
                 </div>
             </div>
@@ -316,16 +316,16 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
             <div class="form-section">
                 <div class="section-header secondary">
                     <i class="bi bi-gear"></i>
-                    Advanced Options
+                    {{ _('Advanced Options') }}
                 </div>
                 <div class="section-body">
                     <div class="row">
                         <div class="col-md-6">
-                            <label class="form-label fw-bold">Timeout (seconds)</label>
+                            <label class="form-label fw-bold">{{ _('Timeout (seconds)') }}</label>
                             <input type="number" id="timeout" class="form-control" value="60" min="10" max="300">
                         </div>
                         <div class="col-md-6">
-                            <label class="form-label fw-bold">Max File Size (MB)</label>
+                            <label class="form-label fw-bold">{{ _('Max File Size (MB)') }}</label>
                             <input type="number" id="maxFileSize" class="form-control" value="50" min="1" max="500">
                         </div>
                     </div>
@@ -335,13 +335,13 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
             <!-- Action Buttons -->
             <div class="d-flex gap-3 mb-4">
                 <button type="button" class="btn btn-secondary" data-onclick="previewTool()">
-                    <i class="bi bi-eye me-2"></i>Preview
+                    <i class="bi bi-eye me-2"></i>{{ _('Preview') }}
                 </button>
                 <button type="button" class="btn btn-deploy" data-onclick="deployTool()">
-                    <i class="bi bi-rocket-takeoff me-2"></i>Deploy Tool
+                    <i class="bi bi-rocket-takeoff me-2"></i>{{ _('Deploy Tool') }}
                 </button>
                 <a href="{{ url_for('studio_home') }}" class="btn btn-outline-secondary">
-                    <i class="bi bi-arrow-left me-2"></i>Back to Studio
+                    <i class="bi bi-arrow-left me-2"></i>{{ _('Back to Studio') }}
                 </a>
             </div>
         </div>
@@ -350,7 +350,7 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
         <div class="col-lg-5">
             <div class="preview-panel">
                 <div class="preview-header">
-                    <i class="bi bi-code-slash me-2"></i>Live Preview
+                    <i class="bi bi-code-slash me-2"></i>{{ _('Live Preview') }}
                 </div>
                 <div class="preview-content">
                     <pre id="previewCode">{
@@ -364,12 +364,12 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
             </div>
             
             <div class="quick-tips mt-3">
-                <h6><i class="bi bi-lightbulb me-2"></i>Supported Operations</h6>
+                <h6><i class="bi bi-lightbulb me-2"></i>{{ _('Supported Operations') }}</h6>
                 <ul class="mb-0 small">
-                    <li><strong>search</strong> - Find documents by query</li>
-                    <li><strong>list</strong> - List folder contents</li>
-                    <li><strong>get</strong> - Get document metadata</li>
-                    <li><strong>download</strong> - Download as base64</li>
+                    <li>{% trans %}<strong>search</strong> - Find documents by query{% endtrans %}</li>
+                    <li>{% trans %}<strong>list</strong> - List folder contents{% endtrans %}</li>
+                    <li>{% trans %}<strong>get</strong> - Get document metadata{% endtrans %}</li>
+                    <li>{% trans %}<strong>download</strong> - Download as base64{% endtrans %}</li>
                 </ul>
             </div>
         </div>
@@ -445,18 +445,18 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
             const result = await response.json();
             if (result.success) {
                 document.getElementById('previewCode').textContent = JSON.stringify(result.config, null, 2);
-                showStatus('Preview generated!', 'success');
+                showStatus(_t('Preview generated!'), 'success');
             } else {
-                showStatus('Error: ' + result.error, 'error');
+                showStatus(_t('Error:') + ' ' + result.error, 'error');
             }
         } catch (error) {
-            showStatus('Request failed: ' + error.message, 'error');
+            showStatus(_t('Request failed: ') + error.message, 'error');
         }
     }
     
     async function deployTool() {
         const data = getFormData();
-        if (!confirm(`Deploy LiveLink tool "${data.tool_name}"?`)) return;
+        if (!confirm(_t('Deploy LiveLink tool "%(tool_name)s"?', {tool_name: data.tool_name}))) return;
         
         try {
             const response = await fetch('/admin/studio/livelink/deploy', {
@@ -466,15 +466,15 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
             });
             const result = await response.json();
             if (result.success) {
-                showStatus('✓ Tool deployed successfully!', 'success');
+                showStatus(_t('✓ Tool deployed successfully!'), 'success');
                 if (result.config) {
                     document.getElementById('previewCode').textContent = JSON.stringify(result.config, null, 2);
                 }
             } else {
-                showStatus('Deployment failed: ' + result.error, 'error');
+                showStatus(_t('Deployment failed: ') + result.error, 'error');
             }
         } catch (error) {
-            showStatus('Request failed: ' + error.message, 'error');
+            showStatus(_t('Request failed: ') + error.message, 'error');
         }
     }
     

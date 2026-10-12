@@ -13,6 +13,7 @@ Plugin structure (directory):
             bloomberg_news.json
         requirements.txt    # Python dependencies (optional)
         README.md
+        plugin.sig          # publisher signature (optional; sajha/core/plugin_signing.py)
 
 Plugin manifest (plugin.json):
     {
@@ -90,6 +91,8 @@ class PluginManifest:
     config_keys: List[str] = field(default_factory=list)
     checksum: str = ''
     path: str = ''     # directory path after install
+    signature: str = ''    # trusted | unsigned | untrusted | invalid | unavailable (after validate)
+    publisher: str = ''    # the trusted publisher, when signature is trusted
 
     def to_dict(self) -> Dict:
         return {
@@ -97,6 +100,7 @@ class PluginManifest:
             'description': self.description, 'min_sajha_version': self.min_sajha_version,
             'dependencies': self.dependencies, 'tools': self.tools,
             'config_keys': self.config_keys, 'path': self.path,
+            'signature': self.signature, 'publisher': self.publisher,
         }
 
 
@@ -109,6 +113,8 @@ class PluginStatus:
     tools_registered: int = 0
     installed_at: Optional[str] = None
     error: str = ''
+    signature: str = ''
+    publisher: str = ''
 
     def to_dict(self):
         return self.__dict__
@@ -227,6 +233,14 @@ class PluginManager:
             if manifest.checksum != f"sha256:{actual}":
                 errors.append(f"Checksum mismatch: expected {manifest.checksum}")
 
+        # Publisher signature (sajha/core/plugin_signing.py): a tampered package is always refused; an
+        # unsigned or untrusted one loads with a warning notice unless plugins.allow_unsigned is false
+        from sajha.core.plugin_signing import gate
+        sig_errors, verdict = gate(manifest.path, manifest.name)
+        errors.extend(sig_errors)
+        manifest.signature = verdict.status
+        manifest.publisher = verdict.publisher if verdict.trusted else ''
+
         return len(errors) == 0, errors
 
     def load_plugin(self, name: str) -> PluginStatus:
@@ -238,7 +252,7 @@ class PluginManager:
         valid, errors = self.validate(manifest)
         if not valid:
             status = PluginStatus(name=name, version=manifest.version,
-                                   installed=True, error='; '.join(errors))
+                                   installed=True, error='; '.join(errors), signature=manifest.signature)
             self._status[name] = status
             return status
 
@@ -299,7 +313,8 @@ class PluginManager:
         status = PluginStatus(
             name=name, version=manifest.version, installed=True,
             enabled=True, tools_registered=tools_loaded,
-            installed_at=datetime.utcnow().isoformat())
+            installed_at=datetime.utcnow().isoformat(),
+            signature=manifest.signature, publisher=manifest.publisher)
         self._status[name] = status
         logger.info(f"Plugin loaded: {name} v{manifest.version} ({tools_loaded} tools)")
         return status

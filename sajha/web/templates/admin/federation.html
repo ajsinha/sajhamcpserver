@@ -1,6 +1,6 @@
 {% extends "common/base.html" %}
 {# Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.com #}
-{% block title %}Proxied MCP servers - Admin - SAJHA MCP Server{% endblock %}
+{% block title %}{{ _('Proxied MCP servers - Admin - SAJHA MCP Server') }}{% endblock %}
 {% block extra_css %}
 <style>
 .fed-stat{text-align:center;padding:.9rem;border-radius:var(--radius-lg);background:var(--t-card);border:1px solid var(--t-card-b)}
@@ -35,146 +35,146 @@ details.schema pre{background:var(--t-inp);color:var(--t-text);padding:.5rem;bor
 <div class="container-fluid">
   <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
     <div>
-      <h1 class="h3 mb-0"><i class="bi bi-diagram-2 me-2" aria-hidden="true"></i>Proxied MCP servers</h1>
-      <small class="text-muted">Every MCP server this instance embeds (federation): from <code>federation.upstreams</code>, <code>config/mcp_servers.json</code> and this page, its tools under SAJHA's access control, audit, cache, circuit breakers and rate limits</small>
+      <h1 class="h3 mb-0"><i class="bi bi-diagram-2 me-2" aria-hidden="true"></i>{{ _('Proxied MCP servers') }}</h1>
+      <small class="text-muted">{% trans %}Every MCP server this instance embeds (federation): from <code>federation.upstreams</code>, <code>config/mcp_servers.json</code> and this page, its tools under SAJHA's access control, audit, cache, circuit breakers and rate limits{% endtrans %}</small>
     </div>
     <div class="d-flex gap-1">
-      <button class="btn btn-sm btn-success" type="button" data-onclick="showForm()"><i class="bi bi-plus-lg me-1" aria-hidden="true"></i>Add upstream</button>
-      <button class="btn btn-sm btn-outline-primary" type="button" data-onclick="load()" aria-label="Reload"><i class="bi bi-arrow-clockwise" aria-hidden="true"></i></button>
+      <button class="btn btn-sm btn-success" type="button" data-onclick="showForm()"><i class="bi bi-plus-lg me-1" aria-hidden="true"></i>{{ _('Add upstream') }}</button>
+      <button class="btn btn-sm btn-outline-primary" type="button" data-onclick="load()" aria-label="{{ _('Reload') }}"><i class="bi bi-arrow-clockwise" aria-hidden="true"></i></button>
     </div>
   </div>
 
   {% if not summary.enabled %}
   <div class="alert alert-warning small" role="status">
     <i class="bi bi-exclamation-triangle me-1" aria-hidden="true"></i>
-    Federation is off: set <code>federation.enabled: true</code> in <code>config/application.yml</code>
-    (or <code>SAJHA_FEDERATION_ENABLED=true</code>) and restart. Upstreams you add here are saved, but SAJHA does not connect to them until it is on.
+    {% trans %}Federation is off: set <code>federation.enabled: true</code> in <code>config/application.yml</code>
+    (or <code>SAJHA_FEDERATION_ENABLED=true</code>) and restart. Upstreams you add here are saved, but SAJHA does not connect to them until it is on.{% endtrans %}
   </div>
   {% endif %}
   {% for uid, err in (summary.config_errors or {}).items() %}
-  <div class="alert alert-danger small" role="alert">Upstream <strong>{{ uid }}</strong> is not loaded: {{ err }}</div>
+  <div class="alert alert-danger small" role="alert">{% trans uid=uid, err=err %}Upstream <strong>{{ uid }}</strong> is not loaded: {{ err }}{% endtrans %}</div>
   {% endfor %}
 
   <div class="row g-3 mb-3">
-    <div class="col-6 col-md-3"><div class="fed-stat"><div class="h3" id="stUp">—</div><small>Upstreams</small></div></div>
-    <div class="col-6 col-md-3"><div class="fed-stat"><div class="h3" id="stConn">—</div><small>Connected</small></div></div>
-    <div class="col-6 col-md-3"><div class="fed-stat"><div class="h3" id="stExposed">—</div><small>Tools exposed</small></div></div>
-    <div class="col-6 col-md-3"><div class="fed-stat"><div class="h3" id="stPending">—</div><small>Awaiting approval</small></div></div>
+    <div class="col-6 col-md-3"><div class="fed-stat"><div class="h3" id="stUp">—</div><small>{{ _('Upstreams') }}</small></div></div>
+    <div class="col-6 col-md-3"><div class="fed-stat"><div class="h3" id="stConn">—</div><small>{{ _('Connected') }}</small></div></div>
+    <div class="col-6 col-md-3"><div class="fed-stat"><div class="h3" id="stExposed">—</div><small>{{ _('Tools exposed') }}</small></div></div>
+    <div class="col-6 col-md-3"><div class="fed-stat"><div class="h3" id="stPending">—</div><small>{{ _('Awaiting approval') }}</small></div></div>
   </div>
 
   <!-- Add / edit form -->
   <div class="card mb-3 fed-form" id="upForm" style="display:none">
-    <div class="card-header"><i class="bi bi-hdd-network me-2" aria-hidden="true"></i><span id="formTitle">Add upstream</span></div>
+    <div class="card-header"><i class="bi bi-hdd-network me-2" aria-hidden="true"></i><span id="formTitle">{{ _('Add upstream') }}</span></div>
     <div class="card-body">
       <div class="row g-2">
-        <div class="col-md-3"><label class="form-label" for="fId">Id</label>
-          <input class="form-control form-control-sm" id="fId" placeholder="weather" autocomplete="off"></div>
-        <div class="col-md-3"><label class="form-label" for="fTitle">Title</label>
-          <input class="form-control form-control-sm" id="fTitle" placeholder="Weather service"></div>
-        <div class="col-md-3"><label class="form-label" for="fPrefix">Prefix (default: the id)</label>
-          <input class="form-control form-control-sm" id="fPrefix" placeholder="weather"></div>
-        <div class="col-md-3"><label class="form-label" for="fTransport">Transport</label>
+        <div class="col-md-3"><label class="form-label" for="fId">{{ _('Id') }}</label>
+          <input class="form-control form-control-sm" id="fId" placeholder="{{ _('weather') }}" autocomplete="off"></div>
+        <div class="col-md-3"><label class="form-label" for="fTitle">{{ _('Title') }}</label>
+          <input class="form-control form-control-sm" id="fTitle" placeholder="{{ _('Weather service') }}"></div>
+        <div class="col-md-3"><label class="form-label" for="fPrefix">{{ _('Prefix (default: the id)') }}</label>
+          <input class="form-control form-control-sm" id="fPrefix" placeholder="{{ _('weather') }}"></div>
+        <div class="col-md-3"><label class="form-label" for="fTransport">{{ _('Transport') }}</label>
           <select class="form-select form-select-sm" id="fTransport" data-onchange="transportChanged()">
             <option value="streamable_http">Streamable HTTP</option>
-            <option value="sse">Legacy SSE (2024-11-05)</option>
-            {% if summary.allow_stdio %}<option value="stdio">stdio (subprocess)</option>{% endif %}
+            <option value="sse">{{ _('Legacy SSE (2024-11-05)') }}</option>
+            {% if summary.allow_stdio %}<option value="stdio">{{ _('stdio (subprocess)') }}</option>{% endif %}
           </select></div>
         <div class="col-md-6 http-only"><label class="form-label" for="fUrl">URL</label>
           <input class="form-control form-control-sm" id="fUrl" placeholder="https://mcp.example.com/mcp"></div>
-        <div class="col-md-3 http-only"><label class="form-label" for="fProtocol">Protocol</label>
+        <div class="col-md-3 http-only"><label class="form-label" for="fProtocol">{{ _('Protocol') }}</label>
           <select class="form-select form-select-sm" id="fProtocol">
-            <option value="auto">auto (discover, else initialize)</option>
+            <option value="auto">{{ _('auto (discover, else initialize)') }}</option>
             <option value="2026-07-28">2026-07-28</option>
-            <option value="legacy">2025-11-25 (initialize)</option>
+            <option value="legacy">{{ _('2025-11-25 (initialize)') }}</option>
           </select></div>
-        <div class="col-md-6 stdio-only" style="display:none"><label class="form-label" for="fCommand">Command (absolute path)</label>
+        <div class="col-md-6 stdio-only" style="display:none"><label class="form-label" for="fCommand">{{ _('Command (absolute path)') }}</label>
           <input class="form-control form-control-sm" id="fCommand" placeholder="/usr/bin/python3"></div>
-        <div class="col-md-3 stdio-only" style="display:none"><label class="form-label" for="fArgs">Arguments (comma separated)</label>
+        <div class="col-md-3 stdio-only" style="display:none"><label class="form-label" for="fArgs">{{ _('Arguments (comma separated)') }}</label>
           <input class="form-control form-control-sm" id="fArgs"></div>
-        <div class="col-md-3"><label class="form-label" for="fAuth">Credentials</label>
+        <div class="col-md-3"><label class="form-label" for="fAuth">{{ _('Credentials') }}</label>
           <select class="form-select form-select-sm" id="fAuth" data-onchange="authChanged()">
-            <option value="none">None</option>
-            <option value="bearer">Bearer token</option>
-            <option value="header">API-key header</option>
-            <option value="oauth_client_credentials">OAuth client credentials</option>
-            <option value="connected_account">Each user's connected account</option>
-            <option value="token_user">Each user's own personal token</option>
-            <option value="oauth_user">Each user's OAuth sign-in</option>
-            <option value="service_with_user">Service identity naming the user</option>
+            <option value="none">{{ _('None') }}</option>
+            <option value="bearer">{{ _('Bearer token') }}</option>
+            <option value="header">{{ _('API-key header') }}</option>
+            <option value="oauth_client_credentials">{{ _('OAuth client credentials') }}</option>
+            <option value="connected_account">{{ _('Each user\'s connected account') }}</option>
+            <option value="token_user">{{ _('Each user\'s own personal token') }}</option>
+            <option value="oauth_user">{{ _('Each user\'s OAuth sign-in') }}</option>
+            <option value="service_with_user">{{ _('Service identity naming the user') }}</option>
           </select></div>
-        <div class="col-md-3 a-sw" style="display:none"><label class="form-label" for="fSwHeader">Header naming the user</label>
-          <input class="form-control form-control-sm" id="fSwHeader" placeholder="X-SAJHA-User"></div>
-        <div class="col-md-2 a-tu" style="display:none"><label class="form-label" for="fTuHeader">Token header</label>
-          <input class="form-control form-control-sm" id="fTuHeader" placeholder="Authorization"></div>
-        <div class="col-md-2 a-tu" style="display:none"><label class="form-label" for="fTuFormat">Header value</label>
+        <div class="col-md-3 a-sw" style="display:none"><label class="form-label" for="fSwHeader">{{ _('Header naming the user') }}</label>
+          <input class="form-control form-control-sm" id="fSwHeader" placeholder="{{ _('X-SAJHA-User') }}"></div>
+        <div class="col-md-2 a-tu" style="display:none"><label class="form-label" for="fTuHeader">{{ _('Token header') }}</label>
+          <input class="form-control form-control-sm" id="fTuHeader" placeholder="{{ _('Authorization') }}"></div>
+        <div class="col-md-2 a-tu" style="display:none"><label class="form-label" for="fTuFormat">{{ _('Header value') }}</label>
           <input class="form-control form-control-sm" id="fTuFormat" placeholder="Bearer {token}"></div>
-        <div class="col-md-3 a-tu" style="display:none"><label class="form-label" for="fTuLabel">What users paste</label>
-          <input class="form-control form-control-sm" id="fTuLabel" placeholder="Personal access token"></div>
-        <div class="col-md-3 a-tu" style="display:none"><label class="form-label" for="fTuHelp">Where to create one (URL)</label>
+        <div class="col-md-3 a-tu" style="display:none"><label class="form-label" for="fTuLabel">{{ _('What users paste') }}</label>
+          <input class="form-control form-control-sm" id="fTuLabel" placeholder="{{ _('Personal access token') }}"></div>
+        <div class="col-md-3 a-tu" style="display:none"><label class="form-label" for="fTuHelp">{{ _('Where to create one (URL)') }}</label>
           <input class="form-control form-control-sm" id="fTuHelp" placeholder="https://vendor.example/settings/tokens"></div>
-        <div class="col-md-2 a-tu" style="display:none"><label class="form-label" for="fTuPrefix">Token prefix</label>
-          <input class="form-control form-control-sm" id="fTuPrefix" placeholder="optional"></div>
-        <div class="col-md-3 a-ca" style="display:none"><label class="form-label" for="fCaProvider">Provider (connected accounts)</label>
-          <input class="form-control form-control-sm" id="fCaProvider" placeholder="github"></div>
-        <div class="col-md-3 a-ca" style="display:none"><label class="form-label" for="fCaScopes">Scopes the user must grant</label>
-          <input class="form-control form-control-sm" id="fCaScopes" placeholder="repo"></div>
-        <div class="col-md-3 a-bearer" style="display:none"><label class="form-label" for="fTokenRef">Token reference</label>
+        <div class="col-md-2 a-tu" style="display:none"><label class="form-label" for="fTuPrefix">{{ _('Token prefix') }}</label>
+          <input class="form-control form-control-sm" id="fTuPrefix" placeholder="{{ _('optional') }}"></div>
+        <div class="col-md-3 a-ca" style="display:none"><label class="form-label" for="fCaProvider">{{ _('Provider (connected accounts)') }}</label>
+          <input class="form-control form-control-sm" id="fCaProvider" placeholder="{{ _('github') }}"></div>
+        <div class="col-md-3 a-ca" style="display:none"><label class="form-label" for="fCaScopes">{{ _('Scopes the user must grant') }}</label>
+          <input class="form-control form-control-sm" id="fCaScopes" placeholder="{{ _('repo') }}"></div>
+        <div class="col-md-3 a-bearer" style="display:none"><label class="form-label" for="fTokenRef">{{ _('Token reference') }}</label>
           <input class="form-control form-control-sm" id="fTokenRef" placeholder="env:WEATHER_TOKEN"></div>
-        <div class="col-md-3 a-header" style="display:none"><label class="form-label" for="fHeader">Header</label>
-          <input class="form-control form-control-sm" id="fHeader" placeholder="X-API-Key"></div>
-        <div class="col-md-3 a-header" style="display:none"><label class="form-label" for="fValueRef">Value reference</label>
+        <div class="col-md-3 a-header" style="display:none"><label class="form-label" for="fHeader">{{ _('Header') }}</label>
+          <input class="form-control form-control-sm" id="fHeader" placeholder="{{ _('X-API-Key') }}"></div>
+        <div class="col-md-3 a-header" style="display:none"><label class="form-label" for="fValueRef">{{ _('Value reference') }}</label>
           <input class="form-control form-control-sm" id="fValueRef" placeholder="env:WEATHER_KEY"></div>
-        <div class="col-md-4 a-oauth" style="display:none"><label class="form-label" for="fTokenUrl">Token URL</label>
+        <div class="col-md-4 a-oauth" style="display:none"><label class="form-label" for="fTokenUrl">{{ _('Token URL') }}</label>
           <input class="form-control form-control-sm" id="fTokenUrl" placeholder="https://auth.example.com/token"></div>
-        <div class="col-md-2 a-oauth a-ouc" style="display:none"><label class="form-label" for="fClientId">Client id</label>
+        <div class="col-md-2 a-oauth a-ouc" style="display:none"><label class="form-label" for="fClientId">{{ _('Client id') }}</label>
           <input class="form-control form-control-sm" id="fClientId"></div>
-        <div class="col-md-3 a-oauth a-ouc" style="display:none"><label class="form-label" for="fSecretRef">Client secret reference</label>
+        <div class="col-md-3 a-oauth a-ouc" style="display:none"><label class="form-label" for="fSecretRef">{{ _('Client secret reference') }}</label>
           <input class="form-control form-control-sm" id="fSecretRef" placeholder="env:WEATHER_CLIENT_SECRET"></div>
-        <div class="col-md-3 a-oauth" style="display:none"><label class="form-label" for="fScope">Scope</label>
+        <div class="col-md-3 a-oauth" style="display:none"><label class="form-label" for="fScope">{{ _('Scope') }}</label>
           <input class="form-control form-control-sm" id="fScope"></div>
-        <div class="col-md-2 a-ou" style="display:none"><label class="form-label" for="fOuVendor">Vendor (button)</label>
+        <div class="col-md-2 a-ou" style="display:none"><label class="form-label" for="fOuVendor">{{ _('Vendor (button)') }}</label>
           <input class="form-control form-control-sm" id="fOuVendor" placeholder="Atlassian"></div>
-        <div class="col-md-3 a-ou" style="display:none"><label class="form-label" for="fOuScopes">Read scopes</label>
-          <input class="form-control form-control-sm" id="fOuScopes" placeholder="space-separated; empty: the vendor's default"></div>
-        <div class="col-md-3 a-ou" style="display:none"><label class="form-label" for="fOuWrite">Write scopes (users opt in)</label>
-          <input class="form-control form-control-sm" id="fOuWrite" placeholder="optional"></div>
-        <div class="col-md-2"><label class="form-label" for="fTimeout">Timeout (s)</label>
+        <div class="col-md-3 a-ou" style="display:none"><label class="form-label" for="fOuScopes">{{ _('Read scopes') }}</label>
+          <input class="form-control form-control-sm" id="fOuScopes" placeholder="{{ _('space-separated; empty: the vendor\'s default') }}"></div>
+        <div class="col-md-3 a-ou" style="display:none"><label class="form-label" for="fOuWrite">{{ _('Write scopes (users opt in)') }}</label>
+          <input class="form-control form-control-sm" id="fOuWrite" placeholder="{{ _('optional') }}"></div>
+        <div class="col-md-2"><label class="form-label" for="fTimeout">{{ _('Timeout (s)') }}</label>
           <input class="form-control form-control-sm" id="fTimeout" type="number" min="1" placeholder="30"></div>
-        <div class="col-md-2"><label class="form-label" for="fRate">Calls per minute</label>
-          <input class="form-control form-control-sm" id="fRate" type="number" min="0" placeholder="0 = no limit"></div>
-        <div class="col-md-2"><label class="form-label" for="fCache">Cache TTL (s)</label>
+        <div class="col-md-2"><label class="form-label" for="fRate">{{ _('Calls per minute') }}</label>
+          <input class="form-control form-control-sm" id="fRate" type="number" min="0" placeholder="{{ _('0 = no limit') }}"></div>
+        <div class="col-md-2"><label class="form-label" for="fCache">{{ _('Cache TTL (s)') }}</label>
           <input class="form-control form-control-sm" id="fCache" type="number" min="0" placeholder="0"></div>
-        <div class="col-md-3"><label class="form-label" for="fInclude">Include tools (patterns)</label>
-          <input class="form-control form-control-sm" id="fInclude" placeholder="get_*, search"></div>
-        <div class="col-md-3"><label class="form-label" for="fExclude">Exclude tools (patterns)</label>
+        <div class="col-md-3"><label class="form-label" for="fInclude">{{ _('Include tools (patterns)') }}</label>
+          <input class="form-control form-control-sm" id="fInclude" placeholder="{{ _('get_*, search') }}"></div>
+        <div class="col-md-3"><label class="form-label" for="fExclude">{{ _('Exclude tools (patterns)') }}</label>
           <input class="form-control form-control-sm" id="fExclude" placeholder="delete_*"></div>
         <div class="col-12 d-flex flex-wrap gap-3 small">
-          <label><input type="checkbox" id="fEnabled" checked> Enabled</label>
-          <label><input type="checkbox" id="fPrompts"> Expose prompts</label>
-          <label><input type="checkbox" id="fResources"> Expose resources</label>
-          <label><input type="checkbox" id="fAuto"> Trust: approve new tools automatically</label>
-          <label><input type="checkbox" id="fHold"> Keep serving the approved version while a change waits</label>
+          <label><input type="checkbox" id="fEnabled" checked> {{ _('Enabled') }}</label>
+          <label><input type="checkbox" id="fPrompts"> {{ _('Expose prompts') }}</label>
+          <label><input type="checkbox" id="fResources"> {{ _('Expose resources') }}</label>
+          <label><input type="checkbox" id="fAuto"> {{ _('Trust: approve new tools automatically') }}</label>
+          <label><input type="checkbox" id="fHold"> {{ _('Keep serving the approved version while a change waits') }}</label>
         </div>
       </div>
-      <p class="small text-muted mt-2 mb-2">Secrets are references (<code>env:NAME</code>, <code>file:/path</code>, <code>db:llm_providers/&lt;type&gt;</code>), never values.</p>
+      <p class="small text-muted mt-2 mb-2">{% trans %}Secrets are references (<code>env:NAME</code>, <code>file:/path</code>, <code>db:llm_providers/&lt;type&gt;</code>), never values.{% endtrans %}</p>
       <div class="d-flex flex-wrap gap-2">
-        <button class="btn btn-sm btn-outline-primary" type="button" data-onclick="testUp()"><i class="bi bi-plug me-1" aria-hidden="true"></i>Test connection</button>
-        <button class="btn btn-sm btn-success" type="button" data-onclick="saveUp()"><i class="bi bi-check-lg me-1" aria-hidden="true"></i>Save</button>
-        <button class="btn btn-sm btn-outline-secondary" type="button" data-onclick="hideForm()">Cancel</button>
+        <button class="btn btn-sm btn-outline-primary" type="button" data-onclick="testUp()"><i class="bi bi-plug me-1" aria-hidden="true"></i>{{ _('Test connection') }}</button>
+        <button class="btn btn-sm btn-success" type="button" data-onclick="saveUp()"><i class="bi bi-check-lg me-1" aria-hidden="true"></i>{{ _('Save') }}</button>
+        <button class="btn btn-sm btn-outline-secondary" type="button" data-onclick="hideForm()">{{ _('Cancel') }}</button>
       </div>
       <div id="formMsg" class="small mt-2" role="status" aria-live="polite"></div>
     </div>
   </div>
 
   <div class="table-responsive mb-3">
-    <table class="fed-table" aria-label="Embedded MCP servers">
-      <thead><tr><th scope="col">Name</th><th scope="col">Vendor</th><th scope="col">Internal / External</th><th scope="col">Prefix</th>
-        <th scope="col">Transport</th><th scope="col">Status</th><th scope="col">Tools</th></tr></thead>
-      <tbody id="serverRows"><tr><td colspan="7" class="text-muted small">Loading…</td></tr></tbody>
+    <table class="fed-table" aria-label="{{ _('Embedded MCP servers') }}">
+      <thead><tr><th scope="col">{{ _('Name') }}</th><th scope="col">{{ _('Vendor') }}</th><th scope="col">{{ _('Internal / External') }}</th><th scope="col">{{ _('Prefix') }}</th>
+        <th scope="col">{{ _('Transport') }}</th><th scope="col">{{ _('Status') }}</th><th scope="col">{{ _('Tools') }}</th></tr></thead>
+      <tbody id="serverRows"><tr><td colspan="7" class="text-muted small">{{ _('Loading…') }}</td></tr></tbody>
     </table>
   </div>
 
-  <div id="upstreams"><div class="text-muted small">Loading…</div></div>
+  <div id="upstreams"><div class="text-muted small">{{ _('Loading…') }}</div></div>
 </div>
 {% endblock %}
 {% block extra_js %}
@@ -205,65 +205,65 @@ function load(){
     document.getElementById('stExposed').textContent=(d.summary||{}).exposed_tools||0;
     document.getElementById('stPending').textContent=pend;
     document.getElementById('serverRows').innerHTML = ups.length ? ups.map(row).join('') :
-      '<tr><td colspan="7" class="text-muted small">No MCP servers yet.</td></tr>';
+      '<tr><td colspan="7" class="text-muted small">' + _t('No MCP servers yet.') + '</td></tr>';
     document.getElementById('upstreams').innerHTML = ups.length ? ups.map(render).join('') :
-      '<div class="text-muted small">No upstreams yet. Add one, or list them under <code>federation.upstreams</code> in config/application.yml.</div>';
+      '<div class="text-muted small">' + _t('No upstreams yet. Add one, or list them under <code>federation.upstreams</code> in config/application.yml.') + '</div>';
   }).catch(function(e){document.getElementById('upstreams').innerHTML='<div class="fed-err">'+esc(e.message)+'</div>'});
 }
-var SOURCES={config:'from federation.upstreams',file:'from config/mcp_servers.json',store:'added here'};
-function stateText(s){return s==='needs_sign_in'?'needs sign-in (set auth oauth_user)':s==='waiting_for_user'?'waiting for a user to connect':s}
-var MODES={static:'shared credential',token_user:'each user\'s own token',oauth_user:'each user\'s OAuth sign-in',service_with_user:'service identity naming the user',connected_account:'each user\'s connected account'};
+var SOURCES={config:_t('from federation.upstreams'),file:_t('from config/mcp_servers.json'),store:_t('added here')};
+function stateText(s){return s==='needs_sign_in'?_t('needs sign-in (set auth oauth_user)'):s==='waiting_for_user'?_t('waiting for a user to connect'):s}
+var MODES={static:_t('shared credential'),token_user:_t('each user\'s own token'),oauth_user:_t('each user\'s OAuth sign-in'),service_with_user:_t('service identity naming the user'),connected_account:_t('each user\'s connected account')};
 function row(u){
   return '<tr><td><a href="#up-'+esc(u.id)+'"><code>'+esc(u.id)+'</code></a><div class="fed-meta">'+esc(SOURCES[u.source]||u.source)+'</div></td>'+
-    '<td>'+(u.vendor?esc(u.vendor):'—')+'</td><td>'+(u.external?'External':'Internal')+'</td>'+
+    '<td>'+(u.vendor?esc(u.vendor):'—')+'</td><td>'+esc(u.external?_t('External'):_t('Internal'))+'</td>'+
     '<td><code>'+esc(u.prefix)+'__</code></td><td>'+esc(u.transport)+'</td>'+
     '<td><span class="st st-'+esc(u.state)+'">'+esc(stateText(u.state))+'</span></td>'+
     '<td><a href="#up-'+esc(u.id)+'">'+(u.tools||0)+'</a></td></tr>';
 }
 function scaleMeta(u){
   var t='', p=u.pool||{}, a=u.admission||{}, c=u.cluster, r=u.replicas||[];
-  if(p.connections>1)t+=' · pool '+p.connected+'/'+p.connections+' connected';
-  if(r.length>1)t+=' · replicas '+r.map(function(x){return (x.primary?'*':'')+x.connected+'/'+x.connections;}).join(', ');
-  if(a.limit)t+=' · in flight '+a.in_flight+'/'+a.limit+', waiting '+a.waiting+', shed '+a.shed;
-  if(c&&c.reporting>1){t+=' · cluster: '+c.connected+' of '+c.reporting+' workers connected';if((c.breaker_open||[]).length)t+=', breaker open on '+c.breaker_open.length;}
+  if(p.connections>1)t+=' · '+_t('pool %(connected)s/%(total)s connected',{connected:p.connected,total:p.connections});
+  if(r.length>1)t+=' · '+_t('replicas %(list)s',{list:r.map(function(x){return (x.primary?'*':'')+x.connected+'/'+x.connections;}).join(', ')});
+  if(a.limit)t+=' · '+_t('in flight %(n)s/%(limit)s, waiting %(waiting)s, shed %(shed)s',{n:a.in_flight,limit:a.limit,waiting:a.waiting,shed:a.shed});
+  if(c&&c.reporting>1){t+=' · '+_t('cluster: %(connected)s of %(reporting)s workers connected',{connected:c.connected,reporting:c.reporting});if((c.breaker_open||[]).length)t+=', '+_t('breaker open on %(n)s',{n:c.breaker_open.length});}
   return esc(t);
 }
 function render(u){
   var si=u.server_info||{}, h='';
-  h+='<section class="fed-up" id="up-'+esc(u.id)+'" aria-label="Upstream '+esc(u.id)+'"><div class="fed-up-head"><div>';
+  h+='<section class="fed-up" id="up-'+esc(u.id)+'" aria-label="'+esc(_t('Upstream %(id)s',{id:u.id}))+'"><div class="fed-up-head"><div>';
   h+='<h2>'+esc(u.title)+' <span class="st st-'+esc(u.state)+'">'+esc(stateText(u.state))+'</span></h2>';
-  h+='<div class="fed-meta"><code>'+esc(u.id)+'</code> · prefix <code>'+esc(u.prefix)+'__</code> · '+esc(u.transport)+' '+(u.url?'<code>'+esc(u.url)+'</code>':'<code>'+esc(u.command)+'</code>');
+  h+='<div class="fed-meta"><code>'+esc(u.id)+'</code> ' + _t('· prefix') + ' <code>'+esc(u.prefix)+'__</code> · '+esc(u.transport)+' '+(u.url?'<code>'+esc(u.url)+'</code>':'<code>'+esc(u.command)+'</code>');
   if(u.protocol_version)h+=' · MCP '+esc(u.protocol_version);
   if(si.name)h+=' · '+esc(si.name)+(si.version?' '+esc(si.version):'');
-  h+=' · '+esc(SOURCES[u.source]||u.source)+(u.vendor?' · vendor '+esc(u.vendor):'')+' · '+(u.external?'external':'internal')+(u.listening?' · listening for changes':'')+'</div>';
-  h+='<div class="fed-meta">Refreshed '+esc(when(u.last_refresh))+' · '+u.calls+' calls, '+u.failures+' failed'+(u.avg_ms!=null?' · avg '+u.avg_ms+' ms':'');
-  if(u.breaker)h+=' · breaker '+esc(u.breaker.state);
+  h+=' · '+esc(SOURCES[u.source]||u.source)+(u.vendor?' · '+esc(_t('vendor %(vendor)s',{vendor:u.vendor})):'')+' · '+esc(u.external?_t('external'):_t('internal'))+(u.listening?' · '+esc(_t('listening for changes')):'')+'</div>';
+  h+='<div class="fed-meta">' + _t('Refreshed') + ' '+esc(when(u.last_refresh))+' · '+esc(_t('%(calls)s calls, %(failures)s failed',{calls:u.calls,failures:u.failures}))+(u.avg_ms!=null?' · '+esc(_t('avg %(ms)s ms',{ms:u.avg_ms})):'');
+  if(u.breaker)h+=' · '+esc(_t('breaker %(state)s',{state:u.breaker.state}));
   h+=scaleMeta(u);
-  h+=' · identity: '+esc(MODES[u.auth_mode]||u.auth_mode||'shared credential');
-  if(u.auth_mode==='token_user')h+=' · '+u.user_sessions+' open user session(s) · <a href="/admin/server-connections?server='+encodeURIComponent(u.id)+'">who is connected</a>';
+  h+=' · '+esc(_t('identity: %(mode)s',{mode:MODES[u.auth_mode]||u.auth_mode||_t('shared credential')}));
+  if(u.auth_mode==='token_user')h+=' · '+esc(_t('%(n)s open user session(s)',{n:u.user_sessions}))+' · <a href="/admin/server-connections?server='+encodeURIComponent(u.id)+'">'+esc(_t('who is connected'))+'</a>';
   h+='</div>';
   if(u.last_error)h+='<div class="fed-err">'+esc(u.last_error)+'</div>';
   h+='</div><div class="fed-actions d-flex gap-1">';
-  h+=btn('refresh',u.id,'','','<i class="bi bi-arrow-repeat"></i> Refresh','btn-outline-primary');
-  h+=btn('approve_all',u.id,'tool','','Approve all','btn-outline-success');
+  h+=btn('refresh',u.id,'','','<i class="bi bi-arrow-repeat"></i> ' + _t('Refresh'),'btn-outline-primary');
+  h+=btn('approve_all',u.id,'tool','',esc(_t('Approve all')),'btn-outline-success');
   if(u.source==='store'){
-    h+=btn('edit',u.id,'','','<i class="bi bi-pencil"></i> Edit','btn-outline-secondary');
-    h+=btn('remove',u.id,'','','<i class="bi bi-trash"></i> Remove','btn-outline-danger');
+    h+=btn('edit',u.id,'','','<i class="bi bi-pencil"></i> ' + _t('Edit'),'btn-outline-secondary');
+    h+=btn('remove',u.id,'','','<i class="bi bi-trash"></i> ' + _t('Remove'),'btn-outline-danger');
   }
   h+='</div></div>';
   var items=u.items||[];
-  if(!items.length){h+='<div class="p-3 small text-muted">Nothing discovered yet.</div></section>';return h}
-  h+='<div class="table-responsive"><table class="fed-table"><thead><tr><th scope="col">Exposed as</th><th scope="col">Status</th><th scope="col">Description</th><th scope="col">Actions</th></tr></thead><tbody>';
+  if(!items.length){h+='<div class="p-3 small text-muted">' + _t('Nothing discovered yet.') + '</div></section>';return h}
+  h+='<div class="table-responsive"><table class="fed-table"><thead><tr><th scope="col">' + _t('Exposed as') + '</th><th scope="col">' + _t('Status') + '</th><th scope="col">' + _t('Description') + '</th><th scope="col">' + _t('Actions') + '</th></tr></thead><tbody>';
   items.forEach(function(it){
     var a='', k=esc(it.kind);
     var call=function(act,label,cls){return btn(act,u.id,it.kind,it.name,label,cls)+' '};
-    if(it.status!=='approved'&&!(it.reason&&it.status!=='rejected'&&it.status!=='disabled'))a+=call('approve','Approve','btn-outline-success');
-    if(it.status==='approved')a+=call('disable','Disable','btn-outline-secondary');
-    if(it.status==='pending'||it.status==='changed'||it.status==='invalid')a+=call('reject','Reject','btn-outline-danger');
-    if(it.status==='rejected'||it.status==='disabled')a+=call('reset','Reset','btn-outline-secondary');
-    h+='<tr><td><code>'+esc(it.exposed)+'</code><div class="fed-meta">'+k+' <code>'+esc(it.name)+'</code></div>'+(it.flagged?'<div class="flag"><i class="bi bi-exclamation-octagon"></i> suspicious text removed</div>':'')+(it.conflict?'<div class="fed-err">'+esc(it.conflict)+'</div>':'')+(it.reason?'<div class="fed-err">Refused: '+esc(it.reason)+'</div>':'')+(it.held?'<div class="fed-meta">The approved version keeps serving until this change is reviewed</div>':'')+'</td>';
+    if(it.status!=='approved'&&!(it.reason&&it.status!=='rejected'&&it.status!=='disabled'))a+=call('approve',esc(_t('Approve')),'btn-outline-success');
+    if(it.status==='approved')a+=call('disable',esc(_t('Disable')),'btn-outline-secondary');
+    if(it.status==='pending'||it.status==='changed'||it.status==='invalid')a+=call('reject',esc(_t('Reject')),'btn-outline-danger');
+    if(it.status==='rejected'||it.status==='disabled')a+=call('reset',esc(_t('Reset')),'btn-outline-secondary');
+    h+='<tr><td><code>'+esc(it.exposed)+'</code><div class="fed-meta">'+k+' <code>'+esc(it.name)+'</code></div>'+(it.flagged?'<div class="flag"><i class="bi bi-exclamation-octagon"></i> ' + _t('suspicious text removed') + '</div>':'')+(it.conflict?'<div class="fed-err">'+esc(it.conflict)+'</div>':'')+(it.reason?'<div class="fed-err">'+esc(_t('Refused: %(reason)s',{reason:it.reason}))+'</div>':'')+(it.held?'<div class="fed-meta">' + _t('The approved version keeps serving until this change is reviewed') + '</div>':'')+'</td>';
     h+='<td><span class="st st-'+esc(it.status)+'">'+esc(it.status)+'</span></td>';
-    h+='<td><div class="fed-desc">'+esc(it.description)+'</div>'+(it.inputSchema?'<details class="schema"><summary>Input schema</summary><pre>'+esc(JSON.stringify(it.inputSchema,null,2))+'</pre></details>':'')+'</td>';
+    h+='<td><div class="fed-desc">'+esc(it.description)+'</div>'+(it.inputSchema?'<details class="schema"><summary>' + _t('Input schema') + '</summary><pre>'+esc(JSON.stringify(it.inputSchema,null,2))+'</pre></details>':'')+'</td>';
     h+='<td class="fed-actions">'+a+'</td></tr>';
   });
   return h+'</tbody></table></div></section>';
@@ -275,7 +275,7 @@ function refreshUp(uid){
   api('POST','/api/federation/upstreams/'+encodeURIComponent(uid)+'/refresh').then(load).catch(function(e){alert(e.message);load()});
 }
 function removeUp(uid){
-  if(!confirm('Remove upstream '+uid+'? Its tools leave SAJHA now.'))return;
+  if(!confirm(_t('Remove upstream %(id)s? Its tools leave SAJHA now.',{id:uid})))return;
   api('DELETE','/api/federation/upstreams/'+encodeURIComponent(uid)).then(load).catch(function(e){alert(e.message)});
 }
 function v(id){return document.getElementById(id).value.trim()}
@@ -302,24 +302,24 @@ function formData(){
 }
 function msg(t,ok){var m=document.getElementById('formMsg');m.className='small mt-2 '+(ok?'text-success':'fed-err');m.textContent=t}
 function testUp(){
-  msg('Connecting…',true);
+  msg(_t('Connecting…'),true);
   api('POST','/api/federation/test',formData()).then(function(r){
-    if(r.ok)msg('Connected: MCP '+r.protocol_version+((r.server_info||{}).name?' · '+r.server_info.name:'')+' · '+(r.tools||[]).length+' tools: '+(r.tools||[]).slice(0,12).join(', '),true);
-    else msg('Failed: '+r.error,false);
+    if(r.ok)msg(_t('Connected: MCP %(version)s',{version:r.protocol_version})+((r.server_info||{}).name?' · '+r.server_info.name:'')+' · '+_t('%(n)s tools: %(names)s',{n:(r.tools||[]).length,names:(r.tools||[]).slice(0,12).join(', ')}),true);
+    else msg(_t('Failed: %(error)s',{error:r.error}),false);
   }).catch(function(e){msg(e.message,false)});
 }
 function saveUp(){
   var d=formData(), req=editing?api('PUT','/api/federation/upstreams/'+encodeURIComponent(editing),d):api('POST','/api/federation/upstreams',d);
   req.then(function(){hideForm();setTimeout(load,800)}).catch(function(e){msg(e.message,false)});
 }
-function showForm(){editing=null;document.getElementById('formTitle').textContent='Add upstream';document.getElementById('fId').disabled=false;
+function showForm(){editing=null;document.getElementById('formTitle').textContent=_t('Add upstream');document.getElementById('fId').disabled=false;
   ['fId','fTitle','fPrefix','fUrl','fCommand','fArgs','fTokenRef','fHeader','fValueRef','fTokenUrl','fClientId','fSecretRef','fScope','fTimeout','fRate','fCache','fInclude','fExclude','fTuHeader','fTuFormat','fTuLabel','fTuHelp','fTuPrefix','fOuVendor','fOuScopes','fOuWrite','fSwHeader'].forEach(function(i){document.getElementById(i).value=''});
   document.getElementById('fTransport').value='streamable_http';document.getElementById('fProtocol').value='auto';document.getElementById('fAuth').value='none';
   document.getElementById('fEnabled').checked=true;['fPrompts','fResources','fAuto','fHold'].forEach(function(i){document.getElementById(i).checked=false});
   transportChanged();authChanged();msg('',true);document.getElementById('upForm').style.display='block';document.getElementById('fId').focus()}
 function hideForm(){document.getElementById('upForm').style.display='none';editing=null}
 function editUp(uid){
-  showForm();editing=uid;var d=(cache[uid]||{}).definition||{};document.getElementById('formTitle').textContent='Edit upstream '+uid;
+  showForm();editing=uid;var d=(cache[uid]||{}).definition||{};document.getElementById('formTitle').textContent=_t('Edit upstream %(id)s',{id:uid});
   var set=function(i,x){document.getElementById(i).value=(x==null?'':x)};
   set('fId',d.id);document.getElementById('fId').disabled=true;set('fTitle',d.title);set('fPrefix',d.prefix);set('fTransport',d.transport||'streamable_http');
   set('fUrl',d.url);set('fProtocol',d.protocol||'auto');set('fCommand',d.command);set('fArgs',(d.args||[]).join(', '));

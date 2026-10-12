@@ -2,30 +2,30 @@
 <!--
 Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.com
 -->
-{% block title %}Manage Prompts - SAJHA MCP Server{% endblock %}
+{% block title %}{{ _('Manage Prompts - SAJHA MCP Server') }}{% endblock %}
 
 {% block content %}
 <div class="container-fluid">
     <!-- Breadcrumb -->
-    <nav aria-label="breadcrumb">
+    <nav aria-label="{{ _('breadcrumb') }}">
         <ol class="breadcrumb">
-            <li class="breadcrumb-item"><a href="{{ url_for('dashboard') }}">Dashboard</a></li>
-            <li class="breadcrumb-item"><a href="{{ url_for('prompts_list') }}">Prompts</a></li>
-            <li class="breadcrumb-item active">Admin Management</li>
+            <li class="breadcrumb-item"><a href="{{ url_for('dashboard') }}">{{ _('Dashboard') }}</a></li>
+            <li class="breadcrumb-item"><a href="{{ url_for('prompts_list') }}">{{ _('Prompts') }}</a></li>
+            <li class="breadcrumb-item active">{{ _('Admin Management') }}</li>
         </ol>
     </nav>
 
     <!-- Header -->
     <div class="d-flex justify-content-between align-items-center mb-4">
         <h1 class="h3 mb-0">
-            <i class="bi bi-gear-fill"></i> Manage Prompts
+            <i class="bi bi-gear-fill"></i> {{ _('Manage Prompts') }}
         </h1>
         <div>
             <a href="{{ url_for('prompt_create_page') }}" class="btn btn-primary">
-                <i class="bi bi-plus-circle"></i> Create New Prompt
+                <i class="bi bi-plus-circle"></i> {{ _('Create New Prompt') }}
             </a>
             <button class="btn btn-success" data-onclick="refreshPrompts()">
-                <i class="bi bi-arrow-clockwise"></i> Refresh All
+                <i class="bi bi-arrow-clockwise"></i> {{ _('Refresh All') }}
             </button>
         </div>
     </div>
@@ -35,7 +35,7 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
         <div class="col-md-3">
             <div class="card text-center">
                 <div class="card-body">
-                    <h6 class="card-title text-muted">Total Prompts</h6>
+                    <h6 class="card-title text-muted">{{ _('Total Prompts') }}</h6>
                     <p class="display-4 mb-0">{{ prompts|length }}</p>
                 </div>
             </div>
@@ -43,7 +43,7 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
         <div class="col-md-3">
             <div class="card text-center">
                 <div class="card-body">
-                    <h6 class="card-title text-muted">Categories</h6>
+                    <h6 class="card-title text-muted">{{ _('Categories') }}</h6>
                     <p class="display-4 mb-0">{{ metrics.categories if metrics else 0 }}</p>
                 </div>
             </div>
@@ -51,7 +51,7 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
         <div class="col-md-3">
             <div class="card text-center">
                 <div class="card-body">
-                    <h6 class="card-title text-muted">Tags</h6>
+                    <h6 class="card-title text-muted">{{ _('Tags') }}</h6>
                     <p class="display-4 mb-0">{{ metrics.tags if metrics else 0 }}</p>
                 </div>
             </div>
@@ -59,7 +59,7 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
         <div class="col-md-3">
             <div class="card text-center">
                 <div class="card-body">
-                    <h6 class="card-title text-muted">Total Renders</h6>
+                    <h6 class="card-title text-muted">{{ _('Total Renders') }}</h6>
                     <p class="display-4 mb-0">{{ metrics.total_renders if metrics else 0 }}</p>
                 </div>
             </div>
@@ -69,7 +69,7 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
     <!-- Prompts Table -->
     <div class="card">
         <div class="card-header card-header-primary">
-            <h5 class="mb-0"><i class="bi bi-list-ul"></i> All Prompts</h5>
+            <h5 class="mb-0"><i class="bi bi-list-ul"></i> {{ _('All Prompts') }}</h5>
         </div>
         <div class="card-body">
             {% if prompts %}
@@ -79,15 +79,15 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
                     <div class="input-group">
                         <span class="input-group-text"><i class="bi bi-search"></i></span>
                         <input type="text" class="form-control" id="searchPrompts" 
-                               placeholder="Search prompts...">
+                               placeholder="{{ _('Search prompts...') }}">
                     </div>
                 </div>
                 <div class="col-md-6 text-end">
                     <select id="rowsPerPage" class="form-select d-inline-block" style="width: auto;">
-                        <option value="10" selected>10 per page</option>
-                        <option value="25">25 per page</option>
-                        <option value="50">50 per page</option>
-                        <option value="all">Show All</option>
+                        <option value="10" selected>{{ _('10 per page') }}</option>
+                        <option value="25">{{ _('25 per page') }}</option>
+                        <option value="50">{{ _('50 per page') }}</option>
+                        <option value="all">{{ _('Show All') }}</option>
                     </select>
                 </div>
             </div>
@@ -97,18 +97,18 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
                     <thead>
                         <tr>
                             <th style="cursor: pointer;" data-onclick="sortTable('name')">
-                                Name <i class="bi bi-arrow-down-up"></i>
+                                {{ _('Name') }} <i class="bi bi-arrow-down-up"></i>
                             </th>
-                            <th>Description</th>
+                            <th>{{ _('Description') }}</th>
                             <th style="cursor: pointer;" data-onclick="sortTable('category')">
-                                Category <i class="bi bi-arrow-down-up"></i>
+                                {{ _('Category') }} <i class="bi bi-arrow-down-up"></i>
                             </th>
-                            <th>Arguments</th>
+                            <th>{{ _('Arguments') }}</th>
                             <th style="cursor: pointer;" data-onclick="sortTable('usage')">
-                                Usage <i class="bi bi-arrow-down-up"></i>
+                                {{ _('Usage') }} <i class="bi bi-arrow-down-up"></i>
                             </th>
-                            <th>Last Used</th>
-                            <th>Actions</th>
+                            <th>{{ _('Last Used') }}</th>
+                            <th>{{ _('Actions') }}</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -129,25 +129,25 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
                                 {% if prompt['last_used'] %}
                                 <small>{{ prompt.last_used[:19] }}</small>
                                 {% else %}
-                                <small class="text-muted">Never</small>
+                                <small class="text-muted">{{ _('Never') }}</small>
                                 {% endif %}
                             </td>
                             <td>
                                 <div class="btn-group" role="group">
                                     <a href="{{ url_for('prompt_detail', prompt_name=prompt['name']) }}"
-                                       class="btn btn-sm btn-outline-primary" title="View">
+                                       class="btn btn-sm btn-outline-primary" title="{{ _('View') }}">
                                         <i class="bi bi-eye"></i>
                                     </a>
                                     <a href="{{ url_for('prompt_test', prompt_name=prompt['name']) }}"
-                                       class="btn btn-sm btn-outline-success" title="Test">
+                                       class="btn btn-sm btn-outline-success" title="{{ _('Test') }}">
                                         <i class="bi bi-play-circle"></i>
                                     </a>
                                     <a href="{{ url_for('prompt_detail', prompt_name=prompt['name']) }}#edit"
-                                       class="btn btn-sm btn-outline-warning" title="Edit">
+                                       class="btn btn-sm btn-outline-warning" title="{{ _('Edit') }}">
                                         <i class="bi bi-pencil"></i>
                                     </a>
                                     <button class="btn btn-sm btn-outline-danger"
-                                            data-onclick="deletePrompt('{{ prompt['name'] }}')" title="Delete">
+                                            data-onclick="deletePrompt('{{ prompt['name'] }}')" title="{{ _('Delete') }}">
                                         <i class="bi bi-trash"></i>
                                     </button>
                                 </div>
@@ -164,14 +164,14 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
                     <div id="tableInfo" class="text-muted"></div>
                 </div>
                 <div class="col-md-6">
-                    <nav aria-label="Prompts pagination">
+                    <nav aria-label="{{ _('Prompts pagination') }}">
                         <ul class="pagination justify-content-end mb-0" id="pagination"></ul>
                     </nav>
                 </div>
             </div>
             {% else %}
             <div class="alert alert-info">
-                <div class="empty-state"><i class="bi bi-chat-square-text"></i><p>No prompts yet</p><a href="/prompts/create" class="btn btn-primary btn-sm"><i class="bi bi-plus-lg me-1"></i>Create Your First Prompt</a></div>
+                <div class="empty-state"><i class="bi bi-chat-square-text"></i><p>{{ _('No prompts yet') }}</p><a href="/prompts/create" class="btn btn-primary btn-sm"><i class="bi bi-plus-lg me-1"></i>{{ _('Create Your First Prompt') }}</a></div>
             </div>
             {% endif %}
         </div>
@@ -182,7 +182,7 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
         <div class="col-md-6">
             <div class="card">
                 <div class="card-header card-header-info">
-                    <h6 class="mb-0"><i class="bi bi-bar-chart"></i> Most Used Prompts</h6>
+                    <h6 class="mb-0"><i class="bi bi-bar-chart"></i> {{ _('Most Used Prompts') }}</h6>
                 </div>
                 <div class="card-body">
                     {% if prompts %}
@@ -190,9 +190,9 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
                         <table class="table table-sm">
                             <thead>
                                 <tr>
-                                    <th>Prompt</th>
-                                    <th>Category</th>
-                                    <th>Usage</th>
+                                    <th>{{ _('Prompt') }}</th>
+                                    <th>{{ _('Category') }}</th>
+                                    <th>{{ _('Usage') }}</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -211,7 +211,7 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
                         </table>
                     </div>
                     {% else %}
-                    <p class="text-muted mb-0">No usage data available</p>
+                    <p class="text-muted mb-0">{{ _('No usage data available') }}</p>
                     {% endif %}
                 </div>
             </div>
@@ -220,7 +220,7 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
         <div class="col-md-6">
             <div class="card">
                 <div class="card-header card-header-warning">
-                    <h6 class="mb-0"><i class="bi bi-folder"></i> Prompts by Category</h6>
+                    <h6 class="mb-0"><i class="bi bi-folder"></i> {{ _('Prompts by Category') }}</h6>
                 </div>
                 <div class="card-body">
                     {% if prompts %}
@@ -232,9 +232,9 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
                         <table class="table table-sm">
                             <thead>
                                 <tr>
-                                    <th>Category</th>
-                                    <th>Count</th>
-                                    <th>Percentage</th>
+                                    <th>{{ _('Category') }}</th>
+                                    <th>{{ _('Count') }}</th>
+                                    <th>{{ _('Percentage') }}</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -260,7 +260,7 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
                         </table>
                     </div>
                     {% else %}
-                    <p class="text-muted mb-0">No category data available</p>
+                    <p class="text-muted mb-0">{{ _('No category data available') }}</p>
                     {% endif %}
                 </div>
             </div>
@@ -353,7 +353,7 @@ function renderTable() {
 
     // Update info
     document.getElementById('tableInfo').textContent =
-        total > 0 ? `Showing ${start + 1} to ${end} of ${total} prompts` : 'No prompts found';
+        total > 0 ? _t('Showing %(from)s to %(to)s of %(total)s prompts', {from: start + 1, to: end, total: total}) : _t('No prompts found');
 
     // Pagination
     renderPagination(totalPages);
@@ -368,7 +368,7 @@ function renderPagination(totalPages) {
     // Previous
     const prevLi = document.createElement('li');
     prevLi.className = `page-item ${currentPage === 1 ? 'disabled' : ''}`;
-    prevLi.innerHTML = `<a class="page-link" href="#" data-onclick="changePage(${currentPage - 1}); return false;">Previous</a>`;
+    prevLi.innerHTML = `<a class="page-link" href="#" data-onclick="changePage(${currentPage - 1}); return false;">${_t('Previous')}</a>`;
     pagination.appendChild(prevLi);
 
     // Pages
@@ -389,7 +389,7 @@ function renderPagination(totalPages) {
     // Next
     const nextLi = document.createElement('li');
     nextLi.className = `page-item ${currentPage === totalPages ? 'disabled' : ''}`;
-    nextLi.innerHTML = `<a class="page-link" href="#" data-onclick="changePage(${currentPage + 1}); return false;">Next</a>`;
+    nextLi.innerHTML = `<a class="page-link" href="#" data-onclick="changePage(${currentPage + 1}); return false;">${_t('Next')}</a>`;
     pagination.appendChild(nextLi);
 }
 
@@ -403,28 +403,28 @@ function changePage(page) {
 }
 
 function deletePrompt(name) {
-    if (!confirm(`Delete prompt "${name}"? This cannot be undone.`)) return;
-    if (!confirm('Final confirmation - really delete?')) return;
+    if (!confirm(_t('Delete prompt "%(name)s"? This cannot be undone.', {name: name}))) return;
+    if (!confirm(_t('Final confirmation - really delete?'))) return;
 
     $.ajax({
         url: `/api/prompts/${name}/delete`,
         method: 'POST',
         success: function(response) {
             if (response.success) {
-                alert('Prompt deleted!');
+                alert(_t('Prompt deleted!'));
                 location.reload();
             } else {
-                alert('Error: ' + response.error);
+                alert(_t('Error:') + ' ' + response.error);
             }
         },
         error: function(xhr) {
-            alert('Error: ' + (xhr.responseJSON ? xhr.responseJSON.error : 'Unknown error'));
+            alert(_t('Error:') + ' ' + (xhr.responseJSON ? xhr.responseJSON.error : _t('Unknown error')));
         }
     });
 }
 
 function refreshPrompts() {
-    if (confirm('Refresh all prompts from disk?')) {
+    if (confirm(_t('Refresh all prompts from disk?'))) {
         // Call refresh API if available
         location.reload();
     }

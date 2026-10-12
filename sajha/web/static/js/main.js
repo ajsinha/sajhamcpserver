@@ -65,7 +65,7 @@ function initializeWebSocket(token) {
     
     socket.on('tool_update', function(data) {
         // Handle real-time tool updates
-        showNotification('Tool Update', data.message, 'info');
+        showNotification(_t('Tool Update'), data.message, 'info');
     });
     
     socket.on('mcp_response', function(data) {
@@ -153,7 +153,7 @@ function copyToClipboard(text) {
     document.execCommand('copy');
     document.body.removeChild(textarea);
     
-    showNotification('Success', 'Copied to clipboard!', 'success');
+    showNotification(_t('Success'), _t('Copied to clipboard!'), 'success');
 }
 
 // Export table to CSV
@@ -275,7 +275,7 @@ function showLoading() {
              justify-content-center align-items-center" 
              style="background: color-mix(in srgb, var(--sajha-nav-to) 55%, transparent); z-index: 9999;">
             <div class="spinner-border text-light" role="status">
-                <span class="visually-hidden">Loading...</span>
+                <span class="visually-hidden">${_t('Loading...')}</span>
             </div>
         </div>
     `;

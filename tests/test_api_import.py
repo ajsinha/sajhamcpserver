@@ -67,6 +67,8 @@ def _handler(api: FakeAPI):
             if p == '/slow':
                 time.sleep(2.5)
                 return self._send(200, {'ok': True})
+            if p == '/redirect-to':
+                return self._send(302, b'', headers={'Location': parse_qs(u.query)['url'][0]})
             if p == '/redirect-to-metadata':
                 return self._send(302, b'', headers={'Location': 'http://169.254.169.254/latest/meta-data/'})
             if p == '/oauth/token':
@@ -744,6 +746,51 @@ def test_cli_import_openapi(monkeypatch, capsys, tmp_path):
     assert cli.main(['studio', 'import-openapi', str(spec), '--select', 'GET /nope']) == 2
 
 
+def test_connected_account_token_never_leaves_the_providers_api_hosts(fake, local, store_dir):
+    """A GitHub user's token may go only to GitHub's API hosts: the plan warns, test calls and deploys
+    are refused, and a tool config pointing elsewhere is refused again at call time, before any request."""
+    from types import SimpleNamespace
+    from sajha.api_import import service
+    from sajha.api_import.executor import APICallError
+    if not service.connected_accounts_available():
+        pytest.skip('connected accounts are not installed')
+    from sajha.accounts import injection
+    auth = {'me': {'type': 'connected_account', 'provider': 'github', 'scopes': 'repo'}}
+    req = dict(kind='openapi', text=PETSTORE, auth=auth, base_url=f'{fake.url}/v1')
+    plan = _plan(**req)
+    assert any("token may not be sent" in w and 'deploying is refused' in w for w in plan['warnings'])
+    with pytest.raises(service.APIImportError, match="GitHub user's token may not be sent"):
+        service.deploy({**req, 'selected': ['GET /pets']}, FakeRegistry())
+    with pytest.raises(service.APIImportError, match='api.github.com'):
+        service.test_call({**req, 'operation': 'GET /pets'})
+    assert service.store.load('swagger_petstore') is None
+    # a config written by hand (or before this check) is refused at call time, before any request
+    cfg = _config(PETSTORE, 'GET /pets', base_url=f'{fake.url}/v1')
+    cfg['api_import']['auth'] = {'me': {'type': 'connected_account', 'provider': 'github', 'scopes': ['repo'],
+                                        'global': True}}
+    cfg['auth'] = {'connected_account': 'github', 'scopes': ['repo']}
+    before = len(fake.requests)
+    reset = injection._tokens.set({'github': SimpleNamespace(authorization=lambda: 'Bearer gh-user-tok')})
+    try:
+        with pytest.raises(APICallError, match='may not be sent'):
+            _tool(cfg).execute({})
+    finally:
+        injection._tokens.reset(reset)
+    assert len(fake.requests) == before
+
+
+def test_credentials_do_not_follow_a_redirect_to_another_origin(fake, local):
+    from sajha.api_import import fetch
+    a = fake.url
+    b = a.replace('127.0.0.1', 'localhost')
+    fetch.request('GET', f'{a}/redirect-to', params=[('url', f'{b}/pets')],
+                         headers={'Authorization': 'Bearer secret', 'X-Keep': '1'})
+    last = fake.requests[-1]
+    assert last['path'] == '/pets' and 'Authorization' not in last['headers'] and last['headers'].get('X-Keep') == '1'
+    fetch.request('GET', f'{a}/redirect-to', params=[('url', f'{a}/pets')], headers={'Authorization': 'Bearer secret'})
+    assert fake.requests[-1]['headers'].get('Authorization') == 'Bearer secret'     # same origin: kept
+
+
 def test_connected_account_binding(fake, local):
     from types import SimpleNamespace
     from sajha.api_import import service
@@ -751,18 +798,26 @@ def test_connected_account_binding(fake, local):
     if not service.connected_accounts_available():
         pytest.skip('connected accounts are not installed')
     from sajha.accounts import injection
-    cfg = _config(PETSTORE, 'GET /pets', auth={'me': {'type': 'connected_account', 'provider': 'github',
-                                                      'scopes': 'repo'}}, base_url=f'{fake.url}/v1')
-    assert cfg['auth'] == {'connected_account': 'github', 'scopes': ['repo']}
-    tool = _tool(cfg)
-    with pytest.raises(APICallError, match='github'):
-        tool.execute({})
-    reset = injection._tokens.set({'github': SimpleNamespace(authorization=lambda: 'Bearer user-tok')})
+    from sajha.accounts.providers import ProviderRegistry, set_registry
+    # a provider whose API lives on the fake server (a loopback api_host is accepted over http)
+    set_registry(ProviderRegistry.load(raw={'fakesvc': {
+        'authorize_url': 'https://auth.fake.test/a', 'token_url': 'https://auth.fake.test/t', 'client_id': 'c',
+        'client_secret_ref': 'env:X', 'api_hosts': ['127.0.0.1']}}, use_env=False))
     try:
-        tool.execute({})
+        cfg = _config(PETSTORE, 'GET /pets', auth={'me': {'type': 'connected_account', 'provider': 'fakesvc',
+                                                          'scopes': 'repo'}}, base_url=f'{fake.url}/v1')
+        assert cfg['auth'] == {'connected_account': 'fakesvc', 'scopes': ['repo']}
+        tool = _tool(cfg)
+        with pytest.raises(APICallError, match='fakesvc'):
+            tool.execute({})                                            # no token bound to this call
+        reset = injection._tokens.set({'fakesvc': SimpleNamespace(authorization=lambda: 'Bearer user-tok')})
+        try:
+            tool.execute({})
+        finally:
+            injection._tokens.reset(reset)
+        assert fake.requests[-1]['headers']['Authorization'] == 'Bearer user-tok'
     finally:
-        injection._tokens.reset(reset)
-    assert fake.requests[-1]['headers']['Authorization'] == 'Bearer user-tok'
+        set_registry(None)
     from sajha.api_import.service import APIImportError
     with pytest.raises(APIImportError, match='not a connected-accounts provider'):
         _plan(kind='openapi', text=PETSTORE, auth={'me': {'type': 'connected_account', 'provider': 'nope_x'}})

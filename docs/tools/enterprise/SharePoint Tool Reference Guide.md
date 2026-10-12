@@ -14,7 +14,7 @@ Every tool below needs the key `SHAREPOINT_CLIENT_SECRET` (config `sharepoint.cl
 
 | Tool | Description | Required | Optional (schema default) | Annotations |
 |---|---|---|---|---|
-| `sharepoint_documents` | Files in the configured SharePoint site's default document library, via Microsoft Graph. | `operation` | `folder_path`, `file_url`, `file_name`, `content_base64`, `query`, `metadata`, `destination_url`, `overwrite` (`false`), `recursive` (`false`), `source_url`, `return_content` (`false`), `comment`, and 4 more | — |
+| `sharepoint_documents` | Files in the configured SharePoint site's default document library, via Microsoft Graph. | `operation` | `folder_path`, `file_url`, `file_name`, `content_base64`, `source_path`, `resume_upload_url`, `query`, `metadata`, `destination_url`, `overwrite` (`false`), `recursive` (`false`), `source_url`, and 6 more | — |
 | `sharepoint_lists` | Lists and list items in the configured SharePoint site, via Microsoft Graph. | `operation` | `list_name`, `item_id`, `item_data`, `filter`, `select_fields`, `order_by`, `top` (`100`), `skip` (`0`) | — |
 | `sharepoint_search` | Search the configured SharePoint site via the Microsoft Graph search API (documents, list items, sites), or the directory for people. | `query` | `search_type` (`all`), `file_types`, `max_results` (`50`), `start_row` (`0`) | — |
 
@@ -47,8 +47,27 @@ The app registration needs Microsoft Graph **application** permissions:
 `Sites.Read.All` for reading, `Sites.ReadWrite.All` for uploads, metadata and list writes (or
 `Sites.Selected` with a grant on this one site), and `User.Read.All` for people search. The
 token is requested for `https://graph.microsoft.com/.default`, cached, and renewed a minute
-before it expires. Only the `client_credentials` grant is implemented; another
-`authentication.type` is refused with a clear error.
+before it expires.
+
+### Acting as the caller (delegated)
+
+With `"authentication": {"type": "delegated"}` the tools call Graph **as the caller**, with the
+token of the caller's connected Microsoft 365 account
+([Connected Accounts](../../architecture/Connected%20Accounts.md)), so each user reads and writes
+only what they may in SharePoint. The `microsoft` provider must be configured
+(`accounts.providers.microsoft`, with Graph **delegated** permissions such as
+`Sites.ReadWrite.All` on its app registration).
+
+```json
+"authentication": {"type": "delegated", "connected_account": "microsoft", "scopes": ["Sites.ReadWrite.All"]}
+```
+
+`connected_account` defaults to `microsoft` and `scopes` to `["Sites.ReadWrite.All"]`. The tool
+then carries the binding `"auth": {"connected_account": ..., "scopes": ...}`, so a caller with no
+link, or a link without those scopes, is asked to connect before the tool runs; the caller's token
+is sent only to `graph.microsoft.com`, never cached by the tool, refreshed once when Graph answers
+401, and a second 401 marks the link for re-connection and asks again. `client_credentials` and
+`delegated` are the grants implemented; another `authentication.type` is refused with a clear error.
 
 `sharepoint_search` takes an optional `search_region` in its config (e.g. `NAM`, `EUR`):
 Graph requires a region for SharePoint searches made with application permissions in some
@@ -67,7 +86,8 @@ Paths are inside the site's default document library and may be written library-
 (`/sites/team/Shared Documents/Project/plan.docx`); the site path and a leading
 `Shared Documents` or `Documents` segment are dropped, and `..` is refused. Other arguments:
 `folder_path`, `file_url`, `source_url` (move, copy; `file_url` works too),
-`destination_url` (the new file path), `file_name` and `content_base64` (upload, up to 4 MB),
+`destination_url` (the new file path), `file_name` and `content_base64` or `source_path` (upload; see
+[Large uploads](#large-uploads)),
 `query` and `file_types` (search), `metadata` (update_metadata: column values),
 `comment` and `publish` (check_in), `recycle` (delete; `false` deletes permanently),
 `return_content` (download), `overwrite` (upload, move, copy; default false),
@@ -77,6 +97,31 @@ Paths are inside the site's default document library and may be written library-
 ```json
 {"operation": "list_files", "folder_path": "/Shared Documents"}
 ```
+
+#### Large uploads
+
+A file up to 4 MB is sent in one request (Graph's simple upload). A larger one goes through a Graph
+**upload session**: the tool asks Graph for an upload URL (`createUploadSession`, with the conflict
+behaviour and file name), then sends the file in chunks that are multiples of 320 KiB, each a `PUT`
+with `Content-Range` and **without** the token (the upload URL is pre-authenticated). A chunk that
+fails (a connection error, 5xx, 408, 416 or 429) is retried with backoff after asking the session
+which bytes it still expects, so the upload resumes where Graph says it stopped. When the retries run
+out the answer is `{"success": false, "resumable": true, "upload_url": ..., "bytes_uploaded": ...,
+"size": ...}`: calling `upload` again with `resume_upload_url` set to that URL and the same content
+sends only the missing ranges (until the session expires). Any other refusal
+(409 name conflict, 403, 413) cancels the session. The result says `method: "simple"` or
+`"upload_session"`.
+
+| Tool config key | Default | Meaning |
+|---|---|---|
+| `max_upload_bytes` | `104857600` (100 MB) | The largest file an upload accepts, inline or from `source_path` |
+| `upload_chunk_bytes` | `5242880` (5 MiB) | Chunk size, rounded down to a multiple of 320 KiB, from 320 KiB to 60 MiB |
+| `upload_roots` | none | Storage-backend folders `source_path` may name; `{user}` in a root is the caller (`uploads/{user}`). Empty: content travels inline only |
+
+An upload URL, including one given as `resume_upload_url`, is only used when it is https on the
+site's own host, on the same tenant's `<tenant>.sharepoint.com` or `<tenant>-my.sharepoint.com`, or
+on `graph.microsoft.com`, so a caller cannot make the tool send a file elsewhere. `source_path` must
+be relative and without `..`.
 
 ### sharepoint_lists
 
@@ -117,10 +162,11 @@ document search text is an OData string literal with `'` doubled.
 
 ## Known issues
 
-- Uploads use Graph's simple upload, so files are limited to 4 MB (no upload session).
+- An upload is held in memory while it is sent, so `max_upload_bytes` bounds memory too; base64
+  content travelling inline in a tool call is a third larger again.
 - `SharePointSiteTool`'s `get_groups` answers with an error: SharePoint site groups have no
   Microsoft Graph API.
-- Only the `client_credentials` grant is implemented (no certificate credential).
+- The app-only grant uses a client secret; certificate credentials are not implemented.
 
 ## See also
 

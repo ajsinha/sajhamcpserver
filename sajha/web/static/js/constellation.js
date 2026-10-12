@@ -224,12 +224,12 @@
       if (!text || text === spoken) return;
       dwell = setTimeout(function () { spoken = text; live.textContent = text; }, wait);
     }
-    function sentence(i) { return i.name + ', ' + i.group + ' provider group' + (i.desc ? '. ' + i.desc : ''); }
+    function sentence(i) { return i.name + ', ' + _t('%(group)s provider group', {group: i.group}) + (i.desc ? '. ' + i.desc : ''); }
     function place(st) {
       var i = st && info(st);
       if (!i) { box.hidden = true; return null; }
       nm.textContent = i.name;
-      gt.textContent = i.group + ' provider group';
+      gt.textContent = _t('%(group)s provider group', {group: i.group});
       dot.style.background = S.colors[st.g] || '';
       ds.textContent = i.desc || ''; ds.hidden = !i.desc;
       box.hidden = false;
@@ -247,7 +247,7 @@
       T.star = st; T.pinned = !!(st && pinned);
       var i = place(st);
       cv.style.cursor = st ? 'pointer' : '';
-      if (i) speak(sentence(i) + (T.pinned ? ' (pinned; Escape to close)' : ''), T.pinned ? 30 : 900);
+      if (i) speak(sentence(i) + (T.pinned ? ' ' + _t('(pinned; Escape to close)') : ''), T.pinned ? 30 : 900);
       else clearTimeout(dwell);
       if (changed) redraw();
     }

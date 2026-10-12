@@ -4,31 +4,31 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
 Connected accounts: link your accounts at third-party services once; tools then act as you there.
 Design: docs/architecture/Connected Accounts.md
 -->
-{% block title %}Connected accounts - SAJHA MCP Server{% endblock %}
+{% block title %}{{ _('Connected accounts - SAJHA MCP Server') }}{% endblock %}
 
 {% block content %}
 <div class="container-fluid acct-page">
   <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
     <div>
-      <h1 class="h3 mb-0"><i class="bi bi-link-45deg me-2" aria-hidden="true"></i>Connected accounts</h1>
-      <small class="text-muted">Link an account once; tools that need it then act as you there, with your permissions. SAJHA keeps the tokens encrypted and never shows them.</small>
+      <h1 class="h3 mb-0"><i class="bi bi-link-45deg me-2" aria-hidden="true"></i>{{ _('Connected accounts') }}</h1>
+      <small class="text-muted">{{ _('Link an account once; tools that need it then act as you there, with your permissions. SAJHA keeps the tokens encrypted and never shows them.') }}</small>
     </div>
-    {% if is_admin %}<a class="btn btn-sm btn-outline-primary" href="{{ url_for('admin_connections_page') }}"><i class="bi bi-shield-lock me-1" aria-hidden="true"></i>All users' connections</a>{% endif %}
+    {% if is_admin %}<a class="btn btn-sm btn-outline-primary" href="{{ url_for('admin_connections_page') }}"><i class="bi bi-shield-lock me-1" aria-hidden="true"></i>{{ _('All users\' connections') }}</a>{% endif %}
   </div>
 
   {% if notice %}<div class="alert alert-success" role="status"><i class="bi bi-check-circle me-1" aria-hidden="true"></i>{{ notice }}</div>{% endif %}
   {% if error %}<div class="alert alert-danger" role="alert"><i class="bi bi-exclamation-triangle me-1" aria-hidden="true"></i>{{ error }}</div>{% endif %}
 
   {% if not enabled %}
-  <div class="alert alert-info" role="status">Connected accounts are turned off on this server (<code>accounts.enabled</code>).</div>
+  <div class="alert alert-info" role="status">{% trans %}Connected accounts are turned off on this server (<code>accounts.enabled</code>).{% endtrans %}</div>
   {% elif not is_user %}
-  <div class="alert alert-info" role="status">Connected accounts belong to signed-in users. This credential (for example an API key) has none.</div>
+  <div class="alert alert-info" role="status">{{ _('Connected accounts belong to signed-in users. This credential (for example an API key) has none.') }}</div>
   {% else %}
 
   {% if not providers %}
-  <div class="alert alert-info" role="status">No services are configured for linking yet.
-    {% if is_admin %}An administrator enables one by giving it an OAuth client: <code>accounts.providers.&lt;id&gt;.client_id</code> and <code>client_secret_ref</code>
-    (<a href="{{ guide_url('Connected Accounts.md') }}">how</a>).{% else %}Ask an administrator to enable one.{% endif %}</div>
+  <div class="alert alert-info" role="status">{{ _('No services are configured for linking yet.') }}
+    {% if is_admin %}{% trans value=guide_url('Connected Accounts.md') %}An administrator enables one by giving it an OAuth client: <code>accounts.providers.&lt;id&gt;.client_id</code> and <code>client_secret_ref</code>
+    (<a href="{{ value }}">how</a>).{% endtrans %}{% else %}{{ _('Ask an administrator to enable one.') }}{% endif %}</div>
   {% endif %}
 
   <div class="acct-grid">
@@ -42,24 +42,24 @@ Design: docs/architecture/Connected Accounts.md
           <small class="text-muted">{{ p.description }}</small>
         </div>
         {% if c %}
-          {% if c.status == 'active' %}<span class="acct-badge acct-ok">Linked</span>
-          {% else %}<span class="acct-badge acct-bad">Reconnect</span>{% endif %}
-        {% else %}<span class="acct-badge">Not linked</span>{% endif %}
+          {% if c.status == 'active' %}<span class="acct-badge acct-ok">{{ _('Linked') }}</span>
+          {% else %}<span class="acct-badge acct-bad">{{ _('Reconnect') }}</span>{% endif %}
+        {% else %}<span class="acct-badge">{{ _('Not linked') }}</span>{% endif %}
       </div>
 
       {% if c %}
       <dl class="acct-facts">
-        <dt>Account</dt><dd>{{ c.account_login or '—' }}</dd>
-        <dt>Access granted</dt><dd>{% for s in c.scopes %}<code class="acct-scope">{{ s }}</code>{% else %}<span class="text-muted">the service's default</span>{% endfor %}</dd>
-        <dt>Linked</dt><dd>{{ c.created_at or '—' }}</dd>
-        <dt>Last used</dt><dd>{{ c.last_used_at or 'not yet' }}</dd>
-        <dt>Token</dt><dd>{% if c.expires_at %}expires {{ c.expires_at }}{% if c.refreshable %}, renewed automatically{% endif %}{% else %}does not expire{% endif %}</dd>
-        {% if c.status != 'active' %}<dt>Status</dt><dd class="text-danger">{{ c.last_error or 'The service no longer accepts this link.' }} Reconnect to continue.</dd>{% endif %}
+        <dt>{{ _('Account') }}</dt><dd>{{ c.account_login or '—' }}</dd>
+        <dt>{{ _('Access granted') }}</dt><dd>{% for s in c.scopes %}<code class="acct-scope">{{ s }}</code>{% else %}<span class="text-muted">{{ _('the service\'s default') }}</span>{% endfor %}</dd>
+        <dt>{{ _('Linked') }}</dt><dd>{{ c.created_at or '—' }}</dd>
+        <dt>{{ _('Last used') }}</dt><dd>{{ c.last_used_at or _('not yet') }}</dd>
+        <dt>{{ _('Token') }}</dt><dd>{% if c.expires_at %}{% trans expires_at=c.expires_at %}expires {{ expires_at }}{% endtrans %}{% if c.refreshable %}{{ _(', renewed automatically') }}{% endif %}{% else %}{{ _('does not expire') }}{% endif %}</dd>
+        {% if c.status != 'active' %}<dt>{{ _('Status') }}</dt><dd class="text-danger">{% trans value=c.last_error or 'The service no longer accepts this link.' %}{{ value }} Reconnect to continue.{% endtrans %}</dd>{% endif %}
       </dl>
       {% endif %}
 
       {% if p.highlight and p.extra_scopes %}
-      <p class="small mb-2"><i class="bi bi-info-circle me-1" aria-hidden="true"></i>A tool asked for more access: <code>{{ p.extra_scopes }}</code>. Connecting again asks {{ p.title }} for it, keeping what you granted before.</p>
+      <p class="small mb-2"><i class="bi bi-info-circle me-1" aria-hidden="true"></i>{% trans extra_scopes=p.extra_scopes, title=p.title %}A tool asked for more access: <code>{{ extra_scopes }}</code>. Connecting again asks {{ title }} for it, keeping what you granted before.{% endtrans %}</p>
       {% endif %}
 
       <div class="acct-actions">
@@ -68,29 +68,29 @@ Design: docs/architecture/Connected Accounts.md
           <input type="hidden" name="csrf" value="{{ csrf }}">
           <input type="hidden" name="scope" value="{{ p.extra_scopes }}">
           <button type="submit" class="btn btn-sm {% if not c or c.status != 'active' or p.highlight %}btn-primary{% else %}btn-outline-secondary{% endif %}">
-            <i class="bi bi-box-arrow-up-right me-1" aria-hidden="true"></i>{% if c %}Reconnect{% else %}Connect {{ p.title }}{% endif %}</button>
+            <i class="bi bi-box-arrow-up-right me-1" aria-hidden="true"></i>{% if c %}{{ _('Reconnect') }}{% else %}{% trans title=p.title %}Connect {{ title }}{% endtrans %}{% endif %}</button>
         </form>
         {% endif %}
         {% if c %}
         <form method="post" action="/account/connections/{{ p.id }}/disconnect" class="d-inline"
-              data-onsubmit="return confirm('Disconnect {{ p.title }}? SAJHA revokes the token where {{ p.title }} allows it and forgets it.');">
+              data-onsubmit="return confirm({{ _('Disconnect %(title)s? SAJHA revokes the token where %(title)s allows it and forgets it.', title=p.title)|tojson|forceescape }});">
           <input type="hidden" name="csrf" value="{{ csrf }}">
-          <button type="submit" class="btn btn-sm btn-outline-danger"><i class="bi bi-x-circle me-1" aria-hidden="true"></i>Disconnect</button>
+          <button type="submit" class="btn btn-sm btn-outline-danger"><i class="bi bi-x-circle me-1" aria-hidden="true"></i>{{ _('Disconnect') }}</button>
         </form>
         {% endif %}
       </div>
-      <p class="acct-foot small text-muted mb-0">Requests: {% for s in p.scopes %}<code class="acct-scope">{{ s }}</code>{% else %}no scopes{% endfor %}
-        {% if p.pkce %}· PKCE{% endif %} · tokens go only to {{ p.api_hosts|join(', ') }}</p>
+      <p class="acct-foot small text-muted mb-0">{{ _('Requests:') }} {% for s in p.scopes %}<code class="acct-scope">{{ s }}</code>{% else %}{{ _('no scopes') }}{% endfor %}
+        {% if p.pkce %}· PKCE{% endif %} {% trans api_hosts=p.api_hosts|join(', ') %}· tokens go only to {{ api_hosts }}{% endtrans %}</p>
     </section>
     {% endfor %}
   </div>
 
   {% if is_admin and unconfigured %}
   <details class="mt-4 small">
-    <summary>Not configured on this server ({{ unconfigured|length }})</summary>
-    <p class="mt-2 mb-1">Templates SAJHA knows; each needs an OAuth app registered with the service, then
-      <code>accounts.providers.&lt;id&gt;.client_id</code> and <code>client_secret_ref</code> (<a href="{{ guide_url('Connected Accounts.md') }}">guide</a>).</p>
-    <ul class="mb-0">{% for p in unconfigured %}<li><strong>{{ p.title }}</strong> (<code>{{ p.id }}</code>){% if p.docs_url %} — <a href="{{ p.docs_url }}" rel="noopener" target="_blank">register an app</a>{% endif %}</li>{% endfor %}</ul>
+    <summary>{% trans n=unconfigured|length %}Not configured on this server ({{ n }}){% endtrans %}</summary>
+    <p class="mt-2 mb-1">{% trans value=guide_url('Connected Accounts.md') %}Templates SAJHA knows; each needs an OAuth app registered with the service, then
+      <code>accounts.providers.&lt;id&gt;.client_id</code> and <code>client_secret_ref</code> (<a href="{{ value }}">guide</a>).{% endtrans %}</p>
+    <ul class="mb-0">{% for p in unconfigured %}<li><strong>{{ p.title }}</strong> (<code>{{ p.id }}</code>){% if p.docs_url %} {% trans docs_url=p.docs_url %}— <a href="{{ docs_url }}" rel="noopener" target="_blank">register an app</a>{% endtrans %}{% endif %}</li>{% endfor %}</ul>
     {% if config_errors %}<div class="alert alert-warning mt-2 mb-0">{% for k, v in config_errors.items() %}<div><code>{{ k }}</code>: {{ v }}</div>{% endfor %}</div>{% endif %}
   </details>
   {% endif %}

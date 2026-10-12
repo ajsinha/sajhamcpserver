@@ -3,7 +3,8 @@ SAJHA MCP Server — one upstream MCP server, through the official ``mcp`` SDK v
 Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.com
 
 An ``UpstreamConnection`` lives on the federation manager's event loop. Its runner task
-opens the SDK client (Streamable HTTP on either protocol era, legacy SSE or stdio), keeps
+opens the SDK client (Streamable HTTP on either protocol era, legacy SSE or stdio, a stdio upstream in
+its own container unless ``isolation: none``: sajha/federation/container.py), keeps
 it open, and reconnects with backoff when it fails. While connected it
 
 * runs discovery when asked (start, periodic refresh, list_changed, admin Refresh), and
@@ -155,6 +156,9 @@ class UpstreamConnection:
         self.in_flight = 0
         self.ewma_ms: Optional[float] = None
         self.fail_streak = 0
+        # stdio (sajha/federation/container.py): 'container' or 'none' once launched, and this connection's container
+        self.isolation: Optional[str] = None
+        self.container_name: Optional[str] = None
 
     # ── lifecycle ──────────────────────────────────────────────────
     def start(self) -> None:
@@ -330,7 +334,11 @@ class UpstreamConnection:
         if cfg.transport == 'stdio':
             if not self.settings.allow_stdio:
                 raise PermissionError('stdio upstreams are disabled (federation.allow_stdio)')
-            target = self._stdio_params()
+            # its own container unless isolation: none (sajha/federation/container.py); docker is asked off the loop
+            target = await asyncio.to_thread(self._stdio_params)
+            if self.container_name:
+                from sajha.federation.container import aremove
+                stack.push_async_callback(aremove, self.container_name)    # after the client closes
         else:
             from sajha.federation.security import check_url
             check_url(cfg.url, self.settings)
@@ -355,6 +363,10 @@ class UpstreamConnection:
             message_handler=self._on_message, elicitation_callback=self._on_elicitation, **extra,
         )
         await stack.enter_async_context(client)
+        if self.container_name:                     # a container that ends ends the connection at once
+            from sajha.federation.container import watch
+            watcher = asyncio.ensure_future(watch(self, self.container_name))
+            stack.callback(watcher.cancel)
         self.protocol_version = client.protocol_version
         info = client.server_info
         self.server_info = info.model_dump(mode='json', exclude_none=True) if info is not None else {}
@@ -391,15 +403,14 @@ class UpstreamConnection:
         return streamable_http_client(cfg.url, http_client=http)
 
     def _stdio_params(self):
-        from mcp.client.stdio import StdioServerParameters
+        from sajha.federation.container import stdio_target
         from sajha.federation.security import resolve_ref
         cfg = self.config
         env = dict(cfg.env or {})
         for name, ref in (cfg.env_refs or {}).items():
             env[name] = resolve_ref(ref, f'upstream {cfg.id} env_refs.{name}')
             self._secret_values.append(env[name])
-        return StdioServerParameters(command=cfg.command, args=list(cfg.args or []), env=env or None,
-                                     cwd=cfg.cwd or None)
+        return stdio_target(self, env)       # a container launch, or the plain command with isolation: none
 
     def _is_modern(self) -> bool:
         return bool(self.protocol_version) and self.protocol_version >= '2026-07-28'

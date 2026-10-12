@@ -4,7 +4,7 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
 One API key (administration): owner, access, state, use; every action on it.
 Guide: docs/security/Security Model.md (API keys)
 -->
-{% block title %}API key {{ apikey.name }} - SAJHA MCP Server{% endblock %}
+{% block title %}{% trans name=apikey.name %}API key {{ name }} - SAJHA MCP Server{% endtrans %}{% endblock %}
 
 {% block content %}
 {% set k = apikey %}
@@ -12,20 +12,20 @@ Guide: docs/security/Security Model.md (API keys)
   <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
     <div>
       <h1 class="h3 mb-0"><i class="bi bi-key me-2" aria-hidden="true"></i>{{ k.name }}</h1>
-      <small class="text-muted"><code>{{ k.prefix }}…</code> · {{ k.status }}{% if k.is_default %} · default key{% endif %}{% if k.persistent %} · persistent{% endif %}</small>
+      <small class="text-muted"><code>{{ k.prefix }}…</code> · {{ k.status }}{% if k.is_default %} {{ _('· default key') }}{% endif %}{% if k.persistent %} {{ _('· persistent') }}{% endif %}</small>
     </div>
-    <a class="btn btn-sm btn-outline-secondary" href="{{ url_for('apikeys_list') }}"><i class="bi bi-arrow-left me-1" aria-hidden="true"></i>All keys</a>
+    <a class="btn btn-sm btn-outline-secondary" href="{{ url_for('apikeys_list') }}"><i class="bi bi-arrow-left me-1" aria-hidden="true"></i>{{ _('All keys') }}</a>
   </div>
 
   <div id="keyStatus" class="alert" role="status" tabindex="-1" hidden></div>
 
   <section id="keyOnce" class="alert alert-warning keys-once" role="region" aria-labelledby="keyOnceH" hidden>
-    <h2 class="h6" id="keyOnceH">Copy the new key now (<span id="keyOnceName"></span>)</h2>
-    <p class="small mb-2">This is the only time it is shown.</p>
+    <h2 class="h6" id="keyOnceH">{{ _('Copy the new key now (') }}<span id="keyOnceName"></span>)</h2>
+    <p class="small mb-2">{{ _('This is the only time it is shown.') }}</p>
     <code id="keyOnceValue" class="keys-secret"></code>
     <div class="acct-actions mt-2">
-      <button type="button" class="btn btn-sm btn-primary" id="keyOnceCopy"><i class="bi bi-clipboard me-1" aria-hidden="true"></i>Copy</button>
-      <button type="button" class="btn btn-sm btn-outline-secondary" id="keyOnceDone">Done</button>
+      <button type="button" class="btn btn-sm btn-primary" id="keyOnceCopy"><i class="bi bi-clipboard me-1" aria-hidden="true"></i>{{ _('Copy') }}</button>
+      <button type="button" class="btn btn-sm btn-outline-secondary" id="keyOnceDone">{{ _('Done') }}</button>
     </div>
   </section>
 
@@ -33,54 +33,54 @@ Guide: docs/security/Security Model.md (API keys)
     <div class="col-lg-7">
       <div class="card"><div class="card-body">
         <dl class="acct-facts">
-          <dt>Owner</dt><dd>{% if k.owner %}{{ k.owner }} ({{ k.owner_name }}): signs in as this user{% else %}none: signs in as <code>apikey:{{ k.name }}</code> with role <code>api_consumer</code>{% endif %}</dd>
-          <dt>Description</dt><dd>{{ k.description or '—' }}</dd>
-          <dt>Tools</dt><dd>{{ k.tool_access_mode }}{% for t in k.tool_access_list %} <code class="acct-scope">{{ t }}</code>{% endfor %}{% if k.owner and k.tool_access_mode != 'all' %} (a ceiling on the owner's access){% endif %}</dd>
-          <dt>Created</dt><dd>{{ k.created_at or '—' }}{% if k.created_by %} by {{ k.created_by }}{% endif %}</dd>
-          <dt>Rotated</dt><dd>{{ k.rotated_at or 'never' }}</dd>
-          <dt>Expires</dt><dd>{{ k.expires_at or 'never' }}</dd>
-          <dt>Used</dt><dd>{{ k.usage_count }} calls; last {{ k.last_used or 'never' }}</dd>
-          {% if k.revoked_at %}<dt>Revoked</dt><dd>{{ k.revoked_at }} by {{ k.revoked_by }}</dd>{% endif %}
+          <dt>{{ _('Owner') }}</dt><dd>{% if k.owner %}{% trans owner=k.owner, owner_name=k.owner_name %}{{ owner }} ({{ owner_name }}): signs in as this user{% endtrans %}{% else %}{% trans name=k.name %}none: signs in as <code>apikey:{{ name }}</code> with role <code>api_consumer</code>{% endtrans %}{% endif %}</dd>
+          <dt>{{ _('Description') }}</dt><dd>{{ k.description or '—' }}</dd>
+          <dt>{{ _('Tools') }}</dt><dd>{{ k.tool_access_mode }}{% for t in k.tool_access_list %} <code class="acct-scope">{{ t }}</code>{% endfor %}{% if k.owner and k.tool_access_mode != 'all' %} {{ _('(a ceiling on the owner\'s access)') }}{% endif %}</dd>
+          <dt>{{ _('Created') }}</dt><dd>{{ k.created_at or '—' }}{% if k.created_by %} {% trans created_by=k.created_by %}by {{ created_by }}{% endtrans %}{% endif %}</dd>
+          <dt>{{ _('Rotated') }}</dt><dd>{{ k.rotated_at or _('never') }}</dd>
+          <dt>{{ _('Expires') }}</dt><dd>{{ k.expires_at or _('never') }}</dd>
+          <dt>{{ _('Used') }}</dt><dd>{% trans usage_count=k.usage_count, value=k.last_used or 'never' %}{{ usage_count }} calls; last {{ value }}{% endtrans %}</dd>
+          {% if k.revoked_at %}<dt>{{ _('Revoked') }}</dt><dd>{% trans revoked_at=k.revoked_at, revoked_by=k.revoked_by %}{{ revoked_at }} by {{ revoked_by }}{% endtrans %}</dd>{% endif %}
         </dl>
       </div></div>
     </div>
     <div class="col-lg-5">
       <div class="card"><div class="card-body">
         {% if not can_manage %}
-        <p class="small mb-0">Sign in to the console to change keys (an API key cannot).</p>
+        <p class="small mb-0">{{ _('Sign in to the console to change keys (an API key cannot).') }}</p>
         {% elif k.status == 'revoked' %}
-        <p class="small mb-0">This key is revoked: it never works again. The record stays for the audit trail.</p>
+        <p class="small mb-0">{{ _('This key is revoked: it never works again. The record stays for the audit trail.') }}</p>
         {% else %}
         <div class="acct-actions mb-3">
           <button type="button" class="btn btn-sm btn-outline-primary" data-key-action="post" data-url="/api/admin/apikeys/{{ k.id }}/rotate"
-                  data-confirm="Rotate {{ k.name }}? The current key stops working now."><i class="bi bi-arrow-repeat me-1" aria-hidden="true"></i>Rotate</button>
+                  data-confirm="{{ _('Rotate %(name)s? The current key stops working now.', name=k.name) }}"><i class="bi bi-arrow-repeat me-1" aria-hidden="true"></i>{{ _('Rotate') }}</button>
           <button type="button" class="btn btn-sm btn-outline-secondary" data-key-action="post" data-url="/api/admin/apikeys/{{ k.id }}/enabled"
-                  data-body='{"enabled": {{ 'false' if k.enabled else 'true' }}}'><i class="bi bi-{{ 'pause-circle' if k.enabled else 'play-circle' }} me-1" aria-hidden="true"></i>{{ 'Disable' if k.enabled else 'Enable' }}</button>
+                  data-body='{"enabled": {{ 'false' if k.enabled else 'true' }}}'><i class="bi bi-{{ 'pause-circle' if k.enabled else 'play-circle' }} me-1" aria-hidden="true"></i>{{ _('Disable') if k.enabled else _('Enable') }}</button>
           <button type="button" class="btn btn-sm btn-outline-secondary" data-key-action="post" data-url="/api/admin/apikeys/{{ k.id }}/persistent"
-                  data-body='{"persistent": {{ 'false' if k.persistent else 'true' }}}'><i class="bi bi-hdd me-1" aria-hidden="true"></i>{{ 'Stop keeping in the key file' if k.persistent else 'Make persistent' }}</button>
+                  data-body='{"persistent": {{ 'false' if k.persistent else 'true' }}}'><i class="bi bi-hdd me-1" aria-hidden="true"></i>{{ _('Stop keeping in the key file') if k.persistent else _('Make persistent') }}</button>
           {% if not k.is_default %}
           <button type="button" class="btn btn-sm btn-outline-danger" data-key-action="post" data-url="/api/admin/apikeys/{{ k.id }}/revoke"
-                  data-confirm="Revoke {{ k.name }}? It stops working now and cannot be enabled again."><i class="bi bi-x-circle me-1" aria-hidden="true"></i>Revoke</button>
+                  data-confirm="{{ _('Revoke %(name)s? It stops working now and cannot be enabled again.', name=k.name) }}"><i class="bi bi-x-circle me-1" aria-hidden="true"></i>{{ _('Revoke') }}</button>
           <button type="button" class="btn btn-sm btn-danger" data-key-action="delete" data-url="/api/admin/apikeys/{{ k.id }}"
-                  data-confirm="Delete {{ k.name }} and its record? Revoking keeps the record; prefer it."><i class="bi bi-trash me-1" aria-hidden="true"></i>Delete</button>
+                  data-confirm="{{ _('Delete %(name)s and its record? Revoking keeps the record; prefer it.', name=k.name) }}"><i class="bi bi-trash me-1" aria-hidden="true"></i>{{ _('Delete') }}</button>
           {% endif %}
         </div>
         {% if not k.owner %}
         <div class="d-flex flex-wrap gap-2 align-items-end">
-          <div><label class="form-label small" for="vOwner">Assign an owner</label>
+          <div><label class="form-label small" for="vOwner">{{ _('Assign an owner') }}</label>
             <select class="form-select form-select-sm" id="vOwner" name="owner">{% for u in users %}<option value="{{ u }}">{{ u }}</option>{% endfor %}</select></div>
           <button type="button" class="btn btn-sm btn-primary" data-key-action="post" data-url="/api/admin/apikeys/{{ k.id }}/owner" data-body-from="vOwner"
-                  data-confirm="Assign this key? It will sign in as that user, with the user's roles.">Assign</button>
+                  data-confirm="{{ _('Assign this key? It will sign in as that user, with the user\'s roles.') }}">{{ _('Assign') }}</button>
         </div>
         {% endif %}
-        {% if k.is_default %}<p class="small text-muted mt-2 mb-0">A default key cannot be revoked or deleted: rotate or disable it.</p>{% endif %}
+        {% if k.is_default %}<p class="small text-muted mt-2 mb-0">{{ _('A default key cannot be revoked or deleted: rotate or disable it.') }}</p>{% endif %}
         {% endif %}
       </div></div>
     </div>
   </div>
 
   <div class="card mt-3"><div class="card-body">
-    <h2 class="h6">Calling SAJHA with a key</h2>
+    <h2 class="h6">{{ _('Calling SAJHA with a key') }}</h2>
 <pre class="mb-0"><code>curl -H "X-API-Key: sja_…" http://localhost:3002/api/tools/list</code></pre>
   </div></div>
 </div>

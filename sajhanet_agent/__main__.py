@@ -68,6 +68,11 @@ def parser() -> argparse.ArgumentParser:
                    help='refused: an external server is not a member of a net (see the guide)')
     p.add_argument('--rename', action='append', default=[],
                    help='local=published: offer the tool local under a name of your choosing (repeatable)')
+    p.add_argument('--config', default='', help='the configuration file (JSON): users and keys, identity, import '
+                                                'rules, blocks, residency and re-export rules (re-read on change)')
+    p.add_argument('--client-listen', default='',
+                   help='host:port to serve MCP to local clients on (makes the agent a home); a bare port '
+                        'listens on 127.0.0.1')
     p.add_argument('--region', default='')
     p.add_argument('--label', action='append', default=[], help='key=value label of this participant')
     p.add_argument('--allow-plain-http', action='store_true', help='lab use only: no HTTPS required')
@@ -91,7 +96,7 @@ def main(argv=None) -> int:
               f'instance offers its tools as <vendor>__<tool>.', file=sys.stderr)
         return 2
     from sajhanet_agent.agent import Agent, AgentConfig
-    from sajhanet_agent.server import make_server
+    from sajhanet_agent.server import make_client_server, make_server
     cfg = AgentConfig(net=a.net, instance=a.instance, url=a.url, seeds=list(a.seed), founder=a.founder,
                       admission=a.admission, ca_url=a.ca_url, token=a.token, pins=list(a.pin), data_dir=a.data_dir,
                       require_https=not a.allow_plain_http, region=a.region, labels=_pairs(a.label, 'label'),
@@ -100,7 +105,7 @@ def main(argv=None) -> int:
                       verify_keys=not a.no_key_verification, mcp_command=a.mcp_command or '', mcp_url=a.mcp_url or '',
                       mcp_headers=_pairs(a.mcp_header, 'mcp-header'), call_timeout_seconds=a.call_timeout,
                       catalog_refresh_seconds=a.catalog_refresh, vendor=a.vendor,
-                      rename=_pairs(a.rename, 'rename'))
+                      rename=_pairs(a.rename, 'rename'), config_path=a.config, home=bool(a.client_listen))
     try:
         agent = Agent(cfg).start()
     except Exception as e:
@@ -109,8 +114,20 @@ def main(argv=None) -> int:
     u = urlsplit(a.url)
     host, _, port = (a.listen or f'0.0.0.0:{u.port or (443 if u.scheme == "https" else 80)}').rpartition(':')
     httpd = make_server(agent, host or '0.0.0.0', int(port), a.tls_cert, a.tls_key, a.behind_tls_proxy)
+    client = None
+    if a.client_listen:
+        ch, _, cp = a.client_listen.rpartition(':')
+        try:
+            client = make_client_server(agent, ch or '127.0.0.1', int(cp))
+        except (ValueError, OSError) as e:
+            print(f'sajhanet-agent: --client-listen {a.client_listen}: {e}', file=sys.stderr)
+            agent.stop(leave=False)
+            return 2
+        threading.Thread(target=client.serve_forever, name='sajhanet-agent-clients', daemon=True).start()
     agent.run_in_background()
     log = logging.getLogger('sajhanet_agent')
+    if client is not None:
+        log.info(f'serving local MCP clients on http://{ch or "127.0.0.1"}:{cp}/mcp (a home)')
     st = agent.status()
     log.info(f'{st["instance"]} in {st["net"]} (kind agent, certificate {st["certificate"][:16]}...) on '
              f'{host or "0.0.0.0"}:{port}; offering {len(st["tools"])} tools')
@@ -119,6 +136,8 @@ def main(argv=None) -> int:
     def bye(*_):
         stop.set()
         threading.Thread(target=httpd.shutdown, daemon=True).start()
+        if client is not None:
+            threading.Thread(target=client.shutdown, daemon=True).start()
     signal.signal(signal.SIGTERM, bye)
     signal.signal(signal.SIGINT, bye)
     try:

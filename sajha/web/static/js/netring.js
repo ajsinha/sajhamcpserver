@@ -20,7 +20,7 @@
   var NS = 'http://www.w3.org/2000/svg';
   var CX = 280, CY = 312, R = 168;
   var NAMES = ['risk-eu', 'treasury-na', 'cust-na', 'research', 'quant-na', 'risk-apac', 'ops-eu', 'docs-eu'];
-  var TAGS = ['home', 'rates', 'customers', 'LLM tools', 'models', 'risk', 'operations', 'documents'];
+  var TAGS = [_t('home'), _t('rates'), _t('customers'), _t('LLM tools'), _t('models'), _t('risk'), _t('operations'), _t('documents')];
   // proxied MCP servers: [member index, name, external?, angle offset from the member's outward direction, distance]
   var PROXIED = [[3, 'github', true, 0.27, 72], [3, 'context7', true, 0.95, 70],
                  [5, 'pricing-svc', false, -0.27, 72], [5, 'fetch', true, -0.95, 70]];
@@ -79,9 +79,9 @@
   });
   var lg = el('g', { 'class': 'lp2-net-legend' }, layer.nodes);
   el('rect', { x: 14, y: 556, width: 12, height: 12, rx: 3, 'class': 'lp2-net-proxy-box is-internal-key' }, lg);
-  el('text', { x: 32, y: 566 }, lg).textContent = 'proxied, internal';
+  el('text', { x: 32, y: 566 }, lg).textContent = _t('proxied, internal');
   el('rect', { x: 138, y: 556, width: 12, height: 12, rx: 3, 'class': 'lp2-net-proxy-box is-external-key' }, lg);
-  el('text', { x: 156, y: 566 }, lg).textContent = 'proxied, external: not a member, tools as vendor__tool';
+  el('text', { x: 156, y: 566 }, lg).textContent = _t('proxied, external: not a member, tools as vendor__tool');
   function toProxy(k) {
     var q = proxied[k], p = P[q.member];
     return el('path', { d: 'M' + p.x + ' ' + p.y + ' L' + q.x + ' ' + q.y, 'class': 'lp2-net-arrow is-proxy' }, layer.arrows);
@@ -155,9 +155,9 @@
   }
 
   var SCENES = [
-    ['Servers find each other', async function (tk) {
+    [_t('Servers find each other'), async function (tk) {
       reset(false);
-      bubble('gossip', 'Who is in the net, and what does each server offer?');
+      bubble(_t('gossip'), _t('Who is in the net, and what does each server offer?'));
       for (var r = 0; r < 12 && tk === token; r++) {
         var a = r % 8, b = (a + 1 + Math.floor(Math.random() * 6)) % 8;
         cls(a, 'is-alive', true);
@@ -168,55 +168,55 @@
       for (var k = 0; k < 8; k++) cls(k, 'is-alive', true);
       await wait(1300);
     }],
-    ['One question, tools on three servers', async function (tk) {
+    [_t('One question, tools on three servers'), async function (tk) {
       reset(true);
-      bubble('analyst on risk-eu', 'How exposed is the EU book to the US rate forecast?');
+      bubble(_t('analyst on risk-eu'), _t('How exposed is the EU book to the US rate forecast?'));
       await wait(1400); if (tk !== token) return;
       var calls = [[1, 'fred_10yr_treasury'], [2, 'portfolio_positions'], [3, 'rate_outlook']];
       var paths = calls.map(function (c) { cls(c[0], 'is-target', true); return arrow(0, c[0], '', c[1]); });
       await Promise.all(paths.map(function (p, k) { return wait(k * 240).then(function () { return packet(p, false, 1250); }); }));
       if (tk !== token) return;
-      calls.forEach(function (c) { note(c[0], 'data stays here', P[c[0]].y > CY ? 58 : -44); });
+      calls.forEach(function (c) { note(c[0], _t('data stays here'), P[c[0]].y > CY ? 58 : -44); });
       await wait(900); if (tk !== token) return;
       await Promise.all(paths.map(function (p, k) { return wait(k * 200).then(function () { return packet(p, true, 1050); }); }));
       await wait(500);
     }],
-    ['The answer comes home', async function (tk) {
+    [_t('The answer comes home'), async function (tk) {
       clearFx();
       for (var k = 0; k < 8; k++) cls(k, 'is-target', false);
-      bubble('answer on risk-eu', 'A 100 bp move costs the EU book about 3.1%. Sources: <code>treasury-na</code>, <code>cust-na</code>, <code>research</code>.', 'good');
-      note(0, 'memory stays on risk-eu', -48);
+      bubble(_t('answer on risk-eu'), _t('A 100 bp move costs the EU book about 3.1%. Sources: <code>treasury-na</code>, <code>cust-na</code>, <code>research</code>.'), 'good');
+      note(0, _t('memory stays on risk-eu'), -48);
       await wait(3400);
     }],
-    ['A server goes down, the call falls back', async function (tk) {
+    [_t('A server goes down, the call falls back'), async function (tk) {
       reset(true);
-      bubble('ops-eu calls var_calc', 'Preferred server: <code>quant-na</code>');
+      bubble(_t('ops-eu calls var_calc'), _t('Preferred server: <code>quant-na</code>'));
       await wait(1200); if (tk !== token) return;
       nodes[4].g.setAttribute('class', 'lp2-net-node is-down');
       await packet(arrow(6, 4, 'fail', 'var_calc'), false, 950); if (tk !== token) return;
-      bubble('quant-na is down · not executed', 'Its tools leave every catalog. Fallback 1 of 3: <code>risk-apac</code>', 'bad');
+      bubble(_t('quant-na is down · not executed'), _t('Its tools leave every catalog. Fallback 1 of 3: <code>risk-apac</code>'), 'bad');
       await wait(1100); if (tk !== token) return;
       var ok = arrow(6, 5, '', 'var_calc');
       await packet(ok, false, 850); cls(5, 'is-target', true);
       await packet(ok, true, 750);
-      bubble('result from risk-apac', 'Done once. Nothing ran twice.', 'good');
+      bubble(_t('result from risk-apac'), _t('Done once. Nothing ran twice.'), 'good');
       await wait(2100);
     }],
-    ['One name, one contract', async function (tk) {
+    [_t('One name, one contract'), async function (tk) {
       reset(true);
       var holders = [0, 5, 4];
-      bubble('quant-na rejoins', 'It offers <code>var_calc</code> with a different input schema.');
+      bubble(_t('quant-na rejoins'), _t('It offers <code>var_calc</code> with a different input schema.'));
       await wait(1500); if (tk !== token) return;
       holders.forEach(function (i) { cls(i, 'is-conflict', true); nodes[i].dots[1].setAttribute('class', 'lp2-net-tool is-quarantined'); });
-      bubble('every server · error', '<code>var_calc</code> quarantined: <b>quant-na</b> differs at <code>/properties/horizon/type</code>. Agreeing: risk-eu, risk-apac.', 'bad');
+      bubble(_t('every server · error'), _t('<code>var_calc</code> quarantined: <b>quant-na</b> differs at <code>/properties/horizon/type</code>. Agreeing: risk-eu, risk-apac.'), 'bad');
       await wait(3300); if (tk !== token) return;
       holders.forEach(function (i) { cls(i, 'is-conflict', false); nodes[i].dots[1].setAttribute('class', 'lp2-net-tool is-restored'); });
-      bubble('quant-na fixed', 'The contracts agree again. <code>var_calc</code> is back on every server.', 'good');
+      bubble(_t('quant-na fixed'), _t('The contracts agree again. <code>var_calc</code> is back on every server.'), 'good');
       await wait(2500);
     }],
-    ['Proxied MCP servers', async function (tk) {
+    [_t('Proxied MCP servers'), async function (tk) {
       reset(true);
-      bubble('analyst on risk-eu calls github__search_issues', '<b>github</b> is external: never a member. <code>research</code> proxies it and offers its tools as its own, named <code>github__…</code>.');
+      bubble(_t('analyst on risk-eu calls github__search_issues'), _t('<b>github</b> is external: never a member. <code>research</code> proxies it and offers its tools as its own, named <code>github__…</code>.'));
       await wait(1600); if (tk !== token) return;
       cls(3, 'is-target', true);
       var hop = arrow(0, 3, '', 'github__search_issues');
@@ -224,10 +224,10 @@
       var px = toProxy(0); lit(0, true);
       await packet(px, false, 600); await packet(px, true, 600); if (tk !== token) return;
       await packet(hop, true, 950);
-      bubble('result on risk-eu', 'research applied its own rules and audit on the way. The github endpoint never left research.', 'good');
+      bubble(_t('result on risk-eu'), _t('research applied its own rules and audit on the way. The github endpoint never left research.'), 'good');
       await wait(2300); if (tk !== token) return;
       reset(true);
-      bubble('ops-eu calls price_bond', '<b>pricing-svc</b> is internal: proxied by <code>risk-apac</code>, its tool keeps its name.');
+      bubble(_t('ops-eu calls price_bond'), _t('<b>pricing-svc</b> is internal: proxied by <code>risk-apac</code>, its tool keeps its name.'));
       await wait(1500); if (tk !== token) return;
       cls(5, 'is-target', true);
       var hop2 = arrow(6, 5, '', 'price_bond');
@@ -235,7 +235,7 @@
       var px2 = toProxy(2); lit(2, true);
       await packet(px2, false, 600); await packet(px2, true, 600); if (tk !== token) return;
       await packet(hop2, true, 800);
-      bubble('result on ops-eu', 'Same governance either way; only external servers get the vendor prefix.', 'good');
+      bubble(_t('result on ops-eu'), _t('Same governance either way; only external servers get the vendor prefix.'), 'good');
       await wait(2300);
     }]
   ];
@@ -256,7 +256,7 @@
     [[1, 'fred_10yr_treasury'], [2, 'portfolio_positions'], [3, 'rate_outlook']].forEach(function (c) {
       cls(c[0], 'is-target', true); arrow(0, c[0], '', c[1]);
     });
-    bubble('analyst on risk-eu', 'How exposed is the EU book to the US rate forecast?');
+    bubble(_t('analyst on risk-eu'), _t('How exposed is the EU book to the US rate forecast?'));
     show(1);
     if (pauseBtn) pauseBtn.hidden = true;
     if (nextBtn) nextBtn.hidden = true;
@@ -265,12 +265,12 @@
   if (pauseBtn) pauseBtn.addEventListener('click', function () {
     paused = !paused;
     pauseBtn.setAttribute('aria-pressed', String(paused));
-    pauseBtn.innerHTML = paused ? '<i class="bi bi-play-fill" aria-hidden="true"></i> Play' : '<i class="bi bi-pause-fill" aria-hidden="true"></i> Pause';
+    pauseBtn.innerHTML = paused ? '<i class="bi bi-play-fill" aria-hidden="true"></i> ' + _t('Play') : '<i class="bi bi-pause-fill" aria-hidden="true"></i> ' + _t('Pause');
   });
   if (nextBtn) nextBtn.addEventListener('click', function () {
     scene = (scene + 1) % SCENES.length;
     paused = false;
-    if (pauseBtn) { pauseBtn.setAttribute('aria-pressed', 'false'); pauseBtn.innerHTML = '<i class="bi bi-pause-fill" aria-hidden="true"></i> Pause'; }
+    if (pauseBtn) { pauseBtn.setAttribute('aria-pressed', 'false'); pauseBtn.innerHTML = '<i class="bi bi-pause-fill" aria-hidden="true"></i> ' + _t('Pause'); }
     loop();
   });
   if ('IntersectionObserver' in window) {

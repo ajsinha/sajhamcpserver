@@ -1,0 +1,63 @@
+{
+  "format": 1,
+  "id": "box",
+  "title": "Box",
+  "version": "1.0.0",
+  "description": "Files, folders and search in Box, as the signed-in user.",
+  "provider": {
+    "id": "box",
+    "template": "",
+    "title": "Box",
+    "icon": "box-seam",
+    "description": "Files and folders in Box as you.",
+    "authorize_url": "https://account.box.com/api/oauth2/authorize",
+    "token_url": "https://api.box.com/oauth2/token",
+    "revoke_url": "https://api.box.com/oauth2/revoke",
+    "revoke_style": "rfc7009",
+    "userinfo_url": "https://api.box.com/2.0/users/me",
+    "login_field": "login",
+    "id_field": "id",
+    "scopes": [
+      "root_readwrite"
+    ],
+    "scope_separator": " ",
+    "pkce": false,
+    "token_auth_method": "client_secret_post",
+    "api_hosts": [
+      "api.box.com",
+      "upload.box.com"
+    ],
+    "docs_url": "https://developer.box.com/guides/authentication/oauth2/"
+  },
+  "install_fields": [
+    "client_id",
+    "client_secret_ref"
+  ],
+  "api": {
+    "spec": "openapi.json",
+    "prefix": "box",
+    "base_url": "https://api.box.com/2.0",
+    "folder": "box_pack",
+    "security_scheme": "OAuth2Security",
+    "scopes": [
+      "root_readwrite"
+    ],
+    "operations": [
+      "GET /users/me",
+      "GET /folders/{folder_id}/items",
+      "GET /files/{file_id}",
+      "GET /search",
+      "POST /folders"
+    ],
+    "spec_sha256": "8175dad994a0044771c0638e872d6927b5ce778d190bbd3450279c52b72c2e2f"
+  },
+  "source": {
+    "url": "https://github.com/box/box-openapi",
+    "file": "openapi.json",
+    "revision": "5b055e333a802b10b8ca90fcc513643836dd92b4",
+    "licence": "Apache-2.0",
+    "licence_file": "LICENSE",
+    "retrieved": "2026-10-11",
+    "changes": "Trimmed for SAJHA: only the operations listed in pack.json and the components they reference are kept; examples, externalDocs and x- extensions are removed; info.description replaced by this notice."
+  }
+}

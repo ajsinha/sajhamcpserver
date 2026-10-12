@@ -4,30 +4,30 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
 Server connections: your own sign-in to each proxied MCP server that calls the vendor as you.
 Design: docs/architecture/Per-User Sign-In for Proxied Servers.md
 -->
-{% block title %}Server connections - SAJHA MCP Server{% endblock %}
+{% block title %}{{ _('Server connections - SAJHA MCP Server') }}{% endblock %}
 
 {% block content %}
 <div class="container-fluid acct-page">
   <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
     <div>
-      <h1 class="h3 mb-0"><i class="bi bi-person-lock me-2" aria-hidden="true"></i>Server connections</h1>
-      <small class="text-muted">Proxied MCP servers that act as you, with your own account at the vendor. Sign in or save your token once; SAJHA keeps it encrypted, sends it only to that server, and never shows it again.</small>
+      <h1 class="h3 mb-0"><i class="bi bi-person-lock me-2" aria-hidden="true"></i>{{ _('Server connections') }}</h1>
+      <small class="text-muted">{{ _('Proxied MCP servers that act as you, with your own account at the vendor. Sign in or save your token once; SAJHA keeps it encrypted, sends it only to that server, and never shows it again.') }}</small>
     </div>
     <div class="d-flex flex-wrap gap-2">
-      <a class="btn btn-sm btn-outline-secondary" href="{{ url_for('account_connections_page') }}"><i class="bi bi-link-45deg me-1" aria-hidden="true"></i>Connected accounts</a>
-      {% if is_admin %}<a class="btn btn-sm btn-outline-primary" href="{{ url_for('admin_server_connections_page') }}"><i class="bi bi-shield-lock me-1" aria-hidden="true"></i>All users</a>{% endif %}
+      <a class="btn btn-sm btn-outline-secondary" href="{{ url_for('account_connections_page') }}"><i class="bi bi-link-45deg me-1" aria-hidden="true"></i>{{ _('Connected accounts') }}</a>
+      {% if is_admin %}<a class="btn btn-sm btn-outline-primary" href="{{ url_for('admin_server_connections_page') }}"><i class="bi bi-shield-lock me-1" aria-hidden="true"></i>{{ _('All users') }}</a>{% endif %}
     </div>
   </div>
 
   {% if notice %}<div class="alert alert-success" role="status"><i class="bi bi-check-circle me-1" aria-hidden="true"></i>{{ notice }}</div>{% endif %}
   {% if error %}<div class="alert alert-danger" role="alert"><i class="bi bi-exclamation-triangle me-1" aria-hidden="true"></i>{{ error }}</div>{% endif %}
-  {% if not federation_on %}<div class="alert alert-info" role="status">Proxied MCP servers are turned off on this server (<code>federation.enabled</code>).</div>{% endif %}
+  {% if not federation_on %}<div class="alert alert-info" role="status">{% trans %}Proxied MCP servers are turned off on this server (<code>federation.enabled</code>).{% endtrans %}</div>{% endif %}
 
   {% if not is_user %}
-  <div class="alert alert-info" role="status">Server connections belong to signed-in users. This credential has none.</div>
+  <div class="alert alert-info" role="status">{{ _('Server connections belong to signed-in users. This credential has none.') }}</div>
   {% elif not rows %}
-  <div class="alert alert-info" role="status">No proxied server here signs users in with their own account.
-    {% if is_admin %}An administrator sets <code>auth: {type: token_user}</code> or <code>oauth_user</code> on a proxied server (<a href="{{ guide_url('Federation.md') }}">how</a>).{% endif %}</div>
+  <div class="alert alert-info" role="status">{{ _('No proxied server here signs users in with their own account.') }}
+    {% if is_admin %}{% trans value=guide_url('Federation.md') %}An administrator sets <code>auth: {type: token_user}</code> or <code>oauth_user</code> on a proxied server (<a href="{{ value }}">how</a>).{% endtrans %}{% endif %}</div>
   {% else %}
   <div class="acct-grid">
     {% for r in rows %}
@@ -36,29 +36,29 @@ Design: docs/architecture/Per-User Sign-In for Proxied Servers.md
         <span class="acct-icon" aria-hidden="true"><i class="bi bi-diagram-2"></i></span>
         <div class="acct-title">
           <h2 class="h6 mb-0" id="stitle-{{ r.upstream }}">{{ r.title }}</h2>
-          <small class="text-muted">{% if r.mode == 'oauth_user' %}OAuth sign-in{% else %}{{ r.label }}{% endif %}</small>
+          <small class="text-muted">{% if r.mode == 'oauth_user' %}{{ _('OAuth sign-in') }}{% else %}{{ r.label }}{% endif %}</small>
         </div>
-        {% if r.status == 'connected' %}<span class="acct-badge acct-ok">Connected</span>
-        {% elif r.status == 'needs_reconnect' %}<span class="acct-badge acct-bad">Needs re-connect</span>
-        {% else %}<span class="acct-badge">Not connected</span>{% endif %}
+        {% if r.status == 'connected' %}<span class="acct-badge acct-ok">{{ _('Connected') }}</span>
+        {% elif r.status == 'needs_reconnect' %}<span class="acct-badge acct-bad">{{ _('Needs re-connect') }}</span>
+        {% else %}<span class="acct-badge">{{ _('Not connected') }}</span>{% endif %}
       </div>
       <dl class="acct-facts">
         {% if r.mode == 'oauth_user' %}
-        <dt>Sign-in</dt><dd>{% if r.status == 'not_connected' %}not signed in{% else %}OAuth, at {{ r.vendor }}{% endif %}</dd>
-        {% if r.status != 'not_connected' %}<dt>Scopes</dt><dd>{% for s in r.scopes %}<code>{{ s }}</code>{% if not loop.last %} {% endif %}{% else %}none reported{% endfor %}{% if r.write_granted %} <span class="badge text-bg-warning">changes allowed</span>{% endif %}</dd>
-        <dt>Expires</dt><dd>{{ r.expires_at or 'does not expire' }}{% if r.refreshable %} (renewed automatically){% endif %}</dd>{% endif %}
+        <dt>{{ _('Sign-in') }}</dt><dd>{% if r.status == 'not_connected' %}{{ _('not signed in') }}{% else %}{% trans vendor=r.vendor %}OAuth, at {{ vendor }}{% endtrans %}{% endif %}</dd>
+        {% if r.status != 'not_connected' %}<dt>{{ _('Scopes') }}</dt><dd>{% for s in r.scopes %}<code>{{ s }}</code>{% if not loop.last %} {% endif %}{% else %}{{ _('none reported') }}{% endfor %}{% if r.write_granted %} <span class="badge text-bg-warning">{{ _('changes allowed') }}</span>{% endif %}</dd>
+        <dt>{{ _('Expires') }}</dt><dd>{{ r.expires_at or _('does not expire') }}{% if r.refreshable %} {{ _('(renewed automatically)') }}{% endif %}</dd>{% endif %}
         {% else %}
-        <dt>Token</dt><dd>{% if r.token_hint %}<code>{{ r.token_hint }}</code>{% else %}none saved{% endif %}</dd>
+        <dt>{{ _('Token') }}</dt><dd>{% if r.token_hint %}<code>{{ r.token_hint }}</code>{% else %}{{ _('none saved') }}{% endif %}</dd>
         {% endif %}
-        {% if r.connected_at %}<dt>Saved</dt><dd>{{ r.updated_at or r.connected_at }}</dd>{% endif %}
-        {% if r.status != 'not_connected' %}<dt>Last used</dt><dd>{{ r.last_used_at or 'not yet' }}</dd>{% endif %}
-        {% if r.status == 'needs_reconnect' %}<dt>Status</dt><dd class="text-danger">{{ (r.last_error or 'The server refused your token').rstrip('.') }}. {% if r.mode == 'oauth_user' %}Sign in again{% else %}Replace it{% endif %} to continue.</dd>{% endif %}
+        {% if r.connected_at %}<dt>{{ _('Saved') }}</dt><dd>{{ r.updated_at or r.connected_at }}</dd>{% endif %}
+        {% if r.status != 'not_connected' %}<dt>{{ _('Last used') }}</dt><dd>{{ r.last_used_at or _('not yet') }}</dd>{% endif %}
+        {% if r.status == 'needs_reconnect' %}<dt>{{ _('Status') }}</dt><dd class="text-danger">{{ (r.last_error or _('The server refused your token')).rstrip('.') }}. {% if r.mode == 'oauth_user' %}{{ _('Sign in again') }}{% else %}{{ _('Replace it') }}{% endif %} {{ _('to continue.') }}</dd>{% endif %}
       </dl>
       <div class="acct-actions">
         <a class="btn btn-sm {% if r.status != 'connected' %}btn-primary{% else %}btn-outline-secondary{% endif %}" href="{{ url_for('account_server_connect_page', upstream_id=r.upstream) }}">
-          <i class="bi bi-{% if r.mode == 'oauth_user' %}box-arrow-in-right{% else %}key{% endif %} me-1" aria-hidden="true"></i>{% if r.status == 'not_connected' %}Connect{% elif r.mode == 'oauth_user' %}Manage{% else %}Replace or remove{% endif %}</a>
+          <i class="bi bi-{% if r.mode == 'oauth_user' %}box-arrow-in-right{% else %}key{% endif %} me-1" aria-hidden="true"></i>{% if r.status == 'not_connected' %}{{ _('Connect') }}{% elif r.mode == 'oauth_user' %}{{ _('Manage') }}{% else %}{{ _('Replace or remove') }}{% endif %}</a>
       </div>
-      {% if not r.enabled %}<p class="acct-foot small text-muted mb-0">This server is disabled at the moment.</p>{% endif %}
+      {% if not r.enabled %}<p class="acct-foot small text-muted mb-0">{{ _('This server is disabled at the moment.') }}</p>{% endif %}
     </section>
     {% endfor %}
   </div>

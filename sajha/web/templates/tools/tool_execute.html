@@ -2,19 +2,19 @@
 <!--
 Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.com
 -->
-{% block title %}Execute Tool: {{ tool.name }} - SAJHA MCP Server{% endblock %}
+{% block title %}{% trans name=tool.name %}Execute Tool: {{ name }} - SAJHA MCP Server{% endtrans %}{% endblock %}
 
 {% block content %}
 <div class="container-fluid">
     <div class="row">
         <div class="col-md-6">
             <h1 class="h3 mb-4">
-                <i class="bi bi-play-circle"></i> Execute Tool: {{ tool.name }}
+                <i class="bi bi-play-circle"></i> {% trans name=tool.name %}Execute Tool: {{ name }}{% endtrans %}
             </h1>
         </div>
         <div class="col-md-6 text-end">
             <a href="{{ url_for('tools_list') }}" class="btn btn-secondary">
-                <i class="bi bi-arrow-left"></i> Back to Tools
+                <i class="bi bi-arrow-left"></i> {{ _('Back to Tools') }}
             </a>
         </div>
     </div>
@@ -22,11 +22,11 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
     <!-- Tool Information -->
     <div class="card mb-4">
         <div class="card-header card-header-info">
-            <h5 class="mb-0"><i class="bi bi-info-circle"></i> Tool Information</h5>
+            <h5 class="mb-0"><i class="bi bi-info-circle"></i> {{ _('Tool Information') }}</h5>
         </div>
         <div class="card-body">
-            <p><strong>Name:</strong> {{ tool.name }}</p>
-            <p style="white-space: pre-line;"><strong>Description:</strong> {{ tool.description }}</p>
+            <p>{% trans name=tool.name %}<strong>Name:</strong> {{ name }}{% endtrans %}</p>
+            <p style="white-space: pre-line;">{% trans description=tool.description %}<strong>Description:</strong> {{ description }}{% endtrans %}</p>
         </div>
     </div>
     
@@ -35,7 +35,7 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
         <div class="col-md-6">
             <div class="card">
                 <div class="card-header card-header-primary">
-                    <h5 class="mb-0"><i class="bi bi-input-cursor"></i> Input Parameters</h5>
+                    <h5 class="mb-0"><i class="bi bi-input-cursor"></i> {{ _('Input Parameters') }}</h5>
                 </div>
                 <div class="card-body">
                     <form id="toolExecuteForm">
@@ -43,10 +43,10 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
                         
                         <div class="d-grid gap-2 mt-3">
                             <button type="submit" class="btn btn-success">
-                                <i class="bi bi-play-fill"></i> Execute Tool
+                                <i class="bi bi-play-fill"></i> {{ _('Execute Tool') }}
                             </button>
                             <button type="button" class="btn btn-secondary" data-onclick="clearForm()">
-                                <i class="bi bi-x-circle"></i> Clear
+                                <i class="bi bi-x-circle"></i> {{ _('Clear') }}
                             </button>
                         </div>
                     </form>
@@ -56,7 +56,7 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
             <!-- Input Schema -->
             <div class="card mt-3">
                 <div class="card-header card-header-secondary">
-                    <h6 class="mb-0"><i class="bi bi-code-square"></i> Input Schema</h6>
+                    <h6 class="mb-0"><i class="bi bi-code-square"></i> {{ _('Input Schema') }}</h6>
                 </div>
                 <div class="card-body">
                     <pre class="bg-dark text-light p-2" style="border-radius: 5px;"><code>{{ tool.inputSchema|tojson(indent=2) }}</code></pre>
@@ -68,12 +68,12 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
         <div class="col-md-6">
             <div class="card">
                 <div class="card-header card-header-success">
-                    <h5 class="mb-0"><i class="bi bi-terminal"></i> Execution Results</h5>
+                    <h5 class="mb-0"><i class="bi bi-terminal"></i> {{ _('Execution Results') }}</h5>
                 </div>
                 <div class="card-body">
                     <div id="results" role="status" aria-live="polite" style="min-height: 300px;">
                         <div class="text-muted text-center">
-                            <i class="bi bi-info-circle"></i> Results will appear here after execution
+                            <i class="bi bi-info-circle"></i> {{ _('Results will appear here after execution') }}
                         </div>
                     </div>
                 </div>
@@ -82,12 +82,12 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
             <!-- Execution History -->
             <div class="card mt-3">
                 <div class="card-header card-header-secondary">
-                    <h6 class="mb-0"><i class="bi bi-clock-history"></i> Recent Executions</h6>
+                    <h6 class="mb-0"><i class="bi bi-clock-history"></i> {{ _('Recent Executions') }}</h6>
                 </div>
                 <div class="card-body">
                     <div id="executionHistory" class="list-group">
                         <div class="text-muted text-center">
-                            <small>No recent executions</small>
+                            <small>{{ _('No recent executions') }}</small>
                         </div>
                     </div>
                 </div>
@@ -131,12 +131,12 @@ function generateSummary(result) {
             if (parts.length > 0) return parts.join(' ');
         }
         // Count records
-        if (Array.isArray(data)) return data.length + ' records returned';
-        if (data.data && Array.isArray(data.data)) return data.data.length + ' records returned';
+        if (Array.isArray(data)) return _t('%(n)s records returned', {n: data.length});
+        if (data.data && Array.isArray(data.data)) return _t('%(n)s records returned', {n: data.data.length});
         // Count keys
         var keys = Object.keys(data);
         if (keys.length <= 5) return keys.map(function(k) { return '<strong>' + k + ':</strong> ' + String(data[k]).substring(0, 50); }).join(' · ');
-        return keys.length + ' fields returned';
+        return _t('%(n)s fields returned', {n: keys.length});
     } catch(e) { return ''; }
 }
 
@@ -182,7 +182,7 @@ function renderField(key, property, isRequired, prefix, exampleValue) {
     </label>`;
     if (property.enum) {
         inputHtml += `<select class="form-control" id="${attrId}" ${required}>`;
-        inputHtml += `<option value="">-- Select --</option>`;
+        inputHtml += `<option value="">${_t('-- Select --')}</option>`;
         property.enum.forEach(value => {
             const selected = initial === value ? 'selected' : '';
             inputHtml += `<option value="${escapeHtml(value)}" ${selected}>${escapeHtml(value)}</option>`;
@@ -191,7 +191,7 @@ function renderField(key, property, isRequired, prefix, exampleValue) {
     } else if (property.type === 'boolean') {
         inputHtml += `<div class="form-check">
             <input class="form-check-input" type="checkbox" id="${attrId}" ${initial ? 'checked' : ''}>
-            <label class="form-check-label" for="${attrId}">Enable</label>
+            <label class="form-check-label" for="${attrId}">${_t('Enable')}</label>
         </div>`;
     } else if (property.type === 'integer' || property.type === 'number') {
         inputHtml += `<input type="number" step="any" class="form-control" id="${attrId}" ${required}
@@ -223,7 +223,7 @@ function generateFormInputs() {
             container.appendChild(renderField(key, toolSchema.properties[key], isRequired, '', example[key]));
         });
     } else {
-        container.innerHTML = '<p class="text-muted">No input parameters required</p>';
+        container.innerHTML = '<p class="text-muted">' + _t('No input parameters required') + '</p>';
     }
 }
 
@@ -256,7 +256,7 @@ function collectArguments(properties, prefix) {
             try {
                 out[key] = JSON.parse(value);
             } catch (e) {
-                throw new Error(`Invalid JSON for field ${id}`);
+                throw new Error(_t('Invalid JSON for field %(id)s', {id: id}));
             }
         } else {
             out[key] = value;
@@ -279,7 +279,7 @@ document.getElementById('toolExecuteForm').addEventListener('submit', function(e
     
     // Show loading
     const resultsDiv = document.getElementById('results');
-    resultsDiv.innerHTML = '<div class="text-center"><div class="spinner-border" role="status"></div><p>Executing...</p></div>';
+    resultsDiv.innerHTML = '<div class="text-center"><div class="spinner-border" role="status"></div><p>' + _t('Executing...') + '</p></div>';
     
     // Execute tool via API
     fetch('/api/tools/execute', {
@@ -303,18 +303,18 @@ document.getElementById('toolExecuteForm').addEventListener('submit', function(e
             var summary = generateSummary(data.result);
             resultsDiv.innerHTML = `
                 <div class="alert alert-success d-flex justify-content-between align-items-center">
-                    <span><i class="bi bi-check-circle-fill me-2"></i>Execution Successful ${execTime ? '<span class="badge bg-light text-dark ms-2">' + execTime + '</span>' : ''}</span>
-                    <button class="btn btn-sm btn-outline-success" data-onclick="sajhaClick('executeBtn')"><i class="bi bi-arrow-repeat me-1"></i>Run Again</button>
+                    <span><i class="bi bi-check-circle-fill me-2"></i>${_t('Execution Successful')} ${execTime ? '<span class="badge bg-light text-dark ms-2">' + execTime + '</span>' : ''}</span>
+                    <button class="btn btn-sm btn-outline-success" data-onclick="sajhaClick('executeBtn')"><i class="bi bi-arrow-repeat me-1"></i>${_t('Run Again')}</button>
                 </div>
                 <div class="d-flex gap-3 mb-2 small text-muted">
                     <span><i class="bi bi-clock me-1"></i>${execTime || '—'}</span>
-                    <span id="cacheStatusBadge"><i class="bi bi-database me-1"></i>Fresh</span>
-                    <span id="providerStatusBadge"><i class="bi bi-cloud-check me-1 text-success"></i>Provider healthy</span>
-                    <a href="#" data-onclick="loadReplayHistory();return false"><i class="bi bi-skip-backward me-1"></i>View execution history</a>
+                    <span id="cacheStatusBadge"><i class="bi bi-database me-1"></i>${_t('Fresh')}</span>
+                    <span id="providerStatusBadge"><i class="bi bi-cloud-check me-1 text-success"></i>${_t('Provider healthy')}</span>
+                    <a href="#" data-onclick="loadReplayHistory();return false"><i class="bi bi-skip-backward me-1"></i>${_t('View execution history')}</a>
                 </div>
                 ${summary ? '<div class="card mb-3"><div class="card-body py-2"><i class="bi bi-lightbulb me-2 text-warning"></i><strong>Summary:</strong> ' + summary + '</div></div>' : ''}
                 <pre class="bg-dark text-light p-3" style="border-radius: 5px; white-space: pre-wrap; word-wrap: break-word;">${JSON.stringify(data.result, null, 2)}</pre>
-                <small class="text-muted">Executed at: ${timestamp}</small>
+                <small class="text-muted">${_t('Executed at: %(timestamp)s', {timestamp: timestamp})}</small>
             `;
             
             // Add to history
@@ -323,10 +323,10 @@ document.getElementById('toolExecuteForm').addEventListener('submit', function(e
             // Display error
             resultsDiv.innerHTML = `
                 <div class="alert alert-danger">
-                    <i class="bi bi-x-circle-fill"></i> Execution Failed
+                    <i class="bi bi-x-circle-fill"></i> ${_t('Execution Failed')}
                 </div>
                 <pre class="bg-dark text-danger p-3" style="border-radius: 5px; white-space: pre-wrap; word-wrap: break-word;">${data.error}</pre>
-                <small class="text-muted">Failed at: ${timestamp}</small>
+                <small class="text-muted">${_t('Failed at: %(timestamp)s', {timestamp: timestamp})}</small>
             `;
             
             // Add to history
@@ -336,7 +336,7 @@ document.getElementById('toolExecuteForm').addEventListener('submit', function(e
     .catch(error => {
         resultsDiv.innerHTML = `
             <div class="alert alert-danger">
-                <i class="bi bi-x-circle-fill"></i> Network Error
+                <i class="bi bi-x-circle-fill"></i> ${_t('Network Error')}
             </div>
             <pre class="bg-dark text-danger p-3" style="border-radius: 5px;">${error.message}</pre>
         `;
@@ -365,7 +365,7 @@ function addToHistory(timestamp, status, arguments) {
                 </span>
             </div>
             <small class="text-muted">
-                Args: ${JSON.stringify(item.arguments).substring(0, 50)}...
+                ${_t('Args: %(stringify)s...', {stringify: JSON.stringify(item.arguments).substring(0, 50)})}
             </small>
         </div>
     `).join('');
@@ -376,7 +376,7 @@ function clearForm() {
     document.getElementById('toolExecuteForm').reset();
     document.getElementById('results').innerHTML = `
         <div class="text-muted text-center">
-            <i class="bi bi-info-circle"></i> Results will appear here after execution
+            <i class="bi bi-info-circle"></i> ${_t('Results will appear here after execution')}
         </div>
     `;
 }
@@ -394,9 +394,9 @@ function loadReplayHistory() {
         .then(function(r) { return r.json(); })
         .then(function(d) {
             var execs = d.executions || [];
-            if (execs.length === 0) { alert('No execution history for ' + toolName); return; }
-            var html = '<div class="card mb-3"><div class="card-header"><i class="bi bi-skip-backward me-2"></i>Execution History (' + execs.length + ' runs)</div>';
-            html += '<div class="card-body p-0"><table class="table table-sm mb-0"><thead><tr><th>Time</th><th>Duration</th><th>Status</th><th>Result Preview</th></tr></thead><tbody>';
+            if (execs.length === 0) { alert(_t('No execution history for ') + toolName); return; }
+            var html = '<div class="card mb-3"><div class="card-header"><i class="bi bi-skip-backward me-2"></i>' + _t('Execution History (') + '' + execs.length + ' ' + _t('runs)') + '</div>';
+            html += '<div class="card-body p-0"><table class="table table-sm mb-0"><thead><tr><th>' + _t('Time') + '</th><th>' + _t('Duration') + '</th><th>' + _t('Status') + '</th><th>' + _t('Result Preview') + '</th></tr></thead><tbody>';
             execs.forEach(function(e) {
                 var t = new Date(e.timestamp * 1000).toLocaleTimeString();
                 var st = e.success ? '<span class="badge bg-success">OK</span>' : '<span class="badge bg-danger">FAIL</span>';

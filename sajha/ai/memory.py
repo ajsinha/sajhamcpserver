@@ -436,6 +436,16 @@ def _remote_safe(answer: str, steps) -> str:
         return answer
 
 
+def _steps_of_tools(tools) -> list:
+    """The remote tools (SAJHA Net proxies) among ``tools`` as answer steps, for :func:`_remote_safe`."""
+    try:
+        from sajha.net.integration.residency import steps_of_tools
+        return steps_of_tools(tools)
+    except Exception as e:
+        logger.debug(f"conversation memory: remote tools of a turn: {e}")
+        return []
+
+
 def _clip(text: str, n: int) -> str:
     text = text or ""
     return text if n <= 0 or len(text) <= n else text[: n - 1] + "…"
@@ -557,6 +567,8 @@ class ConversationMemory:
             stopped_by = result.stopped_by if stopped_by is None else stopped_by
             confidence = result.confidence if confidence is None else confidence
             steps = getattr(result, "steps", None) if steps is None else steps
+        if not steps and tools:
+            steps = _steps_of_tools(tools)                   # a tool that names what it used, without its steps
         if steps:
             answer = _remote_safe(answer or "", steps)       # ``steps``: what the answer rests on (AskStep-like)
         expires = None

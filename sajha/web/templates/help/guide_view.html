@@ -8,9 +8,9 @@
 
 {% block content %}
 <div class="container-fluid">
-    <nav class="help-crumbs" aria-label="Breadcrumb">
-        <a href="/help"><i class="bi bi-life-preserver me-1" aria-hidden="true"></i>Help</a><i class="bi bi-chevron-right" aria-hidden="true"></i>
-        <a href="/help/guides">Guides</a><i class="bi bi-chevron-right" aria-hidden="true"></i>
+    <nav class="help-crumbs" aria-label="{{ _('Breadcrumb') }}">
+        <a href="/help"><i class="bi bi-life-preserver me-1" aria-hidden="true"></i>{{ _('Help') }}</a><i class="bi bi-chevron-right" aria-hidden="true"></i>
+        <a href="/help/guides">{{ _('Guides') }}</a><i class="bi bi-chevron-right" aria-hidden="true"></i>
         {% if help_related and help_related.cid %}<a href="/help/c/{{ help_related.cid }}">{{ help_related.category }}</a>{% else %}<span>{{ folder_label }}</span>{% endif %}<i class="bi bi-chevron-right" aria-hidden="true"></i>
         <span>{{ title }}</span>
     </nav>
@@ -26,8 +26,8 @@
         {% if toc %}
         {# Open on wide screens; on phones a closed "Contents" disclosure above the guide. #}
         <details class="guide-toc" id="guide-toc" open>
-            <summary class="head">Contents</summary>
-            <nav aria-label="Contents">{{ toc_list(toc) }}</nav>
+            <summary class="head">{{ _('Contents') }}</summary>
+            <nav aria-label="{{ _('Contents') }}">{{ toc_list(toc) }}</nav>
         </details>
         <script nonce="{{ csp_nonce() }}">
             (function () {

@@ -62,6 +62,11 @@ class ModernToolContext:
         self.state: Dict[str, Any] = dict(state or {})
         self.state_verified = state_verified    # the retry carried a valid requestState
         self.tool_name: Optional[str] = None    # the tools/call target (LLM-tool sampling asks only for it)
+        # set when the tool runs as the body of a task (sajha.core.mcp_tasks): a tool that hands the work to
+        # another server's task (SAJHA Net host-side tasks) records it in ``remote_task``, and the task then
+        # follows that remote task instead of finishing with the tool's return value
+        self.task_id: Optional[str] = None
+        self.remote_task: Optional[Dict[str, Any]] = None
         self._cancelled = threading.Event()
 
     # -- binding ----------------------------------------------------

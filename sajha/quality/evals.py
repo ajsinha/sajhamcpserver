@@ -6,7 +6,8 @@ that should be called, checks on the answer, and limits (steps, tokens, cost, la
 runner asks every question through ``IntelligenceService.ask`` once per (model, planner) and
 scores tool selection, answer checks and limits. A set with ``tool: <name>`` evaluates that LLM
 tool instead (sajha/ai/llm_tools): each question's ``arguments`` (default ``{question: ...}``)
-are its call, and the checks apply to its answer, text or label. Runs are saved in ``quality_runs`` and two
+are its call, and the checks apply to its answer, text or label. Answer checks are lexical, plus an
+optional model-graded ``graded`` check (sajha/quality/judge.py, off unless quality.evals.graded_checks). Runs are saved in ``quality_runs`` and two
 runs can be compared. Works offline on the mock provider. Docs: docs/architecture/Tool Quality.md §5.
 
 Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.com
@@ -25,7 +26,7 @@ from typing import Any, Callable, Dict, List, Optional
 
 logger = logging.getLogger(__name__)
 
-ANSWER_CHECKS = ('contains', 'not_contains', 'regex', 'number', 'equals')
+ANSWER_CHECKS = ('contains', 'not_contains', 'regex', 'number', 'equals', 'graded')
 _NUM = re.compile(r'-?\d[\d,]*(?:\.\d+)?')
 
 
@@ -77,9 +78,17 @@ def _num(v: Any, what: str, cast=float):
 def _validate_check(c: Any, where: str) -> Dict[str, Any]:
     if not isinstance(c, dict) or not (set(c) & set(ANSWER_CHECKS)):
         raise EvalError(f'{where}: an answer check needs one of {", ".join(ANSWER_CHECKS)}')
-    unknown = set(c) - set(ANSWER_CHECKS) - {'tolerance', 'flags'}
+    unknown = set(c) - set(ANSWER_CHECKS) - {'tolerance', 'flags', 'model', 'min_score'}
     if unknown:
         raise EvalError(f'{where}: unknown keys {sorted(unknown)}')
+    if ({'model', 'min_score'} & set(c)) and 'graded' not in c:
+        raise EvalError(f'{where}: model and min_score belong to a graded check')
+    if 'graded' in c:
+        from sajha.quality import judge
+        try:
+            judge.validate(c, where)
+        except ValueError as e:
+            raise EvalError(str(e))
     if 'regex' in c:
         try:
             re.compile(str(c['regex']))
@@ -169,8 +178,9 @@ def load_sets(directory: Optional[str] = None) -> Dict[str, EvalSet]:
 
 # ── scoring ─────────────────────────────────────────────────────────
 
-def check_answer(check: Dict[str, Any], answer: str) -> Optional[str]:
-    """None when the check passes, else why not."""
+def check_answer(check: Dict[str, Any], answer: str, question: str = '', ctx: Any = None) -> Optional[str]:
+    """None when the check passes, else why not. A ``graded`` check asks the grader model
+    (sajha/quality/judge.py) after the lexical keys of the same check pass."""
     text = answer or ''
     low = text.lower()
     if 'contains' in check and str(check['contains']).lower() not in low:
@@ -194,6 +204,9 @@ def check_answer(check: Dict[str, Any], answer: str) -> Optional[str]:
                 pass
         if not any(abs(n - target) <= tol for n in nums):
             return f'no number in the answer is {target:g}' + (f' ± {tol:g}' if tol else '')
+    if 'graded' in check:
+        from sajha.quality import judge
+        return judge.check(check, question, text, ctx)
     return None
 
 
@@ -211,7 +224,11 @@ def score(q: EvalQuestion, result: Any) -> Dict[str, Any]:
     expected_hit = [c for c in called_set if _matches(c, q.expect_tools)]
     recall = (len(q.expect_tools) - len(missing)) / len(q.expect_tools) if q.expect_tools else 1.0
     precision = (len(expected_hit) / len(called_set)) if called_set else (1.0 if not q.expect_tools else 0.0)
-    answer_fail = [m for m in (check_answer(c, result.answer) for c in q.answer) if m]
+    from sajha.quality import judge
+    graded_on = judge.enabled()            # graded checks are skipped (not failed) while off
+    skipped = [str(c['graded']) for c in q.answer if 'graded' in c and not graded_on]
+    answer_fail = [m for m in (check_answer(c, result.answer, q.question) for c in q.answer
+                               if graded_on or 'graded' not in c) if m]
     usage = result.usage
     tokens = int(getattr(usage, 'total_tokens', 0) or 0)
     cost = float(getattr(usage, 'cost_usd', 0.0) or 0.0)
@@ -234,7 +251,9 @@ def score(q: EvalQuestion, result: Any) -> Dict[str, Any]:
             'tool_precision': round(precision, 4), 'steps': len(called), 'tokens': tokens, 'cost_usd': round(cost, 6),
             'latency_ms': int(result.duration_ms or 0), 'stopped_by': result.stopped_by,
             'answer': (result.answer or '')[:2000], 'error': result.error or '', 'reasons': reasons,
-            'models': list(result.models or []), 'planner': result.planner or ''}
+            'skipped_checks': skipped,
+            'models': list(result.models or []), 'planner': result.planner or '',
+            'planner_choice': getattr(result, 'planner_choice', None)}
 
 
 def _p95(values: List[float]) -> float:
@@ -408,6 +427,8 @@ def render_text(run: Dict[str, Any]) -> str:
                      f'steps={q["steps"]} tokens={q["tokens"]} {q["latency_ms"]} ms')
         for r in q['reasons']:
             lines.append(f'       {r}')
+        if q.get('skipped_checks'):
+            lines.append(f'       skipped (graded checks are off): {len(q["skipped_checks"])} graded check(s)')
     lines.append(f'  pass {s["passed"]}/{s["questions"]} ({s["pass_rate"]:.0%}) · tool selection '
                  f'{s["tool_selection_accuracy"]:.0%} · answers {s["answer_accuracy"]:.0%} · mean steps {s["mean_steps"]} · '
                  f'tokens {s["total_tokens"]} · cost ${s["total_cost_usd"]:.4f} · p95 {s["p95_latency_ms"]:.0f} ms')

@@ -94,3 +94,6 @@ deployment/local-lab/run/
 
 # ── The local sanctions index: official lists downloaded by the refresh (sanctions.data_dir) ──
 data/sanctions/
+
+# ── Planner routing: learned proposals, approved versions, the active pointer (ai.planners.learning.dir) ──
+data/planner_routing/

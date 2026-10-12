@@ -1,0 +1,125 @@
+{% extends "common/base.html" %}
+{# Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.com #}
+{% set sn_here = '/admin/sajhanet/activity' %}
+{% set net = view.net %}
+{% block title %}{{ _('Live activity - SAJHA Net - Admin - SAJHA MCP Server') }}{% endblock %}
+{% block extra_css %}{% include "admin/_sajhanet_mgmt_css.html" %}
+<style>
+.la-sky{width:100%;max-width:560px;display:block;margin:0 auto}
+.la-node{fill:var(--sajha-slate)}.la-node.la-me{fill:var(--sajha-crimson)}
+.la-label{font-size:12px;fill:var(--t-text)}
+.la-path{stroke:var(--sajha-ok);stroke-width:3;fill:none;opacity:1;transition:opacity 2.5s ease-out}
+.la-path.la-bad{stroke:var(--sajha-bad)}
+.la-path.la-fade{opacity:0}
+.la-why{font-size:12px;fill:var(--sajha-bad);font-weight:700}
+@media (prefers-reduced-motion:reduce){.la-path{transition:none}}
+</style>{% endblock %}
+{% block content %}
+<div class="container-fluid" data-sn-csrf="{{ csrf }}">
+  <div class="mb-3">
+    <h1 class="h3 mb-0"><i class="bi bi-broadcast me-2" aria-hidden="true"></i>{{ _('Live activity') }}</h1>
+    <small class="text-muted">{{ _('Cross-instance calls as they reach this server\'s audit chain: calls sent from here and calls served here, refusals with their reason') }}</small>
+  </div>
+  {% include "admin/_sajhanet_subnav.html" %}
+  {% include "admin/_sajhanet_netsel.html" %}
+  {% if trace %}
+  <section class="sn-box" aria-labelledby="h-trace">
+    <h2 id="h-trace">{% trans trace_id=trace.trace_id %}One call: trace <code>{{ trace_id }}</code>{% endtrans %}</h2>
+    <div class="sn-body">
+      <ul class="list-unstyled mb-2">{% for r in trace.records %}
+        <li class="mb-1"><code>{{ r.event }}</code> · {{ r.ts }} · {{ (r.details or {}).get('outcome') or r.outcome or '' }}
+          <span class="sn-meta">{{ (r.details or {}).get('host') or (r.details or {}).get('home') or (r.details or {}).get('peer') or '' }}</span></li>
+      {% else %}<li class="sn-meta">{{ _('This server holds no record of that trace among its newest audit records.') }}</li>{% endfor %}</ul>
+      {% for o in trace.others %}<p class="mb-1">{% trans instance=o.instance %}The other side's records are on {{ instance }}'s console:{% endtrans %} <a href="{{ o.url }}" rel="noopener">{{ o.url }}</a></p>{% endfor %}
+    </div>
+  </section>
+  {% endif %}
+  {% if net %}
+  <div id="la" data-net="{{ net }}" data-me="{{ view.instance }}" data-members='{{ view.members|tojson }}' data-newest="{{ view.newest or '' }}">
+    <form class="row g-2 align-items-end mb-2" id="la-filter" aria-label="{{ _('Filter calls') }}">
+      <div class="col-6 col-md-2"><label class="form-label small" for="la-i">{{ _('Instance') }}</label>
+        <select class="form-select form-select-sm" id="la-i" name="instance"><option value="">{{ _('any') }}</option>{% for m in view.members %}<option>{{ m }}</option>{% endfor %}</select></div>
+      <div class="col-6 col-md-2"><label class="form-label small" for="la-u">{{ _('User') }}</label><input class="form-control form-control-sm" id="la-u" name="user" autocomplete="off"></div>
+      <div class="col-6 col-md-2"><label class="form-label small" for="la-t">{{ _('Tool') }}</label><input class="form-control form-control-sm" id="la-t" name="tool" autocomplete="off"></div>
+      <div class="col-6 col-md-2"><label class="form-label small" for="la-o">{{ _('Outcome') }}</label>
+        <select class="form-select form-select-sm" id="la-o" name="outcome"><option value="">{{ _('any') }}</option><option value="ok">{{ _('answered') }}</option><option value="refused">{{ _('refused or failed') }}</option></select></div>
+      <div class="col-auto"><button class="btn btn-sm btn-primary" type="submit">{{ _('Apply') }}</button></div>
+      <div class="col-auto"><button class="btn btn-sm btn-outline-secondary" type="button" id="la-pause" aria-pressed="false">{{ _('Pause live view') }}</button></div>
+    </form>
+    <svg class="la-sky" id="la-sky" viewBox="0 0 560 300" role="img" aria-labelledby="la-sky-t"><title id="la-sky-t">{{ _('Calls between instances as they arrive; the table below lists the same calls') }}</title></svg>
+    <p class="sn-meta" role="status" aria-live="polite" id="la-state"></p>
+    <div class="table-responsive"><table class="sn-table">
+      <thead><tr><th scope="col">{{ _('When') }}</th><th scope="col">{{ _('From → to') }}</th><th scope="col">{{ _('Tool') }}</th><th scope="col">{{ _('Outcome') }}</th><th scope="col" class="opt">{{ _('User') }}</th><th scope="col" class="opt">{{ _('Trace') }}</th></tr></thead>
+      <tbody id="la-rows">
+      {% for r in view.calls %}
+        <tr><td>{{ r.at }}</td><td><code>{{ r['from'] }}</code> → <code>{{ r.to }}</code></td><td><code>{{ r.tool }}</code>{% if r.attempt and r.attempt > 1 %} <span class="sn-meta">{% trans n=r.attempt %}attempt {{ n }}{% endtrans %}</span>{% endif %}</td>
+          <td><span class="st st-{{ 'ok' if r.ok else 'refused' }}">{{ r.outcome or _('answered') }}</span></td><td class="opt">{{ r.user }}</td>
+          <td class="opt">{% if r.trace_id %}<a href="/admin/sajhanet/activity?net={{ net|urlencode }}&amp;trace={{ r.trace_id|urlencode }}">{{ r.trace_id[:12] }}</a>{% endif %}</td></tr>
+      {% else %}<tr class="la-empty"><td colspan="6" class="sn-meta">{{ _('No cross-instance calls recorded yet.') }}</td></tr>{% endfor %}
+      </tbody></table></div>
+  </div>
+  {% endif %}
+</div>
+{% if net %}
+<script nonce="{{ csp_nonce() }}">
+(function () {
+  var box = document.getElementById('la'); if (!box) return;
+  var NS = 'http://www.w3.org/2000/svg', sky = document.getElementById('la-sky'), rows = document.getElementById('la-rows');
+  var me = box.dataset.me, members = JSON.parse(box.dataset.members || '[]'), newest = box.dataset.newest || '';
+  var paused = false, pos = {}, f = document.getElementById('la-filter'), state = document.getElementById('la-state');
+  function el(n, a, p) { var e = document.createElementNS(NS, n); for (var k in a) e.setAttribute(k, a[k]); if (p) p.appendChild(e); return e; }
+  function esc(t) { var d = document.createElement('div'); d.textContent = t == null ? '' : String(t); return d.innerHTML; }
+  function draw() {
+    var all = [me].concat(members), cx = 280, cy = 150;
+    all.forEach(function (n, i) {
+      var p = i === 0 ? {x: cx, y: cy} : {x: cx + 200 * Math.cos(-Math.PI / 2 + 2 * Math.PI * (i - 1) / Math.max(1, all.length - 1)),
+                                           y: cy + 115 * Math.sin(-Math.PI / 2 + 2 * Math.PI * (i - 1) / Math.max(1, all.length - 1))};
+      pos[n] = p;
+      el('circle', {cx: p.x, cy: p.y, r: i === 0 ? 11 : 8, 'class': 'la-node' + (i === 0 ? ' la-me' : '')}, sky);
+      var t = el('text', {x: p.x, y: p.y + 24, 'text-anchor': 'middle', 'class': 'la-label'}, sky); t.textContent = n;
+    });
+  }
+  function flash(c) {
+    var a = pos[c.from], b = pos[c.to]; if (!a || !b) return;
+    var line = el('path', {d: 'M' + a.x + ',' + a.y + ' L' + b.x + ',' + b.y, 'class': 'la-path' + (c.ok ? '' : ' la-bad')}, sky);
+    var why = null;
+    if (!c.ok) { why = el('text', {x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 - 6, 'text-anchor': 'middle', 'class': 'la-why'}, sky); why.textContent = c.outcome; }
+    requestAnimationFrame(function () { setTimeout(function () { line.classList.add('la-fade'); }, 50); });
+    setTimeout(function () { line.remove(); if (why) why.remove(); }, 3000);
+  }
+  function row(c) {
+    var tr = document.createElement('tr');
+    tr.innerHTML = '<td>' + esc(c.at) + '</td><td><code>' + esc(c.from) + '</code> → <code>' + esc(c.to) + '</code></td><td><code>' + esc(c.tool) +
+      '</code></td><td><span class="st st-' + (c.ok ? 'ok' : 'refused') + '">' + esc(c.outcome || _t('answered')) + '</span></td><td class="opt">' +
+      esc(c.user) + '</td><td class="opt">' + (c.trace_id ? '<a href="/admin/sajhanet/activity?net=' + encodeURIComponent(box.dataset.net) +
+      '&trace=' + encodeURIComponent(c.trace_id) + '">' + esc(c.trace_id.slice(0, 12)) + '</a>' : '') + '</td>';
+    return tr;
+  }
+  function params(extra) {
+    var p = new URLSearchParams(new FormData(f)); p.set('net', box.dataset.net);
+    for (var k in extra) p.set(k, extra[k]); return p.toString();
+  }
+  function poll(reset) {
+    if ((paused || document.hidden) && !reset) return;
+    fetch('/api/sajhanet/activity?' + params(reset ? {} : {since: newest}), {credentials: 'same-origin'})
+      .then(function (r) { return r.json(); }).then(function (d) {
+        var calls = d.calls || [];
+        if (reset) rows.innerHTML = '';
+        var empty = rows.querySelector('.la-empty'); if (calls.length && empty) empty.remove();
+        calls.slice().reverse().forEach(function (c) { rows.insertBefore(row(c), rows.firstChild); if (!reset) flash(c); });
+        while (rows.children.length > 200) rows.removeChild(rows.lastChild);
+        if (d.newest) newest = d.newest;
+        state.textContent = _t('Updated %(at)s; %(n)s new.', {at: new Date().toLocaleTimeString(), n: calls.length});
+      }).catch(function () { state.textContent = _t('The activity could not be read; retrying.'); });
+  }
+  draw();
+  f.addEventListener('submit', function (e) { e.preventDefault(); poll(true); });
+  document.getElementById('la-pause').addEventListener('click', function () {
+    paused = !paused; this.setAttribute('aria-pressed', String(paused));
+    this.textContent = paused ? _t('Resume live view') : _t('Pause live view');
+  });
+  setInterval(poll, 5000);
+})();
+</script>
+{% endif %}
+{% endblock %}

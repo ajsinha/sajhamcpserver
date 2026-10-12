@@ -292,6 +292,10 @@ async def _serve_net(request: Request, raw: bytes, svc=None) -> Response:
     svc = svc if svc is not None else get_service()
     if svc is None or not svc.participant.enabled:
         return Response(status_code=404)
+    why = svc.mtls_problem(request.url.path, dict(request.headers)) if hasattr(svc, 'mtls_problem') else None
+    if why:                                  # sajhanet.mtls: require (sajha/net/integration/mtls.py)
+        from sajha.net.integration.mtls import refusal_response
+        return refusal_response(why)
     proto = request.headers.get('x-forwarded-proto', '').split(',')[0].strip().lower()
     secure = request.url.scheme == 'https' or proto == 'https'
     source = request.client.host if request.client else ''

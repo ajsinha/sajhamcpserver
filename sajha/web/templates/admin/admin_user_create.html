@@ -2,21 +2,21 @@
 <!--
 Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.com
 -->
-{% block title %}Create New User - SAJHA MCP Server{% endblock %}
+{% block title %}{{ _('Create New User - SAJHA MCP Server') }}{% endblock %}
 
 {% block content %}
 <div class="container-fluid">
     <!-- Breadcrumb -->
-    <nav aria-label="breadcrumb" class="mb-3">
+    <nav aria-label="{{ _('breadcrumb') }}" class="mb-3">
         <ol class="breadcrumb">
-            <li class="breadcrumb-item"><a href="{{ url_for('dashboard') }}">Dashboard</a></li>
-            <li class="breadcrumb-item"><a href="{{ url_for('admin_users') }}">User Management</a></li>
-            <li class="breadcrumb-item active">Create New User</li>
+            <li class="breadcrumb-item"><a href="{{ url_for('dashboard') }}">{{ _('Dashboard') }}</a></li>
+            <li class="breadcrumb-item"><a href="{{ url_for('admin_users') }}">{{ _('User Management') }}</a></li>
+            <li class="breadcrumb-item active">{{ _('Create New User') }}</li>
         </ol>
     </nav>
 
     <h1 class="h3 mb-4">
-        <i class="bi bi-person-plus-fill"></i> Create New User
+        <i class="bi bi-person-plus-fill"></i> {{ _('Create New User') }}
     </h1>
 
     <div class="row">
@@ -24,111 +24,111 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
         <div class="col-lg-8">
             <div class="card">
                 <div class="card-header card-header-primary">
-                    <h5 class="mb-0"><i class="bi bi-person-plus me-2"></i>User Details</h5>
+                    <h5 class="mb-0"><i class="bi bi-person-plus me-2"></i>{{ _('User Details') }}</h5>
                 </div>
                 <div class="card-body">
                     <form id="createUserForm">
                         <!-- Basic Information -->
-                        <h6 class="text-muted mb-3">Basic Information</h6>
+                        <h6 class="text-muted mb-3">{{ _('Basic Information') }}</h6>
                         
                         <div class="row mb-3">
                             <div class="col-md-6">
-                                <label for="userId" class="form-label">User ID <span class="text-danger">*</span></label>
+                                <label for="userId" class="form-label">{{ _('User ID') }} <span class="text-danger">*</span></label>
                                 <input type="text" class="form-control" id="userId" name="user_id" required
                                        pattern="[a-zA-Z0-9_-]+" 
                                        placeholder="e.g., john_doe">
-                                <div class="form-text">Unique identifier for login. Use only letters, numbers, underscores, and hyphens.</div>
+                                <div class="form-text">{{ _('Unique identifier for login. Use only letters, numbers, underscores, and hyphens.') }}</div>
                             </div>
                             <div class="col-md-6">
-                                <label for="userName" class="form-label">Display Name <span class="text-danger">*</span></label>
+                                <label for="userName" class="form-label">{{ _('Display Name') }} <span class="text-danger">*</span></label>
                                 <input type="text" class="form-control" id="userName" name="user_name" required
-                                       placeholder="e.g., John Doe">
-                                <div class="form-text">Full name displayed in the interface.</div>
+                                       placeholder="{{ _('e.g., John Doe') }}">
+                                <div class="form-text">{{ _('Full name displayed in the interface.') }}</div>
                             </div>
                         </div>
 
                         <div class="row mb-3">
                             <div class="col-md-6">
-                                <label for="userEmail" class="form-label">Email Address</label>
+                                <label for="userEmail" class="form-label">{{ _('Email Address') }}</label>
                                 <input type="email" class="form-control" id="userEmail" name="email"
                                        placeholder="e.g., john.doe@example.com">
-                                <div class="form-text">Optional. Used for notifications and password recovery.</div>
+                                <div class="form-text">{{ _('Optional. Used for notifications and password recovery.') }}</div>
                             </div>
                             <div class="col-md-6">
-                                <label for="userPassword" class="form-label">Password <span class="text-danger">*</span></label>
+                                <label for="userPassword" class="form-label">{{ _('Password') }} <span class="text-danger">*</span></label>
                                 <div class="input-group">
                                     <input type="password" class="form-control" id="userPassword" name="password" required
-                                           minlength="6" placeholder="Minimum 6 characters">
+                                           minlength="6" placeholder="{{ _('Minimum 6 characters') }}">
                                     <button class="btn btn-outline-secondary" type="button" data-onclick="togglePassword()">
                                         <i class="bi bi-eye" id="passwordToggleIcon"></i>
                                     </button>
                                 </div>
-                                <div class="form-text">Minimum 6 characters. Stored as a bcrypt hash, never in plain text.</div>
+                                <div class="form-text">{{ _('Minimum 6 characters. Stored as a bcrypt hash, never in plain text.') }}</div>
                             </div>
                         </div>
 
                         <div class="mb-3">
-                            <label for="confirmPassword" class="form-label">Confirm Password <span class="text-danger">*</span></label>
+                            <label for="confirmPassword" class="form-label">{{ _('Confirm Password') }} <span class="text-danger">*</span></label>
                             <input type="password" class="form-control" id="confirmPassword" required
-                                   placeholder="Re-enter password">
+                                   placeholder="{{ _('Re-enter password') }}">
                             <div class="invalid-feedback" id="passwordMismatch" style="display: none;">
-                                Passwords do not match.
+                                {{ _('Passwords do not match.') }}
                             </div>
                         </div>
 
                         <hr class="my-4">
 
                         <!-- Role & Permissions -->
-                        <h6 class="text-muted mb-3">Role & Permissions</h6>
+                        <h6 class="text-muted mb-3">{{ _('Role & Permissions') }}</h6>
 
                         <div class="row mb-3">
                             <div class="col-md-6">
-                                <label class="form-label">User Role <span class="text-danger">*</span></label>
+                                <label class="form-label">{{ _('User Role') }} <span class="text-danger">*</span></label>
                                 <div class="form-check">
                                     <input class="form-check-input" type="radio" name="role" id="roleUser" value="user" checked>
                                     <label class="form-check-label" for="roleUser">
-                                        <i class="bi bi-person text-primary"></i> <strong>User</strong>
-                                        <small class="text-muted d-block">Standard access to tools and prompts</small>
+                                        <i class="bi bi-person text-primary"></i> {% trans %}<strong>User</strong>
+                                        <small class="text-muted d-block">Standard access to tools and prompts</small>{% endtrans %}
                                     </label>
                                 </div>
                                 <div class="form-check">
                                     <input class="form-check-input" type="radio" name="role" id="roleDeveloper" value="developer">
                                     <label class="form-check-label" for="roleDeveloper">
-                                        <i class="bi bi-code-slash text-info"></i> <strong>Developer</strong>
-                                        <small class="text-muted d-block">Can create and modify tools</small>
+                                        <i class="bi bi-code-slash text-info"></i> {% trans %}<strong>Developer</strong>
+                                        <small class="text-muted d-block">Can create and modify tools</small>{% endtrans %}
                                     </label>
                                 </div>
                                 <div class="form-check">
                                     <input class="form-check-input" type="radio" name="role" id="roleAdmin" value="admin">
                                     <label class="form-check-label" for="roleAdmin">
-                                        <i class="bi bi-shield-check text-warning"></i> <strong>Admin</strong>
-                                        <small class="text-muted d-block">Full system access including user management</small>
+                                        <i class="bi bi-shield-check text-warning"></i> {% trans %}<strong>Admin</strong>
+                                        <small class="text-muted d-block">Full system access including user management</small>{% endtrans %}
                                     </label>
                                 </div>
                                 <div class="form-check">
                                     <input class="form-check-input" type="radio" name="role" id="roleViewer" value="viewer">
                                     <label class="form-check-label" for="roleViewer">
-                                        <i class="bi bi-eye text-secondary"></i> <strong>Viewer</strong>
-                                        <small class="text-muted d-block">Read-only access to dashboards</small>
+                                        <i class="bi bi-eye text-secondary"></i> {% trans %}<strong>Viewer</strong>
+                                        <small class="text-muted d-block">Read-only access to dashboards</small>{% endtrans %}
                                     </label>
                                 </div>
                             </div>
                             <div class="col-md-6">
-                                <label class="form-label">Tool Access</label>
+                                <label class="form-label">{{ _('Tool Access') }}</label>
                                 <div class="form-check">
                                     <input class="form-check-input" type="radio" name="toolAccess" id="toolAccessAll" value="all" checked>
                                     <label class="form-check-label" for="toolAccessAll">
-                                        <strong>All Tools</strong> - Access to all available tools
+                                        {% trans %}<strong>All Tools</strong> - Access to all available tools{% endtrans %}
                                     </label>
                                 </div>
                                 <div class="form-check">
                                     <input class="form-check-input" type="radio" name="toolAccess" id="toolAccessRestricted" value="restricted">
                                     <label class="form-check-label" for="toolAccessRestricted">
-                                        <strong>Restricted</strong> - Limited tool access (configure later)
+                                        {% trans %}<strong>Restricted</strong> - Limited tool access (configure later){% endtrans %}
                                     </label>
                                 </div>
                                 <div class="form-text mt-2">
-                                    <i class="bi bi-info-circle"></i> Tool access can be fine-tuned after user creation.
+                                    <i class="bi bi-info-circle"></i> {{ _('Tool access can be fine-tuned after user creation.') }}
                                 </div>
                             </div>
                         </div>
@@ -136,13 +136,13 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
                         <hr class="my-4">
 
                         <!-- Account Status -->
-                        <h6 class="text-muted mb-3">Account Status</h6>
+                        <h6 class="text-muted mb-3">{{ _('Account Status') }}</h6>
 
                         <div class="form-check form-switch mb-3">
                             <input class="form-check-input" type="checkbox" id="userEnabled" checked>
                             <label class="form-check-label" for="userEnabled">
-                                <strong>Enable Account</strong>
-                                <small class="text-muted d-block">User can log in immediately after creation</small>
+                                {% trans %}<strong>Enable Account</strong>
+                                <small class="text-muted d-block">User can log in immediately after creation</small>{% endtrans %}
                             </label>
                         </div>
 
@@ -161,14 +161,14 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
                         <!-- Form Actions -->
                         <div class="d-flex justify-content-between mt-4">
                             <a href="{{ url_for('admin_users') }}" class="btn btn-secondary">
-                                <i class="bi bi-arrow-left me-1"></i> Cancel
+                                <i class="bi bi-arrow-left me-1"></i> {{ _('Cancel') }}
                             </a>
                             <div>
                                 <button type="button" class="btn btn-outline-primary me-2" data-onclick="resetForm()">
-                                    <i class="bi bi-arrow-clockwise me-1"></i> Reset
+                                    <i class="bi bi-arrow-clockwise me-1"></i> {{ _('Reset') }}
                                 </button>
                                 <button type="submit" class="btn btn-primary">
-                                    <i class="bi bi-person-plus me-1"></i> Create User
+                                    <i class="bi bi-person-plus me-1"></i> {{ _('Create User') }}
                                 </button>
                             </div>
                         </div>
@@ -181,25 +181,25 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
         <div class="col-lg-4">
             <div class="card mb-4">
                 <div class="card-header card-header-info">
-                    <h6 class="mb-0"><i class="bi bi-info-circle me-2"></i>Quick Tips</h6>
+                    <h6 class="mb-0"><i class="bi bi-info-circle me-2"></i>{{ _('Quick Tips') }}</h6>
                 </div>
                 <div class="card-body">
                     <ul class="list-unstyled mb-0">
                         <li class="mb-2">
                             <i class="bi bi-check-circle text-success me-2"></i>
-                            <strong>User ID</strong> must be unique and cannot be changed later
+                            {% trans %}<strong>User ID</strong> must be unique and cannot be changed later{% endtrans %}
                         </li>
                         <li class="mb-2">
                             <i class="bi bi-check-circle text-success me-2"></i>
-                            <strong>Passwords</strong> are securely hashed before storage
+                            {% trans %}<strong>Passwords</strong> are securely hashed before storage{% endtrans %}
                         </li>
                         <li class="mb-2">
                             <i class="bi bi-check-circle text-success me-2"></i>
-                            <strong>Admin role</strong> grants full system access
+                            {% trans %}<strong>Admin role</strong> grants full system access{% endtrans %}
                         </li>
                         <li class="mb-2">
                             <i class="bi bi-check-circle text-success me-2"></i>
-                            <strong>Tool access</strong> can be customized per user
+                            {% trans %}<strong>Tool access</strong> can be customized per user{% endtrans %}
                         </li>
                     </ul>
                 </div>
@@ -207,21 +207,21 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
 
             <div class="card mb-4">
                 <div class="card-header card-header-warning">
-                    <h6 class="mb-0"><i class="bi bi-shield-exclamation me-2"></i>Security Notes</h6>
+                    <h6 class="mb-0"><i class="bi bi-shield-exclamation me-2"></i>{{ _('Security Notes') }}</h6>
                 </div>
                 <div class="card-body">
                     <ul class="list-unstyled mb-0 small">
                         <li class="mb-2">
-                            <i class="bi bi-dot"></i> Use strong, unique passwords
+                            <i class="bi bi-dot"></i> {{ _('Use strong, unique passwords') }}
                         </li>
                         <li class="mb-2">
-                            <i class="bi bi-dot"></i> Assign minimum required permissions
+                            <i class="bi bi-dot"></i> {{ _('Assign minimum required permissions') }}
                         </li>
                         <li class="mb-2">
-                            <i class="bi bi-dot"></i> Review user access regularly
+                            <i class="bi bi-dot"></i> {{ _('Review user access regularly') }}
                         </li>
                         <li class="mb-2">
-                            <i class="bi bi-dot"></i> Disable accounts when not in use
+                            <i class="bi bi-dot"></i> {{ _('Disable accounts when not in use') }}
                         </li>
                     </ul>
                 </div>
@@ -229,50 +229,50 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
 
             <div class="card">
                 <div class="card-header card-header-secondary">
-                    <h6 class="mb-0"><i class="bi bi-people me-2"></i>Role Comparison</h6>
+                    <h6 class="mb-0"><i class="bi bi-people me-2"></i>{{ _('Role Comparison') }}</h6>
                 </div>
                 <div class="card-body p-0">
                     <table class="table table-sm table-bordered mb-0">
                         <thead>
                             <tr>
-                                <th>Permission</th>
-                                <th class="text-center">Viewer</th>
-                                <th class="text-center">User</th>
-                                <th class="text-center">Dev</th>
-                                <th class="text-center">Admin</th>
+                                <th>{{ _('Permission') }}</th>
+                                <th class="text-center">{{ _('Viewer') }}</th>
+                                <th class="text-center">{{ _('User') }}</th>
+                                <th class="text-center">{{ _('Dev') }}</th>
+                                <th class="text-center">{{ _('Admin') }}</th>
                             </tr>
                         </thead>
                         <tbody>
                             <tr>
-                                <td>View Dashboard</td>
+                                <td>{{ _('View Dashboard') }}</td>
                                 <td class="text-center text-success">✓</td>
                                 <td class="text-center text-success">✓</td>
                                 <td class="text-center text-success">✓</td>
                                 <td class="text-center text-success">✓</td>
                             </tr>
                             <tr>
-                                <td>Execute Tools</td>
+                                <td>{{ _('Execute Tools') }}</td>
                                 <td class="text-center text-danger">✗</td>
                                 <td class="text-center text-success">✓</td>
                                 <td class="text-center text-success">✓</td>
                                 <td class="text-center text-success">✓</td>
                             </tr>
                             <tr>
-                                <td>Use Prompts</td>
+                                <td>{{ _('Use Prompts') }}</td>
                                 <td class="text-center text-danger">✗</td>
                                 <td class="text-center text-success">✓</td>
                                 <td class="text-center text-success">✓</td>
                                 <td class="text-center text-success">✓</td>
                             </tr>
                             <tr>
-                                <td>Create Tools</td>
+                                <td>{{ _('Create Tools') }}</td>
                                 <td class="text-center text-danger">✗</td>
                                 <td class="text-center text-danger">✗</td>
                                 <td class="text-center text-success">✓</td>
                                 <td class="text-center text-success">✓</td>
                             </tr>
                             <tr>
-                                <td>Manage Users</td>
+                                <td>{{ _('Manage Users') }}</td>
                                 <td class="text-center text-danger">✗</td>
                                 <td class="text-center text-danger">✗</td>
                                 <td class="text-center text-danger">✗</td>
@@ -347,7 +347,7 @@ document.getElementById('userId').addEventListener('blur', function() {
     const userId = this.value.trim().toLowerCase();
     if (existingUserIds.includes(userId)) {
         this.classList.add('is-invalid');
-        showError('User ID "' + userId + '" already exists. Please choose a different ID.');
+        showError(_t('User ID "%(id)s" already exists. Please choose a different ID.', {id: userId}));
     } else {
         this.classList.remove('is-invalid');
         hideAlerts();
@@ -386,22 +386,22 @@ document.getElementById('createUserForm').addEventListener('submit', function(e)
     
     // Validation
     if (!userId || !userName || !password) {
-        showError('User ID, Display Name, and Password are required.');
+        showError(_t('User ID, Display Name, and Password are required.'));
         return;
     }
     
     if (password !== confirmPassword) {
-        showError('Passwords do not match.');
+        showError(_t('Passwords do not match.'));
         return;
     }
     
     if (password.length < 6) {
-        showError('Password must be at least 6 characters.');
+        showError(_t('Password must be at least 6 characters.'));
         return;
     }
     
     if (existingUserIds.includes(userId.toLowerCase())) {
-        showError('User ID "' + userId + '" already exists.');
+        showError(_t('User ID "%(id)s" already exists.', {id: userId}));
         return;
     }
     
@@ -424,14 +424,14 @@ document.getElementById('createUserForm').addEventListener('submit', function(e)
         contentType: 'application/json',
         data: JSON.stringify(userData),
         success: function(response) {
-            showSuccess('User "' + userId + '" created successfully! Redirecting...');
+            showSuccess(_t('User "%(id)s" created successfully! Redirecting...', {id: userId}));
             setTimeout(function() {
                 window.location.href = '{{ url_for("admin_users") }}';
             }, 1500);
         },
         error: function(xhr) {
-            const errorMsg = xhr.responseJSON?.error || 'Unknown error occurred';
-            showError('Failed to create user: ' + errorMsg);
+            const errorMsg = xhr.responseJSON?.error || _t('Unknown error occurred');
+            showError(_t('Failed to create user: ') + errorMsg);
         }
     });
 });

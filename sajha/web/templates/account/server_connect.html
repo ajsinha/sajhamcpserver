@@ -5,77 +5,77 @@ Connect to one proxied MCP server as yourself: a personal token (auth.type token
 sign-in at the vendor (auth.type oauth_user).
 Design: docs/architecture/Per-User Sign-In for Proxied Servers.md
 -->
-{% block title %}Connect {{ server.title }} - SAJHA MCP Server{% endblock %}
+{% block title %}{% trans title=server.title %}Connect {{ title }} - SAJHA MCP Server{% endtrans %}{% endblock %}
 
 {% block content %}
 <div class="container-fluid acct-page">
-  <nav aria-label="breadcrumb"><ol class="breadcrumb small mb-2">
-    <li class="breadcrumb-item"><a href="{{ url_for('account_server_connections_page') }}">Server connections</a></li>
+  <nav aria-label="{{ _('breadcrumb') }}"><ol class="breadcrumb small mb-2">
+    <li class="breadcrumb-item"><a href="{{ url_for('account_server_connections_page') }}">{{ _('Server connections') }}</a></li>
     <li class="breadcrumb-item active" aria-current="page">{{ server.title }}</li></ol></nav>
-  <h1 class="h3 mb-1"><i class="bi bi-key me-2" aria-hidden="true"></i>Connect {{ server.title }}</h1>
+  <h1 class="h3 mb-1"><i class="bi bi-key me-2" aria-hidden="true"></i>{% trans title=server.title %}Connect {{ title }}{% endtrans %}</h1>
   {% if st.mode == 'oauth_user' %}
-  <p class="text-muted small mb-3">Tools from {{ server.title }} act as you, with your own account there. Sign in at {{ st.vendor }} once: SAJHA keeps the access it grants encrypted, sends it only to this server, and never shows it.</p>
+  <p class="text-muted small mb-3">{% trans title=server.title, vendor=st.vendor %}Tools from {{ title }} act as you, with your own account there. Sign in at {{ vendor }} once: SAJHA keeps the access it grants encrypted, sends it only to this server, and never shows it.{% endtrans %}</p>
   {% else %}
-  <p class="text-muted small mb-3">Tools from {{ server.title }} act as you, with your own account there. Save your {{ st.label or 'token' }} once: SAJHA encrypts it, sends it only to this server, and never shows it again.</p>
+  <p class="text-muted small mb-3">{% trans title=server.title, value=st.label or 'token' %}Tools from {{ title }} act as you, with your own account there. Save your {{ value }} once: SAJHA encrypts it, sends it only to this server, and never shows it again.{% endtrans %}</p>
   {% endif %}
 
   {% if error %}<div class="alert alert-danger" role="alert"><i class="bi bi-exclamation-triangle me-1" aria-hidden="true"></i>{{ error }}</div>{% endif %}
-  {% if not federation_on %}<div class="alert alert-info" role="status">Proxied MCP servers are turned off on this server (<code>federation.enabled</code>).</div>{% endif %}
+  {% if not federation_on %}<div class="alert alert-info" role="status">{% trans %}Proxied MCP servers are turned off on this server (<code>federation.enabled</code>).{% endtrans %}</div>{% endif %}
 
   {% if not is_user %}
-  <div class="alert alert-info" role="status">Server connections belong to signed-in users. This credential has none.</div>
+  <div class="alert alert-info" role="status">{{ _('Server connections belong to signed-in users. This credential has none.') }}</div>
   {% elif st.mode == 'oauth_user' %}
   <div class="row g-3">
     <div class="col-lg-7">
       <section class="acct-card{% if st.status == 'needs_reconnect' %} acct-attn{% endif %}" aria-labelledby="ctitle">
         <div class="acct-head">
           <span class="acct-icon" aria-hidden="true"><i class="bi bi-diagram-2"></i></span>
-          <div class="acct-title"><h2 class="h6 mb-0" id="ctitle">Sign in at {{ st.vendor }}</h2>
+          <div class="acct-title"><h2 class="h6 mb-0" id="ctitle">{% trans vendor=st.vendor %}Sign in at {{ vendor }}{% endtrans %}</h2>
             <small class="text-muted">{{ server.url }}</small></div>
-          {% if st.status == 'connected' %}<span class="acct-badge acct-ok">Connected</span>
-          {% elif st.status == 'needs_reconnect' %}<span class="acct-badge acct-bad">Needs re-connect</span>
-          {% else %}<span class="acct-badge">Not connected</span>{% endif %}
+          {% if st.status == 'connected' %}<span class="acct-badge acct-ok">{{ _('Connected') }}</span>
+          {% elif st.status == 'needs_reconnect' %}<span class="acct-badge acct-bad">{{ _('Needs re-connect') }}</span>
+          {% else %}<span class="acct-badge">{{ _('Not connected') }}</span>{% endif %}
         </div>
         {% if st.status != 'not_connected' %}
         <dl class="acct-facts">
-          <dt>Scopes granted</dt><dd>{% for s in st.scopes %}<code>{{ s }}</code>{% if not loop.last %} {% endif %}{% else %}none reported{% endfor %}{% if st.write_granted %} <span class="badge text-bg-warning">changes allowed</span>{% endif %}</dd>
-          <dt>Expires</dt><dd>{{ st.expires_at or 'does not expire' }}{% if st.refreshable %} (renewed automatically){% endif %}</dd>
-          <dt>Signed in</dt><dd>{{ st.updated_at or st.connected_at }}</dd>
-          <dt>Last used</dt><dd>{{ st.last_used_at or 'not yet' }}</dd>
-          {% if st.status == 'needs_reconnect' %}<dt>Status</dt><dd class="text-danger">{{ st.last_error or 'The server refused your sign-in.' }}</dd>{% endif %}
+          <dt>{{ _('Scopes granted') }}</dt><dd>{% for s in st.scopes %}<code>{{ s }}</code>{% if not loop.last %} {% endif %}{% else %}{{ _('none reported') }}{% endfor %}{% if st.write_granted %} <span class="badge text-bg-warning">{{ _('changes allowed') }}</span>{% endif %}</dd>
+          <dt>{{ _('Expires') }}</dt><dd>{{ st.expires_at or _('does not expire') }}{% if st.refreshable %} {{ _('(renewed automatically)') }}{% endif %}</dd>
+          <dt>{{ _('Signed in') }}</dt><dd>{{ st.updated_at or st.connected_at }}</dd>
+          <dt>{{ _('Last used') }}</dt><dd>{{ st.last_used_at or _('not yet') }}</dd>
+          {% if st.status == 'needs_reconnect' %}<dt>{{ _('Status') }}</dt><dd class="text-danger">{{ st.last_error or _('The server refused your sign-in.') }}</dd>{% endif %}
         </dl>
         {% endif %}
         <form method="post" action="/account/server-connections/{{ server.id }}/oauth/start" class="mt-2">
           <input type="hidden" name="csrf" value="{{ csrf }}">
-          <p class="small mb-1">SAJHA asks {{ st.vendor }} for read access{% if st.read_scopes %} (<code>{{ st.read_scopes|join(' ') }}</code>){% endif %}.</p>
+          <p class="small mb-1">{% trans vendor=st.vendor %}SAJHA asks {{ vendor }} for read access{% endtrans %}{% if st.read_scopes %} (<code>{{ st.read_scopes|join(' ') }}</code>){% endif %}.</p>
           {% if st.write_scopes %}
           <div class="form-check small mb-2">
             <input class="form-check-input" type="checkbox" id="allowWrite" name="write" value="1"{% if st.write_granted %} checked{% endif %}>
-            <label class="form-check-label" for="allowWrite">Also allow changes (<code>{{ st.write_scopes|join(' ') }}</code>): tools may then create, update or delete as you, subject to this server's approval rules</label>
+            <label class="form-check-label" for="allowWrite">{% trans write_scopes=st.write_scopes|join(' ') %}Also allow changes (<code>{{ write_scopes }}</code>): tools may then create, update or delete as you, subject to this server's approval rules{% endtrans %}</label>
           </div>
           {% endif %}
           <div class="acct-actions">
-            <button type="submit" class="btn btn-sm btn-primary"><i class="bi bi-box-arrow-in-right me-1" aria-hidden="true"></i>{% if st.status == 'not_connected' %}Connect with {{ st.vendor }}{% else %}Sign in again with {{ st.vendor }}{% endif %}</button>
+            <button type="submit" class="btn btn-sm btn-primary"><i class="bi bi-box-arrow-in-right me-1" aria-hidden="true"></i>{% if st.status == 'not_connected' %}{% trans vendor=st.vendor %}Connect with {{ vendor }}{% endtrans %}{% else %}{% trans vendor=st.vendor %}Sign in again with {{ vendor }}{% endtrans %}{% endif %}</button>
           </div>
-          <div class="form-text">You are sent to {{ st.vendor }} to approve, then back here.{% if st.help_url %} <a href="{{ st.help_url }}" target="_blank" rel="noopener">About this sign-in</a>.{% endif %}</div>
+          <div class="form-text">{% trans vendor=st.vendor %}You are sent to {{ vendor }} to approve, then back here.{% endtrans %}{% if st.help_url %} {% trans help_url=st.help_url %}<a href="{{ help_url }}" target="_blank" rel="noopener">About this sign-in</a>.{% endtrans %}{% endif %}</div>
         </form>
         {% if st.status != 'not_connected' %}
         <form method="post" action="/account/server-connections/{{ server.id }}/remove" class="mt-2"
-              data-onsubmit="return confirm('Disconnect {{ server.title }}? SAJHA revokes its access at {{ st.vendor }} where it can, and its tools stop working for you until you connect again.');">
+              data-onsubmit="return confirm({{ _('Disconnect %(title)s? SAJHA revokes its access at %(vendor)s where it can, and its tools stop working for you until you connect again.', title=server.title, vendor=st.vendor)|tojson|forceescape }});">
           <input type="hidden" name="csrf" value="{{ csrf }}">
-          <button type="submit" class="btn btn-sm btn-outline-danger"><i class="bi bi-x-circle me-1" aria-hidden="true"></i>Disconnect</button>
+          <button type="submit" class="btn btn-sm btn-outline-danger"><i class="bi bi-x-circle me-1" aria-hidden="true"></i>{{ _('Disconnect') }}</button>
         </form>
         {% endif %}
       </section>
     </div>
     <div class="col-lg-5">
       <div class="card"><div class="card-body small">
-        <h2 class="h6">What SAJHA does with it</h2>
+        <h2 class="h6">{{ _('What SAJHA does with it') }}</h2>
         <ul class="mb-0">
-          <li>Keeps the access and refresh tokens encrypted in the token vault, bound to you and to {{ server.title }}; they are issued for this server only.</li>
-          <li>Sends the access token only on your own calls to this server; never as anyone else, never to another server.</li>
-          <li>Renews it before it expires; if {{ st.vendor }} stops accepting it, marks the connection "needs re-connect".</li>
-          <li>Revokes it at {{ st.vendor }} (where offered) and forgets it when you disconnect, sign out everywhere, or your account is disabled.</li>
+          <li>{% trans title=server.title %}Keeps the access and refresh tokens encrypted in the token vault, bound to you and to {{ title }}; they are issued for this server only.{% endtrans %}</li>
+          <li>{{ _('Sends the access token only on your own calls to this server; never as anyone else, never to another server.') }}</li>
+          <li>{% trans vendor=st.vendor %}Renews it before it expires; if {{ vendor }} stops accepting it, marks the connection "needs re-connect".{% endtrans %}</li>
+          <li>{% trans vendor=st.vendor %}Revokes it at {{ vendor }} (where offered) and forgets it when you disconnect, sign out everywhere, or your account is disabled.{% endtrans %}</li>
         </ul>
       </div></div>
     </div>
@@ -88,51 +88,51 @@ Design: docs/architecture/Per-User Sign-In for Proxied Servers.md
           <span class="acct-icon" aria-hidden="true"><i class="bi bi-diagram-2"></i></span>
           <div class="acct-title"><h2 class="h6 mb-0" id="ctitle">{{ st.label }}</h2>
             <small class="text-muted">{{ server.url }}</small></div>
-          {% if st.status == 'connected' %}<span class="acct-badge acct-ok">Connected</span>
-          {% elif st.status == 'needs_reconnect' %}<span class="acct-badge acct-bad">Needs re-connect</span>
-          {% else %}<span class="acct-badge">Not connected</span>{% endif %}
+          {% if st.status == 'connected' %}<span class="acct-badge acct-ok">{{ _('Connected') }}</span>
+          {% elif st.status == 'needs_reconnect' %}<span class="acct-badge acct-bad">{{ _('Needs re-connect') }}</span>
+          {% else %}<span class="acct-badge">{{ _('Not connected') }}</span>{% endif %}
         </div>
         {% if st.status != 'not_connected' %}
         <dl class="acct-facts">
-          <dt>Saved token</dt><dd><code>{{ st.token_hint }}</code></dd>
-          <dt>Saved</dt><dd>{{ st.updated_at or st.connected_at }}</dd>
-          <dt>Last used</dt><dd>{{ st.last_used_at or 'not yet' }}</dd>
-          {% if st.status == 'needs_reconnect' %}<dt>Status</dt><dd class="text-danger">{{ st.last_error or 'The server refused your token.' }}</dd>{% endif %}
+          <dt>{{ _('Saved token') }}</dt><dd><code>{{ st.token_hint }}</code></dd>
+          <dt>{{ _('Saved') }}</dt><dd>{{ st.updated_at or st.connected_at }}</dd>
+          <dt>{{ _('Last used') }}</dt><dd>{{ st.last_used_at or _('not yet') }}</dd>
+          {% if st.status == 'needs_reconnect' %}<dt>{{ _('Status') }}</dt><dd class="text-danger">{{ st.last_error or _('The server refused your token.') }}</dd>{% endif %}
         </dl>
         {% endif %}
         <form method="post" action="/account/server-connections/{{ server.id }}/token" class="mt-2" autocomplete="off">
           <input type="hidden" name="csrf" value="{{ csrf }}">
-          <label class="form-label small" for="tokenInput">{% if st.status == 'not_connected' %}Your {{ st.label }}{% else %}Replace with a new {{ st.label }}{% endif %}</label>
+          <label class="form-label small" for="tokenInput">{% if st.status == 'not_connected' %}{% trans label=st.label %}Your {{ label }}{% endtrans %}{% else %}{% trans label=st.label %}Replace with a new {{ label }}{% endtrans %}{% endif %}</label>
           <input class="form-control form-control-sm" id="tokenInput" name="token" type="password" required autocomplete="off" spellcheck="false"
-                 placeholder="{% if st.token_prefix %}{{ st.token_prefix }}…{% else %}paste it here{% endif %}" aria-describedby="tokenHelp">
-          <div id="tokenHelp" class="form-text">Sent as the <code>{{ st.header }}</code> header on your calls to {{ server.title }} only.
-            {% if st.help_url %}<a href="{{ st.help_url }}" target="_blank" rel="noopener">Where to create one</a>.{% endif %}</div>
+                 placeholder="{% if st.token_prefix %}{{ st.token_prefix }}…{% else %}{{ _('paste it here') }}{% endif %}" aria-describedby="tokenHelp">
+          <div id="tokenHelp" class="form-text">{% trans header=st.header, title=server.title %}Sent as the <code>{{ header }}</code> header on your calls to {{ title }} only.{% endtrans %}
+            {% if st.help_url %}{% trans help_url=st.help_url %}<a href="{{ help_url }}" target="_blank" rel="noopener">Where to create one</a>.{% endtrans %}{% endif %}</div>
           <div class="form-check small mt-2">
             <input class="form-check-input" type="checkbox" id="skipTest" name="skip_test" value="1">
-            <label class="form-check-label" for="skipTest">Save without testing (normally SAJHA lists the server's tools with your token first)</label>
+            <label class="form-check-label" for="skipTest">{{ _('Save without testing (normally SAJHA lists the server\'s tools with your token first)') }}</label>
           </div>
           <div class="acct-actions mt-2">
-            <button type="submit" class="btn btn-sm btn-primary"><i class="bi bi-check2 me-1" aria-hidden="true"></i>{% if st.status == 'not_connected' %}Test and save{% else %}Test and replace{% endif %}</button>
+            <button type="submit" class="btn btn-sm btn-primary"><i class="bi bi-check2 me-1" aria-hidden="true"></i>{% if st.status == 'not_connected' %}{{ _('Test and save') }}{% else %}{{ _('Test and replace') }}{% endif %}</button>
           </div>
         </form>
         {% if st.status != 'not_connected' %}
         <form method="post" action="/account/server-connections/{{ server.id }}/remove" class="mt-2"
-              data-onsubmit="return confirm('Remove your {{ server.title }} token? Its tools stop working for you until you connect again.');">
+              data-onsubmit="return confirm({{ _('Remove your %(title)s token? Its tools stop working for you until you connect again.', title=server.title)|tojson|forceescape }});">
           <input type="hidden" name="csrf" value="{{ csrf }}">
-          <button type="submit" class="btn btn-sm btn-outline-danger"><i class="bi bi-x-circle me-1" aria-hidden="true"></i>Remove my token</button>
+          <button type="submit" class="btn btn-sm btn-outline-danger"><i class="bi bi-x-circle me-1" aria-hidden="true"></i>{{ _('Remove my token') }}</button>
         </form>
         {% endif %}
       </section>
     </div>
     <div class="col-lg-5">
       <div class="card"><div class="card-body small">
-        <h2 class="h6">What SAJHA does with it</h2>
+        <h2 class="h6">{{ _('What SAJHA does with it') }}</h2>
         <ul class="mb-0">
-          <li>Keeps it encrypted in the token vault, bound to you and to {{ server.title }}.</li>
-          <li>Sends it only on your own calls to this server; never as anyone else, never to another server.</li>
-          <li>Shows only <code>••••</code> and its last four characters, here and to administrators.</li>
-          <li>Forgets it when you remove it, sign out everywhere, or your account is disabled.</li>
-          <li>If {{ server.title }} refuses it, your connection is marked "needs re-connect" until you replace it.</li>
+          <li>{% trans title=server.title %}Keeps it encrypted in the token vault, bound to you and to {{ title }}.{% endtrans %}</li>
+          <li>{{ _('Sends it only on your own calls to this server; never as anyone else, never to another server.') }}</li>
+          <li>{% trans %}Shows only <code>••••</code> and its last four characters, here and to administrators.{% endtrans %}</li>
+          <li>{{ _('Forgets it when you remove it, sign out everywhere, or your account is disabled.') }}</li>
+          <li>{% trans title=server.title %}If {{ title }} refuses it, your connection is marked "needs re-connect" until you replace it.{% endtrans %}</li>
         </ul>
       </div></div>
     </div>

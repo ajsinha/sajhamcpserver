@@ -15,8 +15,7 @@ configuration key and its default is in the
 [Configuration Reference](../getting-started/Configuration%20Reference.md#sajha-net); every route is
 in the [API Reference](../protocol/API%20Reference.md#424-sajha-net-sajhanet_routespy); the
 definitions are in the [Glossary](../../GLOSSARY.md#12-sajha-net); the hands-on walkthrough is
-[Tutorial 28](../tutorials/TUTORIAL_28_build_a_sajha_net.md). What is not built is listed in
-[section 5.5](#55-what-is-built) and tracked in the [Roadmap](Roadmap.md) (L16, L19).
+[Tutorial 28](../tutorials/TUTORIAL_28_build_a_sajha_net.md). Section 5.5 says what is built.
 
 SAJHA Net is **off by default** (`sajhanet.enabled: false`). Off, every `/sajhanet/` path answers a
 bare `404` and a server behaves exactly as without it.
@@ -125,7 +124,7 @@ protocol itself.
 | Participant | What it is | Who enforces the host side |
 |---|---|---|
 | **SAJHA instance** (`kind: sajha`) | A SAJHA server with SAJHA Net on | Itself: export rules, access, policy, residency, audit |
-| **Agent-fronted MCP server** (`kind: agent`) | Any MCP server with the **SAJHA Net agent** beside it, or a Python server with the reference library built in (section 5.8) | The agent's export policy, with the server's own authorization behind it |
+| **Agent-fronted MCP server** (`kind: agent`) | Any MCP server with the **SAJHA Net agent** beside it, or a Python server with the reference library built in (section 5.8) | The agent: its export policy, blocks and residency rules, with the server's own authorization behind it |
 | **Sponsored MCP server** (`kind: sponsored`) | An MCP server that knows nothing about SAJHA Net, represented in the net by a SAJHA server under its own instance name (section 5.7) | The sponsor, fully: its export rules, access, policy, residency and audit |
 
 Every participant has an instance name, appears on the Instances page and in every host and tool table,
@@ -184,29 +183,16 @@ raises an error notice (`sajhanet.plugin:<source>:<name>`) and an audit record, 
 - **SAJHA's integration**, `sajha/net/integration/`, sits on top: configuration (`config.py`), the
   service, notices and metrics (`__init__.py`), catalogs and proxies (`catalogs.py`), identity and
   authorization (`authz.py`, `identity.py`, `keystore.py`), residency (`residency.py`), sponsored servers
-  (`sponsored.py`) and the console data (`console.py`, `overview.py`). The routes are
-  `sajha/routes/sajhanet_routes.py`.
+  (`sponsored.py`), the console data (`console.py`, `overview.py`, `pages.py`) and the change history
+  (`changes.py`). The routes are `sajha/routes/sajhanet_routes.py` and, for the management pages,
+  `sajha/routes/sajhanet_console_routes.py`.
 - **The agent** is `sajhanet_agent/`, built from the core and the library only
   (`tests/test_sajhanet_agent_boundary.py`).
 
 ### 5.5 What is built
 
-Everything this guide describes is built, with these exceptions (each a [Roadmap](Roadmap.md) item:
-L19 for host-side tasks, L16 for the rest):
-
-| Not built | Effect today | Protocol |
-|---|---|---|
-| Host-side tasks on forwarded calls | A task at the home wraps a forwarded call (section 9), so a remote tool can be run as a task, polled and cancelled; a task held at the host, which would survive a home restart or outlast the hop's deadline, is not built, and the `tasks` feature is not listed | §15.6 |
-| Forwarding on the 2025-11-25 era | Forwarded calls always use 2026-07-28 (every SAJHA host speaks it) | §6.4; CALL-12 |
-| The `visibility` feature | A home cannot ask a host which tools a user may call there; it shows what its own rules allow, and the host decides again on every call | §10.5; CAT-05 |
-| Mutual TLS (`sajhanet.mtls`) | A value other than `off` only logs a warning; requests are checked by their signatures | — |
-| Discovery plug-ins (Kubernetes DNS, DNS SRV, a registry) | The interface exists (`MembershipProvider.discover`); no shipped provider discovers anything | §9.7 |
-| The net view in snapshots | Snapshots record users, keys and local tools, not proxies or membership | — |
-| Console pages: instance detail tabs, a conflicts-and-reviews queue, users across the net, an access-and-blocks matrix, the key directory, snapshots, live activity, certificates and net settings as pages of their own; blast-radius counts, reasons on every action and undo | Most of their data is on the SAJHA Net admin page, the Net overview and the admin API (section 17) | — |
-| An agent that is also a home (calls other members' tools); the agent with blocks, residency, re-export, `assertion` or `token_exchange` | The agent only hosts, with the `api_key` identity | — |
-| Sponsored members with `assertion` or `token_exchange`; console pages for sponsoring | Sponsored members accept `api_key` only; sponsoring is configuration and admin API | — |
-| Memory handling for LLM tools that record their own turns; an approval flow for residency rules | Such tools record an answer without its steps; `require_approval` on a residency rule refuses | — |
-| Per-peer rate limits and breakers shared across workers; caching proxy results | Breakers and per-peer rate limits count per process (section 15); proxy results are never cached | — |
+Everything this guide describes is built: the whole protocol, SAJHA as a participant, the agent as a host
+and a home, and the console of section 17 with its management pages, blast radius, reasons and undo.
 
 The conformance ids SAJHA's own suite covers, and the runner, are in section 5.9.
 
@@ -318,7 +304,9 @@ stdio tool) and is made a member by a SAJHA server, its **sponsor** (`sajha/net/
   (`POST /api/sajhanet/sponsored/{net}/{instance}/enroll`).
 - **What it offers.** The upstream's federated tools under the server's own names (filtered by `tools`),
   with the sponsor's data classes. A forwarded call runs the sponsor's checks as for its own tools (the
-  `api_key` identity with the sponsored member as audience, blocks, export rules under the tool's local
+  sponsor's identity resolvers for the net, `api_key`, `assertion`, `token_exchange` or `none`, with the
+  sponsored member as the receiver: an assertion must name it as its audience, and a token is exchanged at
+  its own `/sajhanet/v1/token` and is valid only for it; blocks, export rules under the tool's local
   name, the mapped account's access, policy and approvals, residency on the result, audit) and then
   federation's connection to the server. A sponsored member imports nothing.
 - **Who sees it.** Other members pull its catalog and call it like any member; the sponsor's own users
@@ -330,9 +318,12 @@ stdio tool) and is made a member by a SAJHA server, its **sponsor** (`sajha/net/
 
 The **agent** (`python -m sajhanet_agent`) puts any MCP server, reached over stdio or Streamable HTTP,
 into a net as a member of kind `agent`: it holds the certificate, gossips, publishes the server's
-`tools/list` as its catalog (and follows `notifications/tools/list_changed`), verifies forwarded keys
-against the net key directory, applies a small export policy and passes allowed calls to the server. It
-only hosts: it never calls other members' tools and publishes no keys. The **reference library**
+`tools/list` as its catalog (and follows `notifications/tools/list_changed`), verifies forwarded users
+(`api_key`, `assertion`, `token_exchange`), applies its export policy, blocks and residency rules and passes
+allowed calls to the server. With users in its configuration file and a client listener it is also a
+home: it publishes its users' keys, serves MCP to its local clients with other members' tools as proxies
+under the same names as on SAJHA, forwards their calls signed, and can re-export what it imports. The
+**reference library**
 (`sajha.net.library`, `NetParticipant`) is the same participant without the MCP client, for a Python
 server that joins a net itself. Both are documented in the
 [SAJHA Net Agent](../clients/SAJHA%20Net%20Agent.md) guide.
@@ -347,11 +338,15 @@ library cases against the core with the protocol's §21 vectors, and reports eac
 Usage is in [SAJHA Net Agent](../clients/SAJHA%20Net%20Agent.md) section 9.
 
 SAJHA's own suite covers every S case under `tests/net/` (and `tests/test_sajhanet_groundwork.py` for
-CAP-01 to CAP-03) except those of section 5.5: CAT-05, CALL-12 and CALL-16 (STR-06 and STR-07, which
-need SAJHA's client transports, are covered at the top of `tests/`, named by the conformance runner). CALL-06 (every
+CAP-01 to CAP-03; STR-06 and STR-07, which need SAJHA's client transports, are covered at the top of
+`tests/`, named by the conformance runner): CAT-05 in `test_net_visibility.py` (the runner also checks it
+from outside), CALL-12 in `test_net_legacy_era.py`, and host-side tasks (§15.6) in `test_net_host_tasks.py`. CALL-06 (every
 step of the host's processing order, in order) is covered step by step across the files rather than by
 one test. The wave exit `tests/net/test_net_mixed_conformance.py` puts a SAJHA instance, a server it
 sponsors and an agent-fronted server in one net and runs the suite on all three targets and the library.
+The A cases that need the agent's insides (CALL-07, CALL-13, CALL-14, CALL-15, as host and as home) are in
+`sajhanet_agent/tests/test_home.py`, and an agent home beside a SAJHA instance in
+`tests/net/test_net_agent_home.py`.
 
 ---
 
@@ -526,7 +521,13 @@ In each net, separately, a starting server tries:
    backend, so a restart finds peers even when that backend is down. An entry is only an address: the
    peer's certificate is verified on contact, and entries older than `peer_cache.max_age_days` (7) are
    skipped.
-3. **A discovery plug-in**, when the membership provider has one (none is shipped, section 5.5).
+3. **Its discovery sources** (`discovery` in the net entry, or `sajhanet.discovery` for every net), in the
+   order listed: `dns_srv` (the SRV records of a name, by priority then weight), `kubernetes` (a headless
+   Service: its SRV records give the pods' DNS names, which the instance certificates carry; without them,
+   its addresses with a port) and `registry` (a JSON list of URLs fetched with GET). Each source's answer
+   is kept for its `ttl_seconds` (60), at most 64 addresses in all (`sajha/net/discovery.py`). A
+   discovered address is a hint like a seed: the join is an ordinary signed sync. A membership plug-in
+   may discover in its own way instead (`MembershipProvider.discover`).
 4. **Peers look for it too**: a `dead` member is probed during its retention (section 6.3).
 
 With seeds and saved peers all down (and not `founder`), the net is not joined: an error notice
@@ -555,14 +556,23 @@ MCP endpoint with net headers added.
 - **Several nets on one port.** Each request names its net in a signed `Sajha-Net-Name` header; a
   request for a net the receiver is not in gets the same bare `404` as a server with SAJHA Net off, so
   nobody learns which nets a server belongs to.
-- **Signed requests and responses, not mutual TLS.** TLS usually ends at an ingress or proxy, so a
-  client certificate would never reach SAJHA. Every request and response carries an RFC 9421 HTTP
+- **Signed requests and responses; mutual TLS on top when wanted.** TLS usually ends at an ingress or
+  proxy, so authentication does not depend on it. Every request and response carries an RFC 9421 HTTP
   Message Signature by the sender's key (Ed25519 or ECDSA P-256), over the method, path, the important
   headers, an RFC 9530 body digest, a creation time and (on requests) a nonce, plus the sender's
   certificate. The receiver checks the certificate against the net's admission mode, the signature,
   the age (`sajhanet.signature_max_age_seconds`, default 30, never more than 300) and that the nonce is
   new (seen nonces are kept in the state store for the window, so a replay to another worker fails too).
   The full order is protocol §8.7.
+- **Mutual TLS** (`sajhanet.mtls`, default `off`). `client`: this server presents its instance certificate
+  of the request's net as its TLS client certificate on every request to a member (the key is held only
+  in the TLS context). `require`: also, every net request arriving here must come with a verified TLS
+  client certificate that is the certificate the request is signed with. The TLS terminator in front of
+  SAJHA verifies the client certificate against the net's CA and passes it in the header
+  `sajhanet.mtls_client_cert_header` (default `x-ssl-client-cert`, URL-escaped PEM as nginx's
+  `$ssl_client_escaped_cert`, or base64 DER), and must strip that header from client requests. A net
+  request without it, or with another certificate, gets an unsigned `401` before the net sees it;
+  enrollment is exempt (`sajha/net/integration/mtls.py`).
 - **Not for browsers.** Net endpoints set no cookies, carry no CORS headers, take no session or API key,
   and answer a browser navigation with `404`.
 - **TLS keeps it private.** Signatures prove who sent a request; HTTPS keeps it confidential.
@@ -681,6 +691,18 @@ together, filtered by the caller's access and by import rules. Each proxy carrie
 The Tools page shows net badges (net, host, data classes) and filters for local, remote, net and
 instance; the Ask page's "Servers and tools" log names the net and host of each remote tool.
 
+**Visibility** (protocol §10.5). A host that lists `visibility` (on by default where it keeps a key
+directory: `sajhanet.visibility.enabled`) answers `POST /sajhanet/v1/catalog/visibility`: for each key id
+of the asking home's own records, the tools exported to it that the key's user, mapped as for a call
+(section 11.3), may call there (blocks, export rules, the key's tool access and the host's own access
+policy), or none with a reason (`no_account`, `blocked`, `key_unusable`; `not_home` for an id that is not
+one of the home's records). The home asks with the key id a call by the caller would carry, keeps each
+answer for `sajhanet.visibility.cache_seconds` (60) in the state store, and leaves out of `tools/list` the
+proxies of that host the caller may not call there; a plain name stays while any host in its resolution
+allows it. It is advice for display and fails open: a host that cannot be asked, a key the host does not
+know as this server's (a per-member key, the test admin key), or a caller who is not signed in hides
+nothing, and the host decides again on every call.
+
 ### 8.4 The host and tool table
 
 Every server keeps a live **host and tool table** per net: for each remote tool, its qualified name,
@@ -780,11 +802,19 @@ caller ◄── result
 The host's order is protocol §15.4, and every refusal before execution carries `executed: false`. Both
 sides' checks must pass; either can refuse. A refusal reaches the caller as an ordinary tool result
 with `isError: true`, words that say which side refused and why, and the refusal's data in
-`_meta["io.sajha/net"].refusal`. Forwarded calls use the 2026-07-28 era; the host's result is returned
-as it is.
+`_meta["io.sajha/net"].refusal`. Forwarded calls use the 2026-07-28 era. A host that does not serve it
+answers `-32022` and the home then forwards to it on 2025-11-25, on one session per net and host, opened
+with a signed `initialize` and bound by the host to this server (another member presenting it gets
+`404 session_invalid`, protocol §6.4); streaming, input requests and tasks are not used on such a hop.
+The host's result is returned as it is.
 
 - **Retries** to the same host are not made; moving to another host is the waterfall fallback below.
-- **Caching.** Proxy results are never served from the tool cache.
+- **Caching.** Proxy results are not served from the tool cache. With `sajhanet.cache.ttl_seconds` above 0
+  (default 0, off) the result of a read-only, non-destructive remote tool is kept in the state store for
+  that long, after this server's residency on arrival, and served again only to the same signed-in caller
+  with the same arguments (`_meta["io.sajha/net"].cached: true`); errors, input requests and tasks are
+  never cached. The cached result is held by this server (state store), so set it only where that is
+  acceptable for the data concerned.
 - **Destructive remote tools** still need confirmation at the home (MRTR or `confirm`), and the host may
   require its own approval (`-32011 approval_required`).
 - **Connected accounts.** A user's linked SaaS tokens never leave their home. A remote tool that needs
@@ -811,10 +841,21 @@ as it is.
   the way out (section 12). A caller that cannot answer (2025-11-25, REST, A2A) gets a tool error asking
   it to call over 2026-07-28, as for a federated tool. A re-exporting intermediary relays the question
   and the answer under a state of its own (section 14).
-- **Tasks.** A client that runs a remote tool as a task (the MCP tasks extension on 2026-07-28) gets a
-  task at the home that wraps the forwarded call: `tasks/get` polls it, and `tasks/cancel` cancels the
-  task's context, which closes the hop's stream and so cancels the tool at the host. Tasks held at the
-  host are not built (section 5.5).
+- **Tasks.** A proxy whose host lists `tasks` is offered with `execution.taskSupport: optional`. A
+  client that runs it as a task (the MCP tasks extension on 2026-07-28) gets a task at the home, and the
+  call is forwarded task-augmented (protocol §15.6): **the host holds the task**, for the user it resolved
+  and the sending server, in its task record store (shared by its workers; it survives a restart of the
+  home and, with a durable record store, of the host's other workers), and runs the tool outside the
+  hop's deadline (`sajhanet.default_timeout_seconds` bounds only the request that creates it). The home's
+  task record names the host's task: `tasks/get` at the home sends a signed `tasks/get` to the host (the
+  caller's identity again) and records what it says, the result screened and checked for residency on
+  arrival as a call's result is; `tasks/update` (answers to the host task's input requests, checked by
+  residency first) and `tasks/cancel` are relayed the same way. Such a home task is never failed as
+  orphaned, so it survives a restart of the home. Another member, or another user, asking the host about
+  the task gets `Unknown taskId`. A host that does not list `tasks` runs the call inside the home's task as
+  before: `tasks/get` polls it, and `tasks/cancel` closes the hop's stream, which cancels the tool at the
+  host, but a home restart loses it and the hop's deadline bounds it (`sajha/net/integration/tasks.py`).
+  `sajhanet.tasks.enabled` (default true, with `mcp.tasks.enabled`) turns host-side tasks off.
 
 ### 9.1 Waterfall fallback
 
@@ -951,7 +992,7 @@ version from one counter per home, and the home's signature. A deleted key stays
   certificate, so its users' keys work in every net it belongs to, and a record means nothing in another
   net.
 
-The directory is administered on the SAJHA Net admin page and with
+The directory is shown on the SAJHA Net admin page and the Key directory page, and with
 `GET /api/sajhanet/nets/{net}/keys` and `POST /api/sajhanet/nets/{net}/keys/resync`.
 
 ---
@@ -1017,7 +1058,7 @@ role, only an explicit link to a local administrator does) or `refuse`. **Net ad
 trust levels, links, role maps, name matching) changes only through an administrator signed in to this
 server; the admin API refuses a caller that arrived through the net.
 
-The SAJHA Net admin page lists the remote users seen, how each resolved (linked, name, role map, admin,
+The SAJHA Net admin page and Users across the net list the remote users seen, how each resolved (linked, name, role map, admin,
 refused) and the resolver used, and links and unlinks them
 (`GET /api/sajhanet/nets/{net}/users`, `POST|DELETE /api/sajhanet/nets/{net}/users/links`,
 `PUT /api/sajhanet/nets/{net}/role-maps/{instance}`, `PUT /api/sajhanet/nets/{net}/name-matching/{instance}`).
@@ -1042,7 +1083,7 @@ Blocks are local decisions and shared information: each server publishes its blo
 document, so any console can draw the picture, but only the server that set a block enforces it. A block
 published against this server raises an info notice (`sajhanet.blocked_by:<net>:<member>`). Removing a
 server from the whole net is not a block but a revocation (`builtin_ca`) or a removed pin (`manual`).
-Blocks are managed on the SAJHA Net admin page and with `GET|POST /api/sajhanet/nets/{net}/blocks` and
+Blocks are managed on the SAJHA Net admin page, the Access and blocks page and with `GET|POST /api/sajhanet/nets/{net}/blocks` and
 `DELETE /api/sajhanet/nets/{net}/blocks/{block_id}`, and kept in the storage backend
 (`<data_dir>/<net>/blocks.json`).
 
@@ -1070,7 +1111,12 @@ Residency decides where classified data may flow between instances, in both dire
   host's region and labels from its member record. A deny is `-32012 residency_arguments` with
   `executed: false`, worded so a planner chooses a tool where the data may go; a call by plain name then
   moves to the next host. `redact: {data_classes: [...]}` sends the call with those fields replaced by
-  `[REDACTED:<class>]` instead.
+  `[REDACTED:<class>]` instead. `effect: require_approval` asks a person: the call is refused
+  `-32011 approval_required` (side `home`, `executed: false`) with `approval_id`, a pending policy approval
+  of tool `sajhanet.residency:<qualified name>` for that caller and those arguments (the same one while it
+  waits, on the Approvals page with the policy engine's other approvals); once an administrator approves
+  it, that exact call goes ahead once. The tool stays offered. On results a `require_approval` rule
+  refuses, since the tool has run by then.
 - **Results.** The host checks the classes of the fields in its result against the home's region and
   labels. A deny is `-32012 residency_result` with `executed: true`; a redaction replaces the fields in
   `structuredContent`, in JSON text blocks (re-serialised from the redacted value, never edited as a
@@ -1097,8 +1143,10 @@ Residency decides where classified data may flow between instances, in both dire
   per excluded host. Listing and shortlisting record nothing.
 - **Memory.** Conversation memory keeps an answer that used remote results as written, with every
   figure replaced by `[remote figure]`, or as a placeholder (`sajhanet.memory.remote_results`:
-  `store`, `summary`, `none`; `sajhanet.memory.by_class` per class, the strictest wins). RAG collections
-  are built from documents only; no tool result enters them.
+  `store`, `summary`, `none`; `sajhanet.memory.by_class` per class, the strictest wins). An LLM tool that
+  records its own turns with only the names of the tools it used (no steps) is treated the same: a remote
+  tool among them counts as a remote result with that tool's result classes. RAG collections are built from
+  documents only; no tool result enters them.
 
 ---
 
@@ -1181,8 +1229,11 @@ The tests are `tests/net/test_net_reexport_identity.py` and `tests/net/test_net_
   (`sajhanet.peer.breaker_threshold` consecutive availability failures open it for
   `peer.breaker_reset_seconds`), outbound rate limit (`peer.calls_per_minute`), inbound rate limit
   (`peer.inbound_calls_per_minute`, `-32019 rate_limited` beyond) and timeout
-  (`default_timeout_seconds`). Breakers and these rate limits are **per process**: with several workers
-  each counts alone (section 5.5).
+  (`default_timeout_seconds`). With `sajhanet.peer.shared` (`auto`, the default: when the state store is
+  shared) breakers and these rate limits live in the state store (`brk:<peer>`, `rlout:<peer>`,
+  `rlin:<peer>` under `sajhanet:<net>:`), so every worker of the instance sees one breaker per peer and
+  the limits count all workers' calls (per calendar minute); with the memory state store they are per
+  process. A breaker that cannot reach the state store behaves as closed, a limit as not reached.
 - **Graceful degradation.** A server that cannot reach the net still serves all its local tools; a plain
   name moves to the next host; a qualified name to an unreachable host fails fast.
 - **Version skew.** Members advertise the protocol versions they speak; a peer below
@@ -1213,7 +1264,9 @@ Administration and membership events are audit records with resource `sajhanet.<
 `tool_quarantined`, `tool_reactivated`, `tool_name_refused`, `remote_tool_offered`, `remote_tool_changed`,
 `remote_tool_withdrawn`, `block_added`, `block_removed`,
 `user_linked`, `user_unlinked`, `role_map_set`, `name_matching_set`, `key_directory_resync`,
-`sponsored_added`, `sponsored_removed`, `sponsored_enrolled`, `plugin_failed`.
+`sponsored_added`, `sponsored_removed`, `sponsored_enrolled`, `plugin_failed`, `runtime_seed_restored`, and for
+every change made through the admin API or the console `change_recorded` (kind, target, reason) and, for an
+undo, `change_undone` (section 17.1, "Changes").
 
 **Metrics** (on `/metrics`, [Observability](Observability.md)):
 
@@ -1252,6 +1305,17 @@ chain, never by calling peers on page load (`sajha/net/integration/console.py`, 
 | **Net overview** | `/admin/sajhanet/overview?net=` | administrators | A net selector; totals (membership and gossip health, instances by state, admission mode, remote tools by state, notices, quarantined and held tools, active blocks); the **topology map**; members, gossip details, seeds and runtime seeds; this net's notices, quarantined names, description warnings and held tools (Approve); blocks set here and published by others; the admission panel; refused tool names; from the newest `net.*` audit records, recent forwarded calls (with whether each streamed and how many events), call-chain refusals and residency decisions; the router's counters. JSON: `GET /api/sajhanet/overview` |
 | **Remote tools** | `/admin/sajhanet/tools` | administrators | The host and tool table with filters by net, host, state and trust; Approve and withdraw for tools held under `review`; the contract conflicts with every offer and hash |
 | **SAJHA Net admin** | `/admin/sajhanet` | administrators | Membership, add a peer by address, runtime seeds (Remove), the admission panel, blocks, remote users, links and role maps, the key directory |
+| **Instance tabs** | `/net/instances/{net}/{instance}?tab=` | administrators, for another member | Beside Tools: **Traffic** (calls each way and their outcomes from the audit chain, latency p50), **Users** (its users seen here and how each resolved, links, role map, name matching), **Keys** (its key-directory records), **Blocks** (this server's naming it, and its naming this server), **History** (the changes that named it, with Undo); block it entirely, inbound or outbound, set its trust level, re-sync keys. JSON: `GET /api/sajhanet/nets/{net}/instances/{instance}/detail` |
+| **Conflicts and reviews** | `/admin/sajhanet/reviews?net=` | administrators | What needs a person: contract conflicts with every offer and hash (block an odd copy; this server's own copy names the export rules), tools held under `review` (Approve, Reject as an outbound tool block, Approve selected with one reason), name conflicts (try to join again), description differences, own tools refused for their published name, catalogs flagged at their last pull. JSON: `GET /api/sajhanet/reviews` |
+| **Users across the net** | `/admin/sajhanet/users?net=` | administrators | Per other instance: its users seen here, how each resolved, their last call; link, unlink, block a user, the role map, name matching on or off. JSON: `GET /api/sajhanet/nets/{net}/users/by-instance` |
+| **Access and blocks** | `/admin/sajhanet/blocks?net=` | administrators | The access matrix (callers by row, hosts by column: allowed, blocked entirely, inbound, outbound, or some tools or users; who set it), from this server's blocks and those the others publish; the blocks set here with reasons, who and expiry (Remove); add a block. JSON: `GET /api/sajhanet/nets/{net}/access-matrix` |
+| **Key directory** | `/admin/sajhanet/keys?net=&home=` | administrators | Per home: records, revoked, disabled, version, unusable mark, last received; one home's records (owner, prefix, state, expiry, tool access, last change); Re-sync now. Read-only otherwise |
+| **Snapshots** | `/admin/sajhanet/snapshots` | administrators | The retained snapshots (section 20.4) with time, size, contents, chain and signature status; compare two, download one, restore the roles, users and persistent key records one holds and the database lacks (a plan first, then the name typed and a reason) |
+| **Live activity** | `/admin/sajhanet/activity?net=&trace=` | administrators | Cross-instance calls from the audit chain as they arrive (polled every 5 seconds while visible; Pause), drawn as a line between instances (red with the reason when refused) and listed; filters by instance, user, tool and outcome; a trace id opens this server's records of that call and links to the other instance's page for its records |
+| **Certificates** | `/admin/sajhanet/certificates` | administrators | This server's certificate per net (Renew in `builtin_ca`); on the CA instance the issued certificates (Revoke, Re-issue: a token for that name), Create token, waiting tokens and the revocation list |
+| **Net settings** | `/admin/sajhanet/settings` | administrators | The nets in preference order: name, region, labels, address, admission, certificate, gossip health, configured seeds and runtime seeds (Remove; add a peer), a hint for a net still called `default`; routing (fallbacks, plain names, strategy, default trust, hops) and preference lists with entries that match nothing flagged; the user defaults; each naming its configuration key |
+| **Sponsored servers** | `/admin/sajhanet/sponsored` | administrators | The sponsored MCP servers (section 5.7) with state, error and tools; Sponsor one (net, upstream, instance name, vendor, region), Stop sponsoring, Enroll with the net's CA |
+| **Change history** | `/admin/sajhanet/changes?net=` | administrators | Every change to the net made here, newest first, with who, when, the reason and Undo where it has an inverse |
 
 - **Topology map**: plain SVG drawn by `sajha/web/static/js/sajhanet.js` from
   `GET /api/sajhanet/topology?net=`: this server in the centre, the others on a ring, each node coloured
@@ -1264,14 +1328,30 @@ chain, never by calling peers on page load (`sajha/net/integration/console.py`, 
   `builtin_ca` on the CA instance, issued certificates with **Revoke** (a reason is required), waiting
   tokens, **Create token** (shown once) and **Initialise** when there is no CA key yet.
 - **Confirmations**: every change (forget, pin, unpin, revoke, create a token, initialise the CA, remove a
-  runtime seed, approve a held tool, add or remove a block) asks first in words that name its effect.
+  runtime seed, approve a held tool, add or remove a block) asks first in words that name its effect. On the
+  management pages and instance tabs one dialog does it for every change: the effect, the **blast radius**
+  (`GET /api/sajhanet/nets/{net}/blast-radius?kind=...`: how many remote users seen here lose how many of this
+  server's tools, and how many of this server's users lose how many remote tools, counted from what this
+  server holds, never by asking peers), a required reason, and whether it can be undone.
+- **Changes**: every change made through the admin API or the console (`sajha/net/integration/changes.py`:
+  blocks, links, role maps, name matching, trust, approvals, pins, runtime seeds, sponsoring, revocations,
+  forgotten keys, enrollment tokens, renewals, key re-syncs) is kept in the net's change history
+  (`<data_dir>/<net>/changes.json` in the storage backend, the newest 500) with who, when, the reason and its
+  inverse, and audited (`sajhanet.change_recorded`). **Undo** (`POST /api/sajhanet/nets/{net}/changes/{id}/undo`,
+  a reason required) applies the inverse as a new change, itself undoable; revocations, forgotten keys,
+  tokens, renewals and re-syncs are final. The API takes an optional `reason` on every change; the console
+  always asks for one. A change from a console session carries the page's CSRF token (`X-CSRF-Token`); a
+  caller that arrived through the net is refused.
 
 ### 17.2 Where the net shows up elsewhere
 
 - **Navbar:** a server in a net shows the badge **Net · `<instance name>`** beside the SAJHA wordmark,
   with a health dot (described in words on hover) and `+N` for further nets, linking to Instances.
 - **Navigation:** a SAJHA Net menu: Instances and Your net access for every signed-in user; Net overview,
-  Remote tools and SAJHA Net admin for administrators.
+  Remote tools and SAJHA Net admin for administrators, with two more columns, Govern (Conflicts and reviews,
+  Users across the net, Access and blocks, Key directory, Change history) and Operate (Live activity,
+  Certificates, Sponsored servers, Snapshots, Net settings). The management pages link to each other in a row
+  at their top.
 - **Tools page and Ask SAJHA**: section 8.3.
 - **Problems** reach administrators as system notices (section 17.4), never as banners of SAJHA Net's
   own.
@@ -1388,7 +1468,7 @@ default keys SAJHA Net forwards are API keys whose value is kept encrypted in `a
 | Where | What |
 |---|---|
 | Local disk, `sajhanet.data_dir` (default `data/sajhanet`, git-ignored) | per net: this server's key (`instance.key`, owner-only), certificate (`instance.crt`), the CA certificate (`ca.pem`), the revocation list it starts with (`revoked.json`), the CA key on the CA instance (`ca.key`), the saved peer list (`peers.json`); sponsored members' keys under `<net>/sponsored/<name>/` |
-| The storage backend, under the same path | per net: the CA's state on the CA instance (`ca-state.json`: tokens as hashes, issued certificates, the signed revocation list), `runtime_seeds.json`, `pins.json`, `first_use.json`, `trust.json`, `blocks.json`, `users.json` (links, role maps, name-matching exceptions); and `sponsored.json` |
+| The storage backend, under the same path | per net: the CA's state on the CA instance (`ca-state.json`: tokens as hashes, issued certificates, the signed revocation list), `runtime_seeds.json`, `pins.json`, `first_use.json`, `trust.json`, `blocks.json`, `users.json` (links, role maps, name-matching exceptions), `changes.json` (the change history, section 17.1); and `sponsored.json` |
 | The state store (`state.backend`) | per net under `sajhanet:<net>:`: membership and incarnations, catalogs and the host and tool table, quarantines and conflicts documents, seen nonces, assertion `jti`s, host-scoped tokens (hashed); the gossip agent's lease `sajhanet:agent:<net>` |
 
 ### 20.3 Credential files
@@ -1402,8 +1482,12 @@ like database keys. Precedence, the test admin record and plain or hashed storag
 ### 20.4 Periodic snapshots
 
 SAJHA writes signed, chained snapshots of users, API key records and local tools with or without a net
-([Policy and Audit](Policy%20and%20Audit.md#75-snapshots-of-users-api-keys-and-tools)). They do not yet
-record the net view (proxies, membership, the key directory per home): section 5.5.
+([Policy and Audit](Policy%20and%20Audit.md#75-snapshots-of-users-api-keys-and-tools)). In a net they also
+record the net view: `net_members` (every member held, this server included, with state, kind, URL and
+features), `net_proxies` (the host and tool table: qualified name, host, host tool, version, contract hash,
+state, trust) and `net_keys` (the key directory per home: record, revoked and disabled counts and the
+highest version; never a key or a hash). `python -m sajha.snapshots diff` compares them like the other
+sections; a restore never re-creates them, since a restarted server learns the net again from its peers.
 
 ---
 

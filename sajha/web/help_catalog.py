@@ -370,7 +370,8 @@ CATALOG: List[dict] = [
                'connected_http_request.'),
             _g('Data connectors (tools)', 'Data Connectors Reference Guide.md', 'bi-database-gear',
                'Per-kind setup (PostgreSQL, MySQL, SQL Server, Oracle, Snowflake, BigQuery, Databricks, '
-               'Redshift, SQLite, DuckDB, pgvector, Qdrant, Elasticsearch) and the tools each connection gets.'),
+               'Redshift, SQLite, DuckDB, pgvector, Qdrant, Elasticsearch, Weaviate, Chroma) and the tools each '
+               'connection gets.'),
             _g('Prompts Management Guide', 'Prompts Management Guide.md', 'bi-chat-square-text',
                'Prompt configs, arguments, and the prompt pages.'),
         ],

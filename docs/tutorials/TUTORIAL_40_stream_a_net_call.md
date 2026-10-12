@@ -229,8 +229,9 @@ Remove `countdown` and `reset_counter` from `risk-eu`'s `mcp_servers.json` and r
 - Equal transcript digests in the home's and the host's audit records prove they saw the same stream
 - Input requests cross the net as `input_required` results with a host-signed state bound to the server
   and the user; the answer travels back as a new signed request
-- A task at the home can wrap a remote call (`tasks/cancel` cancels it at the host); tasks held at the
-  host are not built yet ([Roadmap](../architecture/Roadmap.md) L19)
+- Run as a task, a remote call is held by the host that runs it (a host listing `tasks`): your server's
+  task follows it with signed `tasks/get` and `tasks/cancel`, so it outlives a restart of your server and
+  the hop's deadline ([SAJHA Net](../architecture/SAJHA%20Net.md) section 9, "Tasks")
 
 ## Next
 

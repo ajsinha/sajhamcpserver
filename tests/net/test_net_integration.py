@@ -116,8 +116,15 @@ def fabric(tmp_path_factory):
                 os.environ[k] = v
 
 
+def csrf_header(cookies, user_id='admin'):
+    """The console page's CSRF token for a signed-in session (changes from a session carry it)."""
+    from types import SimpleNamespace
+    from sajha.routes.policy_routes import csrf_token
+    return {'X-CSRF-Token': csrf_token(SimpleNamespace(cookies=cookies), SimpleNamespace(user_id=user_id))}
+
+
 def _api(f, method, path, body=None):
-    return f['c'].request(method, path, json=body, cookies=f['admin'])
+    return f['c'].request(method, path, json=body, cookies=f['admin'], headers=csrf_header(f['admin']))
 
 
 def node(svc):

@@ -18,6 +18,9 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
   and one instance's tools (design §17.1), with ``/api/sajhanet/instances`` behind them; this server is
   always listed, as a net of one when SAJHA Net is off. ``/admin/sajhanet/tools``: the Remote tools page
   (host and tool table, held tools, conflicts).
+* Every change goes through ``sajha.net.integration.changes`` (an optional ``reason``, the net's change
+  history with undo, audit) and, from a console session, needs the page's CSRF token (``X-CSRF-Token``).
+  The management pages and their JSON are in ``sajhanet_console_routes.py``, included at the end.
 
 Design: docs/architecture/SAJHA Net.md; protocol: docs/protocol/SAJHA Net Protocol.md.
 """
@@ -72,6 +75,28 @@ def _off() -> JSONResponse:
     return JSONResponse({'error': 'SAJHA Net is off (sajhanet.enabled: false)'}, status_code=503)
 
 
+def _csrf(request: Request, auth: AuthContext):
+    """None when the change may go ahead; a 403 for a console session without the page's CSRF token."""
+    from sajha.routes.sajhanet_console_routes import csrf_refusal
+    return csrf_refusal(request, auth)
+
+
+async def _change(net: str, kind: str, params: Dict[str, Any], auth: AuthContext, reason: str = '',
+                  missing: str = ''):
+    """One change through the change history (reason, undo, audit; design §17). ``missing``: answer
+    ``{"removed": false}`` with 404 when there was nothing to remove (removals answer ``{"removed": true}``)."""
+    from sajha.net.integration.changes import perform
+    try:
+        r = await run_in_threadpool(perform, net, kind, params, auth.user_id, reason, auth.auth_type)
+    except Exception as e:
+        return _err(e)
+    if r is False:
+        return JSONResponse({'removed': False, 'error': missing} if missing else {'removed': False}, status_code=404)
+    if r is True:
+        return JSONResponse({'removed': True})
+    return JSONResponse(r)
+
+
 # ── the protocol endpoints ──────────────────────────────────────────
 
 @router.api_route('/sajhanet/{path:path}', methods=['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'HEAD', 'OPTIONS'],
@@ -89,6 +114,10 @@ async def serve(svc, request: Request) -> Response:
         body = await request.body()
     except ClientDisconnect:                 # the sender gave up (a probe past its ping timeout): nobody to answer
         return Response(status_code=400)
+    why = svc.mtls_problem(request.url.path, dict(request.headers)) if hasattr(svc, 'mtls_problem') else None
+    if why:                                  # sajhanet.mtls: require (sajha/net/integration/mtls.py)
+        from sajha.net.integration.mtls import refusal_response
+        return refusal_response(why)
     proto =request.headers.get('x-forwarded-proto', '').split(',')[0].strip().lower()
     secure = request.url.scheme == 'https' or proto == 'https'
     source = request.client.host if request.client else ''
@@ -104,9 +133,10 @@ async def serve(svc, request: Request) -> Response:
 async def admin_sajhanet_page(request: Request, auth: AuthContext = Depends(require_admin)):
     svc = _svc()
     status = await run_in_threadpool(svc.status) if svc is not None else {'enabled': False, 'nets': []}
+    from sajha.routes.sajhanet_console_routes import csrf_for
     return render(request, 'admin/sajhanet.html', {
         'user': {'user_id': auth.user_id, 'user_name': auth.user_name, 'roles': auth.roles},
-        'is_admin': True, 'status': status})
+        'is_admin': True, 'status': status, 'csrf': csrf_for(request, auth)})
 
 
 # ── the admin API ───────────────────────────────────────────────────
@@ -125,6 +155,9 @@ async def sajhanet_add_peer(net: str, request: Request, auth: AuthContext = Depe
     svc = _svc()
     if svc is None or not svc.shared.enabled:
         return _off()
+    bad = _csrf(request, auth)
+    if bad is not None:
+        return bad
     b = await _body(request)
     return await _call(svc.inject, net, str(b.get('address') or ''), bool(b.get('keep_as_seed')), auth.user_id)
 
@@ -134,9 +167,11 @@ async def sajhanet_remove_seed(net: str, request: Request, auth: AuthContext = D
     svc = _svc()
     if svc is None or not svc.shared.enabled:
         return _off()
+    bad = _csrf(request, auth)
+    if bad is not None:
+        return bad
     b = await _body(request)
-    ok = await run_in_threadpool(svc.remove_runtime_seed, net, str(b.get('url') or ''), auth.user_id)
-    return JSONResponse({'removed': ok}, status_code=200 if ok else 404)
+    return await _change(net, 'seed_remove', {'url': str(b.get('url') or '')}, auth, str(b.get('reason') or ''))
 
 
 @router.post('/api/sajhanet/nets/{net}/ca/init')
@@ -144,6 +179,9 @@ async def sajhanet_ca_init(net: str, request: Request, auth: AuthContext = Depen
     svc = _svc()
     if svc is None or not svc.shared.enabled:
         return _off()
+    bad = _csrf(request, auth)
+    if bad is not None:
+        return bad
     b = await _body(request)
     return await _call(svc.ca_init, net, auth.user_id, str(b.get('alg') or 'ed25519'))
 
@@ -158,23 +196,30 @@ async def sajhanet_first_use(net: str, auth: AuthContext = Depends(require_admin
 
 
 @router.delete('/api/sajhanet/nets/{net}/first-use/{instance}')
-async def sajhanet_forget_first_use(net: str, instance: str, auth: AuthContext = Depends(require_admin)):
+async def sajhanet_forget_first_use(net: str, instance: str, request: Request,
+                                    auth: AuthContext = Depends(require_admin)):
     """``admission: open``: forget the key remembered for ``instance`` (it was replaced on purpose)."""
     svc = _svc()
     if svc is None or not svc.shared.enabled:
         return _off()
-    if not svc.forget_peer_key(net, instance, by=auth.user_id):
-        return JSONResponse({'error': f'no key remembered for {instance} in {net}'}, status_code=404)
-    return {'net': net, 'forgotten': instance}
+    bad = _csrf(request, auth)
+    if bad is not None:
+        return bad
+    b = await _body(request)
+    return await _change(net, 'forget_key', {'instance': instance}, auth, str(b.get('reason') or ''),
+                         missing=f'no key remembered for {instance} in {net}')
 
 
 @router.post('/api/sajhanet/nets/{net}/rejoin')
-async def sajhanet_rejoin(net: str, auth: AuthContext = Depends(require_admin)):
+async def sajhanet_rejoin(net: str, request: Request, auth: AuthContext = Depends(require_admin)):
     """Clear this server's held ``name_conflict`` refusal and try to join now (after the members forgot
     the old key of this server's name)."""
     svc = _svc()
     if svc is None or not svc.shared.enabled:
         return _off()
+    bad = _csrf(request, auth)
+    if bad is not None:
+        return bad
     return await _call(svc.retry_join, net, auth.user_id)
 
 
@@ -191,8 +236,12 @@ async def sajhanet_ca_token(net: str, request: Request, auth: AuthContext = Depe
     svc = _svc()
     if svc is None or not svc.shared.enabled:
         return _off()
+    bad = _csrf(request, auth)
+    if bad is not None:
+        return bad
     b = await _body(request)
-    return await _call(svc.ca_token, net, str(b.get('instance') or ''), str(b.get('host') or ''), auth.user_id)
+    return await _change(net, 'ca_token', {'instance': str(b.get('instance') or ''), 'host': str(b.get('host') or '')},
+                         auth, str(b.get('reason') or ''))
 
 
 @router.post('/api/sajhanet/nets/{net}/ca/revoke')
@@ -200,9 +249,12 @@ async def sajhanet_ca_revoke(net: str, request: Request, auth: AuthContext = Dep
     svc = _svc()
     if svc is None or not svc.shared.enabled:
         return _off()
+    bad = _csrf(request, auth)
+    if bad is not None:
+        return bad
     b = await _body(request)
-    return await _call(svc.ca_revoke, net, str(b.get('instance') or ''), str(b.get('serial') or ''),
-                       str(b.get('reason') or ''), auth.user_id)
+    return await _change(net, 'revoke', {'instance': str(b.get('instance') or ''), 'serial': str(b.get('serial') or '')},
+                         auth, str(b.get('reason') or ''))
 
 
 @router.post('/api/sajhanet/nets/{net}/enroll')
@@ -210,16 +262,23 @@ async def sajhanet_enroll(net: str, request: Request, auth: AuthContext = Depend
     svc = _svc()
     if svc is None or not svc.shared.enabled:
         return _off()
+    bad = _csrf(request, auth)
+    if bad is not None:
+        return bad
     b = await _body(request)
     return await _call(svc.enroll, net, str(b.get('ca_url') or ''), str(b.get('token') or ''), auth.user_id)
 
 
 @router.post('/api/sajhanet/nets/{net}/renew')
-async def sajhanet_renew(net: str, auth: AuthContext = Depends(require_admin)):
+async def sajhanet_renew(net: str, request: Request, auth: AuthContext = Depends(require_admin)):
     svc = _svc()
     if svc is None or not svc.shared.enabled:
         return _off()
-    return await _call(svc.renew, net, auth.user_id)
+    bad = _csrf(request, auth)
+    if bad is not None:
+        return bad
+    b = await _body(request)
+    return await _change(net, 'renew', {}, auth, str(b.get('reason') or ''))
 
 
 @router.post('/api/sajhanet/nets/{net}/pins')
@@ -227,8 +286,11 @@ async def sajhanet_add_pin(net: str, request: Request, auth: AuthContext = Depen
     svc = _svc()
     if svc is None or not svc.shared.enabled:
         return _off()
+    bad = _csrf(request, auth)
+    if bad is not None:
+        return bad
     b = await _body(request)
-    return await _call(svc.add_pin, net, str(b.get('thumbprint') or ''), auth.user_id)
+    return await _change(net, 'pin_add', {'thumbprint': str(b.get('thumbprint') or '')}, auth, str(b.get('reason') or ''))
 
 
 @router.delete('/api/sajhanet/nets/{net}/pins')
@@ -236,9 +298,12 @@ async def sajhanet_remove_pin(net: str, request: Request, auth: AuthContext = De
     svc = _svc()
     if svc is None or not svc.shared.enabled:
         return _off()
+    bad = _csrf(request, auth)
+    if bad is not None:
+        return bad
     b = await _body(request)
-    ok = await run_in_threadpool(svc.remove_pin, net, str(b.get('thumbprint') or ''), auth.user_id)
-    return JSONResponse({'removed': ok}, status_code=200 if ok else 404)
+    return await _change(net, 'pin_remove', {'thumbprint': str(b.get('thumbprint') or '')}, auth,
+                         str(b.get('reason') or ''))
 
 
 # ── identity and authorization (design §10, §11): local administrators only ──
@@ -262,12 +327,15 @@ async def sajhanet_add_block(net: str, request: Request, auth: AuthContext = Dep
     a = _authz()
     if a is None:
         return _off()
+    bad = _csrf(request, auth)
+    if bad is not None:
+        return bad
     b = await _body(request)
-    return await _call(a.add_block, net, str(b.get('level') or ''), str(b.get('target_instance') or ''),
-                       str(b.get('reason') or ''), auth.user_id, tool=str(b.get('tool') or ''),
-                       user=str(b.get('user') or ''), direction=str(b.get('direction') or 'inbound'),
-                       expires_in_minutes=b.get('expires_in_minutes'), withhold_reason=bool(b.get('withhold_reason')),
-                       by_auth_type=auth.auth_type)
+    return await _change(net, 'block_add', {
+        'level': str(b.get('level') or ''), 'target_instance': str(b.get('target_instance') or ''),
+        'tool': str(b.get('tool') or ''), 'user': str(b.get('user') or ''),
+        'direction': str(b.get('direction') or 'inbound'), 'expires_in_minutes': b.get('expires_in_minutes'),
+        'withhold_reason': bool(b.get('withhold_reason'))}, auth, str(b.get('reason') or ''))
 
 
 @router.delete('/api/sajhanet/nets/{net}/blocks/{block_id}')
@@ -275,13 +343,11 @@ async def sajhanet_remove_block(net: str, block_id: str, request: Request, auth:
     a = _authz()
     if a is None:
         return _off()
+    bad = _csrf(request, auth)
+    if bad is not None:
+        return bad
     b = await _body(request)
-    try:
-        ok = await run_in_threadpool(a.remove_block, net, block_id, auth.user_id, str(b.get('reason') or ''),
-                                     auth.auth_type)
-    except Exception as e:
-        return _err(e)
-    return JSONResponse({'removed': ok}, status_code=200 if ok else 404)
+    return await _change(net, 'block_remove', {'block_id': block_id}, auth, str(b.get('reason') or ''))
 
 
 @router.get('/api/sajhanet/nets/{net}/users')
@@ -296,9 +362,12 @@ async def sajhanet_link_user(net: str, request: Request, auth: AuthContext = Dep
     a = _authz()
     if a is None:
         return _off()
+    bad = _csrf(request, auth)
+    if bad is not None:
+        return bad
     b = await _body(request)
-    return await _call(a.link_user, net, str(b.get('remote_user') or ''), str(b.get('local_user') or ''),
-                       auth.user_id, by_auth_type=auth.auth_type)
+    return await _change(net, 'link', {'remote_user': str(b.get('remote_user') or ''),
+                                       'local_user': str(b.get('local_user') or '')}, auth, str(b.get('reason') or ''))
 
 
 @router.delete('/api/sajhanet/nets/{net}/users/links')
@@ -306,13 +375,12 @@ async def sajhanet_unlink_user(net: str, request: Request, auth: AuthContext = D
     a = _authz()
     if a is None:
         return _off()
+    bad = _csrf(request, auth)
+    if bad is not None:
+        return bad
     b = await _body(request)
-    try:
-        ok = await run_in_threadpool(a.unlink_user, net, str(b.get('remote_user') or ''), auth.user_id,
-                                     auth.auth_type)
-    except Exception as e:
-        return _err(e)
-    return JSONResponse({'removed': ok}, status_code=200 if ok else 404)
+    return await _change(net, 'unlink', {'remote_user': str(b.get('remote_user') or '')}, auth,
+                         str(b.get('reason') or ''))
 
 
 @router.put('/api/sajhanet/nets/{net}/role-maps/{instance}')
@@ -322,9 +390,13 @@ async def sajhanet_role_map(net: str, instance: str, request: Request, auth: Aut
     a = _authz()
     if a is None:
         return _off()
+    bad = _csrf(request, auth)
+    if bad is not None:
+        return bad
     b = await _body(request)
-    return await _call(a.set_role_map, net, instance, b.get('map') if isinstance(b.get('map'), dict) else {},
-                       auth.user_id, by_auth_type=auth.auth_type)
+    return await _change(net, 'role_map', {'instance': instance,
+                                           'map': b.get('map') if isinstance(b.get('map'), dict) else {}},
+                         auth, str(b.get('reason') or ''))
 
 
 @router.put('/api/sajhanet/nets/{net}/name-matching/{instance}')
@@ -332,9 +404,12 @@ async def sajhanet_name_matching(net: str, instance: str, request: Request, auth
     a = _authz()
     if a is None:
         return _off()
+    bad = _csrf(request, auth)
+    if bad is not None:
+        return bad
     b = await _body(request)
-    return await _call(a.set_name_matching, net, instance, bool(b.get('on', True)), auth.user_id,
-                       by_auth_type=auth.auth_type)
+    return await _change(net, 'name_matching', {'instance': instance, 'on': bool(b.get('on', True))}, auth,
+                         str(b.get('reason') or ''))
 
 
 @router.get('/api/sajhanet/nets/{net}/keys')
@@ -345,9 +420,15 @@ async def sajhanet_keys(net: str, home: str = '', auth: AuthContext = Depends(re
 
 
 @router.post('/api/sajhanet/nets/{net}/keys/resync')
-async def sajhanet_keys_resync(net: str, auth: AuthContext = Depends(require_admin)):
+async def sajhanet_keys_resync(net: str, request: Request, auth: AuthContext = Depends(require_admin)):
     a = _authz()
-    return _off() if a is None else await _call(a.resync, net, auth.user_id)
+    if a is None:
+        return _off()
+    bad = _csrf(request, auth)
+    if bad is not None:
+        return bad
+    b = await _body(request)
+    return await _change(net, 'resync', {}, auth, str(b.get('reason') or ''))
 
 
 # ── catalogs and routing (design §7, §8; stream C) ──────────────────
@@ -390,21 +471,38 @@ async def sajhanet_set_trust(net: str, peer: str, request: Request, auth: AuthCo
     c = _catalogs()
     if c is None:
         return _off()
+    bad = _csrf(request, auth)
+    if bad is not None:
+        return bad
     b = await _body(request)
     pinned = b.get('pinned') if isinstance(b.get('pinned'), list) else None
-    return await _call(c.set_trust, net, peer, str(b.get('trust') or ''), pinned, auth.user_id)
+    return await _change(net, 'trust', {'peer': peer, 'trust': str(b.get('trust') or ''), 'pinned': pinned}, auth,
+                         str(b.get('reason') or ''))
 
 
 @router.post('/api/sajhanet/nets/{net}/peers/{peer}/tools/{tool}/approve')
-async def sajhanet_approve(net: str, peer: str, tool: str, auth: AuthContext = Depends(require_admin)):
+async def sajhanet_approve(net: str, peer: str, tool: str, request: Request, auth: AuthContext = Depends(require_admin)):
     c = _catalogs()
-    return _off() if c is None else await _call(c.approve, net, peer, tool, True, auth.user_id)
+    if c is None:
+        return _off()
+    bad = _csrf(request, auth)
+    if bad is not None:
+        return bad
+    b = await _body(request)
+    return await _change(net, 'approve', {'peer': peer, 'tool': tool}, auth, str(b.get('reason') or ''))
 
 
 @router.delete('/api/sajhanet/nets/{net}/peers/{peer}/tools/{tool}/approve')
-async def sajhanet_unapprove(net: str, peer: str, tool: str, auth: AuthContext = Depends(require_admin)):
+async def sajhanet_unapprove(net: str, peer: str, tool: str, request: Request,
+                             auth: AuthContext = Depends(require_admin)):
     c = _catalogs()
-    return _off() if c is None else await _call(c.approve, net, peer, tool, False, auth.user_id)
+    if c is None:
+        return _off()
+    bad = _csrf(request, auth)
+    if bad is not None:
+        return bad
+    b = await _body(request)
+    return await _change(net, 'unapprove', {'peer': peer, 'tool': tool}, auth, str(b.get('reason') or ''))
 
 
 # ── sponsored MCP servers (design §5.1) ─────────────────────────────
@@ -431,20 +529,25 @@ async def sajhanet_sponsor(request: Request, auth: AuthContext = Depends(require
     sp = _sponsorships()
     if sp is None:
         return _off()
+    bad = _csrf(request, auth)
+    if bad is not None:
+        return bad
     b = await _body(request)
-    return await _call(sp.add, b, auth.user_id)
+    reason = str(b.pop('reason', '') or '')
+    return await _change(str(b.get('net') or ''), 'sponsor_add', {k: v for k, v in b.items() if k != 'net'}, auth,
+                         reason)
 
 
 @router.delete('/api/sajhanet/sponsored/{net}/{instance}')
-async def sajhanet_unsponsor(net: str, instance: str, auth: AuthContext = Depends(require_admin)):
+async def sajhanet_unsponsor(net: str, instance: str, request: Request, auth: AuthContext = Depends(require_admin)):
     sp = _sponsorships()
     if sp is None:
         return _off()
-    try:
-        ok = await run_in_threadpool(sp.remove, net, instance, auth.user_id)
-    except Exception as e:
-        return _err(e)
-    return JSONResponse({'removed': ok}, status_code=200 if ok else 404)
+    bad = _csrf(request, auth)
+    if bad is not None:
+        return bad
+    b = await _body(request)
+    return await _change(net, 'sponsor_remove', {'instance': instance}, auth, str(b.get('reason') or ''))
 
 
 @router.post('/api/sajhanet/sponsored/{net}/{instance}/enroll')
@@ -454,6 +557,9 @@ async def sajhanet_sponsored_enroll(net: str, instance: str, request: Request,
     sp = _sponsorships()
     if sp is None:
         return _off()
+    bad = _csrf(request, auth)
+    if bad is not None:
+        return bad
     b = await _body(request)
     return await _call(sp.enroll, net, instance, str(b.get('ca_url') or ''), str(b.get('token') or ''), auth.user_id)
 
@@ -485,14 +591,26 @@ async def net_this_instance_page(request: Request, auth: AuthContext = Depends(r
 
 
 @router.get('/net/instances/{net}/{instance}')
-async def net_instance_page(net: str, instance: str, request: Request, auth: AuthContext = Depends(require_auth)):
+async def net_instance_page(net: str, instance: str, request: Request, tab: str = 'tools',
+                            auth: AuthContext = Depends(require_auth)):
+    """One instance's tools (everyone) and, for administrators and another member, its tabs: traffic,
+    users, keys, blocks and history (``?tab=``; design §17.1)."""
     from sajha.net.integration.console import instance_view
     view = await run_in_threadpool(instance_view, net, instance, auth)
     if view is None:
         return render(request, 'common/error.html', {
             'error': 'Instance not found', 'message': f'{instance} is not a member of {net} that this server knows'},
             status_code=404)
-    return render(request, 'net/instance.html', {'user': _user(auth), 'is_admin': auth.is_admin, 'view': view})
+    from sajha.net.integration.pages import TABS, instance_admin
+    admin = None
+    if auth.is_admin and not view['instance'].get('self') and view.get('enabled'):
+        admin = await run_in_threadpool(instance_admin, net, instance)
+    tab = tab if admin is not None and tab in TABS else 'tools'
+    ctx = {'user': _user(auth), 'is_admin': auth.is_admin, 'view': view, 'admin': admin, 'tab': tab, 'tabs': TABS}
+    if admin is not None:
+        from sajha.routes.sajhanet_console_routes import csrf_for
+        ctx['csrf'] = csrf_for(request, auth)
+    return render(request, 'net/instance.html', ctx)
 
 
 @router.get('/api/sajhanet/instances')
@@ -519,8 +637,10 @@ async def admin_sajhanet_tools_page(request: Request, auth: AuthContext = Depend
     from sajha.net.integration.console import _rfc
     for r in table.get('rows') or []:
         r['last_seen'] = _rfc(r.get('last_seen'))
+    from sajha.routes.sajhanet_console_routes import csrf_for
     return render(request, 'admin/sajhanet_tools.html', {
-        'user': _user(auth), 'is_admin': True, 'enabled': c is not None, 'table': table, 'conflicts': conflicts})
+        'user': _user(auth), 'is_admin': True, 'enabled': c is not None, 'table': table, 'conflicts': conflicts,
+        'csrf': csrf_for(request, auth)})
 
 
 # ── the net overview (admin) and each user's access across the net, design §17.1 (phase 5.2) ─────
@@ -531,7 +651,9 @@ async def admin_sajhanet_overview_page(request: Request, net: str = '', auth: Au
     recent forwarded calls, call-chain refusals and residency decisions (read-only)."""
     from sajha.net.integration.overview import overview_view
     view = await run_in_threadpool(overview_view, net or None)
-    return render(request, 'admin/sajhanet_overview.html', {'user': _user(auth), 'is_admin': True, 'view': view})
+    from sajha.routes.sajhanet_console_routes import csrf_for
+    return render(request, 'admin/sajhanet_overview.html', {'user': _user(auth), 'is_admin': True, 'view': view,
+                                                            'csrf': csrf_for(request, auth)})
 
 
 @router.get('/api/sajhanet/overview')
@@ -565,3 +687,10 @@ async def net_access_page(request: Request, auth: AuthContext = Depends(require_
 async def sajhanet_access(auth: AuthContext = Depends(require_auth)):
     from sajha.net.integration.overview import access_view
     return await _call(access_view, auth)
+
+
+# ── the management pages (design §17.1): sajhanet_console_routes.py ─────
+
+from sajha.routes.sajhanet_console_routes import router as _console_router  # noqa: E402
+
+router.include_router(_console_router)

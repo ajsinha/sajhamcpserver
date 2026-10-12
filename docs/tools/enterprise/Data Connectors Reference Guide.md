@@ -31,7 +31,7 @@ common to all kinds:
 | `masking` | `[{"column": "<glob>", "mode": "hide|null|redact|hash|partial|pii"}]` |
 | `tools` | Switches: `list_tables`, `describe_table`, `query`, `search` (all on by default) |
 | `views` | Curated views (SQL kinds) |
-| `vector` | Vector or search settings (`pgvector`, `qdrant`, `elasticsearch`, `opensearch`) |
+| `vector` | Vector or search settings (`pgvector`, `qdrant`, `elasticsearch`, `opensearch`, `weaviate`, `chroma`) |
 | `auth` | `{"type": "connected_account", "provider": ..., "scopes": [...]}` for per-user sign-in (Snowflake, BigQuery, Databricks) |
 | `cache_ttl` | Seconds to cache tool results (0, the default, caches nothing) |
 
@@ -225,6 +225,26 @@ No package (REST). Options: `url`, `user` (with secret `password`), `index` (the
 `num_candidates` and `embedding_model`. Indices are allowlisted by `allow.tables`; indices whose
 name starts with `.` are never listed. Grant a role with `read` and `view_index_metadata` on the
 indices.
+
+### Weaviate (`weaviate`)
+
+No package (REST and GraphQL over `httpx`; the `weaviate-client` SDK is not used). Options: `url`
+(for example `http://weaviate:8080`), `collection` (the default class), `verify_tls`. Secret:
+`api_key` (sent as a bearer token). `vector`: `vector_name` (a named vector), `text_field` (the
+property returned as `text`, default `text`), `distance` (`cosine` turns the distance into
+1 - distance), `embedding_model` (`none` searches by `bm25` keywords instead of `nearVector`).
+Classes are allowlisted by `allow.tables`; a filter names a scalar property of the class and its
+value must fit the property's type. Give the key read access to the classes.
+
+### Chroma (`chroma`)
+
+No package (HTTP over `httpx`; the `chromadb` SDK is not used). Options: `url` (for example
+`http://chroma:8000`), `collection`, `api_version` (`v2`, the default, or `v1` for servers
+before 0.6), `tenant` and `database` (v2; default `default_tenant` and `default_database`),
+`auth_header` (`authorization` sends the key as a bearer token; otherwise `X-Chroma-Token`),
+`verify_tls`. Secret: `api_key`. `vector`: `distance` (the collection's space: `cosine`, `l2` or
+`inner`), `embedding_model`. Collections are allowlisted by `allow.tables`. A search always needs
+a vector (the query text is embedded through the gateway); the document is returned as `text`.
 
 ---
 

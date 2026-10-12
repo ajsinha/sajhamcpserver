@@ -184,6 +184,7 @@ class AskResult:
     scenario_tables: List[Dict[str, Any]] = field(default_factory=list)  # sensitivity tables (scenario): rows per point
     reconciliations: List[Dict[str, Any]] = field(default_factory=list)  # comparisons across sources (reconcile)
     context_trims: List[Dict[str, Any]] = field(default_factory=list)    # oldest turns dropped on ContextTooLong
+    planner_choice: Optional[Dict[str, Any]] = None  # an automatic planner choice and its outcome (learning)
 
     def to_dict(self) -> Dict[str, Any]:
         return {"question": self.question, "answer": self.answer, "confidence": round(self.confidence, 4),
@@ -808,6 +809,7 @@ class IntelligenceService:
                 final_text, synthesize, cites = got
                 final = Answer(final_text, synthesize=synthesize, citations=cites)
         if plan is not None and callable(getattr(plan, "info", None)):
+            state.data["run_end"] = {"stopped_by": stopped, "cost_usd": float(res.usage.cost_usd or 0.0)}
             pinfo = plan.info()
             res.planner_version = pinfo.get("planner_version") or res.planner_version
             res.planner_path = list(pinfo.get("planner_path") or [])
@@ -816,6 +818,7 @@ class IntelligenceService:
             res.code_runs = list(pinfo.get("code_runs") or [])
             res.scenario_tables = list(pinfo.get("scenario_tables") or [])
             res.reconciliations = list(pinfo.get("reconciliations") or [])
+            res.planner_choice = pinfo.get("planner_choice")
         plan_steps = state.data.get("plan")
         plan_steps = plan_steps() if callable(plan_steps) else plan_steps
         if plan_steps:
@@ -1206,11 +1209,13 @@ class IntelligenceService:
     def _write_audit(self, res: AskResult, ctx: RequestContext) -> None:
         if not self.settings.audit:
             return
-        entry = {"question": res.question[:500], "tools": [s.name for s in res.steps], "models": res.models,
-                 "planner": res.planner, "planner_version": res.planner_version,
-                 "planner_path": res.planner_path, "loops_exhausted": res.loops_exhausted,
-                 "tokens": res.usage.total_tokens, "outcome": res.stopped_by,
-                 "confidence": round(res.confidence, 4)}
+        entry = {"question": res.question[:500], "tools": [s.name for s in res.steps], "models": res.models}
+        if res.planner_choice:           # first, so a record cut at 4000 characters keeps it (planner learning)
+            entry["planner_choice"] = res.planner_choice
+        entry.update({"planner": res.planner, "planner_version": res.planner_version,
+                      "planner_path": res.planner_path, "loops_exhausted": res.loops_exhausted,
+                      "tokens": res.usage.total_tokens, "outcome": res.stopped_by,
+                      "confidence": round(res.confidence, 4)})
         if res.context_trims:            # oldest turns dropped on ContextTooLong (each: step, model, counts)
             entry["context_trims"] = res.context_trims[:10]
         if res.queries:                  # SQL over loaded tool results: the query and its source calls

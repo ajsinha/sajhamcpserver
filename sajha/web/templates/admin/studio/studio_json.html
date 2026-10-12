@@ -4,7 +4,7 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
 Studio > Import JSON (administrators): a tool from a pasted or uploaded tool config, filed in a tool folder.
 Reference: docs/studio/MCP Studio User Guide.md ("Import JSON")
 -->
-{% block title %}Import JSON - MCP Studio - SAJHA MCP Server{% endblock %}
+{% block title %}{{ _('Import JSON - MCP Studio - SAJHA MCP Server') }}{% endblock %}
 
 {% block extra_css %}
 <style>
@@ -18,29 +18,28 @@ Reference: docs/studio/MCP Studio User Guide.md ("Import JSON")
 {% block content %}
 {% include "admin/studio/_studio_nav.html" %}
 <div class="container-fluid py-3">
-    <nav aria-label="breadcrumb" class="mb-3">
+    <nav aria-label="{{ _('breadcrumb') }}" class="mb-3">
         <ol class="breadcrumb">
-            <li class="breadcrumb-item"><a href="{{ url_for('dashboard') }}">Dashboard</a></li>
+            <li class="breadcrumb-item"><a href="{{ url_for('dashboard') }}">{{ _('Dashboard') }}</a></li>
             <li class="breadcrumb-item"><a href="{{ url_for('studio_home') }}">MCP Studio</a></li>
-            <li class="breadcrumb-item active" aria-current="page">Import JSON</li>
+            <li class="breadcrumb-item active" aria-current="page">{{ _('Import JSON') }}</li>
         </ol>
     </nav>
 
     <div class="creator-header">
-        <h1 class="h3"><i class="bi bi-filetype-json me-2" aria-hidden="true"></i>Import a tool config (JSON)</h1>
-        <p class="subtitle mb-0">Paste or upload a tool config, choose its tool folder, check it and deploy it. The tool
-            keeps the name in its config; the folder only files it.</p>
+        <h1 class="h3"><i class="bi bi-filetype-json me-2" aria-hidden="true"></i>{{ _('Import a tool config (JSON)') }}</h1>
+        <p class="subtitle mb-0">{{ _('Paste or upload a tool config, choose its tool folder, check it and deploy it. The tool keeps the name in its config; the folder only files it.') }}</p>
     </div>
 
     <div class="row g-3">
         <div class="col-lg-8">
             <div class="card">
                 <div class="card-body">
-                    <label class="form-label fw-bold" for="jiText">Tool config (JSON)</label>
+                    <label class="form-label fw-bold" for="jiText">{{ _('Tool config (JSON)') }}</label>
                     <textarea id="jiText" class="form-control ji-code" spellcheck="false"
                               placeholder='{"name": "my_tool", "description": "...", "implementation": "package.module.Class", "folder": "my_folder"}'></textarea>
                     <div class="mt-2">
-                        <label class="form-label" for="jiFile">Or upload a .json file</label>
+                        <label class="form-label" for="jiFile">{{ _('Or upload a .json file') }}</label>
                         <input type="file" id="jiFile" class="form-control" accept=".json,application/json">
                     </div>
                 </div>
@@ -49,21 +48,21 @@ Reference: docs/studio/MCP Studio User Guide.md ("Import JSON")
         <div class="col-lg-4">
             <div class="card">
                 <div class="card-body">
-                    <label class="form-label fw-bold" for="jiFolder">Folder <span class="fw-normal text-muted small">(optional)</span></label>
+                    <label class="form-label fw-bold" for="jiFolder">{{ _('Folder') }} <span class="fw-normal text-muted small">{{ _('(optional)') }}</span></label>
                     <input id="jiFolder" class="form-control" list="jiFolders" maxlength="32" autocomplete="off" value="Unfiled"
-                           placeholder="Unfiled: the root of {{ tools_dir() }}" aria-describedby="jiFolderHelp">
+                           placeholder="{{ _('Unfiled: the root of %(value)s', value=tools_dir()) }}" aria-describedby="jiFolderHelp">
                     <datalist id="jiFolders">
-                        <option value="Unfiled">the root of {{ tools_dir() }}</option>
+                        <option value="Unfiled">{% trans value=tools_dir() %}the root of {{ value }}{% endtrans %}</option>
                         {% for f in tool_folders %}<option value="{{ f }}">{% endfor %}
                     </datalist>
-                    <p id="jiFolderHelp" class="small text-muted mt-1 mb-2">Optional. Filled from the config's <code>"folder"</code>,
+                    <p id="jiFolderHelp" class="small text-muted mt-1 mb-2">{% trans %}Optional. Filled from the config's <code>"folder"</code>,
                         else its <code>metadata.category</code>, else Unfiled (the root); a new name (lowercase letters, digits,
                         <code>_</code> or <code>-</code>) creates the folder on deploy.
-                        The <code>"folder"</code> key is not saved in the config.</p>
-                    <p class="small mb-2">Saved as <code id="jiPath">-</code></p>
+                        The <code>"folder"</code> key is not saved in the config.{% endtrans %}</p>
+                    <p class="small mb-2">{% trans %}Saved as <code id="jiPath">-</code>{% endtrans %}</p>
                     <div class="d-flex gap-2 flex-wrap">
-                        <button type="button" class="btn btn-outline-primary" id="jiCheck"><i class="bi bi-check2-circle me-1" aria-hidden="true"></i>Check</button>
-                        <button type="button" class="btn btn-primary" id="jiDeploy"><i class="bi bi-cloud-upload me-1" aria-hidden="true"></i>Deploy</button>
+                        <button type="button" class="btn btn-outline-primary" id="jiCheck"><i class="bi bi-check2-circle me-1" aria-hidden="true"></i>{{ _('Check') }}</button>
+                        <button type="button" class="btn btn-primary" id="jiDeploy"><i class="bi bi-cloud-upload me-1" aria-hidden="true"></i>{{ _('Deploy') }}</button>
                     </div>
                     <div id="jiMessage" class="alert mt-3 mb-0" role="status"></div>
                 </div>
@@ -91,13 +90,13 @@ Reference: docs/studio/MCP Studio User Guide.md ("Import JSON")
         try { return await r.json(); } catch (e) { return {success: false, error: 'HTTP ' + r.status}; }
     }
     async function check(quiet) {
-        if (!$('jiText').value.trim()) { $('jiPath').textContent = '-'; if (!quiet) message('Paste or upload a config first.', 'warning'); return null; }
+        if (!$('jiText').value.trim()) { $('jiPath').textContent = '-'; if (!quiet) message(_t('Paste or upload a config first.'), 'warning'); return null; }
         const d = await post('/admin/studio/json/preview');
         if (!d.success) { message(d.error, 'danger'); return null; }
         if (!folderTouched) $('jiFolder').value = d.folder || 'Unfiled';
         $('jiPath').textContent = d.path;
         if (d.errors && d.errors.length) message(d.errors.join('; '), quiet ? 'warning' : 'danger');
-        else message(quiet ? '' : 'The config is ready to deploy.', 'success');
+        else message(quiet ? '' : _t('The config is ready to deploy.'), 'success');
         return d;
     }
     $('jiText').addEventListener('input', () => { clearTimeout(timer); timer = setTimeout(() => check(true), 400); });
@@ -113,7 +112,7 @@ Reference: docs/studio/MCP Studio User Guide.md ("Import JSON")
     $('jiDeploy').addEventListener('click', async () => {
         const d = await post('/admin/studio/json/deploy');
         if (d.success) message(d.message + ' (' + (d.config_file || d.path) + ')', 'success');
-        else message(d.error || 'Deploy failed', 'danger');
+        else message(d.error || _t('Deploy failed'), 'danger');
     });
 })();
 </script>

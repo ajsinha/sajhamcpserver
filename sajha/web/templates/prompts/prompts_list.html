@@ -2,26 +2,26 @@
 <!--
 Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.com
 -->
-{% block title %}Prompts - SAJHA MCP Server{% endblock %}
+{% block title %}{{ _('Prompts - SAJHA MCP Server') }}{% endblock %}
 
 {% block content %}
 <div class="container-fluid">
     <!-- Breadcrumb -->
-    <nav aria-label="breadcrumb">
+    <nav aria-label="{{ _('breadcrumb') }}">
         <ol class="breadcrumb">
-            <li class="breadcrumb-item"><a href="{{ url_for('dashboard') }}">Dashboard</a></li>
-            <li class="breadcrumb-item active">Prompts</li>
+            <li class="breadcrumb-item"><a href="{{ url_for('dashboard') }}">{{ _('Dashboard') }}</a></li>
+            <li class="breadcrumb-item active">{{ _('Prompts') }}</li>
         </ol>
     </nav>
 
     <!-- Header -->
     <div class="d-flex justify-content-between align-items-center mb-4">
         <h1 class="h3 mb-0">
-            <i class="bi bi-chat-square-text"></i> Prompts Library
+            <i class="bi bi-chat-square-text"></i> {{ _('Prompts Library') }}
         </h1>
         {% if user and user.roles and 'admin' in user.roles %}
         <a href="{{ url_for('prompt_create_page') }}" class="btn btn-primary">
-            <i class="bi bi-plus-circle"></i> Create New Prompt
+            <i class="bi bi-plus-circle"></i> {{ _('Create New Prompt') }}
         </a>
         {% endif %}
     </div>
@@ -29,10 +29,10 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
     <!-- Filter Chips -->
     {% if active_category or active_tag %}
     <div class="mb-3">
-        <strong>Active Filters:</strong>
+        <strong>{{ _('Active Filters:') }}</strong>
         {% if active_category %}
         <span class="badge bg-primary me-2">
-            Category: {{ active_category }}
+            {{ _('Category:') }} {{ active_category }}
             <a href="{{ url_for('prompts_list') }}" class="ms-1" style="color:inherit">
                 <i class="bi bi-x"></i>
             </a>
@@ -40,7 +40,7 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
         {% endif %}
         {% if active_tag %}
         <span class="badge bg-info me-2">
-            Tag: {{ active_tag }}
+            {{ _('Tag:') }} {{ active_tag }}
             <a href="{{ url_for('prompts_list') }}" class="ms-1" style="color:inherit">
                 <i class="bi bi-x"></i>
             </a>
@@ -54,15 +54,15 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
         <div class="col-md-3">
             <div class="card mb-4">
                 <div class="card-header">
-                    <h6 class="mb-0"><i class="bi bi-funnel"></i> Filters</h6>
+                    <h6 class="mb-0"><i class="bi bi-funnel"></i> {{ _('Filters') }}</h6>
                 </div>
                 <div class="card-body">
                     <!-- Categories -->
-                    <h6 class="card-subtitle mb-2">Categories</h6>
+                    <h6 class="card-subtitle mb-2">{{ _('Categories') }}</h6>
                     <div class="list-group mb-3">
                         <a href="{{ url_for('prompts_list') }}" 
                            class="list-group-item list-group-item-action {% if not active_category %}active{% endif %}">
-                            <i class="bi bi-grid"></i> All Categories
+                            <i class="bi bi-grid"></i> {{ _('All Categories') }}
                             <span class="badge bg-secondary float-end">{{ prompts|length }}</span>
                         </a>
                         {% for category in categories %}
@@ -74,7 +74,7 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
                     </div>
 
                     <!-- Tags -->
-                    <h6 class="card-subtitle mb-2">Tags</h6>
+                    <h6 class="card-subtitle mb-2">{{ _('Tags') }}</h6>
                     <div class="d-flex flex-wrap gap-1">
                         {% for tag in tags %}
                         <a href="{{ url_for('prompts_by_tag', tag=tag) }}" 
@@ -94,11 +94,11 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
                     <h5 class="mb-0">
                         <i class="bi bi-list-ul"></i> 
                         {% if active_category %}
-                        Prompts in "{{ active_category|title }}"
+                        {% trans active_category=active_category|title %}Prompts in "{{ active_category }}"{% endtrans %}
                         {% elif active_tag %}
-                        Prompts tagged "{{ active_tag }}"
+                        {% trans active_tag=active_tag %}Prompts tagged "{{ active_tag }}"{% endtrans %}
                         {% else %}
-                        All Prompts
+                        {{ _('All Prompts') }}
                         {% endif %}
                         <span class="badge bg-light text-dark ms-2">{{ prompts|length }}</span>
                     </h5>
@@ -111,15 +111,15 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
                             <div class="input-group">
                                 <span class="input-group-text"><i class="bi bi-search"></i></span>
                                 <input type="text" class="form-control" id="searchPrompts" 
-                                       placeholder="Search prompts by name, description, or tags...">
+                                       placeholder="{{ _('Search prompts by name, description, or tags...') }}">
                             </div>
                         </div>
                         <div class="col-md-4 text-end">
                             <select id="rowsPerPage" class="form-select">
-                                <option value="6" selected>6 per page</option>
-                                <option value="12">12 per page</option>
-                                <option value="24">24 per page</option>
-                                <option value="all">Show All</option>
+                                <option value="6" selected>{{ _('6 per page') }}</option>
+                                <option value="12">{{ _('12 per page') }}</option>
+                                <option value="24">{{ _('24 per page') }}</option>
+                                <option value="all">{{ _('Show All') }}</option>
                             </select>
                         </div>
                     </div>
@@ -151,15 +151,15 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
                                         <span class="badge bg-info">{{ tag }}</span>
                                         {% endfor %}
                                         {% if prompt.tags|length > 3 %}
-                                        <span class="badge bg-light text-dark">+{{ prompt.tags|length - 3 }} more</span>
+                                        <span class="badge bg-light text-dark">{% trans n=prompt.tags|length - 3 %}+{{ n }} more{% endtrans %}</span>
                                         {% endif %}
                                     </div>
 
                                     <!-- Stats -->
                                     <small class="text-muted">
-                                        <i class="bi bi-file-text"></i> {{ prompt.argument_count }} arguments
+                                        <i class="bi bi-file-text"></i> {% trans argument_count=prompt.argument_count %}{{ argument_count }} arguments{% endtrans %}
                                         {% if prompt.usage_count > 0 %}
-                                        | <i class="bi bi-graph-up"></i> {{ prompt.usage_count }} uses
+                                        | <i class="bi bi-graph-up"></i> {% trans usage_count=prompt.usage_count %}{{ usage_count }} uses{% endtrans %}
                                         {% endif %}
                                     </small>
                                 </div>
@@ -167,16 +167,16 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
                                     <div class="btn-group w-100" role="group">
                                         <a href="{{ url_for('prompt_detail', prompt_name=prompt.name) }}" 
                                            class="btn btn-sm btn-outline-primary">
-                                            <i class="bi bi-eye"></i> View
+                                            <i class="bi bi-eye"></i> {{ _('View') }}
                                         </a>
                                         <a href="{{ url_for('prompt_test', prompt_name=prompt.name) }}" 
                                            class="btn btn-sm btn-outline-success">
-                                            <i class="bi bi-play-circle"></i> Test
+                                            <i class="bi bi-play-circle"></i> {{ _('Test') }}
                                         </a>
                                         {% if user and user.roles and 'admin' in user.roles %}
                                         <a href="{{ url_for('prompt_detail', prompt_name=prompt.name) }}#edit" 
                                            class="btn btn-sm btn-outline-warning">
-                                            <i class="bi bi-pencil"></i> Edit
+                                            <i class="bi bi-pencil"></i> {{ _('Edit') }}
                                         </a>
                                         {% endif %}
                                     </div>
@@ -192,19 +192,19 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
                             <div id="tableInfo" class="text-muted"></div>
                         </div>
                         <div class="col-md-6">
-                            <nav aria-label="Prompts pagination">
+                            <nav aria-label="{{ _('Prompts pagination') }}">
                                 <ul class="pagination justify-content-end mb-0" id="pagination"></ul>
                             </nav>
                         </div>
                     </div>
                     {% else %}
                     <div class="alert alert-info">
-                        <i class="bi bi-info-circle"></i> No prompts found
+                        <i class="bi bi-info-circle"></i> {{ _('No prompts found') }}
                         {% if active_category or active_tag %}
-                        with the selected filters.
-                        <a href="{{ url_for('prompts_list') }}" class="alert-link">Clear filters</a>
+                        {% trans value=url_for('prompts_list') %}with the selected filters.
+                        <a href="{{ value }}" class="alert-link">Clear filters</a>{% endtrans %}
                         {% else %}
-                        in the library.
+                        {{ _('in the library.') }}
                         {% endif %}
                     </div>
                     {% endif %}
@@ -294,9 +294,9 @@ function renderGrid() {
     // Update info
     if (totalRows > 0) {
         document.getElementById('tableInfo').textContent =
-            `Showing ${start + 1} to ${end} of ${totalRows} prompts`;
+            _t('Showing %(from)s to %(to)s of %(total)s prompts', {from: start + 1, to: end, total: totalRows});
     } else {
-        document.getElementById('tableInfo').textContent = 'No prompts found';
+        document.getElementById('tableInfo').textContent = _t('No prompts found');
     }
 
     // Render pagination
@@ -312,7 +312,7 @@ function renderPagination(totalPages) {
     // Previous
     const prevLi = document.createElement('li');
     prevLi.className = `page-item ${currentPage === 1 ? 'disabled' : ''}`;
-    prevLi.innerHTML = `<a class="page-link" href="#" data-onclick="changePage(${currentPage - 1}); return false;">Previous</a>`;
+    prevLi.innerHTML = `<a class="page-link" href="#" data-onclick="changePage(${currentPage - 1}); return false;">${_t('Previous')}</a>`;
     pagination.appendChild(prevLi);
 
     // Pages
@@ -334,7 +334,7 @@ function renderPagination(totalPages) {
     // Next
     const nextLi = document.createElement('li');
     nextLi.className = `page-item ${currentPage === totalPages ? 'disabled' : ''}`;
-    nextLi.innerHTML = `<a class="page-link" href="#" data-onclick="changePage(${currentPage + 1}); return false;">Next</a>`;
+    nextLi.innerHTML = `<a class="page-link" href="#" data-onclick="changePage(${currentPage + 1}); return false;">${_t('Next')}</a>`;
     pagination.appendChild(nextLi);
 }
 

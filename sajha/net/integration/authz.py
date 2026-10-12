@@ -78,6 +78,7 @@ class NetAuthSettings:
     key_full_sync_interval: float = 300.0
     assertion_ttl_seconds: float = 30.0       # lifetime of a user assertion (at most 60, protocol §15.5)
     token_ttl_seconds: float = 300.0          # lifetime of a token issued by token_exchange (at most 3600)
+    visibility: bool = True                   # serve per-key visibility queries (protocol §10.5)
 
     def identities(self) -> List[str]:
         """The resolvers of this net: the first is what this server sends as a home, all are accepted."""
@@ -142,6 +143,7 @@ def settings_for(net: str, entry: Optional[Dict[str, Any]] = None) -> NetAuthSet
         user_identity=','.join(_list(entry.get('user_identity') or _g('user_identity', 'api_key'))) or 'api_key',
         assertion_ttl_seconds=max(1.0, min(60.0, _num(_g('assertion.ttl_seconds', 30), 30))),
         token_ttl_seconds=max(1.0, min(3600.0, _num(_g('token_exchange.ttl_seconds', 300), 300))),
+        visibility=_bool(entry.get('visibility', _g('visibility.enabled', 'true')), True),
         key_sync=_bool(_g('key_directory.sync', kd.get('sync', 'true')), True),
         key_full_sync_interval=max(5.0, _num(_g('key_directory.full_sync_interval_seconds',
                                                  kd.get('full_sync_interval_seconds', 300)), 300)))
@@ -469,6 +471,11 @@ class NetAuthz:
                                       sync=st.settings.key_sync).install()
         st.pub = nblocks.BlockPublication(node, lambda st=st: (st.blocks_version(), st.blocks()), skip=skip).install()
         node.observers.append(lambda kind, data, st=st: self._observe(st, kind, data))
+        if st.settings.visibility:                                  # protocol §10.5: per-key visibility
+            if 'visibility' not in node.extra_features:
+                node.extra_features.append('visibility')
+            node.handlers['/sajhanet/v1/catalog/visibility'] = (
+                lambda data, v, st=st: self.serve_visibility(st, data, v))
         if 'residency' not in node.extra_features:
             node.extra_features.append('residency')                 # honours x-sajha-data-class (protocol §5)
         return st
@@ -629,6 +636,75 @@ class NetAuthz:
             'tool_access_list': list(rec.get('tool_access_list') or []), 'identity': 'api_key',
         }
         return self.finish(st, verified)
+
+    def serve_visibility(self, st: NetState, data: Dict[str, Any], v) -> Dict[str, Any]:
+        """``POST /sajhanet/v1/catalog/visibility`` (protocol §10.5): per key id of the requester's own records,
+        the tools exported to it that the key's user, mapped as for a call, may call here; or none with a
+        reason (``not_home``: no record of the requester has that id; ``key_unusable``, ``no_account``,
+        ``blocked``). Advice for display only: every call is still authorized (§15.4)."""
+        book = getattr(st.node, 'catalog', None)
+        try:
+            exported = [str(t.get('name')) for t in (book.exports(v.sender) if book is not None else [])]
+        except Exception as e:
+            logger.warning(f'SAJHA Net {st.net}: visibility for {v.sender}: {e}')
+            exported = []
+        out: Dict[str, Any] = {}
+        for kid in list(dict.fromkeys(str(k) for k in data.get('key_ids') or []))[:100]:
+            rec = st.store.by_id(st.net, v.sender, kid)
+            if rec is None:
+                out[kid] = {'tools': [], 'reason': 'not_home'}
+                continue
+            if keydir.check_usable(rec, v.sender, st.now(), st.keys.home_usable if st.keys else None):
+                out[kid] = {'tools': [], 'reason': 'key_unusable'}
+                continue
+            owner = rec.get('owner') or {}
+            login = str(owner.get('user_name') or '')
+            verified = {'name': names.net_user(login, rec['home_instance']), 'net': st.net,
+                        'home': rec['home_instance'], 'user_name': login,
+                        'home_user_id': str(owner.get('user_id') or ''),
+                        'display_name': str(owner.get('display_name') or login),
+                        'remote_roles': [str(r) for r in owner.get('roles') or []], 'key_id': rec['key_id'],
+                        'key_prefix': rec.get('key_prefix', ''),
+                        'tool_access_mode': rec.get('tool_access_mode') or 'all',
+                        'tool_access_list': list(rec.get('tool_access_list') or []), 'identity': 'api_key'}
+            try:
+                user = self.finish(st, verified)
+            except NetError as e:
+                out[kid] = {'tools': [], 'reason': 'blocked' if e.reason == 'user' else 'no_account'}
+                continue
+            out[kid] = {'tools': self._callable(st, v.sender, user, exported, book)}
+        return {'visibility': out}
+
+    def _callable(self, st: NetState, peer: str, user: Dict[str, Any], exported: List[str], book) -> List[str]:
+        """Of ``exported``, the tools ``user`` may call from ``peer``: tool blocks, export rules (the key's tool
+        access as a ceiling), then this server's own access policy for the mapped local user (steps 8 to 10 of
+        §15.4, without running anything). The database session is held only for the policy and always closed."""
+        names_of = getattr(book, 'tool_names', None)
+        candidates = []
+        for tool in exported:
+            tn = names_of(tool) if callable(names_of) else [tool]
+            if not self.decide(st.net, 'block_tool', {'peer': peer, 'tool': tool, 'tool_names': tn}).allow:
+                continue
+            if not self.decide(st.net, 'export', {'peer': peer, 'tool': tool, 'user': user, 'tool_names': tn}).allow:
+                continue
+            candidates.append((tool, tn[-1] if tn else tool))
+        if not candidates:
+            return []
+        db = None
+        try:
+            from sajha.auth.access import policy_for
+            db = self.db()
+            access = policy_for(self.auth_context(user, db)).can_execute
+            return [tool for tool, local in candidates if access(local) or access(tool)]
+        except Exception as e:
+            logger.warning(f'SAJHA Net {st.net}: visibility access policy: {e}')
+            return []
+        finally:
+            if db is not None:
+                try:
+                    db.close()
+                except Exception:
+                    pass
 
     def finish(self, st: NetState, verified: Dict[str, Any]) -> Dict[str, Any]:
         """Steps 6 and 7 of protocol §15.4 for a verified net user, whatever resolver verified it."""

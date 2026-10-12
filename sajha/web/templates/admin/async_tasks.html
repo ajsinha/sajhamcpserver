@@ -1,6 +1,6 @@
 {% extends "common/base.html" %}
 {# Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.com #}
-{% block title %}Async Tasks - Admin - SAJHA MCP Server{% endblock %}
+{% block title %}{{ _('Async Tasks - Admin - SAJHA MCP Server') }}{% endblock %}
 {% block extra_css %}
 <style>
 .task-stat{text-align:center;padding:1rem;border-radius:var(--radius-lg);background:var(--t-card);border:1px solid var(--t-card-b)}
@@ -23,21 +23,21 @@
 <div class="container-fluid">
     <div class="d-flex justify-content-between align-items-center mb-3">
         <div>
-            <h1 class="h3 mb-0"><i class="bi bi-skip-forward-circle me-2"></i>Async Tasks</h1>
-            <small class="text-muted">Background tool executions with result delivery</small>
+            <h1 class="h3 mb-0"><i class="bi bi-skip-forward-circle me-2"></i>{{ _('Async Tasks') }}</h1>
+            <small class="text-muted">{{ _('Background tool executions with result delivery') }}</small>
         </div>
         <div>
             <select id="statusFilter" class="form-select form-select-sm d-inline-block" style="width:auto" data-onchange="loadTasks()">
-                <option value="">All Status</option>
-                <option value="queued">Queued</option>
-                <option value="running">Running</option>
-                <option value="completed">Completed</option>
-                <option value="delivered">Delivered</option>
-                <option value="failed">Failed</option>
-                <option value="cancelled">Cancelled</option>
+                <option value="">{{ _('All Status') }}</option>
+                <option value="queued">{{ _('Queued') }}</option>
+                <option value="running">{{ _('Running') }}</option>
+                <option value="completed">{{ _('Completed') }}</option>
+                <option value="delivered">{{ _('Delivered') }}</option>
+                <option value="failed">{{ _('Failed') }}</option>
+                <option value="cancelled">{{ _('Cancelled') }}</option>
             </select>
             <select id="refreshRate" class="form-select form-select-sm d-inline-block ms-1" style="width:auto">
-                <option value="0">Manual</option>
+                <option value="0">{{ _('Manual') }}</option>
                 <option value="3" selected>3s</option>
                 <option value="10">10s</option>
                 <option value="30">30s</option>
@@ -48,29 +48,29 @@
 
     <!-- Stats Row -->
     <div class="row g-3 mb-3">
-        <div class="col"><div class="task-stat"><div class="h2" id="stQueued">—</div><small>Queued</small></div></div>
-        <div class="col"><div class="task-stat"><div class="h2" id="stRunning" style="color:var(--color-info)">—</div><small>Running</small></div></div>
-        <div class="col"><div class="task-stat"><div class="h2" id="stCompleted" style="color:var(--color-success)">—</div><small>Completed</small></div></div>
-        <div class="col"><div class="task-stat"><div class="h2" id="stDelivered" style="color:var(--color-success)">—</div><small>Delivered</small></div></div>
-        <div class="col"><div class="task-stat"><div class="h2" id="stFailed" style="color:var(--color-danger)">—</div><small>Failed</small></div></div>
-        <div class="col"><div class="task-stat"><div class="h2" id="stCancelled">—</div><small>Cancelled</small></div></div>
+        <div class="col"><div class="task-stat"><div class="h2" id="stQueued">—</div><small>{{ _('Queued') }}</small></div></div>
+        <div class="col"><div class="task-stat"><div class="h2" id="stRunning" style="color:var(--color-info)">—</div><small>{{ _('Running') }}</small></div></div>
+        <div class="col"><div class="task-stat"><div class="h2" id="stCompleted" style="color:var(--color-success)">—</div><small>{{ _('Completed') }}</small></div></div>
+        <div class="col"><div class="task-stat"><div class="h2" id="stDelivered" style="color:var(--color-success)">—</div><small>{{ _('Delivered') }}</small></div></div>
+        <div class="col"><div class="task-stat"><div class="h2" id="stFailed" style="color:var(--color-danger)">—</div><small>{{ _('Failed') }}</small></div></div>
+        <div class="col"><div class="task-stat"><div class="h2" id="stCancelled">—</div><small>{{ _('Cancelled') }}</small></div></div>
     </div>
 
     <!-- Workers & Queue Info -->
     <div class="row g-3 mb-3">
         <div class="col-md-6">
             <div class="card"><div class="card-body py-2 d-flex justify-content-around text-center small">
-                <div><strong id="stWorkers">—</strong><br><span class="text-muted">Workers</span></div>
-                <div><strong id="stQueueSize">—</strong><br><span class="text-muted">In Queue</span></div>
-                <div><strong id="stQueueMax">—</strong><br><span class="text-muted">Queue Max</span></div>
-                <div><strong id="stTotal">—</strong><br><span class="text-muted">Total Tasks</span></div>
+                <div><strong id="stWorkers">—</strong><br><span class="text-muted">{{ _('Workers') }}</span></div>
+                <div><strong id="stQueueSize">—</strong><br><span class="text-muted">{{ _('In Queue') }}</span></div>
+                <div><strong id="stQueueMax">—</strong><br><span class="text-muted">{{ _('Queue Max') }}</span></div>
+                <div><strong id="stTotal">—</strong><br><span class="text-muted">{{ _('Total Tasks') }}</span></div>
             </div></div>
         </div>
         <div class="col-md-6">
             <div class="card"><div class="card-body py-2 small">
-                <strong>Submit async:</strong>
-                <code class="ms-1">POST /api/tools/{name}/execute-async</code>
-                <br><span class="text-muted">Body: <code>{"symbol":"AAPL", "async":{"delivery":"webhook","destination":"https://..."}}</code></span>
+                {% trans %}<strong>Submit async:</strong>
+                <code class="ms-1">POST /api/tools/{name}/execute-async</code>{% endtrans %}
+                <br><span class="text-muted">{% trans %}Body: <code>{"symbol":"AAPL", "async":{"delivery":"webhook","destination":"https://..."}}</code>{% endtrans %}</span>
             </div></div>
         </div>
     </div>
@@ -80,8 +80,8 @@
         <div class="card-body p-0" style="max-height:500px;overflow-y:auto">
             <table class="task-table">
                 <thead><tr>
-                    <th>Task ID</th><th>Tool</th><th>Status</th><th>Delivery</th>
-                    <th>Destination</th><th>Duration</th><th>Submitted</th><th>Actions</th>
+                    <th>{{ _('Task ID') }}</th><th>{{ _('Tool') }}</th><th>{{ _('Status') }}</th><th>{{ _('Delivery') }}</th>
+                    <th>{{ _('Destination') }}</th><th>{{ _('Duration') }}</th><th>{{ _('Submitted') }}</th><th>{{ _('Actions') }}</th>
                 </tr></thead>
                 <tbody id="taskRows"></tbody>
             </table>
@@ -91,12 +91,12 @@
     <!-- Detail Panel -->
     <div id="detailPanel" class="detail-panel">
         <div class="d-flex justify-content-between mb-2">
-            <strong id="detailTitle">Task Detail</strong>
+            <strong id="detailTitle">{{ _('Task Detail') }}</strong>
             <button class="btn btn-sm btn-outline-secondary" data-onclick="sajhaDisplay('detailPanel', 'none')"><i class="bi bi-x"></i></button>
         </div>
         <div class="row g-3">
-            <div class="col-md-6"><strong>Arguments:</strong><pre id="detailArgs">{}</pre></div>
-            <div class="col-md-6"><strong>Result:</strong><pre id="detailResult">{}</pre></div>
+            <div class="col-md-6"><strong>{{ _('Arguments:') }}</strong><pre id="detailArgs">{}</pre></div>
+            <div class="col-md-6"><strong>{{ _('Result:') }}</strong><pre id="detailResult">{}</pre></div>
         </div>
     </div>
 </div>
@@ -124,7 +124,7 @@ function loadTasks() {
         var tasks = d.tasks || [];
         var html = '';
         if (tasks.length === 0) {
-            html = '<tr><td colspan="8" class="text-center text-muted py-4">No async tasks. Submit one via POST /api/tools/{name}/execute-async</td></tr>';
+            html = '<tr><td colspan="8" class="text-center text-muted py-4">' + _t('No async tasks. Submit one via POST /api/tools/{name}/execute-async') + '</td></tr>';
         }
         tasks.forEach(function(t) {
             var bc = 'badge-' + t.status;
@@ -158,7 +158,7 @@ function retryTask(id) {
 }
 function viewTask(id) {
     fetch('/api/async/tasks/'+id,{credentials:'same-origin'}).then(function(r){return r.json()}).then(function(d){
-        document.getElementById('detailTitle').textContent = 'Task: '+d.task_id+' — '+d.tool_name;
+        document.getElementById('detailTitle').textContent = _t('Task: %(id)s', {id: d.task_id})+' — '+d.tool_name;
         document.getElementById('detailArgs').textContent = JSON.stringify(d.arguments||{},null,2);
         document.getElementById('detailResult').textContent = JSON.stringify(d.result||d.error||'—',null,2);
         document.getElementById('detailPanel').style.display = 'block';

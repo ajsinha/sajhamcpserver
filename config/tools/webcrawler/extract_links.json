@@ -1,7 +1,7 @@
 {
   "name": "extract_links",
   "implementation": "sajha.tools.impl.webcrawler_tool_refactored.ExtractLinksTool",
-  "description": "All hyperlinks (<a href>) on one web page, marked internal or external.\nReturns {url, links: [{url, is_internal, is_absolute}], link_count, internal_count, external_count, extracted_at}.\nInputs (* required): url* (string, absolute http(s) URL), normalize (boolean, default true: relative links made absolute, unusable ones dropped), internal_only (boolean, default false: keep only same-domain links).\nTo follow the links as well use crawl_url; for a site's listed pages crawl_sitemap.\nExample: {\"url\": \"https://docs.python.org/3/\", \"internal_only\": true}",
+  "description": "All hyperlinks (<a href>) on one web page, marked internal or external.\nReturns {url, links: [{url, is_internal, is_absolute}], link_count, internal_count, external_count, extracted_at}.\nInputs (* required): url* (string, absolute http(s) URL), normalize (boolean, default true: relative links made absolute, unusable ones dropped), internal_only (boolean, default false: keep only same-domain links), render_js (boolean: run JavaScript first, when enabled).\nTo follow the links as well use crawl_url; for a site's listed pages crawl_sitemap.\nExample: {\"url\": \"https://docs.python.org/3/\", \"internal_only\": true}",
   "annotations": {"readOnlyHint": true, "idempotentHint": true, "openWorldHint": true},
   "version": "2.9.8",
   "enabled": true,
@@ -21,6 +21,11 @@
         "type": "boolean",
         "description": "Return only internal (same-domain) links",
         "default": false
+      },
+      "render_js": {
+        "type": "boolean",
+        "default": false,
+        "description": "Run the page's JavaScript in a headless browser first; only when the operator enabled tools.webcrawler.javascript, and every request the page makes still passes the outbound guard"
       }
     },
     "required": ["url"],

@@ -51,7 +51,7 @@ from sajha.core.mcp_2025_11_25 import MCPError, SUPPORTED_PROTOCOL_VERSIONS as H
 from sajha.core.mcp_mrtr import (MRTR_METHODS, InputRequired, RequestStateError, accepted_content,
                                  elicitation_form_supported, elicitation_request, missing_capabilities_for,
                                  sign_state, validate_input_responses, verify_state)
-from sajha.core.mcp_tasks import (TASKS_EXTENSION, TaskNotFound, client_declares_tasks, get_task_store,
+from sajha.core.mcp_tasks import (TASKS_EXTENSION, RemoteTask, TaskNotFound, client_declares_tasks, get_task_store,
                                   required_capability)
 from sajha.core.mcp_tool_context import ModernToolContext
 from sajha.core import mcp_apps
@@ -834,7 +834,8 @@ class ModernMCPServer:
         elif method == "resources/templates/list":
             result = await run_in_threadpool(h._handle_resources_templates_list, params, session)
         elif method in self.TASK_METHODS:
-            result = self._task_method(method, params, ctx, session)
+            # a task held by another server is read through it (SAJHA Net host-side tasks): off the loop
+            result = await run_in_threadpool(self._task_method, method, params, ctx, session)
         else:  # completion/complete
             result = await run_in_threadpool(h._handle_completion_complete, params, session)
         return self._finish(method, dict(result or {}), session)
@@ -1064,9 +1065,13 @@ class ModernMCPServer:
             run_ctx = ModernToolContext(client_capabilities=client_capabilities,
                                         input_responses=task.responses, state=task.state,
                                         state_verified=True).bind_loop()
+            run_ctx.task_id = task.task_id
             task.context = run_ctx
             try:
-                return await self._invoke_tool(name, call_params, session, run_ctx)
+                result = await self._invoke_tool(name, call_params, session, run_ctx)
+                if run_ctx.remote_task:            # the tool's server handed the work to a remote task
+                    raise RemoteTask(run_ctx.remote_task)
+                return result
             except InputRequired as ir:
                 missing = missing_capabilities_for(ir.requests, client_capabilities)
                 if missing:

@@ -15,7 +15,10 @@ Request (one JSON object on stdin)::
      "files":   {"name": "content", ...},      # written into the work dir first
      "env":     {"NAME": "value", ...},        # the whole environment; nothing inherited
      "limits":  {"cpu_seconds", "memory_mb", "max_file_mb", "max_processes", "max_open_files"},
-     "network": {"mode": "none" | "allowlist", "ports": [443], "hosts": ["api.example.com"]},
+     "network": {"mode": "none" | "allowlist" | "proxy", "ports": [443], "hosts": ["api.example.com"],
+                 # mode == "proxy": the egress proxy's Unix socket, the bridge port, and whether the
+                 # backend already gave the sandbox its own network namespace
+                 "proxy_socket": "/run/sajha-egress/egress.sock", "proxy_port": 3128, "isolated": bool},
      "confine": {"userns": bool, "landlock": bool, "seccomp": bool, "strict": bool,
                  "deny_roots": [...], "extra_read_paths": [...]},
      # op == "python_tool"
@@ -37,6 +40,13 @@ dir, TCP connect/bind only to allowed ports, no signals or abstract sockets
 outside the sandbox); seccomp (no ptrace, io_uring, bpf, mount, unshare, and no
 sockets when the network is off). Each step is best effort unless ``strict``;
 what was applied is reported back in ``applied``.
+
+Network mode ``proxy`` (the egress proxy, sajha/sandbox/egress.py): the sandbox has
+its own network namespace with only a loopback interface. Before any confinement
+the runner forks a small bridge that listens on ``127.0.0.1:proxy_port`` and relays
+each connection to the server's per-run proxy socket; Landlock then lets the tool
+connect only to that port, and seccomp refuses Unix sockets. Without a network
+namespace the runner refuses to run in this mode, ``strict`` or not.
 """
 
 import ctypes
@@ -118,6 +128,112 @@ def _enter_namespaces(net_off):
     APPLIED['userns'] = True
     APPLIED['pidns'] = True
     APPLIED['netns'] = bool(net_off)
+
+
+# ── Egress bridge (network mode "proxy") ───────────────────────────────────
+
+def _loopback_up():
+    """Bring ``lo`` up in a network namespace the runner created (bwrap and docker already have)."""
+    import fcntl
+    import socket
+    s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    try:
+        ifr = struct.pack('16sH', b'lo', 0) + b'\0' * 22
+        flags = struct.unpack('16sH', fcntl.ioctl(s.fileno(), 0x8913, ifr)[:18])[1]   # SIOCGIFFLAGS
+        if not flags & 1:                                                             # IFF_UP
+            fcntl.ioctl(s.fileno(), 0x8914, struct.pack('16sH', b'lo', flags | 1) + b'\0' * 22)
+    finally:
+        s.close()
+
+
+def _bridge_loop(srv, path):
+    import socket
+    import threading
+
+    def pump(a, b):
+        try:
+            while True:
+                data = a.recv(65536)
+                if not data:
+                    break
+                b.sendall(data)
+        except OSError:
+            pass
+        finally:
+            try:
+                b.shutdown(socket.SHUT_WR)
+            except OSError:
+                pass
+
+    def serve(c):
+        u = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+        try:
+            u.connect(path)
+        except OSError:
+            c.close()
+            u.close()
+            return
+        t = threading.Thread(target=pump, args=(c, u))
+        t.daemon = True
+        t.start()
+        pump(u, c)
+        t.join()
+        c.close()
+        u.close()
+
+    while True:
+        try:
+            c, _ = srv.accept()
+        except OSError:
+            continue
+        t = threading.Thread(target=serve, args=(c,))
+        t.daemon = True
+        t.start()
+
+
+def _start_bridge(network):
+    """Fork the bridge from ``127.0.0.1:proxy_port`` to the proxy socket, before any
+    confinement (it needs a Unix socket, which seccomp then refuses the tool)."""
+    import socket
+    path = network.get('proxy_socket') or ''
+    port = int(network.get('proxy_port') or 3128)
+    if not (network.get('isolated') or APPLIED.get('netns')):
+        _die('the egress proxy needs a network namespace and none could be created here '
+             '(unprivileged user namespaces off?); use the bwrap or docker backend, or '
+             'sandbox.egress.mode: direct')
+    if not path:
+        _die('network mode proxy without proxy_socket')
+    try:
+        _loopback_up()
+    except OSError as e:
+        _die('cannot bring up loopback for the egress bridge: %s' % e)
+    srv = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    srv.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+    try:
+        srv.bind(('127.0.0.1', port))
+        srv.listen(64)
+    except OSError as e:
+        _die('cannot start the egress bridge on 127.0.0.1:%d: %s' % (port, e))
+    pid = os.fork()
+    if pid:
+        srv.close()
+        APPLIED['egress'] = {'bridge_port': port, 'direct_network': False}
+        return
+    try:
+        try:
+            libc = ctypes.CDLL(None, use_errno=True)
+            libc.prctl(1, signal.SIGKILL, 0, 0, 0)  # PR_SET_PDEATHSIG
+        except Exception:
+            pass
+        null = os.open(os.devnull, os.O_RDWR)
+        for fd in (0, 1, 2):
+            os.dup2(null, fd)
+        keep = srv.fileno()
+        os.closerange(3, keep)
+        os.closerange(keep + 1, 65536)   # never hold the server's pipes or the result fd open
+        _bridge_loop(srv, path)
+    finally:
+        os._exit(0)
 
 
 # ── rlimits ────────────────────────────────────────────────────────────────
@@ -289,6 +405,7 @@ def _landlock(confine, network, workdir):
 
     read_x = _FS_READ_FILE | _FS_READ_DIR | _FS_EXECUTE
     net_on = network.get('mode') == 'allowlist'
+    tcp_on = network.get('mode') in ('allowlist', 'proxy')
     readable = _read_paths(confine, net_on)
     for p in readable:
         allow_path(p, read_x)
@@ -301,7 +418,7 @@ def _landlock(confine, network, workdir):
         os.close(rfd)
         return
     ports = []
-    if net_handled and net_on:
+    if net_handled and tcp_on:
         for port in network.get('ports') or []:
             rule = ctypes.create_string_buffer(struct.pack('QQ', _NET_CONNECT_TCP, int(port)), 16)
             if libc.syscall(_LL_ADD_RULE, ctypes.c_int(rfd), ctypes.c_int(2), rule,
@@ -345,7 +462,7 @@ def _seccomp(network):
         _soft_fail('seccomp', 'no filter for %s/%s' % (sys.platform, machine))
         return
     arch, socket_nr, blocked = _SECCOMP[machine]
-    allowed_families = [2, 10, 16] if network.get('mode') == 'allowlist' else []  # INET, INET6, NETLINK
+    allowed_families = [2, 10, 16] if network.get('mode') in ('allowlist', 'proxy') else []  # INET, INET6, NETLINK
     LD, JEQ, JGE, RET = 0x20, 0x15, 0x35, 0x06
     ALLOW, EPERM, EACCES = 0x7FFF0000, 0x00050000 | 1, 0x00050000 | 13
     # Assemble with symbolic jump targets, then resolve to relative offsets.
@@ -537,10 +654,12 @@ def main():
     confine = req.get('confine') or {}
     network = req.get('network') or {'mode': 'none'}
     _STRICT = bool(confine.get('strict'))
-    net_off = network.get('mode') != 'allowlist'
+    net_off = network.get('mode') != 'allowlist'   # "proxy" too: its own namespace, no direct route
 
     if confine.get('userns'):
         _enter_namespaces(net_off)
+    if network.get('mode') == 'proxy':
+        _start_bridge(network)
     _apply_rlimits(req.get('limits') or {})
     if confine.get('landlock') or confine.get('seccomp'):
         _no_new_privs()

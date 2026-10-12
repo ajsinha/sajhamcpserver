@@ -2,7 +2,7 @@
 <!--
 Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.com
 -->
-{% block title %}PowerBI Report Tool Creator - MCP Studio - SAJHA MCP Server{% endblock %}
+{% block title %}{{ _('PowerBI Report Tool Creator - MCP Studio - SAJHA MCP Server') }}{% endblock %}
 
 {% block extra_css %}
 <style>
@@ -227,11 +227,11 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
             </div>
             <div>
                 <h3 class="mb-0">
-                    <i class="bi bi-file-earmark-pdf me-2"></i>PowerBI PDF Report Tool Creator
+                    <i class="bi bi-file-earmark-pdf me-2"></i>{{ _('PowerBI PDF Report Tool Creator') }}
                     <span class="badge bg-light text-dark ms-2" style="font-size: 0.5em;">v{{ app_version }}</span>
                 </h3>
                 <p class="subtitle mb-0">
-                    Create MCP tools to retrieve PowerBI reports as PDF (base64 encoded)
+                    {{ _('Create MCP tools to retrieve PowerBI reports as PDF (base64 encoded)') }}
                 </p>
             </div>
         </div>
@@ -247,40 +247,40 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
             <div class="form-section">
                 <div class="section-header primary">
                     <i class="bi bi-info-circle"></i>
-                    Tool Information
+                    {{ _('Tool Information') }}
                 </div>
                 <div class="section-body">
                     <div class="mb-3">
-                        <label class="form-label fw-bold">Tool Name <span class="text-danger">*</span></label>
+                        <label class="form-label fw-bold">{{ _('Tool Name') }} <span class="text-danger">*</span></label>
                         <input type="text" id="toolName" class="form-control" 
                                placeholder="e.g., sales_report_pdf" 
                                pattern="[a-z][a-z0-9_]*">
-                        <div class="help-text">Lowercase letters, numbers, underscores only. Must start with a letter.</div>
+                        <div class="help-text">{{ _('Lowercase letters, numbers, underscores only. Must start with a letter.') }}</div>
                     </div>
                     
                     <div class="mb-3">
-                        <label class="form-label fw-bold">Description <span class="text-danger">*</span></label>
+                        <label class="form-label fw-bold">{{ _('Description') }} <span class="text-danger">*</span></label>
                         <textarea id="description" class="form-control" rows="2"
                                   placeholder="e.g., Retrieve the monthly sales report as PDF"></textarea>
                     </div>
                     
                     <div class="mb-3">
-                        <label class="form-label fw-bold">Report Display Name <span class="text-danger">*</span></label>
+                        <label class="form-label fw-bold">{{ _('Report Display Name') }} <span class="text-danger">*</span></label>
                         <input type="text" id="reportName" class="form-control" 
-                               placeholder="e.g., Monthly Sales Report">
-                        <div class="help-text">Human-readable name for the report (for documentation and logging)</div>
+                               placeholder="{{ _('e.g., Monthly Sales Report') }}">
+                        <div class="help-text">{{ _('Human-readable name for the report (for documentation and logging)') }}</div>
                     </div>
                     
                     <div class="row">
                         <div class="col-md-6">
-                            <label class="form-label fw-bold">Category</label>
+                            <label class="form-label fw-bold">{{ _('Category') }}</label>
                             <input type="text" id="category" class="form-control" value="PowerBI Reports">
                         </div>
                         <div class="col-md-6">
-                            <label class="form-label fw-bold">Tags</label>
+                            <label class="form-label fw-bold">{{ _('Tags') }}</label>
                             <input type="text" id="tags" class="form-control" 
-                                   placeholder="powerbi, report, pdf, sales">
-                            <div class="help-text">Comma-separated tags</div>
+                                   placeholder="{{ _('powerbi, report, pdf, sales') }}">
+                            <div class="help-text">{{ _('Comma-separated tags') }}</div>
                         </div>
                     </div>
                 </div>
@@ -290,13 +290,13 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
             <div class="form-section">
                 <div class="section-header">
                     <i class="bi bi-bar-chart-fill"></i>
-                    PowerBI Configuration
+                    {{ _('PowerBI Configuration') }}
                 </div>
                 <div class="section-body">
                     <div class="azure-info">
-                        <h6><i class="bi bi-info-circle me-2"></i>Where to Find These IDs</h6>
+                        <h6><i class="bi bi-info-circle me-2"></i>{{ _('Where to Find These IDs') }}</h6>
                         <p class="mb-2 small">
-                            Open your report in PowerBI Service. The URL contains both IDs:
+                            {{ _('Open your report in PowerBI Service. The URL contains both IDs:') }}
                         </p>
                         <code class="small">
                             https://app.powerbi.com/groups/<strong>{workspace_id}</strong>/reports/<strong>{report_id}</strong>/...
@@ -304,43 +304,43 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
                     </div>
                     
                     <div class="mb-3">
-                        <label class="form-label fw-bold">Workspace ID (Group ID) <span class="text-danger">*</span></label>
+                        <label class="form-label fw-bold">{{ _('Workspace ID (Group ID)') }} <span class="text-danger">*</span></label>
                         <input type="text" id="workspaceId" class="form-control guid-input" 
-                               placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx">
-                        <div class="help-text">PowerBI Workspace GUID from the URL</div>
+                               placeholder="{{ _('xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx') }}">
+                        <div class="help-text">{{ _('PowerBI Workspace GUID from the URL') }}</div>
                     </div>
                     
                     <div class="mb-3">
-                        <label class="form-label fw-bold">Report ID <span class="text-danger">*</span></label>
+                        <label class="form-label fw-bold">{{ _('Report ID') }} <span class="text-danger">*</span></label>
                         <input type="text" id="reportId" class="form-control guid-input" 
-                               placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx">
-                        <div class="help-text">PowerBI Report GUID from the URL</div>
+                               placeholder="{{ _('xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx') }}">
+                        <div class="help-text">{{ _('PowerBI Report GUID from the URL') }}</div>
                     </div>
                     
                     <div class="mb-3">
-                        <label class="form-label fw-bold">Page Name (Optional)</label>
+                        <label class="form-label fw-bold">{{ _('Page Name (Optional)') }}</label>
                         <input type="text" id="pageName" class="form-control" 
-                               placeholder="Leave empty to export all pages">
-                        <div class="help-text">Specific page to export (e.g., "ReportSection1"). Leave empty for full report.</div>
+                               placeholder="{{ _('Leave empty to export all pages') }}">
+                        <div class="help-text">{{ _('Specific page to export (e.g., "ReportSection1"). Leave empty for full report.') }}</div>
                     </div>
                     
                     <div class="mb-3">
-                        <label class="form-label fw-bold">Export Format</label>
+                        <label class="form-label fw-bold">{{ _('Export Format') }}</label>
                         <div class="format-select">
                             <button type="button" class="format-btn active" data-format="PDF">
                                 <i class="bi bi-file-earmark-pdf"></i>
-                                PDF
-                                <small>Most common</small>
+                                {% trans %}PDF
+                                <small>Most common</small>{% endtrans %}
                             </button>
                             <button type="button" class="format-btn" data-format="PPTX">
                                 <i class="bi bi-file-earmark-ppt"></i>
-                                PPTX
-                                <small>PowerPoint</small>
+                                {% trans %}PPTX
+                                <small>PowerPoint</small>{% endtrans %}
                             </button>
                             <button type="button" class="format-btn" data-format="PNG">
                                 <i class="bi bi-file-earmark-image"></i>
-                                PNG
-                                <small>Image</small>
+                                {% trans %}PNG
+                                <small>Image</small>{% endtrans %}
                             </button>
                         </div>
                     </div>
@@ -351,33 +351,33 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
             <div class="form-section">
                 <div class="section-header success">
                     <i class="bi bi-shield-lock"></i>
-                    Azure AD Authentication
+                    {{ _('Azure AD Authentication') }}
                 </div>
                 <div class="section-body">
                     <div class="alert alert-info py-2 mb-3">
                         <i class="bi bi-info-circle me-2"></i>
-                        <strong>Service Principal Required:</strong> Create an Azure AD App Registration with PowerBI API permissions.
+                        {% trans %}<strong>Service Principal Required:</strong> Create an Azure AD App Registration with PowerBI API permissions.{% endtrans %}
                     </div>
                     
                     <div class="mb-3">
-                        <label class="form-label fw-bold">Tenant ID <span class="text-danger">*</span></label>
+                        <label class="form-label fw-bold">{{ _('Tenant ID') }} <span class="text-danger">*</span></label>
                         <input type="text" id="tenantId" class="form-control guid-input" 
-                               placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx">
-                        <div class="help-text">Azure AD Tenant ID (Directory ID)</div>
+                               placeholder="{{ _('xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx') }}">
+                        <div class="help-text">{{ _('Azure AD Tenant ID (Directory ID)') }}</div>
                     </div>
                     
                     <div class="mb-3">
-                        <label class="form-label fw-bold">Client ID (Application ID) <span class="text-danger">*</span></label>
+                        <label class="form-label fw-bold">{{ _('Client ID (Application ID)') }} <span class="text-danger">*</span></label>
                         <input type="text" id="clientId" class="form-control guid-input" 
-                               placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx">
-                        <div class="help-text">Azure AD Application (Client) ID</div>
+                               placeholder="{{ _('xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx') }}">
+                        <div class="help-text">{{ _('Azure AD Application (Client) ID') }}</div>
                     </div>
                     
                     <div class="mb-3">
-                        <label class="form-label fw-bold">Client Secret Environment Variable</label>
+                        <label class="form-label fw-bold">{{ _('Client Secret Environment Variable') }}</label>
                         <input type="text" id="clientSecretEnv" class="form-control" 
                                value="POWERBI_CLIENT_SECRET">
-                        <div class="help-text">Name of environment variable containing the client secret (never stored in code)</div>
+                        <div class="help-text">{{ _('Name of environment variable containing the client secret (never stored in code)') }}</div>
                     </div>
                 </div>
             </div>
@@ -386,20 +386,20 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
             <div class="form-section">
                 <div class="section-header secondary">
                     <i class="bi bi-gear"></i>
-                    Advanced Options
+                    {{ _('Advanced Options') }}
                 </div>
                 <div class="section-body">
                     <div class="row">
                         <div class="col-md-6">
-                            <label class="form-label fw-bold">Timeout (seconds)</label>
+                            <label class="form-label fw-bold">{{ _('Timeout (seconds)') }}</label>
                             <input type="number" id="timeout" class="form-control" 
                                    value="120" min="30" max="600">
-                            <div class="help-text">Export timeout (30-600 seconds)</div>
+                            <div class="help-text">{{ _('Export timeout (30-600 seconds)') }}</div>
                         </div>
                         <div class="col-md-6">
-                            <label class="form-label fw-bold">Author</label>
+                            <label class="form-label fw-bold">{{ _('Author') }}</label>
                             <input type="text" id="author" class="form-control" 
-                                   placeholder="Optional author name">
+                                   placeholder="{{ _('Optional author name') }}">
                         </div>
                     </div>
                 </div>
@@ -408,13 +408,13 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
             <!-- Action Buttons -->
             <div class="d-flex gap-3 mb-4">
                 <button type="button" class="btn btn-preview" data-onclick="previewTool()">
-                    <i class="bi bi-eye me-2"></i>Preview Configuration
+                    <i class="bi bi-eye me-2"></i>{{ _('Preview Configuration') }}
                 </button>
                 <button type="button" class="btn btn-deploy" data-onclick="deployTool()">
-                    <i class="bi bi-rocket-takeoff me-2"></i>Deploy Tool
+                    <i class="bi bi-rocket-takeoff me-2"></i>{{ _('Deploy Tool') }}
                 </button>
                 <a href="{{ url_for('studio_home') }}" class="btn btn-outline-secondary">
-                    <i class="bi bi-arrow-left me-2"></i>Back to Studio
+                    <i class="bi bi-arrow-left me-2"></i>{{ _('Back to Studio') }}
                 </a>
             </div>
         </div>
@@ -423,8 +423,8 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
         <div class="col-lg-5">
             <div class="preview-panel">
                 <div class="preview-header">
-                    <span><i class="bi bi-code-slash me-2"></i>Live Preview</span>
-                    <span class="badge bg-light text-dark">JSON Config</span>
+                    <span><i class="bi bi-code-slash me-2"></i>{{ _('Live Preview') }}</span>
+                    <span class="badge bg-light text-dark">{{ _('JSON Config') }}</span>
                 </div>
                 <div class="preview-content">
                     <pre id="previewCode">{
@@ -440,13 +440,13 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
             </div>
             
             <div class="quick-tips mt-3">
-                <h6><i class="bi bi-lightbulb me-2"></i>Quick Tips</h6>
+                <h6><i class="bi bi-lightbulb me-2"></i>{{ _('Quick Tips') }}</h6>
                 <ul>
-                    <li>The report will be returned as <strong>base64 encoded</strong> data</li>
-                    <li>Caller decodes base64 to get the actual PDF/PPTX/PNG file</li>
-                    <li>Set <code>POWERBI_CLIENT_SECRET</code> environment variable before running</li>
-                    <li>Ensure Service Principal has <strong>Report.Read.All</strong> permission</li>
-                    <li>Add Service Principal to the PowerBI Workspace as <strong>Member</strong></li>
+                    <li>{% trans %}The report will be returned as <strong>base64 encoded</strong> data{% endtrans %}</li>
+                    <li>{{ _('Caller decodes base64 to get the actual PDF/PPTX/PNG file') }}</li>
+                    <li>{% trans %}Set <code>POWERBI_CLIENT_SECRET</code> environment variable before running{% endtrans %}</li>
+                    <li>{% trans %}Ensure Service Principal has <strong>Report.Read.All</strong> permission{% endtrans %}</li>
+                    <li>{% trans %}Add Service Principal to the PowerBI Workspace as <strong>Member</strong>{% endtrans %}</li>
                 </ul>
             </div>
         </div>
@@ -538,43 +538,43 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
         const errors = [];
         
         if (!data.tool_name) {
-            errors.push('Tool name is required');
+            errors.push(_t('Tool name is required'));
         } else if (!/^[a-z][a-z0-9_]*$/.test(data.tool_name)) {
-            errors.push('Tool name must start with lowercase letter and contain only letters, numbers, underscores');
+            errors.push(_t('Tool name must start with lowercase letter and contain only letters, numbers, underscores'));
         }
         
         if (!data.description) {
-            errors.push('Description is required');
+            errors.push(_t('Description is required'));
         }
         
         if (!data.report_name) {
-            errors.push('Report display name is required');
+            errors.push(_t('Report display name is required'));
         }
         
         const guidPattern = /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/;
         
         if (!data.workspace_id) {
-            errors.push('Workspace ID is required');
+            errors.push(_t('Workspace ID is required'));
         } else if (!guidPattern.test(data.workspace_id)) {
-            errors.push('Workspace ID must be a valid GUID');
+            errors.push(_t('Workspace ID must be a valid GUID'));
         }
         
         if (!data.report_id) {
-            errors.push('Report ID is required');
+            errors.push(_t('Report ID is required'));
         } else if (!guidPattern.test(data.report_id)) {
-            errors.push('Report ID must be a valid GUID');
+            errors.push(_t('Report ID must be a valid GUID'));
         }
         
         if (!data.tenant_id) {
-            errors.push('Tenant ID is required');
+            errors.push(_t('Tenant ID is required'));
         } else if (!guidPattern.test(data.tenant_id)) {
-            errors.push('Tenant ID must be a valid GUID');
+            errors.push(_t('Tenant ID must be a valid GUID'));
         }
         
         if (!data.client_id) {
-            errors.push('Client ID is required');
+            errors.push(_t('Client ID is required'));
         } else if (!guidPattern.test(data.client_id)) {
-            errors.push('Client ID must be a valid GUID');
+            errors.push(_t('Client ID must be a valid GUID'));
         }
         
         return errors;
@@ -583,7 +583,7 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
     async function previewTool() {
         const errors = validateForm();
         if (errors.length > 0) {
-            showStatus('Validation errors: ' + errors.join('; '), 'error');
+            showStatus(_t('Validation errors: ') + errors.join('; '), 'error');
             return;
         }
         
@@ -600,25 +600,25 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
             
             if (result.success) {
                 document.getElementById('previewCode').textContent = JSON.stringify(result.config, null, 2);
-                showStatus('Preview generated successfully!', 'success');
+                showStatus(_t('Preview generated successfully!'), 'success');
             } else {
-                showStatus('Preview error: ' + result.error, 'error');
+                showStatus(_t('Preview error: ') + result.error, 'error');
             }
         } catch (error) {
-            showStatus('Request failed: ' + error.message, 'error');
+            showStatus(_t('Request failed: ') + error.message, 'error');
         }
     }
     
     async function deployTool() {
         const errors = validateForm();
         if (errors.length > 0) {
-            showStatus('Validation errors: ' + errors.join('; '), 'error');
+            showStatus(_t('Validation errors: ') + errors.join('; '), 'error');
             return;
         }
         
         const data = getFormData();
         
-        if (!confirm(`Deploy PowerBI tool "${data.tool_name}"?\n\nThis will create the tool configuration and implementation files.`)) {
+        if (!confirm(_t('Deploy PowerBI tool "%(tool_name)s"?\n\nThis will create the tool configuration and implementation files.', {tool_name: data.tool_name}))) {
             return;
         }
         
@@ -632,17 +632,17 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
             const result = await response.json();
             
             if (result.success) {
-                showStatus('✓ Tool deployed successfully! ' + result.message, 'success');
+                showStatus(_t('✓ Tool deployed successfully! ') + result.message, 'success');
                 
                 // Update preview with final config
                 if (result.config) {
                     document.getElementById('previewCode').textContent = JSON.stringify(result.config, null, 2);
                 }
             } else {
-                showStatus('Deployment failed: ' + result.error, 'error');
+                showStatus(_t('Deployment failed: ') + result.error, 'error');
             }
         } catch (error) {
-            showStatus('Request failed: ' + error.message, 'error');
+            showStatus(_t('Request failed: ') + error.message, 'error');
         }
     }
     

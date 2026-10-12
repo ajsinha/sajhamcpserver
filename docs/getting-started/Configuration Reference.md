@@ -28,7 +28,7 @@ The **Reader** column in the tables below says which one applies to each key.
 | Reader | Used for | Resolution (highest wins) |
 |--------|----------|---------------------------|
 | **Settings**: `get_settings()` in `sajha/core/config.py` | app, server, db, auth (secrets, JWT), config, hot_reload, logging, data, cache, async, shell | 1. env var named after the Settings field, `SAJHA_<FIELD_NAME>` (pydantic-settings, `env_prefix='SAJHA_'`) → 2. `SAJHA_` + the dotted key in upper case with dots changed to underscores → 3. YAML (after `${VAR}` substitution) → 4. built-in default. It is evaluated once per process (`lru_cache`). |
-| **Live `_get`**: `_get` / `_bool` / `_int` / `_list` in `sajha/core/config.py`, called on each use | all `mcp.*` keys, `state.*`, `auth.login.*`, `auth.password.min_length`, `auth.secrets_file`, `async.delivery.webhook.allowed_urls`, `playground.*`, `sandbox.*`, `workflows.*`, `quality.*`, `sanctions.*` | 1. `SAJHA_<DOTTED_KEY>` (for example `SAJHA_MCP_AUTH_MODE`) → 2. YAML → 3. code default. Env vars are read on every call, but the YAML is a snapshot taken at import, so a YAML edit needs a restart. |
+| **Live `_get`**: `_get` / `_bool` / `_int` / `_list` in `sajha/core/config.py`, called on each use | all `mcp.*` keys, `state.*`, `auth.login.*`, `auth.password.min_length`, `auth.secrets_file`, `async.delivery.webhook.allowed_urls`, `playground.*`, `console.*`, `sandbox.*`, `workflows.*`, `quality.*`, `sanctions.*` | 1. `SAJHA_<DOTTED_KEY>` (for example `SAJHA_MCP_AUTH_MODE`) → 2. YAML → 3. code default. Env vars are read on every call, but the YAML is a snapshot taken at import, so a YAML edit needs a restart. |
 | **Raw YAML / PropertiesConfigurator**: `sajha.core.config._CFG` and `sajha/core/properties_configurator.py` | `ai.tool_search.*`, `ai.embedding_model`, `${key}` references inside tool JSON configs (`storage.*` is read this way too, but with env overrides first: see [storage](#storage)) | YAML only (after `${VAR}` substitution); `SAJHA_` env overrides **do not apply**. To override one of these keys, edit the YAML, or put a `${VAR:default}` placeholder in the value and set `VAR`. |
 | **AI settings**: `sajha/ai/llm/settings.py` | the rest of `ai.*` (providers, aliases, policy, budgets, cache, retry, breaker, gateway, ask) | 1. `SAJHA_AI_<SECTION>_<FIELD>` → 2. the vendor's own variable (providers only) → 3. YAML → 4. the `llm_providers` / `llm_models` tables (providers only) → 5. default. See [ai](#ai). |
 
@@ -309,6 +309,19 @@ Reader: Settings.
 | `config.apikeys.path` | `config/apikeys.json` | `SAJHA_CONFIG_APIKEYS_PATH` | The persistent API key file: hashed records of the keys an administrator marks persistent, read after the database and re-read when it changes; written atomically, mode 0600, git-ignored; format in `config/apikeys.json.example` (`sajha/auth/persistent_keys.py`; [API keys](../security/Security%20Model.md#api-keys)). The older plaintext format is not read. |
 | `config.ir.dir` | `config/ir` | `SAJHA_CONFIG_IR_DIR` | **Not used.** It is loaded into Settings, but nothing reads it. |
 
+## plugins
+
+Reader: live `_get` on every check (`sajha/core/plugin_signing.py`, `sajha/core/plugin_catalog.py`), so an env override applies without a restart. Design: [Security Model](../security/Security%20Model.md#plugins).
+
+| Key | Default | Env | Purpose |
+|-----|---------|-----|---------|
+| `plugins.allow_unsigned` | `true` | `SAJHA_PLUGINS_ALLOW_UNSIGNED` | Load plugins without a trusted publisher signature (unsigned, or signed with a key not trusted here), each with the warning notice `plugins.unsigned:<name>`; `false` refuses them. A tampered signature is refused either way; the catalog installs only trusted packages either way. |
+| `plugins.trusted_keys` | `[]` | `SAJHA_PLUGINS_TRUSTED_KEYS` | Trusted publisher keys, each `<publisher>=<Ed25519 public key>` (PEM or the base64 of the raw 32 bytes). Env: comma-separated or a JSON list. |
+| `plugins.trusted_keys_dir` | `config/plugin_keys` | `SAJHA_PLUGINS_TRUSTED_KEYS_DIR` | A folder of `<publisher>.pub` files, each a trusted key for that publisher. |
+| `plugins.catalog.sources` | `[]` | `SAJHA_PLUGINS_CATALOG_SOURCES` | Where the Plugin catalog page finds packages: local folders, `storage:<prefix>`, `https://…/index.json` (fetched through the outbound fetch guard). |
+| `plugins.catalog.max_package_bytes` | `20971520` | `SAJHA_PLUGINS_CATALOG_MAX_PACKAGE_BYTES` | Largest package: the archive, and the files it unpacks to. |
+| `plugins.catalog.draft_ttl_seconds` | `86400` | `SAJHA_PLUGINS_CATALOG_DRAFT_TTL_SECONDS` | How long a review is kept in the state store for its install. |
+
 ## hot_reload
 
 | Key | Default | Env | Purpose / reader |
@@ -329,6 +342,14 @@ Reader: `sajha/core/config.py::_get`, read when the registry starts its retry th
 | `tools.outbound.exempt_hosts` | `[]` | `SAJHA_TOOLS_OUTBOUND_EXEMPT_HOSTS` | Host patterns (fnmatch, for example `localhost` or `*.corp.example`) and CIDRs (`127.0.0.1/32`) the outbound fetch guard never refuses. Env: comma-separated or a JSON list. |
 | `tools.outbound.proxy` | `''` | `SAJHA_TOOLS_OUTBOUND_PROXY` | HTTP proxy (`http://host:port` or `https://host:port`) for the guarded fetches of the web crawler and Studio REST tools; empty means direct. Explicit only: `HTTP_PROXY` / `HTTPS_PROXY` are never read. It may carry credentials (`http://user:password@proxy:3128`), so set it in the environment, not the YAML; it is shown and logged only masked. Through the proxy the guard still refuses blocked names and addresses, leaves hosts that do not resolve locally to the proxy, and cannot pin the connection ([Security Model](../security/Security%20Model.md#other-features-that-need-care)). API Import never uses it. |
 | `tools.outbound.no_proxy` | `[]` | `SAJHA_TOOLS_OUTBOUND_NO_PROXY` | Host patterns (fnmatch) and CIDRs that go direct even when `tools.outbound.proxy` is set (typically intranet hosts). A CIDR applies when every address the host resolves to is inside it. Env: comma-separated or a JSON list. |
+| `tools.webcrawler.javascript.enabled` | `false` | `SAJHA_TOOLS_WEBCRAWLER_JAVASCRIPT_ENABLED` | Let the web crawler tools' `render_js` argument run a page's JavaScript in headless Chromium (Playwright and its browser must be installed: `pip install playwright`, then `python -m playwright install chromium`). Every request the browser makes is fetched through the outbound fetch guard above; read on every call (`sajha/tools/impl/webcrawler_render.py`; [Web Crawler Tool Reference Guide](../tools/search/Web%20Crawler%20Tool%20Reference%20Guide.md#javascript-rendering)). |
+| `tools.webcrawler.javascript.timeout_seconds` | `20` | `SAJHA_TOOLS_WEBCRAWLER_JAVASCRIPT_TIMEOUT_SECONDS` | The whole render of one page, requests included. |
+| `tools.webcrawler.javascript.max_requests` | `100` | `SAJHA_TOOLS_WEBCRAWLER_JAVASCRIPT_MAX_REQUESTS` | Requests one rendered page may make; the rest are aborted and the result says `render_truncated: true`. |
+| `tools.webcrawler.javascript.max_bytes` | `20971520` | `SAJHA_TOOLS_WEBCRAWLER_JAVASCRIPT_MAX_BYTES` | Bytes one rendered page may fetch, all requests together. |
+| `tools.webcrawler.javascript.max_pages` | `10` | `SAJHA_TOOLS_WEBCRAWLER_JAVASCRIPT_MAX_PAGES` | Pages one `crawl_url` call renders (its `max_pages` is lowered to this when `render_js` is set). |
+| `tools.webcrawler.javascript.max_concurrent` | `2` | `SAJHA_TOOLS_WEBCRAWLER_JAVASCRIPT_MAX_CONCURRENT` | Renders at once per worker process; a call waits up to its timeout for a slot. |
+| `tools.webcrawler.javascript.block_resource_types` | `[image, media, font]` | `SAJHA_TOOLS_WEBCRAWLER_JAVASCRIPT_BLOCK_RESOURCE_TYPES` | Playwright resource types never fetched while rendering. Env: comma-separated or a JSON list. |
+| `tools.webcrawler.javascript.pdf_max_pages` | `50` | `SAJHA_TOOLS_WEBCRAWLER_JAVASCRIPT_PDF_MAX_PAGES` | Pages of a PDF the crawler reads as text (with or without rendering). |
 
 ## qlrisk
 
@@ -543,6 +564,24 @@ fields below. Built-in providers not listed still exist, disabled.
 | `ai.planners.max_input_chars` | `20000` | Text a `match` stage or the `matches()` function searches is clipped to this. |
 | `ai.planners.menu_min_pass_rate` | `0.5` | Automatic selection (`classify` with `menu: planners`): a candidate whose latest recorded eval run, on an eval set for the tool, passed fewer questions than this is left off the menu. |
 | `ai.planners.numbers_check` | `off` | The default of the reserved planner setting `numbers_check` (`off`, `warn`, `enforce`): after a planner's answer, check its figures against the tool results and the run's workspace ([Quantitative Planners](../architecture/Quantitative%20Planners.md) §2.5). A planner's own `settings.numbers_check`, or an overlay's, wins. Quote `"off"` in YAML (a bare `off` reads as false, which is taken as `off`). |
+| `ai.planners.learning.dir` | `data/planner_routing` | Planners chosen by learning from results ([LLM Tools](../architecture/LLM%20Tools.md#913-automatic-planner-selection) §9.13, [Planner Reference](../architecture/Planner%20Reference.md) §6.6.2): where routing proposals, approved versions and `active.json` are written (plain files; share the directory between workers). Env `SAJHA_AI_PLANNERS_LEARNING_<FIELD>` (likewise for the keys below). |
+| `ai.planners.learning.rules` | `true` | Approved routing rules take effect; `false` ignores them (the files stay). |
+| `ai.planners.learning.min_samples` | `5` | Outcomes a planner needs in a question class before it is ranked; a class gets a rule only when two planners are ranked. |
+| `ai.planners.learning.cost_weight` | `0` | A planner's score is mean quality minus this times its mean cost in USD (and the bandit's reward likewise). |
+| `ai.planners.learning.latency_weight` | `0` | A planner's score also loses this times its mean latency in seconds (the bandit's reward likewise). |
+| `ai.planners.learning.window_days` | `30` | Evidence (saved eval runs, audit records) older than this is ignored. |
+| `ai.planners.learning.max_records` | `5000` | Audit records with a `planner_choice` read per learning run (newest first). |
+| `ai.planners.learning.max_eval_runs` | `200` | Saved eval runs read per learning run. |
+| `ai.planners.learning.reload_interval_s` | `2` | How often the active rules are checked for a change. |
+| `ai.planners.learning.bandit` | `false` | The online bandit (opt in): exploits and explores among the allowed candidates of a planner menu, updating its arms in the state store after every run. |
+| `ai.planners.learning.bandit_algorithm` | `thompson` | `thompson` (Thompson sampling) or `ucb` (UCB1) for the exploring draws. |
+| `ai.planners.learning.bandit_exploration` | `0.1` | The most choices that may explore, 0 to 0.5: a draw with this probability, and never more than this share of the tool's choices in `bandit_window_s`. |
+| `ai.planners.learning.bandit_min_samples` | `5` | Outcomes an arm needs before the bandit exploits it; until then the approved rules, then the model, choose. |
+| `ai.planners.learning.bandit_window_s` | `3600` | The sliding window the exploration share and the guard count over. |
+| `ai.planners.learning.bandit_tools` | `[]` | Tool name globs the bandit works on (`ask` is Ask SAJHA); empty: every tool with a planner menu. |
+| `ai.planners.learning.bandit_seed` | none | Set: the bandit's random draws are reproducible (tests, drills). |
+| `ai.planners.learning.bandit_guard_min_runs` | `20` | Explored outcomes in the window before the guard judges them. |
+| `ai.planners.learning.bandit_guard_min_success` | `0.3` | When explored choices succeed less than this share, the guard sets the kill switch (the Planner routing page clears it). |
 | `ai.planners.limits.max_stages_run` | `40` | Ceiling of a run's stage executions, sub-runs included (`stopped_by: stage_limit`). The `ai.planners.limits` values are ceilings a planner file may lower, never raise (a higher value is clamped with lint warning P060). Env `SAJHA_AI_PLANNERS_LIMITS_<FIELD>`. |
 | `ai.planners.limits.max_visits_per_edge` | `10` | Ceiling of every integer `max_visits` (clamped at load, P023). |
 | `ai.planners.limits.max_subplanner_depth` | `2` | Nesting of `planner` stages, `sample` of a planner and `foreach` (deeper is refused at load, P035). |
@@ -596,12 +635,21 @@ fields below. Built-in providers not listed still exist, disabled.
 | `ai.rag.stores.pgvector.dsn` | `""` | SQLAlchemy URL of the PostgreSQL database holding `rag_chunks`; empty uses SAJHA's database. Set it in the environment (`SAJHA_AI_RAG_STORES_PGVECTOR_DSN`), not in the file. |
 | `ai.rag.stores.pgvector.batch_size` / `text_search_config` | `256` / `english` | Rows per insert; the PostgreSQL text-search configuration for keyword search. |
 | `ai.rag.persist` / `index_path` | `true` / `data/rag/index.json` | Keep the index across restarts, so a restart re-embeds only changed documents. `index_path` is the memory store's file in the storage backend. With `false` the memory store is not saved and sqlite_vec uses a temporary file. |
-| `ai.rag.embed_batch_size` | `64` | Passages per embedding call while indexing; each document's passages stream to the store batch by batch. |
+| `ai.rag.embed_batch_size` | `64` | Passages per embedding call while indexing; a document's passages are all embedded before it is written to the store. |
 | `ai.rag.chunk_chars` / `chunk_overlap` | `1200` / `150` | Passage size and overlap, in characters. |
 | `ai.rag.top_k` | `5` | Passages returned when a search gives no `top_k`. |
 | `ai.rag.vector_weight` | `0.5` | Weight of the vector ranking in the fusion with BM25 (whose weight is 1). |
 | `ai.rag.max_upload_bytes` | `2000000` | Largest upload accepted. |
 | `ai.rag.build_on_start` | `true` | Build the index in a background thread at startup; otherwise on the first search. |
+| `ai.rag.ocr` | `false` | Read scanned PDFs by OCR (and images from connected-account sources). Needs an optional engine: `rapidocr-onnxruntime`, or `pytesseract` with the `tesseract` program; without one such files are refused with a message naming them ([Intelligence Layer](../architecture/Intelligence%20Layer.md#ocr-for-scanned-pdfs-and-images)). |
+| `ai.rag.accounts.sources` | `[]` | Document sources read through each user's connected account and indexed per user: `[{name, kind, ...}]`, `kind` one of `google_drive`, `onedrive`, `sharepoint`, `github`, `confluence`; the fields of each kind are in [Intelligence Layer](../architecture/Intelligence%20Layer.md#documents-from-connected-accounts). Empty: the personal index and `sajha_search_my_docs` are off. A bad entry leaves them off and is logged. Env: the whole `ai.rag.accounts` map as JSON in `SAJHA_AI_RAG_ACCOUNTS`. |
+| `ai.rag.accounts.enabled` | `true` | Off: the personal index does not start even with sources. |
+| `ai.rag.accounts.store` | `auto` | `auto` (`sqlite_vec` when it loads, else `memory`), `sqlite_vec` or `memory`; never the shared index's store. |
+| `ai.rag.accounts.path` / `index_path` | `data/rag/personal.db` / `data/rag/personal_index.json` | The sqlite_vec file (local disk; must differ from `ai.rag.stores.sqlite_vec.path`) / the memory store's file in the storage backend (must differ from `ai.rag.index_path`). |
+| `ai.rag.accounts.max_files_per_source` / `max_file_bytes` | `2000` / `10000000` | Files indexed per user and source (a source's own `max_files` wins); larger files are skipped. |
+| `ai.rag.accounts.stale_after_seconds` | `3600` | A search starts a background sync of the caller's sources older than this; `0`: only the first search does. |
+| `ai.rag.accounts.sync_interval_seconds` | `0` | Sweep every user with an active link this often; `0`: off. |
+| `ai.rag.accounts.ocr_max_pages` | `50` | Pages read by OCR per scanned PDF from connected-account sources. |
 
 ### Tool search
 
@@ -695,10 +743,21 @@ tool's own `sandbox` block is described there too.
 | `sandbox.defaults.max_file_mb` | `64` | Largest file the code may write (`RLIMIT_FSIZE`). |
 | `sandbox.defaults.network` | `none` | `none` or `allowlist` (a tool must then list `allow_hosts`). |
 | `sandbox.max.*` | `timeout_seconds` 300, `cpu_seconds` 300, `memory_mb` 4096, `max_output_bytes` 16777216, `max_processes` 512, `max_file_mb` 1024 | Caps on what a tool's `sandbox` block may ask for. |
+| `sandbox.egress.mode` | `proxy` | How `network: allowlist` is enforced. `proxy`: the sandbox has no direct network and a per-run egress proxy, which admits only the listed `host:port`, is its only way out (Linux; the `subprocess` backend needs unprivileged user namespaces, else an allowlisted tool is refused). `direct`: the earlier library-level host check. See [Sandbox](../architecture/Sandbox.md#network-allowlist). |
+| `sandbox.egress.block_private_networks` | `true` | The proxy refuses private ranges (10/8, 172.16/12, 192.168/16, fc00::/7, 100.64/10) even when listed. Cloud metadata, link-local, loopback, multicast and reserved addresses are always refused. |
+| `sandbox.egress.exempt_hosts` | `[]` | Host patterns (fnmatch) and CIDRs the proxy's address rule skips; the allowlist still applies. |
+| `sandbox.egress.connect_timeout_seconds` | `10` | The proxy's connect timeout to a listed host. |
+| `sandbox.egress.idle_timeout_seconds` | `120` | A proxied connection idle this long is closed. |
+| `sandbox.egress.max_connections` | `32` | Concurrent connections per run; more are answered `503`. |
 | `sandbox.docker.binary` | `docker` | `podman` works too. |
 | `sandbox.docker.image` | `python:3.13-slim` | Image each call runs in; it must be pulled already (the backend reports unavailable otherwise). |
 | `sandbox.docker.runtime` | `''` | Container runtime, for example `runsc` for gVisor. |
 | `sandbox.docker.cpus` | `1` | `--cpus` per container. |
+| `sandbox.docker.pool.size` | `0` | Warm containers kept started for the docker backend (capped by `MAX_POOL_SIZE` in `sajha/sandbox/pool.py`); `0`: a fresh container per call. Only calls whose limits equal `sandbox.defaults` use the pool. See [Sandbox](../architecture/Sandbox.md#warm-container-pool). |
+| `sandbox.docker.pool.reset` | `recreate` | `recreate`: a used container is removed and replaced. `reuse`: its processes are killed and `/work`, `/tmp`, `/dev/shm` and SysV IPC emptied (verified) and it serves again. |
+| `sandbox.docker.pool.max_uses` | `20` | `reuse`: calls before a container is replaced. |
+| `sandbox.docker.pool.health_interval_seconds` | `30` | How often idle containers are inspected; dead ones are replaced. |
+| `sandbox.docker.pool.start_timeout_seconds` | `60` | Limit on starting one container. |
 
 ## playground
 
@@ -713,6 +772,17 @@ administrators on `/playground`. The guide is [Python Playground](Python%20Playg
 | `playground.assets` | `vendored` | Where the browser loads Pyodide from. `vendored`: `/static/vendor/pyodide/<version>/`, filled by `python scripts/fetch_pyodide.py`; without those files the page shows an administrator hint. `cdn`: `https://cdn.jsdelivr.net/pyodide/v<version>/full/`, and that origin is added to the playground worker's CSP only. |
 | `playground.pyodide_version` | `314.0.7` | The Pyodide release (`N.N.N`; a leading `v` is accepted). With `vendored`, the folder `scripts/fetch_pyodide.py` fills; with `cdn`, the CDN path. |
 | `playground.allow_pypi` | `true` | Let `micropip` fetch pure-Python wheels from PyPI: adds `https://pypi.org` and `https://files.pythonhosted.org` to the playground worker's `connect-src`. `false` keeps the worker to this origin (and the CDN in `cdn` mode). |
+
+## console
+
+Reader: live `_get` (`sajha/web/i18n.py`, `default_language()`), on every console page, so
+`SAJHA_CONSOLE_DEFAULT_LANGUAGE` overrides the YAML. SAJHA ships English only, so this key has
+an effect only once a language catalog is added; how the console would pick a language and how to
+add one: [Architecture](../architecture/Architecture.md) §10, "Languages".
+
+| Key | Default | Purpose |
+|-----|---------|---------|
+| `console.default_language` | `en` | The console language when the browser's `Accept-Language` names no language with a compiled catalog. Only languages with a compiled catalog in `sajha/web/locale/` count, and none ships, so today every value resolves to `en`. The glossary, the guides and API responses are English whatever it says. |
 
 ## federation
 
@@ -729,7 +799,8 @@ file are re-read when it changes. Design, the upstream fields and operation:
 |-----|---------|---------|
 | `federation.enabled` | `false` | Master switch. Off: no upstream is contacted and no federated item is exposed. |
 | `federation.require_approval` | `true` | A newly discovered (or changed) upstream tool, prompt or resource waits for an administrator before it is exposed. An upstream's own `auto_approve: true` overrides it; text that trips the injection screen always waits. |
-| `federation.allow_stdio` | `false` | Allow `transport: stdio` upstreams, which run as subprocesses of SAJHA with its privileges. |
+| `federation.allow_stdio` | `false` | Allow `transport: stdio` upstreams. Each runs in its own container unless it sets `isolation: none` ([stdio isolation](../architecture/Federation.md#stdio-isolation)). |
+| `federation.container.image` | `''` | The image a stdio upstream's container runs when its `container.image` is not set; empty means `sandbox.docker.image`. Read on every launch (live `_get`). |
 | `federation.allow_localhost` | `false` | SSRF guard: allow loopback upstream URLs (for a localhost host name). |
 | `federation.allow_private_networks` | `false` | SSRF guard: allow RFC 1918 and unique-local addresses (never link-local). |
 | `federation.allowed_hosts` | `[]` | fnmatch host patterns an upstream URL must match; empty allows any host the guard allows. |
@@ -759,7 +830,9 @@ override the YAML; `sajhanet.nets` is read from the YAML as nested data, or from
 reads; how they fit together is [SAJHA Net](../architecture/SAJHA%20Net.md#19-configuration). On
 Kubernetes the chart's
 `sajhanet` values write these keys
-([Kubernetes Deployment](Kubernetes%20Deployment.md#sajha-net)).
+([Kubernetes Deployment](Kubernetes%20Deployment.md#sajha-net)). The SAJHA Net agent reads none of them:
+its options and its configuration file are in [SAJHA Net Agent](../clients/SAJHA%20Net%20Agent.md)
+sections 2 and 6.
 
 | Key | Default | Purpose |
 |-----|---------|---------|
@@ -783,7 +856,9 @@ Kubernetes the chart's
 | `sajhanet.plugins.membership` | `gossip` | `gossip` (SWIM) or `static` (the net entry's `static_peers`, synced every full-sync interval), or `package.module:Class`; third parties register in the entry-point group `sajha.net.plugins`. |
 | `sajhanet.plugins.admission` | `builtin_ca` (shipped config: `open`) | Server-wide: every net of the server uses it, and every member of a net must use the same mode. `open` (no CA, owner decision for now: each server makes a self-signed certificate; a peer is accepted the first time its name is seen and then held to that key, so another server claiming the name is refused with `name_conflict`; the remembered keys are kept in the storage backend (`<data_dir>/<net>/first_use.json`), listed and forgotten with `/api/sajhanet/nets/{net}/first-use`; there is no revocation), `builtin_ca` (the net's CA, run by SAJHA; switch to it when needed) or `manual` (self-signed certificates whose thumbprints each administrator pins: the net entry's `identity.pins` plus pins added with `sajha net pin`). |
 | `sajhanet.plugins.connector` | `sajha_native` | How requests reach peers: signed HTTP on their normal port. |
-| `sajhanet.mtls` | `off` | Mutual TLS is not built: any other value only logs a warning, and requests are checked by their signatures. |
+| `sajhanet.mtls` | `off` | Mutual TLS between members, on top of the signatures ([SAJHA Net](../architecture/SAJHA%20Net.md) §6.7): `off`; `client` (this server presents its instance certificate of the request's net as its TLS client certificate on every request to a member); `require` (`client`, and every net request arriving here must carry a verified TLS client certificate, passed by the TLS terminator in `sajhanet.mtls_client_cert_header`, that is the certificate the request is signed with; otherwise an unsigned 401; enrollment is exempt). `true` means `require`; an unknown value is `off` with a warning. Server-wide only. |
+| `sajhanet.mtls_client_cert_header` | `x-ssl-client-cert` | With `mtls: require`: the request header in which the TLS terminator passes the verified client certificate (URL-escaped PEM as nginx's `$ssl_client_escaped_cert`, or base64 DER). The terminator must strip it from client requests. |
+| `sajhanet.discovery` | `[]` | YAML list (or JSON in `SAJHA_SAJHANET_DISCOVERY`): discovery sources tried after the seeds and saved peers when joining ([SAJHA Net](../architecture/SAJHA%20Net.md) §6.6): `{type: dns_srv, name, scheme, nameserver}`, `{type: kubernetes, service, namespace, port_name, port, scheme, cluster_domain}` (a headless Service: SRV records, else its addresses with `port`), `{type: registry, url}` (a JSON list of URLs, or `{members: [...]}`); each may set `ttl_seconds` (60). A net entry's `discovery` replaces it for its net; an invalid source stops that net with a configuration error. |
 | `sajhanet.peer_cache.interval_minutes` | `10` | The saved peer list is written on every membership change and at least this often. |
 | `sajhanet.peer_cache.max_age_days` | `7` | On restart, saved peers not seen for longer than this are skipped. |
 | `sajhanet.gossip.gossip_interval_ms` | `1000` | One protocol period: one member pinged. |
@@ -811,7 +886,10 @@ Kubernetes the chart's
 | `sajhanet.bare_aliases` | `on` | Plain names for remote tools: `on` (every remote tool whose name no local tool has), `preferences_only` (only names with a preference list), `off` (qualified names only). |
 | `sajhanet.default_trust` | `auto` | Trust in peers' tools: `auto` (imported at once after screening), `review` (each tool waits for an administrator's approval; a changed one is held at its approved version), `pinned` (only tools an administrator listed). Per peer it is set on the SAJHA Net page or with the admin API (kept in `<data_dir>/<net>/trust.json`). |
 | `sajhanet.refresh_interval_seconds` | `300` | A peer's catalog is pulled when its digest or incarnation changes and at least this often (minimum 5). |
-| `sajhanet.default_timeout_seconds` | `30` | A forwarded call's timeout, and the shared deadline of all its fallback attempts. |
+| `sajhanet.default_timeout_seconds` | `30` | A forwarded call's timeout, and the shared deadline of all its fallback attempts. A call run as a task held at the host is bounded only for the request that creates the task. |
+| `sajhanet.tasks.enabled` | `true` | Tasks held at the host ([SAJHA Net](../architecture/SAJHA%20Net.md) §9; protocol §15.6), with `mcp.tasks.enabled`: on, this server lists the feature `tasks` and holds the tasks of task-augmented forwarded calls (records in the task record store, under `net:task:<net>/<instance>:`, with `mcp.tasks.ttl_ms`), and, as a home, offers proxies of hosts that list `tasks` as tasks and forwards a task-augmented call to them. Off: not listed, and a task at the home wraps the forwarded call. Server-wide only. |
+| `sajhanet.visibility.enabled` | `true` | Serve per-key visibility queries (`POST /sajhanet/v1/catalog/visibility`, protocol §10.5) and list the feature `visibility` where a key directory runs. A net entry's `visibility` overrides it for its net. |
+| `sajhanet.visibility.cache_seconds` | `60` | As a home: how long a host's visibility answer for one key is kept (state store) before `tools/list` asks again (minimum 1). |
 | `sajhanet.max_hops` | `1` | Forwarded calls are refused (`hop_limit`) past this many hops from their home (at most 8). |
 | `sajhanet.max_call_chain` | `8` | One budget for a whole call chain across the net: hops plus tools running one inside another (planners' tools, LLM tools, composites) on every instance passed (at most 32). Over it, the home refuses before sending and the host on receipt (`-32016 chain_limit`), and a tool entered inside a forwarded call is refused. Server-wide only. |
 | `sajhanet.allow_remote_llm_tools` | `true` | Export this server's LLM tools to the net like plain tools (they run here, on this server's models and budgets, and report their spend back); `false` keeps them home. Server-wide only. |
@@ -821,6 +899,8 @@ Kubernetes the chart's
 | `sajhanet.limits.max_tools_per_peer`, `limits.max_catalog_bytes`, `limits.max_description_chars` | `2000`, `5242880`, `1024` | Caps on what is imported from one peer; a peer that exceeds them is flagged (a warning notice) and the excess ignored. |
 | `sajhanet.peer.breaker_threshold`, `peer.breaker_reset_seconds` | `5`, `30` | Per-peer circuit breaker at the home: after this many consecutive availability failures calls to the peer pause for this long (a call by plain name moves to the next host). |
 | `sajhanet.peer.calls_per_minute`, `peer.inbound_calls_per_minute` | `600`, `600` | Per-peer rate limits: this home's calls to one peer, and forwarded calls accepted from one peer (`-32019 rate_limited` beyond). |
+| `sajhanet.peer.shared` | `auto` | Where the per-peer breakers and rate limits count: `true` in the state store (every worker of the instance sees one breaker per peer, and the limits count all workers' calls per calendar minute), `false` per process, `auto` the state store when it is shared (`state.backend: redis` or `database`). Server-wide only. |
+| `sajhanet.cache.ttl_seconds` | `0` | Above 0: the result of a read-only, non-destructive remote tool is kept in the state store this long and served again to the same signed-in caller with the same arguments (`_meta["io.sajha/net"].cached`). 0: remote results are never cached. Server-wide only. |
 | `sajhanet.streaming.enabled` | `true` | Signed event streams on forwarded calls ([SAJHA Net](../architecture/SAJHA%20Net.md) §9; protocol §15.10): on, this server lists the features `streaming`, `progress`, `cancellation` and `mrtr`, asks hosts that list `streaming` for a stream and streams to homes that ask. Off: JSON answers only, no progress, cancellation only by the deadline, and the features are not listed (input requests still relay when the other side sends them). |
 | `sajhanet.streaming.max_events` | `1000` | Events in one stream, the final answer excluded (minimum 1). The host drops events past it; the home refuses a stream that exceeds it (`stream_limit`). |
 | `sajhanet.streaming.max_event_bytes` | `65536` | One event (minimum 1024): larger events are dropped at the host and refused at the home (`stream_limit`). |
@@ -857,6 +937,7 @@ Fields of a `sajhanet.nets` entry (YAML or `SAJHA_SAJHANET_NETS`). An entry may 
 | `ca.enrollments_per_minute` | `10` | Enrollment requests accepted per source address and minute (429 beyond). |
 | `peer_cache.path` | `<data_dir>/<net>/peers.json` | The saved peer list (local disk, written atomically, owner-only). |
 | `static_peers` | `[]` | With `plugins.membership: static`: the peers to sync with. |
+| `discovery` | `sajhanet.discovery` | This net's discovery sources (replaces the shared list). |
 | `export` | `[]` | What this server offers in the net: a list of `{tools, to_instances, for_roles, require_approval}`. `tools` and `to_instances` are globs; `for_roles` are the caller's local roles after mapping. Nothing is exported unless a rule allows it; a rule with `to_instances: []` never exports its tools, whatever other rules say. |
 | `import` | `[]` | What this server's users may use from the net: a list of `{instances, tools, for_roles}` (`for_roles`: the local caller's roles). Nothing is imported unless a rule allows it; `instances: []` never imports the tools. |
 | `users`, `role_maps`, `service_calls`, `anonymous_may_call_remote`, `user_identity` | shared defaults | Per-net overrides of the shared keys above. |
@@ -968,7 +1049,17 @@ The provider block is read from the YAML as nested data, or from `SAJHA_ACCOUNTS
 | `accounts.vault.key` | `""` | The vault key (env `SAJHA_ACCOUNTS_VAULT_KEY`): 32 bytes base64url or a passphrase. Empty: generated once into the server secrets file. Several hosts must share it. |
 | `accounts.vault.previous_keys` | `[]` | Old vault keys, still used to decrypt during a rotation. |
 | `accounts.vault.key_provider` | `""` | `package.module:factory` returning a key provider (a KMS hook); replaces `key`. |
-| `accounts.providers` | `{}` | Providers by id: a built-in template (`github`, `slack`, `google`, `microsoft`, `atlassian`, `notion`) is enabled by `client_id` and `client_secret_ref`; any other id is a custom provider. |
+| `accounts.providers` | `{}` | Providers by id: a built-in template (`github`, `slack`, `google`, `microsoft`, `atlassian`, `notion`) is enabled by `client_id` and `client_secret_ref`; any other id is a custom provider. A provider installed by a provider pack is a *preset* in `config/accounts/provider_presets/<id>.json` (storage backend); these keys override its fields ([Connected Accounts §11](../architecture/Connected%20Accounts.md#11-provider-packs)). |
+
+## packs
+
+Provider packs: a connected-account preset and a reviewed API Import of the service's bundled spec,
+installed together. Reader: `sajha/core/config.py::_get` (`sajha/packs/manifest.py`), read on every
+listing. Design: [Connected Accounts §11](../architecture/Connected%20Accounts.md#11-provider-packs).
+
+| Key | Default | Env | Purpose |
+|-----|---------|-----|---------|
+| `packs.dirs` | `[]` | `SAJHA_PACKS_DIRS` | More folders to read packs from, after the bundled ones (`sajha/packs/bundled/`); a relative path is relative to the working directory. The first folder that defines a pack id wins. Env: comma-separated or a JSON list. |
 
 ## observability
 
@@ -1128,6 +1219,8 @@ design: [Tool Quality](../architecture/Tool%20Quality.md).
 | `quality.tests_dir` | `config/tool_tests` | Test-case files (`*.yaml`, `*.yml`, `*.json`); a tool config may also carry `tests` and `probe`. |
 | `quality.cassettes_dir` | `config/tool_tests/cassettes` | Recorded HTTP fixtures, `<tool>/<case>.json`. |
 | `quality.evals_dir` | `config/evals` | Ask SAJHA eval sets. |
+| `quality.evals.graded_checks` | `false` | Run the model-graded `graded` answer checks of eval sets; off, they are skipped (listed in `skipped_checks`), neither passed nor failed. `python -m sajha.quality eval --graded` turns them on for one run ([Tool Quality §5](../architecture/Tool%20Quality.md#5-evals-for-ask-sajha)). |
+| `quality.evals.grader_model` | `default` | The model alias a `graded` check without its own `model` asks, through `llm_factory().model(alias)`. |
 | `quality.versions_dir` | `config/tool_versions` | One versions file per tool (`<tool>.yaml`); a version's whole config (`config:`) lives here too. |
 | `quality.lint.min_description` | `40` | A tool description shorter than this many characters is a lint warning. |
 | `quality.probes.enabled` | `false` | Run the `probe:` blocks of test files on their schedules (one worker per slot through the state store). |

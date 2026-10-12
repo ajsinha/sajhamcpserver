@@ -2,7 +2,7 @@
 <!--
 Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.com
 -->
-{% block title %}DB Query Tool Creator - MCP Studio - SAJHA MCP Server{% endblock %}
+{% block title %}{{ _('DB Query Tool Creator - MCP Studio - SAJHA MCP Server') }}{% endblock %}
 
 {% block extra_css %}
 <style>
@@ -209,11 +209,11 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
 {% include "admin/studio/_folder_field.html" %}
 <div class="container-fluid py-3 dbquery-container">
     <!-- Breadcrumb -->
-    <nav aria-label="breadcrumb" class="mb-3">
+    <nav aria-label="{{ _('breadcrumb') }}" class="mb-3">
         <ol class="breadcrumb">
-            <li class="breadcrumb-item"><a href="{{ url_for('dashboard') }}">Dashboard</a></li>
+            <li class="breadcrumb-item"><a href="{{ url_for('dashboard') }}">{{ _('Dashboard') }}</a></li>
             <li class="breadcrumb-item"><a href="{{ url_for('studio_home') }}">MCP Studio</a></li>
-            <li class="breadcrumb-item active">DB Query Tool Creator</li>
+            <li class="breadcrumb-item active">{{ _('DB Query Tool Creator') }}</li>
         </ol>
     </nav>
 
@@ -222,20 +222,19 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
         <div class="d-flex justify-content-between align-items-center">
             <div>
                 <h3>
-                    <i class="bi bi-database me-2"></i>DB Query Tool Creator
+                    <i class="bi bi-database me-2"></i>{{ _('DB Query Tool Creator') }}
                     <span class="badge bg-light text-dark ms-2" style="font-size: 0.5em;">v{{ app_version }}</span>
                 </h3>
                 <p class="subtitle mb-0">
-                    Create MCP tools from database queries. Define parameters, write your SQL query with placeholders,
-                    and deploy instantly. Supports DuckDB, SQLite, PostgreSQL, and MySQL databases.
+                    {{ _('Create MCP tools from database queries. Define parameters, write your SQL query with placeholders, and deploy instantly. Supports DuckDB, SQLite, PostgreSQL, and MySQL databases.') }}
                 </p>
             </div>
             <div class="d-flex gap-2">
                 <a href="{{ guide_url('MCP Studio DBQuery Tool Creator Guide.md') }}" class="btn btn-outline-light btn-sm">
-                    <i class="bi bi-question-circle me-1"></i>Help
+                    <i class="bi bi-question-circle me-1"></i>{{ _('Help') }}
                 </a>
                 <a href="{{ url_for('studio_home') }}" class="btn btn-outline-light btn-sm">
-                    <i class="bi bi-arrow-left me-1"></i>Back to Studio
+                    <i class="bi bi-arrow-left me-1"></i>{{ _('Back to Studio') }}
                 </a>
             </div>
         </div>
@@ -251,32 +250,32 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
             <div class="form-section">
                 <div class="section-header">
                     <i class="bi bi-info-circle"></i>
-                    Basic Information
+                    {{ _('Basic Information') }}
                 </div>
                 <div class="section-body">
                     <div class="row mb-3">
                         <div class="col-md-6">
-                            <label class="form-label fw-bold">Tool Name <span class="text-danger">*</span></label>
+                            <label class="form-label fw-bold">{{ _('Tool Name') }} <span class="text-danger">*</span></label>
                             <input type="text" id="toolName" class="form-control" 
                                    placeholder="get_sales_by_region" pattern="[a-z][a-z0-9_]*">
-                            <div class="form-text">Lowercase letters, numbers, and underscores only (min 3 chars)</div>
+                            <div class="form-text">{{ _('Lowercase letters, numbers, and underscores only (min 3 chars)') }}</div>
                         </div>
                         <div class="col-md-6">
-                            <label class="form-label fw-bold">Category</label>
+                            <label class="form-label fw-bold">{{ _('Category') }}</label>
                             <input type="text" id="toolCategory" class="form-control" 
-                                   value="Database" placeholder="e.g., Analytics, Reports, Data">
+                                   value="Database" placeholder="{{ _('e.g., Analytics, Reports, Data') }}">
                         </div>
                     </div>
                     <div class="mb-3">
-                        <label class="form-label fw-bold">Description <span class="text-danger">*</span></label>
+                        <label class="form-label fw-bold">{{ _('Description') }} <span class="text-danger">*</span></label>
                         <textarea id="toolDescription" class="form-control" rows="2" 
                                   placeholder="Describe what this query does and what data it returns..."></textarea>
                     </div>
                     <div class="mb-3">
-                        <label class="form-label fw-bold">Literature / Context (for AI)</label>
+                        <label class="form-label fw-bold">{{ _('Literature / Context (for AI)') }}</label>
                         <textarea id="toolLiterature" class="form-control literature-editor" rows="4" 
                                   placeholder="Provide additional context, business rules, data dictionary information, or usage examples that will help AI understand how to use this tool effectively..."></textarea>
-                        <div class="form-text">This context helps AI clients understand when and how to use this tool</div>
+                        <div class="form-text">{{ _('This context helps AI clients understand when and how to use this tool') }}</div>
                     </div>
                 </div>
             </div>
@@ -285,11 +284,11 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
             <div class="form-section">
                 <div class="section-header success">
                     <i class="bi bi-plug"></i>
-                    Database Connection
+                    {{ _('Database Connection') }}
                 </div>
                 <div class="section-body">
                     <div class="mb-3">
-                        <label class="form-label fw-bold">Database Type <span class="text-danger">*</span></label>
+                        <label class="form-label fw-bold">{{ _('Database Type') }} <span class="text-danger">*</span></label>
                         <div class="db-type-select">
                             <button type="button" class="db-type-btn active" data-db="duckdb">
                                 <i class="bi bi-hdd-stack"></i>
@@ -310,24 +309,24 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
                         </div>
                     </div>
                     <div class="mb-3">
-                        <label class="form-label fw-bold">Connection String <span class="text-danger">*</span></label>
+                        <label class="form-label fw-bold">{{ _('Connection String') }} <span class="text-danger">*</span></label>
                         <input type="text" id="connectionString" class="form-control" 
-                               placeholder="data/mydata.db or :memory:">
+                               placeholder="{{ _('data/mydata.db or :memory:') }}">
                         <div class="form-text" id="connectionHelp">
-                            For DuckDB/SQLite: file path or <code>:memory:</code><br>
+                            {% trans %}For DuckDB/SQLite: file path or <code>:memory:</code><br>
                             For PostgreSQL: <code>host=localhost dbname=mydb user=postgres password=secret</code><br>
-                            For MySQL: <code>host=localhost;database=mydb;user=root;password=secret</code>
+                            For MySQL: <code>host=localhost;database=mydb;user=root;password=secret</code>{% endtrans %}
                         </div>
                     </div>
                     <div class="row">
                         <div class="col-md-6">
-                            <label class="form-label fw-bold">Timeout (seconds)</label>
+                            <label class="form-label fw-bold">{{ _('Timeout (seconds)') }}</label>
                             <input type="number" id="timeout" class="form-control" value="30" min="1" max="300">
                         </div>
                         <div class="col-md-6">
-                            <label class="form-label fw-bold">Max Rows</label>
+                            <label class="form-label fw-bold">{{ _('Max Rows') }}</label>
                             <input type="number" id="maxRows" class="form-control" value="1000" min="1" max="100000">
-                            <div class="form-text">Maximum number of rows to return</div>
+                            <div class="form-text">{{ _('Maximum number of rows to return') }}</div>
                         </div>
                     </div>
                 </div>
@@ -337,18 +336,18 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
             <div class="form-section">
                 <div class="section-header info">
                     <i class="bi bi-sliders"></i>
-                    Query Parameters
+                    {{ _('Query Parameters') }}
                 </div>
                 <div class="section-body">
                     <p class="text-muted small mb-3">
-                        Define input parameters that will be substituted into your query. 
-                        Use <code>{{param_name}}</code> syntax in your query below.
+                        {% trans param_name=param_name %}Define input parameters that will be substituted into your query. 
+                        Use <code>{{ param_name }}</code> syntax in your query below.{% endtrans %}
                     </p>
                     <div id="parametersList">
                         <!-- Parameters will be added here -->
                     </div>
                     <button type="button" class="btn btn-outline-primary" data-onclick="addParameter()">
-                        <i class="bi bi-plus me-1"></i>Add Parameter
+                        <i class="bi bi-plus me-1"></i>{{ _('Add Parameter') }}
                     </button>
                 </div>
             </div>
@@ -357,12 +356,12 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
             <div class="form-section">
                 <div class="section-header primary">
                     <i class="bi bi-code-square"></i>
-                    SQL Query Template
+                    {{ _('SQL Query Template') }}
                 </div>
                 <div class="section-body">
                     <p class="text-muted small mb-2">
-                        Write your SQL query using <code>{{param_name}}</code> placeholders for parameters.
-                        String values will be automatically quoted and escaped.
+                        {% trans param_name=param_name %}Write your SQL query using <code>{{ param_name }}</code> placeholders for parameters.
+                        String values will be automatically quoted and escaped.{% endtrans %}
                     </p>
                     <textarea id="queryTemplate" class="form-control query-editor" rows="10" 
                               placeholder="SELECT * FROM sales
@@ -373,7 +372,7 @@ ORDER BY sale_date DESC"></textarea>
                     <div class="mt-2 d-flex justify-content-between align-items-center">
                         <small class="text-muted">
                             <i class="bi bi-shield-check text-success me-1"></i>
-                            Parameters are safely escaped to prevent SQL injection
+                            {{ _('Parameters are safely escaped to prevent SQL injection') }}
                         </small>
                         <small id="placeholderCount" class="text-info"></small>
                     </div>
@@ -383,13 +382,13 @@ ORDER BY sale_date DESC"></textarea>
             <!-- Action Buttons -->
             <div class="d-flex gap-3 mb-4">
                 <button type="button" id="previewBtn" class="btn btn-primary btn-action" data-onclick="previewTool()">
-                    <i class="bi bi-eye me-2"></i>Preview Tool
+                    <i class="bi bi-eye me-2"></i>{{ _('Preview Tool') }}
                 </button>
                 <button type="button" id="deployBtn" class="btn btn-success btn-action" data-onclick="deployTool()" disabled>
-                    <i class="bi bi-cloud-upload me-2"></i>Deploy Tool
+                    <i class="bi bi-cloud-upload me-2"></i>{{ _('Deploy Tool') }}
                 </button>
                 <button type="button" class="btn btn-outline-secondary btn-action" data-onclick="clearForm()">
-                    <i class="bi bi-x-circle me-2"></i>Clear
+                    <i class="bi bi-x-circle me-2"></i>{{ _('Clear') }}
                 </button>
             </div>
         </div>
@@ -400,27 +399,27 @@ ORDER BY sale_date DESC"></textarea>
             <div class="form-section">
                 <div class="section-header">
                     <i class="bi bi-lightbulb"></i>
-                    Quick Examples - Click to Load
+                    {{ _('Quick Examples - Click to Load') }}
                 </div>
                 <div class="section-body">
                     <div class="example-card" data-onclick="loadExample('sales')">
-                        <h6><i class="bi bi-graph-up me-1"></i>Sales by Region</h6>
-                        <p>Query sales data filtered by region and date range</p>
+                        <h6><i class="bi bi-graph-up me-1"></i>{{ _('Sales by Region') }}</h6>
+                        <p>{{ _('Query sales data filtered by region and date range') }}</p>
                         <span class="db-badge">DuckDB</span>
                     </div>
                     <div class="example-card" data-onclick="loadExample('users')">
-                        <h6><i class="bi bi-people me-1"></i>User Search</h6>
-                        <p>Search users by name with pagination</p>
+                        <h6><i class="bi bi-people me-1"></i>{{ _('User Search') }}</h6>
+                        <p>{{ _('Search users by name with pagination') }}</p>
                         <span class="db-badge">SQLite</span>
                     </div>
                     <div class="example-card" data-onclick="loadExample('inventory')">
-                        <h6><i class="bi bi-box-seam me-1"></i>Inventory Status</h6>
-                        <p>Check inventory levels by category</p>
+                        <h6><i class="bi bi-box-seam me-1"></i>{{ _('Inventory Status') }}</h6>
+                        <p>{{ _('Check inventory levels by category') }}</p>
                         <span class="db-badge">PostgreSQL</span>
                     </div>
                     <div class="example-card" data-onclick="loadExample('aggregation')">
-                        <h6><i class="bi bi-calculator me-1"></i>Sales Aggregation</h6>
-                        <p>Aggregate sales with grouping</p>
+                        <h6><i class="bi bi-calculator me-1"></i>{{ _('Sales Aggregation') }}</h6>
+                        <p>{{ _('Aggregate sales with grouping') }}</p>
                         <span class="db-badge">DuckDB</span>
                     </div>
                 </div>
@@ -429,11 +428,11 @@ ORDER BY sale_date DESC"></textarea>
             <!-- Preview Panel -->
             <div class="preview-panel" id="previewPanel" style="display: none;">
                 <div class="preview-header">
-                    <h6><i class="bi bi-code-slash me-2"></i>Generated Code Preview</h6>
+                    <h6><i class="bi bi-code-slash me-2"></i>{{ _('Generated Code Preview') }}</h6>
                     <div class="btn-group btn-group-sm">
                         <button class="btn btn-outline-light btn-sm active" data-onclick="showPreviewTab('json')">JSON</button>
                         <button class="btn btn-outline-light btn-sm" data-onclick="showPreviewTab('python')">Python</button>
-                        <button class="btn btn-outline-light btn-sm" data-onclick="showPreviewTab('schema')">Schema</button>
+                        <button class="btn btn-outline-light btn-sm" data-onclick="showPreviewTab('schema')">{{ _('Schema') }}</button>
                     </div>
                 </div>
                 <div class="preview-content" id="previewContent">
@@ -445,12 +444,12 @@ ORDER BY sale_date DESC"></textarea>
             <div class="form-section mt-3" id="schemaPreviewSection" style="display: none;">
                 <div class="section-header secondary">
                     <i class="bi bi-diagram-3"></i>
-                    Generated Schemas
+                    {{ _('Generated Schemas') }}
                 </div>
                 <div class="section-body">
-                    <h6 class="small text-muted mb-2">Input Schema:</h6>
+                    <h6 class="small text-muted mb-2">{{ _('Input Schema:') }}</h6>
                     <div class="schema-preview mb-3" id="inputSchemaPreview"></div>
-                    <h6 class="small text-muted mb-2">Output Schema:</h6>
+                    <h6 class="small text-muted mb-2">{{ _('Output Schema:') }}</h6>
                     <div class="schema-preview" id="outputSchemaPreview"></div>
                 </div>
             </div>
@@ -459,24 +458,24 @@ ORDER BY sale_date DESC"></textarea>
             <div class="form-section mt-3">
                 <div class="section-header secondary">
                     <i class="bi bi-question-circle"></i>
-                    Quick Help
+                    {{ _('Quick Help') }}
                 </div>
                 <div class="section-body">
                     <ul class="small mb-0">
                         <li class="mb-2">
-                            <strong>Placeholders:</strong> Use <code>{{param_name}}</code> in your query
+                            {% trans param_name=param_name %}<strong>Placeholders:</strong> Use <code>{{ param_name }}</code> in your query{% endtrans %}
                         </li>
                         <li class="mb-2">
-                            <strong>String params:</strong> Automatically quoted and escaped
+                            {% trans %}<strong>String params:</strong> Automatically quoted and escaped{% endtrans %}
                         </li>
                         <li class="mb-2">
-                            <strong>Numeric params:</strong> Inserted directly without quotes
+                            {% trans %}<strong>Numeric params:</strong> Inserted directly without quotes{% endtrans %}
                         </li>
                         <li class="mb-2">
-                            <strong>Literature:</strong> Add context to help AI use the tool correctly
+                            {% trans %}<strong>Literature:</strong> Add context to help AI use the tool correctly{% endtrans %}
                         </li>
                         <li class="mb-2">
-                            <strong>Security:</strong> Only SELECT queries recommended
+                            {% trans %}<strong>Security:</strong> Only SELECT queries recommended{% endtrans %}
                         </li>
                     </ul>
                 </div>
@@ -485,14 +484,14 @@ ORDER BY sale_date DESC"></textarea>
             <!-- Security Note -->
             <div class="alert alert-warning mt-3 small">
                 <i class="bi bi-shield-exclamation me-2"></i>
-                <strong>Security:</strong> Connection credentials are stored in the generated tool file. 
-                Use environment variables or secure vault for production deployments.
+                {% trans %}<strong>Security:</strong> Connection credentials are stored in the generated tool file. 
+                Use environment variables or secure vault for production deployments.{% endtrans %}
             </div>
         </div>
     </div>
 </div>
 
-<div id="successBanner" class="alert alert-success d-none mx-3 mt-3"><h5><i class="bi bi-check-circle-fill me-2"></i>Tool Created!</h5><p class="mb-1">Your DB query tool is ready.</p><a href="/tools" class="btn btn-success btn-sm">View Tools</a></div>
+<div id="successBanner" class="alert alert-success d-none mx-3 mt-3"><h5><i class="bi bi-check-circle-fill me-2"></i>{{ _('Tool Created!') }}</h5><p class="mb-1">{{ _('Your DB query tool is ready.') }}</p><a href="/tools" class="btn btn-success btn-sm">{{ _('View Tools') }}</a></div>
 {% endblock %}
 
 
@@ -524,8 +523,8 @@ function setupDbTypeButtons() {
 function updateConnectionHelp() {
     const help = document.getElementById('connectionHelp');
     const hints = {
-        'duckdb': 'File path (e.g., <code>data/analytics.db</code>) or <code>:memory:</code> for in-memory database',
-        'sqlite': 'File path (e.g., <code>data/app.db</code>) or <code>:memory:</code> for in-memory database',
+        'duckdb': _t('File path (e.g., <code>data/analytics.db</code>) or <code>:memory:</code> for in-memory database'),
+        'sqlite': _t('File path (e.g., <code>data/app.db</code>) or <code>:memory:</code> for in-memory database'),
         'postgresql': '<code>host=localhost dbname=mydb user=postgres password=secret port=5432</code>',
         'mysql': '<code>host=localhost;database=mydb;user=root;password=secret;port=3306</code>'
     };
@@ -558,28 +557,28 @@ function addParameter() {
         <div class="param-row" id="param-${id}">
             <div class="row g-2">
                 <div class="col-md-3">
-                    <label class="form-label small">Name <span class="text-danger">*</span></label>
+                    <label class="form-label small">${_t('Name')} <span class="text-danger">*</span></label>
                     <input type="text" class="form-control param-name" placeholder="param_name" 
                            pattern="[a-z][a-z0-9_]*">
                 </div>
                 <div class="col-md-2">
-                    <label class="form-label small">Type</label>
+                    <label class="form-label small">${_t('Type')}</label>
                     <select class="form-select param-type-select param-type">
-                        <option value="string">String</option>
-                        <option value="integer">Integer</option>
-                        <option value="float">Float</option>
-                        <option value="boolean">Boolean</option>
-                        <option value="date">Date</option>
+                        <option value="string">${_t('String')}</option>
+                        <option value="integer">${_t('Integer')}</option>
+                        <option value="float">${_t('Float')}</option>
+                        <option value="boolean">${_t('Boolean')}</option>
+                        <option value="date">${_t('Date')}</option>
                         <option value="datetime">DateTime</option>
                     </select>
                 </div>
                 <div class="col-md-4">
-                    <label class="form-label small">Description</label>
-                    <input type="text" class="form-control param-description" placeholder="What this parameter does">
+                    <label class="form-label small">${_t('Description')}</label>
+                    <input type="text" class="form-control param-description" placeholder="${_t('What this parameter does')}">
                 </div>
                 <div class="col-md-2">
-                    <label class="form-label small">Default</label>
-                    <input type="text" class="form-control param-default" placeholder="Optional">
+                    <label class="form-label small">${_t('Default')}</label>
+                    <input type="text" class="form-control param-default" placeholder="${_t('Optional')}">
                 </div>
                 <div class="col-md-1 d-flex align-items-end">
                     <button type="button" class="btn btn-outline-danger btn-sm w-100" data-onclick="removeParameter(${id})">
@@ -591,12 +590,12 @@ function addParameter() {
                 <div class="col-md-2">
                     <div class="form-check">
                         <input type="checkbox" class="form-check-input param-required" id="req-${id}" checked>
-                        <label class="form-check-label small" for="req-${id}">Required</label>
+                        <label class="form-check-label small" for="req-${id}">${_t('Required')}</label>
                     </div>
                 </div>
                 <div class="col-md-10">
                     <input type="text" class="form-control form-control-sm param-enum" 
-                           placeholder="Enum values (comma-separated, optional): value1, value2, value3">
+                           placeholder="${_t('Enum values (comma-separated, optional): value1, value2, value3')}">
                 </div>
             </div>
         </div>
@@ -654,23 +653,23 @@ function showStatus(message, type) {
 async function previewTool() {
     const btn = document.getElementById('previewBtn');
     btn.disabled = true;
-    btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Generating...';
+    btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>' + _t('Generating...');
     
     try {
         const data = getFormData();
         
         // Basic validation
         if (!data.name || data.name.length < 3) {
-            throw new Error('Tool name must be at least 3 characters');
+            throw new Error(_t('Tool name must be at least 3 characters'));
         }
         if (!data.description) {
-            throw new Error('Description is required');
+            throw new Error(_t('Description is required'));
         }
         if (!data.connection_string) {
-            throw new Error('Connection string is required');
+            throw new Error(_t('Connection string is required'));
         }
         if (!data.query_template) {
-            throw new Error('SQL query template is required');
+            throw new Error(_t('SQL query template is required'));
         }
         
         const response = await fetch('/admin/studio/dbquery/preview', {
@@ -697,15 +696,15 @@ async function previewTool() {
             
             // Enable deploy
             document.getElementById('deployBtn').disabled = false;
-            showStatus('Preview generated successfully!', 'success');
+            showStatus(_t('Preview generated successfully!'), 'success');
         } else {
-            throw new Error(result.error || result.errors?.join(', ') || 'Preview failed');
+            throw new Error(result.error || result.errors?.join(', ') || _t('Preview failed'));
         }
     } catch (error) {
         showStatus(error.message, 'error');
     } finally {
         btn.disabled = false;
-        btn.innerHTML = '<i class="bi bi-eye me-2"></i>Preview Tool';
+        btn.innerHTML = '<i class="bi bi-eye me-2"></i>' + _t('Preview Tool');
     }
 }
 
@@ -720,17 +719,17 @@ function showPreviewTab(tab) {
     } else if (tab === 'python') {
         content.textContent = previewData.python_content?.substring(0, 2000) + '...';
     } else if (tab === 'schema') {
-        content.textContent = 'Input Schema:\n' + JSON.stringify(previewData.input_schema, null, 2) + 
+        content.textContent = _t('Input Schema:\n') + JSON.stringify(previewData.input_schema, null, 2) + 
                              '\n\nOutput Schema:\n' + JSON.stringify(previewData.output_schema, null, 2);
     }
 }
 
 async function deployTool() {
-    if (!confirm('Are you sure you want to deploy this DB Query tool?')) return;
+    if (!confirm(_t('Are you sure you want to deploy this DB Query tool?'))) return;
     
     const btn = document.getElementById('deployBtn');
     btn.disabled = true;
-    btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Deploying...';
+    btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>' + _t('Deploying...');
     
     try {
         const data = getFormData();
@@ -750,15 +749,15 @@ async function deployTool() {
             
             document.getElementById('successBanner').classList.remove('d-none');
             
-            showStatus('Tool deployed successfully!', 'success');
+            showStatus(_t('Tool deployed successfully!'), 'success');
         } else {
-            throw new Error(result.error || 'Deployment failed');
+            throw new Error(result.error || _t('Deployment failed'));
         }
     } catch (error) {
         showStatus(error.message, 'error');
     } finally {
         btn.disabled = false;
-        btn.innerHTML = '<i class="bi bi-cloud-upload me-2"></i>Deploy Tool';
+        btn.innerHTML = '<i class="bi bi-cloud-upload me-2"></i>' + _t('Deploy Tool');
     }
 }
 
@@ -886,7 +885,7 @@ ORDER BY total_amount DESC`,
     });
     
     updatePlaceholderCount();
-    showStatus(`Loaded "${type}" example`, 'success');
+    showStatus(_t('Loaded "%(type)s" example', {type: type}), 'success');
 }
 </script>
 {% endblock %}

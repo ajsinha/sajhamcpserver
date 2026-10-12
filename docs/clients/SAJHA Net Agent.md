@@ -3,8 +3,10 @@
 The SAJHA Net agent puts any MCP server into a SAJHA Net as a full participant. It runs next to the
 server (a sidecar), reaches it over stdio or Streamable HTTP, and does everything a participant must:
 it holds the participant's certificate, gossips, publishes the server's tools as its catalog with net
-metadata, verifies forwarded API keys against the net key directory, applies a small export policy, and
-passes the calls it allows to the server. Other members see it as an instance of kind `agent`.
+metadata, verifies the users of forwarded calls (`api_key`, `assertion` or `token_exchange`), applies its
+export policy, blocks and residency rules, and passes the calls it allows to the server. Given users and a
+client listener it is also a **home**: its local MCP clients call other members' tools through it, and it
+can re-export what it imports (section 6). Other members see it as an instance of kind `agent`.
 
 It is one of the three ways to take part in a net ([SAJHA Net](../architecture/SAJHA%20Net.md#51-three-ways-to-take-part) §5.1):
 
@@ -66,6 +68,8 @@ python -m sajhanet_agent \
 | `--behind-tls-proxy` | A TLS proxy terminates HTTPS in front of the agent (requests count as HTTPS). |
 | `--allow-plain-http` | Lab use only: no HTTPS required for enrollment, peers or forwarded keys. |
 | `--call-timeout`, `--catalog-refresh` | Seconds for one call to the server, and between `tools/list` on it (default 60 each). |
+| `--config` | The configuration file (JSON, section 6): users and their keys, identity resolvers, import rules, blocks, residency rules and re-export rules. Re-read when it changes. |
+| `--client-listen` | `host:port` on which to serve MCP to local clients (`/mcp`, Streamable HTTP); makes the agent a home (section 6.2). Keep it on loopback or a private interface. |
 | `--log-level` | Default `INFO`. |
 
 The agent answers `/sajhanet/v1/...` (membership, catalog, key directory), the signed MCP endpoint at
@@ -97,22 +101,35 @@ machines you do not control.
 
 ## 4. Who may call what
 
-A forwarded call is checked in the order of protocol §15.4: signature, version, hops and loops, the
-user's identity, export, then the call. The agent's part:
+A forwarded call is checked in the order of protocol §15.4: signature, version, blocks on the sender, hops
+and loops, the user's identity, the block on the user, the block on the tool, export, then the call and
+the residency of its result. The agent's part:
 
-- **Identity.** With key verification on (the default) the agent lists `api_key` as its identity: it keeps
-  a copy of the net key directory, pulled from each member when its key digest changes, and checks a
-  forwarded key there (unknown, disabled, expired, revoked, or not from the sending home are refused with
-  the protocol's reasons). The user is the key's owner at their home, with their roles there; the agent has
-  no accounts of its own and maps nobody. It publishes no keys.
-- **Export policy.** `--export-tools` (globs of the server's tool names, or of their published names), `--export-peers` (globs of
-  instance names) and `--export-roles` (the user's roles at home; default any). The key's own tool access
-  is a ceiling, as on every host. A tool the policy does not offer to a peer is neither in that peer's
-  catalog nor callable by it.
+- **Identity.** With key verification on (the default) the agent keeps a copy of the net key directory,
+  pulled from each member when its key digest changes, and accepts the resolvers of the configuration
+  file's `identity` list (default `api_key`): a forwarded key, checked in the directory (unknown, disabled,
+  expired, revoked, or not from the sending home are refused with the protocol's reasons); a user
+  assertion signed by the user's home (`assertion`: schema, net, issuer, signature, audience, time window,
+  one use, trace id and key record, protocol §15.5); or a token it issued at its own
+  `/sajhanet/v1/token` in exchange for such an assertion (`token_exchange`, §15.9; feature
+  `token_exchange`, tokens live `token_ttl_seconds`). An assertion is also accepted in the re-export cases
+  of §16 even where `assertion` is not listed. The user is the key's owner at their home, with their roles
+  there; the agent has no accounts of its own and maps nobody.
+- **Export policy.** `--export-tools` (globs of the server's tool names, or of their published names),
+  `--export-peers` (globs of instance names) and `--export-roles` (the user's roles at home; default any).
+  The key's own tool access is a ceiling, as on every host. A tool the policy does not offer to a peer is
+  neither in that peer's catalog nor callable by it.
+- **Blocks** (feature `blocks`; the file's `blocks`). `instance` and `inbound` refuse a sender (and stop
+  offering it anything), `user` refuses calls on behalf of `<login>@<home>`, `tool` with direction
+  `inbound` refuses one of the server's tools. The agent publishes its blocks document at
+  `/sajhanet/v1/blocks` like any member, its version growing with each change.
+- **Residency** (feature `residency`). The server's tools' schema marks (`x-sajha-data-class`) and the
+  file's `residency.tools` overlay give their data classes, shown in the catalog's `data_classes`; the
+  file's residency rules decide whether a result may leave for the calling home (refused
+  `residency_result`, executed, or redacted field by field).
 - **Calls without a user** (another participant's service identity) are refused unless `--service-calls`.
 
-The server behind the agent still applies whatever authorization it has of its own. The agent imports
-nothing: it never calls other members' tools, so it is never a home.
+The server behind the agent still applies whatever authorization it has of its own.
 
 ---
 
@@ -125,12 +142,89 @@ refusal. Results go back signed, with `_meta["io.sajha/net"].instance` set.
 
 ---
 
-## 6. Limits
+## 6. The configuration file, and the agent as a home
 
-Progress, cancellation, input requests and tasks are not relayed on forwarded calls (the same limit as
-SAJHA); blocks, re-export, residency rules and the `assertion` and `token_exchange` resolvers are SAJHA's
-and not offered by the agent; the agent is never a home. These are listed with SAJHA's own in
-[SAJHA Net](../architecture/SAJHA%20Net.md#55-what-is-built) §5.5.
+### 6.1 The configuration file
+
+`--config` names a JSON file holding what does not fit a flag. The agent reads it at start and again
+whenever it changes (checked every protocol period); an edit that does not parse is not applied, the last
+good configuration stays and the status says why. Every section is optional.
+
+```json
+{
+  "identity": ["assertion", "api_key"],
+  "users": [
+    {"user_name": "alice", "display_name": "Alice", "roles": ["analyst"],
+     "keys": [{"id": "alice-1", "key": "<the raw key>", "tool_access_mode": "all"}]}
+  ],
+  "import": [{"tools": ["*"], "instances": ["*"]}],
+  "blocks": [{"id": "b1", "level": "outbound", "target_instance": "risk-us", "reason": "under review"}],
+  "residency": {
+    "default_effect": "allow",
+    "tools": {"lookup_person": {"arguments": {"email": "eu-personal"}}},
+    "rules": [{"id": "eu-stays", "match": {"data_classes": ["eu-personal"], "flow": "arguments",
+               "destination": {"labels.jurisdiction": {"ne": "EU"}}}, "effect": "deny"}]
+  },
+  "reexport": {"enabled": true, "rules": [{"tools": ["ledger"], "from_instances": ["ledger-c"], "to_instances": ["desk-d"]}]},
+  "max_hops": 2
+}
+```
+
+| Key | Meaning |
+|---|---|
+| `identity` | The resolvers this agent accepts as a host and sends as a home, in order of preference: `api_key`, `assertion`, `token_exchange` (default `["api_key"]`). As a home it sends the first one the host lists. |
+| `users` | The agent's own users, each with `user_name`, `display_name`, `roles` and `keys`. A key has an `id` (at most 64 characters), the raw `key` or its `sha256`, and optionally `name`, `enabled`, `expires_at`, `tool_access_mode` (`all`, `allowlist`, `denylist`, `regex`) and `tool_access_list`. The agent publishes a key record for each in the net key directory (only the hash crosses), so hosts can verify its users; the records are kept in `own_keys.json` in `--data-dir` so their versions keep growing across restarts. A key removed from the file becomes a tombstone. |
+| `anonymous_calls` | `true`: a local client without a key may call; its calls carry no user, so a host serves them only if it accepts service calls. Default `false`. |
+| `import` | Which remote tools the agent's local clients may use: rules `{tools, instances, for_roles}` (globs; `for_roles` the local user's roles). Nothing is imported unless a rule allows it; a rule with an empty `instances` imports its tools from nobody. Without the section every tool is imported. |
+| `blocks` | Blocks of [SAJHA Net](../architecture/SAJHA%20Net.md#114-blocking) §11.4: `{id, level, target_instance, tool, direction, user, reason, expires_at}`, `level` one of `instance`, `inbound`, `outbound`, `tool`, `user`. `outbound`, `instance` and `tool` with direction `outbound` (`tool` a qualified-name glob) hide a member's tools from the local clients and are never called. |
+| `residency` | `default_effect` (`allow`, or `deny`: classified data needs an allow rule), `tools` (a tool-name glob to the data classes of its `arguments` and `results`, by field path or for the whole value) and `rules` of the shape of SAJHA's residency rules ([Policy and Audit](../architecture/Policy%20and%20Audit.md#35-residency-rules-sajha-net) §3.5): `match` (`data_classes`, `flow`: `arguments` or `results`, `destination`: conditions on `net`, `instance`, `region`, `labels.<key>`, `here`, plus `differs_from_here`), `effect` (`allow`, `deny`, `require_approval`), `redact.data_classes`, `reason`. Deny overrides. |
+| `reexport` | `enabled` and `rules` `{tools, from_instances, to_instances, for_roles}` (section 6.3). |
+| `max_hops`, `max_call_chain` | The hop limit (default 1, or 2 with re-export on) and the hops-plus-nesting budget (default 8) of protocol §16; an agent that is the origin of a re-exported tool needs `max_hops: 2`. |
+| `token_ttl_seconds`, `assertion_ttl_seconds` | Lifetimes of the tokens it issues (default 300) and the assertions it signs (default 30, at most 60). |
+| `bare_aliases` | `on` (default): local clients also see a remote tool under its plain name while no own tool has it; `off`: qualified names only. |
+
+### 6.2 The agent as a home
+
+With `--client-listen` the agent opens a second listener for its own MCP clients: Streamable HTTP at
+`/mcp`, JSON answers, `initialize`, `ping`, `tools/list` and `tools/call`. A client presents one of the
+file's keys (`Authorization: Bearer <key>` or `X-API-Key`); a client without one is refused (HTTP 401)
+unless `anonymous_calls` is on.
+
+- `tools/list` shows the server's own tools under their own names, and every remote tool the import rules,
+  blocks and residency rules allow as a proxy under its qualified name `<net>__<host prefix>__<tool>` and,
+  while no own tool has it, under its plain name ([SAJHA Net](../architecture/SAJHA%20Net.md#82-names-and-resolution)
+  §8.2), with `_meta["io.sajha/net"]` naming its host. The key's tool access is a ceiling on both.
+- A call of an own tool goes to the server. Any other call is resolved and forwarded as SAJHA does:
+  a qualified name goes exactly there, a plain name follows the resolution order and falls back between
+  hosts (§9.1 there); the call is signed, carries the hop headers and the user as the host accepts it
+  (above), and the result comes back verified. A refusal reaches the client as a result with
+  `isError: true` and `_meta["io.sajha/net"].refusal`.
+- **Residency at the home.** Before arguments leave, the rules decide with the host as destination: the
+  call goes, is refused `residency_arguments` (side home, not executed), or goes with the fields of the
+  named classes replaced by `[REDACTED:<class>]`. A rule with `require_approval` refuses too: the agent
+  has no approval surface (no administrator signs in to it), so the refusal says the call needs a
+  person's approval that this agent cannot ask for, and to call the tool from a SAJHA server, where an
+  administrator can approve it, or change the rule. As a result arrives, the rules decide again with
+  this agent as the destination (`here`).
+- The agent pulls other members' catalogs only while it is a home or re-exports; otherwise it imports
+  nothing, as before.
+
+### 6.3 Re-export
+
+With `reexport.enabled` and a matching rule the agent offers an imported tool to the members its
+`to_instances` name, as its own entry with `origin` set to the tool's host (feature `reexport`, protocol
+§16); a rule with an empty `to_instances` re-exports to nobody. A tool is never offered back to its host
+or origin. A call to it must carry a user assertion for the origin; the agent checks its re-export rule
+for that caller and relays the call to the origin with the assertion unchanged, the hop count and visited
+list continued, and never with a key. The origin must accept hop 2 (`max_hops: 2` there).
+
+### 6.4 Limits
+
+The agent does not list `streaming`, `progress`, `cancellation`, `mrtr`, `tasks` or `visibility`: homes send
+it plain JSON calls and hold any task themselves, and as a home it asks hosts for plain JSON answers. Its
+local clients reach it over Streamable HTTP only (no stdio), and it is in one net only, so it is never a
+bridge between nets. A residency rule that needs approval refuses (section 6.2). What SAJHA Net as a
+whole does not have yet is in [SAJHA Net](../architecture/SAJHA%20Net.md#55-what-is-built) §5.5.
 
 ---
 
@@ -193,4 +287,7 @@ covers it. Without `--ca-url`, the runner uses a self-signed identity, which onl
 accepts (and remembers by name: give `--name` and `--identity-dir` to reuse one). `--api-key` adds CALL-01
 with a real user's key; `--json` prints the report as data; the exit status is 1 when a case fails. SAJHA's
 own suite runs it against a SAJHA instance, an agent and a sponsored server in one net
-(`tests/net/test_net_mixed_conformance.py`).
+(`tests/net/test_net_mixed_conformance.py`). The agent's cases that need its insides (CALL-07, CALL-13,
+CALL-14 and CALL-15 as host and as home, blocks, residency and re-export) are in
+`sajhanet_agent/tests/test_home.py`, and an agent home next to a SAJHA instance in
+`tests/net/test_net_agent_home.py`.

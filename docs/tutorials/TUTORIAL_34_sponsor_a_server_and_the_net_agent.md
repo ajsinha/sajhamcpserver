@@ -164,8 +164,10 @@ curl -s -X POST http://127.0.0.2:3003/api/tools/execute -H "Authorization: Beare
 `cust-na` sent `admin`'s default key; the agent found it in the key directory `cust-na` publishes,
 checked that it came from `cust-na`, applied its export policy (`--export-tools`, `--export-peers`,
 `--export-roles`; default everything) with the key's own tool access as a ceiling, and called the server.
-The agent has no accounts of its own: the user is the key's owner at home. It is never a home itself (it
-calls no other member's tools) and publishes no keys.
+The agent has no accounts of its own: the user is the key's owner at home. Run like this it only hosts:
+it calls no other member's tools and publishes no keys. Given users in a configuration file and a client
+listener it is also a home, with blocks, residency and re-export
+([SAJHA Net Agent](../clients/SAJHA%20Net%20Agent.md) section 6).
 
 ### 7. Clean up
 

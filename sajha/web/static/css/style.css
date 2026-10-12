@@ -533,7 +533,11 @@ pre, code { color: var(--t-text) !important; background: var(--t-inp) !important
   background: linear-gradient(90deg, transparent, var(--sajha-glow), transparent); opacity: .55; }
 .sajha-brand { display: flex; align-items: center; gap: .6rem; color: var(--sajha-on-nav) !important; margin-right: 1.4rem; }
 .sajha-brand img { height: 34px; filter: drop-shadow(0 2px 6px rgba(0,0,0,.35)); }
-.sajha-brand .name { font-weight: 800; letter-spacing: .16em; font-size: 1.15rem; display: block; line-height: 1.1; }
+/* The wordmark: Cinzel, classical Roman capitals (SIL Open Font License, static/fonts/OFL-Cinzel.txt), served locally */
+@font-face { font-family: 'SAJHA Wordmark'; src: url('/static/fonts/Cinzel.ttf') format('truetype');
+             font-weight: 400 900; font-style: normal; font-display: swap; }
+.sajha-brand .name { font-family: 'SAJHA Wordmark', Cinzel, Georgia, 'Times New Roman', serif;
+                     font-weight: 700; letter-spacing: .12em; font-size: 1.3rem; display: block; line-height: 1.05; }
 .sajha-brand small { display: block; font-size: 10.5px; opacity: .85; letter-spacing: .02em; }
 .sajha-nav .navbar-toggler { color: var(--sajha-on-nav); border-color: rgba(255,255,255,.4); font-size: 1.4rem; }
 .sajha-nav .nav-link { color: var(--sajha-on-nav) !important; font-weight: 600; padding: 1.3rem .85rem !important;

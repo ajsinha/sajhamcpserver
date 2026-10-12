@@ -187,6 +187,8 @@ class UpstreamConfig:
     env: Dict[str, str] = field(default_factory=dict)
     env_refs: Dict[str, str] = field(default_factory=dict)
     cwd: str = ''
+    isolation: str = ''                             # stdio: container | none; '' = container when docker answers
+    container: Dict[str, Any] = field(default_factory=dict)   # stdio: image, mounts, limits, network
     urls: List[str] = field(default_factory=list)   # replicas: more URLs serving this same upstream
     pool_size: Optional[int] = None                 # None: federation.pool_size
     max_in_flight: Optional[int] = None             # None: federation.max_in_flight (0 = no limit)
@@ -197,7 +199,7 @@ class UpstreamConfig:
               'timeout_seconds', 'retries', 'max_calls_per_minute', 'cache_ttl', 'cache_per_user', 'breaker',
               'refresh_interval_seconds', 'include_tools', 'exclude_tools', 'expose_prompts',
               'expose_resources', 'auto_approve', 'on_change', 'command', 'args', 'env', 'env_refs', 'cwd',
-              'urls', 'pool_size', 'max_in_flight', 'max_queue')
+              'isolation', 'container', 'urls', 'pool_size', 'max_in_flight', 'max_queue')
 
     @classmethod
     def from_dict(cls, data: Dict[str, Any], source: str = 'config') -> 'UpstreamConfig':
@@ -272,6 +274,8 @@ class UpstreamConfig:
             env={str(k): str(v) for k, v in _d('env').items()},
             env_refs={str(k): str(v) for k, v in _d('env_refs').items()},
             cwd=str(data.get('cwd') or '').strip(),
+            isolation=str(data.get('isolation') or '').strip().lower(),
+            container=_d('container'),
             urls=[u.strip() for u in _lst('urls') if u.strip()],
             pool_size=None if data.get('pool_size') in (None, '') else _i('pool_size', 1),
             max_in_flight=None if data.get('max_in_flight') in (None, '') else _i('max_in_flight', 0),
@@ -300,6 +304,8 @@ class UpstreamConfig:
                 raise ConfigError('a stdio upstream needs a command')
         elif not self.url:
             raise ConfigError('an HTTP upstream needs a url')
+        from sajha.federation.container import validate as validate_isolation
+        validate_isolation(self.transport, self.isolation, self.container)   # sajha/federation/container.py
         atype = (self.auth or {}).get('type', 'none') or 'none'
         if atype not in AUTH_TYPES:
             raise ConfigError(f'auth.type must be one of {", ".join(AUTH_TYPES)}')

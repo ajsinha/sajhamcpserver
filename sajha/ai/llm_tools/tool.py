@@ -95,6 +95,7 @@ class RunInfo:
     sampler: Any = field(default=None, repr=False)
     confirmer: Any = field(default=None, repr=False)   # answer mode over MCP: asks the client's user (MRTR/elicitation)
     context_trims: List[Dict[str, Any]] = field(default_factory=list)   # answer mode: turns dropped on ContextTooLong
+    planner_choice: Optional[Dict[str, Any]] = None   # answer mode: an automatic planner choice and its outcome
 
     def to_sajha(self) -> Dict[str, Any]:
         """What the OpenAI-compatible endpoint returns in the response's ``sajha`` field."""
@@ -495,6 +496,7 @@ class LLMTool(BaseMCPTool):
         info.steps, info.models, info.planner, info.error = list(res.steps), list(res.models), res.planner, res.error
         info.planner_version, info.planner_by = res.planner_version, res.planner_by
         info.planner_path, info.loops_exhausted = list(res.planner_path), list(res.loops_exhausted)
+        info.planner_choice = res.planner_choice
         info.stopped_by = res.stopped_by
         info.context_trims = list(res.context_trims)
         out: Dict[str, Any] = {"answer": res.answer, "confidence": round(float(res.confidence), 4),
@@ -936,6 +938,8 @@ class LLMTool(BaseMCPTool):
                  "cached": info.cached, "sampled": info.sampled or None, "duration_ms": info.duration_ms, "trace_id": getattr(ctx, "trace_id", ""),
                  "run_id": run.id if run is not None else "", "chain": list(LLM_CHAIN.get()),
                  "conversation_id": info.result.get("conversation_id") if isinstance(info.result, dict) else None}
+        if info.planner_choice:            # planner learning (LLM Tools §9.13): before the long fields
+            entry["planner_choice"] = info.planner_choice
         if info.planner:                   # LLM Tools §9.9: the planner, its version and the stages taken
             entry.update(planner=info.planner, planner_version=info.planner_version, planner_by=info.planner_by,
                          planner_path=info.planner_path[:200], loops_exhausted=info.loops_exhausted)

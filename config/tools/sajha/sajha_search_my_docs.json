@@ -1,0 +1,35 @@
+{
+  "name": "sajha_search_my_docs",
+  "implementation": "sajha.ai.rag.personal_tool.SajhaSearchMyDocsTool",
+  "description": "Search your own documents in services you linked on Connected accounts (Google Drive, OneDrive, SharePoint, GitHub, Confluence: the sources an administrator configured), read with your own access; no LLM involved.\nReturns: query, count, results (best first, each with citation, source, document, title, section, url, score and text cut to 500 characters), syncing (sources whose background refresh this call started) and not_linked (sources whose service you have not linked, with the page to link it).\nInputs (* required): query* (plain words; a question works); top_k (1-20); source (only this source).\nOnly signed-in users have connected accounts; a source synced for the first time returns its passages after the background sync finishes.\nExample: {\"query\": \"travel expense policy\", \"top_k\": 5}",
+  "version": "1.0.0",
+  "enabled": true,
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "query": {"type": "string", "description": "What to look for, in plain words (a question works)."},
+      "top_k": {"type": "integer", "minimum": 1, "maximum": 20, "description": "How many passages to return."},
+      "source": {"type": "string", "description": "Only this source (a name from ai.rag.accounts.sources)."}
+    },
+    "required": ["query"],
+    "examples": [{"query": "travel expense policy", "top_k": 5}]
+  },
+  "outputSchema": {
+    "type": "object",
+    "properties": {
+      "query": {"type": "string"},
+      "results": {"type": "array", "items": {"type": "object"}},
+      "count": {"type": "integer"},
+      "syncing": {"type": "array", "items": {"type": "string"}},
+      "not_linked": {"type": "array", "items": {"type": "object"}}
+    }
+  },
+  "annotations": {"readOnlyHint": true, "openWorldHint": true},
+  "metadata": {
+    "author": "Ashutosh Sinha",
+    "email": "ajsinha@gmail.com",
+    "copyright": "Copyright All rights Reserved 2025-2030, Ashutosh Sinha",
+    "category": "Intelligence",
+    "tags": ["documents", "search", "rag", "connected accounts", "drive", "sharepoint", "github", "confluence"]
+  }
+}

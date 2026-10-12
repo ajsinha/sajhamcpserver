@@ -1,0 +1,60 @@
+{% extends "common/base.html" %}
+{# Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.com #}
+{% set sn_here = '/admin/sajhanet/keys' %}
+{% set net = view.net %}
+{% block title %}{{ _('Key directory - SAJHA Net - Admin - SAJHA MCP Server') }}{% endblock %}
+{% block extra_css %}{% include "admin/_sajhanet_mgmt_css.html" %}{% endblock %}
+{% block content %}
+<div class="container-fluid" data-sn-csrf="{{ csrf }}">
+  <div class="mb-3">
+    <h1 class="h3 mb-0"><i class="bi bi-key me-2" aria-hidden="true"></i>{{ _('Key directory') }}</h1>
+    <small class="text-muted">{{ _('The API key records every member publishes, as this server holds them: read-only; only a key\'s home can change it') }}</small>
+  </div>
+  {% include "admin/_sajhanet_subnav.html" %}
+  {% include "admin/_sajhanet_netsel.html" %}
+  <p class="small" data-sn-status role="status" aria-live="polite"></p>
+  {% if net and view.available %}
+  <div class="sn-actions mb-3">
+    <button class="btn btn-sm btn-outline-primary" type="button" data-sn-action data-method="POST" data-url="/api/sajhanet/nets/{{ net|urlencode }}/keys/resync" data-net="{{ net }}" data-final
+      data-effect="{{ _('Pull every member\'s key records again from version 0 and compare digests at the next gossip round.') }}">{{ _('Re-sync now') }}</button>
+  </div>
+  <section class="sn-box" aria-labelledby="h-homes">
+    <h2 id="h-homes">{{ _('Records by home') }}</h2>
+    <div class="sn-body"><div class="table-responsive"><table class="sn-table">
+      <thead><tr><th scope="col">{{ _('Home') }}</th><th scope="col">{{ _('Records') }}</th><th scope="col">{{ _('Revoked') }}</th><th scope="col" class="opt">{{ _('Disabled') }}</th><th scope="col" class="opt">{{ _('Version') }}</th><th scope="col">{{ _('State') }}</th><th scope="col" class="opt">{{ _('Last received') }}</th></tr></thead>
+      <tbody>
+      {% for h in view.homes %}
+        <tr><td><a href="/admin/sajhanet/keys?net={{ net|urlencode }}&amp;home={{ h.home|urlencode }}"><code>{{ h.home }}</code></a>{% if h.home == view.instance %} <span class="sn-meta">{{ _('this server') }}</span>{% endif %}</td>
+          <td>{{ h.records }}</td><td>{{ h.revoked }}</td><td class="opt">{{ h.disabled }}</td><td class="opt">{{ h.version }}</td>
+          <td>{% if h.unusable %}<span class="st st-left">{% trans why=h.unusable %}unusable ({{ why }}){% endtrans %}</span>{% else %}<span class="st st-verified">{{ _('signature verified') }}</span>{% endif %}</td>
+          <td class="opt">{{ h.last_received_at or '—' }}</td></tr>
+      {% else %}<tr><td colspan="7" class="sn-meta">{{ _('No key records yet.') }}</td></tr>{% endfor %}
+      </tbody></table></div>
+      <p class="sn-meta mt-2 mb-0">{{ _('A record is stored only after its signature verifies against its home\'s certificate; a record never holds the key, only its hash.') }}</p></div>
+  </section>
+  {% if view.home %}
+  <section class="sn-box" aria-labelledby="h-recs">
+    <h2 id="h-recs">{% trans home=view.home %}Records of <code>{{ home }}</code>{% endtrans %}</h2>
+    <div class="sn-body">
+      <label class="form-label small" for="k-q">{{ _('Filter') }}</label>
+      <input class="form-control form-control-sm mb-2" id="k-q" data-sn-filter="#k-rows tr" autocomplete="off" placeholder="{{ _('owner, prefix or name') }}">
+      <div class="table-responsive"><table class="sn-table">
+      <thead><tr><th scope="col">{{ _('Key') }}</th><th scope="col">{{ _('Owner') }}</th><th scope="col">{{ _('State') }}</th><th scope="col" class="opt">{{ _('Expires') }}</th><th scope="col" class="opt">{{ _('Tool access') }}</th><th scope="col" class="opt">{{ _('Last change') }}</th></tr></thead>
+      <tbody id="k-rows">
+      {% for r in view.records %}
+        <tr><td><code>{{ r.prefix }}</code> {{ r.name }}{% if r.persistent %} <span class="sn-meta">{{ _('persistent') }}</span>{% endif %}</td>
+          <td>{{ r.owner or '—' }}</td>
+          <td><span class="st st-{{ 'revoked' if r.revoked_at else ('ok' if r.enabled else 'left') }}">{{ _('revoked') if r.revoked_at else (_('enabled') if r.enabled else _('disabled')) }}</span></td>
+          <td class="opt">{{ r.expires_at or _('never') }}</td><td class="opt">{{ r.tool_access_mode or '—' }}</td>
+          <td class="opt">{% trans version=r.version, at=r.updated_at or '—' %}v{{ version }} · {{ at }}{% endtrans %}</td></tr>
+      {% else %}<tr><td colspan="6" class="sn-meta">{{ _('No records from this home.') }}</td></tr>{% endfor %}
+      </tbody></table></div>
+    </div>
+  </section>
+  {% endif %}
+  {% elif net %}
+  <p class="sn-meta">{{ _('Identity and authorization are not running for this net.') }}</p>
+  {% endif %}
+</div>
+{% include "admin/_sajhanet_change_dialog.html" %}
+{% endblock %}

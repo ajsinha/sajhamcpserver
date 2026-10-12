@@ -1,0 +1,107 @@
+{% extends "common/base.html" %}
+{# Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.com #}
+{% set sn_here = '/admin/sajhanet/snapshots' %}
+{% block title %}{{ _('Snapshots - SAJHA Net - Admin - SAJHA MCP Server') }}{% endblock %}
+{% block extra_css %}{% include "admin/_sajhanet_mgmt_css.html" %}{% endblock %}
+{% block content %}
+<div class="container-fluid" data-sn-csrf="{{ csrf }}">
+  <div class="mb-3">
+    <h1 class="h3 mb-0"><i class="bi bi-camera me-2" aria-hidden="true"></i>{{ _('Snapshots') }}</h1>
+    <small class="text-muted">{{ _('Signed, chained records of users, API key records, local tools and the net view: verify the chain, compare two, download one, restore missing users and keys') }}</small>
+  </div>
+  {% include "admin/_sajhanet_subnav.html" %}
+  {% set st = view.status %}
+  <p class="small">{% trans on=_('on') if st.enabled else _('off'), every=st.interval_minutes, keep=st.keep, dir=st.dir %}Periodic snapshots {{ on }} (<code>snapshots.enabled</code>) · every {{ every }} minutes · the newest {{ keep }} kept in <code>{{ dir }}</code>.{% endtrans %}
+    {% if st.last_error %}<span class="sn-bad">{{ st.last_error }}</span>{% endif %}</p>
+  <p class="small" data-sn-status role="status" aria-live="polite"></p>
+  <div class="sn-tiles">
+    <div class="sn-tile"><div class="k">{{ _('Snapshots') }}</div><div class="v">{{ view.snapshots|length }}</div></div>
+    <div class="sn-tile"><div class="k">{{ _('Chain') }}</div><div class="v">{% if view.ok is none %}—{% elif view.ok %}<span class="st st-verified">{{ _('verified') }}</span>{% else %}<span class="st st-broken">{{ _('broken') }}</span>{% endif %}</div></div>
+  </div>
+  {% for p in view.problems %}<p class="small sn-bad mb-1">{{ p }}</p>{% endfor %}
+  {% for p in view.notes %}<p class="sn-meta mb-1">{{ p }}</p>{% endfor %}
+
+  <section class="sn-box" aria-labelledby="h-snaps">
+    <h2 id="h-snaps">{{ _('Retained snapshots') }}</h2>
+    <div class="sn-body"><div class="table-responsive"><table class="sn-table">
+      <thead><tr><th scope="col">{{ _('Snapshot') }}</th><th scope="col">{{ _('Created') }}</th><th scope="col" class="opt">{{ _('Size') }}</th><th scope="col" class="opt">{{ _('Contents') }}</th><th scope="col">{{ _('Chain, signature') }}</th><th scope="col">{{ _('Actions') }}</th></tr></thead>
+      <tbody>
+      {% for s in view.snapshots|reverse %}
+        <tr><td><code>{{ s.name }}</code></td><td>{{ s.created or '—' }}</td><td class="opt">{{ (s.size / 1024)|round(1) }} KB</td>
+          <td class="opt">{% for k, v in (s.sections or {}).items() if v %}{{ k }} {{ v }}{% if not loop.last %}, {% endif %}{% endfor %}</td>
+          <td><span class="st st-{{ s.chain or 'left' }}">{{ s.chain or '—' }}</span> <span class="st st-{{ s.signature or 'left' }}">{{ s.signature or '—' }}</span>
+            {% for p in s.problems or [] %}<div class="sn-meta sn-bad">{{ p }}</div>{% endfor %}</td>
+          <td class="sn-actions"><a class="btn btn-sm btn-outline-secondary" href="/api/sajhanet/snapshots/{{ s.name|urlencode }}/download">{{ _('Download') }}</a>
+            <button class="btn btn-sm btn-outline-primary" type="button" data-snap-plan="{{ s.name }}">{{ _('Restore…') }}</button></td></tr>
+      {% else %}<tr><td colspan="6" class="sn-meta">{% trans %}No snapshots yet. They are written every interval while <code>snapshots.enabled</code> is on.{% endtrans %}</td></tr>{% endfor %}
+      </tbody></table></div></div>
+  </section>
+
+  {% if view.snapshots|length > 1 %}
+  <section class="sn-box" aria-labelledby="h-diff">
+    <h2 id="h-diff">{{ _('Compare two snapshots') }}</h2>
+    <div class="sn-body">
+      <form class="row g-2 align-items-end" id="snap-diff">
+        <div class="col-12 col-md-5"><label class="form-label small" for="d-a">{{ _('From') }}</label>
+          <select class="form-select form-select-sm" id="d-a" name="a">{% for s in view.snapshots %}<option{% if loop.revindex == 2 %} selected{% endif %}>{{ s.name }}</option>{% endfor %}</select></div>
+        <div class="col-12 col-md-5"><label class="form-label small" for="d-b">{{ _('To') }}</label>
+          <select class="form-select form-select-sm" id="d-b" name="b">{% for s in view.snapshots %}<option{% if loop.last %} selected{% endif %}>{{ s.name }}</option>{% endfor %}</select></div>
+        <div class="col-auto"><button class="btn btn-sm btn-primary" type="submit">{{ _('Compare') }}</button></div>
+      </form>
+      <pre class="small mt-2 mb-0" id="snap-diff-out" aria-live="polite"></pre>
+    </div>
+  </section>
+  {% endif %}
+
+  <section class="sn-box" aria-labelledby="h-restore" id="snap-restore" hidden>
+    <h2 id="h-restore">{{ _('Restore') }}</h2>
+    <div class="sn-body">
+      <p class="small">{{ _('A restore re-creates the roles, users and persistent API key records the snapshot holds and the database lacks. Nothing that exists is changed; restored users have no usable password until an administrator sets one. It cannot be undone from here.') }}</p>
+      <pre class="small" id="snap-plan" aria-live="polite"></pre>
+      <form class="row g-2 align-items-end" id="snap-restore-form">
+        <div class="col-12 col-md-4"><label class="form-label small" for="r-c">{{ _('Type the snapshot name to confirm') }}</label>
+          <input class="form-control form-control-sm" id="r-c" name="confirm" required autocomplete="off"></div>
+        <div class="col-12 col-md-4"><label class="form-label small" for="r-r">{{ _('Reason (required)') }}</label>
+          <input class="form-control form-control-sm" id="r-r" name="reason" required autocomplete="off"></div>
+        <div class="col-auto"><label class="small"><input type="checkbox" name="keys" checked> {{ _('Persistent API keys too') }}</label></div>
+        <div class="col-auto"><button class="btn btn-sm btn-danger" type="submit">{{ _('Restore') }}</button></div>
+      </form>
+    </div>
+  </section>
+</div>
+<script src="{{ url_for('static', filename='js/sajhanet_console.js') }}?v={{ app_version }}"></script>
+<script nonce="{{ csp_nonce() }}">
+(function () {
+  var api = window.SajhaNet.api, chosen = '';
+  var diff = document.getElementById('snap-diff');
+  if (diff) diff.addEventListener('submit', function (e) {
+    e.preventDefault();
+    var out = document.getElementById('snap-diff-out');
+    out.textContent = _t('Comparing…');
+    api('GET', '/api/sajhanet/snapshots/diff?a=' + encodeURIComponent(diff.a.value) + '&b=' + encodeURIComponent(diff.b.value))
+      .then(function (x) { out.textContent = x.ok ? (x.d.lines.join('\n') || _t('No differences.')) : (x.d.error || ''); });
+  });
+  var box = document.getElementById('snap-restore'), plan = document.getElementById('snap-plan');
+  document.querySelectorAll('[data-snap-plan]').forEach(function (b) {
+    b.addEventListener('click', function () {
+      chosen = b.getAttribute('data-snap-plan');
+      box.hidden = false;
+      plan.textContent = _t('Working out what %(name)s would restore…', {name: chosen});
+      api('POST', '/api/sajhanet/snapshots/' + encodeURIComponent(chosen) + '/restore', {dry_run: true}).then(function (x) {
+        if (!x.ok) { plan.textContent = x.d.error || ''; return; }
+        plan.textContent = chosen + '\n' + Object.keys(x.d.plan).map(function (k) {
+          var v = x.d.plan[k]; return k + ': ' + (Array.isArray(v) && v.length ? v.join(', ') : '-'); }).join('\n');
+      });
+      box.scrollIntoView();
+    });
+  });
+  document.getElementById('snap-restore-form').addEventListener('submit', function (e) {
+    e.preventDefault();
+    var f = e.target;
+    api('POST', '/api/sajhanet/snapshots/' + encodeURIComponent(chosen) + '/restore',
+        {confirm: f.confirm.value.trim(), reason: f.reason.value.trim(), keys: f.keys.checked})
+      .then(function (x) { window.SajhaNet.status(x.ok ? _t('Restored from %(name)s.', {name: chosen}) : (x.d.error || ''), !x.ok); });
+  });
+})();
+</script>
+{% endblock %}

@@ -13,7 +13,8 @@ Without the package the file is not indexed and the index build reports
 indexed as usual. Word headings (styles "Title" and "Heading N") come out as Markdown
 headings, so a Word document is split by section like a guide; a PDF is split by
 paragraphs, with each page's text in order. Scanned PDFs (images, no text layer) give no
-text and are reported as such: there is no OCR.
+text and are reported as such; with ``ai.rag.ocr`` on and an OCR engine installed, ocr.py
+reads them instead.
 """
 
 from __future__ import annotations
@@ -82,7 +83,7 @@ def extract_text(name: str, data: bytes) -> Tuple[str, str]:
     text = re.sub(r"[ \t]+\n", "\n", text or "").strip()
     if not text:
         raise ValueError(f"{name.rsplit('/', 1)[-1]} has no text to index"
-                         + (" (a scanned PDF needs OCR, which SAJHA does not do)" if suffix == ".pdf" else ""))
+                         + (" (a scanned PDF needs OCR: ai.rag.ocr)" if suffix == ".pdf" else ""))
     return text, (title or "").strip()
 
 

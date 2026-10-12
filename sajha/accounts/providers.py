@@ -13,7 +13,8 @@ giving it a client id and a client-secret *reference*, and may override any fiel
 that is not a template is a custom provider and must give every endpoint itself.
 
 Field resolution, per provider and field: ``SAJHA_ACCOUNTS_PROVIDERS_<ID>_<FIELD>`` →
-``accounts.providers.<id>.<field>`` (YAML, ``${ENV:default}`` allowed) → the template.
+``accounts.providers.<id>.<field>`` (YAML, ``${ENV:default}`` allowed) → an installed preset
+(a provider pack, sajha/accounts/presets.py) → the template.
 ``SAJHA_ACCOUNTS_PROVIDERS`` (a JSON object ``{id: {field: value}}``) replaces the YAML
 block when set.  Secrets are never values here: ``client_secret_ref`` is ``env:NAME``,
 ``file:/path`` or ``db:...`` and is resolved only when a token request is made.
@@ -356,10 +357,17 @@ class ProviderRegistry:
     def __init__(self, providers: Dict[str, Provider], errors: Optional[Dict[str, str]] = None):
         self._providers = providers
         self.errors = dict(errors or {})
+        #: the provider presets' stamp this registry was built from (None: built from given config)
+        self.presets_stamp: Optional[tuple] = None
 
     @classmethod
     def load(cls, raw: Optional[Dict[str, Dict[str, Any]]] = None, use_env: bool = True) -> 'ProviderRegistry':
-        raw = _raw_provider_config() if raw is None else raw
+        stamp = None
+        if raw is None:
+            # installed presets (provider packs, sajha/accounts/presets.py) under the operator's YAML
+            from sajha.accounts import presets
+            stamp = presets.stamp()
+            raw = presets.merge(presets.load_all(), _raw_provider_config())
         providers: Dict[str, Provider] = {}
         errors: Dict[str, str] = {}
         for pid in list(TEMPLATES) + [k for k in raw if k not in TEMPLATES]:
@@ -368,7 +376,9 @@ class ProviderRegistry:
             except ProviderConfigError as e:
                 errors[pid] = str(e)
                 logger.warning(f'accounts: provider {pid} not loaded: {e}')
-        return cls(providers, errors)
+        registry = cls(providers, errors)
+        registry.presets_stamp = stamp
+        return registry
 
     def get(self, pid: str) -> Optional[Provider]:
         return self._providers.get(pid)
@@ -386,6 +396,13 @@ _lock = threading.Lock()
 
 def get_registry() -> ProviderRegistry:
     global _registry
+    current = _registry
+    if current is not None and current.presets_stamp is not None:
+        from sajha.accounts import presets
+        if presets.stamp() != current.presets_stamp:      # a preset was installed or removed (any worker)
+            with _lock:
+                if _registry is current:
+                    _registry = None
     if _registry is None:
         with _lock:
             if _registry is None:

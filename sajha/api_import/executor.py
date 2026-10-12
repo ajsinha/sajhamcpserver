@@ -110,7 +110,23 @@ def _client_credentials_token(cfg: Dict[str, Any], timeout: float, refresh: bool
     return token, secret
 
 
-def _connected_account_token(cfg: Dict[str, Any]) -> str:
+def check_token_host(provider_id: str, url: str) -> None:
+    """Refuse ``url`` for a per-user token of ``provider_id`` unless it is https (http on loopback for
+    tests) on one of the provider's ``api_hosts``: a user's token never goes to another host."""
+    from sajha.accounts.http import TokenHostError, check_api_url
+    from sajha.accounts.service import get_service
+    provider = get_service().registry.get(provider_id)
+    if provider is None:
+        raise APICallError(f'{provider_id!r} is not a connected-accounts provider on this server')
+    try:
+        check_api_url(provider, url)
+    except TokenHostError as e:
+        raise APICallError(f"a {provider.title} user's token may not be sent to {url.split('?')[0]}: {e}; "
+                           f"it goes only over https to {', '.join(provider.api_hosts) or 'no host'} "
+                           f"(the provider's api_hosts)")
+
+
+def _connected_account_token(cfg: Dict[str, Any], url: str = '') -> str:
     """The calling user's ``Authorization`` value from their connected account. The tool config
     carries ``"auth": {"connected_account": <provider>}``, so BaseMCPTool binds the caller's token
     around the call (sajha/accounts/injection.py); detected at run time, so API Import works
@@ -121,6 +137,8 @@ def _connected_account_token(cfg: Dict[str, Any]) -> str:
                            'feature (sajha.accounts) is not installed')
     from sajha.accounts.injection import current_token
     provider = str(cfg.get('provider') or '')
+    if url:
+        check_token_host(provider, url)
     try:
         token = current_token(provider or None)
     except RuntimeError as e:
@@ -144,8 +162,9 @@ def _requirement(security: Optional[List[List[str]]], auth: Dict[str, Any]) -> L
 
 
 def apply_auth(spec: Dict[str, Any], headers: Dict[str, str], query: List[Tuple[str, str]],
-               cookies: Dict[str, str], timeout: float, refresh: bool = False) -> List[str]:
-    """Add credentials to the request; returns the secret values used (for redaction)."""
+               cookies: Dict[str, str], timeout: float, refresh: bool = False, url: str = '') -> List[str]:
+    """Add credentials to the request; returns the secret values used (for redaction). ``url``: the
+    request's URL, checked against a connected-account provider's ``api_hosts`` before its token is added."""
     auth = spec.get('auth') or {}
     secrets_used: List[str] = []
     for name in _requirement(spec.get('security'), auth):
@@ -175,7 +194,9 @@ def apply_auth(spec: Dict[str, Any], headers: Dict[str, str], query: List[Tuple[
             headers['Authorization'] = f'Bearer {token}'
             secrets_used += [v for v in (token, secret) if v]
         elif kind == 'connected_account':
-            value = _connected_account_token(cfg)
+            if not url:
+                raise APICallError('a connected-account credential needs the request URL to check its host')
+            value = _connected_account_token(cfg, url)
             headers['Authorization'] = value
             secrets_used.append(value.split(' ', 1)[-1])
     return secrets_used
@@ -324,7 +345,8 @@ def _send(spec: Dict[str, Any], method: str, url: str, query: List[Tuple[str, st
     resp, secrets_used = None, []
     for attempt in (0, 1):
         send_headers, send_query, send_cookies = dict(headers), list(query), dict(cookies)
-        secrets_used = apply_auth(spec, send_headers, send_query, send_cookies, timeout, refresh=attempt == 1)
+        secrets_used = apply_auth(spec, send_headers, send_query, send_cookies, timeout, refresh=attempt == 1,
+                                  url=url)
         if send_cookies:
             send_headers['Cookie'] = '; '.join(f'{k}={v}' for k, v in send_cookies.items())
         try:

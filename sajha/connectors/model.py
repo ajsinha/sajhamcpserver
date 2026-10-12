@@ -26,7 +26,7 @@ KINDS: Dict[str, str] = {
     'postgresql': 'sql', 'pgvector': 'sql', 'redshift': 'sql', 'mysql': 'sql', 'mariadb': 'sql',
     'sqlserver': 'sql', 'oracle': 'sql', 'snowflake': 'sql', 'bigquery': 'sql', 'databricks': 'sql',
     'sqlite': 'sql', 'duckdb': 'sql',
-    'qdrant': 'search', 'elasticsearch': 'search', 'opensearch': 'search',
+    'qdrant': 'search', 'elasticsearch': 'search', 'opensearch': 'search', 'weaviate': 'search', 'chroma': 'search',
 }
 #: kinds that can sign in as each user through a connected account
 PER_USER_KINDS = ('snowflake', 'bigquery', 'databricks')

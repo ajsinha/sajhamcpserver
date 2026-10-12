@@ -1,6 +1,6 @@
 {% extends "common/base.html" %}
 {# Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.com #}
-{% block title %}System Monitor - Admin - SAJHA MCP Server{% endblock %}
+{% block title %}{{ _('System Monitor - Admin - SAJHA MCP Server') }}{% endblock %}
 {% block extra_css %}
 <style>
 .monitor-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1rem; margin-bottom: 1.5rem; }
@@ -36,13 +36,13 @@
 <div class="container-fluid">
     <div class="d-flex justify-content-between align-items-center mb-3">
         <div>
-            <h1 class="h3 mb-0"><i class="bi bi-activity me-2"></i>System Monitor</h1>
-            <span id="lastRefresh">Last refresh: —</span>
+            <h1 class="h3 mb-0"><i class="bi bi-activity me-2"></i>{{ _('System Monitor') }}</h1>
+            <span id="lastRefresh">{{ _('Last refresh: —') }}</span>
         </div>
         <div>
-            <span class="pulse"></span><span id="statusBadge" class="badge badge-online me-2">Online</span>
+            <span class="pulse"></span><span id="statusBadge" class="badge badge-online me-2">{{ _('Online') }}</span>
             <select id="refreshInterval" class="form-select form-select-sm d-inline-block" style="width:auto">
-                <option value="0">Manual</option>
+                <option value="0">{{ _('Manual') }}</option>
                 <option value="5" selected>5s</option>
                 <option value="15">15s</option>
                 <option value="30">30s</option>
@@ -56,30 +56,30 @@
     <div class="monitor-grid" id="topMetrics">
         <div class="monitor-card">
             <i class="bi bi-cpu mc-icon"></i>
-            <div class="mc-label">CPU Usage</div>
+            <div class="mc-label">{{ _('CPU Usage') }}</div>
             <div class="mc-value" id="cpuUsage">—%</div>
-            <div class="mc-sub" id="cpuCores">— cores</div>
+            <div class="mc-sub" id="cpuCores">{{ _('— cores') }}</div>
             <div class="usage-bar"><div class="usage-bar-fill usage-ok" id="cpuBar" style="width:0%"></div></div>
         </div>
         <div class="monitor-card">
             <i class="bi bi-memory mc-icon"></i>
-            <div class="mc-label">Memory Usage</div>
+            <div class="mc-label">{{ _('Memory Usage') }}</div>
             <div class="mc-value" id="memUsage">—%</div>
             <div class="mc-sub" id="memDetail">— / — GB</div>
             <div class="usage-bar"><div class="usage-bar-fill usage-ok" id="memBar" style="width:0%"></div></div>
         </div>
         <div class="monitor-card">
             <i class="bi bi-hdd mc-icon"></i>
-            <div class="mc-label">Disk Usage</div>
+            <div class="mc-label">{{ _('Disk Usage') }}</div>
             <div class="mc-value" id="diskUsage">—%</div>
             <div class="mc-sub" id="diskDetail">— / — GB</div>
             <div class="usage-bar"><div class="usage-bar-fill usage-ok" id="diskBar" style="width:0%"></div></div>
         </div>
         <div class="monitor-card">
             <i class="bi bi-clock-history mc-icon"></i>
-            <div class="mc-label">Server Uptime</div>
+            <div class="mc-label">{{ _('Server Uptime') }}</div>
             <div class="mc-value" id="uptime">—</div>
-            <div class="mc-sub" id="uptimeSince">Since —</div>
+            <div class="mc-sub" id="uptimeSince">{{ _('Since —') }}</div>
         </div>
     </div>
 
@@ -90,13 +90,13 @@
                 <div class="card-header"><i class="bi bi-cpu me-2"></i>CPU</div>
                 <div class="card-body p-0">
                     <table class="stat-table" id="cpuTable">
-                        <tr><td>Model</td><td id="cpuModel">—</td></tr>
-                        <tr><td>Physical Cores</td><td id="cpuPhysical">—</td></tr>
-                        <tr><td>Logical Cores</td><td id="cpuLogical">—</td></tr>
-                        <tr><td>Architecture</td><td id="cpuArch">—</td></tr>
-                        <tr><td>Load (1m/5m/15m)</td><td id="cpuLoad">—</td></tr>
-                        <tr><td>Context Switches</td><td id="cpuCtxSw">—</td></tr>
-                        <tr><td>Interrupts</td><td id="cpuInterrupts">—</td></tr>
+                        <tr><td>{{ _('Model') }}</td><td id="cpuModel">—</td></tr>
+                        <tr><td>{{ _('Physical Cores') }}</td><td id="cpuPhysical">—</td></tr>
+                        <tr><td>{{ _('Logical Cores') }}</td><td id="cpuLogical">—</td></tr>
+                        <tr><td>{{ _('Architecture') }}</td><td id="cpuArch">—</td></tr>
+                        <tr><td>{{ _('Load (1m/5m/15m)') }}</td><td id="cpuLoad">—</td></tr>
+                        <tr><td>{{ _('Context Switches') }}</td><td id="cpuCtxSw">—</td></tr>
+                        <tr><td>{{ _('Interrupts') }}</td><td id="cpuInterrupts">—</td></tr>
                     </table>
                 </div>
             </div>
@@ -105,16 +105,16 @@
         <!-- Memory Details -->
         <div class="col-md-4">
             <div class="card h-100">
-                <div class="card-header"><i class="bi bi-memory me-2"></i>Memory</div>
+                <div class="card-header"><i class="bi bi-memory me-2"></i>{{ _('Memory') }}</div>
                 <div class="card-body p-0">
                     <table class="stat-table" id="memTable">
-                        <tr><td>Total RAM</td><td id="memTotal">—</td></tr>
-                        <tr><td>Used</td><td id="memUsed">—</td></tr>
-                        <tr><td>Available</td><td id="memAvail">—</td></tr>
-                        <tr><td>Cached</td><td id="memCached">—</td></tr>
-                        <tr><td>Buffers</td><td id="memBuffers">—</td></tr>
-                        <tr><td>Swap Total</td><td id="swapTotal">—</td></tr>
-                        <tr><td>Swap Used</td><td id="swapUsed">—</td></tr>
+                        <tr><td>{{ _('Total RAM') }}</td><td id="memTotal">—</td></tr>
+                        <tr><td>{{ _('Used') }}</td><td id="memUsed">—</td></tr>
+                        <tr><td>{{ _('Available') }}</td><td id="memAvail">—</td></tr>
+                        <tr><td>{{ _('Cached') }}</td><td id="memCached">—</td></tr>
+                        <tr><td>{{ _('Buffers') }}</td><td id="memBuffers">—</td></tr>
+                        <tr><td>{{ _('Swap Total') }}</td><td id="swapTotal">—</td></tr>
+                        <tr><td>{{ _('Swap Used') }}</td><td id="swapUsed">—</td></tr>
                     </table>
                 </div>
             </div>
@@ -123,16 +123,16 @@
         <!-- Disk Details -->
         <div class="col-md-4">
             <div class="card h-100">
-                <div class="card-header"><i class="bi bi-hdd me-2"></i>Disk</div>
+                <div class="card-header"><i class="bi bi-hdd me-2"></i>{{ _('Disk') }}</div>
                 <div class="card-body p-0">
                     <table class="stat-table" id="diskTable">
-                        <tr><td>Mount Point</td><td id="diskMount">—</td></tr>
-                        <tr><td>Filesystem</td><td id="diskFs">—</td></tr>
-                        <tr><td>Total Size</td><td id="diskTotal">—</td></tr>
-                        <tr><td>Used</td><td id="diskUsedAbs">—</td></tr>
-                        <tr><td>Free</td><td id="diskFree">—</td></tr>
-                        <tr><td>Inodes Used</td><td id="diskInodes">—</td></tr>
-                        <tr><td>DB File Size</td><td id="dbSize">—</td></tr>
+                        <tr><td>{{ _('Mount Point') }}</td><td id="diskMount">—</td></tr>
+                        <tr><td>{{ _('Filesystem') }}</td><td id="diskFs">—</td></tr>
+                        <tr><td>{{ _('Total Size') }}</td><td id="diskTotal">—</td></tr>
+                        <tr><td>{{ _('Used') }}</td><td id="diskUsedAbs">—</td></tr>
+                        <tr><td>{{ _('Free') }}</td><td id="diskFree">—</td></tr>
+                        <tr><td>{{ _('Inodes Used') }}</td><td id="diskInodes">—</td></tr>
+                        <tr><td>{{ _('DB File Size') }}</td><td id="dbSize">—</td></tr>
                     </table>
                 </div>
             </div>
@@ -143,16 +143,16 @@
         <!-- Network -->
         <div class="col-md-4">
             <div class="card h-100">
-                <div class="card-header"><i class="bi bi-ethernet me-2"></i>Network I/O</div>
+                <div class="card-header"><i class="bi bi-ethernet me-2"></i>{{ _('Network I/O') }}</div>
                 <div class="card-body p-0">
                     <table class="stat-table" id="netTable">
-                        <tr><td>Bytes Sent</td><td id="netSent">—</td></tr>
-                        <tr><td>Bytes Received</td><td id="netRecv">—</td></tr>
-                        <tr><td>Packets Sent</td><td id="netPktSent">—</td></tr>
-                        <tr><td>Packets Received</td><td id="netPktRecv">—</td></tr>
-                        <tr><td>Errors In</td><td id="netErrIn">—</td></tr>
-                        <tr><td>Errors Out</td><td id="netErrOut">—</td></tr>
-                        <tr><td>Connections</td><td id="netConns">—</td></tr>
+                        <tr><td>{{ _('Bytes Sent') }}</td><td id="netSent">—</td></tr>
+                        <tr><td>{{ _('Bytes Received') }}</td><td id="netRecv">—</td></tr>
+                        <tr><td>{{ _('Packets Sent') }}</td><td id="netPktSent">—</td></tr>
+                        <tr><td>{{ _('Packets Received') }}</td><td id="netPktRecv">—</td></tr>
+                        <tr><td>{{ _('Errors In') }}</td><td id="netErrIn">—</td></tr>
+                        <tr><td>{{ _('Errors Out') }}</td><td id="netErrOut">—</td></tr>
+                        <tr><td>{{ _('Connections') }}</td><td id="netConns">—</td></tr>
                     </table>
                 </div>
             </div>
@@ -161,16 +161,16 @@
         <!-- SAJHA Process -->
         <div class="col-md-4">
             <div class="card h-100">
-                <div class="card-header"><i class="bi bi-gear me-2"></i>SAJHA Process</div>
+                <div class="card-header"><i class="bi bi-gear me-2"></i>{{ _('SAJHA Process') }}</div>
                 <div class="card-body p-0">
                     <table class="stat-table">
                         <tr><td>PID</td><td id="procPid">—</td></tr>
-                        <tr><td>Process CPU</td><td id="procCpu">—</td></tr>
-                        <tr><td>Process Memory</td><td id="procMem">—</td></tr>
+                        <tr><td>{{ _('Process CPU') }}</td><td id="procCpu">—</td></tr>
+                        <tr><td>{{ _('Process Memory') }}</td><td id="procMem">—</td></tr>
                         <tr><td>RSS</td><td id="procRss">—</td></tr>
                         <tr><td>VMS</td><td id="procVms">—</td></tr>
-                        <tr><td>Threads</td><td id="procThreads">—</td></tr>
-                        <tr><td>Open FDs</td><td id="procFds">—</td></tr>
+                        <tr><td>{{ _('Threads') }}</td><td id="procThreads">—</td></tr>
+                        <tr><td>{{ _('Open FDs') }}</td><td id="procFds">—</td></tr>
                     </table>
                 </div>
             </div>
@@ -179,16 +179,16 @@
         <!-- Python / Server -->
         <div class="col-md-4">
             <div class="card h-100">
-                <div class="card-header"><i class="bi bi-braces mc-icon" style="font-size:1rem;opacity:1;position:static;margin-right:0.5rem"></i>Runtime</div>
+                <div class="card-header"><i class="bi bi-braces mc-icon" style="font-size:1rem;opacity:1;position:static;margin-right:0.5rem"></i>{{ _('Runtime') }}</div>
                 <div class="card-body p-0">
                     <table class="stat-table">
-                        <tr><td>Python Version</td><td id="pyVersion">—</td></tr>
-                        <tr><td>Platform</td><td id="platform">—</td></tr>
-                        <tr><td>Hostname</td><td id="hostname">—</td></tr>
-                        <tr><td>SAJHA Version</td><td id="sajhaVersion">—</td></tr>
-                        <tr><td>MCP Protocol</td><td id="mcpVersion">—</td></tr>
-                        <tr><td>Tools Loaded</td><td id="toolsLoaded">—</td></tr>
-                        <tr><td>DB Type</td><td id="dbType">—</td></tr>
+                        <tr><td>{{ _('Python Version') }}</td><td id="pyVersion">—</td></tr>
+                        <tr><td>{{ _('Platform') }}</td><td id="platform">—</td></tr>
+                        <tr><td>{{ _('Hostname') }}</td><td id="hostname">—</td></tr>
+                        <tr><td>{{ _('SAJHA Version') }}</td><td id="sajhaVersion">—</td></tr>
+                        <tr><td>{{ _('MCP Protocol') }}</td><td id="mcpVersion">—</td></tr>
+                        <tr><td>{{ _('Tools Loaded') }}</td><td id="toolsLoaded">—</td></tr>
+                        <tr><td>{{ _('DB Type') }}</td><td id="dbType">—</td></tr>
                     </table>
                 </div>
             </div>
@@ -198,12 +198,12 @@
     <!-- Top Processes -->
     <div class="card mb-3">
         <div class="card-header d-flex justify-content-between align-items-center">
-            <span><i class="bi bi-list-task me-2"></i>Top Processes (by CPU)</span>
-            <span class="badge bg-secondary" id="procCount">— processes</span>
+            <span><i class="bi bi-list-task me-2"></i>{{ _('Top Processes (by CPU)') }}</span>
+            <span class="badge bg-secondary" id="procCount">{{ _('— processes') }}</span>
         </div>
         <div class="card-body p-0" style="max-height:300px;overflow-y:auto">
             <table class="table table-sm mb-0 process-table">
-                <thead><tr><th>PID</th><th>User</th><th>CPU%</th><th>MEM%</th><th>RSS</th><th>Status</th><th style="width:40%">Command</th></tr></thead>
+                <thead><tr><th>PID</th><th>{{ _('User') }}</th><th>{{ _('CPU%%') }}</th><th>{{ _('MEM%%') }}</th><th>RSS</th><th>{{ _('Status') }}</th><th style="width:40%">{{ _('Command') }}</th></tr></thead>
                 <tbody id="processRows"></tbody>
             </table>
         </div>
@@ -212,14 +212,14 @@
     <!-- Database connection pool, per worker (sajha/db/engine.py pool_status) -->
     <div class="card mb-3" id="dbPoolCard">
         <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
-            <span><i class="bi bi-hdd-stack me-2"></i>Database Connection Pool</span>
+            <span><i class="bi bi-hdd-stack me-2"></i>{{ _('Database Connection Pool') }}</span>
             <span class="small text-muted" id="dbPoolSummary">—</span>
         </div>
         <div class="card-body p-0">
             <div class="table-responsive">
                 <table class="table table-sm mb-0 process-table">
-                    <thead><tr><th>Worker</th><th>Database</th><th>Size</th><th>Max overflow</th><th>Checked out</th>
-                        <th>Overflow in use</th><th>Waiting</th><th>Checkout timeouts</th></tr></thead>
+                    <thead><tr><th>{{ _('Worker') }}</th><th>{{ _('Database') }}</th><th>{{ _('Size') }}</th><th>{{ _('Max overflow') }}</th><th>{{ _('Checked out') }}</th>
+                        <th>{{ _('Overflow in use') }}</th><th>{{ _('Waiting') }}</th><th>{{ _('Checkout timeouts') }}</th></tr></thead>
                     <tbody id="dbPoolRows"></tbody>
                 </table>
             </div>
@@ -230,30 +230,30 @@
     <!-- Cache Statistics -->
     <div class="card mb-3">
         <div class="card-header d-flex justify-content-between align-items-center">
-            <span><i class="bi bi-database me-2"></i>Tool Cache</span>
-            <button class="btn btn-sm btn-outline-danger" data-onclick="invalidateCache()"><i class="bi bi-trash me-1"></i>Invalidate All</button>
+            <span><i class="bi bi-database me-2"></i>{{ _('Tool Cache') }}</span>
+            <button class="btn btn-sm btn-outline-danger" data-onclick="invalidateCache()"><i class="bi bi-trash me-1"></i>{{ _('Invalidate All') }}</button>
         </div>
         <div class="card-body">
             <div class="row g-3 text-center">
-                <div class="col-md-3"><div class="h3 mb-0" id="cacheHitRate2">—%</div><small class="text-muted">Hit Rate</small></div>
-                <div class="col-md-3"><div class="h3 mb-0" id="cacheSize2">—</div><small class="text-muted">Cached Items</small></div>
-                <div class="col-md-3"><div class="h3 mb-0" id="cacheHits2">—</div><small class="text-muted">Total Hits</small></div>
-                <div class="col-md-3"><div class="h3 mb-0" id="cacheMisses2">—</div><small class="text-muted">Total Misses</small></div>
+                <div class="col-md-3"><div class="h3 mb-0" id="cacheHitRate2">—%</div><small class="text-muted">{{ _('Hit Rate') }}</small></div>
+                <div class="col-md-3"><div class="h3 mb-0" id="cacheSize2">—</div><small class="text-muted">{{ _('Cached Items') }}</small></div>
+                <div class="col-md-3"><div class="h3 mb-0" id="cacheHits2">—</div><small class="text-muted">{{ _('Total Hits') }}</small></div>
+                <div class="col-md-3"><div class="h3 mb-0" id="cacheMisses2">—</div><small class="text-muted">{{ _('Total Misses') }}</small></div>
             </div>
             <div class="row g-3 mt-2 text-center">
-                <div class="col-md-4"><small class="text-muted">Disk Usage:</small> <strong id="cacheDiskSize">—</strong></div>
-                <div class="col-md-4"><small class="text-muted">Tools Cached:</small> <strong id="cacheToolCount">—</strong></div>
-                <div class="col-md-4"><small class="text-muted">Total Writes:</small> <strong id="cacheWrites">—</strong></div>
+                <div class="col-md-4">{% trans %}<small class="text-muted">Disk Usage:</small> <strong id="cacheDiskSize">—</strong>{% endtrans %}</div>
+                <div class="col-md-4">{% trans %}<small class="text-muted">Tools Cached:</small> <strong id="cacheToolCount">—</strong>{% endtrans %}</div>
+                <div class="col-md-4">{% trans %}<small class="text-muted">Total Writes:</small> <strong id="cacheWrites">—</strong>{% endtrans %}</div>
             </div>
         </div>
     </div>
 
     <!-- Provider Health -->
     <div class="card mb-3">
-        <div class="card-header"><i class="bi bi-cloud-check me-2"></i>Provider Health</div>
+        <div class="card-header"><i class="bi bi-cloud-check me-2"></i>{{ _('Provider Health') }}</div>
         <div class="card-body p-0" style="max-height:400px;overflow-y:auto">
             <table class="table table-sm mb-0 process-table">
-                <thead><tr><th>Provider</th><th>Tools</th><th>API Endpoint</th><th>Circuit</th><th>Failures</th><th>Status</th></tr></thead>
+                <thead><tr><th>{{ _('Provider') }}</th><th>{{ _('Tools') }}</th><th>{{ _('API Endpoint') }}</th><th>{{ _('Circuit') }}</th><th>{{ _('Failures') }}</th><th>{{ _('Status') }}</th></tr></thead>
                 <tbody id="providerRows"></tbody>
             </table>
         </div>
@@ -261,10 +261,10 @@
 
     <!-- Recent Audit Events -->
     <div class="card mb-3">
-        <div class="card-header"><i class="bi bi-shield-check me-2"></i>Recent Audit Events</div>
+        <div class="card-header"><i class="bi bi-shield-check me-2"></i>{{ _('Recent Audit Events') }}</div>
         <div class="card-body p-0" style="max-height:300px;overflow-y:auto">
             <table class="table table-sm mb-0 process-table">
-                <thead><tr><th>Time</th><th>Action</th><th>User</th><th>Resource</th><th>IP</th></tr></thead>
+                <thead><tr><th>{{ _('Time') }}</th><th>{{ _('Action') }}</th><th>{{ _('User') }}</th><th>{{ _('Resource') }}</th><th>IP</th></tr></thead>
                 <tbody id="auditRows"></tbody>
             </table>
         </div>
@@ -309,7 +309,7 @@ function renderDbPool(pool) {
     var timeouts = 0, url = '', timeout = null;
     workers.forEach(function(w) {
         var tr = document.createElement('tr');
-        var label = (w.worker || '—') + (w.this_worker ? ' (this worker)' : '');
+        var label = (w.worker || '—') + (w.this_worker ? ' ' + _t('(this worker)') : '');
         [label, w.db_type || '—', w.size, w.max_overflow, w.checked_out, w.overflow_in_use, w.waiting,
          w.exhausted_total].forEach(function(v) {
             var td = document.createElement('td');
@@ -321,22 +321,22 @@ function renderDbPool(pool) {
         timeouts += (w.exhausted_total || 0);
         if (w.this_worker) { url = w.url || ''; timeout = w.timeout_seconds; }
     });
-    document.getElementById('dbPoolSummary').textContent = workers.length + ' worker(s)'
-        + (timeout !== null && timeout !== undefined ? ', checkout timeout ' + timeout + ' s' : '')
-        + ', ' + Math.round(timeouts) + ' checkout timeout(s)';
-    document.getElementById('dbPoolUrl').textContent = url ? 'Database: ' + url : '';
+    document.getElementById('dbPoolSummary').textContent = workers.length + _t(' worker(s)')
+        + (timeout !== null && timeout !== undefined ? ', ' + _t('checkout timeout %(n)s s', {n: timeout}) : '')
+        + ', ' + _t('%(n)s checkout timeout(s)', {n: Math.round(timeouts)});
+    document.getElementById('dbPoolUrl').textContent = url ? _t('Database: %(url)s', {url: url}) : '';
 }
 
 function refreshData() {
     fetch('/api/admin/system-monitor', {credentials: 'same-origin'})
         .then(function(r) { return r.json(); })
         .then(function(d) {
-            document.getElementById('lastRefresh').textContent = 'Last refresh: ' + new Date().toLocaleTimeString();
+            document.getElementById('lastRefresh').textContent = _t('Last refresh: ') + new Date().toLocaleTimeString();
 
             // CPU
             var cpu = d.cpu || {};
             document.getElementById('cpuUsage').textContent = (cpu.percent || 0).toFixed(1) + '%';
-            document.getElementById('cpuCores').textContent = (cpu.logical_cores || 0) + ' cores (' + (cpu.physical_cores || 0) + ' physical)';
+            document.getElementById('cpuCores').textContent = (cpu.logical_cores || 0) + _t(' cores (') + (cpu.physical_cores || 0) + ' physical)';
             document.getElementById('cpuBar').style.width = (cpu.percent || 0) + '%';
             document.getElementById('cpuBar').className = 'usage-bar-fill ' + usageClass(cpu.percent || 0);
             document.getElementById('cpuModel').textContent = cpu.model || '—';
@@ -377,7 +377,7 @@ function refreshData() {
 
             // Uptime
             document.getElementById('uptime').textContent = fmtUptime(d.uptime_seconds || 0);
-            document.getElementById('uptimeSince').textContent = 'Since ' + (d.boot_time || '—');
+            document.getElementById('uptimeSince').textContent = _t('Since ') + (d.boot_time || '—');
 
             // Network
             var net = d.network || {};
@@ -422,7 +422,7 @@ function refreshData() {
         })
         .catch(function(e) {
             document.getElementById('statusBadge').className = 'badge badge-degraded';
-            document.getElementById('statusBadge').textContent = 'Error';
+            document.getElementById('statusBadge').textContent = _t('Error');
         });
 
     // Fetch cache stats
@@ -461,7 +461,7 @@ function refreshData() {
             html+='<td>'+(e.resource_type||'')+':'+(e.resource_id||'')+'</td>';
             html+='<td>'+(e.ip_address||'—')+'</td></tr>';
         });
-        document.getElementById('auditRows').innerHTML=html||'<tr><td colspan="5" class="text-center text-muted py-3">No audit events yet</td></tr>';
+        document.getElementById('auditRows').innerHTML=html||'<tr><td colspan="5" class="text-center text-muted py-3">' + _t('No audit events yet') + '</td></tr>';
     }).catch(function(){});
 }
 
@@ -475,7 +475,7 @@ refreshData();
 refreshTimer = setInterval(refreshData, 5000);
 
 function invalidateCache() {
-    if (!confirm('Clear all cached tool results?')) return;
+    if (!confirm(_t('Clear all cached tool results?'))) return;
     fetch('/api/cache/invalidate',{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json'},body:'{}'})
         .then(function(){refreshData();});
 }

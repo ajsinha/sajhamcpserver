@@ -61,6 +61,9 @@ from sajha.net.plugins import (AllowAll, HostOption, IdentityResolver, LocalFirs
 logger = logging.getLogger(__name__)
 
 MODERN = '2026-07-28'
+LEGACY = '2025-11-25'
+RPC_UNSUPPORTED_ERA = -32022          # MCP 2026-07-28: the request's protocol version is not served
+SESSION_KEY = 'mcpsess:'              # node.kv key of a 2025-11-25 session bound to (net, participant), §6.4
 MAX_HOPS_CAP = 8
 MAX_CHAIN_CAP = 32                 # hops plus nesting depth, end to end (§16)
 MAX_MCP_BODY = 8 * 1024 * 1024
@@ -84,10 +87,11 @@ for _c, _rs in ((RPC_AUTHORIZATION, ('export', 'access', 'policy', 'approval_req
         CODES[_r] = _c
 RPC_INVALID_PARAMS = -32602
 CODES['state_invalid'] = RPC_INVALID_PARAMS      # §15.6: as MCP refuses a requestState that does not match
+CODES['session_invalid'] = RPC_PEER              # §6.4: a 2025-11-25 session of another participant (or none)
 
 SAFE_WORDS = {
     'export': 'the tool is not offered to you there', 'access': 'you do not have access to the tool there',
-    'policy': 'a policy rule refused the call', 'approval_required': 'the call needs approval there',
+    'policy': 'a policy rule refused the call', 'approval_required': 'the call needs a person\'s approval first',
     'contract_conflict': 'the tool is quarantined because its hosts disagree on its contract',
     'import': 'this server does not import the tool for you', 'no_account': 'you have no account there',
     'hop_limit': 'the call passed through too many servers', 'loop': 'the call would loop between servers',
@@ -115,6 +119,41 @@ SAFE_WORDS = {
 PROGRESS = 'notifications/progress'
 LOG = 'notifications/message'
 LOG_LEVEL_KEY = 'io.modelcontextprotocol/logLevel'
+TASKS_EXTENSION = 'io.modelcontextprotocol/tasks'
+CLIENT_CAPS_KEY = 'io.modelcontextprotocol/clientCapabilities'
+TASK_METHODS = ('tasks/get', 'tasks/update', 'tasks/cancel')
+
+
+def wants_task(pmeta: Any, nmeta: Any) -> bool:
+    """A task-augmented forwarded call (§15.6): the signed body's ``_meta["io.sajha/net"].task`` is 1 and the
+    home declares the MCP tasks extension in its client capabilities."""
+    if not isinstance(pmeta, dict) or not isinstance(nmeta, dict):
+        return False
+    if nmeta.get('task') != 1 or isinstance(nmeta.get('task'), bool):
+        return False
+    caps = pmeta.get(CLIENT_CAPS_KEY)
+    ext = caps.get('extensions') if isinstance(caps, dict) else None
+    return isinstance(ext, dict) and TASKS_EXTENSION in ext
+
+
+class HostTasks:
+    """Where a host keeps the tasks of task-augmented forwarded calls (§15.6); SAJHA's is
+    ``sajha.net.integration.tasks.NetHostTasks``. ``owner`` is :func:`mrtr_user` of the creating request."""
+
+    def create(self, owner: str, ctx: 'CallContext', arguments: Dict[str, Any]) -> Dict[str, Any]:
+        """Start the task (it runs :meth:`HostServer.run_task`); the Task fields (``taskId``, ``status``, ...).
+        ``OverflowError`` when no task can be taken now."""
+        raise NotImplementedError
+
+    def get(self, owner: str, task_id: str) -> Dict[str, Any]:
+        """The DetailedTask; ``LookupError`` for a task of another owner or none."""
+        raise NotImplementedError
+
+    def update(self, owner: str, task_id: str, responses: Dict[str, Any]) -> None:
+        raise NotImplementedError
+
+    def cancel(self, owner: str, task_id: str) -> None:
+        raise NotImplementedError
 
 
 @dataclass
@@ -249,12 +288,80 @@ class PeerWindow:
             return True
 
 
+class SharedPeerBreaker(PeerBreaker):
+    """A :class:`PeerBreaker` whose state lives in a shared key-value store (the state store, so every worker of
+    the instance sees one breaker per peer). A closed breaker costs one read per call and no write."""
+
+    def __init__(self, kv, key: str, threshold: int = 5, reset_seconds: float = 30.0,
+                 clock: Callable[[], float] = time.time):
+        self.kv, self.key = kv, key
+        self.threshold, self.reset, self.clock = threshold, reset_seconds, clock
+        self._lock = threading.Lock()
+
+    def _held(self) -> Dict[str, Any]:
+        try:
+            v = self.kv.get(self.key)
+        except Exception as e:                   # the state store is down: behave as a closed breaker
+            logger.debug(f'SAJHA Net shared breaker {self.key}: {e}')
+            return {}
+        return v if isinstance(v, dict) else {}
+
+    @property
+    def failures(self) -> int:
+        return int(self._held().get('failures') or 0)
+
+    @property
+    def opened_at(self) -> Optional[float]:
+        v = self._held().get('opened_at')
+        return float(v) if isinstance(v, (int, float)) else None
+
+    def success(self) -> None:
+        if self._held():
+            try:
+                self.kv.delete(self.key)
+            except Exception as e:
+                logger.debug(f'SAJHA Net shared breaker {self.key}: {e}')
+
+    def failure(self) -> None:
+        def fn(cur):
+            cur = dict(cur or {})
+            cur['failures'] = int(cur.get('failures') or 0) + 1
+            if cur['failures'] >= self.threshold or cur.get('opened_at') is not None:
+                cur['opened_at'] = self.clock()
+            return cur
+        try:
+            self.kv.update(self.key, fn, ttl=max(60.0, self.reset * 10))
+        except Exception as e:
+            logger.debug(f'SAJHA Net shared breaker {self.key}: {e}')
+
+
+class SharedPeerWindow(PeerWindow):
+    """A per-peer calls-per-minute limit counted in a shared key-value store, per calendar minute (every worker of
+    the instance shares it). If the store cannot be reached the call is allowed."""
+
+    def __init__(self, kv, key: str, per_minute: int, clock: Callable[[], float] = time.time):
+        super().__init__(per_minute, clock)
+        self.kv, self.key = kv, key
+
+    def take(self) -> bool:
+        if self.per_minute <= 0:
+            return True
+        k = f'{self.key}:{int(self.clock() // 60)}'
+        try:
+            n = self.kv.update(k, lambda cur: int(cur or 0) + 1, ttl=120)
+        except Exception as e:
+            logger.debug(f'SAJHA Net shared rate limit {self.key}: {e}')
+            return True
+        return int(n or 0) <= self.per_minute
+
+
 @dataclass
 class PeerSettings:
     timeout_seconds: float = 30.0
     breaker_threshold: int = 5
     breaker_reset_seconds: float = 30.0
     calls_per_minute: int = 600
+    shared: bool = False               # breakers and rate limits in the state store, across workers (design §15)
 
 
 class CallPaths:
@@ -365,9 +472,11 @@ class Router:
                  peer: Optional[PeerSettings] = None, clock: Callable[[], float] = time.time,
                  audit: Optional[Callable[[str, Dict[str, Any]], None]] = None,
                  screen_result: Optional[Callable[[Dict[str, Any]], Dict[str, Any]]] = None,
-                 max_hops: int = 1, max_chain: int = 8, streaming: Optional[StreamSettings] = None):
+                 max_hops: int = 1, max_chain: int = 8, streaming: Optional[StreamSettings] = None,
+                 tasks: bool = True):
         self.books = list(books)
         self.streaming = streaming or StreamSettings()
+        self.tasks = bool(tasks)              # forward task-augmented calls to hosts that list ``tasks`` (§15.6)
         self.local_tools = local_tools
         self.preferences = {str(k): [str(x) for x in (v or [])] for k, v in (preferences or {}).items()}
         self.routing = routing or LocalFirst()
@@ -385,6 +494,8 @@ class Router:
         self.max_chain = max(1, min(MAX_CHAIN_CAP, int(max_chain)))
         self._breakers: Dict[Tuple[str, str], PeerBreaker] = {}
         self._windows: Dict[Tuple[str, str], PeerWindow] = {}
+        self._legacy_hosts: set = set()                   # (net, host) that do not serve 2026-07-28 (§6.4)
+        self._sessions: Dict[Tuple[str, str], str] = {}   # (net, host) -> this home's 2025-11-25 session there
         self._latency: Dict[Tuple[str, str], List[float]] = {}
         self.counters: Dict[Tuple[str, ...], int] = {}
         self.paths = CallPaths()
@@ -400,18 +511,27 @@ class Router:
         with self._lock:
             self.counters[key] = self.counters.get(key, 0) + 1
 
+    def _shared_kv(self, net: str):
+        b = self.book(net) if self.peer.shared else None
+        return getattr(b.node, 'kv', None) if b is not None else None
+
     def breaker(self, net: str, host: str) -> PeerBreaker:
         k = (net, host)
         with self._lock:
             if k not in self._breakers:
-                self._breakers[k] = PeerBreaker(self.peer.breaker_threshold, self.peer.breaker_reset_seconds, self.clock)
+                kv = self._shared_kv(net)
+                self._breakers[k] = SharedPeerBreaker(kv, f'brk:{host}', self.peer.breaker_threshold,
+                                                      self.peer.breaker_reset_seconds, self.clock) if kv is not None \
+                    else PeerBreaker(self.peer.breaker_threshold, self.peer.breaker_reset_seconds, self.clock)
             return self._breakers[k]
 
     def window(self, net: str, host: str) -> PeerWindow:
         k = (net, host)
         with self._lock:
             if k not in self._windows:
-                self._windows[k] = PeerWindow(self.peer.calls_per_minute, self.clock)
+                kv = self._shared_kv(net)
+                self._windows[k] = SharedPeerWindow(kv, f'rlout:{host}', self.peer.calls_per_minute, self.clock) \
+                    if kv is not None else PeerWindow(self.peer.calls_per_minute, self.clock)
             return self._windows[k]
 
     def latency_p50(self, net: str, host: str) -> Optional[float]:
@@ -636,6 +756,11 @@ class Router:
             data['attempt'] = len(attempts)
         side = 'This server' if data.get('side') == 'home' else (data.get('instance') or 'The host')
         text = f'{side} refused the call to {res.name}: {SAFE_WORDS.get(data.get("reason"), data.get("reason"))}.'
+        if data.get('detail'):
+            text += ' ' + str(data['detail'])
+        if data.get('approval_id'):
+            text += (f' Approval {data["approval_id"]} is waiting for an administrator of this server; call again '
+                     f'with the same arguments once it is approved.')
         if reason == 'contract_conflict' and res.conflict:
             text += ' ' + ' '.join(res.conflict.get('text', '').splitlines()[:1])
         return {'content': [{'type': 'text', 'text': text}], 'isError': True, '_meta': {EXTENSION_ID: meta}}
@@ -648,7 +773,7 @@ class Router:
              cancelled: Optional[Callable[[], bool]] = None, progress: bool = False,
              log_level: Optional[str] = None,
              input_responses: Optional[Dict[str, Any]] = None,
-             request_state: Optional[str] = None) -> Dict[str, Any]:
+             request_state: Optional[str] = None, task: bool = False) -> Dict[str, Any]:
         """Call ``name`` (qualified or plain) at its host(s); always returns a CallToolResult. ``hop_in``
         is the chain a call made while serving a forwarded call arrived on (hop count, visited list);
         ``depth`` the tools nested in one another so far on every instance passed (§16). ``relay``: the
@@ -661,7 +786,12 @@ class Router:
         messages at or above it. ``cancelled()`` is polled while the stream is read; True closes the stream,
         which cancels the call at the host. ``input_responses``: the caller's answers to the host's input
         requests (MRTR), sent as ``inputResponses`` and checked by residency like the arguments, with the host's
-        ``request_state`` from its ``input_required`` answer (§15.6): a new signed request, not a session."""
+        ``request_state`` from its ``input_required`` answer (§15.6): a new signed request, not a session.
+
+        Tasks (§15.6): with ``task``, a host that lists ``tasks`` gets the call task-augmented and answers at once
+        with its task (a result with ``resultType: "task"``, the host's ``taskId``); the caller follows it with
+        :meth:`task_request`. A host that does not list ``tasks`` runs the call as usual (the caller's own task
+        wraps it)."""
         res = self.resolve(name, user)
         tp = traceparent if trace_of(traceparent) else new_traceparent()
         trace_id = trace_of(tp)
@@ -689,7 +819,7 @@ class Router:
             if i > 1 and self.clock() >= deadline:
                 break
             stream = {'on_event': on_event, 'cancelled': cancelled, 'progress': progress, 'log_level': log_level,
-                      'input_responses': input_responses, 'request_state': request_state}
+                      'input_responses': input_responses, 'request_state': request_state, 'task': task}
             outcome = self._attempt(c, arguments, user, tp, trace_id, i, deadline, hop_in, depth, relay, stream)
             outcome['attempt'] = i
             st = outcome.get('stream') or {}
@@ -763,7 +893,7 @@ class Router:
 
     def _attempt_once(self, c: Candidate, arguments, user, tp: str, trace_id: str, attempt: int, deadline: float,
                       hop_in, depth: int = 0, relay: Optional[Dict[str, str]] = None,
-                      stream: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+                      stream: Optional[Dict[str, Any]] = None, retried: bool = False) -> Dict[str, Any]:
         stream = stream or {}
         book = c.book
         node = book.node
@@ -782,7 +912,11 @@ class Router:
                                                          'entry': c.row.get('entry'),
                                                          'trace_id': trace_id})
         if not d.allow:
-            return home('residency_arguments')
+            if d.reason == 'approval_required':             # a residency rule wants a person to approve (§12)
+                return home('approval_required', approval_id=str((d.value or {}).get('approval_id') or '') or None)
+            # a home with no approval surface refuses a call a rule wants approved, and says why (``detail``)
+            return home('residency_arguments',
+                        detail=str(d.value.get('detail') or '')[:500] or None if isinstance(d.value, dict) else None)
         if isinstance(d.value, dict):
             arguments = d.value                              # fields of a class that may not go there, redacted
         input_responses = stream.get('input_responses')
@@ -850,10 +984,27 @@ class Router:
         if depth:
             meta['depth'] = depth
         # a signed event stream only from a host that lists it, over a connector that can read one (§15.10)
-        want_stream = bool(self.streaming.enabled) and 'streaming' in ((m.get('record') or {}).get('features') or []) \
+        features = (m.get('record') or {}).get('features') or []
+        # a task held at the host (§15.6) when the caller runs this call as a task and the host lists ``tasks``;
+        # the host answers with its task at once (JSON), so the call does not stream
+        # §6.4: 2026-07-28 unless the host refused it; then 2025-11-25, on a session of (net, this home, host),
+        # without streaming, input requests or tasks (they are defined on 2026-07-28 hops only)
+        legacy = (c.net, c.host) in self._legacy_hosts
+        sid = None
+        if legacy:
+            sid = self._legacy_session(c, m, url, deadline)
+            if sid is None:
+                br.failure()
+                return home('unreachable')
+        want_task = not legacy and bool(stream.get('task')) and self.tasks and 'tasks' in features
+        want_stream = not legacy and not want_task and bool(self.streaming.enabled) and 'streaming' in features \
             and _takes_stream(node.connector)
-        pmeta: Dict[str, Any] = {'io.modelcontextprotocol/protocolVersion': MODERN, 'traceparent': my_tp,
-                                 EXTENSION_ID: meta}
+        pmeta: Dict[str, Any] = {'traceparent': my_tp, EXTENSION_ID: meta}
+        if not legacy:
+            pmeta['io.modelcontextprotocol/protocolVersion'] = MODERN
+        if want_task:
+            meta['task'] = 1
+            pmeta[CLIENT_CAPS_KEY] = {'extensions': {TASKS_EXTENSION: {}}}
         if want_stream:
             meta['stream'] = 1
             if stream.get('progress'):
@@ -868,9 +1019,12 @@ class Router:
             body['params']['requestState'] = stream['request_state']
         raw = json.dumps(body, separators=(',', ':'), ensure_ascii=False).encode('utf-8')
         headers = {'content-type': 'application/json', 'accept': 'application/json, text/event-stream',
-                   'mcp-protocol-version': MODERN, 'mcp-method': 'tools/call', 'mcp-name': c.host_tool,
+                   'mcp-protocol-version': LEGACY if legacy else MODERN, 'mcp-method': 'tools/call',
+                   'mcp-name': c.host_tool,
                    'sajha-net-hop': str(hop), 'sajha-net-visited': sfv.ser_list([(v, {}) for v in visited]),
                    'traceparent': my_tp}
+        if sid:
+            headers['mcp-session-id'] = sid
         headers.update(ident)
         path = m['record'].get('mcp_path') or '/mcp'
         signed = httpsig.sign_request(node.signer, 'POST', path, '', headers, raw, c.net, node.name, c.host, mcp=True,
@@ -917,7 +1071,144 @@ class Router:
             return home('response_invalid', executed=None)
         if not isinstance(msg, dict):
             return home('response_invalid', executed=None)
+        err = msg.get('error') if isinstance(msg.get('error'), dict) else {}
+        if not retried and not legacy and err.get('code') == RPC_UNSUPPORTED_ERA and \
+                LEGACY in ((err.get('data') or {}).get('supported') or []):
+            with self._lock:                         # this host does not serve 2026-07-28: forward on 2025-11-25
+                self._legacy_hosts.add((c.net, c.host))
+            return self._attempt_once(c, arguments, user, tp, trace_id, attempt, deadline, hop_in, depth, relay,
+                                      stream, retried=True)
+        if legacy and r.status == 404 and ((err.get('data') or {}).get(EXTENSION_ID) or {}).get('reason') == \
+                'session_invalid':
+            with self._lock:                         # the session ended at the host: a new one, once
+                self._sessions.pop((c.net, c.host), None)
+            if not retried:
+                return self._attempt_once(c, arguments, user, tp, trace_id, attempt, deadline, hop_in, depth, relay,
+                                          stream, retried=True)
         return self._final(c, msg, br, out, trace_id)
+
+    def _legacy_session(self, c: Candidate, m: Dict[str, Any], url: str, deadline: float) -> Optional[str]:
+        """This home's 2025-11-25 session at ``c.host`` in ``c.net`` (§6.4): a signed ``initialize`` the first
+        time (its answer verified), then the ``Mcp-Session-Id`` the host bound to this participant."""
+        key = (c.net, c.host)
+        with self._lock:
+            sid = self._sessions.get(key)
+        if sid:
+            return sid
+        node = c.book.node
+        with self._lock:
+            self._ids += 1
+            rid = self._ids
+        body = {'jsonrpc': '2.0', 'id': rid, 'method': 'initialize', 'params': {
+            'protocolVersion': LEGACY, 'clientInfo': {'name': f'sajha-net/{node.name}', 'version': '1'},
+            'capabilities': {'experimental': {EXTENSION_ID: {'protocol_version': 1}}}}}
+        raw = json.dumps(body, separators=(',', ':')).encode('utf-8')
+        headers = {'content-type': 'application/json', 'accept': 'application/json',
+                   'mcp-protocol-version': LEGACY, 'mcp-method': 'initialize', 'sajha-net-hop': '1',
+                   'sajha-net-visited': sfv.ser_list([(f'{c.net}/{node.name}', {})]),
+                   'traceparent': new_traceparent()}
+        path = m['record'].get('mcp_path') or '/mcp'
+        signed = httpsig.sign_request(node.signer, 'POST', path, '', headers, raw, c.net, node.name, c.host, mcp=True,
+                                      now=node.clock())
+        try:
+            r = node.connector.send('POST', url + path, signed, raw,
+                                    max(0.05, min(self.peer.timeout_seconds, deadline - self.clock())))
+            httpsig.verify_response(node.trust, node.name, c.host, r.status, r.headers, r.body,
+                                    httpsig.request_signature_bytes(signed), now=node.clock(),
+                                    max_age=node.cfg.signature_max_age_seconds)
+            ok = isinstance(json.loads(r.body.decode('utf-8')).get('result'), dict)
+        except (PeerUnreachable, NetError, ValueError, AttributeError) as e:
+            logger.info(f'SAJHA Net: 2025-11-25 session with {c.host} in {c.net}: {e}')
+            return None
+        sid = str(httpsig.lower_headers(r.headers).get('mcp-session-id') or '').strip()
+        if not ok or not sid:
+            return None
+        with self._lock:
+            self._sessions[key] = sid
+        return sid
+
+    def task_request(self, net: str, host: str, method: str, task_id: str, *, user: Optional[Dict[str, Any]] = None,
+                     input_responses: Optional[Dict[str, Any]] = None, qualified_name: str = '',
+                     traceparent: Optional[str] = None, timeout: Optional[float] = None) -> Dict[str, Any]:
+        """A signed ``tasks/get``, ``tasks/update`` or ``tasks/cancel`` to the host holding a task (§15.6), with
+        the identity headers a call for ``user`` carries (the host resolves the user again and finds the task
+        only for the same user and sender). Returns ``{'result': ...}`` (a verified answer), or ``{'refusal':
+        {...}}`` (``reason``, ``side``; the host's reason, ``unknown_task``, or this server's, such as
+        ``unreachable``)."""
+        b = self.book(net)
+        tp = traceparent if trace_of(traceparent) else new_traceparent()
+        trace_id = trace_of(tp)
+        me = b.node.name if b is not None else ''
+
+        def home(reason: str) -> Dict[str, Any]:
+            return {'refusal': refusal(CODES.get(reason, RPC_UNAVAILABLE), reason, 'home', net, me, qualified_name,
+                                       trace_id)['data'][EXTENSION_ID]}
+        if b is None or method not in TASK_METHODS:
+            return home('unavailable')
+        node = b.node
+        m = node.member(host)
+        if m is None or m['state'] != 'alive':
+            return home('unavailable')
+        br = self.breaker(net, host)
+        if not br.allow():
+            return home('circuit_open')
+        try:
+            if isinstance(user, dict):
+                user['_target'] = (net, host)
+                user['_origin'] = None
+                user['_trace_id'] = trace_id
+                user.pop('_identity', None)
+            ident = httpsig.lower_headers(self.identity.outbound_headers(user) or {})
+        except NetError as e:
+            return home(e.reason)
+        url = m['record']['url'].rstrip('/')
+        if 'sajha-net-api-key' in ident and not url.startswith('https://') and node.cfg.require_https:
+            return home('https_required')
+        with self._lock:
+            self._ids += 1
+            rid = self._ids
+        params: Dict[str, Any] = {'taskId': task_id, '_meta': {
+            'io.modelcontextprotocol/protocolVersion': MODERN, 'traceparent': tp,
+            CLIENT_CAPS_KEY: {'extensions': {TASKS_EXTENSION: {}}},
+            EXTENSION_ID: {'home': node.name, 'qualified_name': qualified_name}}}
+        if method == 'tasks/update':
+            params['inputResponses'] = dict(input_responses or {})
+        raw = json.dumps({'jsonrpc': '2.0', 'id': rid, 'method': method, 'params': params},
+                         separators=(',', ':'), ensure_ascii=False).encode('utf-8')
+        headers = {'content-type': 'application/json', 'accept': 'application/json', 'mcp-protocol-version': MODERN,
+                   'mcp-method': method, 'mcp-name': task_id, 'sajha-net-hop': '1',
+                   'sajha-net-visited': sfv.ser_list([(f'{net}/{node.name}', {})]), 'traceparent': tp}
+        headers.update(ident)
+        path = m['record'].get('mcp_path') or '/mcp'
+        signed = httpsig.sign_request(node.signer, 'POST', path, '', headers, raw, net, node.name, host, mcp=True,
+                                      now=node.clock())
+        req_sig = httpsig.request_signature_bytes(signed)
+        try:
+            r = node.connector.send('POST', url + path, signed, raw,
+                                    max(0.05, min(self.peer.timeout_seconds, float(timeout or self.default_timeout))))
+        except PeerUnreachable:
+            br.failure()
+            return home('unreachable')
+        if 'signature' not in {k.lower() for k in r.headers}:
+            br.failure()
+            return home('response_invalid' if r.status < 500 else 'unreachable')
+        try:
+            httpsig.verify_response(node.trust, node.name, host, r.status, r.headers, r.body, req_sig,
+                                    now=node.clock(), max_age=node.cfg.signature_max_age_seconds)
+            msg = json.loads(r.body.decode('utf-8'))
+        except (NetError, ValueError):
+            br.failure()
+            return home('response_invalid')
+        br.success()
+        if isinstance(msg, dict) and isinstance(msg.get('result'), dict):
+            return {'result': msg['result']}
+        err = msg.get('error') if isinstance(msg, dict) and isinstance(msg.get('error'), dict) else {}
+        data = (err.get('data') or {}).get(EXTENSION_ID) if isinstance(err.get('data'), dict) else None
+        if isinstance(data, dict):
+            return {'refusal': {k: data[k] for k in ('reason', 'side', 'net', 'instance', 'trace_id', 'executed')
+                                if k in data}}
+        reason = 'unknown_task' if err.get('code') == RPC_INVALID_PARAMS else 'error'
+        return {'refusal': {'reason': reason, 'side': 'host', 'net': net, 'instance': host, 'trace_id': trace_id}}
 
     def _final(self, c: Candidate, msg: Dict[str, Any], br: PeerBreaker, out: Dict[str, Any], trace_id: str,
                events: int = 0) -> Dict[str, Any]:
@@ -1135,8 +1426,13 @@ class HostServer:
                  max_hops: int = 1, own_identities: Callable[[], List[str]] = lambda: [], max_chain: int = 8,
                  other: Optional[Callable[[Dict[str, Any], Any], Dict[str, Any]]] = None,
                  calls_per_minute: int = 600, audit: Optional[Callable[[str, Dict[str, Any]], None]] = None,
-                 streaming: Optional[StreamSettings] = None):
+                 streaming: Optional[StreamSettings] = None, tasks: Optional['HostTasks'] = None,
+                 eras: Tuple[str, ...] = (MODERN, LEGACY), session_ttl: float = 3600.0, shared_limits: bool = False):
         self.book = book
+        self.shared_limits = bool(shared_limits)        # inbound rate limits counted across workers (design §15)
+        self.tasks = tasks
+        self.eras = tuple(eras) or (MODERN,)           # the MCP eras served on forwarded requests (§6.4)
+        self.session_ttl = float(session_ttl)
         self.streaming = streaming or StreamSettings()
         self.node = book.node
         self.execute = execute
@@ -1160,7 +1456,9 @@ class HostServer:
     def _window(self, peer: str) -> PeerWindow:
         with self._lock:
             if peer not in self._windows:
-                self._windows[peer] = PeerWindow(self.calls_per_minute, self.node.clock)
+                self._windows[peer] = SharedPeerWindow(self.node.kv, f'rlin:{peer}', self.calls_per_minute,
+                                                       self.node.clock) if self.shared_limits \
+                    else PeerWindow(self.calls_per_minute, self.node.clock)
             return self._windows[peer]
 
     def _respond(self, status: int, msg: Dict[str, Any], req_headers: Dict[str, str], to: str,
@@ -1221,9 +1519,27 @@ class HostServer:
                                                                               'message': 'invalid JSON-RPC request'}},
                                  h, v.sender)
         mth = msg['method']
+        # §6.4: the era of the request; a 2025-11-25 session is used only by the participant (and net) that
+        # created it, so any other presenter is answered as if the session did not exist (CALL-12)
+        era = str(h.get('mcp-protocol-version') or MODERN).strip()
+        if era not in self.eras and mth != 'initialize':
+            return self._respond(400, {'jsonrpc': '2.0', 'id': rid, 'error': {
+                'code': RPC_UNSUPPORTED_ERA, 'message': 'Unsupported protocol version',
+                'data': {'supported': list(self.eras), 'requested': era}}}, h, v.sender)
+        sid = str(h.get('mcp-session-id') or '').strip()
+        if sid and mth != 'initialize':
+            bound = self.node.kv.get(SESSION_KEY + sid) if len(sid) <= 128 else None
+            if not isinstance(bound, dict) or bound.get('net') != net or bound.get('peer') != v.sender:
+                self._log('net.host_refused', v.sender, '', '', 'session_invalid', False, method=mth)
+                return self._err(rid, refusal(RPC_PEER, 'session_invalid', 'host', net, me, executed=False,
+                                              message='Session not found'), h, v.sender, 404)
+        if mth == 'initialize' and LEGACY in self.eras:
+            return self._initialize(msg, v, h)
         if mth == 'tools/list':
             tools = [t for t in self.book.exports(v.sender)]
             return self._respond(200, {'jsonrpc': '2.0', 'id': rid, 'result': {'tools': tools}}, h, v.sender)
+        if mth in TASK_METHODS and self.tasks is not None:
+            return self._task_method(msg, v, h, rid, secure)
         if mth != 'tools/call':
             if self.other is not None:
                 return self._respond(200, self.other(msg, v), h, v.sender)
@@ -1245,59 +1561,13 @@ class HostServer:
             self._log('net.host_refused', v.sender, tool, trace_id, reason, executed)
             return self._err(rid, refusal(code, reason, 'host', net, me, tool, trace_id, executed=executed, **extra),
                              h, v.sender, status, retry_after)
-        if self.draining:
-            return no('draining', 503, 30)
-        if not self._window(v.sender).take():
-            return no('rate_limited', 429, 60)
-        # 3: blocks on the sending participant
-        ok, why = self._allowed('block_peer', {'net': net, 'peer': v.sender, 'direction': 'inbound'})
-        if not ok:
-            return no(why if why in ('instance', 'inbound') else 'inbound')
-        # 4: hops and loops (§16)
-        try:
-            hop = int(sfv.parse_item(h.get('sajha-net-hop', ''))[0])
-            visited = [str(x) for x, _p in sfv.parse_list(h.get('sajha-net-visited', ''))]
-        except Exception:
-            return no('hop_inconsistent')
-        if hop > self.max_hops:
-            return no('hop_limit')
-        mine = {f'{net}/{me}'} | set(self.own_identities() or [])
-        if any(x in mine for x in visited):
-            return no('loop')
-        if hop < 1 or len(visited) != hop or visited[-1] != f'{net}/{v.sender}':
-            return no('hop_inconsistent')
-        depth = nmeta.get('depth', 0) if isinstance(nmeta, dict) else 0
-        if isinstance(depth, bool) or not isinstance(depth, int) or depth < 0:
-            return no('hop_inconsistent')
-        if hop + depth > self.max_chain:
-            return no('chain_limit')
         # a re-exported tool (§16): the caller's assertion names its origin as the audience
         rx = self.book.reexport_of(tool, v.sender) if getattr(self.book, 'reexport', False) else None
         rx_origin = str(((rx or {}).get('_net') or {}).get('origin') or '')
-        # 5: identity (§15.3, §15.5, §15.9)
-        if 'authorization' in h or 'x-api-key' in h:
-            return no('ambiguous_credentials')
-        try:
-            import inspect
-            params = inspect.signature(self.identity.resolve).parameters
-            offer = {'secure': secure, 'audience': rx_origin or me, 'hop': hop, 'visited': list(visited),
-                     'trace_id': trace_id}
-            if any(p.kind == p.VAR_KEYWORD for p in params.values()):
-                kw = offer
-            else:
-                kw = {k: val for k, val in offer.items() if k in params}
-            user = self.identity.resolve(h, v.sender, **kw)
-        except NetError as e:
-            return no(e.reason if e.reason in CODES else 'no_account')
-        if user is None:
-            ok, _ = self._allowed('service_call', {'net': net, 'peer': v.sender})
-            if not ok:
-                return no('anonymous')
-        # 6: block on the remote user
-        if user is not None:
-            ok, _ = self._allowed('block_user', {'net': net, 'peer': v.sender, 'user': user})
-            if not ok:
-                return no('user')
+        admitted = self._admit(h, v, secure, trace_id, nmeta, no, rx_origin)
+        if isinstance(admitted, PeerResponse):
+            return admitted
+        user, hop, visited, depth = admitted
         # 8: block on the tool (under its published or its local name, §5.5)
         tool_names = self.book.tool_names(tool) if rx is None and hasattr(self.book, 'tool_names') else [tool]
         local_tool = tool_names[-1]
@@ -1347,6 +1617,17 @@ class HostServer:
                           relay={'Sajha-Net-User-Assertion': h['sajha-net-user-assertion']}
                           if h.get('sajha-net-user-assertion') else {}, reexport=rx, local_tool=local_tool,
                           input_responses=responses, mrtr_state=mstate, mrtr_round=mround, state_verified=verified)
+        # §15.6 tasks: a task-augmented call (the home declares the tasks extension and sets
+        # _meta["io.sajha/net"].task = 1) runs steps 10-13 in a task held here, for the resolved user; the
+        # answer is the task, at once, so neither the hop's deadline nor a restart of the home bounds the work
+        if self.tasks is not None and wants_task(pmeta, nmeta):
+            try:
+                created = self.tasks.create(mrtr_user(net, v.sender, user), ctx, arguments)
+            except OverflowError:
+                return no('overloaded', 503, 30)
+            self._log('net.host_call', v.sender, tool, trace_id, 'task', None, ctx, task_id=created.get('taskId'))
+            result = dict(created, resultType='task', _meta={EXTENSION_ID: {'instance': me}})
+            return self._respond(200, {'jsonrpc': '2.0', 'id': rid, 'result': result}, h, v.sender)
         # 10-13: from here a call may stream (§15.10): only when the home asked (the signed body's
         # _meta["io.sajha/net"].stream = 1) and accepts an event stream; every refusal above is one JSON answer
         want = isinstance(nmeta, dict) and nmeta.get('stream') == 1 and not isinstance(nmeta.get('stream'), bool)
@@ -1370,6 +1651,152 @@ class HostServer:
             tctx.deactivate(token)
         self._log(*log)
         return self._respond(200, msg, h, v.sender)
+
+    def _admit(self, h: Dict[str, str], v, secure: bool, trace_id: str, nmeta: Any,
+               no: Callable[..., PeerResponse], rx_origin: str = ''):
+        """Steps 3 to 6 of §15.4 for a verified request (blocks on the sender, hops and loops, identity, the
+        remote user's block), after the host's own draining and rate limit: ``(user, hop, visited, depth)``,
+        or the refusal ``no`` made. Shared by ``tools/call`` and the task methods (§15.6)."""
+        node = self.node
+        net, me = node.net, node.name
+        if self.draining:
+            return no('draining', 503, 30)
+        if not self._window(v.sender).take():
+            return no('rate_limited', 429, 60)
+        # 3: blocks on the sending participant
+        ok, why = self._allowed('block_peer', {'net': net, 'peer': v.sender, 'direction': 'inbound'})
+        if not ok:
+            return no(why if why in ('instance', 'inbound') else 'inbound')
+        # 4: hops and loops (§16)
+        try:
+            hop = int(sfv.parse_item(h.get('sajha-net-hop', ''))[0])
+            visited = [str(x) for x, _p in sfv.parse_list(h.get('sajha-net-visited', ''))]
+        except Exception:
+            return no('hop_inconsistent')
+        if hop > self.max_hops:
+            return no('hop_limit')
+        mine = {f'{net}/{me}'} | set(self.own_identities() or [])
+        if any(x in mine for x in visited):
+            return no('loop')
+        if hop < 1 or len(visited) != hop or visited[-1] != f'{net}/{v.sender}':
+            return no('hop_inconsistent')
+        depth = nmeta.get('depth', 0) if isinstance(nmeta, dict) else 0
+        if isinstance(depth, bool) or not isinstance(depth, int) or depth < 0:
+            return no('hop_inconsistent')
+        if hop + depth > self.max_chain:
+            return no('chain_limit')
+        # 5: identity (§15.3, §15.5, §15.9)
+        if 'authorization' in h or 'x-api-key' in h:
+            return no('ambiguous_credentials')
+        try:
+            import inspect
+            params = inspect.signature(self.identity.resolve).parameters
+            offer = {'secure': secure, 'audience': rx_origin or me, 'hop': hop, 'visited': list(visited),
+                     'trace_id': trace_id}
+            if any(p.kind == p.VAR_KEYWORD for p in params.values()):
+                kw = offer
+            else:
+                kw = {k: val for k, val in offer.items() if k in params}
+            user = self.identity.resolve(h, v.sender, **kw)
+        except NetError as e:
+            return no(e.reason if e.reason in CODES else 'no_account')
+        if user is None:
+            ok, _ = self._allowed('service_call', {'net': net, 'peer': v.sender})
+            if not ok:
+                return no('anonymous')
+        # 6: block on the remote user
+        if user is not None:
+            ok, _ = self._allowed('block_user', {'net': net, 'peer': v.sender, 'user': user})
+            if not ok:
+                return no('user')
+        return user, hop, visited, depth
+
+    def _initialize(self, msg: Dict[str, Any], v, h: Dict[str, str]) -> PeerResponse:
+        """A signed 2025-11-25 ``initialize`` (§6.4): the answer (``capabilities.experimental["io.sajha/net"]``,
+        CAP-02) with a new ``Mcp-Session-Id`` bound to this net and the sending participant."""
+        rid = msg.get('id')
+        if self.other is not None:
+            answer = self.other(msg, v)
+        else:
+            answer = {'jsonrpc': '2.0', 'id': rid, 'result': {'protocolVersion': LEGACY, 'capabilities': {'tools': {}},
+                                                              'serverInfo': {'name': self.node.name, 'version': ''}}}
+        if not isinstance(answer.get('result'), dict):
+            return self._respond(200, answer, h, v.sender)
+        sid = secrets.token_urlsafe(24)
+        self.node.kv.set(SESSION_KEY + sid, {'net': self.node.net, 'peer': v.sender, 'created': int(self.node.clock())},
+                         ttl=self.session_ttl)
+        self._log('net.host_session', v.sender, '', '', 'created', None)
+        return self._respond(200, answer, h, v.sender, {'mcp-session-id': sid})
+
+    def _task_method(self, msg: Dict[str, Any], v, h: Dict[str, str], rid: Any, secure: bool) -> PeerResponse:
+        """``tasks/get``, ``tasks/update`` and ``tasks/cancel`` from a home (§15.6): signed requests whose user is
+        resolved again (steps 1 to 6 of §15.4); a task is found only for the same net, sending participant and
+        user that created it, so another member, or another user of the same home, gets ``Unknown taskId``."""
+        net, me = self.node.net, self.node.name
+        mth = msg['method']
+        params = msg.get('params') if isinstance(msg.get('params'), dict) else {}
+        pmeta = params.get('_meta') if isinstance(params.get('_meta'), dict) else {}
+        trace_id = trace_of(h.get('traceparent') or pmeta.get('traceparent') or '') or ''
+        task_id = params.get('taskId')
+
+        def no(reason: str, status: int = 200, retry_after: Optional[int] = None, executed: bool = False, **extra):
+            self._log('net.host_refused', v.sender, '', trace_id, reason, executed, method=mth)
+            return self._err(rid, refusal(CODES.get(reason, RPC_AUTHORIZATION), reason, 'host', net, me, '', trace_id,
+                                          executed=executed, **extra), h, v.sender, status, retry_after)
+        admitted = self._admit(h, v, secure, trace_id, pmeta.get(EXTENSION_ID) or {}, no)
+        if isinstance(admitted, PeerResponse):
+            return admitted
+        user = admitted[0]
+        owner = mrtr_user(net, v.sender, user)
+        if not isinstance(task_id, str) or not task_id:
+            return self._respond(200, {'jsonrpc': '2.0', 'id': rid, 'error': {
+                'code': RPC_INVALID_PARAMS, 'message': 'taskId must be a non-empty string'}}, h, v.sender)
+        try:
+            if mth == 'tasks/get':
+                result = dict(self.tasks.get(owner, task_id), resultType='complete')
+            elif mth == 'tasks/update':
+                from sajha.core.mcp_mrtr import validate_input_responses
+                try:
+                    responses = dict(validate_input_responses(params.get('inputResponses')))
+                except (ValueError, TypeError) as e:
+                    return self._respond(200, {'jsonrpc': '2.0', 'id': rid, 'error': {
+                        'code': RPC_INVALID_PARAMS, 'message': str(e)[:200]}}, h, v.sender)
+                self.tasks.update(owner, task_id, responses)
+                result = {}
+            else:
+                self.tasks.cancel(owner, task_id)
+                result = {}
+        except LookupError:
+            self._log('net.host_task', v.sender, '', trace_id, 'unknown_task', None, method=mth, task_id=task_id)
+            return self._respond(200, {'jsonrpc': '2.0', 'id': rid, 'error': {
+                'code': RPC_INVALID_PARAMS, 'message': f'Unknown taskId: {task_id}'}}, h, v.sender)
+        if mth != 'tasks/get':
+            self._log('net.host_task', v.sender, '', trace_id, mth.split('/')[1], None, method=mth, task_id=task_id)
+        return self._respond(200, {'jsonrpc': '2.0', 'id': rid, 'result': result}, h, v.sender)
+
+    def run_task(self, ctx: CallContext, arguments: Dict[str, Any]) -> Dict[str, Any]:
+        """Steps 10-12 of §15.4 inside a task held here (§15.6), in the tool context the caller activated: the
+        result screened for residency, or :class:`HostRefusal`, or ``InputRequired`` (the task then waits for
+        ``tasks/update``). Audited like a call."""
+        net, me, tool = self.node.net, self.node.name, ctx.tool
+        try:
+            result = self.execute(ctx, arguments)
+        except HostRefusal as e:
+            self._log('net.host_refused', ctx.peer, tool, ctx.trace_id, e.reason, e.executed, ctx, task=True)
+            raise
+        d = _decide(self.rules, 'residency_result', {'net': net, 'host': me, 'peer': ctx.peer, 'tool': tool,
+                                                      'user': ctx.user, 'result': result, 'trace_id': ctx.trace_id})
+        if not d.allow:
+            self._log('net.host_refused', ctx.peer, tool, ctx.trace_id, 'residency_result', True, ctx, task=True)
+            raise HostRefusal('residency_result', executed=True)
+        result = dict(d.value if isinstance(d.value, dict) else (result or {}))
+        rm = dict((result.get('_meta') or {}).get(EXTENSION_ID) or {})
+        rm.setdefault('instance', me)
+        result['_meta'] = dict(result.get('_meta') or {}, **{EXTENSION_ID: rm})
+        self.paths.add_chain(net, ctx.visited, me, tool)
+        self._log('net.host_call', ctx.peer, tool, ctx.trace_id, 'error' if result.get('isError') else 'ok', True, ctx,
+                  task=True)
+        return result
 
     def _finish(self, ctx: CallContext, arguments: Dict[str, Any], rid: Any) -> Tuple[Dict[str, Any], tuple]:
         """Steps 10-13 of §15.4: the host's own access, policy and approvals, execution, residency of the

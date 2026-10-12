@@ -5,19 +5,19 @@
    moves it. studioFolder() is what the creator's deploy request sends ("Unfiled" and empty both mean the root
    on the server, unless the page has its own default for empty). #}
 {% set FD = folder_default if folder_default is defined else 'Unfiled' %}
-{% set FP = folder_placeholder if folder_placeholder is defined else 'Unfiled: the root of ' ~ tools_dir() %}
+{% set FP = folder_placeholder if folder_placeholder is defined else _('Unfiled: the root of %(dir)s', dir=tools_dir()) %}
 <div class="card mb-3">
     <div class="card-body py-2 d-flex flex-wrap align-items-center gap-2">
-        <label class="form-label fw-bold mb-0" for="studioToolFolder"><i class="bi bi-folder2 me-1" aria-hidden="true"></i>Folder <span class="fw-normal text-muted small">(optional)</span></label>
+        <label class="form-label fw-bold mb-0" for="studioToolFolder"><i class="bi bi-folder2 me-1" aria-hidden="true"></i>{{ _('Folder') }} <span class="fw-normal text-muted small">{{ _('(optional)') }}</span></label>
         <input id="studioToolFolder" class="form-control form-control-sm" style="max-width: 18rem" list="studioToolFolders"
                maxlength="32" autocomplete="off" value="{{ FD }}" placeholder="{{ FP }}" aria-describedby="studioToolFolderHelp">
         <datalist id="studioToolFolders">
-            <option value="Unfiled">the root of {{ tools_dir() }}</option>
+            <option value="Unfiled">{% trans value=tools_dir() %}the root of {{ value }}{% endtrans %}</option>
             {% for f in (tool_folders if tool_folders is defined else []) %}<option value="{{ f }}">{% endfor %}
         </datalist>
-        <small id="studioToolFolderHelp" class="text-muted">Unfiled (the root of <code>{{ tools_dir() }}</code>), an existing
+        <small id="studioToolFolderHelp" class="text-muted">{% trans value=tools_dir() %}Unfiled (the root of <code>{{ value }}</code>), an existing
             folder, or a new name (lowercase letters, digits, <code>_</code> or <code>-</code>), which is created on save.
-            It files the tool; it does not change its name.</small>
+            It files the tool; it does not change its name.{% endtrans %}</small>
     </div>
 </div>
 <script nonce="{{ csp_nonce() }}">

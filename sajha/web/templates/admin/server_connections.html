@@ -4,79 +4,79 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
 Server connections (administration): who is connected to which proxied MCP server. Never a token.
 Design: docs/architecture/Per-User Sign-In for Proxied Servers.md
 -->
-{% block title %}Server connections (all users) - SAJHA MCP Server{% endblock %}
+{% block title %}{{ _('Server connections (all users) - SAJHA MCP Server') }}{% endblock %}
 
 {% block content %}
 <div class="container-fluid acct-page">
   <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
     <div>
-      <h1 class="h3 mb-0"><i class="bi bi-person-lock me-2" aria-hidden="true"></i>Server connections: all users</h1>
-      <small class="text-muted">Which users have signed in or saved their own token for each proxied MCP server that acts as them. Tokens are encrypted in the vault and never shown, here or anywhere; removing an OAuth connection also revokes it at the vendor where offered.</small>
+      <h1 class="h3 mb-0"><i class="bi bi-person-lock me-2" aria-hidden="true"></i>{{ _('Server connections: all users') }}</h1>
+      <small class="text-muted">{{ _('Which users have signed in or saved their own token for each proxied MCP server that acts as them. Tokens are encrypted in the vault and never shown, here or anywhere; removing an OAuth connection also revokes it at the vendor where offered.') }}</small>
     </div>
-    <a class="btn btn-sm btn-outline-primary" href="{{ url_for('account_server_connections_page') }}"><i class="bi bi-person me-1" aria-hidden="true"></i>My connections</a>
+    <a class="btn btn-sm btn-outline-primary" href="{{ url_for('account_server_connections_page') }}"><i class="bi bi-person me-1" aria-hidden="true"></i>{{ _('My connections') }}</a>
   </div>
 
   {% if notice %}<div class="alert alert-success" role="status">{{ notice }}</div>{% endif %}
   {% if error %}<div class="alert alert-danger" role="alert">{{ error }}</div>{% endif %}
-  {% if not federation_on %}<div class="alert alert-info" role="status">Proxied MCP servers are turned off (<code>federation.enabled</code>).</div>{% endif %}
+  {% if not federation_on %}<div class="alert alert-info" role="status">{% trans %}Proxied MCP servers are turned off (<code>federation.enabled</code>).{% endtrans %}</div>{% endif %}
 
   <div class="acct-tiles mb-3">
-    <div class="obs-tile obs-tile-accent"><div class="obs-label">Connections</div><div class="obs-value">{{ rows|length }}</div><div class="obs-sub">matching the filter</div></div>
-    <div class="obs-tile"><div class="obs-label">Need re-connect</div><div class="obs-value">{{ rows|selectattr('status', 'ne', 'connected')|list|length }}</div><div class="obs-sub">the server refused the token</div></div>
-    <div class="obs-tile"><div class="obs-label">Per-user servers</div><div class="obs-value">{{ servers|length }}</div><div class="obs-sub">token_user or oauth_user</div></div>
+    <div class="obs-tile obs-tile-accent"><div class="obs-label">{{ _('Connections') }}</div><div class="obs-value">{{ rows|length }}</div><div class="obs-sub">{{ _('matching the filter') }}</div></div>
+    <div class="obs-tile"><div class="obs-label">{{ _('Need re-connect') }}</div><div class="obs-value">{{ rows|selectattr('status', 'ne', 'connected')|list|length }}</div><div class="obs-sub">{{ _('the server refused the token') }}</div></div>
+    <div class="obs-tile"><div class="obs-label">{{ _('Per-user servers') }}</div><div class="obs-value">{{ servers|length }}</div><div class="obs-sub">{{ _('token_user or oauth_user') }}</div></div>
   </div>
 
   <form class="row g-2 align-items-end mb-3" method="get" action="/admin/server-connections">
-    <div class="col-sm-4 col-md-3"><label class="form-label small" for="fUser">User</label>
-      <input class="form-control form-control-sm" id="fUser" name="user" value="{{ filter_user }}" placeholder="any"></div>
-    <div class="col-sm-4 col-md-3"><label class="form-label small" for="fServer">Server</label>
+    <div class="col-sm-4 col-md-3"><label class="form-label small" for="fUser">{{ _('User') }}</label>
+      <input class="form-control form-control-sm" id="fUser" name="user" value="{{ filter_user }}" placeholder="{{ _('any') }}"></div>
+    <div class="col-sm-4 col-md-3"><label class="form-label small" for="fServer">{{ _('Server') }}</label>
       <select class="form-select form-select-sm" id="fServer" name="server">
-        <option value="">any</option>
+        <option value="">{{ _('any') }}</option>
         {% for s in servers %}<option value="{{ s.id }}"{% if s.id == filter_server %} selected{% endif %}>{{ s.title }}</option>{% endfor %}
       </select></div>
-    <div class="col-auto"><button class="btn btn-sm btn-primary" type="submit">Filter</button></div>
+    <div class="col-auto"><button class="btn btn-sm btn-primary" type="submit">{{ _('Filter') }}</button></div>
   </form>
 
   <div class="card">
     <div class="table-responsive">
       <table class="table table-sm align-middle mb-0 obs-table">
-        <thead><tr><th scope="col">User</th><th scope="col">Server</th><th scope="col">Credential</th><th scope="col">Status</th>
-          <th scope="col">Last used</th><th scope="col">Saved</th><th scope="col"><span class="visually-hidden">Actions</span></th></tr></thead>
+        <thead><tr><th scope="col">{{ _('User') }}</th><th scope="col">{{ _('Server') }}</th><th scope="col">{{ _('Credential') }}</th><th scope="col">{{ _('Status') }}</th>
+          <th scope="col">{{ _('Last used') }}</th><th scope="col">{{ _('Saved') }}</th><th scope="col"><span class="visually-hidden">{{ _('Actions') }}</span></th></tr></thead>
         <tbody>
         {% for r in rows %}
           <tr>
             <td>{{ r.user_id }}</td>
             <td>{{ r.title }} <small class="text-muted">({{ r.upstream }})</small></td>
-            <td>{% if r.kind == 'oauth' %}OAuth{% if r.scopes %}: {% for s in r.scopes %}<code>{{ s }}</code>{% if not loop.last %} {% endif %}{% endfor %}{% endif %}<br><small class="text-muted">{% if r.expires_at %}expires {{ r.expires_at }}{% else %}no expiry{% endif %}{% if r.refreshable %}, renewable{% endif %}</small>{% else %}<code>{{ r.token_hint or '••••' }}</code>{% endif %}</td>
-            <td>{% if r.status == 'connected' %}<span class="obs-pill obs-ok">connected</span>{% else %}<span class="obs-pill obs-bad" title="{{ r.last_error }}">needs re-connect</span>{% endif %}</td>
+            <td>{% if r.kind == 'oauth' %}OAuth{% if r.scopes %}: {% for s in r.scopes %}<code>{{ s }}</code>{% if not loop.last %} {% endif %}{% endfor %}{% endif %}<br><small class="text-muted">{% if r.expires_at %}{% trans expires_at=r.expires_at %}expires {{ expires_at }}{% endtrans %}{% else %}{{ _('no expiry') }}{% endif %}{% if r.refreshable %}{{ _(', renewable') }}{% endif %}</small>{% else %}<code>{{ r.token_hint or '••••' }}</code>{% endif %}</td>
+            <td>{% if r.status == 'connected' %}<span class="obs-pill obs-ok">{{ _('connected') }}</span>{% else %}<span class="obs-pill obs-bad" title="{{ r.last_error }}">{{ _('needs re-connect') }}</span>{% endif %}</td>
             <td>{{ r.last_used_at or '—' }}</td>
             <td>{{ r.updated_at or r.connected_at }}</td>
             <td class="text-end">
-              <form method="post" action="/admin/server-connections/revoke" data-onsubmit="return confirm('Remove the {{ r.upstream }} token of {{ r.user_id }}? Their calls to it stop until they connect again.');">
+              <form method="post" action="/admin/server-connections/revoke" data-onsubmit="return confirm({{ _('Remove the %(upstream)s token of %(user_id)s? Their calls to it stop until they connect again.', upstream=r.upstream, user_id=r.user_id)|tojson|forceescape }});">
                 <input type="hidden" name="csrf" value="{{ csrf }}">
                 <input type="hidden" name="user_id" value="{{ r.user_id }}">
                 <input type="hidden" name="upstream" value="{{ r.upstream }}">
-                <button class="btn btn-sm btn-outline-danger" type="submit" aria-label="Revoke {{ r.upstream }} for {{ r.user_id }}"><i class="bi bi-x-circle" aria-hidden="true"></i></button>
+                <button class="btn btn-sm btn-outline-danger" type="submit" aria-label="{{ _('Revoke %(upstream)s for %(user_id)s', upstream=r.upstream, user_id=r.user_id) }}"><i class="bi bi-x-circle" aria-hidden="true"></i></button>
               </form>
             </td>
           </tr>
         {% else %}
-          <tr><td colspan="7" class="text-muted text-center py-3">No server connections{% if filter_user or filter_server %} match the filter{% endif %}.</td></tr>
+          <tr><td colspan="7" class="text-muted text-center py-3">{{ _('No server connections') }}{% if filter_user or filter_server %} {{ _('match the filter') }}{% endif %}.</td></tr>
         {% endfor %}
         </tbody>
       </table>
     </div>
   </div>
 
-  <h2 class="h6 mt-4">Per-user servers</h2>
+  <h2 class="h6 mt-4">{{ _('Per-user servers') }}</h2>
   <div class="table-responsive">
     <table class="table table-sm obs-table">
-      <thead><tr><th scope="col">Id</th><th scope="col">Server</th><th scope="col">Mode</th><th scope="col">Connected users</th></tr></thead>
+      <thead><tr><th scope="col">{{ _('Id') }}</th><th scope="col">{{ _('Server') }}</th><th scope="col">{{ _('Mode') }}</th><th scope="col">{{ _('Connected users') }}</th></tr></thead>
       <tbody>{% for s in servers %}
         <tr><td><code>{{ s.id }}</code></td><td>{{ s.title }}</td>
-          <td>{% if s.mode == 'oauth_user' %}OAuth sign-in{% else %}personal token{% endif %}</td>
+          <td>{% if s.mode == 'oauth_user' %}{{ _('OAuth sign-in') }}{% else %}{{ _('personal token') }}{% endif %}</td>
           <td>{{ s.connected }}</td></tr>
-      {% else %}<tr><td colspan="4" class="text-muted">None configured.</td></tr>{% endfor %}</tbody>
+      {% else %}<tr><td colspan="4" class="text-muted">{{ _('None configured.') }}</td></tr>{% endfor %}</tbody>
     </table>
   </div>
 </div>

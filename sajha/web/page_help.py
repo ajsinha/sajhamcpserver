@@ -235,6 +235,13 @@ PAGE_HELP: dict = {
         'terms': ['Federation', 'Proxied MCP server', 'Proxied MCP servers (page)', 'Upstream', 'External server',
                   'mcpServers file', 'Namespaced tool', 'Vendor', 'Circuit breaker', 'Tool access'],
         'guide': 'Federation.md'},
+    'admin_plugin_catalog_page': {
+        'what': 'Plugins signed by a trusted publisher, from the configured catalog sources (folders, storage '
+                'prefixes, remote indexes through the outbound fetch guard): review a package\'s files, then approve '
+                'its install, which the policy engine sees as studio.deploy.',
+        'terms': ['Plugin', 'Plugin manifest', 'Publisher signature', 'Trusted publisher key', 'Plugin catalog',
+                  'Policy engine', 'Outbound fetch guard'],
+        'guide': 'Security Model.md'},
     'admin_sajhanet_page': {
         'what': 'The SAJHA Nets this server belongs to: its name and certificate in each, whether it has joined, the '
                 'members it knows and their states; add a peer by address and remove runtime seeds; the admission '
@@ -254,9 +261,10 @@ PAGE_HELP: dict = {
     'net_instance_page': {
         'what': 'The tools one instance offers you through this server: name, qualified name and alias, '
                 'description, inputs and outputs, health and latency, with the Try it form of the Tools page. The '
-                'host checks your access again on every call.',
+                'host checks your access again on every call. Administrators also see its traffic, users, keys, blocks '
+                'and history tabs, block it, set its trust and undo changes.',
         'terms': ['Proxy tool', 'Qualified tool name', 'Bare alias', 'Host instance', 'Home instance',
-                  'Quarantine'],
+                  'Quarantine', 'Net change'],
         'guide': 'SAJHA Net.md'},
     'net_this_instance_page': {
         'what': 'This server as an instance of its first net: the tools of this server you may use, with '
@@ -285,6 +293,64 @@ PAGE_HELP: dict = {
                 'access again on every call.',
         'terms': ['Net access page', 'Proxy tool', 'Bare alias', 'Resolution order', 'Host instance', 'Quarantine',
                   'Member state'],
+        'guide': 'SAJHA Net.md'},
+    'admin_sajhanet_reviews_page': {
+        'what': 'What in one net needs a person: contract conflicts with every offer and hash (block an odd copy), tools '
+                'held under review trust (approve, reject, approve several with one reason), name conflicts, description '
+                'differences, own tools refused for their published name and flagged catalogs.',
+        'terms': ['Conflicts and reviews queue', 'Contract conflict', 'Quarantine', 'Trust level', 'Name conflict',
+                  'Net block', 'Blast radius', 'Net change'],
+        'guide': 'SAJHA Net.md'},
+    'admin_sajhanet_users_page': {
+        'what': 'For each other instance of a net: its users seen calling here and how each resolved, with their last '
+                'call; link and unlink remote users, block one, set the role map and turn name matching on or off.',
+        'terms': ['Net user', 'User link', 'Name matching', 'Role map', 'Net block', 'Net change'],
+        'guide': 'SAJHA Net.md'},
+    'admin_sajhanet_blocks_page': {
+        'what': 'Who may call whom in a net, as a matrix of callers and hosts from this server\'s blocks and the blocks '
+                'the others publish; the blocks set here with reasons, who set them and expiries; add and end blocks after '
+                'seeing their blast radius.',
+        'terms': ['Access matrix', 'Net block', 'Blast radius', 'Net change', 'Undo (net change)'],
+        'guide': 'SAJHA Net.md'},
+    'admin_sajhanet_keys_page': {
+        'what': 'The net key directory as this server holds it: per home the record count, revoked and disabled records, '
+                'version and when last received, and one home\'s records; force a re-sync. Read-only: only a key\'s home '
+                'changes it.',
+        'terms': ['Net key directory', 'Key record', 'Home instance', 'Per-member key'],
+        'guide': 'SAJHA Net.md'},
+    'admin_sajhanet_snapshots_page': {
+        'what': 'The retained snapshots with time, size, contents, chain and signature status; compare two, download '
+                'one, and restore the roles, users and persistent key records one holds and the database lacks.',
+        'terms': ['Snapshot', 'Net key directory', 'Host and tool table'],
+        'guide': 'Policy and Audit.md'},
+    'admin_sajhanet_activity_page': {
+        'what': 'Cross-instance calls as they reach the audit chain, sent and served, drawn between instances and listed; '
+                'filter by instance, user, tool or outcome, pause, and open one call\'s records by trace id here and on '
+                'the other instance.',
+        'terms': ['Live activity', 'Forwarded call', 'Home instance', 'Host instance', 'Waterfall fallback',
+                  'Call chain budget'],
+        'guide': 'SAJHA Net.md'},
+    'admin_sajhanet_certificates_page': {
+        'what': 'This server\'s certificate in each net (renew), and where it runs the net\'s CA the certificates it '
+                'issued (revoke, re-issue), enrollment tokens (create one, shown once) and the revocation list.',
+        'terms': ['SAJHA Net CA', 'Enrollment token', 'Revocation list', 'Certificate lineage', 'Admission mode'],
+        'guide': 'SAJHA Net.md'},
+    'admin_sajhanet_settings_page': {
+        'what': 'The nets this server is in, in preference order: its name, region and labels there, certificate, '
+                'configured and runtime seeds (add a peer, remove a seed), gossip health, routing preferences with '
+                'entries that match nothing flagged, and the user defaults, each naming its configuration key.',
+        'terms': ['Net name', 'Instance name', 'Seed', 'Gossip', 'Resolution order', 'Waterfall fallback',
+                  'Trust level', 'Name matching'],
+        'guide': 'SAJHA Net.md'},
+    'admin_sajhanet_sponsored_page': {
+        'what': 'The proxied MCP servers this server sponsors into its nets, with their state, certificate and tools; '
+                'sponsor another, stop sponsoring one, or enroll one with the net\'s CA.',
+        'terms': ['Sponsored MCP server', 'Participant', 'Vendor', 'SAJHA Net CA', 'Net change'],
+        'guide': 'SAJHA Net.md'},
+    'admin_sajhanet_changes_page': {
+        'what': 'Every change made to a net at this server, newest first, with who made it, the reason and the '
+                'summary; undo a change that has an inverse (the undo is a change of its own).',
+        'terms': ['Net change', 'Undo (net change)', 'Blast radius'],
         'guide': 'SAJHA Net.md'},
     'admin_connections_page': {
         'what': 'Which services each user has linked, with what access and when last used; unlink an account, '
@@ -340,6 +406,12 @@ PAGE_HELP: dict = {
                 'two runs for tool-selection accuracy, answer checks, steps, tokens, cost and latency.',
         'terms': ['Eval set', 'Tool-selection accuracy', 'Answer check', 'Planner', 'Mock provider'],
         'guide': 'Tool Quality.md'},
+    'admin_planner_routing_page': {
+        'what': 'Planners ranked per tool and question class from eval runs and recorded outcomes: review a proposal, '
+                'approve it as a new version or reject it, roll back to any version, and stop or resume the online bandit.',
+        'terms': ['Planner', 'Question class', 'Planner routing rules', 'Routing proposal', 'Planner bandit',
+                  'Eval set', 'State store'],
+        'guide': 'LLM Tools.md'},
     'admin_async_tasks_page': {
         'what': 'Background tool runs submitted for asynchronous execution, and where their results go.',
         'terms': ['Async execution', 'AsyncTask', 'DeliveryRouter', 'Backpressure'],
@@ -440,9 +512,11 @@ def endpoint_of(request) -> Optional[str]:
     return getattr(route, 'name', None)
 
 
-def page_help(endpoint: Optional[str]) -> Optional[dict]:
+def page_help(endpoint: Optional[str], gettext=None) -> Optional[dict]:
     """The rendered panel for a page: {what, terms: [glossary rows], guide: {file,
-    title, url}, related: help_related} or None when the page has no entry."""
+    title, url}, related: help_related} or None when the page has no entry. ``gettext``
+    translates the "what" line into the console language (sajha/web/i18n.py; the
+    glossary terms and the guide stay English)."""
     entry = PAGE_HELP.get(endpoint or '')
     if not entry:
         return None
@@ -452,7 +526,7 @@ def page_help(endpoint: Optional[str]) -> Optional[dict]:
     terms = [t for t in (lookup(n) for n in entry['terms']) if t]
     guide = entry.get('guide')
     return {
-        'what': entry['what'],
+        'what': gettext(entry['what']) if gettext else entry['what'],
         'terms': terms,
         'guide': {'file': guide, 'title': guide[:-3], 'url': guide_url(guide)} if guide else None,
         'related': related_for(endpoint),

@@ -680,7 +680,8 @@ def console_menus() -> list[tuple[str, list[str]]]:
     sajha/web/templates/common/_nav.html (a top entry is (label, icon, [columns]); a column is
     (title, [items]) or (title, a list variable))."""
     src = (ROOT / "sajha" / "web" / "templates" / "common" / "_nav.html").read_text(encoding="utf-8")
-    token = re.compile(r"\('([^'/][^']*)', '([a-z0-9-]+)', \[|\('([^'/][^']*)', (?:\[|[a-z_]+_items\))")
+    # labels are wrapped for translation: (_('Tools'), 'tools', [ ... (_('Use'), [ ...
+    token = re.compile(r"\(_\('([^'/][^']*)'\), '([a-z0-9-]+)', \[|\(_\('([^'/][^']*)'\), (?:\[|[a-z_]+_items\))")
     menus: list[tuple[str, list[str]]] = []
     for m in token.finditer(src):
         if m.group(1):

@@ -1,0 +1,97 @@
+{% extends "common/base.html" %}
+{# Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.com #}
+{% set sn_here = '/admin/sajhanet/reviews' %}
+{% set net = view.net %}
+{% block title %}{{ _('Conflicts and reviews - SAJHA Net - Admin - SAJHA MCP Server') }}{% endblock %}
+{% block extra_css %}{% include "admin/_sajhanet_mgmt_css.html" %}{% endblock %}
+{% block content %}
+<div class="container-fluid" data-sn-csrf="{{ csrf }}">
+  <div class="mb-3">
+    <h1 class="h3 mb-0"><i class="bi bi-inboxes me-2" aria-hidden="true"></i>{{ _('Conflicts and reviews') }}</h1>
+    <small class="text-muted">{{ _('What in this net needs a person: contract conflicts, tools held for review, name conflicts, refused names and flagged catalogs') }}</small>
+  </div>
+  {% include "admin/_sajhanet_subnav.html" %}
+  {% include "admin/_sajhanet_netsel.html" %}
+  <p class="small" data-sn-status role="status" aria-live="polite"></p>
+  {% if net %}
+  <div class="sn-tiles">
+    {% for k, label in [('conflict', _('Contract conflicts')), ('held', _('Held for review')), ('name', _('Name conflicts')),
+                        ('description', _('Description differences')), ('refused', _('Refused names')), ('flagged', _('Flagged catalogs'))] %}
+    <div class="sn-tile"><div class="k">{{ label }}</div><div class="v">{{ view.counts.get(k, 0) }}</div></div>
+    {% endfor %}
+  </div>
+
+  {% set held = view['items']|selectattr('kind', 'equalto', 'held')|list %}
+  <section class="sn-box" aria-labelledby="h-held">
+    <h2 id="h-held">{{ _('Held for review') }}</h2>
+    <div class="sn-body">
+      {% if held %}
+      <div class="table-responsive"><table class="sn-table">
+        <thead><tr><th scope="col"><span class="visually-hidden">{{ _('Select') }}</span></th><th scope="col">{{ _('Tool') }}</th><th scope="col">{{ _('From') }}</th><th scope="col" class="opt">{{ _('Version') }}</th><th scope="col">{{ _('Actions') }}</th></tr></thead>
+        <tbody>
+        {% for i in held %}
+          {% set url = '/api/sajhanet/nets/' ~ net|urlencode ~ '/peers/' ~ i.peer|urlencode ~ '/tools/' ~ i.tool|urlencode ~ '/approve' %}
+          <tr><td><input type="checkbox" class="form-check-input sn-held" value="{{ url }}" aria-label="{{ _('Select %(tool)s from %(peer)s', tool=i.tool, peer=i.peer) }}"></td>
+            <td><code>{{ i.tool }}</code>{% if i.problem %}<div class="sn-meta">{{ i.problem }}</div>{% endif %}</td>
+            <td><a href="/net/instances/{{ net|urlencode }}/{{ i.peer|urlencode }}?tab=tools"><code>{{ i.peer }}</code></a></td>
+            <td class="opt">{{ i.version or '—' }}</td>
+            <td class="sn-actions">
+              <button class="btn btn-sm btn-success" type="button" data-sn-action data-method="POST" data-url="{{ url }}" data-net="{{ net }}" data-kind="approve"
+                data-effect="{{ _('Approve %(tool)s from %(peer)s at the contract it offers now; a later change is held again.', tool=i.tool, peer=i.peer) }}">{{ _('Approve') }}</button>
+              <button class="btn btn-sm btn-outline-danger" type="button" data-sn-action data-method="POST" data-url="/api/sajhanet/nets/{{ net|urlencode }}/blocks" data-net="{{ net }}" data-kind="block_add"
+                data-body='{{ {"level": "tool", "target_instance": i.peer, "tool": i.qualified_name, "direction": "outbound"}|tojson }}'
+                data-blast='{{ {"level": "tool", "target_instance": i.peer, "tool": i.qualified_name, "direction": "outbound"}|tojson }}'
+                data-effect="{{ _('Reject: hide %(tool)s of %(peer)s from this server\'s users (an outbound tool block).', tool=i.tool, peer=i.peer) }}">{{ _('Reject') }}</button>
+            </td></tr>
+        {% endfor %}
+        </tbody></table></div>
+      <button class="btn btn-sm btn-success mt-2" type="button" data-sn-bulk=".sn-held" data-method="POST" data-net="{{ net }}"
+        data-effect="{{ _('approve each selected tool at the contract it offers now') }}">{{ _('Approve selected') }}</button>
+      {% else %}<p class="sn-meta mb-0">{{ _('No tool is held for review.') }}</p>{% endif %}
+    </div>
+  </section>
+
+  <section class="sn-box" aria-labelledby="h-conf">
+    <h2 id="h-conf">{{ _('Contract conflicts') }}</h2>
+    <div class="sn-body">
+      {% for i in view['items'] if i.kind == 'conflict' %}
+      <div class="mb-3">
+        <p class="mb-1"><span class="st st-quarantined">{{ _('quarantined') }}</span> <code>{{ i.tool }}</code>
+          {% if i.since %}<span class="sn-meta">{% trans since=i.since %}since {{ since }}{% endtrans %}</span>{% endif %}</p>
+        {% if i.detail %}<p class="sn-meta mb-1">{{ i.detail }}</p>{% endif %}
+        <div class="table-responsive"><table class="sn-table">
+          <thead><tr><th scope="col">{{ _('Offered by') }}</th><th scope="col">{{ _('Contract hash') }}</th><th scope="col">{{ _('Actions') }}</th></tr></thead>
+          <tbody>{% for o in i.offers %}
+            <tr><td><code>{{ o.instance }}</code>{% if o.self %} <span class="sn-meta">{{ _('this server') }}</span>{% endif %}{% if o.instance in i.differing %} <span class="st st-warning">{{ _('differs') }}</span>{% endif %}</td>
+              <td class="sn-hash">{{ o.contract_hash[:16] }}</td>
+              <td>{% if o.self %}<span class="sn-meta">{% trans %}Stop exporting this copy in the net's <code>export</code> rules (<a href="/admin/sajhanet/settings">Net settings</a>).{% endtrans %}</span>
+                {% elif o.qualified_name %}<button class="btn btn-sm btn-outline-danger" type="button" data-sn-action data-method="POST" data-url="/api/sajhanet/nets/{{ net|urlencode }}/blocks" data-net="{{ net }}" data-kind="block_add"
+                  data-body='{{ {"level": "tool", "target_instance": o.instance, "tool": o.qualified_name, "direction": "outbound"}|tojson }}'
+                  data-blast='{{ {"level": "tool", "target_instance": o.instance, "tool": o.qualified_name, "direction": "outbound"}|tojson }}'
+                  data-effect="{{ _('Hide %(tool)s of %(instance)s here, so the other hosts can agree again.', tool=i.tool, instance=o.instance) }}">{{ _('Block this copy') }}</button>{% endif %}</td></tr>
+          {% endfor %}</tbody></table></div>
+      </div>
+      {% else %}<p class="sn-meta mb-0">{{ _('No contract conflicts: every name offered in this net has one contract.') }}</p>{% endfor %}
+    </div>
+  </section>
+
+  <section class="sn-box" aria-labelledby="h-other">
+    <h2 id="h-other">{{ _('Names, descriptions and catalogs') }}</h2>
+    <div class="sn-body">
+      <ul class="list-unstyled mb-0">
+      {% for i in view['items'] if i.kind in ('name', 'description', 'refused', 'flagged') %}
+        <li class="mb-2"><span class="st st-{{ i.severity }}">{{ i.severity }}</span>
+          {% if i.kind == 'name' %}{% trans instance=i.instance, detail=i.detail %}Name conflict: <code>{{ instance }}</code> — {{ detail }}{% endtrans %}
+            {% if i.severity == 'error' %}<button class="btn btn-sm btn-outline-primary ms-1" type="button" data-sn-action data-method="POST" data-url="/api/sajhanet/nets/{{ net|urlencode }}/rejoin" data-net="{{ net }}" data-final
+              data-effect="{{ _('Clear the held refusal and try to join now (after the members forgot the old key of this name).') }}">{{ _('Try to join again') }}</button>{% endif %}
+          {% elif i.kind == 'description' %}{% trans tool=i.tool, hosts=i.hosts|join(', ') %}<code>{{ tool }}</code> has one contract but different descriptions at {{ hosts }} (a warning only).{% endtrans %}
+          {% elif i.kind == 'refused' %}{% trans tool=i.tool, published=i.published, detail=i.detail %}This server's tool <code>{{ tool }}</code> is not offered as <code>{{ published }}</code>: {{ detail }}{% endtrans %}
+          {% else %}{% trans peer=i.peer, flags=i.flags|join(', ') %}The catalog of <code>{{ peer }}</code> was flagged at its last pull: {{ flags }}{% endtrans %}{% endif %}</li>
+      {% else %}<li class="sn-meta">{{ _('Nothing else needs a person.') }}</li>{% endfor %}
+      </ul>
+    </div>
+  </section>
+  {% endif %}
+</div>
+{% include "admin/_sajhanet_change_dialog.html" %}
+{% endblock %}

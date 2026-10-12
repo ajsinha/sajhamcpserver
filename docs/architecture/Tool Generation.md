@@ -204,6 +204,10 @@ composite is managed in the Composite builder.
 The page also shows, before any deploy, what the policy engine would decide for the
 deploy and for calls to the new tool.
 
+The plugin catalog installs a signed plugin through this same gate: a review bound to the
+package hash, explicit approval of that hash, and the policy engine's `studio.deploy` with
+`{"tool": "plugin:<name>", "kind": "plugin"}` ([Security Model](../security/Security%20Model.md#plugins)).
+
 ## 7. Endpoints
 
 | Method and path | What it does |

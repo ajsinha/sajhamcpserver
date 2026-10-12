@@ -12,7 +12,7 @@ the SAJHA Net ring beside it by static/js/netring.js).
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-    <title>SAJHA — The Intelligence Layer for AI Agents</title>
+    <title>{{ _('SAJHA — The Intelligence Layer for AI Agents') }}</title>
     <link rel="icon" href="{{ url_for('static', filename='favicon.svg') }}?v={{ app_version }}" type="image/svg+xml">
     {% include "common/_theme_init.html" %}
     <link href="{{ url_for('static', filename='vendor/bootstrap/bootstrap.min.css') }}" rel="stylesheet">
@@ -30,33 +30,34 @@ the SAJHA Net ring beside it by static/js/netring.js).
         .sajha-foot-links a { margin: 0 .5rem; text-decoration: none; }
     </style>
     <script src="{{ url_for('static', filename='js/csp-actions.js') }}?v={{ app_version }}"></script>
+    {% include "common/_i18n_js.html" %}
 </head>
 <body class="sajha-app">
-<a href="#main-content" class="visually-hidden-focusable sajha-skip">Skip to content</a>
+<a href="#main-content" class="visually-hidden-focusable sajha-skip">{{ _('Skip to content') }}</a>
 {% include "common/_icons.html" ignore missing %}
 
 <!-- Navigation: MAYA's public bar -->
-<nav class="navbar navbar-expand-lg sajha-nav fixed-top" aria-label="Main">
+<nav class="navbar navbar-expand-lg sajha-nav fixed-top" aria-label="{{ _('Main') }}">
     <div class="container-fluid">
         <a class="navbar-brand sajha-brand" href="/">
             <svg class="sajha-mark" aria-hidden="true"><use href="#icon-sajha"/></svg>
             <span><span class="name">SAJHA</span><small>MCP Server v{{ app_version }}</small></span></a>
         <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#sajha-public-menu"
-                aria-controls="sajha-public-menu" aria-expanded="false" aria-label="Toggle navigation">
+                aria-controls="sajha-public-menu" aria-expanded="false" aria-label="{{ _('Toggle navigation') }}">
             <i class="bi bi-list" aria-hidden="true"></i></button>
         <div class="collapse navbar-collapse" id="sajha-public-menu">
             <ul class="navbar-nav me-auto nav-public">
-                <li class="nav-item"><a class="nav-link" href="#features"><i class="bi bi-grid" aria-hidden="true"></i> Features</a></li>
-                <li class="nav-item"><a class="nav-link" href="#transports"><i class="bi bi-hdd-network" aria-hidden="true"></i> Transports</a></li>
-                <li class="nav-item"><a class="nav-link" href="#wire"><i class="bi bi-braces" aria-hidden="true"></i> How it works</a></li>
-                <li class="nav-item"><a class="nav-link" href="/help"><i class="bi bi-question-circle" aria-hidden="true"></i> Help</a></li>
-                <li class="nav-item"><a class="nav-link" href="/about"><i class="bi bi-info-circle" aria-hidden="true"></i> About</a></li>
-                <li class="nav-item"><a class="nav-link" href="/docs"><i class="bi bi-book" aria-hidden="true"></i> Docs</a></li>
+                <li class="nav-item"><a class="nav-link" href="#features"><i class="bi bi-grid" aria-hidden="true"></i> {{ _('Features') }}</a></li>
+                <li class="nav-item"><a class="nav-link" href="#transports"><i class="bi bi-hdd-network" aria-hidden="true"></i> {{ _('Transports') }}</a></li>
+                <li class="nav-item"><a class="nav-link" href="#wire"><i class="bi bi-braces" aria-hidden="true"></i> {{ _('How it works') }}</a></li>
+                <li class="nav-item"><a class="nav-link" href="/help"><i class="bi bi-question-circle" aria-hidden="true"></i> {{ _('Help') }}</a></li>
+                <li class="nav-item"><a class="nav-link" href="/about"><i class="bi bi-info-circle" aria-hidden="true"></i> {{ _('About') }}</a></li>
+                <li class="nav-item"><a class="nav-link" href="/docs"><i class="bi bi-book" aria-hidden="true"></i> {{ _('Docs') }}</a></li>
             </ul>
             <div class="d-flex align-items-center gap-2 pb-2 pb-lg-0">
                 {% include "common/_theme_menu.html" %}
-                {% if signed_in %}<a class="btn btn-light btn-sm fw-bold" href="/dashboard"><i class="bi bi-speedometer2" aria-hidden="true"></i> Dashboard</a>
-                {% else %}<a class="btn btn-light btn-sm fw-bold" href="/login"><i class="bi bi-box-arrow-in-right" aria-hidden="true"></i> Sign In</a>{% endif %}
+                {% if signed_in %}<a class="btn btn-light btn-sm fw-bold" href="/dashboard"><i class="bi bi-speedometer2" aria-hidden="true"></i> {{ _('Dashboard') }}</a>
+                {% else %}<a class="btn btn-light btn-sm fw-bold" href="/login"><i class="bi bi-box-arrow-in-right" aria-hidden="true"></i> {{ _('Sign In') }}</a>{% endif %}
             </div>
         </div>
     </div>
@@ -67,56 +68,56 @@ the SAJHA Net ring beside it by static/js/netring.js).
 <!-- Hero: the headline over the constellation, a star for every tool the registry serves -->
 <section class="lp2-hero lp2-hero-sky">
     <div class="lp2-hero-inner">
-        <div class="lp2-badge"><i class="bi bi-circle-fill" aria-hidden="true"></i> MCP 2026-07-28 + 2025-11-25 · Conformance Verified · Production Ready</div>
-        <h1 class="lp2-title">The <span class="lp2-gradient">Intelligence Layer</span><br>for AI Agents</h1>
-        <p class="lp2-sub">{{ tool_count }} tools across {{ group_count }} domains, ready out of the box.{% if llm_provider_count %} {{ llm_provider_count }} LLM provider types.{% endif %} Both MCP eras on one endpoint.<br>
-        SAJHA connects every AI agent to financial markets, government data, analytics, and enterprise systems through a single MCP endpoint.</p>
+        <div class="lp2-badge"><i class="bi bi-circle-fill" aria-hidden="true"></i> {{ _('MCP 2026-07-28 + 2025-11-25 · Conformance Verified · Production Ready') }}</div>
+        <h1 class="lp2-title">{{ _('The') }} <span class="lp2-gradient">{{ _('Intelligence Layer') }}</span><br>{{ _('for AI Agents') }}</h1>
+        <p class="lp2-sub">{% trans tool_count=tool_count, group_count=group_count %}{{ tool_count }} tools across {{ group_count }} domains, ready out of the box.{% endtrans %}{% if llm_provider_count %} {% trans llm_provider_count=llm_provider_count %}{{ llm_provider_count }} LLM provider types.{% endtrans %}{% endif %} {% trans %}Both MCP eras on one endpoint.<br>
+        SAJHA connects every AI agent to financial markets, government data, analytics, and enterprise systems through a single MCP endpoint.{% endtrans %}</p>
         <div class="lp2-actions">
-            {% if signed_in %}<a href="/dashboard" class="lp2-btn lp2-btn-primary"><i class="bi bi-speedometer2" aria-hidden="true"></i> Open the dashboard</a>
-            {% else %}<a href="/login" class="lp2-btn lp2-btn-primary"><i class="bi bi-rocket-takeoff" aria-hidden="true"></i> Get Started</a>{% endif %}
-            <a href="/docs" class="lp2-btn lp2-btn-outline"><i class="bi bi-book" aria-hidden="true"></i> Documentation</a>
+            {% if signed_in %}<a href="/dashboard" class="lp2-btn lp2-btn-primary"><i class="bi bi-speedometer2" aria-hidden="true"></i> {{ _('Open the dashboard') }}</a>
+            {% else %}<a href="/login" class="lp2-btn lp2-btn-primary"><i class="bi bi-rocket-takeoff" aria-hidden="true"></i> {{ _('Get Started') }}</a>{% endif %}
+            <a href="/docs" class="lp2-btn lp2-btn-outline"><i class="bi bi-book" aria-hidden="true"></i> {{ _('Documentation') }}</a>
         </div>
     </div>
     <div class="lp2-visuals">
     <figure class="lp2-sky-wrap">
             <div class="lp2-sky" id="lpSky">
                 <canvas id="lpSkyCanvas" aria-hidden="true"></canvas>
-                <div class="lp2-sky-prompt" aria-hidden="true"><span class="lp2-sky-who">Agent</span><span class="lp2-sky-q" id="lpSkyQ"></span></div>
+                <div class="lp2-sky-prompt" aria-hidden="true"><span class="lp2-sky-who">{{ _('Agent') }}</span><span class="lp2-sky-q" id="lpSkyQ"></span></div>
                 <div class="lp2-sky-ans is-off" id="lpSkyAns" aria-hidden="true">
-                    <div class="lp2-sky-ans-head"><span>Answer</span><span class="lp2-sky-conf" id="lpSkyConf">confidence 0.00</span></div>
+                    <div class="lp2-sky-ans-head"><span>{{ _('Answer') }}</span><span class="lp2-sky-conf" id="lpSkyConf">{{ _('confidence 0.00') }}</span></div>
                     <p id="lpSkyAnsText"></p>
                     <div class="lp2-sky-chain" id="lpSkyChain"></div>
                 </div>
                 <div class="lp2-sky-stats" id="lpSkyStats" aria-hidden="true"></div>
             </div>
             <figcaption class="lp2-sky-cap">
-                <span class="visually-hidden">Every star is one of SAJHA's tools, clustered by domain. </span>
+                <span class="visually-hidden">{{ _('Every star is one of SAJHA\'s tools, clustered by domain.') }} </span>
                 <span class="visually-hidden" id="lpSkyDesc"></span>
-                <button type="button" class="lp2-sky-btn" id="lpSkyPause" aria-pressed="false"><i class="bi bi-pause-fill" aria-hidden="true"></i> Pause</button>
-                <button type="button" class="lp2-sky-btn" id="lpSkyNext"><i class="bi bi-skip-forward-fill" aria-hidden="true"></i> Next question</button>
+                <button type="button" class="lp2-sky-btn" id="lpSkyPause" aria-pressed="false"><i class="bi bi-pause-fill" aria-hidden="true"></i> {{ _('Pause') }}</button>
+                <button type="button" class="lp2-sky-btn" id="lpSkyNext"><i class="bi bi-skip-forward-fill" aria-hidden="true"></i> {{ _('Next question') }}</button>
                 <span id="lpSkyScene"></span>
-                <span class="lp2-sky-note">Every star is a live tool, grouped by domain; point at one (or tap it) to see its name. The questions, step results and confidence are illustrative; the tool names are real.</span>
+                <span class="lp2-sky-note">{{ _('Every star is a live tool, grouped by domain; point at one (or tap it) to see its name. The questions, step results and confidence are illustrative; the tool names are real.') }}</span>
             </figcaption>
         </figure>
     <figure class="lp2-net-wrap">
             <div class="lp2-net-head">
-                <p class="lp2-net-kicker">SAJHA Net</p>
-                <p class="lp2-net-slogan">साझा: shared tools, sovereign data.</p>
+                <p class="lp2-net-kicker">{{ _('SAJHA Net') }}</p>
+                <p class="lp2-net-slogan">{{ _('साझा: shared tools, sovereign data.') }}</p>
             </div>
             <div class="lp2-net" id="lpNet">
                 <svg viewBox="0 0 560 580" role="img" aria-labelledby="lpNetTitle lpNetDesc">
-                    <title id="lpNetTitle">SAJHA servers sharing tools</title>
-                    <desc id="lpNetDesc">Eight SAJHA servers on a ring. They find each other, call each other's tools for one question, fall back when a server goes down, quarantine a tool whose contract differs, and reach MCP servers that two of them proxy: internal ones keep their tool names, external ones are never members and their tools are offered as vendor__tool.</desc>
+                    <title id="lpNetTitle">{{ _('SAJHA servers sharing tools') }}</title>
+                    <desc id="lpNetDesc">{{ _('Eight SAJHA servers on a ring. They find each other, call each other\'s tools for one question, fall back when a server goes down, quarantine a tool whose contract differs, and reach MCP servers that two of them proxy: internal ones keep their tool names, external ones are never members and their tools are offered as vendor__tool.') }}</desc>
                     <defs><marker id="lpNetHead" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z" class="lp2-net-head-mark"/></marker></defs>
                     <g data-layer="chords"></g><g data-layer="arrows"></g><g data-layer="nodes"></g><g data-layer="fx"></g>
                 </svg>
                 <div class="lp2-net-center" aria-live="polite"><div class="lp2-net-bubble" id="lpNetBubble"></div></div>
             </div>
             <figcaption class="lp2-sky-cap">
-                <button type="button" class="lp2-sky-btn" id="lpNetPause" aria-pressed="false"><i class="bi bi-pause-fill" aria-hidden="true"></i> Pause</button>
-                <button type="button" class="lp2-sky-btn" id="lpNetNext"><i class="bi bi-skip-forward-fill" aria-hidden="true"></i> Next scene</button>
+                <button type="button" class="lp2-sky-btn" id="lpNetPause" aria-pressed="false"><i class="bi bi-pause-fill" aria-hidden="true"></i> {{ _('Pause') }}</button>
+                <button type="button" class="lp2-sky-btn" id="lpNetNext"><i class="bi bi-skip-forward-fill" aria-hidden="true"></i> {{ _('Next scene') }}</button>
                 <span id="lpNetScene"></span>
-                <span class="lp2-sky-note">Each SAJHA keeps its own data, rules and AI; questions use tools across servers as the person who asked. Server and tool names are examples.</span>
+                <span class="lp2-sky-note">{{ _('Each SAJHA keeps its own data, rules and AI; questions use tools across servers as the person who asked. Server and tool names are examples.') }}</span>
             </figcaption>
         </figure>
     </div>
@@ -126,7 +127,7 @@ the SAJHA Net ring beside it by static/js/netring.js).
      filtered to that domain (sign-in first) -->
 {% if domain_chips %}
 <section class="lp2-domains" aria-labelledby="lpDomainsTitle">
-    <h2 class="lp2-domains-title" id="lpDomainsTitle"><i class="bi bi-box-seam" aria-hidden="true"></i> Out of the box</h2>
+    <h2 class="lp2-domains-title" id="lpDomainsTitle"><i class="bi bi-box-seam" aria-hidden="true"></i> {{ _('Out of the box') }}</h2>
     <ul class="lp2-domain-chips">
         {% for c in domain_chips %}<li><a class="lp2-domain-chip" href="{{ c.href }}">{{ c.label }} <span class="lp2-domain-n">{{ c.count }}</span></a></li>{% endfor %}
     </ul>
@@ -134,100 +135,100 @@ the SAJHA Net ring beside it by static/js/netring.js).
 {% endif %}
 
 <!-- Stats -->
-<section class="lp2-stats" aria-label="SAJHA in numbers">
-    <div><span class="lp2-num">{{ tool_count }}</span><span class="lp2-label">Built-in Tools</span></div>
-    <div><span class="lp2-num">{{ group_count }}</span><span class="lp2-label">Tool Domains</span></div>
-    {% if llm_provider_count %}<div><span class="lp2-num">{{ llm_provider_count }}</span><span class="lp2-label">LLM Provider Types</span></div>{% endif %}
-    <div><span class="lp2-num">2</span><span class="lp2-label">MCP Eras</span></div>
-    {% if db_table_count %}<div><span class="lp2-num">{{ db_table_count }}</span><span class="lp2-label">Database Tables</span></div>{% endif %}
-    {% if endpoint_count %}<div><span class="lp2-num">{{ endpoint_count }}</span><span class="lp2-label">HTTP Endpoints</span></div>{% endif %}
+<section class="lp2-stats" aria-label="{{ _('SAJHA in numbers') }}">
+    <div><span class="lp2-num">{{ tool_count }}</span><span class="lp2-label">{{ _('Built-in Tools') }}</span></div>
+    <div><span class="lp2-num">{{ group_count }}</span><span class="lp2-label">{{ _('Tool Domains') }}</span></div>
+    {% if llm_provider_count %}<div><span class="lp2-num">{{ llm_provider_count }}</span><span class="lp2-label">{{ _('LLM Provider Types') }}</span></div>{% endif %}
+    <div><span class="lp2-num">2</span><span class="lp2-label">{{ _('MCP Eras') }}</span></div>
+    {% if db_table_count %}<div><span class="lp2-num">{{ db_table_count }}</span><span class="lp2-label">{{ _('Database Tables') }}</span></div>{% endif %}
+    {% if endpoint_count %}<div><span class="lp2-num">{{ endpoint_count }}</span><span class="lp2-label">{{ _('HTTP Endpoints') }}</span></div>{% endif %}
 </section>
 
 <!-- Features -->
 <section class="lp2-section" id="features">
-    <p class="lp2-eyebrow lp2-centre">Capabilities</p>
-    <h2 class="lp2-h2 lp2-centre">Not a tool server. An intelligence server.</h2>
-    <p class="lp2-desc lp2-centre">SAJHA embeds the LLM gateway, so it can reason about tools, resolve intent, compose workflows, and track costs. Other MCP servers are dumb pipes.</p>
+    <p class="lp2-eyebrow lp2-centre">{{ _('Capabilities') }}</p>
+    <h2 class="lp2-h2 lp2-centre">{{ _('Not a tool server. An intelligence server.') }}</h2>
+    <p class="lp2-desc lp2-centre">{{ _('SAJHA embeds the LLM gateway, so it can reason about tools, resolve intent, compose workflows, and track costs. Other MCP servers are dumb pipes.') }}</p>
     <div class="lp2-grid">
         <article class="lp2-card"><i class="bi bi-cpu" aria-hidden="true"></i>
-            <h3>Embedded LLM Gateway</h3>
-            <p>Anthropic, OpenAI, Gemini, Bedrock, Azure OpenAI, Ollama, OpenAI-compatible endpoints and more, from one provider registry that custom providers join. DB-managed models with user-level overrides.</p></article>
+            <h3>{{ _('Embedded LLM Gateway') }}</h3>
+            <p>{{ _('Anthropic, OpenAI, Gemini, Bedrock, Azure OpenAI, Ollama, OpenAI-compatible endpoints and more, from one provider registry that custom providers join. DB-managed models with user-level overrides.') }}</p></article>
         <article class="lp2-card"><i class="bi bi-search" aria-hidden="true"></i>
-            <h3>Semantic Tool Discovery</h3>
-            <p>Describe what you need in English. Vector embeddings of {{ tool_count }} tool descriptions resolve intent to the right tool with confidence scores and auto-extracted parameters.</p></article>
+            <h3>{{ _('Semantic Tool Discovery') }}</h3>
+            <p>{% trans tool_count=tool_count %}Describe what you need in English. Vector embeddings of {{ tool_count }} tool descriptions resolve intent to the right tool with confidence scores and auto-extracted parameters.{% endtrans %}</p></article>
         <article class="lp2-card"><i class="bi bi-boxes" aria-hidden="true"></i>
-            <h3>Composite Tools</h3>
-            <p>Chain multiple tools into one call. Sibling pattern runs tools in parallel. Parent-Child fans out per record. Dynamic schemas built at boot from DB definitions.</p></article>
+            <h3>{{ _('Composite Tools') }}</h3>
+            <p>{{ _('Chain multiple tools into one call. Sibling pattern runs tools in parallel. Parent-Child fans out per record. Dynamic schemas built at boot from DB definitions.') }}</p></article>
         <article class="lp2-card"><i class="bi bi-graph-up" aria-hidden="true"></i>
-            <h3>OpenTelemetry Observability</h3>
-            <p>Per-tool p50/p95/p99 latency histograms. Error spike alerting. Health probes for Kubernetes. Optional OTEL SDK exports to Datadog, Grafana, Splunk.</p></article>
+            <h3>{{ _('OpenTelemetry Observability') }}</h3>
+            <p>{{ _('Per-tool p50/p95/p99 latency histograms. Error spike alerting. Health probes for Kubernetes. Optional OTEL SDK exports to Datadog, Grafana, Splunk.') }}</p></article>
         <article class="lp2-card"><i class="bi bi-people" aria-hidden="true"></i>
-            <h3>Governed Access</h3>
-            <p>Roles with wildcard tool permissions, per-API-key allowlists and denylists, and policy rules that deny, require approval, constrain arguments or meter quotas on every tool call.</p></article>
+            <h3>{{ _('Governed Access') }}</h3>
+            <p>{{ _('Roles with wildcard tool permissions, per-API-key allowlists and denylists, and policy rules that deny, require approval, constrain arguments or meter quotas on every tool call.') }}</p></article>
         <article class="lp2-card"><i class="bi bi-puzzle" aria-hidden="true"></i>
-            <h3>Plugin System</h3>
-            <p>Drop a plugin directory with JSON tool configs or Python classes. Auto-discovered, checksum-verified, dependency-installed. Publish and share tool packs.</p></article>
+            <h3>{{ _('Plugin System') }}</h3>
+            <p>{{ _('Drop a plugin directory with JSON tool configs or Python classes. Auto-discovered, checksum-verified, dependency-installed. Publish and share tool packs.') }}</p></article>
         <article class="lp2-card"><i class="bi bi-shield-lock" aria-hidden="true"></i>
-            <h3>Multi-Layer Security</h3>
-            <p>SAJHA JWTs, API keys and the session cookie, plus OAuth 2.1 on <code>/mcp</code> from the built-in authorization server or an external issuer. RBAC with wildcard tool permissions. Every call authenticated, authorised, and audit-logged.</p></article>
+            <h3>{{ _('Multi-Layer Security') }}</h3>
+            <p>{% trans %}SAJHA JWTs, API keys and the session cookie, plus OAuth 2.1 on <code>/mcp</code> from the built-in authorization server or an external issuer. RBAC with wildcard tool permissions. Every call authenticated, authorised, and audit-logged.{% endtrans %}</p></article>
         <article class="lp2-card"><i class="bi bi-magic" aria-hidden="true"></i>
             <h3>MCP Studio</h3>
-            <p>7 visual tool creators: Python, REST, DB Query, Script, PowerBI Report, PowerBI DAX, LiveLink. Analysts create tools without writing code. Hot-reload deploys in seconds.</p></article>
+            <p>{{ _('7 visual tool creators: Python, REST, DB Query, Script, PowerBI Report, PowerBI DAX, LiveLink. Analysts create tools without writing code. Hot-reload deploys in seconds.') }}</p></article>
         <article class="lp2-card"><i class="bi bi-clock-history" aria-hidden="true"></i>
-            <h3>Tool Versioning</h3>
-            <p>Run v1 and v2 side-by-side. Deprecation lifecycle with sunset dates. Contract testing validates all {{ tool_count }} tools against live APIs. Zero surprises in production.</p></article>
+            <h3>{{ _('Tool Versioning') }}</h3>
+            <p>{% trans tool_count=tool_count %}Run v1 and v2 side-by-side. Deprecation lifecycle with sunset dates. Contract testing validates all {{ tool_count }} tools against live APIs. Zero surprises in production.{% endtrans %}</p></article>
     </div>
 </section>
 
 <!-- Transports -->
 <section class="lp2-section" id="transports">
-    <p class="lp2-eyebrow lp2-centre">Connectivity</p>
-    <h2 class="lp2-h2 lp2-centre">Streamable HTTP for every client. Legacy transports for the rest.</h2>
-    <p class="lp2-desc lp2-centre">Every transport reaches the same MCPHandler: identical JSON-RPC 2.0, same auth, same audit logging.</p>
+    <p class="lp2-eyebrow lp2-centre">{{ _('Connectivity') }}</p>
+    <h2 class="lp2-h2 lp2-centre">{{ _('Streamable HTTP for every client. Legacy transports for the rest.') }}</h2>
+    <p class="lp2-desc lp2-centre">{{ _('Every transport reaches the same MCPHandler: identical JSON-RPC 2.0, same auth, same audit logging.') }}</p>
     <div class="lp2-grid">
         <article class="lp2-card lp2-transport">
             <div class="lp2-proto">POST /mcp</div>
             <h3>Streamable HTTP</h3>
-            <p>Both eras: stateless 2026-07-28 requests and 2025-11-25 sessions. What every current MCP client uses.</p></article>
+            <p>{{ _('Both eras: stateless 2026-07-28 requests and 2025-11-25 sessions. What every current MCP client uses.') }}</p></article>
         <article class="lp2-card lp2-transport">
             <div class="lp2-proto">GET /mcp/sse</div>
-            <h3>HTTP+SSE (legacy)</h3>
-            <p>The 2024-11-05 transport, with <code>POST /mcp/message</code>, for older clients that predate Streamable HTTP.</p></article>
+            <h3>{{ _('HTTP+SSE (legacy)') }}</h3>
+            <p>{% trans %}The 2024-11-05 transport, with <code>POST /mcp/message</code>, for older clients that predate Streamable HTTP.{% endtrans %}</p></article>
         <article class="lp2-card lp2-transport">
             <div class="lp2-proto">WS /mcp/ws</div>
-            <h3>WebSocket (extension)</h3>
-            <p>A SAJHA extension: full-duplex, with change notifications pushed. Authenticates with a SAJHA JWT or API key.</p></article>
+            <h3>{{ _('WebSocket (extension)') }}</h3>
+            <p>{{ _('A SAJHA extension: full-duplex, with change notifications pushed. Authenticates with a SAJHA JWT or API key.') }}</p></article>
     </div>
 </section>
 
 <!-- How it works: the 2026-07-28 wire, typed as it happens (landing.js) -->
 <section class="lp2-section" id="wire">
-    <p class="lp2-eyebrow lp2-centre">How it works</p>
-    <h2 class="lp2-h2 lp2-centre">The wire, live</h2>
-    <p class="lp2-desc lp2-centre">What a 2026-07-28 client and SAJHA actually say to each other: no handshake, no session, every request complete in itself.</p>
+    <p class="lp2-eyebrow lp2-centre">{{ _('How it works') }}</p>
+    <h2 class="lp2-h2 lp2-centre">{{ _('The wire, live') }}</h2>
+    <p class="lp2-desc lp2-centre">{{ _('What a 2026-07-28 client and SAJHA actually say to each other: no handshake, no session, every request complete in itself.') }}</p>
     <div class="lp2-wire" id="lpWire">
         <div class="lp2-code lp2-wire-code">
             <div class="lp2-code-bar"><span></span><span></span><span></span><em>POST /mcp · MCP 2026-07-28</em><b class="lp2-wire-state" id="lpWireState" aria-hidden="true"></b></div>
             <pre class="lp2-wire-log" id="lpWireLog" tabindex="0" aria-label="A JSON-RPC exchange between an agent and SAJHA over MCP 2026-07-28: server/discover, a tools/call that streams progress, and a call that asks for confirmation before it runs"></pre>
         </div>
         <div class="lp2-wire-side">
-            <svg class="lp2-wire-svg" viewBox="0 0 240 320" role="img" aria-label="Agent to SAJHA to tool; each hop lights as its message is sent">
-                <g class="lp2-wire-node" data-node="agent"><rect x="40" y="18" width="160" height="44" rx="10"/><text x="120" y="45">Agent</text></g>
+            <svg class="lp2-wire-svg" viewBox="0 0 240 320" role="img" aria-label="{{ _('Agent to SAJHA to tool; each hop lights as its message is sent') }}">
+                <g class="lp2-wire-node" data-node="agent"><rect x="40" y="18" width="160" height="44" rx="10"/><text x="120" y="45">{{ _('Agent') }}</text></g>
                 <g class="lp2-wire-node lp2-wire-hub" data-node="sajha"><rect x="40" y="138" width="160" height="44" rx="10"/><text x="120" y="165">SAJHA</text></g>
-                <g class="lp2-wire-node" data-node="tool"><rect x="20" y="258" width="200" height="44" rx="10"/><text x="120" y="285" id="lpWireTool">tool registry</text></g>
+                <g class="lp2-wire-node" data-node="tool"><rect x="20" y="258" width="200" height="44" rx="10"/><text x="120" y="285" id="lpWireTool">{{ _('tool registry') }}</text></g>
                 <path class="lp2-wire-lane" data-lane="as" d="M92 64V136"/><path class="lp2-wire-lane" data-lane="sa" d="M148 136V64"/>
                 <path class="lp2-wire-lane" data-lane="st" d="M92 184V256"/><path class="lp2-wire-lane" data-lane="ts" d="M148 256V184"/>
-                <text class="lp2-wire-lbl" x="84" y="104" text-anchor="end">request</text>
-                <text class="lp2-wire-lbl" x="156" y="104">result</text>
-                <text class="lp2-wire-lbl" x="84" y="224" text-anchor="end">call</text>
-                <text class="lp2-wire-lbl" x="156" y="224">return</text>
+                <text class="lp2-wire-lbl" x="84" y="104" text-anchor="end">{{ _('request') }}</text>
+                <text class="lp2-wire-lbl" x="156" y="104">{{ _('result') }}</text>
+                <text class="lp2-wire-lbl" x="84" y="224" text-anchor="end">{{ _('call') }}</text>
+                <text class="lp2-wire-lbl" x="156" y="224">{{ _('return') }}</text>
                 <circle class="lp2-wire-dot" id="lpWireDot" r="5" cx="92" cy="64"/>
             </svg>
             <p class="lp2-wire-note" id="lpWireNote" aria-hidden="true">&nbsp;</p>
             <ol class="lp2-wire-acts">
-                <li data-act="0"><strong>Discover</strong> <code>server/discover</code> names every version SAJHA speaks.</li>
-                <li data-act="1"><strong>Stream</strong> <code>tools/call</code> with a <code>progressToken</code>: progress, then the result, over SSE.</li>
-                <li data-act="2"><strong>Ask first</strong> <code>input_required</code> carries an elicitation; the retry brings the answer.</li>
+                <li data-act="0">{% trans %}<strong>Discover</strong> <code>server/discover</code> names every version SAJHA speaks.{% endtrans %}</li>
+                <li data-act="1">{% trans %}<strong>Stream</strong> <code>tools/call</code> with a <code>progressToken</code>: progress, then the result, over SSE.{% endtrans %}</li>
+                <li data-act="2">{% trans %}<strong>Ask first</strong> <code>input_required</code> carries an elicitation; the retry brings the answer.{% endtrans %}</li>
             </ol>
         </div>
     </div>
@@ -235,11 +236,11 @@ the SAJHA Net ring beside it by static/js/netring.js).
 
 <!-- CTA -->
 <section class="lp2-cta">
-    <h2>Ready to connect your agents?</h2>
-    <p>{{ tool_count }} tools waiting. Zero setup required. Start in 30 seconds.</p>
+    <h2>{{ _('Ready to connect your agents?') }}</h2>
+    <p>{% trans tool_count=tool_count %}{{ tool_count }} tools waiting. Zero setup required. Start in 30 seconds.{% endtrans %}</p>
     <div class="lp2-actions">
-        <a href="/login" class="lp2-btn lp2-btn-light"><i class="bi bi-rocket-takeoff" aria-hidden="true"></i> Sign In to SAJHA</a>
-        <a href="/docs" class="lp2-btn lp2-btn-ghost">Documentation</a>
+        <a href="/login" class="lp2-btn lp2-btn-light"><i class="bi bi-rocket-takeoff" aria-hidden="true"></i> {{ _('Sign In to SAJHA') }}</a>
+        <a href="/docs" class="lp2-btn lp2-btn-ghost">{{ _('Documentation') }}</a>
     </div>
 </section>
 
@@ -247,11 +248,11 @@ the SAJHA Net ring beside it by static/js/netring.js).
 
 <!-- Footer -->
 <footer class="sajha-foot">
-    <p class="mb-1">{{ app_name }} · Version {{ app_version }} · © {{ app_copyright_years }} {{ app_author }} ({{ app_author_email }}). All rights reserved. Proprietary software.</p>
+    <p class="mb-1">{% trans app_name=app_name, app_version=app_version, app_copyright_years=app_copyright_years, app_author=app_author, app_author_email=app_author_email %}{{ app_name }} · Version {{ app_version }} · © {{ app_copyright_years }} {{ app_author }} ({{ app_author_email }}). All rights reserved. Proprietary software.{% endtrans %}</p>
     <p class="mb-0 sajha-foot-links">
-        <a href="/help"><i class="bi bi-question-circle me-1" aria-hidden="true"></i>Help</a>
-        <a href="/about"><i class="bi bi-info-circle me-1" aria-hidden="true"></i>About</a>
-        <a href="/docs"><i class="bi bi-book me-1" aria-hidden="true"></i>Docs</a>
+        <a href="/help"><i class="bi bi-question-circle me-1" aria-hidden="true"></i>{{ _('Help') }}</a>
+        <a href="/about"><i class="bi bi-info-circle me-1" aria-hidden="true"></i>{{ _('About') }}</a>
+        <a href="/docs"><i class="bi bi-book me-1" aria-hidden="true"></i>{{ _('Docs') }}</a>
         <a href="{{ app_github_repo }}"><i class="bi bi-github me-1" aria-hidden="true"></i>GitHub</a>
     </p>
 </footer>

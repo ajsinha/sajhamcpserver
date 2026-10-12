@@ -1,6 +1,6 @@
 {% extends "common/base.html" %}
 {# Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.com #}
-{% block title %}Dashboard - SAJHA MCP Server{% endblock %}
+{% block title %}{{ _('Dashboard') }} - SAJHA MCP Server{% endblock %}
 {% block extra_css %}
 <style>
 .metric-card{background:var(--sajha-surface);border:1px solid var(--sajha-border);border-radius:var(--radius-lg);padding:1.5rem;transition:all var(--ease);box-shadow:var(--shadow-sm)}
@@ -27,14 +27,14 @@
         <div class="card-body py-3">
             <div class="d-flex justify-content-between align-items-start">
                 <div>
-                    <h5 class="mb-2"><i class="bi bi-rocket-takeoff me-2"></i>Get Started with SAJHA</h5>
+                    <h5 class="mb-2"><i class="bi bi-rocket-takeoff me-2"></i>{{ _('Get Started with SAJHA') }}</h5>
                     <div class="d-flex flex-wrap gap-3">
-                        <a href="/tools" class="text-decoration-none" id="ob1"><span class="badge bg-primary rounded-pill me-1">1</span> Browse {{ tools_count }} tools</a>
-                        {% if is_admin or can_studio %}<a href="/studio" class="text-decoration-none" id="ob2"><span class="badge bg-success rounded-pill me-1">2</span> Create your first tool</a>{% endif %}
-                        <a href="/ai/settings" class="text-decoration-none" id="ob3"><span class="badge bg-info rounded-pill me-1">3</span> Connect an LLM provider</a>
+                        <a href="/tools" class="text-decoration-none" id="ob1"><span class="badge bg-primary rounded-pill me-1">1</span> {{ _('Browse %(n)s tools', n=tools_count) }}</a>
+                        {% if is_admin or can_studio %}<a href="/studio" class="text-decoration-none" id="ob2"><span class="badge bg-success rounded-pill me-1">2</span> {{ _('Create your first tool') }}</a>{% endif %}
+                        <a href="/ai/settings" class="text-decoration-none" id="ob3"><span class="badge bg-info rounded-pill me-1">3</span> {{ _('Connect an LLM provider') }}</a>
                     </div>
                 </div>
-                <button class="btn btn-sm btn-outline-secondary" data-onclick="dismissOnboarding()" title="Dismiss" aria-label="Dismiss"><i class="bi bi-x-lg"></i></button>
+                <button class="btn btn-sm btn-outline-secondary" data-onclick="dismissOnboarding()" title="{{ _('Dismiss') }}" aria-label="{{ _('Dismiss') }}"><i class="bi bi-x-lg"></i></button>
             </div>
         </div>
     </div>
@@ -45,8 +45,8 @@
     <!-- Welcome Bar -->
     <div class="welcome-bar">
         <div>
-            <h2>Welcome back, {{ user.user_name }}</h2>
-            <p>Role: {{ user.roles|join(', ') }} · SAJHA MCP Server v{{ app_version }}</p>
+            <h2>{{ _('Welcome back, %(name)s', name=user.user_name) }}</h2>
+            <p>{{ _('Role: %(roles)s', roles=user.roles|join(', ')) }} · SAJHA MCP Server v{{ app_version }}</p>
         </div>
         <div class="d-flex gap-2">
             <span class="transport-badge"><i class="bi bi-circle-fill" style="font-size:6px;color:var(--sajha-ok)"></i> HTTP</span>
@@ -63,28 +63,28 @@
             <div class="metric-card">
                 <div class="metric-icon" style="background:var(--sajha-crimson-tint);color: var(--t-accent-text)"><i class="bi bi-tools"></i></div>
                 <div class="metric-value" style="color: var(--t-accent-text)">{{ tools_count }}</div>
-                <div class="metric-label">Active Tools</div>
+                <div class="metric-label">{{ _('Active Tools') }}</div>
             </div>
         </div>
         <div class="col-6 col-lg-3">
             <div class="metric-card">
                 <div class="metric-icon" style="background:color-mix(in srgb, var(--sajha-ok) 12%, transparent);color:var(--sajha-ok)"><i class="bi bi-people"></i></div>
                 <div class="metric-value" style="color:var(--sajha-ok)">{{ users_count }}</div>
-                <div class="metric-label">Users</div>
+                <div class="metric-label">{{ _('Users') }}</div>
             </div>
         </div>
         <div class="col-6 col-lg-3">
             <div class="metric-card">
                 <div class="metric-icon" style="background:color-mix(in srgb, var(--sajha-indigo) 12%, transparent);color:var(--sajha-indigo)"><i class="bi bi-chat-square-text"></i></div>
                 <div class="metric-value" style="color:var(--sajha-indigo)">{{ prompts_count }}</div>
-                <div class="metric-label">Prompts</div>
+                <div class="metric-label">{{ _('Prompts') }}</div>
             </div>
         </div>
         <div class="col-6 col-lg-3">
             <div class="metric-card">
                 <div class="metric-icon" style="background:color-mix(in srgb, var(--sajha-bad) 12%, transparent);color:var(--sajha-bad)"><i class="bi bi-exclamation-triangle"></i></div>
                 <div class="metric-value" style="color:var(--sajha-bad)">{{ tool_errors|length }}</div>
-                <div class="metric-label">Tool Errors</div>
+                <div class="metric-label">{{ _('Tool Errors') }}</div>
             </div>
         </div>
     </div>
@@ -93,31 +93,31 @@
     <div class="row g-3 mb-4" id="opsMetrics">
         <div class="col-md-3">
             <div class="metric-card">
-                <div class="d-flex justify-content-between"><small class="text-muted">CACHE</small><i class="bi bi-database" style="color:var(--sajha-indigo)"></i></div>
+                <div class="d-flex justify-content-between"><small class="text-muted">{{ _('CACHE') }}</small><i class="bi bi-database" style="color:var(--sajha-indigo)"></i></div>
                 <div class="h3 mb-0" id="cacheHitRate">—%</div>
-                <small class="text-muted" id="cacheDetail">— hits / — misses</small>
+                <small class="text-muted" id="cacheDetail">{{ _('— hits / — misses') }}</small>
                 <div class="usage-bar mt-2" style="height:4px;background:var(--sajha-crimson-tint);border-radius:2px"><div id="cacheBar" style="width:0%;height:100%;background:var(--sajha-indigo);border-radius:2px"></div></div>
             </div>
         </div>
         <div class="col-md-3">
             <div class="metric-card">
-                <div class="d-flex justify-content-between"><small class="text-muted">PROVIDERS</small><i class="bi bi-cloud-check" style="color:var(--sajha-ok)"></i></div>
+                <div class="d-flex justify-content-between"><small class="text-muted">{{ _('PROVIDERS') }}</small><i class="bi bi-cloud-check" style="color:var(--sajha-ok)"></i></div>
                 <div class="h3 mb-0" id="providerSummary">—</div>
-                <small class="text-muted" id="providerDetail">— healthy · — degraded · — down</small>
+                <small class="text-muted" id="providerDetail">{{ _('— healthy · — degraded · — down') }}</small>
             </div>
         </div>
         <div class="col-md-3">
             <div class="metric-card">
-                <div class="d-flex justify-content-between"><small class="text-muted">RECENT RUNS</small><i class="bi bi-play-circle" style="color:var(--sajha-warn)"></i></div>
+                <div class="d-flex justify-content-between"><small class="text-muted">{{ _('RECENT RUNS') }}</small><i class="bi bi-play-circle" style="color:var(--sajha-warn)"></i></div>
                 <div class="h3 mb-0" id="replayCount">—</div>
-                <small class="text-muted" id="replayDetail">last 5 min</small>
+                <small class="text-muted" id="replayDetail">{{ _('last 5 min') }}</small>
             </div>
         </div>
         <div class="col-md-3">
             <div class="metric-card">
-                <div class="d-flex justify-content-between"><small class="text-muted">AUDIT</small><i class="bi bi-shield-check" style="color:var(--sajha-ok)"></i></div>
+                <div class="d-flex justify-content-between"><small class="text-muted">{{ _('AUDIT') }}</small><i class="bi bi-shield-check" style="color:var(--sajha-ok)"></i></div>
                 <div class="h3 mb-0" id="auditCount">—</div>
-                <small class="text-muted" id="auditDetail">security events today</small>
+                <small class="text-muted" id="auditDetail">{{ _('security events today') }}</small>
             </div>
         </div>
     </div>
@@ -126,18 +126,18 @@
         <!-- Quick Actions -->
         <div class="col-lg-4">
             <div class="card h-100">
-                <div class="card-header card-header-primary"><i class="bi bi-lightning me-2"></i>Quick Actions</div>
+                <div class="card-header card-header-primary"><i class="bi bi-lightning me-2"></i>{{ _('Quick Actions') }}</div>
                 <div class="card-body d-flex flex-column gap-2">
-                    <a href="{{ url_for('ask_page') }}" class="quick-action"><i class="bi bi-stars" style="color: var(--t-accent-text)" aria-hidden="true"></i><div><strong>Ask SAJHA</strong><br><small class="text-muted">Ask a question; SAJHA runs the tools</small></div></a>
-                    {% if playground_enabled is defined and playground_enabled() %}<a href="{{ url_for('playground_page') }}" class="quick-action"><i class="bi bi-filetype-py" style="color:var(--sajha-indigo)" aria-hidden="true"></i><div><strong>Python Playground</strong><br><small class="text-muted">Python in your browser, with your tools</small></div></a>{% endif %}
-                    <a href="/tools" class="quick-action"><svg class="sajha-icon" style="color: var(--t-accent-text)"><use href="#icon-tool"/></svg><div><strong>Browse Tools</strong><br><small class="text-muted">Search and test {{ tools_count }} tools</small></div></a>
-                    {% if is_admin or can_studio %}<a href="/studio" class="quick-action"><svg class="sajha-icon" style="color:var(--sajha-indigo)"><use href="#icon-mcp"/></svg><div><strong>MCP Studio</strong><br><small class="text-muted">Create new tools visually</small></div></a>{% endif %}
-                    <a href="/composite/builder" class="quick-action"><svg class="sajha-icon" style="color:var(--sajha-warn)"><use href="#icon-composite"/></svg><div><strong>Composite Builder</strong><br><small class="text-muted">Chain tools together</small></div></a>
-                    <a href="/ai/settings" class="quick-action"><svg class="sajha-icon" style="color:var(--sajha-indigo)"><use href="#icon-provider"/></svg><div><strong>AI Settings</strong><br><small class="text-muted">LLM providers and models</small></div></a>
-                    <a href="/reports/library" class="quick-action"><i class="bi bi-file-earmark-bar-graph text-success"></i><div><strong>Reports</strong><br><small class="text-muted">Run reports and download their files</small></div></a>
-                    <a href="/reports" class="quick-action"><i class="bi bi-bar-chart text-success"></i><div><strong>Usage</strong><br><small class="text-muted">Tool calls by tool and user</small></div></a>
+                    <a href="{{ url_for('ask_page') }}" class="quick-action"><i class="bi bi-stars" style="color: var(--t-accent-text)" aria-hidden="true"></i><div><strong>Ask SAJHA</strong><br><small class="text-muted">{{ _('Ask a question; SAJHA runs the tools') }}</small></div></a>
+                    {% if playground_enabled is defined and playground_enabled() %}<a href="{{ url_for('playground_page') }}" class="quick-action"><i class="bi bi-filetype-py" style="color:var(--sajha-indigo)" aria-hidden="true"></i><div><strong>Python Playground</strong><br><small class="text-muted">{{ _('Python in your browser, with your tools') }}</small></div></a>{% endif %}
+                    <a href="/tools" class="quick-action"><svg class="sajha-icon" style="color: var(--t-accent-text)"><use href="#icon-tool"/></svg><div><strong>{{ _('Browse Tools') }}</strong><br><small class="text-muted">{{ _('Search and test %(n)s tools', n=tools_count) }}</small></div></a>
+                    {% if is_admin or can_studio %}<a href="/studio" class="quick-action"><svg class="sajha-icon" style="color:var(--sajha-indigo)"><use href="#icon-mcp"/></svg><div><strong>MCP Studio</strong><br><small class="text-muted">{{ _('Create new tools visually') }}</small></div></a>{% endif %}
+                    <a href="/composite/builder" class="quick-action"><svg class="sajha-icon" style="color:var(--sajha-warn)"><use href="#icon-composite"/></svg><div><strong>{{ _('Composite Builder') }}</strong><br><small class="text-muted">{{ _('Chain tools together') }}</small></div></a>
+                    <a href="/ai/settings" class="quick-action"><svg class="sajha-icon" style="color:var(--sajha-indigo)"><use href="#icon-provider"/></svg><div><strong>{{ _('AI Settings') }}</strong><br><small class="text-muted">{{ _('LLM providers and models') }}</small></div></a>
+                    <a href="/reports/library" class="quick-action"><i class="bi bi-file-earmark-bar-graph text-success"></i><div><strong>{{ _('Reports') }}</strong><br><small class="text-muted">{{ _('Run reports and download their files') }}</small></div></a>
+                    <a href="/reports" class="quick-action"><i class="bi bi-bar-chart text-success"></i><div><strong>{{ _('Usage') }}</strong><br><small class="text-muted">{{ _('Tool calls by tool and user') }}</small></div></a>
                     {% if is_admin %}
-                    <a href="/admin/users" class="quick-action"><i class="bi bi-shield-lock text-danger"></i><div><strong>Admin Panel</strong><br><small class="text-muted">Users, roles, API keys</small></div></a>
+                    <a href="/admin/users" class="quick-action"><i class="bi bi-shield-lock text-danger"></i><div><strong>{{ _('Admin Panel') }}</strong><br><small class="text-muted">{{ _('Users, roles, API keys') }}</small></div></a>
                     {% endif %}
                 </div>
             </div>
@@ -146,39 +146,39 @@
         <!-- Platform Overview -->
         <div class="col-lg-4">
             <div class="card h-100">
-                <div class="card-header card-header-success"><i class="bi bi-diagram-3 me-2"></i>Platform</div>
+                <div class="card-header card-header-success"><i class="bi bi-diagram-3 me-2"></i>{{ _('Platform') }}</div>
                 <div class="card-body">
                     <div class="d-flex flex-column gap-3">
                         <div class="d-flex justify-content-between align-items-center">
-                            <span class="text-muted"><i class="bi bi-database me-2"></i>Database Tables</span>
+                            <span class="text-muted"><i class="bi bi-database me-2"></i>{{ _('Database Tables') }}</span>
                             <span class="badge bg-primary">19</span>
                         </div>
                         <div class="d-flex justify-content-between align-items-center">
-                            <span class="text-muted"><i class="bi bi-code-slash me-2"></i>API Endpoints</span>
+                            <span class="text-muted"><i class="bi bi-code-slash me-2"></i>{{ _('API Endpoints') }}</span>
                             <span class="badge bg-success">79+</span>
                         </div>
                         <div class="d-flex justify-content-between align-items-center">
-                            <span class="text-muted"><i class="bi bi-arrows-expand me-2"></i>Transports</span>
+                            <span class="text-muted"><i class="bi bi-arrows-expand me-2"></i>{{ _('Transports') }}</span>
                             <span class="badge bg-info">3</span>
                         </div>
                         <div class="d-flex justify-content-between align-items-center">
-                            <span class="text-muted"><i class="bi bi-cpu me-2"></i>LLM Providers</span>
+                            <span class="text-muted"><i class="bi bi-cpu me-2"></i>{{ _('LLM Providers') }}</span>
                             <span class="badge bg-warning text-dark">6</span>
                         </div>
                         <div class="d-flex justify-content-between align-items-center">
-                            <span class="text-muted"><i class="bi bi-shield me-2"></i>Auth Methods</span>
+                            <span class="text-muted"><i class="bi bi-shield me-2"></i>{{ _('Auth Methods') }}</span>
                             <span class="badge bg-danger">4</span>
                         </div>
                         <div class="d-flex justify-content-between align-items-center">
-                            <span class="text-muted"><i class="bi bi-puzzle me-2"></i>MCP Methods</span>
+                            <span class="text-muted"><i class="bi bi-puzzle me-2"></i>{{ _('MCP Methods') }}</span>
                             <span class="badge bg-secondary">12</span>
                         </div>
                     </div>
                     <hr>
                     <div class="small text-muted">
-                        <i class="bi bi-heart-pulse text-success me-1"></i> <a href="/health" class="text-decoration-none">Health</a> ·
-                        <a href="/ready" class="text-decoration-none">Readiness</a> ·
-                        <a href="/api/docs" class="text-decoration-none">API Docs</a>
+                        <i class="bi bi-heart-pulse text-success me-1"></i> <a href="/health" class="text-decoration-none">{{ _('Health') }}</a> ·
+                        <a href="/ready" class="text-decoration-none">{{ _('Readiness') }}</a> ·
+                        <a href="/api/docs" class="text-decoration-none">{{ _('API Docs') }}</a>
                     </div>
                 </div>
             </div>
@@ -187,10 +187,10 @@
         <!-- Tool Errors & Activity -->
         <div class="col-lg-4">
             <div class="card h-100">
-                <div class="card-header card-header-primary"><i class="bi bi-activity me-2"></i>Status</div>
+                <div class="card-header card-header-primary"><i class="bi bi-activity me-2"></i>{{ _('Status') }}</div>
                 <div class="card-body">
                     {% if tool_errors %}
-                    <h6 class="text-danger mb-2"><i class="bi bi-exclamation-triangle me-1"></i>Tool Load Failures</h6>
+                    <h6 class="text-danger mb-2"><i class="bi bi-exclamation-triangle me-1"></i>{{ _('Tool Load Failures') }}</h6>
                     <div style="max-height:200px;overflow-y:auto">
                         {% for name, error in tool_errors.items() %}
                         <div class="activity-item">
@@ -202,17 +202,17 @@
                     {% else %}
                     <div class="text-center py-4">
                         <i class="bi bi-check-circle text-success" style="font-size:2.5rem"></i>
-                        <p class="mt-2 mb-0 text-muted">All tools loaded successfully</p>
+                        <p class="mt-2 mb-0 text-muted">{{ _('All tools loaded successfully') }}</p>
                     </div>
                     {% endif %}
                     <hr>
-                    <h6 class="text-muted mb-2"><i class="bi bi-clock-history me-1"></i>Quick Links</h6>
+                    <h6 class="text-muted mb-2"><i class="bi bi-clock-history me-1"></i>{{ _('Quick Links') }}</h6>
                     <div class="d-flex flex-wrap gap-2">
-                        <a href="/reports/library" class="badge bg-primary text-decoration-none py-2 px-3">Reports</a>
-                        <a href="/reports" class="badge bg-primary text-decoration-none py-2 px-3">Usage</a>
-                        <a href="/prompts" class="badge bg-info text-decoration-none py-2 px-3">Prompts</a>
-                        <a href="/help" class="badge bg-warning text-dark text-decoration-none py-2 px-3">Help</a>
-                        <a href="/about" class="badge bg-secondary text-decoration-none py-2 px-3">About</a>
+                        <a href="/reports/library" class="badge bg-primary text-decoration-none py-2 px-3">{{ _('Reports') }}</a>
+                        <a href="/reports" class="badge bg-primary text-decoration-none py-2 px-3">{{ _('Usage') }}</a>
+                        <a href="/prompts" class="badge bg-info text-decoration-none py-2 px-3">{{ _('Prompts') }}</a>
+                        <a href="/help" class="badge bg-warning text-dark text-decoration-none py-2 px-3">{{ _('Help') }}</a>
+                        <a href="/about" class="badge bg-secondary text-decoration-none py-2 px-3">{{ _('About') }}</a>
                     </div>
                 </div>
             </div>
@@ -223,18 +223,18 @@
 function loadOpsMetrics() {
     fetch('/api/cache/stats',{credentials:'same-origin'}).then(function(r){return r.json()}).then(function(d){
         document.getElementById('cacheHitRate').textContent=(d.hit_rate||0)+'%';
-        document.getElementById('cacheDetail').textContent=(d.hits||0)+' hits / '+(d.misses||0)+' misses ('+(d.size||0)+' cached)';
+        document.getElementById('cacheDetail').textContent=(d.hits||0)+_t(' hits / ')+(d.misses||0)+_t(' misses (')+(d.size||0)+_t(' cached)');
         document.getElementById('cacheBar').style.width=(d.hit_rate||0)+'%';
     }).catch(function(){});
     fetch('/api/providers/health',{credentials:'same-origin'}).then(function(r){return r.json()}).then(function(d){
         var p=d.providers||[],h=0,dg=0,dn=0;
         p.forEach(function(x){if(x.status==='healthy')h++;else if(x.status==='degraded')dg++;else dn++;});
         document.getElementById('providerSummary').textContent=h+'/'+p.length+' healthy';
-        document.getElementById('providerDetail').textContent=h+' healthy · '+dg+' degraded · '+dn+' down';
+        document.getElementById('providerDetail').textContent=h+_t(' healthy · ')+dg+_t(' degraded · ')+dn+' down';
     }).catch(function(){});
     fetch('/api/replay/stats',{credentials:'same-origin'}).then(function(r){return r.json()}).then(function(d){
         document.getElementById('replayCount').textContent=d.total_recorded||0;
-        document.getElementById('replayDetail').textContent=(d.tools_tracked||0)+' tools tracked';
+        document.getElementById('replayDetail').textContent=(d.tools_tracked||0)+_t(' tools tracked');
     }).catch(function(){});
 }
 loadOpsMetrics();

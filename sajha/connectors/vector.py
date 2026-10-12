@@ -2,13 +2,15 @@
 SAJHA MCP Server — Data Connectors: vector databases and search engines.
 Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.com
 
-Three adapters, none needing an extra Python package:
+Five adapters, none needing an extra Python package:
 
 * ``pgvector``: a PostgreSQL table with a ``vector`` column, searched with a parameterised
   ``ORDER BY <col> <=> $vector LIMIT k`` on the connection's read-only session;
 * ``qdrant``: the Qdrant REST API (collections, collection info, point search);
 * ``elasticsearch`` / ``opensearch``: the REST API (``_cat/indices``, ``_mapping``, ``_search``),
-  full-text ``simple_query_string``, plus k-NN when ``vector.vector_field`` is set.
+  full-text ``simple_query_string``, plus k-NN when ``vector.vector_field`` is set;
+* ``weaviate``: REST and GraphQL (vector_weaviate.py): ``nearVector``, or ``bm25`` keyword search;
+* ``chroma``: the HTTP API, v2 or v1 (vector_chroma.py).
 
 The caller sends a query text (embedded through the intelligence layer's LLM factory) or a
 vector, ``top_k`` and equality ``filters`` on metadata; SAJHA writes the request, so no query
@@ -52,6 +54,10 @@ class VectorAdapter:
 
     def version(self, conn: Connection) -> str:
         return ''
+
+    def needs_vector(self, conn: Connection) -> bool:
+        """True when a search needs a vector (the query text is embedded when none is given)."""
+        return False
 
 
 # ── HTTP ────────────────────────────────────────────────────────────────
@@ -116,6 +122,9 @@ class QdrantAdapter(VectorAdapter):
         return _HTTP(conn, {'api-key': key, 'Content-Type': 'application/json'} if key else
                      {'Content-Type': 'application/json'}, used=[key])
 
+    def needs_vector(self, conn):
+        return True
+
     def version(self, conn):
         data = self._http(conn).call('GET', '/')
         return f"Qdrant {data.get('version', '')}".strip()
@@ -160,6 +169,9 @@ class ElasticAdapter(VectorAdapter):
         pw = _secret(conn, 'password')
         auth = (str(conn.options.get('user') or ''), pw) if pw else None
         return _HTTP(conn, {'Content-Type': 'application/json'}, auth=auth, used=[pw])
+
+    def needs_vector(self, conn):
+        return bool(conn.vector.get('vector_field'))
 
     def version(self, conn):
         data = self._http(conn).call('GET', '/')
@@ -211,6 +223,14 @@ class ElasticAdapter(VectorAdapter):
 
 ADAPTERS: Dict[str, VectorAdapter] = {'qdrant': QdrantAdapter(), 'elasticsearch': ElasticAdapter(),
                                       'opensearch': ElasticAdapter()}
+
+
+def needs_vector(conn: Connection) -> bool:
+    """Whether a search of ``conn`` is by nearest neighbour (pgvector, or the adapter says so)."""
+    if conn.kind == 'pgvector':
+        return True
+    adapter = ADAPTERS.get(conn.kind)
+    return bool(adapter and adapter.needs_vector(conn))
 
 
 # ── shared ──────────────────────────────────────────────────────────────
@@ -333,8 +353,7 @@ def search(conn: Connection, args: Dict[str, Any], tool: str = '') -> Dict[str, 
         for k in filters:
             if conn.mask_rules_for(k, [('', n)]) is not None:
                 raise ConnectorError(f'field {k} is masked and cannot be a filter')
-        needs_vector = conn.kind == 'qdrant' or bool(conn.vector.get('vector_field'))
-        if vector is None and needs_vector:
+        if vector is None and ADAPTERS[conn.kind].needs_vector(conn):
             vector = _embed(conn, text)
         hits = ADAPTERS[conn.kind].search(conn, n, text, vector, top_k, filters)
         hits = _masked_hits(conn, hits[:top_k], n)
@@ -427,3 +446,13 @@ def test(conn: Connection) -> Dict[str, Any]:
     items = _allowed(conn, refresh=True)
     return {'success': True, 'connection': conn.id, 'kind': conn.kind, 'server_version': version,
             'tables': len(items), 'truncated': False, 'ms': int((time.perf_counter() - t0) * 1000)}
+
+
+def _register_more() -> None:
+    """Weaviate and Chroma live in modules of their own (they import this one)."""
+    from sajha.connectors.vector_chroma import ChromaAdapter
+    from sajha.connectors.vector_weaviate import WeaviateAdapter
+    ADAPTERS.update(weaviate=WeaviateAdapter(), chroma=ChromaAdapter())
+
+
+_register_more()

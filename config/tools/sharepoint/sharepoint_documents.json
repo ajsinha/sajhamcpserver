@@ -1,6 +1,6 @@
 {
     "name": "sharepoint_documents",
-    "description": "Files in the configured SharePoint site's default document library, via Microsoft Graph.\nReturns a per-operation object with success, or {success: false, error}.\nInputs (* required): operation* (e.g. list_files). list_files: folder_path, recursive. get_file, download (return_content: base64), get_metadata, get_versions, check_out: file_url. upload: file_name, content_base64 (up to 4 MB), folder_path, overwrite. search: query, folder_path, file_types, max_results. update_metadata: file_url, metadata. check_in: file_url, comment, publish. delete: file_url, recycle (default true). move, copy: source_url, destination_url, overwrite. Paths are library-relative (/Project/a.docx) or server-relative.\nSite search: sharepoint_search.\nExample: {\"operation\": \"list_files\", \"folder_path\": \"/Reports\"}",
+    "description": "Files in the configured SharePoint site's default document library, via Microsoft Graph.\nReturns a per-operation object with success, or {success: false, error}.\nInputs (* required): operation* (e.g. list_files). list_files: folder_path, recursive. get_file, download (return_content: base64), get_metadata, get_versions, check_out: file_url. upload: file_name, content_base64 or source_path, folder_path, overwrite (over 4 MB: a resumable upload session; resume_upload_url continues one). search: query, folder_path, file_types, max_results. update_metadata: file_url, metadata. check_in: file_url, comment, publish. delete: file_url, recycle (default true). move, copy: source_url, destination_url, overwrite. Paths are library-relative (/Project/a.docx) or server-relative.\nSite search: sharepoint_search.\nExample: {\"operation\": \"list_files\", \"folder_path\": \"/Reports\"}",
     "category": "Document Management",
     "version": "2.9.8",
     "enabled": true,
@@ -49,7 +49,15 @@
             },
             "content_base64": {
                 "type": "string",
-                "description": "Base64-encoded file content for upload"
+                "description": "Base64-encoded file content for upload (up to the tool's max_upload_bytes, 100 MB by default)"
+            },
+            "source_path": {
+                "type": "string",
+                "description": "upload: a file in the storage backend under one of the tool config's upload_roots, instead of content_base64"
+            },
+            "resume_upload_url": {
+                "type": "string",
+                "description": "upload: the upload_url an interrupted upload returned; send the same content and only the missing ranges are uploaded"
             },
             "query": {
                 "type": "string",

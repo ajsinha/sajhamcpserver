@@ -3,7 +3,7 @@
 Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.com
 SAJHA MCP Server — OAuth consent (built-in authorization server for MCP clients)
 -->
-{% block title %}Authorize access - SAJHA MCP Server{% endblock %}
+{% block title %}{{ _('Authorize access - SAJHA MCP Server') }}{% endblock %}
 
 {% block content %}
 <div class="container">
@@ -12,7 +12,7 @@ SAJHA MCP Server — OAuth consent (built-in authorization server for MCP client
       {% if fatal_error %}
       <div class="card border-danger mt-4">
         <div class="card-header card-header-danger">
-          <h1 class="h5 mb-0"><i class="bi bi-exclamation-triangle-fill"></i> Authorization failed</h1>
+          <h1 class="h5 mb-0"><i class="bi bi-exclamation-triangle-fill"></i> {{ _('Authorization failed') }}</h1>
         </div>
         <div class="card-body">
           <p class="mb-0">{{ fatal_error }}</p>
@@ -21,14 +21,14 @@ SAJHA MCP Server — OAuth consent (built-in authorization server for MCP client
       {% else %}
       <div class="card mt-4">
         <div class="card-body">
-          <h1 class="h5">Authorize <strong>{{ client_name }}</strong></h1>
+          <h1 class="h5">{% trans client_name=client_name %}Authorize <strong>{{ client_name }}</strong>{% endtrans %}</h1>
           {% if client_host %}
-          <p class="text-muted small mb-2">Client identity published by <strong>{{ client_host }}</strong></p>
+          <p class="text-muted small mb-2">{% trans client_host=client_host %}Client identity published by <strong>{{ client_host }}</strong>{% endtrans %}</p>
           {% endif %}
-          <p class="small mb-3">After you approve, you will be sent to <code>{{ redirect_host }}</code>.
-            Only continue if you started this sign-in from that application.</p>
+          <p class="small mb-3">{% trans redirect_host=redirect_host %}After you approve, you will be sent to <code>{{ redirect_host }}</code>.
+            Only continue if you started this sign-in from that application.{% endtrans %}</p>
 
-          <p class="mb-1">It is asking to:</p>
+          <p class="mb-1">{{ _('It is asking to:') }}</p>
           <ul class="mb-3">
             {% for scope, text in scopes %}
             <li>{{ text }} <span class="text-muted small">({{ scope }})</span></li>
@@ -41,22 +41,22 @@ SAJHA MCP Server — OAuth consent (built-in authorization server for MCP client
             <input type="hidden" name="req_id" value="{{ req_id }}">
             <input type="hidden" name="csrf" value="{{ csrf }}">
             {% if user_name %}
-            <p class="mb-3">Signed in as <strong>{{ user_name }}</strong>.</p>
+            <p class="mb-3">{% trans user_name=user_name %}Signed in as <strong>{{ user_name }}</strong>.{% endtrans %}</p>
             {% else %}
             <div class="mb-2">
-              <label class="form-label" for="oauth-user">User ID</label>
+              <label class="form-label" for="oauth-user">{{ _('User ID') }}</label>
               <input class="form-control" id="oauth-user" name="user_id" autocomplete="username" required>
             </div>
             <div class="mb-3">
-              <label class="form-label" for="oauth-pass">Password</label>
+              <label class="form-label" for="oauth-pass">{{ _('Password') }}</label>
               <input class="form-control" id="oauth-pass" type="password" name="password"
                      autocomplete="current-password" required>
             </div>
             {% endif %}
             <div class="d-flex gap-2">
-              <button type="submit" name="decision" value="approve" class="btn btn-primary">Approve</button>
+              <button type="submit" name="decision" value="approve" class="btn btn-primary">{{ _('Approve') }}</button>
               <button type="submit" name="decision" value="deny" class="btn btn-outline-secondary"
-                      formnovalidate>Deny</button>
+                      formnovalidate>{{ _('Deny') }}</button>
             </div>
           </form>
         </div>

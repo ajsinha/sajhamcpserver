@@ -651,7 +651,8 @@ rule matches.
   produce a label outside the list (LLM Tools 9.13).
 - **Built-in instruction:** "Classify the user's question into exactly one of the labels.
   Reply with JSON." plus, with `menu: planners`, the menu lines `name: use_when`.
-- **Reads:** `question`, `from`. **Writes:** `chosen`, `choice` (`by: rule | model | default`);
+- **Reads:** `question`, `from`. **Writes:** `chosen`, `choice` (`by: rule | model | default`, and with
+  `menu: planners` also `learned | bandit | explore`, section 6.6.2);
   `into` receives the label.
 - **Outcomes:** the chosen label. With `from` (labels unknown at load) a `*` transition is
   required (P062).
@@ -666,6 +667,44 @@ latest recorded eval run of that set with a candidate planner passed fewer than
 (`PlannerRegistry.eval_filter`; the result is cached per tool for a minute). With no eval history
 every candidate stays. A role-limited candidate the caller may not run is dropped too. If filtering
 empties the list, `default` is used without a model call.
+
+#### 6.6.2 Learning from results for `menu: planners`
+
+After the filters of section 6.6.1 and the stage's own `rules`, and only when at least two
+candidates remain, the stage asks the learner (`sajha/ai/planners_engine/learning.py`; design:
+[LLM Tools](LLM%20Tools.md#913-automatic-planner-selection) §9.13). The learner proceeds in order:
+
+1. **The online bandit**, when `ai.planners.learning.bandit` is on for the tool and its kill switch
+   is clear: `by: explore` (a sampled arm, within the exploration cap) or `by: bandit` (the best
+   arm with enough outcomes).
+2. **The approved routing rules**: the first candidate in the active version's order for the tool
+   and the question's class, else for the tool's `*` class (`by: learned`).
+3. **Otherwise the model** labels the question as before.
+
+The choice carries `confidence: 1.0` and the reason. The planner stage that runs it reports the same
+`by` in `planner_chosen` and `sajha_planner_chosen_total`. The run's first menu choice, and its
+outcome, become `planner_choice` in the run's audit record.
+
+Files under `ai.planners.learning.dir` (default `data/planner_routing`):
+
+| File | Holds |
+|---|---|
+| `proposals/<id>.json` | `id`, `status` (`proposed`, `approved` with its `version`, `rejected`), `created_at`, `created_by`, `source` (`cli`, `console`, `tool`), `settings` used, `evidence` counts, `rules`, `hash` (SHA-256 of the canonical rules JSON), `diff` against the active rules |
+| `versions/<n>.json` | an approved version: `version`, `rules`, `hash`, `proposal`, `approved_by`, `approved_at`, `note`; written once, never changed |
+| `active.json` | `version` in effect (`0`: none) and `history` (approve, rollback, off: who, when, why) |
+
+`rules` is `{tool: {class or "*": {"order": [planner, ...], "scores": {planner: {n, quality, cost_usd,
+latency_ms, score, eval, runs, ranked}}}}}`. The active rules are re-read when `active.json` changes
+(checked every `reload_interval_s`). The keys are in the
+[Configuration Reference](../getting-started/Configuration%20Reference.md) under
+`ai.planners.learning.*`.
+
+```
+python -m sajha.ai.planners_engine.learn [--dry-run] [--json] [--by NAME]   # rank and propose
+python -m sajha.ai.planners_engine.learn status [--json]
+python -m sajha.ai.planners_engine.learn rollback N                         # 0: no rules
+python -m sajha.ai.planners_engine.learn bandit stop|resume|reset
+```
 
 ### 6.7 `draft`
 

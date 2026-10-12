@@ -20,7 +20,7 @@
   function pill(s) { return '<span class="wf-pill s-' + esc(s) + '">' + esc(s) + '</span>'; }
   function alertMsg(kind, text) {
     $('wfAlert').innerHTML = text ? '<div class="alert alert-' + kind + ' alert-dismissible" role="alert">' + esc(text) +
-      '<button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button></div>' : '';
+      '<button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="' + esc(_t('Close')) + '"></button></div>' : '';
   }
   function api(method, url, body, raw) {
     var opts = {method: method, headers: {'Accept': 'application/json'}, credentials: 'same-origin'};
@@ -69,39 +69,39 @@
     box.innerHTML = (cur.steps || []).map(function (s, i) {
       var k = s.kind, h = '<div class="wf-step" data-i="' + i + '"><div class="d-flex justify-content-between align-items-center mb-1">' +
         '<strong>' + (i + 1) + '. <span class="text-muted small">' + esc(k) + '</span></strong>' +
-        '<span><button type="button" class="btn btn-sm btn-link p-1" data-act="up" aria-label="Move step up"><i class="bi bi-arrow-up" aria-hidden="true"></i></button>' +
-        '<button type="button" class="btn btn-sm btn-link p-1 text-danger" data-act="del" aria-label="Remove step ' + esc(s.id) + '"><i class="bi bi-x-lg" aria-hidden="true"></i></button></span></div><div class="row g-2">';
-      h += field('Id', '<input class="form-control form-control-sm" data-f="id" value="' + esc(s.id) + '">', 'col-6 col-md-4');
-      h += field('Depends on', '<input class="form-control form-control-sm" data-f="depends_on" placeholder="ids, comma separated" value="' + esc((s.depends_on || []).join(', ')) + '">', 'col-6 col-md-8');
+        '<span><button type="button" class="btn btn-sm btn-link p-1" data-act="up" aria-label="' + esc(_t('Move step up')) + '"><i class="bi bi-arrow-up" aria-hidden="true"></i></button>' +
+        '<button type="button" class="btn btn-sm btn-link p-1 text-danger" data-act="del" aria-label="' + esc(_t('Remove step %(id)s', {id: s.id})) + '"><i class="bi bi-x-lg" aria-hidden="true"></i></button></span></div><div class="row g-2">';
+      h += field(_t('Id'), '<input class="form-control form-control-sm" data-f="id" value="' + esc(s.id) + '">', 'col-6 col-md-4');
+      h += field(_t('Depends on'), '<input class="form-control form-control-sm" data-f="depends_on" placeholder="' + esc(_t('ids, comma separated')) + '" value="' + esc((s.depends_on || []).join(', ')) + '">', 'col-6 col-md-8');
       if (k === 'tool' || k === 'composite') {
-        h += field('Tool', '<select class="form-select form-select-sm" data-f="tool">' + toolOptions(s.tool) + '</select>', 'col-md-5');
-        h += field('Params <small class="text-muted">(JSON; "$input.x", "$steps.id.field")</small>', '<textarea class="form-control form-control-sm" rows="2" data-f="params" data-json="1">' + esc(json(s.params || {})) + '</textarea>', 'col-md-7');
+        h += field(_t('Tool'), '<select class="form-select form-select-sm" data-f="tool">' + toolOptions(s.tool) + '</select>', 'col-md-5');
+        h += field(_t('Params') + ' <small class="text-muted">(JSON; "$input.x", "$steps.id.field")</small>', '<textarea class="form-control form-control-sm" rows="2" data-f="params" data-json="1">' + esc(json(s.params || {})) + '</textarea>', 'col-md-7');
       } else if (k === 'ask') {
-        h += field('Question <small class="text-muted">({{$steps.id}} inserts a value)</small>', '<textarea class="form-control form-control-sm" rows="2" data-f="question">' + esc(s.question || '') + '</textarea>', 'col-12');
+        h += field(_t('Question') + ' <small class="text-muted">' + esc(_t('(%(ref)s inserts a value)', {ref: '{{$steps.id}}'})) + '</small>', '<textarea class="form-control form-control-sm" rows="2" data-f="question">' + esc(s.question || '') + '</textarea>', 'col-12');
       } else if (k === 'condition') {
-        h += field('If', '<input class="form-control form-control-sm" data-f="if" data-maybejson="1" placeholder="$steps.a.count > 0" value="' + esc(typeof s['if'] === 'string' ? s['if'] : json(s['if'])) + '">', 'col-md-6');
-        h += field('Then (ids)', '<input class="form-control form-control-sm" data-f="then" value="' + esc((s.then || []).join(', ')) + '">', 'col-6 col-md-3');
-        h += field('Else (ids)', '<input class="form-control form-control-sm" data-f="else" value="' + esc((s['else'] || []).join(', ')) + '">', 'col-6 col-md-3');
+        h += field(_t('If'), '<input class="form-control form-control-sm" data-f="if" data-maybejson="1" placeholder="$steps.a.count > 0" value="' + esc(typeof s['if'] === 'string' ? s['if'] : json(s['if'])) + '">', 'col-md-6');
+        h += field(_t('Then (ids)'), '<input class="form-control form-control-sm" data-f="then" value="' + esc((s.then || []).join(', ')) + '">', 'col-6 col-md-3');
+        h += field(_t('Else (ids)'), '<input class="form-control form-control-sm" data-f="else" value="' + esc((s['else'] || []).join(', ')) + '">', 'col-6 col-md-3');
       } else if (k === 'foreach') {
-        h += field('Items', '<input class="form-control form-control-sm" data-f="items" placeholder="$steps.list.rows" value="' + esc(typeof s.items === 'string' ? s.items : json(s.items)) + '">', 'col-md-4');
-        h += field('Max items', '<input class="form-control form-control-sm" type="number" min="1" data-f="max_items" data-num="1" value="' + esc(s.max_items || '') + '">', 'col-6 col-md-2');
-        h += field('Parallel', '<input class="form-control form-control-sm" type="number" min="1" data-f="parallel" data-num="1" value="' + esc(s.parallel || 1) + '">', 'col-6 col-md-2');
-        h += field('Do <small class="text-muted">(JSON: {"tool": ..., "params": {"x": "$item.x"}}, or {"steps": [...]} for a graph per item)</small>', '<textarea class="form-control form-control-sm" rows="2" data-f="do" data-json="1">' + esc(json(s['do'] || {kind: 'tool', tool: TOOLS[0] || '', params: {}})) + '</textarea>', 'col-md-4');
+        h += field(_t('Items'), '<input class="form-control form-control-sm" data-f="items" placeholder="$steps.list.rows" value="' + esc(typeof s.items === 'string' ? s.items : json(s.items)) + '">', 'col-md-4');
+        h += field(_t('Max items'), '<input class="form-control form-control-sm" type="number" min="1" data-f="max_items" data-num="1" value="' + esc(s.max_items || '') + '">', 'col-6 col-md-2');
+        h += field(_t('Parallel'), '<input class="form-control form-control-sm" type="number" min="1" data-f="parallel" data-num="1" value="' + esc(s.parallel || 1) + '">', 'col-6 col-md-2');
+        h += field(_t('Do') + ' <small class="text-muted">' + esc(_t('(JSON: %(tool)s, or %(steps)s for a graph per item)', {tool: '{"tool": ..., "params": {"x": "$item.x"}}', steps: '{"steps": [...]}'})) + '</small>', '<textarea class="form-control form-control-sm" rows="2" data-f="do" data-json="1">' + esc(json(s['do'] || {kind: 'tool', tool: TOOLS[0] || '', params: {}})) + '</textarea>', 'col-md-4');
       } else if (k === 'wait') {
-        h += field('Seconds', '<input class="form-control form-control-sm" data-f="seconds" data-num="1" value="' + esc(s.seconds == null ? '' : s.seconds) + '">', 'col-6 col-md-4');
+        h += field(_t('Seconds'), '<input class="form-control form-control-sm" data-f="seconds" data-num="1" value="' + esc(s.seconds == null ? '' : s.seconds) + '">', 'col-6 col-md-4');
       } else if (k === 'approval') {
-        h += field('Reason shown to the approver', '<input class="form-control form-control-sm" data-f="reason" value="' + esc(s.reason || '') + '">', 'col-12');
+        h += field(_t('Reason shown to the approver'), '<input class="form-control form-control-sm" data-f="reason" value="' + esc(s.reason || '') + '">', 'col-12');
       }
       if (['tool', 'composite', 'ask'].indexOf(k) >= 0) {
         var r = s.retry || {};
-        h += field('Attempts', '<input class="form-control form-control-sm" type="number" min="1" max="20" data-f="retry.max_attempts" data-num="1" value="' + esc(r.max_attempts || 1) + '">', 'col-4 col-md-2');
-        h += field('Backoff (s)', '<input class="form-control form-control-sm" type="number" min="0" step="any" data-f="retry.backoff_seconds" data-num="1" value="' + esc(r.backoff_seconds == null ? 1 : r.backoff_seconds) + '">', 'col-4 col-md-2');
-        h += field('Timeout (s)', '<input class="form-control form-control-sm" type="number" min="0" step="any" data-f="timeout_seconds" data-num="1" value="' + esc(s.timeout_seconds || '') + '">', 'col-4 col-md-2');
+        h += field(_t('Attempts'), '<input class="form-control form-control-sm" type="number" min="1" max="20" data-f="retry.max_attempts" data-num="1" value="' + esc(r.max_attempts || 1) + '">', 'col-4 col-md-2');
+        h += field(_t('Backoff (s)'), '<input class="form-control form-control-sm" type="number" min="0" step="any" data-f="retry.backoff_seconds" data-num="1" value="' + esc(r.backoff_seconds == null ? 1 : r.backoff_seconds) + '">', 'col-4 col-md-2');
+        h += field(_t('Timeout (s)'), '<input class="form-control form-control-sm" type="number" min="0" step="any" data-f="timeout_seconds" data-num="1" value="' + esc(s.timeout_seconds || '') + '">', 'col-4 col-md-2');
       }
       var extra = extraOf(s);
-      h += field('More <small class="text-muted">(JSON: join, on_error, when, idempotent, ...)</small>', '<input class="form-control form-control-sm" data-f="_extra" data-json="1" value="' + esc(Object.keys(extra).length ? json(extra) : '') + '">', 'col-md-6');
+      h += field(_t('More') + ' <small class="text-muted">(JSON: join, on_error, when, idempotent, ...)</small>', '<input class="form-control form-control-sm" data-f="_extra" data-json="1" value="' + esc(Object.keys(extra).length ? json(extra) : '') + '">', 'col-md-6');
       return h + '</div></div>';
-    }).join('') || '<p class="text-muted small">No steps yet.</p>';
+    }).join('') || '<p class="text-muted small">' + esc(_t('No steps yet.')) + '</p>';
   }
 
   function splitIds(v) { return String(v || '').split(',').map(function (x) { return x.trim(); }).filter(Boolean); }
@@ -117,7 +117,7 @@
         if (inp.hasAttribute('data-json')) {
           if (!v.trim()) { if (f !== '_extra') s[f] = {}; return; }
           try { var parsed = JSON.parse(v); if (f === '_extra') Object.assign(s, parsed); else s[f] = parsed; }
-          catch (e) { problems.push('step ' + (old.id || i + 1) + ': ' + f + ' is not valid JSON'); s[f] = old[f]; }
+          catch (e) { problems.push(_t('step %(id)s: %(field)s is not valid JSON', {id: old.id || i + 1, field: f})); s[f] = old[f]; }
           return;
         }
         if (inp.hasAttribute('data-maybejson')) { try { s[f] = JSON.parse(v); } catch (e) { s[f] = v; } return; }
@@ -170,26 +170,26 @@
     var base = location.origin;
     $('wfTriggers').innerHTML = (cur.triggers || []).map(function (t, i) {
       var h = '<div class="wf-step" data-t="' + i + '"><div class="d-flex justify-content-between align-items-center mb-1"><strong>' + esc(t.type) + '</strong>' +
-        '<button type="button" class="btn btn-sm btn-link p-1 text-danger" data-tact="del" aria-label="Remove trigger ' + esc(t.id || '') + '"><i class="bi bi-x-lg" aria-hidden="true"></i></button></div><div class="row g-2">';
-      h += field('Id', '<input class="form-control form-control-sm" data-tf="id" value="' + esc(t.id || '') + '">', 'col-6 col-md-3');
-      h += field('Enabled', '<select class="form-select form-select-sm" data-tf="enabled"><option value="true"' + (t.enabled !== false ? ' selected' : '') + '>yes</option><option value="false"' + (t.enabled === false ? ' selected' : '') + '>no</option></select>', 'col-6 col-md-2');
+        '<button type="button" class="btn btn-sm btn-link p-1 text-danger" data-tact="del" aria-label="' + esc(_t('Remove trigger %(id)s', {id: t.id || ''})) + '"><i class="bi bi-x-lg" aria-hidden="true"></i></button></div><div class="row g-2">';
+      h += field(_t('Id'), '<input class="form-control form-control-sm" data-tf="id" value="' + esc(t.id || '') + '">', 'col-6 col-md-3');
+      h += field(_t('Enabled'), '<select class="form-select form-select-sm" data-tf="enabled"><option value="true"' + (t.enabled !== false ? ' selected' : '') + '>' + esc(_t('yes')) + '</option><option value="false"' + (t.enabled === false ? ' selected' : '') + '>' + esc(_t('no')) + '</option></select>', 'col-6 col-md-2');
       if (t.type === 'cron') {
-        h += field('Cron <small class="text-muted">(min hour day month weekday)</small>', '<input class="form-control form-control-sm" data-tf="cron" placeholder="0 6 * * 1-5" value="' + esc(t.cron || '') + '">', 'col-md-4');
-        h += field('Timezone', '<input class="form-control form-control-sm" data-tf="timezone" placeholder="UTC" value="' + esc(t.timezone || '') + '">', 'col-md-3');
+        h += field('Cron <small class="text-muted">' + esc(_t('(min hour day month weekday)')) + '</small>', '<input class="form-control form-control-sm" data-tf="cron" placeholder="0 6 * * 1-5" value="' + esc(t.cron || '') + '">', 'col-md-4');
+        h += field(_t('Timezone'), '<input class="form-control form-control-sm" data-tf="timezone" placeholder="UTC" value="' + esc(t.timezone || '') + '">', 'col-md-3');
       } else if (t.type === 'webhook') {
-        h += field('Secret', '<input class="form-control form-control-sm" data-tf="secret" autocomplete="off" placeholder="generated on save" value="' + esc(t.secret || '') + '">', 'col-md-3');
-        h += '<div class="col-12 small text-muted">POST ' + esc(base) + '/api/workflows/' + esc(cur.name || '{name}') + '/hooks/' + esc(t.id || '{id}') + ' with headers X-Sajha-Timestamp and X-Sajha-Signature: sha256=HMAC(secret, timestamp + "." + body)</div>';
+        h += field(_t('Secret'), '<input class="form-control form-control-sm" data-tf="secret" autocomplete="off" placeholder="' + esc(_t('generated on save')) + '" value="' + esc(t.secret || '') + '">', 'col-md-3');
+        h += '<div class="col-12 small text-muted">' + esc(_t('POST %(url)s with headers X-Sajha-Timestamp and X-Sajha-Signature: %(sig)s', {url: base + '/api/workflows/' + (cur.name || '{name}') + '/hooks/' + (t.id || '{id}'), sig: 'sha256=HMAC(secret, timestamp + "." + body)'})) + '</div>';
       } else if (t.type === 'file') {
-        h += field('Prefix', '<input class="form-control form-control-sm" data-tf="prefix" placeholder="data/inbox" value="' + esc(t.prefix || '') + '">', 'col-md-3');
-        h += field('Pattern', '<input class="form-control form-control-sm" data-tf="pattern" placeholder="*.csv" value="' + esc(t.pattern || '*') + '">', 'col-6 col-md-2');
-        h += field('Every (s)', '<input class="form-control form-control-sm" type="number" min="1" data-tf="interval_seconds" data-num="1" value="' + esc(t.interval_seconds || 30) + '">', 'col-6 col-md-2');
+        h += field(_t('Prefix'), '<input class="form-control form-control-sm" data-tf="prefix" placeholder="data/inbox" value="' + esc(t.prefix || '') + '">', 'col-md-3');
+        h += field(_t('Pattern'), '<input class="form-control form-control-sm" data-tf="pattern" placeholder="*.csv" value="' + esc(t.pattern || '*') + '">', 'col-6 col-md-2');
+        h += field(_t('Every (s)'), '<input class="form-control form-control-sm" type="number" min="1" data-tf="interval_seconds" data-num="1" value="' + esc(t.interval_seconds || 30) + '">', 'col-6 col-md-2');
       } else if (t.type === 'event') {
-        h += field('Kinds', '<input class="form-control form-control-sm" data-tf="kinds" placeholder="tools, prompts" value="' + esc((t.kinds || ['tools']).join(', ')) + '">', 'col-md-4');
-        h += field('Resource URI', '<input class="form-control form-control-sm" data-tf="uri" value="' + esc(t.uri || '') + '">', 'col-md-3');
+        h += field(_t('Kinds'), '<input class="form-control form-control-sm" data-tf="kinds" placeholder="tools, prompts" value="' + esc((t.kinds || ['tools']).join(', ')) + '">', 'col-md-4');
+        h += field(_t('Resource URI'), '<input class="form-control form-control-sm" data-tf="uri" value="' + esc(t.uri || '') + '">', 'col-md-3');
       }
-      h += field('Input <small class="text-muted">(JSON)</small>', '<input class="form-control form-control-sm" data-tf="input" data-json="1" value="' + esc(t.input ? json(t.input) : '') + '">', 'col-12');
+      h += field(_t('Input') + ' <small class="text-muted">(JSON)</small>', '<input class="form-control form-control-sm" data-tf="input" data-json="1" value="' + esc(t.input ? json(t.input) : '') + '">', 'col-12');
       return h + '</div></div>';
-    }).join('') || '<p class="text-muted small">No triggers: run it by hand.</p>';
+    }).join('') || '<p class="text-muted small">' + esc(_t('No triggers: run it by hand.')) + '</p>';
   }
   function readTriggers() {
     var out = [], problems = [];
@@ -199,7 +199,7 @@
         var f = inp.getAttribute('data-tf'), v = inp.value;
         if (f === 'enabled') t.enabled = v === 'true';
         else if (f === 'kinds') t.kinds = splitIds(v);
-        else if (inp.hasAttribute('data-json')) { if (!v.trim()) delete t[f]; else { try { t[f] = JSON.parse(v); } catch (e) { problems.push('trigger ' + (t.id || '') + ': input is not valid JSON'); } } }
+        else if (inp.hasAttribute('data-json')) { if (!v.trim()) delete t[f]; else { try { t[f] = JSON.parse(v); } catch (e) { problems.push(_t('trigger %(id)s: input is not valid JSON', {id: t.id || ''})); } } }
         else if (inp.hasAttribute('data-num')) t[f] = Number(v);
         else if (v === '') delete t[f]; else t[f] = v;
       });
@@ -255,7 +255,7 @@
   function collect() {
     var problems = [];
     if (tab === 'form' || tab === 'triggers') { readHeader(); problems = problems.concat(readSteps(), readTriggers()); }
-    else if (tab === 'json') { try { cur = JSON.parse($('wfJson').value); } catch (e) { problems.push('the JSON does not parse: ' + e.message); } }
+    else if (tab === 'json') { try { cur = JSON.parse($('wfJson').value); } catch (e) { problems.push(_t('the JSON does not parse: %(error)s', {error: e.message})); } }
     return problems;
   }
   function showTab(name) {
@@ -272,7 +272,7 @@
       document.querySelectorAll('[data-wf-pane]').forEach(function (p) { p.hidden = p.getAttribute('data-wf-pane') !== name; });
       renderAll();
       if (name === 'yaml') {
-        $('wfYaml').value = '# loading...';
+        $('wfYaml').value = '# ' + _t('loading...');
         api('POST', '/api/workflows/validate', cur).then(function (j) { $('wfYaml').value = j.yaml; })
           .catch(function (e) { $('wfYaml').value = '# ' + e.message + '\n' + JSON.stringify(cur, null, 2); });
       }
@@ -295,11 +295,11 @@
     return api('GET', '/api/workflows').then(function (j) {
       var rows = j.workflows || [];
       $('wfList').innerHTML = rows.map(function (w) {
-        var trig = (w.triggers || []).map(function (t) { return t.type; }).join(', ') || 'manual';
+        var trig = (w.triggers || []).map(function (t) { return t.type; }).join(', ') || _t('manual');
         return '<button type="button" class="list-group-item list-group-item-action' + (loaded && loaded.name === w.name ? ' active' : '') + '" data-name="' + esc(w.name) + '">' +
-          '<div class="d-flex justify-content-between gap-2"><strong>' + esc(w.name) + '</strong>' + (w.enabled ? '' : pill('disabled')) + (w.published ? ' <span class="wf-pill">tool</span>' : '') + '</div>' +
-          '<div class="wf-meta">' + esc(w.steps) + ' steps · ' + esc(trig) + ' · v' + esc(w.version) + ' · owner ' + esc(w.owner) + '</div></button>';
-      }).join('') || '<div class="p-3 text-muted small">No workflows yet. Use New workflow.</div>';
+          '<div class="d-flex justify-content-between gap-2"><strong>' + esc(w.name) + '</strong>' + (w.enabled ? '' : pill(_t('disabled'))) + (w.published ? ' <span class="wf-pill">' + esc(_t('tool')) + '</span>' : '') + '</div>' +
+          '<div class="wf-meta">' + esc(_t('%(n)s steps', {n: w.steps})) + ' · ' + esc(trig) + ' · v' + esc(w.version) + ' · ' + esc(_t('owner %(owner)s', {owner: w.owner})) + '</div></button>';
+      }).join('') || '<div class="p-3 text-muted small">' + esc(_t('No workflows yet. Use New workflow.')) + '</div>';
       if (select) open(select);
     }).catch(function (e) { $('wfList').innerHTML = '<div class="p-3 wf-err">' + esc(e.message) + '</div>'; });
   }
@@ -307,9 +307,9 @@
     return api('GET', '/api/workflows/' + encodeURIComponent(name)).then(function (w) {
       loaded = w; cur = w.definition; openRun = null; $('wfRunCard').hidden = true;
       $('wfTitle').textContent = w.name;
-      $('wfInfo').textContent = 'v' + w.version + ' · owner ' + w.owner + ' · ' + (w.enabled ? 'enabled' : 'disabled');
+      $('wfInfo').textContent = 'v' + w.version + ' · ' + _t('owner %(owner)s', {owner: w.owner}) + ' · ' + (w.enabled ? _t('enabled') : _t('disabled'));
       ['wfRun', 'wfDelete', 'wfToggle'].forEach(function (id) { $(id).disabled = false; });
-      $('wfToggle').textContent = w.enabled ? 'Disable' : 'Enable';
+      $('wfToggle').textContent = w.enabled ? _t('Disable') : _t('Enable');
       $('wfRunInputWrap').hidden = false;
       document.querySelectorAll('#wfList [data-name]').forEach(function (b) { b.classList.toggle('active', b.getAttribute('data-name') === name); });
       renderAll(); loadRuns();
@@ -317,10 +317,10 @@
   }
   function newWf() {
     loaded = null; cur = blank(); openRun = null;
-    $('wfTitle').textContent = 'New workflow'; $('wfInfo').textContent = '';
+    $('wfTitle').textContent = _t('New workflow'); $('wfInfo').textContent = '';
     ['wfRun', 'wfDelete', 'wfToggle'].forEach(function (id) { $(id).disabled = true; });
     $('wfRunInputWrap').hidden = true; $('wfRunCard').hidden = true;
-    $('wfRuns').innerHTML = '<tr><td colspan="5" class="text-muted small">Save the workflow to run it.</td></tr>';
+    $('wfRuns').innerHTML = '<tr><td colspan="5" class="text-muted small">' + esc(_t('Save the workflow to run it.')) + '</td></tr>';
     renderAll();
   }
   function payload() {
@@ -334,7 +334,7 @@
     try { body = payload(); } catch (e) { alertMsg('danger', e.message); return; }
     var name = loaded ? loaded.name : null;
     api(name ? 'PUT' : 'POST', name ? '/api/workflows/' + encodeURIComponent(name) : '/api/workflows', body).then(function (j) {
-      alertMsg('success', 'Saved ' + j.workflow.name + ' (version ' + j.workflow.version + ').');
+      alertMsg('success', _t('Saved %(name)s (version %(version)s).', {name: j.workflow.name, version: j.workflow.version}));
       loadList(j.workflow.name);
     }).catch(function (e) { alertMsg('danger', e.message); });
   }
@@ -342,7 +342,7 @@
     var body;
     try { body = payload(); } catch (e) { alertMsg('danger', e.message); return; }
     api('POST', '/api/workflows/validate', body).then(function (j) {
-      alertMsg('success', 'Valid. Order: ' + j.order.join(' → '));
+      alertMsg('success', _t('Valid. Order: %(order)s', {order: j.order.join(' → ')}));
     }).catch(function (e) { alertMsg('danger', e.message); });
   }
 
@@ -355,10 +355,10 @@
         var dur = r.finished_at && r.started_at ? (r.finished_at - r.started_at) * 1000 : null;
         var active = ['queued', 'running', 'waiting'].indexOf(r.status) >= 0;
         return '<tr><td>' + esc(fmtTime(r.created_at)) + '</td><td>' + esc(r.trigger_type) + (r.trigger_id ? '<div class="wf-meta">' + esc(r.trigger_id) + '</div>' : '') + '</td><td>' + pill(r.status) + '</td><td>' + esc(fmtDur(dur)) + '</td>' +
-          '<td class="text-nowrap"><button type="button" class="btn btn-sm btn-outline-primary" data-run="' + esc(r.id) + '" aria-label="Show run ' + esc(r.id) + '">Steps</button> ' +
-          (active ? '<button type="button" class="btn btn-sm btn-outline-danger" data-cancel="' + esc(r.id) + '">Cancel</button>' :
-            (r.status !== 'succeeded' ? '<button type="button" class="btn btn-sm btn-outline-secondary" data-rerun="' + esc(r.id) + '">Re-run</button>' : '')) + '</td></tr>';
-      }).join('') || '<tr><td colspan="5" class="text-muted small">No runs yet.</td></tr>';
+          '<td class="text-nowrap"><button type="button" class="btn btn-sm btn-outline-primary" data-run="' + esc(r.id) + '" aria-label="' + esc(_t('Show run %(id)s', {id: r.id})) + '">' + esc(_t('Steps')) + '</button> ' +
+          (active ? '<button type="button" class="btn btn-sm btn-outline-danger" data-cancel="' + esc(r.id) + '">' + esc(_t('Cancel')) + '</button>' :
+            (r.status !== 'succeeded' ? '<button type="button" class="btn btn-sm btn-outline-secondary" data-rerun="' + esc(r.id) + '">' + esc(_t('Re-run')) + '</button>' : '')) + '</td></tr>';
+      }).join('') || '<tr><td colspan="5" class="text-muted small">' + esc(_t('No runs yet.')) + '</td></tr>';
       if (rows.some(function (r) { return ['queued', 'running', 'waiting'].indexOf(r.status) >= 0; })) schedulePoll();
     }).catch(function (e) { $('wfRuns').innerHTML = '<tr><td colspan="5" class="wf-err">' + esc(e.message) + '</td></tr>'; });
   }
@@ -373,9 +373,9 @@
       $('wfRunCard').hidden = false;
       $('wfRunId').textContent = r.id;
       $('wfRunStatus').innerHTML = pill(r.status);
-      $('wfRunMeta').textContent = 'trigger ' + r.trigger_type + (r.trigger_id ? ' (' + r.trigger_id + ')' : '') + ' · run as ' + r.run_as +
-        (r.started_by ? ' · started by ' + r.started_by : '') + ' · version ' + r.version + (r.parent_run_id ? ' · re-run of ' + r.parent_run_id : '') +
-        (r.delivery_status ? ' · delivery ' + r.delivery_status : '');
+      $('wfRunMeta').textContent = _t('trigger %(type)s', {type: r.trigger_type}) + (r.trigger_id ? ' (' + r.trigger_id + ')' : '') + ' · ' + _t('run as %(user)s', {user: r.run_as}) +
+        (r.started_by ? ' · ' + _t('started by %(user)s', {user: r.started_by}) : '') + ' · ' + _t('version %(version)s', {version: r.version}) + (r.parent_run_id ? ' · ' + _t('re-run of %(run)s', {run: r.parent_run_id}) : '') +
+        (r.delivery_status ? ' · ' + _t('delivery %(status)s', {status: r.delivery_status}) : '');
       $('wfRunErr').textContent = r.error || '';
       $('wfRunOut').textContent = r.output == null ? '' : JSON.stringify(r.output, null, 2);
       var t0 = r.started_at || r.created_at, t1 = r.finished_at || Date.now() / 1000;
@@ -386,15 +386,15 @@
         var end = s.finished_at || (s.status === 'running' || s.status === 'waiting' ? Date.now() / 1000 : s.started_at);
         var width = s.started_at ? Math.max(0.5, ((end - s.started_at) / span) * 100) : 0;
         var io = '';
-        if (s.input != null) io += '<details><summary class="small">input</summary><pre class="wf-io">' + esc(JSON.stringify(s.input, null, 2)) + '</pre></details>';
-        if (s.output != null) io += '<details><summary class="small">output</summary><pre class="wf-io">' + esc(JSON.stringify(s.output, null, 2)) + '</pre></details>';
-        if (s.status === 'waiting' && s.detail && s.detail.approval_id) io += '<div class="wf-meta">waiting for approval <code>' + esc(s.detail.approval_id) + '</code> (Admin › Approvals)</div>';
-        if (s.status === 'waiting' && s.detail && s.detail.wake_at) io += '<div class="wf-meta">wakes at ' + esc(fmtTime(s.detail.wake_at)) + '</div>';
+        if (s.input != null) io += '<details><summary class="small">' + esc(_t('input')) + '</summary><pre class="wf-io">' + esc(JSON.stringify(s.input, null, 2)) + '</pre></details>';
+        if (s.output != null) io += '<details><summary class="small">' + esc(_t('output')) + '</summary><pre class="wf-io">' + esc(JSON.stringify(s.output, null, 2)) + '</pre></details>';
+        if (s.status === 'waiting' && s.detail && s.detail.approval_id) io += '<div class="wf-meta">' + esc(_t('waiting for approval')) + ' <code>' + esc(s.detail.approval_id) + '</code> (' + esc(_t('Admin › Approvals')) + ')</div>';
+        if (s.status === 'waiting' && s.detail && s.detail.wake_at) io += '<div class="wf-meta">' + esc(_t('wakes at %(time)s', {time: fmtTime(s.detail.wake_at)})) + '</div>';
         return '<div class="wf-tl-row"><div><strong>' + esc(s.step_id) + '</strong> <span class="wf-meta">' + esc(s.kind) + '</span><div>' + pill(s.status) +
-          ' <span class="wf-meta">' + esc(fmtDur(s.duration_ms)) + (s.attempts > 1 ? ' · ' + s.attempts + ' attempts' : '') + '</span></div></div>' +
+          ' <span class="wf-meta">' + esc(fmtDur(s.duration_ms)) + (s.attempts > 1 ? ' · ' + esc(_t('%(n)s attempts', {n: s.attempts})) : '') + '</span></div></div>' +
           '<div><div class="wf-tl-track" aria-hidden="true"><div class="wf-tl-bar s-' + esc(s.status) + '" style="left:' + left.toFixed(2) + '%;width:' + Math.min(100 - left, width).toFixed(2) + '%"></div></div>' +
           (s.error ? '<div class="wf-err">' + esc(s.error) + '</div>' : '') + io + '</div></div>';
-      }).join('') || '<p class="text-muted small">No steps recorded yet.</p>';
+      }).join('') || '<p class="text-muted small">' + esc(_t('No steps recorded yet.')) + '</p>';
       if (cur && cur.name === r.workflow) drawDag(stepStatuses(r));
       if (['queued', 'running', 'waiting'].indexOf(r.status) >= 0) schedulePoll();
       if (!quiet) $('wfRunCard').scrollIntoView({behavior: 'smooth', block: 'nearest'});
@@ -402,9 +402,9 @@
   }
   function runNow() {
     var input;
-    try { input = JSON.parse($('wfRunInput').value || '{}'); } catch (e) { alertMsg('danger', 'Run input is not valid JSON'); return; }
+    try { input = JSON.parse($('wfRunInput').value || '{}'); } catch (e) { alertMsg('danger', _t('Run input is not valid JSON')); return; }
     api('POST', '/api/workflows/' + encodeURIComponent(loaded.name) + '/runs', {input: input}).then(function (j) {
-      alertMsg('info', 'Run ' + j.run.id + ' is ' + j.run.status + '.'); loadRuns(); showRun(j.run.id);
+      alertMsg('info', _t('Run %(id)s is %(status)s.', {id: j.run.id, status: j.run.status})); loadRuns(); showRun(j.run.id);
     }).catch(function (e) { alertMsg('danger', e.message); });
   }
 
@@ -418,8 +418,8 @@
     $('wfValidate').addEventListener('click', validate);
     $('wfRun').addEventListener('click', runNow);
     $('wfDelete').addEventListener('click', function () {
-      if (!loaded || !confirm('Delete workflow ' + loaded.name + ' and its run history?')) return;
-      api('DELETE', '/api/workflows/' + encodeURIComponent(loaded.name)).then(function () { alertMsg('success', 'Deleted.'); newWf(); loadList(); })
+      if (!loaded || !confirm(_t('Delete workflow %(name)s and its run history?', {name: loaded.name}))) return;
+      api('DELETE', '/api/workflows/' + encodeURIComponent(loaded.name)).then(function () { alertMsg('success', _t('Deleted.')); newWf(); loadList(); })
         .catch(function (e) { alertMsg('danger', e.message); });
     });
     $('wfToggle').addEventListener('click', function () {
@@ -440,7 +440,7 @@
       if (kind === 'condition') { s['if'] = 'exists $steps.' + (prev || 'step1'); s.then = []; s['else'] = []; }
       if (kind === 'foreach') { s.items = '$steps.' + (prev || 'step1') + '.rows'; s['do'] = {kind: 'tool', tool: TOOLS[0] || '', params: {}}; s.max_items = 20; }
       if (kind === 'wait') s.seconds = 60;
-      if (kind === 'approval') s.reason = 'Check before continuing';
+      if (kind === 'approval') s.reason = _t('Check before continuing');
       cur.steps.push(s); renderAll();
     });
     $('wfSteps').addEventListener('click', function (ev) {

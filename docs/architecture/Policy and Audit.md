@@ -202,11 +202,14 @@ rules are evaluated where data crosses to another SAJHA Net instance
 (`PolicyEngine.residency`): at the home before a call's arguments leave (`flow: arguments`, the
 destination is the host), at the host before its result leaves (`flow: results`, the destination is
 the home), and at the home again as a result arrives (`flow: results`, `here: true`). Only residency
-rules take part, deny-overrides; `require_approval` refuses (a forwarded call cannot wait for an
-approval); `redact: {data_classes: [...]}` replaces the fields of those classes with
-`[REDACTED:<class>]` instead of refusing. With `sajhanet.residency.default_effect: deny`, data that
-carries any class needs a matching `allow` rule. Rate limits, quotas and approvals of residency rules
-are not applied there; `callers` matches the home's caller at the home and the mapped net user at the
+rules take part, deny-overrides; `require_approval` on arguments leaving the home refuses the call
+`approval_required` and opens a pending approval (tool `sajhanet.residency:<qualified name>`, these
+arguments, this caller) that lets that exact call through once when approved, and on results refuses (the
+tool has run); `redact: {data_classes: [...]}` replaces the fields of those classes with
+`[REDACTED:<class>]` instead of refusing ([SAJHA Net](SAJHA%20Net.md) §12). With
+`sajhanet.residency.default_effect: deny`, data that carries any class needs a matching `allow` rule. Rate
+limits, quotas and a rule's `approval` settings are not applied there (an administrator decides residency
+approvals, within `policy.approvals.ttl_seconds`); `callers` matches the home's caller at the home and the mapped net user at the
 host. In `destination`, an absent fact (an unlabelled instance) fails every condition except `ne` and
 `not_in`, so `labels.jurisdiction: {ne: EU}` also refuses an instance with no jurisdiction label.
 

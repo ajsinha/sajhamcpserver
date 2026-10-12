@@ -2,12 +2,12 @@
 <!--
 Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.com
 -->
-{% block title %}Admin - Manage Users - SAJHA MCP Server{% endblock %}
+{% block title %}{{ _('Admin - Manage Users - SAJHA MCP Server') }}{% endblock %}
 
 {% block content %}
 <div class="container-fluid">
     <h1 class="h3 mb-4">
-        <i class="bi bi-people-fill"></i> User Management
+        <i class="bi bi-people-fill"></i> {{ _('User Management') }}
     </h1>
 
     <!-- User Statistics -->
@@ -31,7 +31,7 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
                 <div class="ico"><i class="bi bi-people"></i></div>
                 <div>
                     <div class="num" style="color: var(--t-accent-text)">{{ users|length }}</div>
-                    <div class="lbl">Total Users</div>
+                    <div class="lbl">{{ _('Total Users') }}</div>
                 </div>
             </div>
         </div>
@@ -40,7 +40,7 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
                 <div class="ico"><i class="bi bi-person-check"></i></div>
                 <div>
                     <div class="num" style="color:var(--sajha-ok)">{{ active_count.value }}</div>
-                    <div class="lbl">Active Users</div>
+                    <div class="lbl">{{ _('Active Users') }}</div>
                 </div>
             </div>
         </div>
@@ -49,7 +49,7 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
                 <div class="ico"><i class="bi bi-shield-lock"></i></div>
                 <div>
                     <div class="num" style="color:var(--sajha-warn)">{{ admin_count.value }}</div>
-                    <div class="lbl">Administrators</div>
+                    <div class="lbl">{{ _('Administrators') }}</div>
                 </div>
             </div>
         </div>
@@ -58,7 +58,7 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
                 <div class="ico"><i class="bi bi-person-x"></i></div>
                 <div>
                     <div class="num" style="color:var(--sajha-bad)">{{ inactive_count.value }}</div>
-                    <div class="lbl">Inactive Users</div>
+                    <div class="lbl">{{ _('Inactive Users') }}</div>
                 </div>
             </div>
         </div>
@@ -68,10 +68,10 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
     <div class="card">
         <div class="card-header card-header-primary">
             <div class="d-flex justify-content-between align-items-center">
-                <h5 class="mb-0"><i class="bi bi-list-ul"></i> Users List</h5>
-                <a href="{{ url_for('users_file_page') }}" class="btn btn-outline-primary me-1"><i class="bi bi-file-earmark-lock me-1" aria-hidden="true"></i>Users file</a>
+                <h5 class="mb-0"><i class="bi bi-list-ul"></i> {{ _('Users List') }}</h5>
+                <a href="{{ url_for('users_file_page') }}" class="btn btn-outline-primary me-1"><i class="bi bi-file-earmark-lock me-1" aria-hidden="true"></i>{{ _('Users file') }}</a>
                 <a href="{{ url_for('admin_user_create') }}" class="btn btn-success">
-                    <i class="bi bi-plus-circle"></i> Create New User
+                    <i class="bi bi-plus-circle"></i> {{ _('Create New User') }}
                 </a>
             </div>
         </div>
@@ -82,15 +82,15 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
                 <div class="col-md-6">
                     <div class="input-group">
                         <span class="input-group-text"><i class="bi bi-search"></i></span>
-                        <input type="text" class="form-control" id="searchUsers" placeholder="Search by name, email, or user ID...">
+                        <input type="text" class="form-control" id="searchUsers" placeholder="{{ _('Search by name, email, or user ID...') }}">
                     </div>
                 </div>
                 <div class="col-md-6 text-end">
                     <div class="btn-group" role="group">
-                        <button type="button" class="btn btn-outline-primary" data-onclick="filterUsers('all')">All</button>
-                        <button type="button" class="btn btn-outline-success" data-onclick="filterUsers('enabled')">Enabled</button>
-                        <button type="button" class="btn btn-outline-danger" data-onclick="filterUsers('disabled')">Disabled</button>
-                        <button type="button" class="btn btn-outline-warning" data-onclick="filterUsers('admin')">Admins</button>
+                        <button type="button" class="btn btn-outline-primary" data-onclick="filterUsers('all')">{{ _('All') }}</button>
+                        <button type="button" class="btn btn-outline-success" data-onclick="filterUsers('enabled')">{{ _('Enabled') }}</button>
+                        <button type="button" class="btn btn-outline-danger" data-onclick="filterUsers('disabled')">{{ _('Disabled') }}</button>
+                        <button type="button" class="btn btn-outline-warning" data-onclick="filterUsers('admin')">{{ _('Admins') }}</button>
                     </div>
                 </div>
             </div>
@@ -99,14 +99,14 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
                 <table class="table table-hover sajha-stack" data-enhance="true" id="usersTable">
                     <thead>
                         <tr>
-                            <th>User ID</th>
-                            <th>Name</th>
-                            <th>Email</th>
-                            <th>Roles</th>
-                            <th>Status</th>
-                            <th>Tools Access</th>
-                            <th>Last Login</th>
-                            <th>Actions</th>
+                            <th>{{ _('User ID') }}</th>
+                            <th>{{ _('Name') }}</th>
+                            <th>{{ _('Email') }}</th>
+                            <th>{{ _('Roles') }}</th>
+                            <th>{{ _('Status') }}</th>
+                            <th>{{ _('Tools Access') }}</th>
+                            <th>{{ _('Last Login') }}</th>
+                            <th>{{ _('Actions') }}</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -125,53 +125,53 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
                                         </span>
                                     {% endfor %}
                                 {% else %}
-                                    <span class="text-muted">None</span>
+                                    <span class="text-muted">{{ _('None') }}</span>
                                 {% endif %}
                             </td>
                             <td>
                                 {% if user_data.enabled %}
-                                <span class="badge bg-success">Enabled</span>
+                                <span class="badge bg-success">{{ _('Enabled') }}</span>
                                 {% else %}
-                                <span class="badge bg-danger">Disabled</span>
+                                <span class="badge bg-danger">{{ _('Disabled') }}</span>
                                 {% endif %}
                             </td>
                             <td>
                                 {% if user_data.tools %}
                                     {% if '*' in user_data.tools %}
-                                    <span class="badge bg-primary">All Tools (*)</span>
+                                    <span class="badge bg-primary">{{ _('All Tools (*)') }}</span>
                                     {% else %}
-                                    <span class="badge bg-info">{{ user_data.tools|length }} tools</span>
+                                    <span class="badge bg-info">{% trans n=user_data.tools|length %}{{ n }} tools{% endtrans %}</span>
                                     {% endif %}
                                 {% else %}
-                                    <span class="text-muted">None</span>
+                                    <span class="text-muted">{{ _('None') }}</span>
                                 {% endif %}
                             </td>
                             <td>
                                 {% if user_data.last_login %}
                                 <small>{{ user_data.last_login }}</small>
                                 {% else %}
-                                <span class="text-muted">Never</span>
+                                <span class="text-muted">{{ _('Never') }}</span>
                                 {% endif %}
                             </td>
                             <td>
                                 <div class="btn-group" role="group">
                                     <button class="btn btn-sm btn-info"
                                             data-onclick="editUser('{{ user_data.user_id }}')">
-                                        <i class="bi bi-pencil"></i> Edit
+                                        <i class="bi bi-pencil"></i> {{ _('Edit') }}
                                     </button>
                                     {% if user_data.enabled %}
                                     <button class="btn btn-sm btn-warning"
                                             data-onclick="toggleUserStatus('{{ user_data.user_id }}', false)">
-                                        <i class="bi bi-pause-circle"></i> Disable
+                                        <i class="bi bi-pause-circle"></i> {{ _('Disable') }}
                                     </button>
                                     {% else %}
                                     <button class="btn btn-sm btn-success"
                                             data-onclick="toggleUserStatus('{{ user_data.user_id }}', true)">
-                                        <i class="bi bi-play-circle"></i> Enable
+                                        <i class="bi bi-play-circle"></i> {{ _('Enable') }}
                                     </button>
                                     {% endif %}
-                                    <button class="btn btn-sm btn-outline-secondary" title="Sign this user out everywhere"
-                                            aria-label="Sign {{ user_data.user_id }} out everywhere"
+                                    <button class="btn btn-sm btn-outline-secondary" title="{{ _('Sign this user out everywhere') }}"
+                                            aria-label="{{ _('Sign %(user_id)s out everywhere', user_id=user_data.user_id) }}"
                                             data-onclick="endSessions('{{ user_data.user_id }}')">
                                         <i class="bi bi-box-arrow-right" aria-hidden="true"></i>
                                     </button>
@@ -190,7 +190,7 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
             </div>
             {% else %}
             <div class="alert alert-warning">
-                <div class="empty-state"><i class="bi bi-people"></i><p>No users found matching your search</p></div>
+                <div class="empty-state"><i class="bi bi-people"></i><p>{{ _('No users found matching your search') }}</p></div>
             </div>
             {% endif %}
         </div>
@@ -199,11 +199,11 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
     <!-- Bulk Actions -->
     <div class="card mt-4">
         <div class="card-header card-header-secondary">
-            <h5 class="mb-0"><i class="bi bi-lightning"></i> Bulk Actions</h5>
+            <h5 class="mb-0"><i class="bi bi-lightning"></i> {{ _('Bulk Actions') }}</h5>
         </div>
         <div class="card-body">
             <button class="btn btn-info" data-onclick="exportUsers()">
-                <i class="bi bi-download"></i> Export All Users
+                <i class="bi bi-download"></i> {{ _('Export All Users') }}
             </button>
         </div>
     </div>
@@ -288,32 +288,32 @@ function toggleUserStatus(userId, enable) {
     const action = enable ? 'enable' : 'disable';
     const url = `/api/admin/users/${userId}/${action}`;
 
-    if (confirm(`Are you sure you want to ${action} user "${userId}"?`)) {
+    if (confirm(_t('Are you sure you want to %(action)s user "%(userId)s"?', {action: action, userId: userId}))) {
         $.post(url)
             .done(function() {
                 location.reload();
             })
             .fail(function() {
-                alert(`Failed to ${action} user: ${userId}`);
+                alert(_t('Failed to %(action)s user: %(userId)s', {action: action, userId: userId}));
             });
     }
 }
 
 function endSessions(userId) {
-    if (!confirm(`Sign "${userId}" out everywhere? Every console session and OAuth token of this user stops working; their API keys are not affected.`)) {
+    if (!confirm(_t('Sign "%(userId)s" out everywhere? Every console session and OAuth token of this user stops working; their API keys are not affected.', {userId: userId}))) {
         return;
     }
     $.post(`/api/admin/users/${encodeURIComponent(userId)}/sessions/revoke`)
-        .done(function() { alert(`Every session of ${userId} has ended.`); })
-        .fail(function() { alert(`Failed to end the sessions of ${userId}`); });
+        .done(function() { alert(_t('Every session of %(userId)s has ended.', {userId: userId})); })
+        .fail(function() { alert(_t('Failed to end the sessions of %(userId)s', {userId: userId})); });
 }
 
 function deleteUser(userId) {
-    if (!confirm(`Are you sure you want to delete user "${userId}"? This action cannot be undone.`)) {
+    if (!confirm(_t('Are you sure you want to delete user "%(userId)s"? This action cannot be undone.', {userId: userId}))) {
         return;
     }
 
-    if (!confirm('This will permanently delete the user account. Are you absolutely sure?')) {
+    if (!confirm(_t('This will permanently delete the user account. Are you absolutely sure?'))) {
         return;
     }
 
@@ -324,7 +324,7 @@ function deleteUser(userId) {
             location.reload();
         },
         error: function() {
-            alert(`Failed to delete user: ${userId}`);
+            alert(_t('Failed to delete user: %(userId)s', {userId: userId}));
         }
     });
 }

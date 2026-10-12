@@ -11,7 +11,7 @@
 
 app:
   name: SAJHA MCP Server
-  version: 8.12.0
+  version: 8.13.0
   description: Model Context Protocol Server
   author: Ashutosh Sinha
   author_email: ajsinha@gmail.com       # shown with the copyright notice; SAJHA is proprietary (see LICENSE)
@@ -339,6 +339,18 @@ config:
   ir:
     dir: config/ir
 
+# ── Plugins: publisher signatures and the catalog ────────────────────────────
+# Every key: docs/getting-started/Configuration Reference.md#plugins; design: docs/security/Security Model.md#plugins
+plugins:
+  allow_unsigned: true             # unsigned or untrusted plugins in config.plugins.dir load, with a warning notice;
+                                   # false refuses them. A tampered (invalid) signature is always refused
+  trusted_keys: []                 # "<publisher>=<Ed25519 public key, PEM or base64 of the raw 32 bytes>"
+  trusted_keys_dir: config/plugin_keys   # <publisher>.pub files, read on every check
+  catalog:
+    sources: []                    # folders, storage:<prefix>, https://.../index.json (outbound fetch guard)
+    max_package_bytes: 20971520    # largest package (archive and unpacked)
+    draft_ttl_seconds: 86400       # a review is kept this long for its install
+
 # ── Hot Reload ───────────────────────────────────────────────────────────────
 
 hot_reload:
@@ -579,6 +591,11 @@ ai:
     python_builtins: false             # true: react/plan_execute/recipes/router run the Python classes
     # numbers_check: "off"             # default of every planner's reserved numbers_check setting:
                                        # off | warn | enforce (quote "off": bare off is YAML false)
+    # learning:                        # planners chosen by learning from results (LLM Tools §9.13)
+    #   dir: data/planner_routing      # proposals, approved versions, active.json
+    #   min_samples: 5                 # outcomes per planner and question class before it is ranked
+    #   cost_weight: 0                 # score = quality - cost_weight * USD - latency_weight * seconds
+    #   bandit: false                  # the online bandit (opt in); bandit_exploration: 0.1 at most 0.5
     limits:
       max_stages_run: 40
       max_visits_per_edge: 10
@@ -635,6 +652,10 @@ ai:
       pgvector:
         dsn: ""                        # empty = SAJHA's database; put a DSN in the env, not here
     embed_batch_size: 64               # passages per embedding call while indexing
+    ocr: false                         # OCR scanned PDFs (needs rapidocr-onnxruntime, or pytesseract + tesseract)
+    accounts:                          # documents read through users' connected accounts, one index per user
+      sources: []                      # e.g. [{name: my_drive, kind: google_drive, folder: root}] (kinds: google_drive,
+                                       # onedrive, sharepoint, github, confluence); keys in the Configuration Reference
   # Semantic tool search — natural-language query → top-k matching tools.
   tool_search:
     enabled: true
@@ -759,11 +780,24 @@ sandbox:
     max_output_bytes: 16777216
     max_processes: 512
     max_file_mb: 1024
+  egress:                            # how network: allowlist is enforced (docs/architecture/Sandbox.md §4)
+    mode: proxy                      # proxy: no direct network, a per-run egress proxy is the only way out | direct: the old library-level check
+    block_private_networks: true     # refuse private ranges (10/8, 172.16/12, 192.168/16, fc00::/7, 100.64/10) even when listed
+    exempt_hosts: []                 # host patterns and CIDRs the address rule skips (never the allowlist)
+    connect_timeout_seconds: 10
+    idle_timeout_seconds: 120
+    max_connections: 32              # concurrent connections per run
   docker:
     binary: docker                   # or podman
     image: python:3.13-slim          # must already be pulled
     runtime: ''                      # e.g. runsc (gVisor)
     cpus: 1
+    pool:                            # warm containers (docs/architecture/Sandbox.md §4 "Warm container pool")
+      size: 0                        # containers kept started; 0 = a fresh container per call (at most 32)
+      reset: recreate                # recreate: remove and replace after each call | reuse: kill processes, empty /work, /tmp, /dev/shm, SysV IPC
+      max_uses: 20                   # reuse: calls before a container is replaced
+      health_interval_seconds: 30
+      start_timeout_seconds: 60
 
 # ── Python Playground (/playground) ──────────────────────────────────────────
 # Python runs in the visitor's browser (Pyodide, WebAssembly, in a Web Worker); nothing
@@ -775,13 +809,22 @@ playground:
   pyodide_version: 314.0.7         # the release scripts/fetch_pyodide.py vendors
   allow_pypi: true                 # micropip may fetch pure-Python wheels from PyPI (playground worker only)
 
+# ── Web console ───────────────────────────────────────────────────────────────
+# Languages: English only ships (translation framework, no other catalog). With a compiled catalog
+# in sajha/web/locale/, the browser's Accept-Language, then this default, pick among them.
+# Guide: docs/architecture/Architecture.md §10 ("Languages")
+console:
+  default_language: en             # en | any language with a compiled catalog (SAJHA_CONSOLE_DEFAULT_LANGUAGE)
+
 # ── Federation: other MCP servers' tools behind SAJHA's governance ───────────
 # Off by default. Every key: docs/getting-started/Configuration Reference.md#federation;
 # design and operation: docs/architecture/Federation.md
 federation:
   enabled: false                   # master switch (SAJHA_FEDERATION_ENABLED)
   require_approval: true           # newly discovered upstream tools wait for an administrator
-  allow_stdio: false               # stdio upstreams run as subprocesses of SAJHA: admin-only risk
+  allow_stdio: false               # stdio upstreams: admin-only risk; each runs in its own container (isolation)
+  container:                       # stdio upstreams in containers (per upstream: isolation, container: {...})
+    image: ""                      # default image; empty = sandbox.docker.image (per upstream container.image)
   allow_localhost: false           # SSRF guard: allow loopback upstream URLs
   allow_private_networks: false    # SSRF guard: allow RFC 1918 / ULA upstream URLs
   allowed_hosts: []                # fnmatch host patterns; empty = any host the guard allows

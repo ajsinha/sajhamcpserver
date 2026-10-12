@@ -27,7 +27,7 @@
   var callLog = (function () {
     var log = document.getElementById('askCallsLog'), count = document.getElementById('askCallsCount');
     var data = {}; try { data = JSON.parse(document.getElementById('askData').textContent) || {}; } catch (e) {}
-    var here = data.server_name || 'this server', rows = {}, total = 0, lastTurn = null, MAX = 300;
+    var here = data.server_name || _t('this server'), rows = {}, total = 0, lastTurn = null, MAX = 300;
     function serverOf(name) {
       var parts = String(name).split('__');
       if (parts.length >= 3) return { server: parts[0] + ' / ' + parts[1], kind: 'net', tool: parts.slice(2).join('__') };
@@ -47,7 +47,7 @@
     if (clearBtn) clearBtn.addEventListener('click', function () {
       if (!log) return;
       log.textContent = ''; rows = {}; total = 0; lastTurn = null;
-      count.textContent = 'No calls yet';
+      count.textContent = _t('No calls yet');
     });
     return {
       start: function (turn, id, name) {
@@ -55,7 +55,7 @@
         if (turn !== lastTurn) {
           lastTurn = turn;
           var sep = document.createElement('li'); sep.className = 'ask-call-turn';
-          sep.textContent = turn && turn.q ? turn.q : 'New question';
+          sep.textContent = turn && turn.q ? turn.q : _t('New question');
           add(sep);
         }
         var s = serverOf(name), li = document.createElement('li');
@@ -77,9 +77,9 @@
           li.classList.remove('is-local'); li.classList.add('is-net');
         }
         var st = li.querySelector('.ask-call-state');
-        if (ok === null) { li.classList.add('is-waiting'); st.textContent = 'waiting for you'; return; }
+        if (ok === null) { li.classList.add('is-waiting'); st.textContent = _t('waiting for you'); return; }
         li.classList.add(ok ? 'is-ok' : 'is-error');
-        st.textContent = (ok ? 'done' : 'failed') + (ms != null ? ' · ' + ms + ' ms' : '');
+        st.textContent = (ok ? _t('done') : _t('failed')) + (ms != null ? ' · ' + ms + ' ms' : '');
       }
     };
   })();
@@ -124,7 +124,7 @@
   var skyEl = $('askSky'), cv = $('askSkyCanvas'), S = C.sky(cv, GROUPS, D.prefixes);
   var LBL = {};
   GROUPS.forEach(function (g) { LBL[g[0]] = g[3] || g[0]; });
-  $('askSkyStats').textContent = (D.total || 0) + ' tools · ' + GROUPS.length + ' provider groups';
+  $('askSkyStats').textContent = _t('%(tools)s tools · %(groups)s provider groups', {tools: D.total || 0, groups: GROUPS.length});
   var ease = function (x) { return 1 - Math.pow(1 - Math.min(Math.max(x, 0), 1), 3); };
   // what the sky shows: the shortlist (lit stars), the chain (links + labels), the phase
   var sk = { short: {}, shortG: {}, litT: 0, chain: [], phase: 'idle' };
@@ -219,7 +219,7 @@
         S.result((wait ? '' : c.res.ok ? '✓ ' : '✕ ') + clip(c.res.text, S.W < 520 ? 30 : 46), c.star.x, c.ay, rp,
                  wait ? undefined : c.res.ok ? 'ok' : 'bad');
       } else {
-        S.result('running…', c.star.x, c.ay, reduce ? 1 : 0.55 + 0.35 * Math.sin(now / 160));
+        S.result(_t('running…'), c.star.x, c.ay, reduce ? 1 : 0.55 + 0.35 * Math.sin(now / 160));
       }
     });
   }
@@ -275,12 +275,12 @@
     var n = markMatches();
     if (err) {
       fIn.setAttribute('aria-invalid', 'true');
-      fMsg.textContent = 'no filter';
-      fErr.textContent = 'Not a valid regular expression: ' + String(err.message || err).replace(/^Invalid regular expression: /, '');
+      fMsg.textContent = _t('no filter');
+      fErr.textContent = _t('Not a valid regular expression: %(error)s', {error: String(err.message || err).replace(/^Invalid regular expression: /, '')});
     } else {
       fIn.removeAttribute('aria-invalid');
       fErr.textContent = '';
-      fMsg.textContent = flt.re ? n + ' of ' + S.stars.length + ' match' : '';
+      fMsg.textContent = flt.re ? _t('%(n)s of %(total)s match', {n: n, total: S.stars.length}) : '';
     }
     kick();
   }
@@ -341,7 +341,7 @@
     var aRow = el('div', 'ask-row ask-row-sajha');
     var av = el('div', 'ask-avatar'); av.setAttribute('aria-hidden', 'true'); av.appendChild(icon('stars'));
     var ab = el('div', 'ask-bubble ask-bubble-sajha');
-    ab.setAttribute('aria-label', 'SAJHA’s answer');
+    ab.setAttribute('aria-label', _t('SAJHA’s answer'));
     ['head', 'short', 'plan', 'chain', 'confirm', 'answer', 'cites', 'foot'].forEach(function (k) {
       var part = el('div', 'ask-part ask-' + k); part.setAttribute('data-part', k); ab.appendChild(part);
     });
@@ -359,7 +359,7 @@
     if (t.models.length) h.appendChild(el('span', 'ask-model-tag', t.models.join(', ')));
     if (t.confidence != null && !t.pending.length && !(t.connections || []).length) {      // a paused ask has no answer to score
       var b = el('span', 'ask-conf ask-conf-' + tone(t.confidence));
-      b.title = 'Confidence comes from the tool results the answer rests on (the composition framework), not from the model.';
+      b.title = _t('Confidence comes from the tool results the answer rests on (the composition framework), not from the model.');
       b.appendChild(el('span', 'ask-conf-l', 'confidence '));
       var v = el('span', 'ask-conf-v', t.confidence.toFixed(2)); v.setAttribute('data-v', t.confidence);
       b.appendChild(v);
@@ -389,7 +389,7 @@
     d.addEventListener('toggle', function () { t.open.short = d.open; save(); });
     var sum = el('summary');
     sum.appendChild(icon('funnel'));
-    sum.appendChild(document.createTextNode(' Considered ' + t.shortlist.length + ' tool' + (t.shortlist.length === 1 ? '' : 's')));
+    sum.appendChild(document.createTextNode(' ' + _nt('Considered %(num)s tool', 'Considered %(num)s tools', t.shortlist.length)));
     d.appendChild(sum);
     var ul = el('ul', 'ask-short-list');
     t.shortlist.forEach(function (x) {
@@ -411,7 +411,7 @@
     var shown = t.path.slice(-24).map(function (x) { return x.stage + (x.sub ? ' (' + x.planner + ')' : ''); });
     line.appendChild(document.createTextNode(' ' + (t.chosen ? t.chosen + ': ' : '') + (t.path.length > 24 ? '… → ' : '') +
       shown.join(' → ')));
-    if (t.exhausted) line.title = 'loop bound reached: ' + t.exhausted.join(', ');
+    if (t.exhausted) line.title = _t('loop bound reached: %(stages)s', {stages: t.exhausted.join(', ')});
     p.appendChild(line);
   }
   function paintPlan(t) {
@@ -424,8 +424,8 @@
     var sum = el('summary');
     sum.appendChild(icon('list-check'));
     var n = t.plan.steps.length;
-    sum.appendChild(document.createTextNode(' Plan: ' + n + ' step' + (n === 1 ? '' : 's') +
-      (t.plan.planner ? ' (' + t.plan.planner + (t.plan.revision ? ', revised' : '') + ')' : '')));
+    sum.appendChild(document.createTextNode(' ' + _nt('Plan: %(num)s step', 'Plan: %(num)s steps', n) +
+      (t.plan.planner ? ' (' + t.plan.planner + (t.plan.revision ? ', ' + _t('revised') : '') + ')' : '')));
     d.appendChild(sum);
     var ol = el('ol', 'ask-plan-list');
     ol.style.margin = '.35rem 0 0'; ol.style.paddingLeft = '1.4rem'; ol.style.fontSize = '.8rem';
@@ -451,7 +451,7 @@
   function paintChain(t) {
     var c = part(t, 'chain'); c.textContent = '';
     if (!t.steps.length) return;
-    var ol = el('ol', 'ask-steps'); ol.setAttribute('aria-label', 'Tool calls');
+    var ol = el('ol', 'ask-steps'); ol.setAttribute('aria-label', _t('Tool calls'));
     t.steps.forEach(function (st, i) {
       var li = el('li', 'ask-step is-' + stepState(st));
       var cited = t.citations.indexOf(st.id);
@@ -462,14 +462,14 @@
       var stIcon = { ok: 'check-circle-fill', bad: 'x-circle-fill', run: 'hourglass-split', wait: 'pause-circle-fill' }[stepState(st)];
       btn.appendChild(icon(stIcon));
       btn.appendChild(el('code', 'ask-step-name', st.name));
-      var meta = st.done ? (st.status === 'needs_confirmation' ? 'waiting for you'
-                            : st.status === 'needs_connection' ? 'needs your account'
+      var meta = st.done ? (st.status === 'needs_confirmation' ? _t('waiting for you')
+                            : st.status === 'needs_connection' ? _t('needs your account')
                             : (st.latency_ms != null ? st.latency_ms + ' ms' : ''))
-                         : 'running';
+                         : _t('running');
       if (meta) btn.appendChild(el('span', 'ask-step-meta', meta));
       if (cited >= 0) btn.appendChild(el('span', 'ask-cite-no', '[' + (cited + 1) + ']'));
       btn.appendChild(icon(open ? 'chevron-up' : 'chevron-down'));
-      var sr = el('span', 'visually-hidden', open ? ' (hide arguments and result)' : ' (show arguments and result)');
+      var sr = el('span', 'visually-hidden', ' ' + (open ? _t('(hide arguments and result)') : _t('(show arguments and result)')));
       btn.appendChild(sr);
       btn.addEventListener('click', function () {
         t.open[st.id] = !t.open[st.id]; save(); paintChain(t);
@@ -478,9 +478,9 @@
       li.appendChild(btn);
       if (st.done && st.summary) li.appendChild(el('div', 'ask-step-sum', clip(st.summary, 200)));
       var raw = el('div', 'ask-step-raw'); raw.id = rawId; raw.hidden = !open;
-      raw.appendChild(el('div', 'ask-raw-h', 'Arguments'));
+      raw.appendChild(el('div', 'ask-raw-h', _t('Arguments')));
       raw.appendChild(el('pre', '', pretty(st.arguments || {})));
-      raw.appendChild(el('div', 'ask-raw-h', 'Result' + (st.status && st.status !== 'ok' ? ' (' + st.status + ')' : '')));
+      raw.appendChild(el('div', 'ask-raw-h', _t('Result') + (st.status && st.status !== 'ok' ? ' (' + st.status + ')' : '')));
       raw.appendChild(el('pre', '', st.done ? pretty(st.summary || '') : '…'));
       li.appendChild(raw);
       ol.appendChild(li);
@@ -491,30 +491,29 @@
     var c = part(t, 'confirm'); c.textContent = '';
     t.pending.forEach(function (p) {
       var card = el('div', 'ask-confirm-card'); card.setAttribute('role', 'group');
-      card.setAttribute('aria-label', 'Confirm ' + p.name);
+      card.setAttribute('aria-label', _t('Confirm %(name)s', {name: p.name}));
       var h = el('div', 'ask-confirm-h'); h.appendChild(icon('shield-exclamation'));
-      h.appendChild(document.createTextNode(' Run '));
+      h.appendChild(document.createTextNode(' ' + _t('Run') + ' '));
       h.appendChild(el('code', '', p.name));
       h.appendChild(document.createTextNode('?'));
       card.appendChild(h);
-      card.appendChild(el('p', 'ask-confirm-why', 'This tool is marked destructive (it can change or delete data), so SAJHA has not run it. ' +
-        'Confirm to ask again with permission to run exactly this call.'));
+      card.appendChild(el('p', 'ask-confirm-why', _t('This tool is marked destructive (it can change or delete data), so SAJHA has not run it. Confirm to ask again with permission to run exactly this call.')));
       card.appendChild(el('pre', 'ask-confirm-args', pretty(p.arguments || {})));
       var dec = t.decisions[p.fingerprint];
       if (dec) {
-        card.appendChild(el('div', 'ask-confirm-done', dec === 'confirmed' ? 'Confirmed: the answer follows below.' : 'Cancelled: not run.'));
+        card.appendChild(el('div', 'ask-confirm-done', dec === 'confirmed' ? _t('Confirmed: the answer follows below.') : _t('Cancelled: not run.')));
       } else {
         var bar = el('div', 'ask-confirm-bar');
-        var yes = el('button', 'btn btn-sm btn-primary', 'Confirm and run'); yes.type = 'button';
-        var no = el('button', 'btn btn-sm btn-outline-secondary', 'Cancel'); no.type = 'button';
+        var yes = el('button', 'btn btn-sm btn-primary', _t('Confirm and run')); yes.type = 'button';
+        var no = el('button', 'btn btn-sm btn-outline-secondary', _t('Cancel')); no.type = 'button';
         yes.addEventListener('click', function () {
           if (busy) return;
           t.decisions[p.fingerprint] = 'confirmed'; save(); paintConfirm(t);
-          ask(t.q, { confirm: [p.fingerprint], note: 'Confirmed: run ' + p.name });
+          ask(t.q, { confirm: [p.fingerprint], note: _t('Confirmed: run %(name)s', {name: p.name}) });
         });
         no.addEventListener('click', function () {
           t.decisions[p.fingerprint] = 'cancelled'; save(); paintConfirm(t);
-          say('Cancelled. ' + p.name + ' was not run.'); input.focus();
+          say(_t('Cancelled. %(name)s was not run.', {name: p.name})); input.focus();
         });
         bar.appendChild(yes); bar.appendChild(no); card.appendChild(bar);
       }
@@ -523,26 +522,26 @@
     (t.connections || []).forEach(function (p) {
       // a connected-accounts tool and no usable link: send the user to link it, then ask again
       var card = el('div', 'ask-confirm-card ask-connect-card'); card.setAttribute('role', 'group');
-      card.setAttribute('aria-label', 'Connect ' + p.provider_title);
+      card.setAttribute('aria-label', _t('Connect %(provider)s', {provider: p.provider_title}));
       var h = el('div', 'ask-confirm-h'); h.appendChild(icon('link-45deg'));
-      h.appendChild(document.createTextNode(' Connect ' + p.provider_title));
+      h.appendChild(document.createTextNode(' ' + _t('Connect %(provider)s', {provider: p.provider_title})));
       card.appendChild(h);
       card.appendChild(el('p', 'ask-confirm-why', (p.reason === 'reauth_required'
-        ? p.provider_title + ' no longer accepts your linked account. '
-        : p.reason === 'insufficient_scope' ? 'Your linked ' + p.provider_title + ' account does not grant what ' + p.name + ' needs. '
-        : p.reason === 'sign_in_required' ? 'Connected accounts belong to signed-in users. '
-        : 'Your ' + p.provider_title + ' account is not linked yet. ') +
-        p.name + ' acts as you in ' + p.provider_title + '. Link it (it opens in a new tab), then ask again.'));
+        ? _t('%(provider)s no longer accepts your linked account.', {provider: p.provider_title})
+        : p.reason === 'insufficient_scope' ? _t('Your linked %(provider)s account does not grant what %(name)s needs.', {provider: p.provider_title, name: p.name})
+        : p.reason === 'sign_in_required' ? _t('Connected accounts belong to signed-in users.')
+        : _t('Your %(provider)s account is not linked yet.', {provider: p.provider_title})) + ' ' +
+        _t('%(name)s acts as you in %(provider)s. Link it (it opens in a new tab), then ask again.', {name: p.name, provider: p.provider_title})));
       var bar = el('div', 'ask-confirm-bar');
       if (p.reason !== 'sign_in_required') {
-        var go = el('a', 'btn btn-sm btn-primary', 'Connect ' + p.provider_title);
+        var go = el('a', 'btn btn-sm btn-primary', _t('Connect %(provider)s', {provider: p.provider_title}));
         go.href = p.connect_url; go.target = '_blank'; go.rel = 'noopener';
         bar.appendChild(go);
       }
-      var again = el('button', 'btn btn-sm btn-outline-secondary', 'I have connected it: ask again'); again.type = 'button';
+      var again = el('button', 'btn btn-sm btn-outline-secondary', _t('I have connected it: ask again')); again.type = 'button';
       again.addEventListener('click', function () {
         if (busy) return;
-        ask(t.q, { note: 'Connected ' + p.provider_title + ': asking again' });
+        ask(t.q, { note: _t('Connected %(provider)s: asking again', {provider: p.provider_title}) });
       });
       bar.appendChild(again); card.appendChild(bar);
       c.appendChild(card);
@@ -558,12 +557,12 @@
       var txt = el('span'); txt.textContent = ' ' + t.error.message;
       e.appendChild(txt);
       if (t.error.login) {
-        var link = el('a', '', 'Sign in again'); link.href = '/login';
+        var link = el('a', '', _t('Sign in again')); link.href = '/login';
         e.appendChild(document.createTextNode(' ')); e.appendChild(link);
       }
       a.appendChild(e);
     }
-    if (t.status === 'stopped') a.appendChild(el('div', 'ask-stopped', 'Stopped. The rest of this answer was not fetched.'));
+    if (t.status === 'stopped') a.appendChild(el('div', 'ask-stopped', _t('Stopped. The rest of this answer was not fetched.')));
   }
   function paintCites(t) {
     var c = part(t, 'cites'); c.textContent = '';
@@ -573,7 +572,7 @@
       return st ? [i + 1, st.name] : null;
     }).filter(Boolean);
     if (cited.length) {
-      var p = el('div', 'ask-sources'); p.appendChild(el('span', 'ask-sources-h', 'Sources'));
+      var p = el('div', 'ask-sources'); p.appendChild(el('span', 'ask-sources-h', _t('Sources')));
       cited.forEach(function (x) {
         var s = el('span', 'ask-source'); s.appendChild(el('span', 'ask-cite-no', '[' + x[0] + ']'));
         s.appendChild(el('code', '', x[1])); p.appendChild(s);
@@ -581,7 +580,7 @@
       c.appendChild(p);
     }
     if (t.caveats.length) {
-      var ul = el('ul', 'ask-caveats'); ul.setAttribute('aria-label', 'Caveats');
+      var ul = el('ul', 'ask-caveats'); ul.setAttribute('aria-label', _t('Caveats'));
       t.caveats.forEach(function (cv) { var li = el('li'); li.appendChild(icon('info-circle')); li.appendChild(document.createTextNode(' ' + cv)); ul.appendChild(li); });
       c.appendChild(ul);
     }
@@ -591,8 +590,8 @@
     if (t.status === 'running') return;
     var bits = [];
     if (t.duration_ms != null) bits.push((t.duration_ms / 1000).toFixed(2) + ' s');
-    if (t.usage && t.usage.total_tokens) bits.push(t.usage.total_tokens + ' tokens');
-    if (t.stopped_by && t.stopped_by !== 'answer') bits.push('stopped by ' + t.stopped_by.replace(/_/g, ' '));
+    if (t.usage && t.usage.total_tokens) bits.push(_t('%(n)s tokens', {n: t.usage.total_tokens}));
+    if (t.stopped_by && t.stopped_by !== 'answer') bits.push(_t('stopped by %(reason)s', {reason: t.stopped_by.replace(/_/g, ' ')}));
     if (bits.length) f.appendChild(el('span', '', bits.join(' · ')));
   }
   function paint(t, parts) {
@@ -614,24 +613,24 @@
         t.shortlist = (ev.tools || []).map(function (x) { return { name: x.name, score: x.score, description: x.description }; });
         paint(t, ['short']);
         skyShortlist(ev.tools, now);
-        setStatus(t.shortlist.length ? 'Considering ' + t.shortlist.length + ' tools' : 'No tools to offer', 'busy');
+        setStatus(t.shortlist.length ? _t('Considering %(n)s tools', {n: t.shortlist.length}) : _t('No tools to offer'), 'busy');
         break;
       case 'model':
         if (t.models.indexOf(ev.model) < 0) t.models.push(ev.model);
         if (/^mock\//.test(ev.model || '')) mockPill.hidden = false;
         paint(t, ['head']);
-        setStatus('Planning with ' + ev.model, 'busy');
+        setStatus(_t('Planning with %(model)s', {model: ev.model}), 'busy');
         break;
       case 'planner_chosen':
         if (!t.chosen) t.chosen = ev.planner;
-        else setStatus('Chose ' + ev.planner + (ev.by ? ': ' + ev.by : ''), 'busy');
+        else setStatus(_t('Chose %(planner)s', {planner: ev.planner}) + (ev.by ? ': ' + ev.by : ''), 'busy');
         t.top = t.top || ev.planner;
         break;
       case 'stage_start':
         t.path = t.path || [];
         t.path.push({ stage: ev.stage, planner: ev.planner, sub: !!(t.top && ev.planner !== t.top) });
         paint(t, ['plan']);
-        setStatus('Stage ' + ev.stage + ' (' + (ev.stage_type || '') + ')', 'busy');
+        setStatus(_t('Stage %(stage)s (%(type)s)', {stage: ev.stage, type: ev.stage_type || ''}), 'busy');
         break;
       case 'loop_exhausted':
         t.exhausted = (t.exhausted || []).concat([ev.edge]);
@@ -639,15 +638,15 @@
       case 'plan':
         t.plan = { planner: ev.planner || '', revision: ev.revision || 0, steps: ev.steps || [] };
         paint(t, ['plan']);
-        setStatus('Planned ' + t.plan.steps.length + ' step' + (t.plan.steps.length === 1 ? '' : 's'), 'busy');
+        setStatus(_nt('Planned %(num)s step', 'Planned %(num)s steps', t.plan.steps.length), 'busy');
         break;
       case 'tool_call':
         callLog.start(t, ev.id, ev.name);
         t.steps.push({ id: ev.id, name: ev.name, arguments: ev.arguments, done: false });
         paint(t, ['chain']);
         skyCall(ev.id, ev.name, now);
-        setStatus('Calling ' + ev.name, 'busy');
-        say('Calling ' + ev.name);
+        setStatus(_t('Calling %(name)s', {name: ev.name}), 'busy');
+        say(_t('Calling %(name)s', {name: ev.name}));
         break;
       case 'tool_result':
         t.steps.forEach(function (st) {
@@ -657,15 +656,15 @@
         });
         paint(t, ['chain', 'plan']);
         var waiting = t.steps.some(function (st) { return st.id === ev.id && (st.status === 'needs_confirmation' || st.status === 'needs_connection'); });
-        skyResult(ev.id, waiting ? null : !!ev.ok, waiting ? 'waiting for you' : ev.summary, now);
+        skyResult(ev.id, waiting ? null : !!ev.ok, waiting ? _t('waiting for you') : ev.summary, now);
         callLog.end(ev.id, waiting ? null : !!ev.ok, ev.latency_ms, ev.net);
-        if (!waiting) setStatus(ev.name + (ev.ok ? ' answered' : ' failed'), ev.ok ? 'busy' : 'bad');
+        if (!waiting) setStatus(ev.ok ? _t('%(name)s answered', {name: ev.name}) : _t('%(name)s failed', {name: ev.name}), ev.ok ? 'busy' : 'bad');
         break;
       case 'needs_confirmation':
         t.pending.push({ id: ev.id, name: ev.name, arguments: ev.arguments, fingerprint: ev.fingerprint, reason: ev.reason });
         t.steps.forEach(function (st) { if (st.id === ev.id) st.status = 'needs_confirmation'; });
         paint(t, ['confirm']);
-        setStatus(ev.name + ' needs your confirmation', 'wait');
+        setStatus(_t('%(name)s needs your confirmation', {name: ev.name}), 'wait');
         break;
       case 'needs_connection':
         t.connections = t.connections || [];
@@ -674,12 +673,12 @@
                                connect_url: ev.connect_url, reason: ev.reason });
         t.steps.forEach(function (st) { if (st.id === ev.id) st.status = 'needs_connection'; });
         paint(t, ['confirm']);
-        setStatus(ev.name + ' needs your ' + ev.provider_title + ' account', 'wait');
+        setStatus(_t('%(name)s needs your %(provider)s account', {name: ev.name, provider: ev.provider_title}), 'wait');
         break;
       case 'answer_delta':
         t.answer += ev.text || ''; t.answering = true;
         paint(t, ['answer']);
-        setStatus('Answering', 'busy');
+        setStatus(_t('Answering'), 'busy');
         break;
       case 'answer':
         t.answer = ev.text || ''; t.answering = false;
@@ -690,9 +689,9 @@
         paint(t, ['head']); countUp(t);
         break;
       case 'error':
-        t.error = { code: ev.code, message: ev.message || 'The question could not be answered.', login: !!ev.login };
+        t.error = { code: ev.code, message: ev.message || _t('The question could not be answered.'), login: !!ev.login };
         paint(t, ['answer']);
-        setStatus('Error', 'bad');
+        setStatus(_t('Error'), 'bad');
         break;
       case 'done':
         finishWith(t, ev.result);
@@ -721,13 +720,13 @@
     t.answering = false;
     paint(t);
     sk.phase = 'done';
-    if ((t.connections || []).length && !t.error) setStatus('Waiting for you to connect ' + t.connections.map(function (c) { return c.provider_title; }).join(', '), 'wait');
-    else if (t.pending.length && !t.error) setStatus('Waiting for your confirmation', 'wait');
-    else if (t.error) setStatus('Error', 'bad');
-    else setStatus('Answered' + (t.confidence != null ? ' · confidence ' + t.confidence.toFixed(2) : ''), 'done');
-    var msg = t.error ? 'Error: ' + t.error.message
-      : t.pending.length ? 'SAJHA needs your confirmation to run ' + t.pending.map(function (p) { return p.name; }).join(', ') + '.'
-      : 'Answer: ' + t.answer + (t.confidence != null ? ' Confidence ' + t.confidence.toFixed(2) + '.' : '');
+    if ((t.connections || []).length && !t.error) setStatus(_t('Waiting for you to connect %(providers)s', {providers: t.connections.map(function (c) { return c.provider_title; }).join(', ')}), 'wait');
+    else if (t.pending.length && !t.error) setStatus(_t('Waiting for your confirmation'), 'wait');
+    else if (t.error) setStatus(_t('Error'), 'bad');
+    else setStatus(_t('Answered') + (t.confidence != null ? ' · ' + _t('confidence %(value)s', {value: t.confidence.toFixed(2)}) : ''), 'done');
+    var msg = t.error ? _t('Error: %(message)s', {message: t.error.message})
+      : t.pending.length ? _t('SAJHA needs your confirmation to run %(names)s.', {names: t.pending.map(function (p) { return p.name; }).join(', ')})
+      : _t('Answer: %(answer)s', {answer: t.answer}) + (t.confidence != null ? ' ' + _t('Confidence %(value)s.', {value: t.confidence.toFixed(2)}) : '');
     say(msg);
     save();
     kick();
@@ -782,7 +781,7 @@
     paint(t);
     toBottom(true);
     if (narrow.matches) turnEl(t).scrollIntoView({ block: 'nearest', behavior: reduce ? 'auto' : 'smooth' });
-    skyReset(); setStatus('Finding tools for your question', 'busy');
+    skyReset(); setStatus(_t('Finding tools for your question'), 'busy');
     startBusy();
     var body = { question: q, conversation_id: sget(CKEY) || 'new' };
     if (model) body.model = model;
@@ -795,7 +794,7 @@
       body: JSON.stringify(body)
     }).then(function (r) {
       if (myGen !== gen) return;
-      if (r.status === 401) { gotDone = true; return fail(t, 'Your session has ended.', { login: true }); }
+      if (r.status === 401) { gotDone = true; return fail(t, _t('Your session has ended.'), { login: true }); }
       var ct = r.headers.get('content-type') || '';
       if (!r.ok || ct.indexOf('text/event-stream') < 0) {
         return r.json().catch(function () { return {}; }).then(function (j) {
@@ -812,9 +811,9 @@
           }
           if (r.status === 404 && j && j.error === 'conversation not found') {
             sdel(CKEY);               // expired or deleted: the next question starts a new conversation
-            return fail(t, 'This conversation is no longer kept on the server. Ask again to start a new one.');
+            return fail(t, _t('This conversation is no longer kept on the server. Ask again to start a new one.'));
           }
-          fail(t, (j && j.error) || ('The server answered ' + r.status + '.'));
+          fail(t, (j && j.error) || _t('The server answered %(status)s.', {status: r.status}));
           gotDone = true;
         });
       }
@@ -824,7 +823,7 @@
           if (myGen !== gen) { try { reader.cancel(); } catch (e) { /* gone */ } return; }
           if (x.done) {
             if (buf.trim()) { var last = parseSSE(buf.replace(/\r\n?/g, '\n')); if (last) { if (last.type === 'done') gotDone = true; enqueue(last); } }
-            if (!gotDone) fail(t, 'The connection closed before the answer was complete.');
+            if (!gotDone) fail(t, _t('The connection closed before the answer was complete.'));
             return;
           }
           buf += dec.decode(x.value, { stream: true }).replace(/\r\n?/g, '\n');
@@ -840,7 +839,7 @@
     }).catch(function (e) {
       if (myGen !== gen) return;
       if (e && e.name === 'AbortError') return;
-      fail(t, 'Could not reach the server (' + (e && e.message ? e.message : 'network error') + ').');
+      fail(t, _t('Could not reach the server (%(error)s).', {error: e && e.message ? e.message : _t('network error')}));
     });
   }
 
@@ -852,9 +851,9 @@
     queue = []; playing = false;
     var t = current;
     t.status = 'stopped'; t.answering = false;
-    t.steps.forEach(function (st) { if (!st.done) { st.done = true; st.ok = false; st.status = 'stopped'; st.summary = 'stopped before a result arrived'; } });
+    t.steps.forEach(function (st) { if (!st.done) { st.done = true; st.ok = false; st.status = 'stopped'; st.summary = _t('stopped before a result arrived'); } });
     paint(t); save();
-    sk.phase = 'done'; setStatus('Stopped', 'idle'); kick();
+    sk.phase = 'done'; setStatus(_t('Stopped'), 'idle'); kick();
     say('Stopped.');
     endBusy(); input.focus();
   }
@@ -880,8 +879,8 @@
     turns = []; sdel(KEY); sdel(CKEY);           // the next question starts a new conversation
     Array.prototype.forEach.call(logEl.querySelectorAll('.ask-turn'), function (a) { a.remove(); });
     emptyEl.hidden = false;
-    skyReset(); setStatus('Waiting for a question', 'idle');
-    say('New chat.'); input.focus();
+    skyReset(); setStatus(_t('Waiting for a question'), 'idle');
+    say(_t('New chat.')); input.focus();
   });
 
   // the model picker: aliases from the gateway (admins), or the enabled tool-capable models
@@ -896,7 +895,7 @@
     fetch('/api/ai/config', { credentials: 'same-origin' }).then(function (r) { return r.ok ? r.json() : null; }).then(function (j) {
       if (!j) return;
       var al = j.resolved_aliases || {};
-      modelSel.options[0].textContent = 'default' + (al['default'] ? ' · ' + al['default'] : '');
+      modelSel.options[0].textContent = _t('default') + (al['default'] ? ' · ' + al['default'] : '');
       Object.keys(al).forEach(function (k) { if (k !== 'default' && k !== 'embedding') addOption(k, k + ' · ' + al[k]); });
       mockPill.hidden = !j.mock_active;
       pickSaved();
@@ -923,9 +922,9 @@
     lt.steps.forEach(function (st) {
       skyCall(st.id, st.name, past);
       var held = st.status === 'needs_confirmation' || st.status === 'needs_connection';
-      if (st.done) skyResult(st.id, held ? null : !!st.ok, held ? 'waiting for you' : st.summary || '', past);
+      if (st.done) skyResult(st.id, held ? null : !!st.ok, held ? _t('waiting for you') : st.summary || '', past);
     });
-    setStatus(lt.status === 'done' ? 'Answered' + (lt.confidence != null ? ' · confidence ' + lt.confidence.toFixed(2) : '') : 'Waiting for a question',
+    setStatus(lt.status === 'done' ? _t('Answered') + (lt.confidence != null ? ' · ' + _t('confidence %(value)s', {value: lt.confidence.toFixed(2)}) : '') : _t('Waiting for a question'),
               lt.status === 'done' ? 'done' : 'idle');
     toBottom(true);
   }
@@ -949,7 +948,7 @@
           save(); sset(CKEY, c.id);
           Array.prototype.forEach.call(logEl.querySelectorAll('.ask-turn'), function (a) { a.remove(); });
           if (turns.length) emptyEl.hidden = true;
-          say('Continuing a saved conversation.');
+          say(_t('Continuing a saved conversation.'));
         }
         try { window.history.replaceState(null, '', window.location.pathname); } catch (e) { /* keep the URL */ }
         restore();

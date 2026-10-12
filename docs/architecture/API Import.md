@@ -134,7 +134,8 @@ whose `api_import.api_id` is its own.
   metadata). The connection is pinned to the vetted address (no DNS-rebinding window),
   TLS still verifies the real host name, proxies from the environment are not used, and a
   redirect is followed only for GET and only after the new URL passes the guard again
-  (at most 3). The checks run at deploy time and again on every call.
+  (at most 3); a redirect to another origin (scheme, host, port) does not carry the
+  `Authorization`, `Cookie` or `Proxy-Authorization` headers. The checks run at deploy time and again on every call.
 * **Credentials.** Each scheme the spec declares can be given credentials as
   **secret references** (`env:NAME`, `file:/path`, `db:llm_providers/<type>`), the same
   references federation and the LLM providers use. Resolved values are never written to a
@@ -146,7 +147,7 @@ whose `api_import.api_id` is its own.
   | HTTP bearer | `token_ref` |
   | HTTP basic | `username`, `password_ref` |
   | OAuth 2.0 client credentials | `token_url` (from the spec), `client_id`, `client_secret_ref`, `scope`; the token is cached until shortly before it expires and fetched again once on a 401 |
-  | Per-user OAuth (authorization code) | Bound to the caller's connected account when the connected-accounts feature is installed (`sajha.accounts`), detected at run time: the tool config carries `auth.connected_account` and the token is the calling user's. Without that feature, the scheme can only be satisfied with a static bearer token. |
+  | Per-user OAuth (authorization code) | Bound to the caller's connected account when the connected-accounts feature is installed (`sajha.accounts`), detected at run time: the tool config carries `auth.connected_account` and the token is the calling user's. The token goes only over https to one of the provider's `api_hosts` (http on a loopback api host, for tests): an operation whose base URL is elsewhere is a warning in the preview and refused on test call and deploy, and the executor checks every request's URL again before it adds the token. Without that feature, the scheme can only be satisfied with a static bearer token. |
 
   An operation is called with the first of its `security` alternatives whose schemes all
   have credentials. A scheme added by hand (for a spec that declares none, or for GraphQL)
@@ -262,7 +263,9 @@ its tools and the record.
   (`encoding.headers`) are not sent.
 * XML responses are returned as text; a binary response is returned as text too (decoded
   with replacement characters), not as a file.
-* Per-user OAuth needs the connected-accounts feature; otherwise use a static credential.
+* Per-user OAuth needs the connected-accounts feature; otherwise use a static credential. A
+  [provider pack](Connected%20Accounts.md#11-provider-packs) installs an import of a bundled spec
+  together with the provider its tools act through, after one review.
 * Following pages is for GET operations only, one call at a time (each page is read up to
   `api_import.max_response_bytes`); GraphQL connections (`pageInfo`) are not followed.
 * `file_roots` grants by folder, not by file: there is no per-file ownership check beyond

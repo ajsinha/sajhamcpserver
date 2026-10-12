@@ -38,6 +38,9 @@ templates = Jinja2Templates(directory=os.path.join(_web_dir, 'templates'))
 # Inline <script> elements carry nonce="{{ csp_nonce() }}" (the response's CSP nonce, sajha/security.py)
 from sajha.security import csp_nonce as _csp_nonce
 templates.env.globals['csp_nonce'] = _csp_nonce
+# Console languages: {{ _('...') }} / {% trans %} looked up in sajha/web/locale (sajha/web/i18n.py)
+from sajha.web import i18n as _i18n
+_i18n.install(templates.env)
 
 
 def _tools_dir() -> str:
@@ -281,6 +284,9 @@ class SajhaMCPServerWebApp:
         from sajha.routes.conversations_routes import router as conversations_router
         from sajha.routes.sajhanet_routes import router as sajhanet_router
         from sajha.routes.sso_routes import router as sso_router
+        from sajha.routes.plugin_catalog_routes import router as plugin_catalog_router
+        from sajha.routes.packs_routes import router as packs_router
+        from sajha.routes.planner_routing_routes import router as planner_routing_router
 
         routers = [
             credential_files_router,   # before apikeys/admin: /admin/apikeys/file, /admin/users/file
@@ -310,6 +316,9 @@ class SajhaMCPServerWebApp:
             conversations_router,
             sajhanet_router,
             sso_router,
+            plugin_catalog_router,
+            packs_router,
+            planner_routing_router,
         ]
 
         for router in routers:
@@ -459,7 +468,7 @@ class SajhaMCPServerWebApp:
             'topic_href': help_catalog.href,
             'guide_url': guides.guide_url,
             'page_help_for': lambda request, key=None: page_help.page_help(
-                key or page_help.endpoint_of(request)),
+                key or page_help.endpoint_of(request), gettext=_i18n.gettext_for(request)),
             # Banner in common/base.html until a default / admin-set password is changed
             'password_change_required': _password_change_required,
             # Python Playground menu entry and dashboard action (playground.enabled)
@@ -809,6 +818,11 @@ class SajhaMCPServerWebApp:
             _gw2 = _get_gw2()
             _rag = init_doc_index(getattr(getattr(_gw2, 'settings', None), 'rag', None), _gw2)
             logger.info(f'  RAG: {"document index " + ("building in background" if _rag.settings.build_on_start else "builds on first search") + ", store=" + _rag.store.name if _rag else "off (ai.rag.enabled: false)"}')
+            # documents read through users' connected accounts, one index per user (ai.rag.accounts)
+            from sajha.ai.rag.personal import init_personal_index
+            _mine = init_personal_index(getattr(getattr(_gw2, 'settings', None), 'rag', None), _gw2)
+            if _mine is not None:
+                logger.info(f'  RAG: {len(_mine.cfg.sources)} connected-account document source(s), store={_mine.store.name}')
         except Exception as e:
             logger.warning(f'  RAG: unavailable ({e})', exc_info=True)
 

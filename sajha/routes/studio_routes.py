@@ -63,7 +63,7 @@ def _version() -> str:
         from sajha.core.config import get_settings
         return get_settings().app_version
     except Exception:
-        return '8.12.0'
+        return '8.13.0'
 
 
 def _registry():

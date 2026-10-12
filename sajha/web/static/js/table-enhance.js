@@ -36,15 +36,15 @@
             <div class="flex-grow-1">
                 <div class="input-group input-group-sm" style="max-width:350px">
                     <span class="input-group-text"><i class="bi bi-search"></i></span>
-                    <input type="text" class="form-control" placeholder="Search in table..." data-role="table-search">
-                    <button class="btn btn-outline-secondary" type="button" data-role="table-clear" title="Clear"><i class="bi bi-x-lg"></i></button>
+                    <input type="text" class="form-control" placeholder="${_t('Search in table...')}" data-role="table-search">
+                    <button class="btn btn-outline-secondary" type="button" data-role="table-clear" title="${_t('Clear')}"><i class="bi bi-x-lg"></i></button>
                 </div>
             </div>
             <div class="d-flex align-items-center gap-2">
-                <label class="form-label mb-0 small text-muted">Show</label>
+                <label class="form-label mb-0 small text-muted">${_t('Show')}</label>
                 <select class="form-select form-select-sm" style="width:auto" data-role="table-pagesize">
                     ${sizes.map(s => `<option value="${s}" ${s===rowsPerPage?'selected':''}>${s}</option>`).join('')}
-                    <option value="0">All</option>
+                    <option value="0">${_t('All')}</option>
                 </select>
                 <span class="small text-muted" data-role="table-count"></span>
             </div>
@@ -95,8 +95,8 @@
             filteredRows.slice(start, end).forEach(r => r.style.display = '');
 
             // Update count
-            countSpan.textContent = `${total} of ${allRows.length}`;
-            infoSpan.textContent = total > 0 ? `Showing ${start+1}–${Math.min(end, total)} of ${total}` : 'No results';
+            countSpan.textContent = _t('%(n)s of %(total)s', {n: total, total: allRows.length});
+            infoSpan.textContent = total > 0 ? _t('Showing %(from)s–%(to)s of %(total)s', {from: start + 1, to: Math.min(end, total), total: total}) : _t('No results');
 
             // Pagination
             paginationUl.innerHTML = '';

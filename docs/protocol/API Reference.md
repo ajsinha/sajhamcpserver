@@ -407,6 +407,9 @@ curl -X POST http://localhost:3002/api/composite-tools \
 | POST | `/api/ai/docs/reindex` | admin | Re-sync the index now; `{"force": true}` re-embeds everything. |
 | POST | `/api/ai/docs/uploads` | admin | Add a document: `{"filename", "content"}` (UTF-8 `.md`, `.markdown`, `.txt`, `.rst`, `.html`, `.htm`), or `{"filename", "content_base64"}` for `.pdf` (needs `pypdf`) and `.docx` (needs `python-docx`); 201. A missing reader answers 400 naming the package. |
 | DELETE | `/api/ai/docs/uploads/{filename}` | admin | Remove an uploaded document from storage and the index. |
+| GET | `/api/ai/docs/mine` | user (signed in) | The caller's connected-account document sources (`ai.rag.accounts.sources`): linked or not, documents indexed, last sync; the OCR engine. 503 when no sources are configured; 403 for API keys. |
+| POST | `/api/ai/docs/mine/sync` | user (signed in) | Sync the caller's sources in the background: `sources` (some names), `force` (re-read every file); 202 with `syncing`. |
+| POST | `/api/ai/docs/mine/search` | user (signed in) | Search the caller's own documents: `query` (required), `top_k`, `source`. Passages with citations, and `syncing` (stale sources whose sync it started). |
 
 ```bash
 curl -X POST http://localhost:3002/api/ai/resolve-tool \
@@ -456,10 +459,17 @@ curl -X POST http://localhost:3002/api/ai/complete \
 
 | Method | Path | Auth | Purpose |
 |---|---|---|---|
-| GET | `/api/plugins` | admin | Plugins and status. |
+| GET | `/api/plugins` | admin | Plugins and status, each with its signature verdict (`signature`, `publisher`). |
 | POST | `/api/plugins/discover` | admin | Scan for plugin manifests. |
 | POST | `/api/plugins/{name}/load` | admin | Load a plugin. |
 | POST | `/api/plugins/{name}/unload` | admin | Unload a plugin. |
+| GET | `/admin/plugins/catalog` | admin | The Plugin catalog page (`?review=<id>` shows one review) ([Security Model](../security/Security%20Model.md#plugins)). |
+| POST | `/admin/plugins/catalog/review` | admin (form, CSRF) | `source`, `ref`: fetch, verify and keep a review of a trusted package; redirects to it. |
+| POST | `/admin/plugins/catalog/install` | admin (form, CSRF) | `review`, `hash`, `approve`, `replace`: install the reviewed package through the gate. |
+| GET | `/api/plugins/catalog` | admin | `{sources, packages, errors, trusted_publishers, crypto, allow_unsigned}`: every package with its signature verdict and installed version. |
+| POST | `/api/plugins/catalog/review` | admin (CSRF) | `{"source", "ref"}` → the review (`id`, `hash`, `manifest`, `signature`, `files`); 409 when the package is not trusted. |
+| POST | `/api/plugins/catalog/install` | admin (CSRF) | `{"review", "hash", "approve": true, "replace"?}` → the install; 403 refused by policy, 409 a precondition (approval, hash, changed package, name taken, second approval needed). |
+| GET | `/api/plugins/catalog/reviews/{id}` | admin | One review. |
 
 **Entropy guard, cache, circuits, providers, replay**
 
@@ -579,6 +589,22 @@ in [API Import](../architecture/API%20Import.md)). Every body is the import requ
 | GET | `/api/studio/api-import/apis/{api_id}` | studio:api_import | An import's saved request, to re-import it. |
 | POST | `/admin/studio/api-import/delete` | studio:api_import | `{"api_id"}`: remove the import's tools and its record. |
 
+Provider packs (`packs_routes.py`, prefix `/api/admin/packs`; design in
+[Connected Accounts §11](../architecture/Connected%20Accounts.md#11-provider-packs)). The install inputs
+are `client_id`, `client_secret_ref` (a reference: `env:NAME`, `file:/path`, `db:...`), `tenant` and
+`redirect_uri`, as the pack asks; a cookie session sends `X-CSRF-Token` on POST. A refusal is
+`{"success": false, "error"}` with 400, 403 (CSRF, or the policy engine), 404 (no such pack or not
+installed) or 409 (plan errors, a changed plan with the current `hash`, a second approval pending with
+`approval_id`).
+
+| Method | Path | Auth | Purpose |
+|---|---|---|---|
+| GET | `/api/admin/packs` | admin | `{packs, problems}`: every pack (id, title, version, provider, prefix, operations, licence and source, `installed`, `upgrade`) and the folders that are not valid packs. |
+| GET | `/api/admin/packs/{pack_id}` | admin | One pack: summary, the provider preset, the licence text, the install record. |
+| POST | `/api/admin/packs/{pack_id}/plan` | admin (CSRF) | The install inputs → the plan: the provider as it would be built (with the redirect URI to register), each operation as API Import plans it, `errors`, `warnings`, `policy` and the review `hash`. Writes nothing. |
+| POST | `/api/admin/packs/{pack_id}/install` | admin (CSRF) | The inputs plus `hash` and `approve: true` → the preset saved and the operations deployed; `{record, import, message}`. |
+| POST | `/api/admin/packs/{pack_id}/uninstall` | admin (CSRF) | Remove the pack's tools and the preset it created. |
+
 Describe a tool (`describe_routes.py`, served through `studio_routes.py`'s router; prefixes
 `/studio`, `/admin/studio/describe` and `/api/studio/describe`; design in
 [Tool Generation](../architecture/Tool%20Generation.md)). Each answer is the draft
@@ -638,7 +664,7 @@ These render templates; they are not JSON APIs. Unauthenticated requests to `use
 |---|---|
 | none / optional | `/`, `/login`, `/help`, `/help/c/{cid}`, `/help/guides`, `/help/guides/{name}`, `/glossary`, `/help/tools`, `/about`, `/comparison`, `/oauth/authorize`; and the 301 redirects `/help/ai`, `/help/enterprise`, `/help/tutorials`, `/help/glossary`, `/help/storage`, `/docs`, `/docs/view/{doc_path}` |
 | user | `/dashboard`, `/account/password`, `/account/apikeys`, `/tools` (`?domain=<name>` preselects a tool domain; `unfiled` for the root), `/tools/domains` (one card per tool domain with the caller's visible tool count), `/tools/{tool_name}/execute`, `/tools/{tool_name}/schema`, `/prompts`, `/prompts/{prompt_name}`, `/prompts/{prompt_name}/test`, `/prompts/category/{category}`, `/prompts/tag/{tag}`, `/reports` (Usage), `/reports/library` (the reports you may run), `/reports/library/{name}` (one report: parameters, runs, files), `/composite/builder`, `/ai/settings`, `/ask`, `/conversations`, `/playground`, `/monitoring/usage`, `/net/instances`, `/net/instances/this`, `/net/instances/{net}/{instance}`, `/net/access` |
-| admin | `/admin/users`, `/admin/users/create`, `/admin/tools`, `/admin/system-monitor`, `/admin/prompts`, `/admin/async-tasks`, `/admin/apikeys`, `/admin/apikeys/create`, `/admin/apikeys/{key_id}/view`, `/admin/federation`, `/admin/sajhanet`, `/admin/sajhanet/overview`, `/admin/sajhanet/tools`, `/admin/connectors`, `/prompts/create`, `/tools/{tool_name}/config`, `/monitoring/tools`, `/monitoring/users` |
+| admin | `/admin/users`, `/admin/users/create`, `/admin/tools`, `/admin/system-monitor`, `/admin/prompts`, `/admin/async-tasks`, `/admin/apikeys`, `/admin/apikeys/create`, `/admin/apikeys/{key_id}/view`, `/admin/federation`, `/admin/sajhanet`, `/admin/sajhanet/overview`, `/admin/sajhanet/tools`, `/admin/sajhanet/reviews`, `/admin/sajhanet/users`, `/admin/sajhanet/blocks`, `/admin/sajhanet/keys`, `/admin/sajhanet/snapshots`, `/admin/sajhanet/activity`, `/admin/sajhanet/certificates`, `/admin/sajhanet/settings`, `/admin/sajhanet/sponsored`, `/admin/sajhanet/changes`, `/admin/connectors`, `/prompts/create`, `/tools/{tool_name}/config`, `/monitoring/tools`, `/monitoring/users` |
 | studio | `/studio`, `/studio/rest`, `/studio/dbquery`, `/studio/script`, `/studio/livelink`, `/studio/olap`, `/studio/powerbi`, `/studio/powerbidax`, `/studio/sharepoint`, `/studio/examples`, `/studio/api-import`, `/studio/describe`, `/studio/llm` (each needs its creator's permission) |
 | admin (Studio) | `/studio/planners`, `/studio/json` |
 
@@ -775,6 +801,28 @@ state changes. Behaviour: [Tool Quality](../architecture/Tool%20Quality.md).
 | POST | `/api/quality/versions/{tool}/promote` | admin (CSRF) | `{"version"}`: make it stable and clear its rollback. |
 | DELETE | `/api/quality/versions/{tool}/rollback/{version}` | admin (CSRF) | Clear an automatic rollback. |
 
+#### Planner routing (`planner_routing_routes.py`)
+
+Planners ranked from results, proposals approved by a person, versions, rollback and the online
+bandit's kill switch. Admin only; CSRF as above. Behaviour:
+[LLM Tools](../architecture/LLM%20Tools.md#913-automatic-planner-selection) §9.13.
+
+| Method | Path | Auth | Purpose |
+|---|---|---|---|
+| GET | `/admin/planner-routing` | admin | The Planner routing page (`?proposal=<id>` opens one). |
+| POST | `/admin/planner-routing/learn` | admin (form, CSRF) | Rank planners now and write a proposal. |
+| POST | `/admin/planner-routing/{id}/approve` | admin (form, CSRF) | `hash` (the reviewed one), `approve`, `note`: the rules become a new active version. |
+| POST | `/admin/planner-routing/{id}/reject` | admin (form, CSRF) | `reason`. |
+| POST | `/admin/planner-routing/activate` | admin (form, CSRF) | `version` (`0`: no rules), `reason`: roll back or forward. |
+| POST | `/admin/planner-routing/bandit` | admin (form, CSRF) | `action`: `stop` (set the kill switch), `resume`, `reset` (clear the statistics). |
+| GET | `/api/ai/planner-routing` | admin | `{settings, dir, active, rules, versions, history, proposals, bandit}`. |
+| GET | `/api/ai/planner-routing/proposals/{id}` | admin | One proposal: rules with their evidence, `diff`, `hash`, `status`. |
+| POST | `/api/ai/planner-routing/learn` | admin (CSRF) | → `{success, notice, doc}` (the proposal). |
+| POST | `/api/ai/planner-routing/proposals/{id}/approve` | admin (CSRF) | `{"hash", "approve": true, "note"?}`; 409 for another hash, a decided or empty proposal, or a pending second approval (`approval_id`); 403 when the policy engine denies. |
+| POST | `/api/ai/planner-routing/proposals/{id}/reject` | admin (CSRF) | `{"reason"?}`. |
+| POST | `/api/ai/planner-routing/activate` | admin (CSRF) | `{"version", "reason"?}`; 404 for an unknown version. |
+| POST | `/api/ai/planner-routing/bandit` | admin (CSRF) | `{"action": "stop" or "resume" or "reset"}`. |
+
 ### 4.20 Workflows (`workflow_routes.py`)
 
 Workflow definitions, runs and inbound webhooks. Signed-in users manage their own
@@ -887,9 +935,12 @@ normal port: the paths, bodies, signatures and refusals are specified, not repea
 is not in, for a browser navigation (`Sec-Fetch-Mode: navigate`), and on the paths of features it
 does not offer; its responses never carry CORS headers. Requests are signed by participants, not
 authenticated by session or API key. Served today: gossip ping and ping-req, membership sync and
-leave, the revocation list, the catalog and conflicts endpoints, the token endpoint
+leave, the revocation list, the catalog and conflicts endpoints, the key directory and blocks, visibility
+(`POST /sajhanet/v1/catalog/visibility`, protocol §10.5) where a key directory runs, the token endpoint
 (`POST /sajhanet/v1/token`, protocol §15.9) in nets where this server accepts the `token_exchange`
-identity, and on the CA instance enrollment and renewal. A participant this server sponsors (kind
+identity, and on the CA instance enrollment and renewal. With `sajhanet.mtls: require`, a net request here
+or at `/mcp` without a verified TLS client certificate matching its signing certificate gets an unsigned
+`401` (`certificate_invalid`). A participant this server sponsors (kind
 `sponsored`) shares its URL: a request whose `Sajha-Net-To` names it is served by its node.
 
 **Admin API.** Admin only; every change is written to the audit log. Errors are
@@ -902,7 +953,7 @@ not answer (with `reason`), 503 SAJHA Net is off.
 |---|---|---|---|
 | GET | `/admin/sajhanet` | admin | The SAJHA Net page: each net, this server's name and certificate there, joined or not, the members and their states; add a peer by address; runtime seeds with Remove; the admission panel (open mode: the remembered first-use keys with Forget; manual mode: the pins, add and remove; `builtin_ca`: the CA's issued certificates with Revoke, waiting enrollment tokens, Create token, and Initialise when the CA has no key yet), each change confirmed first; identity and access (blocks here and published by others, add and remove a block, remote users, the key directory and a re-sync). |
 | GET | `/net/instances` | user | The Instances page: every participant of this server's nets, this server first (a net of one when SAJHA Net is off or nobody else has joined), with kind, vendor, region, labels, state, last seen and how many of its tools the signed-in user may use here; search and filters. Read-only. |
-| GET | `/net/instances/{net}/{instance}` | user | One participant's tools offered to the signed-in user (this server: its own tools): name, qualified name, alias, description, inputs, outputs, health, latency, and a Try it link to `/tools/{name}/execute`. 404 for a participant this server does not know. `/net/instances/this` shows this server's entry in its first net. |
+| GET | `/net/instances/{net}/{instance}` | user | One participant's tools offered to the signed-in user (this server: its own tools): name, qualified name, alias, description, inputs, outputs, health, latency, and a Try it link to `/tools/{name}/execute`. 404 for a participant this server does not know. `/net/instances/this` shows this server's entry in its first net. For an administrator and another member, `?tab=traffic\|users\|keys\|blocks\|history` opens its other tabs (the detail route below). |
 | GET | `/api/sajhanet/instances` | user | The Instances page as JSON: `{enabled, nets: [{net, instance, networked, single_member, state, instances: [{net, name, kind, vendor, region, labels, state, last_seen, url, self, networked, tools_total, tools_usable, note}]}]}`. |
 | GET | `/api/sajhanet/instances/{net}/{instance}` | user | One participant and the tools it offers the caller (`{net, instance, tools: [{name, qualified_name, alias, description, inputs, outputs, state, version, latency_ms, try_it}]}`); 404 when unknown. |
 | GET | `/admin/sajhanet/tools` | admin | The Remote tools page: the host and tool table with filters (net, host, state, trust), Approve and Withdraw for tools under `review` trust (the approve API below), each tool's data classes, and the contract conflicts with every offer and description warnings. |
@@ -946,6 +997,37 @@ not answer (with `reason`), 503 SAJHA Net is off.
 | GET | `/api/sajhanet/nets/{net}/pins` | admin | Manual mode: `{net, admission, configured, runtime}`, the pinned thumbprints from configuration and those added with `POST .../pins`. 404 for a net this server is not configured for. |
 | GET | `/net/access` | user | The Net access page: every remote tool by name, the hosts offering it in resolution order with their state, and which of them this server lets the signed-in user call (Try it); this server's own tool count. Read-only. |
 | GET | `/api/sajhanet/access` | user | The Net access page as JSON: `{enabled, local_total, local_usable, nets: [{net, instance, usable, listed, tools: [{name, alias, local, usable_hosts, hosts: [{instance, qualified_name, state, member_state, usable, try_it, order}]}]}]}`. |
+| GET | `/admin/sajhanet/reviews` | admin | Conflicts and reviews (`?net=`): contract conflicts, tools held for review (Approve, Reject, Approve selected), name conflicts, description differences, refused own tool names, flagged catalogs ([SAJHA Net](../architecture/SAJHA%20Net.md) §17.1). |
+| GET | `/admin/sajhanet/users` | admin | Users across the net (`?net=`): per other instance its users seen and how each resolved, links, role map, name matching; link, unlink, block a user. |
+| GET | `/admin/sajhanet/blocks` | admin | Access and blocks (`?net=`): the access matrix, the blocks set here and those published by others; add and remove blocks. |
+| GET | `/admin/sajhanet/keys` | admin | The key directory (`?net=`, `?home=`): records per home and one home's records; Re-sync now. |
+| GET | `/admin/sajhanet/snapshots` | admin | The retained snapshots with chain and signature status; compare, download, restore. |
+| GET | `/admin/sajhanet/activity` | admin | Live activity (`?net=`, `?trace=` for one call's records): cross-instance calls from the audit chain, refreshed every 5 seconds. |
+| GET | `/admin/sajhanet/certificates` | admin | This server's certificate per net; on the CA instance issued certificates (Revoke, Re-issue), Create token, waiting tokens, the revocation list. |
+| GET | `/admin/sajhanet/settings` | admin | Net settings: the nets in preference order, names, seeds and runtime seeds, gossip health, routing preferences, user defaults. |
+| GET | `/admin/sajhanet/sponsored` | admin | Sponsored servers: list, sponsor, stop sponsoring, enroll. |
+| GET | `/admin/sajhanet/changes` | admin | The change history of a net (`?net=`) with Undo. |
+| GET | `/api/sajhanet/reviews` | admin | The conflicts and reviews queue as JSON (`?net=`): `{enabled, nets, net, items: [{kind: conflict\|held\|name\|description\|refused\|flagged, severity, tool, ...}], counts}`. |
+| GET | `/api/sajhanet/nets/{net}/users/by-instance` | admin | Users across the net as JSON: `{available, instances: [{instance, seen, links, name_matching, role_map}], defaults}`. |
+| GET | `/api/sajhanet/nets/{net}/access-matrix` | admin | `{instance, instances, matrix: [{caller, cells: [{host, state, by}]}], mine, published, members}`; `state` is `allowed`, `blocked`, `inbound`, `outbound`, `partial` or `self`. |
+| GET | `/api/sajhanet/nets/{net}/instances/{instance}/detail` | admin | One member's tabs: `member`, `tools_in`, `tools_out`, `trust`, `traffic` (`to`, `from`, `outcomes`, `latency_p50_ms`, `recent`), `users`, `keys`, `blocks` (`mine`, `theirs`), `history`. |
+| GET | `/api/sajhanet/activity` | admin | Cross-instance calls, newest first: `?net=&instance=&user=&tool=&outcome=ok\|refused&since=<ts>&limit=`; `{calls: [{at, from, to, side, tool, outcome, ok, attempt, user, trace_id}], newest, members}`. |
+| GET | `/api/sajhanet/activity/trace/{trace_id}` | admin | This server's `net.*` audit records of one call and, per other instance, the address of its Live activity page for the same trace. |
+| GET | `/api/sajhanet/certificates` | admin | Per net: this server's certificate and, on the CA instance, `ca` with `issued` (each `revoked` or not), `pending_tokens` and `revocation_list`. |
+| GET | `/api/sajhanet/settings` | admin | Per net: name, region, labels, URL, admission, certificate, seeds, runtime seeds, gossip health, `default_name`; `routing` (preferences with `matches` per entry, fallbacks, aliases, strategy, default trust, hops) and user `defaults`. |
+| GET | `/api/sajhanet/nets/{net}/blast-radius` | admin | What a change would take away, before it is made: `?kind=block_add&level=...&target_instance=...` (also `tool`, `user`, `direction`, `instance`, `peer`, `trust`, `remote_user`; kinds `block_add`, `block_remove`, `revoke`, `sponsor_remove`, `forget_key`, `unlink`, `trust`, `unapprove`): `{remote_users, remote_tools, local_users, local_tools, words}`. |
+| GET | `/api/sajhanet/nets/{net}/changes` | admin | The net's change history, newest first (`?instance=`, `?limit=`): `{changes: [{id, at, by, kind, target, summary, reason, undo, final, undo_of, undone_at, undone_by, undo_reason}]}`. 503 with SAJHA Net off. |
+| POST | `/api/sajhanet/nets/{net}/changes/{id}/undo` | admin | `{"reason"}` (required): apply the change's inverse as a new change. 404 unknown, 409 already undone or final. |
+| GET | `/api/sajhanet/snapshots` | admin | `{status, snapshots: [{name, seq, created, size, sections, chain, signature, problems}], ok, problems, notes}`. |
+| GET | `/api/sajhanet/snapshots/diff` | admin | `?a=&b=` (names, `latest`, `previous`): `{a, b, diff, lines}`. |
+| GET | `/api/sajhanet/snapshots/{name}/download` | admin | The snapshot file (audited as `snapshot.downloaded`). |
+| POST | `/api/sajhanet/snapshots/{name}/restore` | admin | `{"dry_run": true}` plans; `{"confirm": "<name>", "reason", "keys"?}` restores the roles, users and persistent key records the verified snapshot holds and the database lacks (audited as `snapshot.restored`). 409 when it does not verify. |
+
+**Changes.** Every changing SAJHA Net admin route above (peers, seeds, CA, enrollment, renewal, pins, blocks,
+links, role maps, name matching, key re-sync, trust, approvals, sponsoring) takes an optional `"reason"` in its
+body, is kept in the net's change history (the `changes` routes above; [SAJHA Net](../architecture/SAJHA%20Net.md)
+§17.1) and, from a console session (a cookie), needs the page's CSRF token in `X-CSRF-Token` (403 without it);
+API keys and bearer tokens need none.
 
 The block, link, role-map and name-matching changes refuse (403) a caller that arrived through the
 net (`auth_type` `sajhanet`): net settings are changed only by an administrator signed in to this

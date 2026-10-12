@@ -3,10 +3,10 @@
 Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.com
 SAJHA MCP Server — Sign in (MAYA's sign-in page: a white card standing on the theme's gradient)
 -->
-<html lang="en" data-bs-theme="light">
+<html lang="{{ console_lang() if console_lang is defined else 'en' }}" data-bs-theme="light">
 <head>
     <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-    <title>Sign In — SAJHA MCP Server</title>
+    <title>{{ _('Sign In') }} — SAJHA MCP Server</title>
     <link rel="icon" href="{{ url_for('static', filename='favicon.svg') }}?v={{ app_version }}" type="image/svg+xml">
     {% include "common/_theme_init.html" %}
     <link href="{{ url_for('static', filename='vendor/bootstrap/bootstrap.min.css') }}" rel="stylesheet">
@@ -44,35 +44,35 @@ SAJHA MCP Server — Sign in (MAYA's sign-in page: a white card standing on the 
         <div class="text-center mb-4 sajha-hero">
             <svg class="login-mark" aria-hidden="true"><use href="#icon-sajha"/></svg>
             <div class="login-name">SAJHA</div>
-            <div class="small-muted">MCP Server v{{ app_version }} — Sign in to continue</div>
+            <div class="small-muted">MCP Server v{{ app_version }} — {{ _('Sign in to continue') }}</div>
         </div>
         <div class="card login-card"><div class="card-body">
-            <h1 class="h3"><i class="bi bi-lock me-2" aria-hidden="true"></i>Sign In</h1>
-            {% if error %}<div class="alert alert-danger py-2 d-flex align-items-center gap-2" role="alert"><i class="bi bi-exclamation-triangle-fill" aria-hidden="true"></i> {{ error }}</div>{% endif %}
+            <h1 class="h3"><i class="bi bi-lock me-2" aria-hidden="true"></i>{{ _('Sign In') }}</h1>
+            {% if error %}<div class="alert alert-danger py-2 d-flex align-items-center gap-2" role="alert"><i class="bi bi-exclamation-triangle-fill" aria-hidden="true"></i> {{ tr(error) }}</div>{% endif %}
             {% if sso and sso.enabled %}
-            <a class="btn btn-outline-primary w-100 py-2 mb-3" href="{{ sso.login_url }}{% if next and next != '/dashboard' %}?next={{ next|urlencode }}{% endif %}"><i class="bi bi-shield-lock me-2" aria-hidden="true"></i>Sign in with {{ sso.label }}</a>
-            <div class="text-center small-muted mb-3">or with your SAJHA user ID</div>
+            <a class="btn btn-outline-primary w-100 py-2 mb-3" href="{{ sso.login_url }}{% if next and next != '/dashboard' %}?next={{ next|urlencode }}{% endif %}"><i class="bi bi-shield-lock me-2" aria-hidden="true"></i>{{ _('Sign in with %(provider)s', provider=sso.label) }}</a>
+            <div class="text-center small-muted mb-3">{{ _('or with your SAJHA user ID') }}</div>
             {% endif %}
             <form method="POST" action="/login{% if next and next != '/dashboard' %}?next={{ next|urlencode }}{% endif %}">
-                <div class="mb-3"><label class="form-label" for="user_id">User ID</label>
+                <div class="mb-3"><label class="form-label" for="user_id">{{ _('User ID') }}</label>
                     <div class="input-group"><span class="input-group-text"><i class="bi bi-person" aria-hidden="true"></i></span>
-                    <input class="form-control" type="text" id="user_id" name="user_id" placeholder="Enter your user ID" autocomplete="username" required autofocus></div></div>
-                <div class="mb-4"><label class="form-label" for="password">Password</label>
+                    <input class="form-control" type="text" id="user_id" name="user_id" placeholder="{{ _('Enter your user ID') }}" autocomplete="username" required autofocus></div></div>
+                <div class="mb-4"><label class="form-label" for="password">{{ _('Password') }}</label>
                     <div class="input-group"><span class="input-group-text"><i class="bi bi-key" aria-hidden="true"></i></span>
-                    <input class="form-control" type="password" id="password" name="password" placeholder="Enter your password" autocomplete="current-password" required></div></div>
-                <button type="submit" class="btn btn-primary w-100 py-2"><i class="bi bi-box-arrow-in-right me-2" aria-hidden="true"></i>Sign In</button>
+                    <input class="form-control" type="password" id="password" name="password" placeholder="{{ _('Enter your password') }}" autocomplete="current-password" required></div></div>
+                <button type="submit" class="btn btn-primary w-100 py-2"><i class="bi bi-box-arrow-in-right me-2" aria-hidden="true"></i>{{ _('Sign In') }}</button>
             </form>
         </div></div>
         <p class="small mt-4 login-links">
-            <a class="on-gradient fw-semibold" href="/help"><i class="bi bi-question-circle me-1" aria-hidden="true"></i>Help</a>
-            <a class="on-gradient fw-semibold" href="/about"><i class="bi bi-info-circle me-1" aria-hidden="true"></i>About</a>
-            <a class="on-gradient fw-semibold" href="/help/guides"><i class="bi bi-book me-1" aria-hidden="true"></i>Docs</a>
-            <a class="on-gradient fw-semibold" href="/"><i class="bi bi-arrow-left me-1" aria-hidden="true"></i>Back to home</a>
+            <a class="on-gradient fw-semibold" href="/help"><i class="bi bi-question-circle me-1" aria-hidden="true"></i>{{ _('Help') }}</a>
+            <a class="on-gradient fw-semibold" href="/about"><i class="bi bi-info-circle me-1" aria-hidden="true"></i>{{ _('About') }}</a>
+            <a class="on-gradient fw-semibold" href="/help/guides"><i class="bi bi-book me-1" aria-hidden="true"></i>{{ _('Docs') }}</a>
+            <a class="on-gradient fw-semibold" href="/"><i class="bi bi-arrow-left me-1" aria-hidden="true"></i>{{ _('Back to home') }}</a>
         </p>
     </div>
 </main>
 <footer class="sajha-foot">
-    <p class="mb-0">{{ app_name }} {{ app_version }} · © {{ app_copyright_years }} {{ app_author }} ({{ app_author_email }}). All rights reserved. Proprietary software.</p>
+    <p class="mb-0">{{ app_name }} {{ app_version }} · © {{ app_copyright_years }} {{ app_author }} ({{ app_author_email }}). {{ _('All rights reserved. Proprietary software') }}.</p>
 </footer>
 <script src="{{ url_for('static', filename='vendor/bootstrap/bootstrap.bundle.min.js') }}"></script>
 {% include "common/_theme_script.html" %}

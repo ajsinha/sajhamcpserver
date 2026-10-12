@@ -190,6 +190,7 @@ def test_task_at_the_home_wraps_the_streamed_call(net3):
     from sajha.core.mcp_modern import ModernMCPServer
     from sajha.core.mcp_tasks import TaskStore
     a, b = net3['a'], net3['b']
+    a.catalogs.router.tasks = False       # the home-held task; a task held at the host: test_net_host_tasks.py
     slow = tool_of(b, 'slow')
     slow.steps, slow.hold = 1, 10
 

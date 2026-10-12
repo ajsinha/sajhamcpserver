@@ -2,7 +2,7 @@
 <!--
 Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.com
 -->
-{% block title %}User Configuration - {{ user_id }} - SAJHA MCP Server{% endblock %}
+{% block title %}{% trans user_id=user_id %}User Configuration - {{ user_id }} - SAJHA MCP Server{% endtrans %}{% endblock %}
 
 {% block extra_css %}
 <!-- JSONEditor CSS -->
@@ -91,13 +91,13 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
         <div class="d-flex justify-content-between align-items-center">
             <div>
                 <h1 class="h2 mb-2">
-                    <i class="bi bi-person-fill-gear"></i> User Configuration
+                    <i class="bi bi-person-fill-gear"></i> {{ _('User Configuration') }}
                 </h1>
                 <h3 class="h5 mb-0 opacity-75">{{ user_id }}</h3>
             </div>
             <div>
                 <a href="{{ url_for('admin_users') }}" class="btn btn-light">
-                    <i class="bi bi-arrow-left"></i> Back to Users
+                    <i class="bi bi-arrow-left"></i> {{ _('Back to Users') }}
                 </a>
             </div>
         </div>
@@ -109,21 +109,21 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
             <div class="card user-info-card">
                 <div class="card-body">
                     <h5 class="card-title mb-3">
-                        <i class="bi bi-info-circle-fill"></i> User Information
+                        <i class="bi bi-info-circle-fill"></i> {{ _('User Information') }}
                     </h5>
                     <div class="row">
                         <div class="col-md-3">
-                            <strong>User ID:</strong> <span id="userIdDisplay">{{ user_id }}</span>
+                            <strong>{{ _('User ID:') }}</strong> <span id="userIdDisplay">{{ user_id }}</span>
                         </div>
                         <div class="col-md-3">
-                            <strong>Status:</strong>
+                            <strong>{{ _('Status:') }}</strong>
                             <span id="userStatusDisplay" class="badge bg-secondary">-</span>
                         </div>
                         <div class="col-md-3">
-                            <strong>Created:</strong> <span id="userCreatedDisplay">-</span>
+                            <strong>{{ _('Created:') }}</strong> <span id="userCreatedDisplay">-</span>
                         </div>
                         <div class="col-md-3">
-                            <strong>Last Login:</strong> <span id="userLastLoginDisplay">-</span>
+                            <strong>{{ _('Last Login:') }}</strong> <span id="userLastLoginDisplay">-</span>
                         </div>
                     </div>
                 </div>
@@ -136,25 +136,25 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
         <div class="col-md-6">
             <!-- Basic Information -->
             <div class="form-section">
-                <h5><i class="bi bi-person"></i> Basic Information</h5>
+                <h5><i class="bi bi-person"></i> {{ _('Basic Information') }}</h5>
                 <div class="mb-3">
-                    <label for="userName" class="form-label">Display Name *</label>
-                    <input type="text" class="form-control" id="userName" placeholder="Enter display name">
+                    <label for="userName" class="form-label">{{ _('Display Name *') }}</label>
+                    <input type="text" class="form-control" id="userName" placeholder="{{ _('Enter display name') }}">
                 </div>
                 <div class="mb-3">
-                    <label for="userEmail" class="form-label">Email Address</label>
+                    <label for="userEmail" class="form-label">{{ _('Email Address') }}</label>
                     <input type="email" class="form-control" id="userEmail" placeholder="user@example.com">
                 </div>
                 <div class="mb-3">
-                    <label for="userPassword" class="form-label">Password</label>
-                    <input type="password" class="form-control" id="userPassword" placeholder="Leave empty to keep current">
-                    <small class="form-text text-muted">Only enter a value if you want to change the password</small>
+                    <label for="userPassword" class="form-label">{{ _('Password') }}</label>
+                    <input type="password" class="form-control" id="userPassword" placeholder="{{ _('Leave empty to keep current') }}">
+                    <small class="form-text text-muted">{{ _('Only enter a value if you want to change the password') }}</small>
                 </div>
                 <div class="mb-3">
                     <div class="form-check form-switch">
                         <input class="form-check-input" type="checkbox" id="userEnabled">
                         <label class="form-check-label" for="userEnabled">
-                            Account Enabled
+                            {{ _('Account Enabled') }}
                         </label>
                     </div>
                 </div>
@@ -164,40 +164,40 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
         <div class="col-md-6">
             <!-- Roles & Permissions -->
             <div class="form-section">
-                <h5><i class="bi bi-shield-check"></i> Roles & Permissions</h5>
+                <h5><i class="bi bi-shield-check"></i> {{ _('Roles & Permissions') }}</h5>
                 <div class="mb-3">
-                    <label class="form-label">User Roles</label>
+                    <label class="form-label">{{ _('User Roles') }}</label>
                     <div id="rolesContainer">
                         <span class="badge bg-secondary role-badge" data-role="admin">
-                            <i class="bi bi-star-fill"></i> Admin
+                            <i class="bi bi-star-fill"></i> {{ _('Admin') }}
                         </span>
                         <span class="badge bg-secondary role-badge" data-role="user">
-                            <i class="bi bi-person"></i> User
+                            <i class="bi bi-person"></i> {{ _('User') }}
                         </span>
                         <span class="badge bg-secondary role-badge" data-role="developer">
-                            <i class="bi bi-code-slash"></i> Developer
+                            <i class="bi bi-code-slash"></i> {{ _('Developer') }}
                         </span>
                         <span class="badge bg-secondary role-badge" data-role="viewer">
-                            <i class="bi bi-eye"></i> Viewer
+                            <i class="bi bi-eye"></i> {{ _('Viewer') }}
                         </span>
                     </div>
-                    <small class="form-text text-muted">Click to toggle roles</small>
+                    <small class="form-text text-muted">{{ _('Click to toggle roles') }}</small>
                 </div>
             </div>
 
             <!-- Tool Access -->
             <div class="form-section">
-                <h5><i class="bi bi-tools"></i> Tool Access</h5>
+                <h5><i class="bi bi-tools"></i> {{ _('Tool Access') }}</h5>
                 <div class="mb-3">
                     <div class="form-check">
                         <input class="form-check-input" type="checkbox" id="allToolsAccess" value="*">
                         <label class="form-check-label" for="allToolsAccess">
-                            <strong>Grant Access to All Tools (*)</strong>
+                            <strong>{{ _('Grant Access to All Tools (*)') }}</strong>
                         </label>
                     </div>
                 </div>
                 <div id="toolsContainer">
-                    <small class="form-text text-muted">Loading available tools...</small>
+                    <small class="form-text text-muted">{{ _('Loading available tools...') }}</small>
                 </div>
             </div>
         </div>
@@ -209,14 +209,14 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
             <div class="card">
                 <div class="card-header card-header-warning text-dark d-flex justify-content-between align-items-center">
                     <h5 class="mb-0">
-                        <i class="bi bi-braces"></i> Advanced: JSON Configuration
+                        <i class="bi bi-braces"></i> {{ _('Advanced: JSON Configuration') }}
                     </h5>
                     <div class="btn-group" role="group">
                         <button type="button" class="btn btn-sm btn-light active" id="treeViewBtn">
-                            <i class="bi bi-diagram-3"></i> Tree View
+                            <i class="bi bi-diagram-3"></i> {{ _('Tree View') }}
                         </button>
                         <button type="button" class="btn btn-sm btn-light" id="rawViewBtn">
-                            <i class="bi bi-code-square"></i> Raw JSON
+                            <i class="bi bi-code-square"></i> {{ _('Raw JSON') }}
                         </button>
                     </div>
                 </div>
@@ -230,7 +230,7 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
                 <div class="card-footer">
                     <small class="text-muted">
                         <i class="bi bi-exclamation-triangle"></i>
-                        Advanced users only. Changes here will override form values above.
+                        {{ _('Advanced users only. Changes here will override form values above.') }}
                     </small>
                 </div>
             </div>
@@ -245,22 +245,22 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
                     <div class="d-flex justify-content-between align-items-center">
                         <div>
                             <button type="button" class="btn btn-primary btn-lg" id="saveUserBtn">
-                                <i class="bi bi-save"></i> Save User Configuration
+                                <i class="bi bi-save"></i> {{ _('Save User Configuration') }}
                             </button>
                             <button type="button" class="btn btn-secondary btn-lg" id="resetUserBtn">
-                                <i class="bi bi-arrow-clockwise"></i> Reset Changes
+                                <i class="bi bi-arrow-clockwise"></i> {{ _('Reset Changes') }}
                             </button>
                             <button type="button" class="btn btn-info" id="validateUserBtn">
-                                <i class="bi bi-check-circle"></i> Validate
+                                <i class="bi bi-check-circle"></i> {{ _('Validate') }}
                             </button>
                         </div>
                         <div>
                             <button type="button" class="btn btn-warning" id="downloadUserBtn">
-                                <i class="bi bi-download"></i> Download JSON
+                                <i class="bi bi-download"></i> {{ _('Download JSON') }}
                             </button>
                             {% if user_id != 'admin' %}
                             <button type="button" class="btn btn-danger" id="deleteUserBtn">
-                                <i class="bi bi-trash"></i> Delete User
+                                <i class="bi bi-trash"></i> {{ _('Delete User') }}
                             </button>
                             {% endif %}
                         </div>
@@ -276,28 +276,28 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
             <div class="card">
                 <div class="card-header card-header-info">
                     <h5 class="mb-0">
-                        <i class="bi bi-book"></i> User Configuration Guide
+                        <i class="bi bi-book"></i> {{ _('User Configuration Guide') }}
                     </h5>
                 </div>
                 <div class="card-body">
                     <div class="row">
                         <div class="col-md-6">
-                            <h6>Required Fields:</h6>
+                            <h6>{{ _('Required Fields:') }}</h6>
                             <ul>
-                                <li><strong>user_id:</strong> Unique identifier for login</li>
-                                <li><strong>user_name:</strong> Display name</li>
-                                <li><strong>password:</strong> User password (hashed)</li>
-                                <li><strong>enabled:</strong> Account status (true/false)</li>
+                                <li>{% trans %}<strong>user_id:</strong> Unique identifier for login{% endtrans %}</li>
+                                <li>{% trans %}<strong>user_name:</strong> Display name{% endtrans %}</li>
+                                <li>{% trans %}<strong>password:</strong> User password (hashed){% endtrans %}</li>
+                                <li>{% trans %}<strong>enabled:</strong> Account status (true/false){% endtrans %}</li>
                             </ul>
                         </div>
                         <div class="col-md-6">
-                            <h6>Optional Fields:</h6>
+                            <h6>{{ _('Optional Fields:') }}</h6>
                             <ul>
-                                <li><strong>email:</strong> User email address</li>
-                                <li><strong>roles:</strong> Array of user roles (admin, user, developer, viewer)</li>
-                                <li><strong>tools:</strong> Array of accessible tool names or ["*"] for all</li>
-                                <li><strong>created_at:</strong> Account creation timestamp</li>
-                                <li><strong>last_login:</strong> Last login timestamp</li>
+                                <li>{% trans %}<strong>email:</strong> User email address{% endtrans %}</li>
+                                <li>{% trans %}<strong>roles:</strong> Array of user roles (admin, user, developer, viewer){% endtrans %}</li>
+                                <li>{% trans %}<strong>tools:</strong> Array of accessible tool names or ["*"] for all{% endtrans %}</li>
+                                <li>{% trans %}<strong>created_at:</strong> Account creation timestamp{% endtrans %}</li>
+                                <li>{% trans %}<strong>last_login:</strong> Last login timestamp{% endtrans %}</li>
                             </ul>
                         </div>
                     </div>
@@ -370,11 +370,11 @@ function loadUserConfig() {
             updateRawJsonView();
 
             hideLoading();
-            showStatus('User configuration loaded successfully', 'success');
+            showStatus(_t('User configuration loaded successfully'), 'success');
         },
         error: function(xhr, status, error) {
             hideLoading();
-            showStatus('Failed to load user configuration: ' + error, 'danger');
+            showStatus(_t('Failed to load user configuration: ') + error, 'danger');
         }
     });
 }
@@ -388,7 +388,7 @@ function loadAvailableTools() {
             renderToolsCheckboxes();
         },
         error: function() {
-            $('#toolsContainer').html('<small class="text-danger">Failed to load tools</small>');
+            $('#toolsContainer').html(_t('<small class="text-danger">Failed to load tools</small>'));
         }
     });
 }
@@ -398,7 +398,7 @@ function renderToolsCheckboxes() {
     container.empty();
 
     if (availableTools.length === 0) {
-        container.html('<small class="text-muted">No tools available</small>');
+        container.html(_t('<small class="text-muted">No tools available</small>'));
         return;
     }
 
@@ -443,11 +443,11 @@ function updateFormFields(data) {
     // Display info
     $('#userIdDisplay').text(data.user_id || userId);
     const statusBadge = data.enabled !== false ?
-        '<span class="badge bg-success">Enabled</span>' :
-        '<span class="badge bg-danger">Disabled</span>';
+        '<span class="badge bg-success">' + _t('Enabled') + '</span>' :
+        '<span class="badge bg-danger">' + _t('Disabled') + '</span>';
     $('#userStatusDisplay').html(statusBadge);
     $('#userCreatedDisplay').text(data.created_at ? new Date(data.created_at).toLocaleString() : 'N/A');
-    $('#userLastLoginDisplay').text(data.last_login ? new Date(data.last_login).toLocaleString() : 'Never');
+    $('#userLastLoginDisplay').text(data.last_login ? new Date(data.last_login).toLocaleString() : _t('Never'));
 
     // Roles
     const roles = data.roles || [];
@@ -507,12 +507,12 @@ function setupEventListeners() {
 
     // Reset button
     $('#resetUserBtn').click(function() {
-        if (confirm('Are you sure you want to reset all changes?')) {
+        if (confirm(_t('Are you sure you want to reset all changes?'))) {
             currentConfig = JSON.parse(JSON.stringify(originalConfig));
             updateFormFields(currentConfig);
             editor.set(currentConfig);
             updateRawJsonView();
-            showStatus('Changes reset successfully', 'info');
+            showStatus(_t('Changes reset successfully'), 'info');
         }
     });
 
@@ -576,7 +576,7 @@ function updateRawJsonView() {
         const jsonString = JSON.stringify(config, null, 2);
         $('#rawJsonCode').text(jsonString);
     } catch(e) {
-        $('#rawJsonCode').text('Invalid JSON');
+        $('#rawJsonCode').text(_t('Invalid JSON'));
     }
 }
 
@@ -586,7 +586,7 @@ function saveUserConfig() {
 
         // Validate required fields
         if (!config.user_id || !config.user_name) {
-            showStatus('User ID and Name are required', 'danger');
+            showStatus(_t('User ID and Name are required'), 'danger');
             return;
         }
 
@@ -611,7 +611,7 @@ function saveUserConfig() {
                 originalConfig = JSON.parse(JSON.stringify(config));
                 currentConfig = config;
 
-                showStatus('User configuration saved successfully!', 'success');
+                showStatus(_t('User configuration saved successfully!'), 'success');
 
                 // Update display
                 updateFormFields(config);
@@ -620,7 +620,7 @@ function saveUserConfig() {
                 hideLoading();
                 $('#saveUserBtn').prop('disabled', false);
 
-                let errorMsg = 'Failed to save user configuration';
+                let errorMsg = _t('Failed to save user configuration');
                 if (xhr.responseJSON && xhr.responseJSON.error) {
                     errorMsg += ': ' + xhr.responseJSON.error;
                 }
@@ -629,7 +629,7 @@ function saveUserConfig() {
         });
 
     } catch(e) {
-        showStatus('Invalid configuration: ' + e.message, 'danger');
+        showStatus(_t('Invalid configuration: ') + e.message, 'danger');
         $('#saveUserBtn').prop('disabled', false);
     }
 }
@@ -639,27 +639,27 @@ function validateUserConfig() {
         const config = getFormData();
         const errors = [];
 
-        if (!config.user_id) errors.push('Missing required field: user_id');
-        if (!config.user_name) errors.push('Missing required field: user_name');
-        if (!config.password && !originalConfig.password) errors.push('Password is required for new users');
-        if (config.enabled === undefined) errors.push('Missing required field: enabled');
+        if (!config.user_id) errors.push(_t('Missing required field: user_id'));
+        if (!config.user_name) errors.push(_t('Missing required field: user_name'));
+        if (!config.password && !originalConfig.password) errors.push(_t('Password is required for new users'));
+        if (config.enabled === undefined) errors.push(_t('Missing required field: enabled'));
 
         if (!config.roles || config.roles.length === 0) {
-            errors.push('At least one role must be assigned');
+            errors.push(_t('At least one role must be assigned'));
         }
 
         if (!config.tools || config.tools.length === 0) {
-            errors.push('At least one tool access must be granted');
+            errors.push(_t('At least one tool access must be granted'));
         }
 
         if (errors.length > 0) {
-            showStatus('Validation failed:\n' + errors.join('\n'), 'danger');
+            showStatus(_t('Validation failed:\n') + errors.join('\n'), 'danger');
         } else {
-            showStatus('User configuration is valid!', 'success');
+            showStatus(_t('User configuration is valid!'), 'success');
         }
 
     } catch(e) {
-        showStatus('Invalid configuration: ' + e.message, 'danger');
+        showStatus(_t('Invalid configuration: ') + e.message, 'danger');
     }
 }
 
@@ -678,18 +678,18 @@ function downloadUserConfig() {
         document.body.removeChild(a);
         URL.revokeObjectURL(url);
 
-        showStatus('User configuration downloaded', 'success');
+        showStatus(_t('User configuration downloaded'), 'success');
     } catch(e) {
-        showStatus('Failed to download: ' + e.message, 'danger');
+        showStatus(_t('Failed to download: ') + e.message, 'danger');
     }
 }
 
 function deleteUser() {
-    if (!confirm(`Are you sure you want to delete user "${userId}"? This action cannot be undone.`)) {
+    if (!confirm(_t('Are you sure you want to delete user "%(userId)s"? This action cannot be undone.', {userId: userId}))) {
         return;
     }
 
-    if (!confirm('This will permanently delete the user account. Are you absolutely sure?')) {
+    if (!confirm(_t('This will permanently delete the user account. Are you absolutely sure?'))) {
         return;
     }
 
@@ -700,14 +700,14 @@ function deleteUser() {
         method: 'DELETE',
         success: function(response) {
             hideLoading();
-            showStatus('User deleted successfully. Redirecting...', 'success');
+            showStatus(_t('User deleted successfully. Redirecting...'), 'success');
             setTimeout(function() {
                 window.location.href = '/admin/users';
             }, 2000);
         },
         error: function(xhr, status, error) {
             hideLoading();
-            let errorMsg = 'Failed to delete user';
+            let errorMsg = _t('Failed to delete user');
             if (xhr.responseJSON && xhr.responseJSON.error) {
                 errorMsg += ': ' + xhr.responseJSON.error;
             }
@@ -754,7 +754,7 @@ function showLoading() {
                 z-index: 9999;
             ">
                 <div class="spinner-border text-light" role="status" style="width: 3rem; height: 3rem;">
-                    <span class="visually-hidden">Loading...</span>
+                    <span class="visually-hidden">${_t('Loading...')}</span>
                 </div>
             </div>
         `);

@@ -2,15 +2,15 @@
 <!--
 Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.com
 -->
-{% block title %}{{ prompt.name }} - SAJHA MCP Server{% endblock %}
+{% block title %}{% trans name=prompt.name %}{{ name }} - SAJHA MCP Server{% endtrans %}{% endblock %}
 
 {% block content %}
 <div class="container-fluid">
     <!-- Breadcrumb -->
-    <nav aria-label="breadcrumb">
+    <nav aria-label="{{ _('breadcrumb') }}">
         <ol class="breadcrumb">
-            <li class="breadcrumb-item"><a href="{{ url_for('dashboard') }}">Dashboard</a></li>
-            <li class="breadcrumb-item"><a href="{{ url_for('prompts_list') }}">Prompts</a></li>
+            <li class="breadcrumb-item"><a href="{{ url_for('dashboard') }}">{{ _('Dashboard') }}</a></li>
+            <li class="breadcrumb-item"><a href="{{ url_for('prompts_list') }}">{{ _('Prompts') }}</a></li>
             <li class="breadcrumb-item active">{{ prompt.name }}</li>
         </ol>
     </nav>
@@ -22,14 +22,14 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
         </h1>
         <div>
             <a href="{{ url_for('prompt_test', prompt_name=prompt.name) }}" class="btn btn-success">
-                <i class="bi bi-play-circle"></i> Test Prompt
+                <i class="bi bi-play-circle"></i> {{ _('Test Prompt') }}
             </a>
             {% if user and user.roles and 'admin' in user.roles %}
             <button class="btn btn-warning" data-onclick="toggleEditMode()">
-                <i class="bi bi-pencil"></i> <span id="editButtonText">Edit</span>
+                <i class="bi bi-pencil"></i> <span id="editButtonText">{{ _('Edit') }}</span>
             </button>
             <button class="btn btn-danger" data-onclick="deletePrompt()">
-                <i class="bi bi-trash"></i> Delete
+                <i class="bi bi-trash"></i> {{ _('Delete') }}
             </button>
             {% endif %}
         </div>
@@ -42,47 +42,47 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
             <div id="viewMode">
                 <div class="card mb-4">
                     <div class="card-header card-header-primary">
-                        <h5 class="mb-0"><i class="bi bi-info-circle"></i> Prompt Information</h5>
+                        <h5 class="mb-0"><i class="bi bi-info-circle"></i> {{ _('Prompt Information') }}</h5>
                     </div>
                     <div class="card-body">
                         <dl class="row">
-                            <dt class="col-sm-3">Name:</dt>
+                            <dt class="col-sm-3">{{ _('Name:') }}</dt>
                             <dd class="col-sm-9"><code>{{ prompt.name }}</code></dd>
 
-                            <dt class="col-sm-3">Description:</dt>
+                            <dt class="col-sm-3">{{ _('Description:') }}</dt>
                             <dd class="col-sm-9">{{ prompt.description }}</dd>
 
-                            <dt class="col-sm-3">Category:</dt>
+                            <dt class="col-sm-3">{{ _('Category:') }}</dt>
                             <dd class="col-sm-9">
                                 <span class="badge bg-secondary">{{ prompt.metadata.category }}</span>
                             </dd>
 
-                            <dt class="col-sm-3">Tags:</dt>
+                            <dt class="col-sm-3">{{ _('Tags:') }}</dt>
                             <dd class="col-sm-9">
                                 {% for tag in prompt.metadata.tags %}
                                 <span class="badge bg-info">{{ tag }}</span>
                                 {% endfor %}
                             </dd>
 
-                            <dt class="col-sm-3">Author:</dt>
+                            <dt class="col-sm-3">{{ _('Author:') }}</dt>
                             <dd class="col-sm-9">{{ prompt.metadata.author }}</dd>
 
-                            <dt class="col-sm-3">Version:</dt>
+                            <dt class="col-sm-3">{{ _('Version:') }}</dt>
                             <dd class="col-sm-9">{{ prompt.metadata.version }}</dd>
 
-                            <dt class="col-sm-3">Created:</dt>
+                            <dt class="col-sm-3">{{ _('Created:') }}</dt>
                             <dd class="col-sm-9">{{ prompt.metadata.created_at }}</dd>
 
-                            <dt class="col-sm-3">Last Updated:</dt>
+                            <dt class="col-sm-3">{{ _('Last Updated:') }}</dt>
                             <dd class="col-sm-9">{{ prompt.metadata.updated_at }}</dd>
 
-                            <dt class="col-sm-3">Usage Count:</dt>
+                            <dt class="col-sm-3">{{ _('Usage Count:') }}</dt>
                             <dd class="col-sm-9">
-                                <span class="badge bg-success">{{ prompt.metadata.usage_count }} times</span>
+                                <span class="badge bg-success">{% trans usage_count=prompt.metadata.usage_count %}{{ usage_count }} times{% endtrans %}</span>
                             </dd>
 
                             {% if prompt.metadata.last_used %}
-                            <dt class="col-sm-3">Last Used:</dt>
+                            <dt class="col-sm-3">{{ _('Last Used:') }}</dt>
                             <dd class="col-sm-9">{{ prompt.metadata.last_used }}</dd>
                             {% endif %}
                         </dl>
@@ -92,7 +92,7 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
                 <!-- Template -->
                 <div class="card mb-4">
                     <div class="card-header card-header-success">
-                        <h5 class="mb-0"><i class="bi bi-file-text"></i> Prompt Template</h5>
+                        <h5 class="mb-0"><i class="bi bi-file-text"></i> {{ _('Prompt Template') }}</h5>
                     </div>
                     <div class="card-body">
                         <pre class="bg-dark text-light p-3 rounded" style="white-space: pre-wrap; word-wrap: break-word;"><code>{{ prompt.template }}</code></pre>
@@ -102,18 +102,18 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
                 <!-- Arguments -->
                 <div class="card mb-4">
                     <div class="card-header card-header-info">
-                        <h5 class="mb-0"><i class="bi bi-list-check"></i> Arguments ({{ prompt.arguments|length }})</h5>
+                        <h5 class="mb-0"><i class="bi bi-list-check"></i> {% trans n=prompt.arguments|length %}Arguments ({{ n }}){% endtrans %}</h5>
                     </div>
                     <div class="card-body">
                         {% if prompt.arguments %}
                         <div class="table-responsive">
-                            <table class="table" data-enhance="true" table-sm">
+                            <table class="table table-sm" data-enhance="true">
                                 <thead>
                                     <tr>
-                                        <th>Name</th>
-                                        <th>Description</th>
-                                        <th>Required</th>
-                                        <th>Type</th>
+                                        <th>{{ _('Name') }}</th>
+                                        <th>{{ _('Description') }}</th>
+                                        <th>{{ _('Required') }}</th>
+                                        <th>{{ _('Type') }}</th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -123,9 +123,9 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
                                         <td>{{ arg.description if arg.description else '-' }}</td>
                                         <td>
                                             {% if arg.required %}
-                                            <span class="badge bg-danger">Required</span>
+                                            <span class="badge bg-danger">{{ _('Required') }}</span>
                                             {% else %}
-                                            <span class="badge bg-secondary">Optional</span>
+                                            <span class="badge bg-secondary">{{ _('Optional') }}</span>
                                             {% endif %}
                                         </td>
                                         <td>{{ arg.type if arg.type else 'string' }}</td>
@@ -135,7 +135,7 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
                             </table>
                         </div>
                         {% else %}
-                        <p class="text-muted mb-0">No arguments defined</p>
+                        <p class="text-muted mb-0">{{ _('No arguments defined') }}</p>
                         {% endif %}
                     </div>
                 </div>
@@ -146,23 +146,23 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
             <div id="editMode" style="display: none;">
                 <div class="card">
                     <div class="card-header card-header-warning">
-                        <h5 class="mb-0"><i class="bi bi-pencil"></i> Edit Prompt JSON</h5>
+                        <h5 class="mb-0"><i class="bi bi-pencil"></i> {{ _('Edit Prompt JSON') }}</h5>
                     </div>
                     <div class="card-body">
                         <div class="alert alert-info">
                             <i class="bi bi-info-circle"></i> 
-                            Edit the JSON below. Make sure to maintain valid JSON syntax.
+                            {{ _('Edit the JSON below. Make sure to maintain valid JSON syntax.') }}
                         </div>
                         <textarea id="promptJson" class="form-control font-monospace bg-dark text-light" rows="25" style="border: 1px solid var(--sajha-border);">{{ prompt_json }}</textarea>
                         <div class="mt-3">
                             <button class="btn btn-primary" data-onclick="savePrompt()">
-                                <i class="bi bi-save"></i> Save Changes
+                                <i class="bi bi-save"></i> {{ _('Save Changes') }}
                             </button>
                             <button class="btn btn-secondary" data-onclick="cancelEdit()">
-                                <i class="bi bi-x-circle"></i> Cancel
+                                <i class="bi bi-x-circle"></i> {{ _('Cancel') }}
                             </button>
                             <button class="btn btn-info" data-onclick="validateJson()">
-                                <i class="bi bi-check-circle"></i> Validate JSON
+                                <i class="bi bi-check-circle"></i> {{ _('Validate JSON') }}
                             </button>
                         </div>
                         <div id="jsonValidation" class="mt-2"></div>
@@ -177,23 +177,23 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
             <!-- Quick Stats -->
             <div class="card mb-4">
                 <div class="card-header">
-                    <h6 class="mb-0"><i class="bi bi-bar-chart"></i> Statistics</h6>
+                    <h6 class="mb-0"><i class="bi bi-bar-chart"></i> {{ _('Statistics') }}</h6>
                 </div>
                 <div class="card-body">
                     <div class="d-flex justify-content-between mb-2">
-                        <span>Arguments:</span>
+                        <span>{{ _('Arguments:') }}</span>
                         <strong>{{ prompt.arguments|length }}</strong>
                     </div>
                     <div class="d-flex justify-content-between mb-2">
-                        <span>Usage Count:</span>
+                        <span>{{ _('Usage Count:') }}</span>
                         <strong>{{ prompt.metadata.usage_count }}</strong>
                     </div>
                     <div class="d-flex justify-content-between mb-2">
-                        <span>Category:</span>
+                        <span>{{ _('Category:') }}</span>
                         <strong>{{ prompt.metadata.category }}</strong>
                     </div>
                     <div class="d-flex justify-content-between">
-                        <span>Tags:</span>
+                        <span>{{ _('Tags:') }}</span>
                         <strong>{{ prompt.metadata.tags|length }}</strong>
                     </div>
                 </div>
@@ -202,12 +202,12 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
             <!-- Full JSON View -->
             <div class="card mb-4">
                 <div class="card-header card-header-secondary">
-                    <h6 class="mb-0"><i class="bi bi-code-square"></i> Full JSON</h6>
+                    <h6 class="mb-0"><i class="bi bi-code-square"></i> {{ _('Full JSON') }}</h6>
                 </div>
                 <div class="card-body">
                     <pre class="bg-dark text-light p-2 rounded" style="max-height: 400px; overflow-y: auto; font-size: 0.75rem;"><code>{{ prompt_json }}</code></pre>
                     <button class="btn btn-sm btn-outline-secondary w-100" data-onclick="copyJson()">
-                        <i class="bi bi-clipboard"></i> Copy JSON
+                        <i class="bi bi-clipboard"></i> {{ _('Copy JSON') }}
                     </button>
                 </div>
             </div>
@@ -215,20 +215,20 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
             <!-- Actions -->
             <div class="card">
                 <div class="card-header">
-                    <h6 class="mb-0"><i class="bi bi-lightning"></i> Quick Actions</h6>
+                    <h6 class="mb-0"><i class="bi bi-lightning"></i> {{ _('Quick Actions') }}</h6>
                 </div>
                 <div class="card-body">
                     <div class="d-grid gap-2">
                         <a href="{{ url_for('prompt_test', prompt_name=prompt.name) }}" 
                            class="btn btn-success">
-                            <i class="bi bi-play-circle"></i> Test Prompt
+                            <i class="bi bi-play-circle"></i> {{ _('Test Prompt') }}
                         </a>
                         <a href="{{ url_for('prompts_by_category', category=prompt.metadata.category) }}" 
                            class="btn btn-outline-secondary">
-                            <i class="bi bi-folder"></i> View Category
+                            <i class="bi bi-folder"></i> {{ _('View Category') }}
                         </a>
                         <button class="btn btn-outline-info" data-onclick="downloadJson()">
-                            <i class="bi bi-download"></i> Download JSON
+                            <i class="bi bi-download"></i> {{ _('Download JSON') }}
                         </button>
                     </div>
                 </div>
@@ -257,7 +257,7 @@ function toggleEditMode() {
     editMode = !editMode;
     document.getElementById('viewMode').style.display = editMode ? 'none' : 'block';
     document.getElementById('editMode').style.display = editMode ? 'block' : 'none';
-    document.getElementById('editButtonText').textContent = editMode ? 'Cancel Edit' : 'Edit';
+    document.getElementById('editButtonText').textContent = editMode ? _t('Cancel Edit') : _t('Edit');
     
     if (!editMode) {
         // Reset JSON to original
@@ -275,9 +275,9 @@ function validateJson() {
     
     try {
         JSON.parse(jsonText);
-        validation.innerHTML = '<div class="alert alert-success"><i class="bi bi-check-circle"></i> JSON is valid!</div>';
+        validation.innerHTML = '<div class="alert alert-success"><i class="bi bi-check-circle"></i> ' + _t('JSON is valid!') + '</div>';
     } catch (e) {
-        validation.innerHTML = `<div class="alert alert-danger"><i class="bi bi-exclamation-triangle"></i> Invalid JSON: ${e.message}</div>`;
+        validation.innerHTML = `<div class="alert alert-danger"><i class="bi bi-exclamation-triangle"></i> ${_t('Invalid JSON: %(error)s', {error: e.message})}</div>`;
     }
 }
 
@@ -288,7 +288,7 @@ function savePrompt() {
         const promptData = JSON.parse(jsonText);
         
         // Confirm save
-        if (!confirm('Are you sure you want to save these changes?')) {
+        if (!confirm(_t('Are you sure you want to save these changes?'))) {
             return;
         }
         
@@ -300,27 +300,27 @@ function savePrompt() {
             data: JSON.stringify(promptData),
             success: function(response) {
                 if (response.success) {
-                    alert('Prompt updated successfully!');
+                    alert(_t('Prompt updated successfully!'));
                     location.reload();
                 } else {
-                    alert('Error: ' + response.error);
+                    alert(_t('Error: %(error)s', {error: response.error}));
                 }
             },
             error: function(xhr) {
-                alert('Error updating prompt: ' + (xhr.responseJSON ? xhr.responseJSON.error : 'Unknown error'));
+                alert(_t('Error updating prompt: ') + (xhr.responseJSON ? xhr.responseJSON.error : _t('Unknown error')));
             }
         });
     } catch (e) {
-        alert('Invalid JSON: ' + e.message);
+        alert(_t('Invalid JSON: ') + e.message);
     }
 }
 
 function deletePrompt() {
-    if (!confirm(`Are you sure you want to delete the prompt "${promptName}"? This action cannot be undone.`)) {
+    if (!confirm(_t('Are you sure you want to delete the prompt "%(promptName)s"? This action cannot be undone.', {promptName: promptName}))) {
         return;
     }
     
-    if (!confirm('This is your last chance. Really delete this prompt?')) {
+    if (!confirm(_t('This is your last chance. Really delete this prompt?'))) {
         return;
     }
     
@@ -329,14 +329,14 @@ function deletePrompt() {
         method: 'POST',
         success: function(response) {
             if (response.success) {
-                alert('Prompt deleted successfully!');
+                alert(_t('Prompt deleted successfully!'));
                 window.location.href = "{{ url_for('prompts_list') }}";
             } else {
-                alert('Error: ' + response.error);
+                alert(_t('Error: %(error)s', {error: response.error}));
             }
         },
         error: function(xhr) {
-            alert('Error deleting prompt: ' + (xhr.responseJSON ? xhr.responseJSON.error : 'Unknown error'));
+            alert(_t('Error deleting prompt: ') + (xhr.responseJSON ? xhr.responseJSON.error : _t('Unknown error')));
         }
     });
 }
@@ -347,9 +347,9 @@ function copyJson() {
                      originalJson;
     
     navigator.clipboard.writeText(jsonText).then(function() {
-        alert('JSON copied to clipboard!');
+        alert(_t('JSON copied to clipboard!'));
     }, function() {
-        alert('Failed to copy JSON');
+        alert(_t('Failed to copy JSON'));
     });
 }
 

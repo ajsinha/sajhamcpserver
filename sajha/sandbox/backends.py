@@ -18,7 +18,13 @@ in :meth:`Sandbox.run`.
 * ``docker`` — one container per call (``--network none``, read-only rootfs,
   memory/CPU/PID limits, all capabilities dropped, nobody user); set
   ``sandbox.docker.runtime: runsc`` for gVisor. ``sandbox.docker.binary: podman``
-  works too.
+  works too. With ``sandbox.docker.pool.size`` > 0, calls run in warm containers
+  (``pool.py``).
+
+A policy with ``network: allowlist`` goes through the egress proxy (``egress.py``)
+on every backend that supports it: the sandbox gets its own network namespace
+with only loopback, and the runner's bridge to the per-run proxy socket is the
+one way out (``sandbox.egress.mode: direct`` restores the library-level check).
 """
 
 import json
@@ -36,6 +42,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
+from . import egress as _egress
 from .policy import SandboxPolicy
 from .settings import SandboxSettings, load_settings
 
@@ -173,10 +180,16 @@ class Sandbox:
     name = 'base'
     #: what the backend promises when it is fully available, by guarantee
     summary = ''
+    #: can confine an allowlisted run to the egress proxy (sajha/sandbox/egress.py)
+    supports_egress_proxy = False
+    #: the backend itself gives every run its own network namespace (the runner need not)
+    netns_isolated = False
 
     def __init__(self, settings: Optional[SandboxSettings] = None):
         self.settings = settings or load_settings()
         self._probe: Optional[Dict[str, Any]] = None
+        #: per-run state shared by run(), command() and on_kill(), by run id
+        self._runs: Dict[str, Dict[str, Any]] = {}
 
     # -- availability ------------------------------------------------------
     def available(self) -> Tuple[bool, str]:
@@ -206,6 +219,25 @@ class Sandbox:
     def on_kill(self, run_id: str) -> None:
         """Extra cleanup when a run is killed (containers outlive their client)."""
 
+    # -- egress proxy and per-run hooks --------------------------------------
+    def egress_proxy_on(self, policy: SandboxPolicy) -> bool:
+        """Whether this run's allowlist is enforced by the egress proxy (no direct network)."""
+        return (policy.network == 'allowlist' and self.supports_egress_proxy
+                and _egress.load_egress_settings().mode == 'proxy')
+
+    def inner_egress_socket(self, host_path: str) -> str:
+        """Where the proxy socket appears inside the sandbox."""
+        return f'{_egress.INNER_SOCKET_DIR}/{_egress.SOCKET_NAME}'
+
+    def start_egress(self, run_id: str, policy: SandboxPolicy, tool: str) -> '_egress.EgressProxy':
+        return _egress.start_for_run(run_id, policy.allow_hosts, tool=tool)
+
+    def prepare(self, run_id: str, policy: SandboxPolicy) -> None:
+        """Before the launch (the docker backend leases a warm container here)."""
+
+    def after_run(self, run_id: str) -> None:
+        """After the run, killed or not (the docker backend returns its lease here)."""
+
     # -- the run -----------------------------------------------------------
     def sandbox_env(self, inner: str, policy: SandboxPolicy) -> Dict[str, str]:
         env = {
@@ -228,6 +260,8 @@ class Sandbox:
             os.makedirs(base, exist_ok=True)
         workdir = tempfile.mkdtemp(prefix='sajha-sbx-', dir=base)
         run_id = f'sajha-sbx-{uuid.uuid4().hex[:12]}'
+        ctx = self._runs[run_id] = {}
+        egress = None
         try:
             os.chmod(workdir, 0o700)
             shutil.copyfile(RUNNER_PATH, os.path.join(workdir, 'runner.py'))
@@ -239,13 +273,27 @@ class Sandbox:
             req['network'] = {'mode': policy.network, 'ports': policy.allow_ports,
                               'hosts': policy.allow_hostnames}
             req['confine'] = self.confine(policy)
+            tool = str(req.pop('tool', '') or '')
+            self.prepare(run_id, policy)
+            if self.egress_proxy_on(policy):
+                egress = self.start_egress(run_id, policy, tool)
+                ctx['egress_dir'] = os.path.dirname(egress.path)
+                req['network'] = {'mode': 'proxy', 'ports': [_egress.PROXY_PORT], 'hosts': policy.allow_hostnames,
+                                  'proxy_socket': self.inner_egress_socket(egress.path),
+                                  'proxy_port': _egress.PROXY_PORT, 'isolated': self.netns_isolated}
+                req['env'].update(_egress.proxy_env())
             argv = req.get('argv')
             if argv:
                 req['argv'] = [self.python() if a == '{python}' else a for a in argv]
             return self._launch(self.command(workdir, policy, run_id), json.dumps(req).encode('utf-8'),
                                 policy, workdir, run_id)
         finally:
-            shutil.rmtree(workdir, ignore_errors=True)
+            _egress.stop_for_run(egress)
+            try:
+                self.after_run(run_id)
+            finally:
+                self._runs.pop(run_id, None)
+                shutil.rmtree(workdir, ignore_errors=True)
 
     def _launch(self, cmd: List[str], data: bytes, policy: SandboxPolicy,
                 workdir: str, run_id: str) -> SandboxResult:
@@ -373,7 +421,17 @@ class Sandbox:
              'how': 'tempfile.mkdtemp'},
             {'guarantee': 'Wall-clock timeout and output size cap', 'enforced': True,
              'how': 'process group SIGKILL'},
+            self._egress_guarantee(),
         ]
+
+    def _egress_guarantee(self) -> Dict[str, Any]:
+        on = self.supports_egress_proxy and _egress.load_egress_settings().mode == 'proxy'
+        return {'guarantee': 'Allowlisted network only through the egress proxy: listed host:port only, cloud '
+                             'metadata, loopback and private addresses refused, every connection audited',
+                'enforced': on,
+                'how': ('own network namespace with loopback only; per-run proxy on a Unix socket' if on else
+                        'sandbox.egress.mode is direct' if self.supports_egress_proxy else
+                        f'not supported by the {self.name} backend on this platform')}
 
 
 # ── subprocess ─────────────────────────────────────────────────────────────
@@ -382,6 +440,11 @@ class SubprocessSandbox(Sandbox):
     name = 'subprocess'
     summary = ('Separate process with a clean environment, temp work dir and rlimits; on Linux also '
                'user/PID/network namespaces, Landlock and seccomp applied by the runner.')
+    #: the runner creates the network namespace itself (and refuses proxy mode if it cannot)
+    supports_egress_proxy = sys.platform.startswith('linux')
+
+    def inner_egress_socket(self, host_path: str) -> str:
+        return host_path
 
     def available(self) -> Tuple[bool, str]:
         return (True, 'always available') if os.name == 'posix' else \
@@ -412,6 +475,8 @@ class BwrapSandbox(Sandbox):
     name = 'bwrap'
     summary = ('bubblewrap: user, PID, IPC, UTS, cgroup and network namespaces; a new root holding only '
                'system libraries, the interpreter (read-only) and the work dir; runner limits inside.')
+    supports_egress_proxy = True
+    netns_isolated = True
 
     def available(self) -> Tuple[bool, str]:
         if 'bwrap' not in _AVAIL_CACHE:
@@ -429,7 +494,8 @@ class BwrapSandbox(Sandbox):
         return _AVAIL_CACHE['bwrap']
 
     def command(self, workdir: str, policy: SandboxPolicy, run_id: str) -> List[str]:
-        net = policy.network == 'allowlist'
+        egress_dir = self._runs.get(run_id, {}).get('egress_dir')
+        net = policy.network == 'allowlist' and not egress_dir
         cmd = [shutil.which('bwrap') or 'bwrap', '--die-with-parent', '--new-session', '--unshare-all',
                '--cap-drop', 'ALL', '--clearenv', '--setenv', 'PATH', '/usr/bin:/bin',
                '--setenv', 'LANG', 'C.UTF-8']
@@ -446,6 +512,8 @@ class BwrapSandbox(Sandbox):
                 continue
             cmd += ['--ro-bind', p, p]
             bound.append(p)
+        if egress_dir:
+            cmd += ['--ro-bind', egress_dir, _egress.INNER_SOCKET_DIR]
         cmd += ['--bind', workdir, SANDBOX_WORKDIR, '--chdir', SANDBOX_WORKDIR,
                 '--', self.python(), '-I', '-B', f'{SANDBOX_WORKDIR}/runner.py']
         return cmd
@@ -472,13 +540,16 @@ class NsjailSandbox(Sandbox):
     name = 'nsjail'
     summary = ('nsjail: namespaces, read-only binds of system libraries and the interpreter, the work '
                'dir read-write, its own rlimits and time limit; runner limits inside.')
+    supports_egress_proxy = True
+    netns_isolated = True
 
     def available(self) -> Tuple[bool, str]:
         exe = shutil.which('nsjail')
         return (True, exe) if exe else (False, 'nsjail is not installed')
 
     def command(self, workdir: str, policy: SandboxPolicy, run_id: str) -> List[str]:
-        net = policy.network == 'allowlist'
+        egress_dir = self._runs.get(run_id, {}).get('egress_dir')
+        net = policy.network == 'allowlist' and not egress_dir
         cmd = [shutil.which('nsjail') or 'nsjail', '--mode', 'o', '--quiet',
                '--time_limit', str(policy.timeout_seconds + 1),
                '--rlimit_as', str(policy.memory_mb), '--rlimit_cpu', str(policy.cpu_seconds),
@@ -487,6 +558,8 @@ class NsjailSandbox(Sandbox):
                '--tmpfsmount', '/tmp', '--bindmount', f'{workdir}:{SANDBOX_WORKDIR}', '--cwd', SANDBOX_WORKDIR]
         for p in readable_paths(self.python(), net, self.settings.extra_read_paths):
             cmd += ['--bindmount_ro', p]
+        if egress_dir:
+            cmd += ['--bindmount_ro', f'{egress_dir}:{_egress.INNER_SOCKET_DIR}']
         if net:
             cmd.append('--disable_clone_newnet')
         cmd += ['--', self.python(), '-I', '-B', f'{SANDBOX_WORKDIR}/runner.py']
@@ -506,8 +579,10 @@ class NsjailSandbox(Sandbox):
 
 class DockerSandbox(Sandbox):
     name = 'docker'
-    summary = ('One container per call: --network none, read-only root, memory/CPU/PID limits, all '
-               'capabilities dropped, no-new-privileges, nobody user; optional gVisor runtime.')
+    summary = ('One container per call (or a warm pool): --network none, read-only root, memory/CPU/PID '
+               'limits, all capabilities dropped, no-new-privileges, nobody user; optional gVisor runtime.')
+    supports_egress_proxy = True
+    netns_isolated = True
 
     def binary(self) -> str:
         return self.settings.docker.get('binary') or 'docker'
@@ -548,10 +623,58 @@ class DockerSandbox(Sandbox):
         c.update({'userns': False, 'deny_roots': [], 'extra_read_paths': []})
         return c
 
+    # -- warm pool and egress ------------------------------------------------
+    def pool(self):
+        from .pool import pool_for
+        return pool_for(self.binary(), self.image(), self.settings.defaults, self.settings.docker.get('cpus'),
+                        self.settings.docker.get('runtime'), self.launch_env())
+
+    def prepare(self, run_id: str, policy: SandboxPolicy) -> None:
+        pool = self.pool()
+        if pool is None:
+            return
+        network_ok = policy.network == 'none' or self.egress_proxy_on(policy)
+        if pool.eligible(policy.memory_mb, policy.max_processes, policy.max_file_mb, network_ok):
+            lease = pool.acquire()
+            if lease is not None:
+                self._runs[run_id]['lease'] = (pool, lease)
+
+    def start_egress(self, run_id: str, policy: SandboxPolicy, tool: str) -> '_egress.EgressProxy':
+        leased = self._runs.get(run_id, {}).get('lease')
+        if leased:
+            return _egress.start_in_dir(leased[1].egress_dir, run_id, policy.allow_hosts, tool=tool,
+                                        world_reachable=True)
+        return _egress.start_for_run(run_id, policy.allow_hosts, tool=tool, world_reachable=True)
+
+    def network_args(self, policy: SandboxPolicy, name: str) -> List[str]:
+        """``docker run`` network arguments for a long-lived container ``name`` that runs someone
+        else's program (a federated stdio upstream, sajha/federation/container.py). Network off:
+        ``--network none``. Allowlisted under the egress proxy: the container joins a loopback-only
+        sidecar that bridges to a proxy for ``policy.allow_hosts``, with ``HTTP(S)_PROXY`` set; both
+        end with the container. In direct mode: the default bridge network."""
+        if policy.network != 'allowlist':
+            return ['--network', 'none']
+        if not self.egress_proxy_on(policy):
+            return ['--network', 'bridge']
+        return _egress.container_network_args(name, policy.allow_hosts, self.binary(), self.image(),
+                                              self.launch_env(), runtime=self.settings.docker.get('runtime') or '',
+                                              tool=f'container:{name}')
+
+    def after_run(self, run_id: str) -> None:
+        leased = self._runs.get(run_id, {}).get('lease')
+        if leased:
+            leased[0].release(leased[1])
+
     def command(self, workdir: str, policy: SandboxPolicy, run_id: str) -> List[str]:
+        ctx = self._runs.get(run_id, {})
+        src = RUNNER_PATH.read_text(encoding='utf-8')
+        if ctx.get('lease'):
+            pool, lease = ctx['lease']
+            return pool.exec_command(lease, src)
+        egress_dir = ctx.get('egress_dir')
         mem = f'{policy.memory_mb}m'
         cmd = [shutil.which(self.binary()) or self.binary(), 'run', '--rm', '-i', '--name', run_id,
-               '--network', 'none' if policy.network != 'allowlist' else 'bridge',
+               '--network', 'none' if policy.network != 'allowlist' or egress_dir else 'bridge',
                '--read-only', '--tmpfs', f'{SANDBOX_WORKDIR}:rw,exec,nosuid,nodev,size={max(16, policy.max_file_mb * 2)}m,mode=1777',
                '--tmpfs', '/tmp:rw,nosuid,nodev,size=16m,mode=1777', '-w', SANDBOX_WORKDIR,
                '--memory', mem, '--memory-swap', mem, '--cpus', str(self.settings.docker.get('cpus') or '1'),
@@ -560,11 +683,16 @@ class DockerSandbox(Sandbox):
         runtime = self.settings.docker.get('runtime')
         if runtime:
             cmd += ['--runtime', runtime]
-        src = RUNNER_PATH.read_text(encoding='utf-8')
+        if egress_dir:
+            cmd += ['-v', f'{egress_dir}:{_egress.INNER_SOCKET_DIR}:ro']
         cmd += [self.image(), 'python3', '-I', '-B', '-c', src]
         return cmd
 
     def on_kill(self, run_id: str) -> None:
+        leased = self._runs.get(run_id, {}).get('lease')
+        if leased:
+            leased[0].kill(leased[1])
+            return
         try:
             subprocess.run([shutil.which(self.binary()) or self.binary(), 'kill', run_id],
                            capture_output=True, timeout=15, env=self.launch_env())
@@ -580,11 +708,24 @@ class DockerSandbox(Sandbox):
             {'guarantee': 'Network off unless allowlisted', 'enforced': True, 'how': '--network none'},
             {'guarantee': 'Cannot see, signal or trace server processes', 'enforced': True,
              'how': 'container PID namespace, --cap-drop ALL'},
+            {'guarantee': 'Warm containers are reset between calls', 'enforced': True,
+             'how': self._pool_how()},
             {'guarantee': 'CPU, memory, process count limits', 'enforced': True,
              'how': f'--memory, --cpus, --pids-limit (runner rlimits: {bool(applied.get("rlimits"))})'},
             {'guarantee': 'Kernel attack surface reduced', 'enforced': bool(rt),
              'how': f'runtime {rt}' if rt else 'shared host kernel (set sandbox.docker.runtime: runsc for gVisor)'},
         ]
+
+
+    def _pool_how(self) -> str:
+        from .pool import load_pool_config
+        cfg = load_pool_config()
+        if cfg.size <= 0:
+            return 'no pool (sandbox.docker.pool.size is 0): a fresh container per call'
+        if cfg.reset == 'recreate':
+            return f'pool of {cfg.size}: each container is removed after one call and replaced'
+        return (f'pool of {cfg.size}: processes killed, /work, /tmp, /dev/shm and SysV IPC emptied after each '
+                f'call (verified), container replaced after {cfg.max_uses} calls or a failed reset')
 
 
 BACKENDS = {'subprocess': SubprocessSandbox, 'bwrap': BwrapSandbox, 'nsjail': NsjailSandbox,

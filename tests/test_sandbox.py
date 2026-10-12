@@ -247,7 +247,9 @@ def test_unix_sockets_blocked(backend, tmp_path):
 
 
 @pytest.mark.parametrize('name', ['subprocess', 'bwrap'])
-def test_network_allowlist_admits_only_listed_port(name, local_server):
+def test_network_allowlist_admits_only_listed_port(name, local_server, monkeypatch):
+    # sandbox.egress.mode: direct, the library-level check (the egress proxy: tests/test_sandbox_egress.py)
+    monkeypatch.setenv('SAJHA_SANDBOX_EGRESS_MODE', 'direct')
     backend = _backend(name)
     port, hits = local_server
     other = socket.socket()

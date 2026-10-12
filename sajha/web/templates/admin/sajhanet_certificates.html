@@ -1,0 +1,75 @@
+{% extends "common/base.html" %}
+{# Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.com #}
+{% set sn_here = '/admin/sajhanet/certificates' %}
+{% block title %}{{ _('Certificates - SAJHA Net - Admin - SAJHA MCP Server') }}{% endblock %}
+{% block extra_css %}{% include "admin/_sajhanet_mgmt_css.html" %}{% endblock %}
+{% block content %}
+<div class="container-fluid" data-sn-csrf="{{ csrf }}">
+  <div class="mb-3">
+    <h1 class="h3 mb-0"><i class="bi bi-patch-check me-2" aria-hidden="true"></i>{{ _('Certificates') }}</h1>
+    <small class="text-muted">{{ _('This server\'s certificate in each net and, where it runs the net\'s CA, the certificates it issued, waiting enrollment tokens and the revocation list') }}</small>
+  </div>
+  {% include "admin/_sajhanet_subnav.html" %}
+  <p class="small" data-sn-status role="status" aria-live="polite"></p>
+  {% if not view.enabled %}
+  <div class="alert alert-info small" role="status">{% trans %}SAJHA Net is off: this server holds no net certificate. Set <code>sajhanet.enabled: true</code> and list the nets under <code>sajhanet.nets</code>, then restart.{% endtrans %}</div>
+  {% endif %}
+  {% for n in view.nets %}
+  {% set api = '/api/sajhanet/nets/' ~ n.net|urlencode %}
+  <section class="sn-box" aria-labelledby="c-{{ loop.index }}">
+    <h2 id="c-{{ loop.index }}">{{ n.net }} <span class="sn-meta">{% trans instance=n.instance, mode=n.admission %}as <code>{{ instance }}</code> · admission <code>{{ mode }}</code>{% endtrans %}</span></h2>
+    <div class="sn-body">
+      {% if n.error %}<p class="sn-bad small">{{ n.error }}</p>{% endif %}
+      {% if n.certificate %}
+      <p class="mb-1">{% trans serial=n.certificate.serial, until=n.certificate.not_after %}This server's certificate: serial <code>{{ serial }}</code>, valid until {{ until }}.{% endtrans %}</p>
+      <p class="sn-meta sn-hash mb-2">{{ n.certificate.thumbprint }}</p>
+      {% if n.admission == 'builtin_ca' %}
+      <button class="btn btn-sm btn-outline-primary" type="button" data-sn-action data-method="POST" data-url="{{ api }}/renew" data-net="{{ n.net }}" data-final
+        data-effect="{{ _('Renew this server\'s certificate now with a new key (it also renews by itself when a third of its validity remains).') }}">{{ _('Renew now') }}</button>
+      {% endif %}
+      {% else %}<p class="sn-meta">{{ _('No certificate yet.') }}</p>{% endif %}
+
+      {% if n.ca %}
+      <h3 class="h6 mt-3">{{ _('Issued by this CA') }}</h3>
+      <p class="sn-meta sn-hash">{% trans tp=n.ca.thumbprint %}CA thumbprint {{ tp }}{% endtrans %}</p>
+      <div class="table-responsive"><table class="sn-table">
+        <thead><tr><th scope="col">{{ _('Instance') }}</th><th scope="col">{{ _('Serial') }}</th><th scope="col" class="opt">{{ _('Host') }}</th><th scope="col">{{ _('Valid until') }}</th><th scope="col">{{ _('State') }}</th><th scope="col">{{ _('Actions') }}</th></tr></thead>
+        <tbody>
+        {% for c in n.ca.issued %}
+          <tr><td><code>{{ c.instance }}</code></td><td class="sn-hash">{{ c.serial }}</td><td class="opt">{{ c.host or '—' }}</td><td>{{ c.not_after }}</td>
+            <td><span class="st st-{{ 'revoked' if c.revoked else 'ok' }}">{{ _('revoked') if c.revoked else _('valid') }}</span></td>
+            <td class="sn-actions">{% if not c.revoked %}
+              <button class="btn btn-sm btn-outline-danger" type="button" data-sn-action data-method="POST" data-url="{{ api }}/ca/revoke" data-net="{{ n.net }}" data-kind="revoke" data-final
+                data-body='{{ {"instance": c.instance}|tojson }}' data-blast='{{ {"instance": c.instance}|tojson }}'
+                data-effect="{{ _('Revoke %(instance)s: it is removed from the net, its name cannot be enrolled again while revoked, and the new revocation list spreads by gossip.', instance=c.instance) }}">{{ _('Revoke') }}</button>
+              <button class="btn btn-sm btn-outline-secondary" type="button" data-sn-action data-method="POST" data-url="{{ api }}/ca/tokens" data-net="{{ n.net }}" data-kind="ca_token" data-final
+                data-body='{{ {"instance": c.instance, "host": c.host or ""}|tojson }}'
+                data-effect="{{ _('Re-issue: a single-use enrollment token for %(instance)s, shown once, to give that server.', instance=c.instance) }}">{{ _('Re-issue') }}</button>
+            {% endif %}</td></tr>
+        {% else %}<tr><td colspan="6" class="sn-meta">{{ _('No certificates issued yet.') }}</td></tr>{% endfor %}
+        </tbody></table></div>
+      <h3 class="h6 mt-3">{{ _('Enroll an instance') }}</h3>
+      <form class="row g-2 align-items-end" data-sn-form data-method="POST" data-url="{{ api }}/ca/tokens" data-net="{{ n.net }}" data-kind="ca_token" data-final
+            data-effect="{{ _('Create a single-use enrollment token for this name (shown once).') }}">
+        <div class="col-6 col-md-3"><label class="form-label small" for="t-i-{{ loop.index }}">{{ _('Instance name') }}</label>
+          <input class="form-control form-control-sm" id="t-i-{{ loop.index }}" name="instance" required autocomplete="off"></div>
+        <div class="col-6 col-md-3"><label class="form-label small" for="t-h-{{ loop.index }}">{{ _('Host (optional)') }}</label>
+          <input class="form-control form-control-sm" id="t-h-{{ loop.index }}" name="host" autocomplete="off"></div>
+        <div class="col-auto"><button class="btn btn-sm btn-primary" type="submit">{{ _('Create token') }}</button></div>
+      </form>
+      <h3 class="h6 mt-3">{{ _('Waiting enrollment tokens') }}</h3>
+      <ul class="list-unstyled small">{% for t in n.ca.pending_tokens %}<li>{% trans instance=t.instance, h=t.token_hash, until=t.expires_at %}<code>{{ instance }}</code> · token {{ h }}… · expires {{ until }}{% endtrans %}</li>{% else %}<li class="sn-meta">{{ _('None.') }}</li>{% endfor %}</ul>
+      <h3 class="h6 mt-3">{{ _('Revocation list') }}</h3>
+      <p class="sn-meta">{% trans v=n.ca.revocation_list.version or 0 %}Version {{ v }}.{% endtrans %}</p>
+      <ul class="list-unstyled small">{% for r in n.ca.revocation_list.revoked or [] %}<li><code>{{ r.instance or r.serial }}</code>{% if r.reason %} — {{ r.reason }}{% endif %}{% if r.at %} · {{ r.at }}{% endif %}</li>{% else %}<li class="sn-meta">{{ _('Nothing revoked.') }}</li>{% endfor %}</ul>
+      {% elif n.admission == 'builtin_ca' %}
+      <p class="sn-meta mt-2">{% if n.ca_enabled %}{% trans %}This server is the CA instance of this net, but the CA has no key yet: initialise it on the <a href="/admin/sajhanet">SAJHA Net admin</a> page.{% endtrans %}{% else %}{{ _('Another instance runs this net\'s CA; certificates are issued there.') }}{% endif %}</p>
+      {% else %}
+      <p class="sn-meta mt-2">{{ _('This net admits members without a CA (open or manual mode): there are no issued certificates to manage. Pins and first-use keys are on the SAJHA Net admin page.') }}</p>
+      {% endif %}
+    </div>
+  </section>
+  {% endfor %}
+</div>
+{% include "admin/_sajhanet_change_dialog.html" %}
+{% endblock %}

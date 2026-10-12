@@ -62,6 +62,7 @@ def _c(cid, targets, how='in_process', feature='', where=''):
 
 
 T = 'tests/net/'
+AH = 'sajhanet_agent/tests/test_home.py'      # the agent's own cases (target A)
 #: every id of protocol §20, in the order of the table
 CASES: List[Case] = [
     _c('NAME-01', 'S A L', 'library'), _c('NAME-02', 'S A L', 'library'), _c('NAME-03', 'S A L', 'library'),
@@ -92,7 +93,7 @@ CASES: List[Case] = [
     _c('GOS-13', 'S A', where=T + 'test_net_membership.py'), _c('GOS-14', 'S A', where=T + 'test_net_integration.py'),
     _c('CAT-01', 'S A', 'remote', 'catalog'), _c('CAT-02', 'S A', 'remote', 'catalog'),
     _c('CAT-03', 'S A', 'remote', 'catalog'), _c('CAT-04', 'S', where=T + 'test_net_catalog.py'),
-    _c('CAT-05', 'S A', 'remote', 'visibility'), _c('CAT-06', 'S A', 'remote', 'catalog'),
+    _c('CAT-05', 'S A', 'remote', 'visibility', where=T + 'test_net_visibility.py'), _c('CAT-06', 'S A', 'remote', 'catalog'),
     _c('CAT-07', 'S', where=T + 'test_net_catalog.py'), _c('CAT-08', 'S', where=T + 'test_net_catalog.py'),
     _c('CON-06', 'S A', where=T + 'test_net_catalog.py'), _c('CON-01', 'S A', where=T + 'test_net_catalog.py'),
     _c('CON-02', 'S A', where=T + 'test_net_catalog.py'), _c('CON-03', 'S A', where=T + 'test_net_catalog.py'),
@@ -106,13 +107,13 @@ CASES: List[Case] = [
     _c('CALL-01', 'S A', 'remote'), _c('CALL-02', 'S A', where=T + 'test_net_identity.py'),
     _c('CALL-03', 'S A', 'remote'), _c('CALL-04', 'S A', 'remote'), _c('CALL-05', 'S A', 'remote'),
     _c('CALL-06', 'S A', where=T + 'test_net_identity.py, test_net_routing_integration.py'),
-    _c('CALL-07', 'S A', feature='residency', where=T + 'test_net_residency.py'), _c('CALL-08', 'S A', 'remote'),
+    _c('CALL-07', 'S A', feature='residency', where=T + 'test_net_residency.py, ' + AH), _c('CALL-08', 'S A', 'remote'),
     _c('CALL-09', 'S', where=T + 'test_net_routing_integration.py'), _c('CALL-10', 'S A', where=T + 'test_net_identity.py'),
     _c('CALL-11', 'S A', feature='progress', where=T + 'test_net_streaming.py'),
-    _c('CALL-12', 'S A', where='(SAJHA forwards on the 2026-07-28 era only: protocol §22 decision 40)'),
-    _c('CALL-13', 'S A', feature='reexport', where=T + 'test_net_reexport_identity.py'),
-    _c('CALL-14', 'S A', where=T + 'test_net_reexport_identity.py'),
-    _c('CALL-15', 'S A', feature='token_exchange', where=T + 'test_net_reexport_identity.py'),
+    _c('CALL-12', 'S A', where=T + 'test_net_legacy_era.py'),
+    _c('CALL-13', 'S A', feature='reexport', where=T + 'test_net_reexport_identity.py, ' + AH),
+    _c('CALL-14', 'S A', where=T + 'test_net_reexport_identity.py, test_net_agent_home.py, ' + AH),
+    _c('CALL-15', 'S A', feature='token_exchange', where=T + 'test_net_reexport_identity.py, test_net_agent_home.py, ' + AH),
     _c('CALL-16', 'S A', feature='mrtr', where=T + 'test_net_mrtr.py'),
     _c('FB-01', 'S A', 'remote'), _c('FB-02', 'S', where=T + 'test_net_catalog.py'),
     _c('FB-03', 'S', where=T + 'test_net_catalog.py'), _c('FB-04', 'S', where=T + 'test_net_catalog.py'),
@@ -879,7 +880,13 @@ class Suite:
                                                                          'tools')
 
     def c_CAT_05(self):
-        raise NotApplicable('visibility is not built')
+        kid = 'conformance-' + secrets.token_hex(8)          # never a record of this (non-member) requester
+        a = self.send('POST', P + '/catalog/visibility', {'key_ids': [kid]})
+        check(a.status == 200 and schemas.is_valid('visibility_response', a.json),
+              f'the visibility answer is valid ({a.status})')
+        v = (a.json.get('visibility') or {}).get(kid) or {}
+        check(v.get('reason') == 'not_home' and not v.get('tools'),
+              'a key id that is not one of the requester\'s own records gets not_home and no tools')
 
     def c_CAT_06(self):
         for t in self.catalog().get('tools') or []:

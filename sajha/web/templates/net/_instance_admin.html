@@ -1,0 +1,67 @@
+{# Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.com #}
+{# One instance's administrator tabs other than Tools (admin: sajha/net/integration/pages.py instance_admin). #}
+{% set net = admin.net %}{% set inst = admin.instance %}{% set api = '/api/sajhanet/nets/' ~ admin.net|urlencode %}
+{% set m = admin.member or {} %}
+<p class="nt-meta">{% trans inc=m.incarnation or '—', url=m.url or '—', features=(m.features or [])|join(', ') or '—' %}Incarnation {{ inc }} · {{ url }} · features: {{ features }}{% endtrans %}</p>
+<div class="sn-actions mb-3">
+  {% for lv, label, eff in [('instance', _('Block entirely'), _('No calls to or from %(i)s; its tools disappear here and its updates are ignored.', i=inst)),
+                            ('inbound', _('Block inbound'), _('Calls from %(i)s are refused here; this server still calls its tools.', i=inst)),
+                            ('outbound', _('Block outbound'), _('This server stops calling %(i)s; its tools are hidden from local users.', i=inst))] %}
+  <button class="btn btn-sm btn-outline-danger" type="button" data-sn-action data-method="POST" data-url="{{ api }}/blocks" data-net="{{ net }}" data-kind="block_add"
+    data-body='{{ {"level": lv, "target_instance": inst}|tojson }}' data-blast='{{ {"level": lv, "target_instance": inst}|tojson }}' data-effect="{{ eff }}">{{ label }}</button>
+  {% endfor %}
+</div>
+{% if tab == 'traffic' %}
+{% set tr = admin.traffic %}
+<div class="sn-tiles">
+  <div class="sn-tile"><div class="k">{{ _('Calls sent to it') }}</div><div class="v">{{ tr.to }}</div></div>
+  <div class="sn-tile"><div class="k">{{ _('Calls served for it') }}</div><div class="v">{{ tr['from'] }}</div></div>
+  <div class="sn-tile"><div class="k">{{ _('Latency p50') }}</div><div class="v">{{ tr.latency_p50_ms ~ ' ms' if tr.latency_p50_ms is not none else '—' }}</div></div>
+</div>
+<p class="nt-meta">{% for side, label in [('home', _('Sent:')), ('host', _('Served:'))] %}{{ label }} {% for k, v in tr.outcomes[side].items() %}{{ k }} {{ v }}{% if not loop.last %}, {% endif %}{% else %}—{% endfor %}{% if not loop.last %} · {% endif %}{% endfor %}</p>
+<div class="table-responsive"><table class="sn-table">
+  <thead><tr><th scope="col">{{ _('When') }}</th><th scope="col">{{ _('Way') }}</th><th scope="col">{{ _('Tool') }}</th><th scope="col">{{ _('Outcome') }}</th><th scope="col" class="opt">{{ _('User') }}</th></tr></thead>
+  <tbody>{% for r in tr.recent %}<tr><td>{{ r.at }}</td><td>{{ _('sent') if r.side == 'home' else _('served') }}</td><td><code>{{ r.tool }}</code></td>
+    <td><span class="st st-{{ 'ok' if r.ok else 'refused' }}">{{ r.outcome or _('answered') }}</span></td><td class="opt">{{ r.user }}</td></tr>
+  {% else %}<tr><td colspan="5" class="sn-meta">{{ _('No calls with this instance in the newest audit records.') }}</td></tr>{% endfor %}</tbody></table></div>
+<p class="mt-2"><a href="/admin/sajhanet/activity?net={{ net|urlencode }}">{{ _('Live activity') }}</a></p>
+{% elif tab == 'users' %}
+{% set u = admin.users or {} %}
+<p class="nt-meta">{% trans nm=_('on') if u.name_matching else _('off'), unknown=u.unknown or '—' %}Name matching {{ nm }} for this instance · unknown users <code>{{ unknown }}</code>. Links, role maps and name matching are changed on <a href="/admin/sajhanet/users">Users across the net</a>.{% endtrans %}</p>
+{% if u.role_map %}<p class="nt-meta">{{ _('Role map:') }} {% for k, v in u.role_map.items() %}<code>{{ k }}</code> → {{ v|join(', ') }}{% if not loop.last %}; {% endif %}{% endfor %}</p>{% endif %}
+<div class="table-responsive"><table class="sn-table">
+  <thead><tr><th scope="col">{{ _('Remote user') }}</th><th scope="col">{{ _('Resolved as') }}</th><th scope="col" class="opt">{{ _('Seen') }}</th></tr></thead>
+  <tbody>{% for s in u.seen or [] %}<tr><td><code>{{ s.user }}</code></td><td>{{ s.mapping }}{% if s.local %} → <code>{{ s.local }}</code>{% endif %}</td><td class="opt">{{ s.at }}</td></tr>{% endfor %}
+  {% for k, v in (u.links or {}).items() %}<tr><td><code>{{ k }}</code></td><td>{{ _('link') }} → <code>{{ v.local }}</code></td><td class="opt">{{ v.at }}</td></tr>{% endfor %}
+  {% if not u.seen and not u.links %}<tr><td colspan="3" class="sn-meta">{{ _('No user of this instance has called here recently.') }}</td></tr>{% endif %}</tbody></table></div>
+{% elif tab == 'keys' %}
+{% set k = admin['keys'] or {} %}
+{% if k.summary %}<p class="nt-meta">{% trans n=k.summary.records, r=k.summary.revoked, v=k.summary.version %}{{ n }} records, {{ r }} revoked, version {{ v }}.{% endtrans %} <a href="/admin/sajhanet/keys?net={{ net|urlencode }}&amp;home={{ inst|urlencode }}">{{ _('Key directory') }}</a></p>{% endif %}
+<div class="table-responsive"><table class="sn-table">
+  <thead><tr><th scope="col">{{ _('Key') }}</th><th scope="col">{{ _('Owner') }}</th><th scope="col">{{ _('State') }}</th><th scope="col" class="opt">{{ _('Expires') }}</th></tr></thead>
+  <tbody>{% for r in k.records or [] %}<tr><td><code>{{ r.prefix }}</code> {{ r.name }}</td><td>{{ r.owner or '—' }}</td>
+    <td>{{ _('revoked') if r.revoked_at else (_('enabled') if r.enabled else _('disabled')) }}</td><td class="opt">{{ r.expires_at or _('never') }}</td></tr>
+  {% else %}<tr><td colspan="4" class="sn-meta">{{ _('No key records from this instance.') }}</td></tr>{% endfor %}</tbody></table></div>
+<button class="btn btn-sm btn-outline-primary mt-2" type="button" data-sn-action data-method="POST" data-url="{{ api }}/keys/resync" data-net="{{ net }}" data-final
+  data-effect="{{ _('Pull every member\'s key records again at the next gossip round.') }}">{{ _('Re-sync keys') }}</button>
+{% elif tab == 'blocks' %}
+{% set bl = admin.blocks or {} %}
+<h2 class="h6">{{ _('This server\'s blocks naming it') }}</h2>
+<ul class="list-unstyled small">{% for b in bl.mine or [] %}<li class="mb-1"><span class="st st-blocked">{{ b.level }}</span> <code>{{ b.target_instance }}</code>{% if b.tool %} · <code>{{ b.tool }}</code>{% endif %}{% if b.user %} · <code>{{ b.user }}</code>{% endif %} — {{ b.reason }}
+  <button class="btn btn-sm btn-outline-secondary ms-1" type="button" data-sn-action data-method="DELETE" data-url="{{ api }}/blocks/{{ b.id|urlencode }}" data-net="{{ net }}" data-kind="block_remove" data-effect="{{ _('End this block now.') }}">{{ _('Remove') }}</button></li>
+{% else %}<li class="sn-meta">{{ _('None.') }}</li>{% endfor %}</ul>
+<h2 class="h6">{{ _('Its blocks naming this server') }}</h2>
+<ul class="list-unstyled small">{% for b in bl.theirs or [] %}<li><span class="st st-blocked">{{ b.level }}</span>{% if b.tool %} <code>{{ b.tool }}</code>{% endif %}{% if b.reason %} — {{ b.reason }}{% endif %}</li>{% else %}<li class="sn-meta">{{ _('None published.') }}</li>{% endfor %}</ul>
+{% elif tab == 'history' %}
+{% set changes = admin.history %}{% include "admin/_sajhanet_changes_table.html" %}
+{% endif %}
+{% if tab in ('traffic', 'blocks') %}
+<h2 class="h6 mt-3">{{ _('Trust in its tools') }}</h2>
+<form class="row g-2 align-items-end" data-sn-form data-method="POST" data-url="{{ api }}/peers/{{ inst|urlencode }}/trust" data-net="{{ net }}" data-kind="trust" data-blast-form
+      data-effect="{{ _('Change how this server takes in the tools of %(i)s; its catalog is pulled again at once.', i=inst) }}">
+  <input type="hidden" name="peer" value="{{ inst }}">
+  <div class="col-6 col-md-3"><label class="form-label small" for="tr-l">{% trans now=admin.trust.level %}Trust (now {{ now }}){% endtrans %}</label>
+    <select class="form-select form-select-sm" id="tr-l" name="trust">{% for t in ('auto', 'review', 'pinned') %}<option{% if t == admin.trust.level %} selected{% endif %}>{{ t }}</option>{% endfor %}</select></div>
+  <div class="col-auto"><button class="btn btn-sm btn-outline-primary" type="submit">{{ _('Set trust') }}</button></div>
+</form>
+{% endif %}

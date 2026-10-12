@@ -7,6 +7,8 @@ A small VCR. While a :class:`Cassette` is active (``with cassette.use():``) it i
 * ``requests.Session.send`` (when ``requests`` is installed),
 * ``httpx.HTTPTransport.handle_request`` and ``httpx.AsyncHTTPTransport.handle_async_request``
   (when ``httpx`` is installed),
+* ``urllib3`` (botocore, the AWS SDK's transport, sits on it), ``aiohttp`` and ``curl_cffi``
+  (sajha/quality/cassette_transports.py, each when installed),
 
 and, by mode:
 
@@ -154,6 +156,8 @@ class Cassette:
                 stack.enter_context(_patch_urllib(self))
                 stack.enter_context(_patch_requests(self))
                 stack.enter_context(_patch_httpx(self))
+                from sajha.quality.cassette_transports import patch_all
+                stack.enter_context(patch_all(self))
                 yield self
         self.save()
 
@@ -264,7 +268,9 @@ def _patch_requests(cassette: Cassette):
         if cassette.mode == 'replay':
             r = cassette._find(prepared.method or 'GET', prepared.url, prepared.body)
             return build(prepared, r, _decode_body(r['body']))
-        resp = original(self, prepared, **kwargs)
+        from sajha.quality.cassette_transports import outer
+        with outer():                      # requests sits on urllib3: record this exchange once
+            resp = original(self, prepared, **kwargs)
         payload = resp.content
         cassette._record(prepared.method or 'GET', prepared.url, prepared.body, resp.status_code, resp.reason or '',
                          dict(resp.headers), payload)

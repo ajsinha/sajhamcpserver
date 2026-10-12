@@ -8,7 +8,7 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
   sqltext.py   SQL tokenizer (comments, strings, :name parameters)
   guard.py     the statement guard for caller SQL (sqlglot, or a conservative scanner)
   drivers/     one SQL driver per kind (optional packages)
-  vector.py    pgvector, Qdrant, Elasticsearch / OpenSearch
+  vector.py    pgvector, Qdrant, Elasticsearch / OpenSearch (vector_weaviate.py, vector_chroma.py)
   pool.py      idle-connection pool
   catalog.py   schema catalog cache
   masking.py   column masking

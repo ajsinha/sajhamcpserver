@@ -4,7 +4,7 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
 Workflows: DAGs of tool, composite and Ask SAJHA steps; schedules, triggers and run history.
 Design: docs/architecture/Workflows.md
 -->
-{% block title %}Workflows - {{ app_name }}{% endblock %}
+{% block title %}{% trans app_name=app_name %}Workflows - {{ app_name }}{% endtrans %}{% endblock %}
 {% block extra_css %}
 <style>
 .wf-list .list-group-item{cursor:pointer;background:var(--t-card,transparent);color:var(--t-text)}
@@ -45,108 +45,108 @@ Design: docs/architecture/Workflows.md
 <div class="container-fluid">
   <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
     <div>
-      <h1 class="h3 mb-0"><i class="bi bi-diagram-3 me-2" aria-hidden="true"></i>Workflows</h1>
-      <small class="text-muted">Steps that call tools, composites and Ask SAJHA, with branches, loops, waits and approvals; run on a schedule, a webhook, a new file, a change event or by hand. Steps run as the workflow's owner.</small>
+      <h1 class="h3 mb-0"><i class="bi bi-diagram-3 me-2" aria-hidden="true"></i>{{ _('Workflows') }}</h1>
+      <small class="text-muted">{{ _('Steps that call tools, composites and Ask SAJHA, with branches, loops, waits and approvals; run on a schedule, a webhook, a new file, a change event or by hand. Steps run as the workflow\'s owner.') }}</small>
     </div>
     <div class="d-flex gap-2">
-      <a class="btn btn-sm btn-outline-primary" href="{{ url_for('composite_builder') }}"><i class="bi bi-boxes me-1" aria-hidden="true"></i>Composites</a>
-      <button class="btn btn-sm btn-primary" type="button" id="wfNew"><i class="bi bi-plus-lg me-1" aria-hidden="true"></i>New workflow</button>
+      <a class="btn btn-sm btn-outline-primary" href="{{ url_for('composite_builder') }}"><i class="bi bi-boxes me-1" aria-hidden="true"></i>{{ _('Composites') }}</a>
+      <button class="btn btn-sm btn-primary" type="button" id="wfNew"><i class="bi bi-plus-lg me-1" aria-hidden="true"></i>{{ _('New workflow') }}</button>
     </div>
   </div>
 
-  {% if not available %}<div class="alert alert-warning" role="status">Workflows are not running on this server (<code>workflows.enabled</code>, or the workflow tables are missing from the database).</div>{% endif %}
-  {% if available and not state_shared %}<div class="alert alert-info" role="status">The state store is this worker's memory (<code>state.backend: memory</code>): fine for one worker. With several workers use <code>redis</code> or <code>database</code> so schedules fire once and approvals are seen everywhere.</div>{% endif %}
+  {% if not available %}<div class="alert alert-warning" role="status">{% trans %}Workflows are not running on this server (<code>workflows.enabled</code>, or the workflow tables are missing from the database).{% endtrans %}</div>{% endif %}
+  {% if available and not state_shared %}<div class="alert alert-info" role="status">{% trans %}The state store is this worker's memory (<code>state.backend: memory</code>): fine for one worker. With several workers use <code>redis</code> or <code>database</code> so schedules fire once and approvals are seen everywhere.{% endtrans %}</div>{% endif %}
   <div id="wfAlert" role="status" aria-live="polite"></div>
 
   <div class="row g-3">
     <div class="col-lg-4">
       <div class="card">
         <div class="card-header d-flex justify-content-between align-items-center">
-          <span><i class="bi bi-list-ul me-2" aria-hidden="true"></i>Your workflows</span>
-          <button class="btn btn-sm btn-outline-secondary" type="button" id="wfRefresh" aria-label="Refresh the list"><i class="bi bi-arrow-clockwise" aria-hidden="true"></i></button>
+          <span><i class="bi bi-list-ul me-2" aria-hidden="true"></i>{{ _('Your workflows') }}</span>
+          <button class="btn btn-sm btn-outline-secondary" type="button" id="wfRefresh" aria-label="{{ _('Refresh the list') }}"><i class="bi bi-arrow-clockwise" aria-hidden="true"></i></button>
         </div>
-        <div class="list-group list-group-flush wf-list" id="wfList"><div class="p-3 text-muted small">Loading...</div></div>
+        <div class="list-group list-group-flush wf-list" id="wfList"><div class="p-3 text-muted small">{{ _('Loading...') }}</div></div>
       </div>
     </div>
 
     <div class="col-lg-8">
       <div class="card mb-3">
         <div class="card-header d-flex flex-wrap justify-content-between align-items-center gap-2">
-          <span><i class="bi bi-pencil-square me-2" aria-hidden="true"></i><span id="wfTitle">New workflow</span></span>
+          <span><i class="bi bi-pencil-square me-2" aria-hidden="true"></i><span id="wfTitle">{{ _('New workflow') }}</span></span>
           <span class="wf-meta" id="wfInfo"></span>
         </div>
         <div class="card-body">
           <ul class="nav nav-tabs wf-tabs mb-3" role="tablist">
-            <li class="nav-item" role="presentation"><button class="nav-link active" type="button" data-wf-tab="form" role="tab">Steps</button></li>
-            <li class="nav-item" role="presentation"><button class="nav-link" type="button" data-wf-tab="triggers" role="tab">Triggers</button></li>
+            <li class="nav-item" role="presentation"><button class="nav-link active" type="button" data-wf-tab="form" role="tab">{{ _('Steps') }}</button></li>
+            <li class="nav-item" role="presentation"><button class="nav-link" type="button" data-wf-tab="triggers" role="tab">{{ _('Triggers') }}</button></li>
             <li class="nav-item" role="presentation"><button class="nav-link" type="button" data-wf-tab="json" role="tab">JSON</button></li>
             <li class="nav-item" role="presentation"><button class="nav-link" type="button" data-wf-tab="yaml" role="tab">YAML</button></li>
           </ul>
 
           <div data-wf-pane="form">
             <div class="row g-2 mb-2">
-              <div class="col-md-5"><label class="form-label fw-bold" for="wfName">Name</label><input class="form-control" id="wfName" placeholder="daily_rates" autocomplete="off"></div>
-              <div class="col-md-7"><label class="form-label fw-bold" for="wfDesc">Description</label><input class="form-control" id="wfDesc" placeholder="What this workflow does"></div>
+              <div class="col-md-5"><label class="form-label fw-bold" for="wfName">{{ _('Name') }}</label><input class="form-control" id="wfName" placeholder="daily_rates" autocomplete="off"></div>
+              <div class="col-md-7"><label class="form-label fw-bold" for="wfDesc">{{ _('Description') }}</label><input class="form-control" id="wfDesc" placeholder="{{ _('What this workflow does') }}"></div>
             </div>
             <div class="row g-2 mb-3">
-              <div class="col-6 col-md-3"><label class="form-label small fw-bold" for="wfConc">Concurrent runs</label><input class="form-control form-control-sm" id="wfConc" type="number" min="1" placeholder="default"></div>
-              <div class="col-6 col-md-3"><label class="form-label small fw-bold" for="wfPar">Parallel steps</label><input class="form-control form-control-sm" id="wfPar" type="number" min="1" placeholder="default"></div>
-              <div class="col-6 col-md-3"><label class="form-label small fw-bold" for="wfTimeout">Run timeout (s)</label><input class="form-control form-control-sm" id="wfTimeout" type="number" min="1" placeholder="none"></div>
-              <div class="col-6 col-md-3 d-flex align-items-end"><div class="form-check"><input class="form-check-input" type="checkbox" id="wfPublish" {% if not is_admin %}disabled{% endif %}><label class="form-check-label small" for="wfPublish">Publish as an MCP tool{% if not is_admin %} (admins){% endif %}</label></div></div>
+              <div class="col-6 col-md-3"><label class="form-label small fw-bold" for="wfConc">{{ _('Concurrent runs') }}</label><input class="form-control form-control-sm" id="wfConc" type="number" min="1" placeholder="{{ _('default') }}"></div>
+              <div class="col-6 col-md-3"><label class="form-label small fw-bold" for="wfPar">{{ _('Parallel steps') }}</label><input class="form-control form-control-sm" id="wfPar" type="number" min="1" placeholder="{{ _('default') }}"></div>
+              <div class="col-6 col-md-3"><label class="form-label small fw-bold" for="wfTimeout">{{ _('Run timeout (s)') }}</label><input class="form-control form-control-sm" id="wfTimeout" type="number" min="1" placeholder="{{ _('none') }}"></div>
+              <div class="col-6 col-md-3 d-flex align-items-end"><div class="form-check"><input class="form-check-input" type="checkbox" id="wfPublish" {% if not is_admin %}disabled{% endif %}><label class="form-check-label small" for="wfPublish">{{ _('Publish as an MCP tool') }}{% if not is_admin %} {{ _('(admins)') }}{% endif %}</label></div></div>
             </div>
             <div class="d-flex justify-content-between align-items-center mb-2">
-              <h2 class="h6 mb-0">Steps</h2>
+              <h2 class="h6 mb-0">{{ _('Steps') }}</h2>
               <div class="d-flex gap-1 flex-wrap">
-                <label class="visually-hidden" for="wfAddKind">Step kind</label>
+                <label class="visually-hidden" for="wfAddKind">{{ _('Step kind') }}</label>
                 <select class="form-select form-select-sm" id="wfAddKind" style="width:auto">
-                  <option value="tool">tool</option><option value="composite">composite</option><option value="ask">ask</option>
-                  <option value="condition">condition</option><option value="foreach">foreach</option><option value="wait">wait</option><option value="approval">approval</option>
+                  <option value="tool">{{ _('tool') }}</option><option value="composite">{{ _('composite') }}</option><option value="ask">{{ _('ask') }}</option>
+                  <option value="condition">{{ _('condition') }}</option><option value="foreach">{{ _('foreach') }}</option><option value="wait">{{ _('wait') }}</option><option value="approval">{{ _('approval') }}</option>
                 </select>
-                <button class="btn btn-sm btn-outline-success" type="button" id="wfAddStep"><i class="bi bi-plus-lg me-1" aria-hidden="true"></i>Add step</button>
+                <button class="btn btn-sm btn-outline-success" type="button" id="wfAddStep"><i class="bi bi-plus-lg me-1" aria-hidden="true"></i>{{ _('Add step') }}</button>
               </div>
             </div>
             <div id="wfSteps"></div>
           </div>
 
           <div data-wf-pane="triggers" hidden>
-            <p class="small text-muted">A manual run is always possible (here, <code>sajha workflows run</code>, or the API). Webhook secrets are generated on save and shown masked; sign with HMAC-SHA256 over <code>timestamp + "." + body</code>.</p>
+            <p class="small text-muted">{% trans %}A manual run is always possible (here, <code>sajha workflows run</code>, or the API). Webhook secrets are generated on save and shown masked; sign with HMAC-SHA256 over <code>timestamp + "." + body</code>.{% endtrans %}</p>
             <div id="wfTriggers"></div>
             <div class="d-flex gap-1 flex-wrap">
-              <label class="visually-hidden" for="wfAddTrig">Trigger type</label>
+              <label class="visually-hidden" for="wfAddTrig">{{ _('Trigger type') }}</label>
               <select class="form-select form-select-sm" id="wfAddTrig" style="width:auto">
-                <option value="cron">cron schedule</option><option value="webhook">webhook</option><option value="file">file arrival</option><option value="event">change event</option>
+                <option value="cron">{{ _('cron schedule') }}</option><option value="webhook">{{ _('webhook') }}</option><option value="file">{{ _('file arrival') }}</option><option value="event">{{ _('change event') }}</option>
               </select>
-              <button class="btn btn-sm btn-outline-success" type="button" id="wfAddTrigBtn"><i class="bi bi-plus-lg me-1" aria-hidden="true"></i>Add trigger</button>
+              <button class="btn btn-sm btn-outline-success" type="button" id="wfAddTrigBtn"><i class="bi bi-plus-lg me-1" aria-hidden="true"></i>{{ _('Add trigger') }}</button>
             </div>
-            <h2 class="h6 mt-3">Deliver the output</h2>
+            <h2 class="h6 mt-3">{{ _('Deliver the output') }}</h2>
             <div class="row g-2">
-              <div class="col-md-4"><label class="form-label small" for="wfDelType">Channel</label>
-                <select class="form-select form-select-sm" id="wfDelType"><option value="">stored only</option><option value="webhook">webhook (allow-listed)</option><option value="file">file (async.delivery.file.base_dir)</option><option value="kafka">kafka topic</option></select></div>
-              <div class="col-md-8"><label class="form-label small" for="wfDelDest">Destination</label><input class="form-control form-control-sm" id="wfDelDest" placeholder="https://hooks.example.com/x, out/rates.json or a topic"></div>
+              <div class="col-md-4"><label class="form-label small" for="wfDelType">{{ _('Channel') }}</label>
+                <select class="form-select form-select-sm" id="wfDelType"><option value="">{{ _('stored only') }}</option><option value="webhook">{{ _('webhook (allow-listed)') }}</option><option value="file">{{ _('file (async.delivery.file.base_dir)') }}</option><option value="kafka">{{ _('kafka topic') }}</option></select></div>
+              <div class="col-md-8"><label class="form-label small" for="wfDelDest">{{ _('Destination') }}</label><input class="form-control form-control-sm" id="wfDelDest" placeholder="{{ _('https://hooks.example.com/x, out/rates.json or a topic') }}"></div>
             </div>
           </div>
 
           <div data-wf-pane="json" hidden>
-            <label class="visually-hidden" for="wfJson">Definition as JSON</label>
+            <label class="visually-hidden" for="wfJson">{{ _('Definition as JSON') }}</label>
             <textarea class="form-control wf-text" id="wfJson" spellcheck="false"></textarea>
           </div>
           <div data-wf-pane="yaml" hidden>
-            <label class="visually-hidden" for="wfYaml">Definition as YAML</label>
+            <label class="visually-hidden" for="wfYaml">{{ _('Definition as YAML') }}</label>
             <textarea class="form-control wf-text" id="wfYaml" spellcheck="false"></textarea>
           </div>
 
-          <h2 class="h6 mt-3"><i class="bi bi-diagram-3 me-1" aria-hidden="true"></i>Graph</h2>
-          <div class="wf-dag-wrap mb-3"><svg id="wfDag" width="300" height="80" role="img" aria-label="The workflow's steps and their dependencies"></svg></div>
+          <h2 class="h6 mt-3"><i class="bi bi-diagram-3 me-1" aria-hidden="true"></i>{{ _('Graph') }}</h2>
+          <div class="wf-dag-wrap mb-3"><svg id="wfDag" width="300" height="80" role="img" aria-label="{{ _('The workflow\'s steps and their dependencies') }}"></svg></div>
 
           <div class="d-flex flex-wrap gap-2 wf-actions">
-            <button class="btn btn-primary" type="button" id="wfSave"><i class="bi bi-check-lg me-1" aria-hidden="true"></i>Save</button>
-            <button class="btn btn-outline-secondary" type="button" id="wfValidate"><i class="bi bi-patch-check me-1" aria-hidden="true"></i>Validate</button>
-            <button class="btn btn-outline-success" type="button" id="wfRun" disabled><i class="bi bi-play-fill me-1" aria-hidden="true"></i>Run now</button>
-            <button class="btn btn-outline-secondary" type="button" id="wfToggle" disabled>Disable</button>
-            <button class="btn btn-outline-danger ms-sm-auto" type="button" id="wfDelete" disabled><i class="bi bi-trash me-1" aria-hidden="true"></i>Delete</button>
+            <button class="btn btn-primary" type="button" id="wfSave"><i class="bi bi-check-lg me-1" aria-hidden="true"></i>{{ _('Save') }}</button>
+            <button class="btn btn-outline-secondary" type="button" id="wfValidate"><i class="bi bi-patch-check me-1" aria-hidden="true"></i>{{ _('Validate') }}</button>
+            <button class="btn btn-outline-success" type="button" id="wfRun" disabled><i class="bi bi-play-fill me-1" aria-hidden="true"></i>{{ _('Run now') }}</button>
+            <button class="btn btn-outline-secondary" type="button" id="wfToggle" disabled>{{ _('Disable') }}</button>
+            <button class="btn btn-outline-danger ms-sm-auto" type="button" id="wfDelete" disabled><i class="bi bi-trash me-1" aria-hidden="true"></i>{{ _('Delete') }}</button>
           </div>
           <div class="mt-2" id="wfRunInputWrap" hidden>
-            <label class="form-label small" for="wfRunInput">Run input (JSON)</label>
+            <label class="form-label small" for="wfRunInput">{{ _('Run input (JSON)') }}</label>
             <textarea class="form-control wf-text" style="min-height:4rem" id="wfRunInput" spellcheck="false">{}</textarea>
           </div>
         </div>
@@ -154,27 +154,27 @@ Design: docs/architecture/Workflows.md
 
       <div class="card mb-3">
         <div class="card-header d-flex justify-content-between align-items-center">
-          <span><i class="bi bi-clock-history me-2" aria-hidden="true"></i>Run history</span>
-          <button class="btn btn-sm btn-outline-secondary" type="button" id="wfRunsRefresh" aria-label="Refresh run history"><i class="bi bi-arrow-clockwise" aria-hidden="true"></i></button>
+          <span><i class="bi bi-clock-history me-2" aria-hidden="true"></i>{{ _('Run history') }}</span>
+          <button class="btn btn-sm btn-outline-secondary" type="button" id="wfRunsRefresh" aria-label="{{ _('Refresh run history') }}"><i class="bi bi-arrow-clockwise" aria-hidden="true"></i></button>
         </div>
         <div class="table-responsive">
           <table class="table table-sm align-middle mb-0">
-            <thead><tr><th scope="col">Started</th><th scope="col">Trigger</th><th scope="col">Status</th><th scope="col">Duration</th><th scope="col"><span class="visually-hidden">Actions</span></th></tr></thead>
-            <tbody id="wfRuns"><tr><td colspan="5" class="text-muted small">Open a workflow to see its runs.</td></tr></tbody>
+            <thead><tr><th scope="col">{{ _('Started') }}</th><th scope="col">{{ _('Trigger') }}</th><th scope="col">{{ _('Status') }}</th><th scope="col">{{ _('Duration') }}</th><th scope="col"><span class="visually-hidden">{{ _('Actions') }}</span></th></tr></thead>
+            <tbody id="wfRuns"><tr><td colspan="5" class="text-muted small">{{ _('Open a workflow to see its runs.') }}</td></tr></tbody>
           </table>
         </div>
       </div>
 
       <div class="card mb-3" id="wfRunCard" hidden>
         <div class="card-header d-flex flex-wrap justify-content-between align-items-center gap-2">
-          <span><i class="bi bi-bar-chart-steps me-2" aria-hidden="true"></i>Run <code id="wfRunId"></code></span>
+          <span><i class="bi bi-bar-chart-steps me-2" aria-hidden="true"></i>{% trans %}Run <code id="wfRunId"></code>{% endtrans %}</span>
           <span id="wfRunStatus"></span>
         </div>
         <div class="card-body">
           <div class="wf-meta mb-2" id="wfRunMeta"></div>
           <div id="wfRunErr" class="wf-err mb-2"></div>
           <div id="wfTimeline"></div>
-          <details class="mt-2"><summary class="small">Run output</summary><pre class="wf-io" id="wfRunOut"></pre></details>
+          <details class="mt-2"><summary class="small">{{ _('Run output') }}</summary><pre class="wf-io" id="wfRunOut"></pre></details>
         </div>
       </div>
     </div>

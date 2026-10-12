@@ -2,27 +2,27 @@
 <!--
 Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.com
 -->
-{% block title %}Test {{ prompt.name }} - SAJHA MCP Server{% endblock %}
+{% block title %}{% trans name=prompt.name %}Test {{ name }} - SAJHA MCP Server{% endtrans %}{% endblock %}
 
 {% block content %}
 <div class="container-fluid">
     <!-- Breadcrumb -->
-    <nav aria-label="breadcrumb">
+    <nav aria-label="{{ _('breadcrumb') }}">
         <ol class="breadcrumb">
-            <li class="breadcrumb-item"><a href="{{ url_for('dashboard') }}">Dashboard</a></li>
-            <li class="breadcrumb-item"><a href="{{ url_for('prompts_list') }}">Prompts</a></li>
+            <li class="breadcrumb-item"><a href="{{ url_for('dashboard') }}">{{ _('Dashboard') }}</a></li>
+            <li class="breadcrumb-item"><a href="{{ url_for('prompts_list') }}">{{ _('Prompts') }}</a></li>
             <li class="breadcrumb-item"><a href="{{ url_for('prompt_detail', prompt_name=prompt.name) }}">{{ prompt.name }}</a></li>
-            <li class="breadcrumb-item active">Test</li>
+            <li class="breadcrumb-item active">{{ _('Test') }}</li>
         </ol>
     </nav>
 
     <!-- Header -->
     <div class="d-flex justify-content-between align-items-center mb-4">
         <h1 class="h3 mb-0">
-            <i class="bi bi-play-circle"></i> Test Prompt: {{ prompt.name }}
+            <i class="bi bi-play-circle"></i> {% trans name=prompt.name %}Test Prompt: {{ name }}{% endtrans %}
         </h1>
         <a href="{{ url_for('prompt_detail', prompt_name=prompt.name) }}" class="btn btn-secondary">
-            <i class="bi bi-arrow-left"></i> Back to Details
+            <i class="bi bi-arrow-left"></i> {{ _('Back to Details') }}
         </a>
     </div>
 
@@ -31,7 +31,7 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
         <div class="col-md-6">
             <div class="card">
                 <div class="card-header card-header-primary">
-                    <h5 class="mb-0"><i class="bi bi-input-cursor"></i> Input Arguments</h5>
+                    <h5 class="mb-0"><i class="bi bi-input-cursor"></i> {{ _('Input Arguments') }}</h5>
                 </div>
                 <div class="card-body">
                     <form id="testForm">
@@ -41,9 +41,9 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
                             <label for="arg_{{ arg.name }}" class="form-label">
                                 <strong>{{ arg.name }}</strong>
                                 {% if arg.required %}
-                                <span class="badge bg-danger">Required</span>
+                                <span class="badge bg-danger">{{ _('Required') }}</span>
                                 {% else %}
-                                <span class="badge bg-secondary">Optional</span>
+                                <span class="badge bg-secondary">{{ _('Optional') }}</span>
                                 {% endif %}
                             </label>
                             {% if arg.description %}
@@ -60,16 +60,16 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
                         {% endfor %}
                         {% else %}
                         <div class="alert alert-info">
-                            <i class="bi bi-info-circle"></i> This prompt has no arguments.
+                            <i class="bi bi-info-circle"></i> {{ _('This prompt has no arguments.') }}
                         </div>
                         {% endif %}
                         
                         <div class="d-grid gap-2">
                             <button type="submit" class="btn btn-success btn-lg">
-                                <i class="bi bi-play-fill"></i> Render Prompt
+                                <i class="bi bi-play-fill"></i> {{ _('Render Prompt') }}
                             </button>
                             <button type="button" class="btn btn-secondary" data-onclick="clearForm()">
-                                <i class="bi bi-arrow-counterclockwise"></i> Clear All
+                                <i class="bi bi-arrow-counterclockwise"></i> {{ _('Clear All') }}
                             </button>
                         </div>
                     </form>
@@ -79,7 +79,7 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
             <!-- Template Preview -->
             <div class="card mt-4">
                 <div class="card-header card-header-info">
-                    <h6 class="mb-0"><i class="bi bi-eye"></i> Prompt Template</h6>
+                    <h6 class="mb-0"><i class="bi bi-eye"></i> {{ _('Prompt Template') }}</h6>
                 </div>
                 <div class="card-body">
                     <pre class="bg-dark text-light p-3 rounded mb-0" style="max-height: 300px; overflow-y: auto; font-size: 0.85rem; white-space: pre-wrap; word-wrap: break-word;"><code>{{ prompt.template }}</code></pre>
@@ -91,14 +91,14 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
         <div class="col-md-6">
             <div class="card">
                 <div class="card-header card-header-success">
-                    <h5 class="mb-0"><i class="bi bi-file-text"></i> Rendered Output</h5>
+                    <h5 class="mb-0"><i class="bi bi-file-text"></i> {{ _('Rendered Output') }}</h5>
                 </div>
                 <div class="card-body">
                     <div id="outputArea" class="bg-light text-dark p-3 rounded border" style="min-height: 400px;">
                         <p class="text-muted text-center mt-5">
                             <i class="bi bi-arrow-left-circle" style="font-size: 3rem;"></i>
                             <br><br>
-                            Fill in the arguments and click "Render Prompt" to see the output here.
+                            {{ _('Fill in the arguments and click "Render Prompt" to see the output here.') }}
                         </p>
                     </div>
                     
@@ -106,13 +106,13 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
                     <div id="outputActions" style="display: none;" class="mt-3">
                         <div class="btn-group w-100" role="group">
                             <button class="btn btn-outline-primary" data-onclick="copyOutput()">
-                                <i class="bi bi-clipboard"></i> Copy
+                                <i class="bi bi-clipboard"></i> {{ _('Copy') }}
                             </button>
                             <button class="btn btn-outline-success" data-onclick="downloadOutput()">
-                                <i class="bi bi-download"></i> Download
+                                <i class="bi bi-download"></i> {{ _('Download') }}
                             </button>
                             <button class="btn btn-outline-secondary" data-onclick="clearOutput()">
-                                <i class="bi bi-x-circle"></i> Clear
+                                <i class="bi bi-x-circle"></i> {{ _('Clear') }}
                             </button>
                         </div>
                     </div>
@@ -122,20 +122,20 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
             <!-- Statistics -->
             <div class="card mt-4">
                 <div class="card-header">
-                    <h6 class="mb-0"><i class="bi bi-bar-chart"></i> Render Statistics</h6>
+                    <h6 class="mb-0"><i class="bi bi-bar-chart"></i> {{ _('Render Statistics') }}</h6>
                 </div>
                 <div class="card-body">
                     <dl class="row mb-0">
-                        <dt class="col-sm-6">Total Renders:</dt>
+                        <dt class="col-sm-6">{{ _('Total Renders:') }}</dt>
                         <dd class="col-sm-6" id="renderCount">0</dd>
                         
-                        <dt class="col-sm-6">Characters:</dt>
+                        <dt class="col-sm-6">{{ _('Characters:') }}</dt>
                         <dd class="col-sm-6" id="charCount">0</dd>
                         
-                        <dt class="col-sm-6">Words:</dt>
+                        <dt class="col-sm-6">{{ _('Words:') }}</dt>
                         <dd class="col-sm-6" id="wordCount">0</dd>
                         
-                        <dt class="col-sm-6">Lines:</dt>
+                        <dt class="col-sm-6">{{ _('Lines:') }}</dt>
                         <dd class="col-sm-6" id="lineCount">0</dd>
                     </dl>
                 </div>
@@ -172,9 +172,9 @@ function renderPrompt() {
     document.getElementById('outputArea').innerHTML = `
         <div class="text-center mt-5">
             <div class="spinner-border text-primary" role="status">
-                <span class="visually-hidden">Loading...</span>
+                <span class="visually-hidden">${_t('Loading...')}</span>
             </div>
-            <p class="mt-3 text-muted">Rendering prompt...</p>
+            <p class="mt-3 text-muted">${_t('Rendering prompt...')}</p>
         </div>
     `;
     
@@ -192,11 +192,11 @@ function renderPrompt() {
                 renderCount++;
                 document.getElementById('renderCount').textContent = renderCount;
             } else {
-                showError(response.error || 'Unknown error');
+                showError(response.error || _t('Unknown error'));
             }
         },
         error: function(xhr) {
-            showError(xhr.responseJSON ? xhr.responseJSON.error : 'Failed to render prompt');
+            showError(xhr.responseJSON ? xhr.responseJSON.error : _t('Failed to render prompt'));
         }
     });
 }
@@ -211,7 +211,7 @@ function displayOutput(text) {
 function showError(message) {
     document.getElementById('outputArea').innerHTML = `
         <div class="alert alert-danger mb-0">
-            <i class="bi bi-exclamation-triangle"></i> <strong>Error:</strong> ${escapeHtml(message)}
+            <i class="bi bi-exclamation-triangle"></i> <strong>${_t('Error:')}</strong> ${escapeHtml(message)}
         </div>
     `;
     document.getElementById('outputActions').style.display = 'none';
@@ -236,7 +236,7 @@ function clearOutput() {
         <p class="text-muted text-center mt-5">
             <i class="bi bi-arrow-left-circle" style="font-size: 3rem;"></i>
             <br><br>
-            Fill in the arguments and click "Render Prompt" to see the output here.
+            ${_t('Fill in the arguments and click "Render Prompt" to see the output here.')}
         </p>
     `;
     document.getElementById('outputActions').style.display = 'none';
@@ -248,7 +248,7 @@ function copyOutput() {
         // Show temporary success message
         const btn = event.target.closest('button');
         const originalHtml = btn.innerHTML;
-        btn.innerHTML = '<i class="bi bi-check"></i> Copied!';
+        btn.innerHTML = '<i class="bi bi-check"></i> ' + _t('Copied!');
         btn.classList.remove('btn-outline-primary');
         btn.classList.add('btn-success');
         
@@ -258,7 +258,7 @@ function copyOutput() {
             btn.classList.add('btn-outline-primary');
         }, 2000);
     }, function() {
-        alert('Failed to copy to clipboard');
+        alert(_t('Failed to copy to clipboard'));
     });
 }
 

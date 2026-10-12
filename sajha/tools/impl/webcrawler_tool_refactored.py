@@ -5,6 +5,10 @@ Web Crawler MCP Tool Implementation - Refactored with Individual Tools
 Every fetch (pages, links followed, robots.txt, sitemaps, each redirect hop) goes through the
 outbound fetch guard (sajha/core/outbound.py): cloud metadata and loopback addresses are
 refused, private ranges too when tools.outbound.block_private_networks is true.
+
+``render_js`` runs a page's JavaScript in headless Chromium first (off unless
+tools.webcrawler.javascript.enabled); every request the browser makes is fetched through the same
+guard. PDF and plain-text answers are read as text. Both: sajha/tools/impl/webcrawler_render.py.
 """
 
 import json
@@ -107,7 +111,20 @@ class WebCrawlerBaseTool(BaseMCPTool):
             return False
     
     def _fetch_url(self, url: str, timeout: int = None) -> tuple:
-        """Fetch URL content"""
+        """(content, content_type, status_code) of a URL."""
+        return self._fetch(url, timeout)[:3]
+
+    def _fetch(self, url: str, timeout: int = None, render: bool = False) -> tuple:
+        """(content, content_type, status_code, render info). ``render``: the page after its JavaScript
+        ran (webcrawler_render); otherwise one guarded GET, a PDF or text body read as text."""
+        from sajha.tools.impl import webcrawler_render as wr
+        if render:
+            r = wr.render(url, self.user_agent)
+            if r.status_code >= 400:
+                raise ValueError(f"HTTP Error {r.status_code}")
+            return r.html, r.content_type, r.status_code, {
+                'rendered': True, 'requests': r.requests, 'blocked_requests': r.blocked,
+                'render_truncated': r.truncated}
         if timeout is None:
             timeout = self.default_timeout
         
@@ -119,9 +136,9 @@ class WebCrawlerBaseTool(BaseMCPTool):
         response = outbound.request('GET', url, headers=headers, timeout=timeout)
         if response.status_code >= 400:
             raise ValueError(f"HTTP Error {response.status_code}: {response.reason}".rstrip())
-        content = response.content.decode('utf-8', errors='ignore')
         content_type = response.headers.get('Content-Type', '')
-        return content, content_type, response.status_code
+        content = wr.document_text(response.content, content_type, wr.settings().pdf_max_pages)
+        return content, content_type, response.status_code, {}
 
     def _read_robots(self, robots_url: str) -> 'urllib.robotparser.RobotFileParser':
         """robots.txt through the guard (RobotFileParser.read would fetch it unguarded).
@@ -303,10 +320,17 @@ class CrawlURLTool(WebCrawlerBaseTool):
         extract_text = arguments.get('extract_text', True)
         delay = arguments.get('delay', self.default_delay)
         timeout = arguments.get('timeout', self.default_timeout)
+        render_js = bool(arguments.get('render_js', False))
         
         if not self._is_valid_url(url):
             raise ValueError(f"Invalid URL: {url}")
         outbound.vet(url)       # refuse a blocked destination before any fetch
+        if render_js:
+            from sajha.tools.impl import webcrawler_render as wr
+            why = wr.available()
+            if why:
+                raise ValueError(why)
+            max_pages = min(max_pages, wr.settings().max_pages)
         
         # Check robots.txt if required
         if respect_robots:
@@ -348,7 +372,7 @@ class CrawlURLTool(WebCrawlerBaseTool):
                     time.sleep(delay)
                 
                 # Fetch page
-                content, content_type, status_code = self._fetch_url(current_url, timeout)
+                content, content_type, status_code, render_info = self._fetch(current_url, timeout, render_js)
                 
                 # Parse page
                 parser = LinkExtractor()
@@ -363,7 +387,8 @@ class CrawlURLTool(WebCrawlerBaseTool):
                     'title': parser.title,
                     'meta_description': parser.meta_description,
                     'link_count': len(parser.links),
-                    'crawled_at': datetime.now().isoformat()
+                    'crawled_at': datetime.now().isoformat(),
+                    **render_info
                 }
                 
                 if extract_images:
@@ -531,7 +556,7 @@ class ExtractLinksTool(WebCrawlerBaseTool):
             raise ValueError(f"Invalid URL: {url}")
         outbound.vet(url)       # refuse a blocked destination before any fetch
         
-        content, content_type, status_code = self._fetch_url(url)
+        content, content_type, status_code, render_info = self._fetch(url, render=bool(arguments.get('render_js')))
         
         parser = LinkExtractor()
         parser.feed(content)
@@ -573,7 +598,8 @@ class ExtractLinksTool(WebCrawlerBaseTool):
             'link_count': len(links),
             'internal_count': internal_count,
             'external_count': external_count,
-            'extracted_at': datetime.now().isoformat()
+            'extracted_at': datetime.now().isoformat(),
+            **render_info
         }
 
 
@@ -681,7 +707,7 @@ class ExtractContentTool(WebCrawlerBaseTool):
             raise ValueError(f"Invalid URL: {url}")
         outbound.vet(url)       # refuse a blocked destination before any fetch
         
-        content, content_type, status_code = self._fetch_url(url)
+        content, content_type, status_code, render_info = self._fetch(url, render=bool(arguments.get('render_js')))
         
         parser = LinkExtractor()
         parser.feed(content)
@@ -719,6 +745,7 @@ class ExtractContentTool(WebCrawlerBaseTool):
             result['images'] = images
             result['image_count'] = len(images)
         
+        result.update(render_info)
         return result
 
 
@@ -806,7 +833,7 @@ class ExtractMetadataTool(WebCrawlerBaseTool):
             raise ValueError(f"Invalid URL: {url}")
         outbound.vet(url)       # refuse a blocked destination before any fetch
         
-        content, content_type, status_code = self._fetch_url(url)
+        content, content_type, status_code, render_info = self._fetch(url, render=bool(arguments.get('render_js')))
         
         parser = LinkExtractor()
         parser.feed(content)
@@ -820,7 +847,8 @@ class ExtractMetadataTool(WebCrawlerBaseTool):
             'meta_keywords': parser.meta_keywords,
             'headings': parser.headings,
             'content_length': len(content),
-            'extracted_at': datetime.now().isoformat()
+            'extracted_at': datetime.now().isoformat(),
+            **render_info
         }
 
 
@@ -1139,7 +1167,7 @@ class GetPageInfoTool(WebCrawlerBaseTool):
             raise ValueError(f"Invalid URL: {url}")
         outbound.vet(url)       # refuse a blocked destination before any fetch
         
-        content, content_type, status_code = self._fetch_url(url)
+        content, content_type, status_code, render_info = self._fetch(url, render=bool(arguments.get('render_js')))
         
         parser = LinkExtractor()
         parser.feed(content)
@@ -1166,7 +1194,8 @@ class GetPageInfoTool(WebCrawlerBaseTool):
             'link_count': link_count,
             'image_count': image_count,
             'content_length': len(content),
-            'retrieved_at': datetime.now().isoformat()
+            'retrieved_at': datetime.now().isoformat(),
+            **render_info
         }
 
 

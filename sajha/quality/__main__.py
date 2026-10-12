@@ -5,6 +5,7 @@ SAJHA MCP Server — the tool quality command line.
                                     [--junit FILE] [--json FILE] [--save]
     python -m sajha.quality lint    [--tool GLOB] [--strict] [--info] [--junit FILE] [--json FILE]
     python -m sajha.quality eval    [SET ...] [--model M ...] [--planner P ...] [--json FILE] [--junit FILE] [--no-save]
+                                    [--graded]       (run model-graded answer checks too: tokens)
     python -m sajha.quality compare RUN_A RUN_B      (saved run ids, or JSON files written by eval --json)
     python -m sajha.quality runs    [--kind test|eval|check] [--limit N]
     python -m sajha.quality probe   TOOL             (run one tool's probe now, live)
@@ -118,6 +119,21 @@ def cmd_eval(a) -> int:
         print(f'unknown eval set(s): {", ".join(unknown)}; have: {", ".join(sorted(sets))}', file=sys.stderr)
         return 2
     svc = _cli_service()
+    from sajha.quality import judge
+    if a.graded:
+        from sajha.ai.llm import llm_factory, set_llm_factory
+        if llm_factory() is None:
+            set_llm_factory(svc.gateway)       # the grader is reached through llm_factory()
+    with judge.forced(True if a.graded else None):
+        runs = _eval_runs(a, sets, chosen, svc)
+    if a.json:
+        _write(a.json, json.dumps(runs[0] if len(runs) == 1 else runs, indent=2, default=str))
+    _write(a.junit, E.render_junit(runs))
+    return 0 if all(r['summary']['passed'] == r['summary']['questions'] for r in runs) else 1
+
+
+def _eval_runs(a, sets, chosen, svc) -> list:
+    from sajha.quality import evals as E
     runs = []
     for name in chosen:
         es = sets[name]
@@ -137,10 +153,7 @@ def cmd_eval(a) -> int:
                 except Exception as e:
                     print(f'  could not save the run: {e}', file=sys.stderr)
             print()
-    if a.json:
-        _write(a.json, json.dumps(runs[0] if len(runs) == 1 else runs, indent=2, default=str))
-    _write(a.junit, E.render_junit(runs))
-    return 0 if all(r['summary']['passed'] == r['summary']['questions'] for r in runs) else 1
+    return runs
 
 
 def _load_run(ref: str) -> Any:
@@ -249,6 +262,8 @@ def main(argv: Optional[List[str]] = None) -> int:
     e.add_argument('--json')
     e.add_argument('--junit')
     e.add_argument('--no-save', action='store_true', help='do not save the runs')
+    e.add_argument('--graded', action='store_true',
+                   help='run model-graded answer checks too (quality.evals.graded_checks turns them on always)')
     e.set_defaults(fn=cmd_eval)
 
     c = sub.add_parser('compare', help='compare two eval runs')

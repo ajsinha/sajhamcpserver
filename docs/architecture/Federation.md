@@ -115,7 +115,9 @@ places, merged:
 | `expose_prompts`, `expose_resources` | `false` | also federate prompts, and resources with their templates |
 | `auto_approve` | `false` | trust this upstream: expose new tools without approval |
 | `on_change` | `withdraw` | what serves while a changed definition waits for review: `withdraw` (nothing) or `hold` (the previously approved version; section 6) |
-| `command`, `args`, `env`, `env_refs`, `cwd` | | stdio only: the process to launch |
+| `command`, `args`, `env`, `env_refs`, `cwd` | | stdio only: the process to launch (inside the container, with `isolation: container`) |
+| `isolation` | `container` when docker answers | stdio only: `container` (its own container) or `none` (a subprocess of SAJHA; explicit only); see [stdio isolation](#stdio-isolation) |
+| `container` | | stdio only: `image`, `mounts` (read-only), `memory_mb`, `cpus`, `max_processes`, `network` (`none` or `allowlist` with `allow_hosts`), `user`, `tmpfs_mb` |
 
 ### Transports
 
@@ -125,12 +127,58 @@ places, merged:
   `initialize` handshake (2025-11-25), exactly as a standard client does.
 * **Legacy SSE** (`transport: sse`) is the 2024-11-05 HTTP+SSE transport, for old
   servers; it always uses the handshake.
-* **stdio** launches the upstream as a subprocess of SAJHA and talks over its stdin and
-  stdout. It is **off unless `federation.allow_stdio: true`**, and only an administrator
-  can configure it. The risk is plain: a stdio upstream is arbitrary code running as the
-  SAJHA process user, with its file system and network access. Enable it only for
-  commands you would run on that host yourself, pin the command to an absolute path, and
-  pass secrets through `env_refs` rather than literal `env` values.
+* **stdio** launches the upstream and talks over its stdin and stdout. It is **off unless
+  `federation.allow_stdio: true`**, and only an administrator can configure it. Each stdio
+  upstream runs **in its own container** (below) unless it says `isolation: none`. Pass
+  secrets through `env_refs` rather than literal `env` values.
+
+### stdio isolation
+
+A stdio upstream is arbitrary code, so by default it does not run as the SAJHA process user
+(`sajha/federation/container.py`):
+
+* **`isolation: container`** (the default when `docker info` answers): each connection to the
+  upstream is one `docker run --rm -i` of `container.image` (default `federation.container.image`,
+  else `sandbox.docker.image`), launched through the sandbox's `docker` backend
+  (`sandbox.docker.binary`, `sandbox.docker.runtime` for gVisor, its launch environment) with the
+  sandbox's policy: `--network none` unless `container.network: allowlist` with `allow_hosts`,
+  a read-only root file system with a small writable `/tmp` (`HOME=/tmp`), `--memory`, `--cpus` and
+  `--pids-limit` from `container` or `sandbox.defaults` (capped by `sandbox.max`), every capability
+  dropped, `no-new-privileges` and the `nobody` user (`container.user` may name another non-root
+  uid). The only host folders it sees are `container.mounts`, each mounted read-only; a mount of
+  SAJHA's own tree, its working directory, the home folder, the database folder, `/etc`, `/run`
+  or `/var/run` (the docker socket) is refused. `command` (given to docker as `--entrypoint`, so
+  the image's own entrypoint does not wrap it) and `args` run inside the image, so the image must
+  contain the server (an `npx` or `uvx` server needs an image with its runtime and,
+  with the network off, its packages installed). `env` and `env_refs` are passed by name
+  (`-e NAME`), so a secret is never on the docker command line. When the connection closes the
+  container is removed; when the container ends (`docker wait`) or the connection fails, the
+  connection's reconnect loop starts a fresh container with backoff from 1 to 60 seconds;
+  containers left by a SAJHA process that is gone are removed the first time this process starts one.
+* **`isolation: none`**: the old behaviour, a subprocess of SAJHA with its user, files and
+  network. Only when set explicitly, and then with the warning notice
+  `federation.stdio_unconfined:<upstream>`.
+* **Unset** with docker not available: the upstream is **not started** (state `error`, notice
+  `federation.stdio_isolation:<upstream>`), rather than run unconfined. `isolation: container`
+  without docker is refused the same way. Both are retried with the usual backoff, so the upstream
+  starts once docker answers.
+
+```yaml
+federation:
+  allow_stdio: true
+  upstreams:
+    - id: fetch
+      transport: stdio
+      command: mcp-server-fetch
+      container:
+        image: ghcr.io/acme/mcp-fetch:1.4
+        network: allowlist
+        allow_hosts: ["example.com:443"]
+        mounts: ["/srv/mcp/fetch-cache:/cache"]
+```
+
+The status of an upstream (`GET /api/federation/upstreams/{id}`) carries `isolation` and
+`container_name`.
 
 ## 3. Credentials sent to an upstream
 
@@ -730,7 +778,8 @@ template with it, so they cannot drift apart.
   a `url` Streamable HTTP).
 - **SAJHA keys**, all optional: `vendor` (default the entry's key), `prefix` (default the vendor; the
   tools are `<prefix>__<tool>`), `external` (default **true** in this file), `tools` (globs of the tools
-  to take; nothing else is federated), `enabled` (`false`: listed, never connected), `cwd` (stdio),
+  to take; nothing else is federated), `enabled` (`false`: listed, never connected), `cwd`, `isolation`
+  and `container` (stdio; [stdio isolation](#stdio-isolation)),
   `title`, `timeout_seconds`, `auth` (the credential mode of section 3: `"static"`, the default,
   `{"type": "token_user", ...}` or `{"type": "oauth_user", ...}`, whose `client_id` may be `${NAME}`);
   `"disabled": true` means `"enabled": false`, and `description` is accepted
@@ -819,6 +868,11 @@ is in the [API Reference](../protocol/API%20Reference.md#416-federation-federati
   connect page.
 * A cycle of proxies through an MCP server that is not SAJHA is bounded only by timeouts: other
   servers ignore the call-chain depth SAJHA sends ([Proxies all the way down](#proxies-all-the-way-down)).
+* A stdio upstream's container with `container.network: allowlist` reaches only `allow_hosts`, and
+  only through the sandbox's egress proxy: HTTP clients that honour `HTTP(S)_PROXY`, or that tunnel
+  with `CONNECT` ([Sandbox](Sandbox.md#network-allowlist)). With `sandbox.egress.mode: direct` it
+  gets docker's bridge network instead and `allow_hosts` is only recorded (labels). Each connection
+  of a `pool_size` above 1 is its own container.
 
 ## 13. Tests
 
@@ -858,6 +912,11 @@ measures proxied calls and shedding ([Scaling and State](Scaling%20and%20State.m
 only the service token and records the user header (configuration rules, discovery without the header,
 per-request and per-session calls, refusals, the audit identity) and the shipped approval rule for
 proxied writes.
+`tests/test_federation_container.py` covers stdio isolation: configuration checks, the docker command
+(network, read-only mounts, limits, secrets by name, the sandbox's egress hook), refused mounts, the
+isolation decision and its notices, orphan removal, and, when docker and `python:3.13-slim` are present,
+a real round trip (nobody user, no network, read-only mount, secret by name) and a killed container
+restarted through the federation manager.
 
 ---
 

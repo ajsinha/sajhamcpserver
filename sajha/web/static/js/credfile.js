@@ -14,14 +14,14 @@
   var rows = [], editing = null;
 
   var FIELDS = kind === 'keys' ? [
-    ['name', 'Name', 'text'], ['owner', 'Owner (user ID)', 'text'], ['roles', 'Roles (comma-separated)', 'text'],
-    ['tool_access_mode', 'Tool access', 'select', ['all', 'allowlist', 'denylist', 'regex']],
-    ['tool_access_list', 'Tools (comma-separated)', 'text'], ['expires_at', 'Expires (ISO, empty = never)', 'text'],
-    ['key', 'Key (empty: generate / keep)', 'text'], ['enabled', 'Enabled', 'check'], ['test_admin', 'Test admin', 'check']
+    ['name', _t('Name'), 'text'], ['owner', _t('Owner (user ID)'), 'text'], ['roles', _t('Roles (comma-separated)'), 'text'],
+    ['tool_access_mode', _t('Tool access'), 'select', ['all', 'allowlist', 'denylist', 'regex']],
+    ['tool_access_list', _t('Tools (comma-separated)'), 'text'], ['expires_at', _t('Expires (ISO, empty = never)'), 'text'],
+    ['key', _t('Key (empty: generate / keep)'), 'text'], ['enabled', _t('Enabled'), 'check'], ['test_admin', _t('Test admin'), 'check']
   ] : [
-    ['user_id', 'User ID', 'text'], ['user_name', 'Name', 'text'], ['email', 'Email', 'text'],
-    ['roles', 'Roles (comma-separated: ' + (root.dataset.roles || '') + ')', 'text'],
-    ['password', 'Password (empty: keep)', 'password'], ['enabled', 'Enabled', 'check'], ['test_admin', 'Test admin', 'check']
+    ['user_id', _t('User ID'), 'text'], ['user_name', _t('Name'), 'text'], ['email', _t('Email'), 'text'],
+    ['roles', _t('Roles (comma-separated: %(roles)s)', {roles: root.dataset.roles || ''}), 'text'],
+    ['password', _t('Password (empty: keep)'), 'password'], ['enabled', _t('Enabled'), 'check'], ['test_admin', _t('Test admin'), 'check']
   ];
 
   function status(msg, bad) {
@@ -42,15 +42,15 @@
   function list(v) { return Array.isArray(v) ? v.join(', ') : (v || ''); }
 
   function render() {
-    var head = kind === 'keys' ? ['Name', 'Key', 'Owner', 'Roles', 'Tools', 'State', ''] : ['User ID', 'Name', 'Roles', 'State', ''];
+    var head = kind === 'keys' ? [_t('Name'), _t('Key'), _t('Owner'), _t('Roles'), _t('Tools'), _t('State'), ''] : [_t('User ID'), _t('Name'), _t('Roles'), _t('State'), ''];
     var tr = document.createElement('tr');
     head.forEach(function (h) { var th = document.createElement('th'); th.scope = 'col'; th.textContent = h; tr.appendChild(th); });
     $('cfHead').replaceChildren(tr);
     var body = $('cfRows'); body.replaceChildren();
-    if (!rows.length) { var e = document.createElement('tr'); e.appendChild(cell('The file has no entries yet.')); body.appendChild(e); return; }
+    if (!rows.length) { var e = document.createElement('tr'); e.appendChild(cell(_t('The file has no entries yet.'))); body.appendChild(e); return; }
     rows.forEach(function (r) {
       var row = document.createElement('tr');
-      var state = (r.enabled ? 'enabled' : 'disabled') + (r.test_admin ? ' · test admin' : '');
+      var state = (r.enabled ? _t('enabled') : _t('disabled')) + (r.test_admin ? ' · ' + _t('test admin') : '');
       if (kind === 'keys') {
         [r.name, r.masked, r.owner, list(r.roles), r.tool_access_mode + (r.tool_access_list && r.tool_access_list.length ? ': ' + list(r.tool_access_list) : ''), state]
           .forEach(function (v) { row.appendChild(cell(v)); });
@@ -58,15 +58,15 @@
         [r.user_id, r.user_name, list(r.roles), state].forEach(function (v) { row.appendChild(cell(v)); });
       }
       var act = document.createElement('td'); act.className = 'text-nowrap';
-      if (kind === 'keys' && r.form === 'raw') act.appendChild(btn('Reveal', 'btn-outline-secondary me-1', function () {
+      if (kind === 'keys' && r.form === 'raw') act.appendChild(btn(_t('Reveal'), 'btn-outline-secondary me-1', function () {
         call('GET', api + '/' + encodeURIComponent(r.id) + '/reveal').then(function (j) {
-          $('cfOnce').hidden = false; $('cfOnceH').textContent = 'Key for ' + (r.name || r.id); $('cfOnceValue').textContent = j.key;
+          $('cfOnce').hidden = false; $('cfOnceH').textContent = _t('Key for %(name)s', {name: r.name || r.id}); $('cfOnceValue').textContent = j.key;
         }).catch(function (e) { status(e.message, true); });
       }));
-      act.appendChild(btn('Edit', 'btn-outline-primary me-1', function () { openForm(r); }));
-      act.appendChild(btn('Delete', 'btn-outline-danger', function () {
-        if (window.confirm && !window.confirm('Delete ' + idOf(r) + ' from the file?')) return;
-        call('DELETE', api + '/' + encodeURIComponent(idOf(r))).then(function () { status('Deleted ' + idOf(r) + '.'); load(); })
+      act.appendChild(btn(_t('Edit'), 'btn-outline-primary me-1', function () { openForm(r); }));
+      act.appendChild(btn(_t('Delete'), 'btn-outline-danger', function () {
+        if (window.confirm && !window.confirm(_t('Delete %(id)s from the file?', {id: idOf(r)}))) return;
+        call('DELETE', api + '/' + encodeURIComponent(idOf(r))).then(function () { status(_t('Deleted %(id)s.', {id: idOf(r)})); load(); })
           .catch(function (e) { status(e.message, true); });
       }));
       row.appendChild(act); body.appendChild(row);
@@ -75,7 +75,7 @@
 
   function openForm(r) {
     editing = r; var f = $('cfFields'); f.replaceChildren();
-    $('cfFormTitle').textContent = r ? 'Edit ' + idOf(r) : (kind === 'keys' ? 'New key' : 'New user');
+    $('cfFormTitle').textContent = r ? _t('Edit %(id)s', {id: idOf(r)}) : (kind === 'keys' ? _t('New key') : _t('New user'));
     FIELDS.forEach(function (d) {
       var col = document.createElement('div'); col.className = d[2] === 'check' ? 'col-6 col-md-3' : 'col-12 col-md-6';
       var id = 'cf_' + d[0], lab = document.createElement('label'); lab.htmlFor = id; lab.textContent = d[1];
@@ -107,8 +107,8 @@
     var p = editing ? call('PUT', api + '/' + encodeURIComponent(idOf(editing)), body) : call('POST', api, body);
     p.then(function (j) {
       $('cfForm').hidden = true;
-      if (j.raw) { $('cfOnce').hidden = false; $('cfOnceH').textContent = 'Copy the new key now'; $('cfOnceValue').textContent = j.raw; }
-      status('Saved.' + (j.problems && j.problems.length ? ' Not applied: ' + j.problems.join('; ') : '')); load();
+      if (j.raw) { $('cfOnce').hidden = false; $('cfOnceH').textContent = _t('Copy the new key now'); $('cfOnceValue').textContent = j.raw; }
+      status(_t('Saved.') + (j.problems && j.problems.length ? ' ' + _t('Not applied: %(problems)s', {problems: j.problems.join('; ')}) : '')); load();
     }).catch(function (e) { status(e.message, true); });
   });
   $('cfCancel').addEventListener('click', function () { $('cfForm').hidden = true; });

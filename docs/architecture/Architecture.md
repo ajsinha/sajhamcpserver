@@ -475,6 +475,60 @@ python scripts/check_console.py --base http://127.0.0.1:3087 --axe /path/to/axe.
 `tests/test_console_checks.py` checks that its pages render and runs it only when
 `SAJHA_CHECK_BASE` names a running server.
 
+**Languages.** The console has a translation framework and ships in English only (no other
+language is shipped, by the owner's decision; Roadmap L14). The console's own words (menus,
+buttons, headings, messages and each page's "About this page" line) are gettext messages: a
+template wraps each string in `{{ _('...') }}` (or `{% trans %}...{% endtrans %}` around a sentence
+with markup or values) through Jinja's `jinja2.ext.i18n`, installed on the shared template engine by
+`sajha/web/i18n.py`; the "what" line of each `PAGE_HELP` entry goes through gettext where
+`page_help()` renders it; help-catalog card titles and summaries are shown with `tr()`; page
+scripts (`sajha/web/static/js/` and the templates' inline scripts) write their strings with
+`_t('...')` and `_nt(singular, plural, n)` from `static/js/i18n.js`, which `base.html` and the
+landing page load. In English every one of these returns the English text, with `%(name)s` values
+filled in.
+
+What exists on disk is the message template, `sajha/web/locale/sajha.pot`, kept current with the
+wrapped strings; there is no catalog under `sajha/web/locale/<lang>/`, so every request resolves
+to English and `<html lang>` is `en`. There is no language picker. If a compiled catalog were
+added (`sajha/web/locale/<lang>/LC_MESSAGES/sajha.mo`, read with the stdlib `gettext`; checked
+for a change every few seconds, no restart needed), a request's language would be the browser's
+`Accept-Language` (exact tag, then its primary subtag), then `console.default_language` (default
+`en`; [Configuration Reference](../getting-started/Configuration%20Reference.md#console)), among
+the languages with a compiled catalog; page scripts would get `static/i18n/<lang>.js`
+(`window.SAJHA_I18N`). A string with no translation shows English. These would stay English in
+any language: the glossary (terms and definitions, including the tiles of "About this page"), the
+guides, tool names and descriptions, data, and API and MCP responses.
+
+`tests/test_console_languages.py` checks that `sajha.pot` is current, that no catalog ships, that
+wrapped strings render in English, that a language with no catalog falls back to English, that
+there is no picker route, that a temporary fake catalog would be picked up and translate a
+template, and that the templates in its `TRANSLATED_TEMPLATES` list (the shared chrome:
+navigation, user menu, footer, page help, error page; sign-in, change password, dashboard, Tools,
+Domains, Help, Guides and Glossary) carry no unwrapped English.
+
+*Translating the console* (adding a language). With Babel installed (a development tool; the
+server does not need it):
+
+```
+python scripts/i18n.py extract      # templates, page scripts, PAGE_HELP, help catalog, N_() -> sajha/web/locale/sajha.pot
+python scripts/i18n.py init de      # a new language: sajha/web/locale/de/LC_MESSAGES/sajha.po
+python scripts/i18n.py update       # merge new strings into every .po
+python scripts/i18n.py compile      # .po -> .mo, and static/i18n/<lang>.js for page scripts
+python scripts/i18n.py check        # translated / total per language (--strict fails on gaps)
+```
+
+Shipping a language also means updating `tests/test_console_languages.py`
+(`test_english_only_ships` asserts that none ships) and this section.
+
+Wrapping a string: put each visible string in `_()`, including `title`, `placeholder` and
+`aria-label`; use `ngettext('%(num)d tool', '%(num)d tools', n)` for counts and
+`_('Welcome back, %(name)s', name=...)` for values (a literal `%` in `_()` is written `%%`); never
+build a sentence from fragments. In a page script, `_t('Saved %(name)s', {name: n})`; the string
+must be a quoted literal so `extract` finds it. A string a route passes to a template (an error
+title) is shown with `tr(...)` and marked with `N_()` in `ROUTE_MESSAGES` in `sajha/web/i18n.py`
+so it is extracted. After wrapping, run `python scripts/i18n.py extract` (the test fails until
+`sajha.pot` is current); a fully wrapped template can be added to `TRANSLATED_TEMPLATES`.
+
 **The pages, by menu.** The top menu is defined once, as data, in
 `sajha/web/templates/common/_nav.html`; each entry links one page. This is that menu:
 
@@ -482,9 +536,9 @@ python scripts/check_console.py --base http://127.0.0.1:3087 --axe /path/to/axe.
 |---|---|
 | **Tools** | Dashboard (`/dashboard`), All tools (`/tools`), Domains (`/tools/domains`), Python Playground (`/playground`, when enabled), Workflows (`/workflows`), Reports (`/reports/library`, the report library), Usage (`/reports`, the usage dashboard); Tool metrics (`/monitoring/tools`), Usage & cost (`/monitoring/usage`), User activity (`/monitoring/users`, administrators) |
 | **AI** | Ask SAJHA (`/ask`), Conversations (`/conversations`), LLM (`/ai/settings`), Prompts (`/prompts`) |
-| **SAJHA Net** | Instances (`/net/instances`), Your net access (`/net/access`); for administrators Net overview (`/admin/sajhanet/overview`), Remote tools (`/admin/sajhanet/tools`), SAJHA Net admin (`/admin/sajhanet`) |
+| **SAJHA Net** | Instances (`/net/instances`), Your net access (`/net/access`); for administrators Net overview (`/admin/sajhanet/overview`), Remote tools (`/admin/sajhanet/tools`), SAJHA Net admin (`/admin/sajhanet`); Govern: Conflicts and reviews (`/admin/sajhanet/reviews`), Users across the net (`/admin/sajhanet/users`), Access and blocks (`/admin/sajhanet/blocks`), Key directory (`/admin/sajhanet/keys`), Change history (`/admin/sajhanet/changes`); Operate: Live activity (`/admin/sajhanet/activity`), Certificates (`/admin/sajhanet/certificates`), Sponsored servers (`/admin/sajhanet/sponsored`), Snapshots (`/admin/sajhanet/snapshots`), Net settings (`/admin/sajhanet/settings`) |
 | **MCP Studio** | Studio home with the Python code creator (`/studio/`), Describe a tool (`/studio/describe`), REST (`/studio/rest`), Import an API (`/studio/api-import`), DB query (`/studio/dbquery`), Script (`/studio/script`); Power BI (`/studio/powerbi`), Power BI DAX (`/studio/powerbidax`), LiveLink (`/studio/livelink`), SharePoint (`/studio/sharepoint`), OLAP (`/studio/olap`); LLM tool (`/studio/llm`), Planner editor (`/studio/planners`, administrators); Composite builder (`/composite/builder`), Workflows |
-| **Admin** (administrators) | Tools (`/admin/tools`), Users (`/admin/users`, with the users file at `/admin/users/file`), Prompts (`/admin/prompts`), API keys (`/admin/apikeys`, with the keys file at `/admin/apikeys/file`), Proxied MCP servers (`/admin/federation`), SAJHA Net (`/admin/sajhanet`), Connected accounts (`/admin/connections`), Server connections (`/admin/server-connections`), Data connectors (`/admin/connectors`); Policies (`/admin/policies`), Approvals (`/admin/approvals`), Audit (`/admin/audit`); System monitor (`/admin/system-monitor`), Async tasks (`/admin/async-tasks`), Tool health (`/admin/tool-health`), Tool versions (`/admin/tool-versions`), Evals (`/admin/evals`), AI providers & models (`/ai/settings`) |
+| **Admin** (administrators) | Tools (`/admin/tools`), Users (`/admin/users`, with the users file at `/admin/users/file`), Prompts (`/admin/prompts`), API keys (`/admin/apikeys`, with the keys file at `/admin/apikeys/file`), Proxied MCP servers (`/admin/federation`), SAJHA Net (`/admin/sajhanet`), Connected accounts (`/admin/connections`), Server connections (`/admin/server-connections`), Data connectors (`/admin/connectors`), Plugin catalog (`/admin/plugins/catalog`); Policies (`/admin/policies`), Approvals (`/admin/approvals`), Audit (`/admin/audit`); System monitor (`/admin/system-monitor`), Async tasks (`/admin/async-tasks`), Tool health (`/admin/tool-health`), Tool versions (`/admin/tool-versions`), Evals (`/admin/evals`), Planner routing (`/admin/planner-routing`), AI providers & models (`/ai/settings`) |
 | **Help** (no sign-in needed) | Help (`/help`), Guides (`/help/guides`), Glossary (`/glossary`), Tool catalog (`/help/tools`), About SAJHA (`/about`), How it compares (`/comparison`) |
 | the user menu | Change password (`/account/password`), Connected accounts (`/account/connections`), Server connections (`/account/server-connections`), My API keys (`/account/apikeys`), Log out |
 
@@ -503,7 +557,12 @@ the Net access page (`/net/access`: every remote tool, its hosts in resolution o
 the user may call); administrators also get the Net overview (`/admin/sajhanet/overview`: one net's
 topology map with a table equivalent, members, admission, notices, conflicts, blocks and recent
 forwarded calls), Remote tools (`/admin/sajhanet/tools`) and the SAJHA Net admin page, where the
-admission panel (first-use keys, pins or the CA) and runtime seeds are managed. The map and the
+admission panel (first-use keys, pins or the CA) and runtime seeds are managed, and the management pages
+(conflicts and reviews, users across the net, access and blocks, key directory, change history, live
+activity, certificates, sponsored servers, snapshots, net settings) plus an instance's Traffic, Users, Keys,
+Blocks and History tabs ([SAJHA Net](SAJHA%20Net.md) §17.1). Every change there goes through one dialog
+(`static/js/sajhanet_console.js`) that names its effect and blast radius, requires a reason and sends the
+page's CSRF token; it lands in the net's change history, with Undo. The map and the
 admission panel are drawn by `static/js/sajhanet.js` in plain SVG on the theme tokens. Beside
 the wordmark, the navbar badge `Net · <instance name>` names the instance a user is on and links to
 Instances ([SAJHA Net](SAJHA%20Net.md) §17). Administrators manage the MCP servers this instance

@@ -299,7 +299,8 @@ class AssertionIdentity(plugins.IdentityResolver):
         if a is None or net not in a.nets:
             raise NetError('assertion_invalid', 'this host keeps no key directory for the net')
         st = a.nets[net]
-        v = verify_assertion(a, net, raw, sender, audience=str(kw.get('audience') or st.me),
+        # ``receiver``: the participant the request is for when it is not this server (a sponsored member)
+        v = verify_assertion(a, net, raw, sender, audience=str(kw.get('audience') or kw.get('receiver') or st.me),
                              hop=int(kw.get('hop') or 1), visited=kw.get('visited'), trace_id=kw.get('trace_id'))
         return a.finish(st, v)
 
@@ -379,16 +380,18 @@ class TokenExchangeIdentity(plugins.IdentityResolver):
     def _key(token: str) -> str:
         return 'tok:' + hashlib.sha256(token.encode('utf-8')).hexdigest()
 
-    def serve_token(self, st, data: Dict[str, Any], v) -> Dict[str, Any]:
-        """``POST /sajhanet/v1/token`` at the host (protocol §15.9)."""
+    def serve_token(self, st, data: Dict[str, Any], v, me: Optional[str] = None) -> Dict[str, Any]:
+        """``POST /sajhanet/v1/token`` at the host (protocol §15.9); ``me``: the participant the token is for
+        when it is not this server (a sponsored member)."""
         a = self.authz
-        if data.get('audience') != st.me:
-            raise NetError('assertion_invalid', f'the token exchange is for {data.get("audience")}, not {st.me}')
-        verified = verify_assertion(a, st.net, data['subject_token'], v.sender, audience=st.me, hop=1)
+        me = me or st.me
+        if data.get('audience') != me:
+            raise NetError('assertion_invalid', f'the token exchange is for {data.get("audience")}, not {me}')
+        verified = verify_assertion(a, st.net, data['subject_token'], v.sender, audience=me, hop=1)
         mapped = a.finish(st, verified)                       # refuse now: blocked, no account
         token = secrets.token_urlsafe(32)
         ttl = int(max(1, min(3600, st.settings.token_ttl_seconds)))
-        st.node.kv.set(self._key(token), {'net': st.net, 'home': v.sender, 'verified': verified,
+        st.node.kv.set(self._key(token), {'net': st.net, 'home': v.sender, 'aud': me, 'verified': verified,
                                           'issued_at': crypto.rfc3339(st.now())}, ttl=ttl)
         from sajha.net.integration.authz import linked_audit
         linked_audit('net.token_issued', {'net': st.net, 'peer': v.sender, 'user': verified['name'],
@@ -408,7 +411,9 @@ class TokenExchangeIdentity(plugins.IdentityResolver):
         st = a.nets[net]
         held = st.node.kv.get(self._key(str(token)))
         del token
-        if not isinstance(held, dict) or held.get('net') != net or held.get('home') != sender:
+        receiver = str(kw.get('receiver') or st.me)
+        if not isinstance(held, dict) or held.get('net') != net or held.get('home') != sender \
+                or str(held.get('aud') or st.me) != receiver:
             raise NetError('token_invalid', 'the token is unknown here, expired, or was issued to another instance')
         v = dict(held['verified'])
         rec = record_of(st, v['home'], v['key_id'])
@@ -481,11 +486,12 @@ class NetIdentity(plugins.IdentityResolver):
         if len(present) > 1:
             raise NetError('ambiguous_credentials', 'a forwarded call carries one user credential')
         a = self._authz
-        me = a.nets[net].me if net in a.nets else ''
+        me = str(kw.get('receiver') or '') or (a.nets[net].me if net in a.nets else '')
         if not present:
             custom = [n for n in listed if n not in KNOWN]
             if custom:
-                return self.resolver(custom[0]).resolve(headers, sender, **kw)
+                return self.resolver(custom[0]).resolve(headers, sender,
+                                                        **{k: v for k, v in kw.items() if k != 'receiver'})
             return None
         which = present[0]
         if which == 'assertion' and 'assertion' not in listed and not _reexport_relay(h, sender, me, kw):
@@ -500,4 +506,6 @@ class NetIdentity(plugins.IdentityResolver):
         r = self.resolvers[which]
         if which == 'api_key':
             return r.resolve(headers, sender, **{k: v for k, v in kw.items() if k == 'secure'})
+        if not isinstance(r, (AssertionIdentity, TokenExchangeIdentity)):
+            kw = {k: v for k, v in kw.items() if k != 'receiver'}
         return r.resolve(headers, sender, **kw)

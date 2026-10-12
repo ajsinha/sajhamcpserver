@@ -1,0 +1,85 @@
+{% extends "common/base.html" %}
+{# Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.com #}
+{% set sn_here = '/admin/sajhanet/users' %}
+{% set net = view.net %}
+{% block title %}{{ _('Users across the net - SAJHA Net - Admin - SAJHA MCP Server') }}{% endblock %}
+{% block extra_css %}{% include "admin/_sajhanet_mgmt_css.html" %}{% endblock %}
+{% block content %}
+<div class="container-fluid" data-sn-csrf="{{ csrf }}">
+  <div class="mb-3">
+    <h1 class="h3 mb-0"><i class="bi bi-people me-2" aria-hidden="true"></i>{{ _('Users across the net') }}</h1>
+    <small class="text-muted">{{ _('For each other instance: its users seen calling here, how each was resolved to a local account, links, role maps and name matching') }}</small>
+  </div>
+  {% include "admin/_sajhanet_subnav.html" %}
+  {% include "admin/_sajhanet_netsel.html" %}
+  <p class="small" data-sn-status role="status" aria-live="polite"></p>
+  {% if net and view.available %}
+  {% set api = '/api/sajhanet/nets/' ~ net|urlencode %}
+  <p class="sn-meta">{% trans match=_('on') if view.defaults.match_by_name else _('off'), unknown=view.defaults.unknown, remote_admin=view.defaults.remote_admin %}Defaults: name matching {{ match }} · unknown users <code>{{ unknown }}</code> · remote administrators <code>{{ remote_admin }}</code>. These are configuration (<code>sajhanet.users.*</code>); links, role maps and name-matching exceptions below are changed here.{% endtrans %}</p>
+
+  <section class="sn-box" aria-labelledby="h-link">
+    <h2 id="h-link">{{ _('Link a remote user') }}</h2>
+    <div class="sn-body">
+      <form class="row g-2 align-items-end" data-sn-form data-method="POST" data-url="{{ api }}/users/links" data-net="{{ net }}" data-kind="link"
+            data-effect="{{ _('Calls by this remote user run here as the local account you name, with its roles.') }}">
+        <div class="col-12 col-md-5"><label class="form-label small" for="lk-r">{{ _('Remote user (user@instance)') }}</label>
+          <input class="form-control form-control-sm" id="lk-r" name="remote_user" required autocomplete="off" placeholder="alice@risk-eu"></div>
+        <div class="col-12 col-md-4"><label class="form-label small" for="lk-l">{{ _('Local account') }}</label>
+          <input class="form-control form-control-sm" id="lk-l" name="local_user" required autocomplete="off"></div>
+        <div class="col-auto"><button class="btn btn-sm btn-primary" type="submit">{{ _('Link') }}</button></div>
+      </form>
+    </div>
+  </section>
+
+  {% for h in view.instances %}
+  <section class="sn-box" aria-labelledby="u-{{ loop.index }}">
+    <h2 id="u-{{ loop.index }}"><a href="/net/instances/{{ net|urlencode }}/{{ h.instance|urlencode }}?tab=users"><code>{{ h.instance }}</code></a>
+      <span class="sn-meta">{% trans seen=h.seen|length, links=h.links|length %}{{ seen }} seen · {{ links }} linked{% endtrans %}</span></h2>
+    <div class="sn-body">
+      <div class="sn-actions mb-2">
+        {% if h.name_matching %}
+        <button class="btn btn-sm btn-outline-secondary" type="button" data-sn-action data-method="PUT" data-url="{{ api }}/name-matching/{{ h.instance|urlencode }}" data-body='{"on": false}' data-net="{{ net }}" data-kind="name_matching"
+          data-effect="{{ _('Users of %(instance)s are no longer matched to local accounts by login name; only links and role maps apply.', instance=h.instance) }}">{{ _('Turn name matching off') }}</button>
+        {% else %}
+        <button class="btn btn-sm btn-outline-secondary" type="button" data-sn-action data-method="PUT" data-url="{{ api }}/name-matching/{{ h.instance|urlencode }}" data-body='{"on": true}' data-net="{{ net }}" data-kind="name_matching"
+          data-effect="{{ _('Users of %(instance)s are matched to local accounts of the same login name again.', instance=h.instance) }}">{{ _('Turn name matching on') }}</button>
+        {% endif %}
+      </div>
+      <form class="row g-2 align-items-end mb-2" data-sn-form data-method="PUT" data-url="{{ api }}/role-maps/{{ h.instance|urlencode }}" data-net="{{ net }}" data-kind="role_map"
+            data-effect="{{ _('Users of %(instance)s without an account here get these local roles (when unknown users are mapped by role); empty removes the map.', instance=h.instance) }}">
+        <div class="col-12 col-md-8"><label class="form-label small" for="rm-{{ loop.index }}">{{ _('Role map (remote role: local roles, one per line)') }}</label>
+          <textarea class="form-control form-control-sm" id="rm-{{ loop.index }}" name="map_text" rows="2">{% for k, v in h.role_map.items() %}{{ k }}: {{ v|join(', ') }}
+{% endfor %}</textarea></div>
+        <div class="col-auto"><button class="btn btn-sm btn-outline-primary" type="submit">{{ _('Save role map') }}</button></div>
+      </form>
+      <div class="table-responsive"><table class="sn-table">
+        <thead><tr><th scope="col">{{ _('Remote user') }}</th><th scope="col">{{ _('Resolved as') }}</th><th scope="col" class="opt">{{ _('Last call') }}</th><th scope="col">{{ _('Actions') }}</th></tr></thead>
+        <tbody>
+        {% for u in h.seen %}
+          <tr><td><code>{{ u.user }}</code><div class="sn-meta">{{ u.identity }}{% if u.key_prefix %} · {{ u.key_prefix }}{% endif %}</div></td>
+            <td><span class="st st-{{ 'refused' if u.mapping in ('refused', 'blocked') else 'ok' }}">{{ u.mapping }}</span>{% if u.local %} → <code>{{ u.local }}</code>{% endif %}</td>
+            <td class="opt">{% if u.last %}{{ u.last.at }} · <code>{{ u.last.tool }}</code> · {{ u.last.outcome }}{% else %}{{ u.at or '—' }}{% endif %}</td>
+            <td><button class="btn btn-sm btn-outline-danger" type="button" data-sn-action data-method="POST" data-url="{{ api }}/blocks" data-net="{{ net }}" data-kind="block_add"
+                  data-body='{{ {"level": "user", "user": u.user, "target_instance": h.instance}|tojson }}' data-blast='{{ {"level": "user", "user": u.user, "target_instance": h.instance}|tojson }}'
+                  data-effect="{{ _('Refuse every call on behalf of %(user)s here, whatever their mapping.', user=u.user) }}">{{ _('Block user') }}</button></td></tr>
+        {% endfor %}
+        {% for l in h.links %}
+          <tr><td><code>{{ l.remote_user }}</code></td><td><span class="st st-ok">{{ _('link') }}</span> → <code>{{ l.local }}</code></td>
+            <td class="opt">{% trans by=l.by or '—', at=l.at or '—' %}linked by {{ by }} at {{ at }}{% endtrans %}</td>
+            <td><button class="btn btn-sm btn-outline-secondary" type="button" data-sn-action data-method="DELETE" data-url="{{ api }}/users/links" data-net="{{ net }}" data-kind="unlink"
+                  data-body='{{ {"remote_user": l.remote_user}|tojson }}' data-blast='{{ {"remote_user": l.remote_user}|tojson }}'
+                  data-effect="{{ _('Remove the link of %(user)s to %(local)s.', user=l.remote_user, local=l.local) }}">{{ _('Unlink') }}</button></td></tr>
+        {% endfor %}
+        {% if not h.seen and not h.links %}<tr><td colspan="4" class="sn-meta">{{ _('No user of this instance has called here recently.') }}</td></tr>{% endif %}
+        </tbody></table></div>
+    </div>
+  </section>
+  {% else %}
+  <p class="sn-meta">{{ _('No other instance is known in this net yet.') }}</p>
+  {% endfor %}
+  {% elif net %}
+  <p class="sn-meta">{{ _('Identity and authorization are not running for this net.') }}</p>
+  {% endif %}
+</div>
+{% include "admin/_sajhanet_change_dialog.html" %}
+{% endblock %}

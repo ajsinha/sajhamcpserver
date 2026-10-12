@@ -5,17 +5,17 @@
 {% if _nv and _nv.enabled %}
 <section class="card mb-4" id="system-status" aria-labelledby="ssp-title">
   <div class="card-header d-flex flex-wrap align-items-center justify-content-between gap-2">
-    <h2 class="h6 m-0" id="ssp-title"><i class="bi bi-heart-pulse me-2" aria-hidden="true"></i>System status
-      <span class="small text-muted fw-normal ms-1" id="ssp-summary">{{ (_nv.notices|length ~ ' open') if _nv.notices else 'All clear' }}</span></h2>
+    <h2 class="h6 m-0" id="ssp-title"><i class="bi bi-heart-pulse me-2" aria-hidden="true"></i>{{ _('System status') }}
+      <span class="small text-muted fw-normal ms-1" id="ssp-summary">{{ _('%(n)s open', n=_nv.notices|length) if _nv.notices else _('All clear') }}</span></h2>
     <div class="d-flex align-items-center gap-2">
       <span class="small text-muted" id="ssp-msg" role="status" aria-live="polite"></span>
       <button type="button" class="btn btn-sm btn-outline-secondary" id="ssp-cleared-toggle" aria-pressed="false"
-              aria-controls="ssp-body">Show recently cleared</button>
+              aria-controls="ssp-body">{{ _('Show recently cleared') }}</button>
     </div>
   </div>
   <div class="card-body" id="ssp-body">
-    {% if not _nv.notices %}<div class="ssp-empty"><i class="bi bi-check-circle" aria-hidden="true"></i>No notices: nothing needs attention.</div>
-    {% else %}<p class="ssp-state">{{ _nv.notices|length }} open notice{{ '' if _nv.notices|length == 1 else 's' }}; loading details…</p>{% endif %}
+    {% if not _nv.notices %}<div class="ssp-empty"><i class="bi bi-check-circle" aria-hidden="true"></i>{{ _('No notices: nothing needs attention.') }}</div>
+    {% else %}<p class="ssp-state">{{ ngettext('%(num)d open notice; loading details…', '%(num)d open notices; loading details…', _nv.notices|length) }}</p>{% endif %}
   </div>
 </section>
 <script type="application/json" id="ssp-initial">{{ _nv|tojson }}</script>

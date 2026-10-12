@@ -50,6 +50,8 @@ def status(probe: bool = True) -> Dict[str, Any]:
         'defaults': settings.defaults,
         'max': settings.max,
         'backends': backends,
+        'egress': _egress_status(),
+        'pool': _pool_status(),
     }
     if error:
         out['error'] = error
@@ -59,6 +61,20 @@ def status(probe: bool = True) -> Dict[str, Any]:
             p = active.probe()
             out['probe'] = {'ok': p.get('ok'), 'error': p.get('error')}
     return out
+
+
+def _egress_status() -> Dict[str, Any]:
+    from .egress import load_egress_settings
+    e = load_egress_settings()
+    return {'mode': e.mode, 'block_private_networks': e.block_private_networks,
+            'exempt_hosts': e.exempt_patterns + [str(n) for n in e.exempt_networks],
+            'max_connections': e.max_connections}
+
+
+def _pool_status() -> Dict[str, Any]:
+    from .pool import load_pool_config, status as pool_status
+    cfg = load_pool_config()
+    return {'size': cfg.size, 'reset': cfg.reset, 'pools': pool_status()}
 
 
 def studio_policy(kind: str = 'python') -> Dict[str, Any]:

@@ -1,0 +1,32 @@
+{# Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.com #}
+{# The SAJHA Net management pages' shared styles (theme tokens only, so every theme follows). #}
+<style>
+.sn-box{border:1px solid var(--t-card-b);border-radius:var(--radius-lg);background:var(--t-card);margin-bottom:1rem;min-width:0}
+.sn-box>h2{font-size:1.02rem;margin:0;font-weight:700;color:var(--t-heading);padding:.65rem 1rem;border-bottom:1px solid var(--t-card-b);background:var(--t-card-hdr)}
+.sn-box>.sn-body{padding:.75rem 1rem}
+.sn-meta{font-size:.86rem;color:var(--t-muted);word-break:break-word}
+.sn-table{font-size:.86rem;width:100%}
+.sn-table th{background:var(--t-card-hdr);color:var(--t-text2);font-weight:600;font-size:.86rem;padding:.45rem .6rem}
+.sn-table td{padding:.4rem .6rem;border-bottom:1px solid var(--t-card-b);color:var(--t-text);word-break:break-word;vertical-align:top}
+.sn-hash{font-family:var(--bs-font-monospace);font-size:.86rem;word-break:break-all}
+.st{display:inline-block;padding:.1rem .5rem;border-radius:999px;font-size:.86rem;font-weight:600;color:var(--sajha-on-crimson);white-space:nowrap}
+.st-alive,.st-ok,.st-active,.st-allowed,.st-verified,.st-healthy,.st-joined{background:var(--sajha-ok)}
+.st-suspect,.st-warning,.st-held,.st-partial,.st-inbound,.st-outbound,.st-degraded,.st-unavailable{background:var(--sajha-warn)}
+.st-dead,.st-error,.st-blocked,.st-refused,.st-broken,.st-problem,.st-revoked,.st-quarantined,.st-bad{background:var(--sajha-bad)}
+.st-left,.st-self,.st-solo,.st-info,.st-final,.st-undone{background:var(--sajha-slate)}
+.sn-tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(9rem,1fr));gap:.6rem;margin-bottom:1rem}
+.sn-tile{border:1px solid var(--t-card-b);border-radius:var(--radius-lg);background:var(--t-card);padding:.6rem .8rem;min-width:0}
+.sn-tile .k{font-size:.86rem;color:var(--t-muted)}
+.sn-tile .v{font-size:1.15rem;font-weight:700;color:var(--t-heading);word-break:break-word}
+.sn-subnav{display:flex;flex-wrap:wrap;gap:.35rem;margin-bottom:1rem}
+.sn-subnav a{font-size:.86rem;padding:.3rem .6rem;border:1px solid var(--t-card-b);border-radius:999px;text-decoration:none;color:var(--t-text);min-height:2.25rem;display:inline-flex;align-items:center}
+.sn-subnav a[aria-current=page]{background:var(--t-card-hdr);font-weight:700;color:var(--t-heading)}
+.sn-netsel{display:flex;flex-wrap:wrap;gap:.5rem;align-items:flex-end;margin-bottom:1rem}
+.sn-bad{color:var(--sajha-bad)}
+.sn-actions{display:flex;flex-wrap:wrap;gap:.35rem}
+.sn-matrix th,.sn-matrix td{text-align:center;white-space:nowrap}
+.sn-matrix th[scope=row]{text-align:left}
+#sn-dialog{border:1px solid var(--t-card-b);border-radius:var(--radius-lg);background:var(--t-card);color:var(--t-text);max-width:min(36rem,94vw);width:100%}
+#sn-dialog::backdrop{background:rgba(0,0,0,.45)}
+@media (max-width:576px){.sn-table th.opt,.sn-table td.opt{display:none}}
+</style>

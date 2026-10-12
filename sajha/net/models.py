@@ -92,6 +92,7 @@ class NetConfig:
     max_injections_per_minute: int = 6
     vendor: str = ''                         # the organisation that answers for its tools (protocol §5.5)
     rename: Dict[str, str] = field(default_factory=dict)    # local tool -> published name (§5.5)
+    discovery: List[Dict[str, Any]] = field(default_factory=list)   # discovery sources (§9.7; sajha/net/discovery.py)
 
     def features(self) -> List[str]:
         out = ['gossip'] if self.membership == 'gossip' else []

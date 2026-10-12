@@ -167,7 +167,8 @@ def test_file_entries_connect_and_tools_are_prefixed(tmp_path, monkeypatch):
     try:
         m, reg, f = _manager(tmp_path, {'mcpServers': {
             'github': {'url': up.url, 'headers': {'Authorization': 'Bearer ${T_TOKEN}'}, 'tools': ['traced']},
-            'echo': {'command': sys.executable, 'args': [ECHO], 'vendor': 'mcp_reference'}}}, enabled=True)
+            'echo': {'command': sys.executable, 'args': [ECHO], 'vendor': 'mcp_reference',
+                     'isolation': 'none'}}}, enabled=True)          # the host's interpreter: no container
         m.start()
         try:
             assert wait_for(lambda: 'github__traced' in reg.tools and 'mcp_reference__echo' in reg.tools, 20), \

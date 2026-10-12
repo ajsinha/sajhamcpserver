@@ -6,102 +6,117 @@
 {% set MENU = [] %}
 {% if session.token %}
 {% set MENU = MENU + [
-  ('Tools', 'tools', [
-    ('Use', [
-      (url_for('dashboard'), 'speedometer2', 'Dashboard', 'Server status, tools and recent activity'),
-      (url_for('tools_list'), 'tools', 'All tools', 'Browse, inspect and execute every registered tool'),
-      (url_for('tools_domains'), 'grid-1x2', 'Domains', 'Tools by domain: each tool folder, proxied server and Unfiled')]
-      + ([(url_for('playground_page'), 'filetype-py', 'Python Playground', 'Python in your browser; call tools with import sajha')]
+  (_('Tools'), 'tools', [
+    (_('Use'), [
+      (url_for('dashboard'), 'speedometer2', _('Dashboard'), _('Server status, tools and recent activity')),
+      (url_for('tools_list'), 'tools', _('All tools'), _('Browse, inspect and execute every registered tool')),
+      (url_for('tools_domains'), 'grid-1x2', _('Domains'), _('Tools by domain: each tool folder, proxied server and Unfiled'))]
+      + ([(url_for('playground_page'), 'filetype-py', _('Python Playground'), _('Python in your browser; call tools with import sajha'))]
          if playground_enabled is defined and playground_enabled() else []) + [
-      (url_for('workflows_page'), 'diagram-3', 'Workflows', 'Schedules, triggers and run history for DAGs of tools'),
-      (url_for('report_library_page'), 'file-earmark-bar-graph', 'Reports', 'Run reports, see their runs and download their files'),
-      (url_for('reports_dashboard'), 'bar-chart-line', 'Usage', 'Tool calls, errors and latency by tool and user')]),
-    ('Monitor', [
-      (url_for('monitoring_tools'), 'graph-up', 'Tool metrics', 'Calls, latency and errors per tool'),
-      (url_for('monitoring_usage'), 'cash-coin', 'Usage & cost', 'Tokens, spend, tool calls and budgets')]
-      + ([(url_for('monitoring_users'), 'people', 'User activity', 'Who called what, and when')] if is_admin else []))]),
-  ('AI', 'cpu', [
-    ('Ask', [
-      (url_for('ask_page'), 'stars', 'Ask SAJHA', 'Ask a question; SAJHA picks the tools, runs them and answers'),
-      (url_for('conversations_page'), 'chat-left-dots', 'Conversations', 'Your conversations with Ask SAJHA and LLM tools')]),
-    ('Models & prompts', [
-      (url_for('ai_settings'), 'cloud', 'LLM', 'Providers, models and the default'),
-      (url_for('prompts_list'), 'chat-square-text', 'Prompts', 'The prompt library, tested and versioned')])])] %}
+      (url_for('workflows_page'), 'diagram-3', _('Workflows'), _('Schedules, triggers and run history for DAGs of tools')),
+      (url_for('report_library_page'), 'file-earmark-bar-graph', _('Reports'), _('Run reports, see their runs and download their files')),
+      (url_for('reports_dashboard'), 'bar-chart-line', _('Usage'), _('Tool calls, errors and latency by tool and user'))]),
+    (_('Monitor'), [
+      (url_for('monitoring_tools'), 'graph-up', _('Tool metrics'), _('Calls, latency and errors per tool')),
+      (url_for('monitoring_usage'), 'cash-coin', _('Usage & cost'), _('Tokens, spend, tool calls and budgets'))]
+      + ([(url_for('monitoring_users'), 'people', _('User activity'), _('Who called what, and when'))] if is_admin else []))]),
+  (_('AI'), 'cpu', [
+    (_('Ask'), [
+      (url_for('ask_page'), 'stars', _('Ask SAJHA'), _('Ask a question; SAJHA picks the tools, runs them and answers')),
+      (url_for('conversations_page'), 'chat-left-dots', _('Conversations'), _('Your conversations with Ask SAJHA and LLM tools'))]),
+    (_('Models & prompts'), [
+      (url_for('ai_settings'), 'cloud', _('LLM'), _('Providers, models and the default')),
+      (url_for('prompts_list'), 'chat-square-text', _('Prompts'), _('The prompt library, tested and versioned'))])])] %}
 {% endif %}
 {% if session.token %}
 {% set MENU = MENU + [
-  ('SAJHA Net', 'share', [
-    ('Net', [
-      (url_for('net_instances_page'), 'hdd-network', 'Instances', 'Every instance in your nets and the tools each offers you'),
-      (url_for('net_access_page'), 'person-check', 'Your net access', 'Every remote tool, where it runs and whether you may use it')]
-      + ([(url_for('admin_sajhanet_overview_page'), 'diagram-3', 'Net overview', 'Members, topology, admission, notices and recent calls'),
-          (url_for('admin_sajhanet_tools_page'), 'diagram-2', 'Remote tools', 'The host and tool table, held tools and conflicts'),
-          (url_for('admin_sajhanet_page'), 'gear', 'SAJHA Net admin', 'Membership, adding a peer, CA, blocks, users and keys')]
-         if is_admin else []))])] %}
+  (_('SAJHA Net'), 'share', [
+    (_('Net'), [
+      (url_for('net_instances_page'), 'hdd-network', _('Instances'), _('Every instance in your nets and the tools each offers you')),
+      (url_for('net_access_page'), 'person-check', _('Your net access'), _('Every remote tool, where it runs and whether you may use it'))]
+      + ([(url_for('admin_sajhanet_overview_page'), 'diagram-3', _('Net overview'), _('Members, topology, admission, notices and recent calls')),
+          (url_for('admin_sajhanet_tools_page'), 'diagram-2', _('Remote tools'), _('The host and tool table, held tools and conflicts')),
+          (url_for('admin_sajhanet_page'), 'gear', _('SAJHA Net admin'), _('Membership, adding a peer, CA, blocks, users and keys'))]
+         if is_admin else []))]
+    + ([(_('Govern'), [
+      (url_for('admin_sajhanet_reviews_page'), 'inboxes', _('Conflicts and reviews'), _('Contract conflicts, held tools, name conflicts: what needs a person')),
+      (url_for('admin_sajhanet_users_page'), 'people', _('Users across the net'), _('Remote users, how each resolved, links and role maps')),
+      (url_for('admin_sajhanet_blocks_page'), 'slash-circle', _('Access and blocks'), _('Who may call whom; add and end blocks')),
+      (url_for('admin_sajhanet_keys_page'), 'key', _('Key directory'), _('Every member\'s API key records, read-only')),
+      (url_for('admin_sajhanet_changes_page'), 'clock-history', _('Change history'), _('Every net change with its reason; undo'))]),
+       (_('Operate'), [
+      (url_for('admin_sajhanet_activity_page'), 'broadcast', _('Live activity'), _('Cross-instance calls as they happen')),
+      (url_for('admin_sajhanet_certificates_page'), 'patch-check', _('Certificates'), _('Certificates, enrollment tokens and revocations')),
+      (url_for('admin_sajhanet_sponsored_page'), 'person-badge', _('Sponsored servers'), _('Proxied MCP servers brought into a net')),
+      (url_for('admin_sajhanet_snapshots_page'), 'camera', _('Snapshots'), _('Verify, compare, download and restore')),
+      (url_for('admin_sajhanet_settings_page'), 'sliders', _('Net settings'), _('Names, seeds, gossip, routing and defaults'))])]
+       if is_admin else []))] %}
 {% endif %}
 {% set show_studio = is_admin or (can_studio is defined and can_studio) %}
 {% if session.token and show_studio %}
 {# Only the creators the caller's permissions open (studio:<creator>; admins all) #}
 {% set SC = studio_creators if studio_creators is defined else [] %}
-{% set code_items = [(url_for('studio_home'), 'house', 'Studio home', 'Everything you can build here')]
-  + ([(url_for('studio_describe'), 'chat-square-text', 'Describe a tool', 'Say what it should do; review, test and approve')] if is_admin or 'describe' in SC else [])
-  + ([(url_for('studio_home') ~ '#python-creator', 'code-slash', 'Python code tool', 'Turn a Python function into a tool (on Studio home)')] if is_admin or 'python' in SC else [])
-  + ([(url_for('studio_rest'), 'cloud-arrow-up', 'REST service tool', 'Wrap an HTTP endpoint as a tool')] if is_admin or 'rest' in SC else [])
-  + ([(url_for('studio_api_import'), 'filetype-json', 'Import an API', 'OpenAPI, Swagger or GraphQL: one tool per operation')] if is_admin or 'api_import' in SC else [])
-  + ([(url_for('studio_dbquery'), 'database', 'DB query tool', 'A parameterised SQL query as a tool')] if is_admin or 'dbquery' in SC else [])
-  + ([(url_for('studio_script'), 'terminal', 'Script tool', 'Run a shell or Python script as a tool')] if is_admin or 'script' in SC else []) %}
-{% set source_items = ([(url_for('studio_powerbi'), 'bar-chart-fill', 'PowerBI report', 'Export a report page as a tool')] if is_admin or 'powerbi' in SC else [])
-  + ([(url_for('studio_powerbidax'), 'braces', 'PowerBI DAX query', 'A DAX query against a dataset')] if is_admin or 'powerbidax' in SC else [])
-  + ([(url_for('studio_livelink'), 'folder2-open', 'IBM LiveLink', 'Search and fetch documents')] if is_admin or 'livelink' in SC else [])
-  + ([(url_for('studio_sharepoint'), 'microsoft', 'SharePoint', 'Documents, lists or search on a SharePoint site')] if is_admin or 'sharepoint' in SC else [])
-  + ([(url_for('studio_olap'), 'graph-up-arrow', 'OLAP dataset', 'Slice a cube as a tool')] if is_admin or 'olap' in SC else []) %}
-{% set ai_items = ([(url_for('studio_llm'), 'chat-square-text', 'LLM tool', 'A tool whose work a language model does: mode, model, tools, limits')] if is_admin or 'llm' in SC else [])
-  + ([(url_for('studio_planners'), 'signpost-split', 'Planner editor', 'Planner files: check, graph, dry run, versions (admins)')] if is_admin else []) %}
-{% set compose_items = ([(url_for('composite_builder'), 'boxes', 'Composite builder', 'Chain tools into one')] if is_admin or 'composite' in SC else [])
-  + [(url_for('workflows_page'), 'diagram-3', 'Workflows', 'Steps, branches and loops on a schedule or trigger')] %}
+{% set code_items = [(url_for('studio_home'), 'house', _('Studio home'), _('Everything you can build here'))]
+  + ([(url_for('studio_describe'), 'chat-square-text', _('Describe a tool'), _('Say what it should do; review, test and approve'))] if is_admin or 'describe' in SC else [])
+  + ([(url_for('studio_home') ~ '#python-creator', 'code-slash', _('Python code tool'), _('Turn a Python function into a tool (on Studio home)'))] if is_admin or 'python' in SC else [])
+  + ([(url_for('studio_rest'), 'cloud-arrow-up', _('REST service tool'), _('Wrap an HTTP endpoint as a tool'))] if is_admin or 'rest' in SC else [])
+  + ([(url_for('studio_api_import'), 'filetype-json', _('Import an API'), _('OpenAPI, Swagger or GraphQL: one tool per operation'))] if is_admin or 'api_import' in SC else [])
+  + ([(url_for('studio_dbquery'), 'database', _('DB query tool'), _('A parameterised SQL query as a tool'))] if is_admin or 'dbquery' in SC else [])
+  + ([(url_for('studio_script'), 'terminal', _('Script tool'), _('Run a shell or Python script as a tool'))] if is_admin or 'script' in SC else []) %}
+{% set source_items = ([(url_for('studio_powerbi'), 'bar-chart-fill', _('PowerBI report'), _('Export a report page as a tool'))] if is_admin or 'powerbi' in SC else [])
+  + ([(url_for('studio_powerbidax'), 'braces', _('PowerBI DAX query'), _('A DAX query against a dataset'))] if is_admin or 'powerbidax' in SC else [])
+  + ([(url_for('studio_livelink'), 'folder2-open', _('IBM LiveLink'), _('Search and fetch documents'))] if is_admin or 'livelink' in SC else [])
+  + ([(url_for('studio_sharepoint'), 'microsoft', _('SharePoint'), _('Documents, lists or search on a SharePoint site'))] if is_admin or 'sharepoint' in SC else [])
+  + ([(url_for('studio_olap'), 'graph-up-arrow', _('OLAP dataset'), _('Slice a cube as a tool'))] if is_admin or 'olap' in SC else []) %}
+{% set ai_items = ([(url_for('studio_llm'), 'chat-square-text', _('LLM tool'), _('A tool whose work a language model does: mode, model, tools, limits'))] if is_admin or 'llm' in SC else [])
+  + ([(url_for('studio_planners'), 'signpost-split', _('Planner editor'), _('Planner files: check, graph, dry run, versions (admins)'))] if is_admin else []) %}
+{% set compose_items = ([(url_for('composite_builder'), 'boxes', _('Composite builder'), _('Chain tools into one'))] if is_admin or 'composite' in SC else [])
+  + [(url_for('workflows_page'), 'diagram-3', _('Workflows'), _('Steps, branches and loops on a schedule or trigger'))] %}
 {% set MENU = MENU + [
-  ('MCP Studio', 'magic', [('Code & services', code_items)]
-    + ([('Enterprise sources', source_items)] if source_items else [])
-    + ([('Language models', ai_items)] if ai_items else [])
-    + [('Compose', compose_items)])] %}
+  (_('MCP Studio'), 'magic', [(_('Code & services'), code_items)]
+    + ([(_('Enterprise sources'), source_items)] if source_items else [])
+    + ([(_('Language models'), ai_items)] if ai_items else [])
+    + [(_('Compose'), compose_items)])] %}
 {% endif %}
 {% if session.token and is_admin %}
 {% set MENU = MENU + [
-  ('Admin', 'shield-lock', [
-    ('Manage', [
-      (url_for('admin_tools'), 'tools', 'Tools', 'Enable, disable and configure tools'),
-      (url_for('admin_users'), 'people', 'Users', 'Accounts and roles'),
-      (url_for('admin_prompts'), 'chat-square-text', 'Prompts', 'Create, edit and retire prompts'),
-      (url_for('admin_apikeys'), 'key', 'API keys', 'Keys, scopes and expiry'),
-      (url_for('admin_federation_page'), 'diagram-2', 'Proxied MCP servers', 'The MCP servers this instance embeds and proxies calls to: their state, tools and approvals'),
-      (url_for('admin_sajhanet_page'), 'share', 'SAJHA Net', 'Nets this server is in: membership, names, adding a peer'),
-      (url_for('admin_connections_page'), 'link-45deg', 'Connected accounts', 'Which services each user linked; revoke; vault keys'),
-      (url_for('admin_server_connections_page'), 'person-lock', 'Server connections', 'Who saved their own token for each proxied server; revoke'),
-      (url_for('admin_connectors_page'), 'database-gear', 'Data connectors', 'Databases and vector stores as governed, read-only tools')]),
-    ('Governance', [
-      (url_for('admin_policies_page'), 'shield-check', 'Policies', 'Rules on every tool call; the test bench'),
-      (url_for('admin_approvals_page'), 'person-check', 'Approvals', 'Tool calls waiting for a human decision'),
-      (url_for('admin_audit_page'), 'journal-check', 'Audit', 'Hash-chained audit records, integrity, SIEM sinks')]),
-    ('Operations', [
-      ('/admin/system-monitor', 'activity', 'System monitor', 'CPU, memory and connections'),
-      ('/admin/async-tasks', 'skip-forward-circle', 'Async tasks', 'Long-running calls in flight'),
-      (url_for('admin_tool_health_page'), 'heart-pulse', 'Tool health', 'Probes, test runs and the schema linter'),
-      (url_for('admin_tool_versions_page'), 'signpost-split', 'Tool versions', 'Canary, pins, rollback and sunset dates'),
-      (url_for('admin_evals_page'), 'clipboard-check', 'Evals', 'Golden questions for Ask SAJHA, per model and planner'),
-      (url_for('ai_settings'), 'cpu', 'AI providers & models', 'Provider credentials and model profiles')])])] %}
+  (_('Admin'), 'shield-lock', [
+    (_('Manage'), [
+      (url_for('admin_tools'), 'tools', _('Tools'), _('Enable, disable and configure tools')),
+      (url_for('admin_users'), 'people', _('Users'), _('Accounts and roles')),
+      (url_for('admin_prompts'), 'chat-square-text', _('Prompts'), _('Create, edit and retire prompts')),
+      (url_for('admin_apikeys'), 'key', _('API keys'), _('Keys, scopes and expiry')),
+      (url_for('admin_federation_page'), 'diagram-2', _('Proxied MCP servers'), _('The MCP servers this instance embeds and proxies calls to: their state, tools and approvals')),
+      (url_for('admin_sajhanet_page'), 'share', _('SAJHA Net'), _('Nets this server is in: membership, names, adding a peer')),
+      (url_for('admin_connections_page'), 'link-45deg', _('Connected accounts'), _('Which services each user linked; revoke; vault keys')),
+      (url_for('admin_server_connections_page'), 'person-lock', _('Server connections'), _('Who saved their own token for each proxied server; revoke')),
+      (url_for('admin_connectors_page'), 'database-gear', _('Data connectors'), _('Databases and vector stores as governed, read-only tools')),
+      (url_for('admin_plugin_catalog_page'), 'box-seam', _('Plugin catalog'), _('Signed plugins from the catalog sources: review and install'))]),
+    (_('Governance'), [
+      (url_for('admin_policies_page'), 'shield-check', _('Policies'), _('Rules on every tool call; the test bench')),
+      (url_for('admin_approvals_page'), 'person-check', _('Approvals'), _('Tool calls waiting for a human decision')),
+      (url_for('admin_audit_page'), 'journal-check', _('Audit'), _('Hash-chained audit records, integrity, SIEM sinks'))]),
+    (_('Operations'), [
+      ('/admin/system-monitor', 'activity', _('System monitor'), _('CPU, memory and connections')),
+      ('/admin/async-tasks', 'skip-forward-circle', _('Async tasks'), _('Long-running calls in flight')),
+      (url_for('admin_tool_health_page'), 'heart-pulse', _('Tool health'), _('Probes, test runs and the schema linter')),
+      (url_for('admin_tool_versions_page'), 'signpost-split', _('Tool versions'), _('Canary, pins, rollback and sunset dates')),
+      (url_for('admin_evals_page'), 'clipboard-check', _('Evals'), _('Golden questions for Ask SAJHA, per model and planner')),
+      (url_for('admin_planner_routing_page'), 'diagram-2', _('Planner routing'), _('Planners ranked from results: approve, roll back, bandit')),
+      (url_for('ai_settings'), 'cpu', _('AI providers & models'), _('Provider credentials and model profiles'))])])] %}
 {% endif %}
 {% set MENU = MENU + [
-  ('Help', 'question-circle', [
-    ('Learn', [
-      (url_for('help_page'), 'life-preserver', 'Help', 'Every topic, by section, searchable'),
-      (url_for('help_guides'), 'collection', 'Guides', 'Every guide, by folder'),
-      (url_for('glossary'), 'journal-text', 'Glossary', 'Every term, defined once')]),
-    ('Reference', [
-      (url_for('help_tools_page'), 'grid-3x3-gap', 'Tool catalog', 'What this server has loaded, by group'),
-      (url_for('about_page'), 'info-circle', 'About SAJHA', 'What it is, and what it is running now'),
-      (url_for('comparison_page'), 'bar-chart-steps', 'How it compares', 'Next to MCP frameworks, gateways and hosted platforms')])])] %}
+  (_('Help'), 'question-circle', [
+    (_('Learn'), [
+      (url_for('help_page'), 'life-preserver', _('Help'), _('Every topic, by section, searchable')),
+      (url_for('help_guides'), 'collection', _('Guides'), _('Every guide, by folder')),
+      (url_for('glossary'), 'journal-text', _('Glossary'), _('Every term, defined once'))]),
+    (_('Reference'), [
+      (url_for('help_tools_page'), 'grid-3x3-gap', _('Tool catalog'), _('What this server has loaded, by group')),
+      (url_for('about_page'), 'info-circle', _('About SAJHA'), _('What it is, and what it is running now')),
+      (url_for('comparison_page'), 'bar-chart-steps', _('How it compares'), _('Next to MCP frameworks, gateways and hosted platforms'))])])] %}
 
-<nav class="navbar navbar-expand-lg sajha-nav fixed-top" aria-label="Main">
+<nav class="navbar navbar-expand-lg sajha-nav fixed-top" aria-label="{{ _('Main') }}">
   <div class="container-fluid">
     <a class="navbar-brand sajha-brand" href="/">
       <svg class="sajha-mark" aria-hidden="true"><use href="#icon-sajha"/></svg>
@@ -109,7 +124,7 @@
     {% if session.token %}{% include "common/_net_badge.html" %}{% endif %}
     {% include "common/_notices_badge.html" %}
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#sajha-menu"
-            aria-controls="sajha-menu" aria-expanded="false" aria-label="Toggle navigation">
+            aria-controls="sajha-menu" aria-expanded="false" aria-label="{{ _('Toggle navigation') }}">
       <i class="bi bi-list" aria-hidden="true"></i></button>
     <div class="collapse navbar-collapse" id="sajha-menu">
       <ul class="navbar-nav me-auto">
@@ -134,24 +149,24 @@
       {% endfor %}
       </ul>
       <div class="sajha-tools">
-        {% if session.token %}<a class="tool" href="{{ url_for('dashboard') }}" aria-label="Your dashboard" title="Your dashboard"><i class="bi bi-house-door" aria-hidden="true"></i></a>{% endif %}
+        {% if session.token %}<a class="tool" href="{{ url_for('dashboard') }}" aria-label="{{ _('Your dashboard') }}" title="{{ _('Your dashboard') }}"><i class="bi bi-house-door" aria-hidden="true"></i></a>{% endif %}
         {% include "common/_theme_menu.html" %}
         {% if session.token and user %}
         <div class="dropdown">
           <button class="tool user dropdown-toggle" data-bs-toggle="dropdown" type="button" aria-expanded="false">
             <span class="avatar" aria-hidden="true">{{ (user.user_name or '?')[:1]|upper }}</span><span class="uname">{{ user.user_name }}</span></button>
           <div class="dropdown-menu dropdown-menu-end sajha-user-menu">
-            <div class="px-3 py-2"><div class="fw-semibold">{{ user.user_name }}</div><div class="small-muted">{{ (user.roles or [])|join(', ') or 'no roles' }}</div></div>
+            <div class="px-3 py-2"><div class="fw-semibold">{{ user.user_name }}</div><div class="small-muted">{{ (user.roles or [])|join(', ') or _('no roles') }}</div></div>
             <div class="dropdown-divider"></div>
-            <a class="dropdown-item" href="{{ url_for('change_password_page') }}"><i class="bi bi-key" aria-hidden="true"></i> Change password</a>
-            <a class="dropdown-item" href="{{ url_for('account_connections_page') }}"><i class="bi bi-link-45deg" aria-hidden="true"></i> Connected accounts</a>
-            <a class="dropdown-item" href="{{ url_for('account_server_connections_page') }}"><i class="bi bi-person-lock" aria-hidden="true"></i> Server connections</a>
-            <a class="dropdown-item" href="{{ url_for('account_apikeys_page') }}"><i class="bi bi-key-fill" aria-hidden="true"></i> My API keys</a>
-            <a class="dropdown-item" href="{{ url_for('logout') }}"><i class="bi bi-box-arrow-right" aria-hidden="true"></i> Log out</a>
+            <a class="dropdown-item" href="{{ url_for('change_password_page') }}"><i class="bi bi-key" aria-hidden="true"></i> {{ _('Change password') }}</a>
+            <a class="dropdown-item" href="{{ url_for('account_connections_page') }}"><i class="bi bi-link-45deg" aria-hidden="true"></i> {{ _('Connected accounts') }}</a>
+            <a class="dropdown-item" href="{{ url_for('account_server_connections_page') }}"><i class="bi bi-person-lock" aria-hidden="true"></i> {{ _('Server connections') }}</a>
+            <a class="dropdown-item" href="{{ url_for('account_apikeys_page') }}"><i class="bi bi-key-fill" aria-hidden="true"></i> {{ _('My API keys') }}</a>
+            <a class="dropdown-item" href="{{ url_for('logout') }}"><i class="bi bi-box-arrow-right" aria-hidden="true"></i> {{ _('Log out') }}</a>
           </div>
         </div>
         {% else %}
-        <a class="tool" href="{{ url_for('login') }}"><i class="bi bi-box-arrow-in-right" aria-hidden="true"></i> Sign in</a>
+        <a class="tool" href="{{ url_for('login') }}"><i class="bi bi-box-arrow-in-right" aria-hidden="true"></i> {{ _('Sign in') }}</a>
         {% endif %}
       </div>
     </div>

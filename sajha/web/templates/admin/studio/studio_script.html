@@ -2,7 +2,7 @@
 <!--
 Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.com
 -->
-{% block title %}Script Tool Creator - MCP Studio - SAJHA MCP Server{% endblock %}
+{% block title %}{{ _('Script Tool Creator - MCP Studio - SAJHA MCP Server') }}{% endblock %}
 
 {% block extra_css %}
 <style>
@@ -240,17 +240,16 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
         <div class="d-flex justify-content-between align-items-center">
             <div>
                 <h3>
-                    <i class="bi bi-terminal me-2"></i>Script Tool Creator
+                    <i class="bi bi-terminal me-2"></i>{{ _('Script Tool Creator') }}
                     <span class="badge bg-light text-dark ms-2" style="font-size: 0.5em;">v{{ app_version }}</span>
                 </h3>
                 <p class="subtitle mb-0">
-                    Create MCP tools from shell scripts, Python scripts, and more. 
-                    Upload or paste your script, configure execution settings, and deploy as an MCP tool.
+                    {{ _('Create MCP tools from shell scripts, Python scripts, and more. Upload or paste your script, configure execution settings, and deploy as an MCP tool.') }}
                 </p>
             </div>
             <div>
                 <a href="{{ url_for('studio_home') }}" class="btn btn-outline-light btn-sm">
-                    <i class="bi bi-arrow-left me-1"></i>Back to Studio
+                    <i class="bi bi-arrow-left me-1"></i>{{ _('Back to Studio') }}
                 </a>
             </div>
         </div>
@@ -266,33 +265,33 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
             <div class="form-section">
                 <div class="section-header">
                     <i class="bi bi-info-circle"></i>
-                    Basic Information
+                    {{ _('Basic Information') }}
                 </div>
                 <div class="section-body">
                     <div class="row mb-3">
                         <div class="col-md-6">
-                            <label class="form-label fw-bold">Tool Name *</label>
+                            <label class="form-label fw-bold">{{ _('Tool Name *') }}</label>
                             <input type="text" id="toolName" class="form-control" 
                                    placeholder="e.g., system_health_check"
                                    pattern="[a-z][a-z0-9_]*">
-                            <div class="form-text">Lowercase letters, numbers, underscores. Must start with a letter.</div>
+                            <div class="form-text">{{ _('Lowercase letters, numbers, underscores. Must start with a letter.') }}</div>
                         </div>
                         <div class="col-md-6">
-                            <label class="form-label fw-bold">Category</label>
+                            <label class="form-label fw-bold">{{ _('Category') }}</label>
                             <input type="text" id="category" class="form-control" 
-                                   value="Script" placeholder="e.g., System, Automation">
+                                   value="Script" placeholder="{{ _('e.g., System, Automation') }}">
                         </div>
                     </div>
                     <div class="mb-3">
-                        <label class="form-label fw-bold">Description *</label>
+                        <label class="form-label fw-bold">{{ _('Description *') }}</label>
                         <textarea id="description" class="form-control" rows="2"
                                   placeholder="Describe what this script tool does..."></textarea>
                     </div>
                     <div class="mb-3">
-                        <label class="form-label fw-bold">Tags</label>
+                        <label class="form-label fw-bold">{{ _('Tags') }}</label>
                         <div class="tag-input-container" id="tagContainer">
                             <input type="text" class="tag-input" id="tagInput" 
-                                   placeholder="Type and press Enter to add tags...">
+                                   placeholder="{{ _('Type and press Enter to add tags...') }}">
                         </div>
                     </div>
                 </div>
@@ -302,17 +301,17 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
             <div class="form-section">
                 <div class="section-header primary">
                     <i class="bi bi-code-slash"></i>
-                    Script Type
+                    {{ _('Script Type') }}
                 </div>
                 <div class="section-body">
                     <div class="script-type-select">
                         <div class="script-type-btn active" data-type="bash">
                             <i class="bi bi-terminal"></i>
-                            <span>Bash</span>
+                            <span>{{ _('Bash') }}</span>
                         </div>
                         <div class="script-type-btn" data-type="shell">
                             <i class="bi bi-terminal-fill"></i>
-                            <span>Shell</span>
+                            <span>{{ _('Shell') }}</span>
                         </div>
                         <div class="script-type-btn" data-type="python">
                             <i class="bi bi-filetype-py"></i>
@@ -324,11 +323,11 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
                         </div>
                         <div class="script-type-btn" data-type="perl">
                             <i class="bi bi-file-code"></i>
-                            <span>Perl</span>
+                            <span>{{ _('Perl') }}</span>
                         </div>
                         <div class="script-type-btn" data-type="ruby">
                             <i class="bi bi-gem"></i>
-                            <span>Ruby</span>
+                            <span>{{ _('Ruby') }}</span>
                         </div>
                     </div>
                 </div>
@@ -338,22 +337,22 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
             <div class="form-section">
                 <div class="section-header success">
                     <i class="bi bi-file-earmark-code"></i>
-                    Script Content
+                    {{ _('Script Content') }}
                 </div>
                 <div class="section-body">
                     <!-- File Upload -->
                     <div class="file-upload-area mb-3" id="fileUploadArea">
                         <i class="bi bi-cloud-arrow-up d-block"></i>
-                        <p class="mb-1 fw-bold">Drag & drop a script file here</p>
-                        <p class="mb-0 text-muted small">or click to browse (.sh, .py, .js, .pl, .rb)</p>
+                        <p class="mb-1 fw-bold">{{ _('Drag & drop a script file here') }}</p>
+                        <p class="mb-0 text-muted small">{{ _('or click to browse (.sh, .py, .js, .pl, .rb)') }}</p>
                         <input type="file" id="fileInput" class="d-none" 
                                accept=".sh,.bash,.py,.js,.pl,.rb,.ps1">
                     </div>
                     
                     <div class="mb-2 d-flex justify-content-between align-items-center">
-                        <label class="form-label fw-bold mb-0">Script Code *</label>
+                        <label class="form-label fw-bold mb-0">{{ _('Script Code *') }}</label>
                         <button type="button" class="btn btn-sm btn-outline-secondary" data-onclick="clearScript()">
-                            <i class="bi bi-trash me-1"></i>Clear
+                            <i class="bi bi-trash me-1"></i>{{ _('Clear') }}
                         </button>
                     </div>
                     <textarea id="scriptContent" class="script-editor" 
@@ -366,7 +365,7 @@ echo &quot;Hello from SAJHA MCP Server!&quot;
 "></textarea>
                     <div class="form-text">
                         <i class="bi bi-info-circle me-1"></i>
-                        Arguments passed to the script will be available as command-line arguments ($1, $2, ... for shell; sys.argv for Python).
+                        {{ _('Arguments passed to the script will be available as command-line arguments ($1, $2, ... for shell; sys.argv for Python).') }}
                     </div>
                 </div>
             </div>
@@ -375,37 +374,37 @@ echo &quot;Hello from SAJHA MCP Server!&quot;
             <div class="form-section">
                 <div class="section-header secondary collapse-toggle" data-bs-toggle="collapse" data-bs-target="#executionCollapse">
                     <i class="bi bi-gear"></i>
-                    Execution Settings
+                    {{ _('Execution Settings') }}
                     <i class="bi bi-chevron-down ms-auto"></i>
                 </div>
                 <div id="executionCollapse" class="collapse show">
                     <div class="section-body">
                         <div class="row mb-3">
                             <div class="col-md-4">
-                                <label class="form-label">Timeout (seconds)</label>
+                                <label class="form-label">{{ _('Timeout (seconds)') }}</label>
                                 <input type="number" id="timeout" class="form-control" 
                                        value="30" min="1" max="300">
-                                <div class="form-text">1-300 seconds</div>
+                                <div class="form-text">{{ _('1-300 seconds') }}</div>
                             </div>
                             <div class="col-md-4">
-                                <label class="form-label">Max Arguments</label>
+                                <label class="form-label">{{ _('Max Arguments') }}</label>
                                 <input type="number" id="maxArgs" class="form-control" 
                                        value="10" min="0" max="100">
                             </div>
                             <div class="col-md-4">
-                                <label class="form-label">Working Directory</label>
+                                <label class="form-label">{{ _('Working Directory') }}</label>
                                 <input type="text" id="workingDir" class="form-control" 
-                                       placeholder="(Default: script directory)">
+                                       placeholder="{{ _('(Default: script directory)') }}">
                             </div>
                         </div>
                         
                         <div class="mb-3">
-                            <label class="form-label fw-bold">Environment Variables</label>
+                            <label class="form-label fw-bold">{{ _('Environment Variables') }}</label>
                             <div id="envVarsContainer">
                                 <!-- Environment variable rows will be added here -->
                             </div>
                             <button type="button" class="btn btn-sm btn-outline-primary" data-onclick="addEnvVar()">
-                                <i class="bi bi-plus me-1"></i>Add Environment Variable
+                                <i class="bi bi-plus me-1"></i>{{ _('Add Environment Variable') }}
                             </button>
                         </div>
                         
@@ -414,7 +413,7 @@ echo &quot;Hello from SAJHA MCP Server!&quot;
                                 <div class="form-check">
                                     <input class="form-check-input" type="checkbox" id="captureStderr" checked>
                                     <label class="form-check-label" for="captureStderr">
-                                        Capture STDERR
+                                        {{ _('Capture STDERR') }}
                                     </label>
                                 </div>
                             </div>
@@ -427,7 +426,7 @@ echo &quot;Hello from SAJHA MCP Server!&quot;
             <div class="form-section">
                 <div class="section-header info collapse-toggle" data-bs-toggle="collapse" data-bs-target="#literatureCollapse">
                     <i class="bi bi-book"></i>
-                    Tool Literature (AI Context)
+                    {{ _('Tool Literature (AI Context)') }}
                     <i class="bi bi-chevron-down ms-auto"></i>
                 </div>
                 <div id="literatureCollapse" class="collapse">
@@ -435,7 +434,7 @@ echo &quot;Hello from SAJHA MCP Server!&quot;
                         <textarea id="literature" class="form-control" rows="4"
                                   placeholder="Additional context for AI to understand when and how to use this tool..."></textarea>
                         <div class="form-text">
-                            This text helps AI assistants understand when and how to use this tool effectively.
+                            {{ _('This text helps AI assistants understand when and how to use this tool effectively.') }}
                         </div>
                     </div>
                 </div>
@@ -444,10 +443,10 @@ echo &quot;Hello from SAJHA MCP Server!&quot;
             <!-- Action Buttons -->
             <div class="d-flex gap-3 mb-4">
                 <button type="button" class="btn btn-primary btn-action" data-onclick="previewTool()">
-                    <i class="bi bi-eye me-2"></i>Preview Tool
+                    <i class="bi bi-eye me-2"></i>{{ _('Preview Tool') }}
                 </button>
                 <button type="button" class="btn btn-success btn-action" data-onclick="deployTool()">
-                    <i class="bi bi-rocket me-2"></i>Deploy Tool
+                    <i class="bi bi-rocket me-2"></i>{{ _('Deploy Tool') }}
                 </button>
             </div>
         </div>
@@ -457,25 +456,25 @@ echo &quot;Hello from SAJHA MCP Server!&quot;
             <!-- Preview Panel -->
             <div class="preview-panel mb-4">
                 <div class="preview-header">
-                    <h6><i class="bi bi-code-square me-2"></i>Generated Config Preview</h6>
+                    <h6><i class="bi bi-code-square me-2"></i>{{ _('Generated Config Preview') }}</h6>
                     <button class="btn btn-sm btn-outline-light" data-onclick="copyPreview('jsonPreview')">
                         <i class="bi bi-clipboard"></i>
                     </button>
                 </div>
                 <div id="jsonPreview" class="preview-content">
-                    <span class="text-muted">// Configure your script tool and click "Preview Tool" to see generated config</span>
+                    <span class="text-muted">{{ _('// Configure your script tool and click "Preview Tool" to see generated config') }}</span>
                 </div>
             </div>
             
             <div class="preview-panel mb-4">
                 <div class="preview-header">
-                    <h6><i class="bi bi-filetype-py me-2"></i>Generated Python Wrapper</h6>
+                    <h6><i class="bi bi-filetype-py me-2"></i>{{ _('Generated Python Wrapper') }}</h6>
                     <button class="btn btn-sm btn-outline-light" data-onclick="copyPreview('pythonPreview')">
                         <i class="bi bi-clipboard"></i>
                     </button>
                 </div>
                 <div id="pythonPreview" class="preview-content">
-                    <span class="text-muted"># Python wrapper code will appear here</span>
+                    <span class="text-muted">{{ _('# Python wrapper code will appear here') }}</span>
                 </div>
             </div>
             
@@ -484,27 +483,27 @@ echo &quot;Hello from SAJHA MCP Server!&quot;
             <!-- Quick Examples -->
             <div class="card">
                 <div class="card-header">
-                    <i class="bi bi-lightning me-2"></i>Quick Examples
+                    <i class="bi bi-lightning me-2"></i>{{ _('Quick Examples') }}
                 </div>
                 <div class="card-body">
                     <div class="example-card" data-onclick="loadExample('system_info')">
-                        <h6><i class="bi bi-pc-display me-2"></i>System Information</h6>
-                        <p>Bash script to collect system information (CPU, memory, disk)</p>
-                        <span class="badge bg-secondary">Bash</span>
+                        <h6><i class="bi bi-pc-display me-2"></i>{{ _('System Information') }}</h6>
+                        <p>{{ _('Bash script to collect system information (CPU, memory, disk)') }}</p>
+                        <span class="badge bg-secondary">{{ _('Bash') }}</span>
                     </div>
                     <div class="example-card" data-onclick="loadExample('file_search')">
-                        <h6><i class="bi bi-search me-2"></i>File Search</h6>
-                        <p>Search for files by pattern in a directory</p>
-                        <span class="badge bg-secondary">Bash</span>
+                        <h6><i class="bi bi-search me-2"></i>{{ _('File Search') }}</h6>
+                        <p>{{ _('Search for files by pattern in a directory') }}</p>
+                        <span class="badge bg-secondary">{{ _('Bash') }}</span>
                     </div>
                     <div class="example-card" data-onclick="loadExample('json_processor')">
-                        <h6><i class="bi bi-braces me-2"></i>JSON Processor</h6>
-                        <p>Python script to process and transform JSON data</p>
+                        <h6><i class="bi bi-braces me-2"></i>{{ _('JSON Processor') }}</h6>
+                        <p>{{ _('Python script to process and transform JSON data') }}</p>
                         <span class="badge bg-info">Python</span>
                     </div>
                     <div class="example-card" data-onclick="loadExample('log_analyzer')">
-                        <h6><i class="bi bi-file-text me-2"></i>Log Analyzer</h6>
-                        <p>Analyze log files and extract patterns</p>
+                        <h6><i class="bi bi-file-text me-2"></i>{{ _('Log Analyzer') }}</h6>
+                        <p>{{ _('Analyze log files and extract patterns') }}</p>
                         <span class="badge bg-info">Python</span>
                     </div>
                 </div>
@@ -548,7 +547,7 @@ echo &quot;Hello from SAJHA MCP Server!&quot;
                 <span class="remove-tag" data-onclick="removeTag('${tag}')">&times;</span>
             </span>
         `).join('');
-        tagContainer.innerHTML = tagsHtml + `<input type="text" class="tag-input" id="tagInput" placeholder="Type and press Enter...">`;
+        tagContainer.innerHTML = tagsHtml + `<input type="text" class="tag-input" id="tagInput" placeholder="${_t('Type and press Enter...')}">`;
         document.getElementById('tagInput').addEventListener('keydown', function(e) {
             if (e.key === 'Enter' && this.value.trim()) {
                 e.preventDefault();
@@ -632,8 +631,8 @@ echo &quot;Hello from SAJHA MCP Server!&quot;
         const row = document.createElement('div');
         row.className = 'env-var-row';
         row.innerHTML = `
-            <input type="text" class="form-control" placeholder="Variable name" style="flex: 1;">
-            <input type="text" class="form-control" placeholder="Value" style="flex: 2;">
+            <input type="text" class="form-control" placeholder="${_t('Variable name')}" style="flex: 1;">
+            <input type="text" class="form-control" placeholder="${_t('Value')}" style="flex: 2;">
             <button type="button" class="btn btn-outline-danger btn-sm" data-onclick="sajhaRemoveParent(this)">
                 <i class="bi bi-trash"></i>
             </button>
@@ -673,15 +672,15 @@ echo &quot;Hello from SAJHA MCP Server!&quot;
         
         // Validate required fields
         if (!data.tool_name) {
-            showStatus('Tool name is required', 'error');
+            showStatus(_t('Tool name is required'), 'error');
             return;
         }
         if (!data.description) {
-            showStatus('Description is required', 'error');
+            showStatus(_t('Description is required'), 'error');
             return;
         }
         if (!data.script_content) {
-            showStatus('Script content is required', 'error');
+            showStatus(_t('Script content is required'), 'error');
             return;
         }
         
@@ -697,12 +696,12 @@ echo &quot;Hello from SAJHA MCP Server!&quot;
             if (result.success) {
                 document.getElementById('jsonPreview').textContent = result.json_content;
                 document.getElementById('pythonPreview').textContent = result.python_content;
-                showStatus('Preview generated successfully!', 'success');
+                showStatus(_t('Preview generated successfully!'), 'success');
             } else {
-                showStatus(result.error || 'Preview failed', 'error');
+                showStatus(result.error || _t('Preview failed'), 'error');
             }
         } catch (error) {
-            showStatus('Error generating preview: ' + error.message, 'error');
+            showStatus(_t('Error generating preview: ') + error.message, 'error');
         }
     }
     
@@ -712,20 +711,20 @@ echo &quot;Hello from SAJHA MCP Server!&quot;
         
         // Validate required fields
         if (!data.tool_name) {
-            showStatus('Tool name is required', 'error');
+            showStatus(_t('Tool name is required'), 'error');
             return;
         }
         if (!data.description) {
-            showStatus('Description is required', 'error');
+            showStatus(_t('Description is required'), 'error');
             return;
         }
         if (!data.script_content) {
-            showStatus('Script content is required', 'error');
+            showStatus(_t('Script content is required'), 'error');
             return;
         }
         
         // Confirm deployment
-        if (!confirm(`Deploy script tool "${data.tool_name}"?\n\nThis will create the tool and make it available via MCP.`)) {
+        if (!confirm(_t('Deploy script tool "%(tool_name)s"?\n\nThis will create the tool and make it available via MCP.', {tool_name: data.tool_name}))) {
             return;
         }
         
@@ -739,12 +738,12 @@ echo &quot;Hello from SAJHA MCP Server!&quot;
             const result = await response.json();
             
             if (result.success) {
-                showStatus(result.message || 'Tool deployed successfully!', 'success');
+                showStatus(result.message || _t('Tool deployed successfully!'), 'success');
             } else {
-                showStatus(result.error || 'Deployment failed', 'error');
+                showStatus(result.error || _t('Deployment failed'), 'error');
             }
         } catch (error) {
-            showStatus('Error deploying tool: ' + error.message, 'error');
+            showStatus(_t('Error deploying tool: ') + error.message, 'error');
         }
     }
     
@@ -761,7 +760,7 @@ echo &quot;Hello from SAJHA MCP Server!&quot;
     function copyPreview(elementId) {
         const content = document.getElementById(elementId).textContent;
         navigator.clipboard.writeText(content).then(() => {
-            showStatus('Copied to clipboard!', 'success');
+            showStatus(_t('Copied to clipboard!'), 'success');
         });
     }
     
@@ -960,7 +959,7 @@ if __name__ == "__main__":
         tags = [...example.tags];
         renderTags();
         
-        showStatus(`Loaded example: ${example.name}`, 'success');
+        showStatus(_t('Loaded example: %(name)s', {name: example.name}), 'success');
     }
 </script>
 {% endblock %}

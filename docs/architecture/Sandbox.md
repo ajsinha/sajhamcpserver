@@ -58,9 +58,9 @@ gVisor, or a VM, if that matters); an attacker who can already write `sajha/` or
 | nsjail | as bwrap, plus its own rlimits | tens of ms | yes | Linux, if installed | **backend `nsjail`** |
 | firejail | namespaces via a setuid binary with a large profile language | tens of ms | yes | Linux, if installed | not implemented: a setuid helper adds attack surface and bwrap covers the same ground |
 | Docker/Podman container per call | namespaces, cgroups, capabilities, read-only root, image-defined filesystem | hundreds of ms | only what the image has | where a daemon (or rootless Podman) runs | **backend `docker`** |
-| Warm container pool | as above | low | as above | as above | deferred: needs state reset between calls; a fresh container per call is simpler to reason about |
+| Warm container pool | as above | low | as above | as above | **built** for the docker backend (`sandbox.docker.pool`): containers started ahead, a call runs with `docker exec`, then the container is replaced (or reset and the reset verified) |
 | gVisor (`runsc`) | user-space kernel: kernel exploits mostly contained | higher | as image | Linux with runsc installed | **supported** as `sandbox.docker.runtime: runsc` |
-| WASM (wasmtime + a Python build, or Pyodide on the server) | strong (no syscalls at all) | startup cost | pure Python only: no numpy/pandas wheels, no shell scripts | needs a WASI Python build | not chosen: it cannot run script tools or common data libraries; a possible future backend for pure-Python tools |
+| WASM (wasmtime + a Python build, or Pyodide on the server) | strong (no syscalls at all) | startup cost | pure Python only: no numpy/pandas wheels, no shell scripts | needs a WASI Python build | not built: it cannot run script tools or common data libraries, and no WASI Python runtime is among SAJHA's dependencies; still planned for pure-Python tools ([Roadmap](Roadmap.md) L6) |
 
 ## 4. Design
 
@@ -75,7 +75,7 @@ gVisor, or a VM, if that matters); an attacker who can already write `sajha/` or
 | `subprocess` (default) | `python -I -B runner.py` in a fresh temp directory |
 | `bwrap` | the same inside `bwrap --unshare-all --die-with-parent`, with a new root that holds only read-only binds of system libraries and the interpreter, and the temp directory at `/work` |
 | `nsjail` | the same inside `nsjail --mode o` with equivalent mounts and nsjail's rlimits |
-| `docker` | `docker run --rm -i --network none --read-only --cap-drop ALL --security-opt no-new-privileges --user 65534:65534 --memory … --pids-limit …` on `sandbox.docker.image`, runner passed with `python3 -c` |
+| `docker` | `docker run --rm -i --network none --read-only --cap-drop ALL --security-opt no-new-privileges --user 65534:65534 --memory … --pids-limit …` on `sandbox.docker.image`, runner passed with `python3 -c`; with a warm pool, `docker exec` into a container started the same way ([Warm container pool](#warm-container-pool)) |
 
 `sandbox.default_backend` picks one (`auto` tries bwrap, nsjail, then subprocess). A tool
 may name another in its policy. An unavailable backend falls back to `subprocess` with a
@@ -90,7 +90,8 @@ is exactly what it must not see). The server writes one JSON request to its stdi
 {"op": "python_tool" | "exec" | "probe",
  "files": {"script.sh": "..."}, "env": {"PATH": "..."},
  "limits": {"cpu_seconds": 30, "memory_mb": 512, "max_file_mb": 64, "max_processes": 64},
- "network": {"mode": "none" | "allowlist", "ports": [443], "hosts": ["api.example.com"]},
+ "network": {"mode": "none" | "allowlist" | "proxy", "ports": [443], "hosts": ["api.example.com"],
+             "proxy_socket": "/run/sajha-egress/egress.sock", "proxy_port": 3128, "isolated": true},
  "confine": {"userns": true, "landlock": true, "seccomp": true, "strict": false, "deny_roots": ["..."]},
  "source": "...", "class_name": "...", "arguments": {}, "tool_config": {}}
 ```
@@ -119,7 +120,9 @@ In order, each reported in `applied`:
    same uid mapped, then a fork so the work runs as PID 1 of its own PID namespace with
    `PR_SET_PDEATHSIG`. When the run ends or is killed, everything it forked dies with it,
    and `RLIMIT_NPROC` counts only the sandbox's processes. The network namespace (no
-   interfaces but a down loopback) is used when the network is off.
+   interfaces but a loopback) is used when the network is off or goes through the egress
+   proxy (then the runner brings the loopback up for its bridge; see
+   [Network allowlist](#network-allowlist)).
 2. **rlimits**: `RLIMIT_CPU`, `RLIMIT_AS` and `RLIMIT_DATA` (memory), `RLIMIT_FSIZE`,
    `RLIMIT_NPROC`, `RLIMIT_NOFILE`, `RLIMIT_CORE=0`.
 3. **no_new_privs.**
@@ -130,14 +133,16 @@ In order, each reported in `applied`:
    project root, the server's working directory, the server user's home or the
    database directory, and nothing inside them except the interpreter's own tree (a
    virtualenv inside the project is fine; `config/` is not). With ABI 4+ (Linux 6.7+),
-   TCP connect and bind only to allowlisted ports. With ABI 6+ (Linux 6.12+), no signals
+   TCP connect only to allowlisted ports (under the egress proxy, only the bridge port)
+   and no TCP bind. With ABI 6+ (Linux 6.12+), no signals
    to and no abstract Unix sockets of processes outside the sandbox.
 5. **seccomp** (x86_64 and aarch64): `ptrace`, `process_vm_readv/writev`, `io_uring_*`,
    `bpf`, `perf_event_open`, `userfaultfd`, keyring calls, `mount`, `umount2`,
    `pivot_root`, `chroot`, `unshare`, `setns`, module and kexec loading fail with EPERM;
    `socket()` fails for every family when the network is off (including `AF_UNIX`, so a
    reachable Docker socket is useless) and for everything but IPv4, IPv6 and netlink when
-   it is allowlisted. 32-bit and x32 system calls are refused.
+   it is allowlisted or proxied (so the egress proxy's Unix socket is reachable only
+   through the bridge). 32-bit and x32 system calls are refused.
 
 Every step is best effort: if the kernel lacks it, the runner continues and reports it,
 unless `sandbox.strict` is on, in which case it refuses to run.
@@ -156,6 +161,7 @@ the table below is what each layer gives when present.
 | Cannot read server files | Landlock | **no** | **no** | not mounted, plus Landlock | not mounted | not in the image, plus Landlock if the container allows it |
 | Cannot write outside the work dir | Landlock | **no** | **no** | read-only binds | read-only binds | read-only root |
 | Network off | network namespace and seccomp | **no** | **no** | network namespace | network namespace | `--network none` |
+| Allowlisted network only through the egress proxy | yes (needs user namespaces) | no | no | yes | yes (not exercised by the tests) | yes |
 | Cannot see, signal or trace server processes | PID namespace, Landlock scope, seccomp | **no** | **no** | PID namespace | PID namespace | container PID namespace, no capabilities |
 | Children killed with the sandbox | PID namespace | process group only | no | yes | yes | yes |
 | Kernel attack surface reduced | seccomp blocklist | no | no | seccomp blocklist | nsjail seccomp if configured | gVisor when `runtime: runsc` |
@@ -170,7 +176,50 @@ documented flags and is not exercised by the test suite unless nsjail is install
 ### Network allowlist
 
 `"network": "allowlist"` with `"allow_hosts": ["api.example.com:443"]` (port defaults to
-443). What is enforced, and by what:
+443). With `sandbox.egress.mode: proxy` (the default) the **egress proxy**
+(`sajha/sandbox/egress.py`) enforces it on the wire:
+
+1. The sandbox has no direct network: its own network namespace holding only a loopback
+   interface (created by the runner on `subprocess`, by bubblewrap or nsjail, or a
+   container with `--network none`).
+2. The server starts one proxy per run, listening on a Unix socket in a fresh per-run
+   directory (private to the server's user; for docker, reachable by the container's
+   user), which bwrap, nsjail and docker sandboxes see read-only at `/run/sajha-egress`.
+3. Before any confinement the runner forks a bridge that listens on the sandbox's own
+   loopback (`egress.PROXY_PORT`) and relays each connection to that socket, and sets
+   `HTTP_PROXY`, `HTTPS_PROXY` and `ALL_PROXY` (both cases), which `urllib`, `requests`,
+   `httpx`, `curl` and most HTTP clients honour. Landlock then admits TCP connect only to
+   the bridge port and seccomp refuses Unix sockets.
+4. The proxy accepts `CONNECT host:port` (HTTPS, or any TCP protocol a client tunnels) and
+   absolute `http://` requests (forwarded in origin form, one request per connection). It
+   admits a connection only when `host:port` is in the run's `allow_hosts` (exact name)
+   and every address the name resolves to passes the outbound guard's address rule
+   (`sajha/core/outbound.py::blocked_reason`): cloud metadata and link-local, loopback,
+   multicast and reserved addresses always refused, private ranges refused unless
+   `sandbox.egress.block_private_networks` is `false`. `sandbox.egress.exempt_hosts` (host
+   patterns and CIDRs) skips the address rule, never the allowlist. The proxy resolves the
+   name itself and connects to an address it checked. Anything else is answered `403`
+   with the reason.
+5. Every allowed and denied connection is a `sandbox.egress` record in the tamper-evident
+   audit ([Policy and Audit](Policy%20and%20Audit.md); resource the run id, details the
+   tool, method, host, port, addresses and reason) and counts in
+   `sajha_sandbox_egress_total`.
+
+Under the proxy there is no UDP route and no DNS in the sandbox (the proxy resolves
+names). A tool that opens raw sockets (a database driver, SMTP) reaches nothing unless it
+tunnels through `CONNECT` itself. On the `subprocess` backend the proxy needs
+unprivileged user namespaces; without them the runner refuses to run an allowlisted tool
+rather than give it direct network. macOS and Windows have no proxy mode.
+
+A long-lived container that runs someone else's program, not the runner (a federated
+stdio upstream, `sajha/federation/container.py`), gets the same proxy from the docker
+backend's `network_args(policy, name)`: the container joins the network namespace of a
+sidecar (`<name>-egress`: no network, read-only, no capabilities, user 65534) whose only
+process bridges its loopback to the proxy socket, and `HTTP(S)_PROXY` is set. The proxy
+and the sidecar end when the container dies (`docker events`), and the audit records name
+the container.
+
+`sandbox.egress.mode: direct` (and macOS and Windows) keep the earlier, weaker check:
 
 - **Ports** by the kernel (Landlock TCP rules) on the subprocess and bwrap backends.
 - **Host names** for Python tools by the runner, which wraps `socket.getaddrinfo` and
@@ -178,9 +227,39 @@ documented flags and is not exercised by the test suite unless nsjail is install
   reached. This is a library-level check: code that issues raw system calls through
   `ctypes` can reach any address on an allowed port. Script tools get the port rule only.
 - **docker** uses the default bridge network for allowlisted tools; host names and ports
-  are not enforced by Docker itself (put an egress proxy in front if that matters).
+  are not enforced by Docker itself.
 
-UDP is not filtered when the network is allowlisted.
+UDP is not filtered in direct mode.
+
+### Warm container pool
+
+With `sandbox.docker.pool.size` above 0 the docker backend keeps that many containers
+started ahead of calls (`sajha/sandbox/pool.py`), each confined exactly as a per-call
+container (`--network none`, read-only root, tmpfs `/work` and `/tmp`, memory, CPU and PID
+limits, no capabilities, no-new-privileges, user 65534, the configured runtime) with its
+own host directory mounted read-only at `/run/sajha-egress` for the egress proxy's socket.
+PID 1 is a small loop that only reaps orphans. A call runs the runner with `docker exec`.
+The pool starts with the docker backend's first call; calls made before it has filled get
+per-call containers.
+
+After the call, `sandbox.docker.pool.reset` decides:
+
+- `recreate` (default): the container is removed and a new one started in the background,
+  so nothing a call did survives; the start cost leaves the call's path.
+- `reuse`: every process but PID 1 is killed, `/work`, `/tmp`, `/dev/shm` and
+  `/dev/mqueue` are emptied and SysV IPC objects removed; the reset is verified, and a
+  container whose reset fails, whose call timed out or overflowed, or that served
+  `max_uses` calls is replaced instead.
+
+Only calls whose `memory_mb`, `max_processes` and `max_file_mb` equal `sandbox.defaults`,
+and whose network is off or goes through the egress proxy, use the pool; others, and a
+call that finds no idle container (a miss), get a per-call container. The pool never holds
+more than `size` containers (idle, busy, starting and resetting together), capped by `MAX_POOL_SIZE` in `sajha/sandbox/pool.py`. A
+health thread inspects idle containers every `health_interval_seconds` and replaces dead
+ones. Containers are labelled `sajha.sandbox.pool=<host>:<pid>`; a starting pool removes
+the ones a process of this host left behind. `sajha_sandbox_pool_containers` and
+`sajha_sandbox_pool_events_total` count them, and `GET /api/sandbox/status` shows each
+pool.
 
 ## 5. Policy
 
@@ -230,6 +309,7 @@ the active backend's guarantees before you deploy.
 | Built-in tools, composites, and Studio's template creators (REST, DB query, Power BI, LiveLink, SharePoint, OLAP) | in-process: their code is SAJHA's template, the user supplies only configuration, and they need the server's connections and credentials |
 | Admin shell (`/api/shell/python`, `/api/shell/bash`) | sandbox, after the existing import and command filters |
 | Model-written code of the `code_act` planner stage (`sajha/ai/code_act/`) | sandbox, default backend, through `exec`: the policy is `sandbox.defaults` capped by `sandbox.max` with the network always off; the code reads its input from standard input and must print quantities as JSON ([Quantitative Planners](Quantitative%20Planners.md) §3.5) |
+| A federated stdio upstream (`sajha/federation/container.py`) | a long-lived container per connection, launched with the `docker` backend's binary, runtime and launch environment and this section's network policy and limits (no runner inside: the server's own command runs), whatever `sandbox.default_backend` says; `isolation: none` opts out ([Federation](Federation.md#stdio-isolation)) |
 
 `sandbox.enforce_for_generated_tools: true` (the default) sandboxes Studio code and
 script tools whatever their config says. Set it to `false` to load them in-process again
@@ -253,7 +333,8 @@ disk, or reach the network unless its policy allowlists it.
 - `GET /health` includes `sandbox`: the active backend and whether generated tools are
   enforced (no probe).
 - `GET /api/sandbox/status` (admin): every backend's availability, the active backend's
-  guarantees from a live probe, defaults and caps (`sajha/routes/sandbox_routes.py`).
+  guarantees from a live probe, defaults and caps, the egress proxy's settings (`egress`)
+  and each warm pool's containers and counters (`pool`) (`sajha/routes/sandbox_routes.py`).
 - `GET /api/shell/capabilities` names the backend the shell uses.
 
 ## 8. Tests
@@ -266,19 +347,39 @@ or the project; signalling the server; a Python fork loop and the bash fork bomb
 that nothing survives); a 2 GB allocation; an infinite loop (timeout) and a busy loop
 (CPU limit); unbounded output; a 50 MB file; TCP to a listener on the host's loopback and
 to the internet; a Unix socket on the host. It also checks normal results, the network
-allowlist (listed port reachable, others not, unlisted host names refused), the policy
-caps and secret rules, the registry wiring for Studio Python and script tools, and the
-shell.
+allowlist in direct mode (listed port reachable, others not, unlisted host names
+refused), the policy caps and secret rules, the registry wiring for Studio Python and
+script tools, and the shell.
+
+`tests/test_sandbox_egress.py` drives the egress proxy directly (CONNECT and forwarding to
+a listed host; unlisted hosts, cloud metadata, loopback and private addresses refused;
+the connection bound; every decision audited) and then, under each of subprocess, bwrap
+and docker that the host has, checks that a tool reaches a listed host only through the
+proxy, that refused destinations get `403`, and that direct connections (the host's
+loopback, the internet, even on the bridge port) fail. `tests/test_sandbox_pool.py` needs
+Docker and the image: reuse with a verified reset (files, processes, SysV shared memory),
+retirement after `max_uses`, recreation, the size bound and fallback on a miss, health
+checks, a timed-out call, and the egress proxy through a pooled container.
 
 ## 9. Limits and future work
 
 - The `subprocess` and namespace backends share the host kernel; a kernel exploit is out
   of scope. Use `docker` with `runtime: runsc`, or run SAJHA itself in a VM.
-- Host-name allowlisting is library-level (section 4); no egress proxy is shipped.
+- The egress proxy filters destinations, not content: a listed host is reachable for
+  anything sent over that connection. It does not chain to an upstream proxy
+  (`tools.outbound.proxy` is not used), so a host the server reaches only through a
+  corporate proxy is unreachable from a sandbox. In direct mode, and on macOS and
+  Windows, host-name allowlisting is library-level (section 4).
+- A long-lived container's egress (a federated stdio upstream) depends on its bridge
+  sidecar: if the sidecar dies, the upstream loses its network until it is restarted.
 - macOS and Windows get process separation, a clean environment, the timeout and the
   output cap only; run SAJHA on Linux (or in a container) where user code matters.
-- A container per call costs hundreds of milliseconds; a warm pool and a WASM backend
-  for pure-Python tools are possible additions.
+- The warm pool serves only calls whose limits equal `sandbox.defaults`; other calls
+  still pay for a container each. In `reuse` mode a container serves several calls (of
+  any tool) in turn; the reset covers files, processes and SysV IPC, and `recreate`
+  (the default) avoids the question.
+- There is no WASM backend: no WASI Python runtime is among SAJHA's dependencies
+  ([Roadmap](Roadmap.md) L6).
 - Template creators (REST, DB query, ...) run in-process by design; a hand-edited
   generated module is trusted like any other code under `sajha/tools/impl/`.
 

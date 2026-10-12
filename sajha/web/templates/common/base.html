@@ -2,7 +2,7 @@
 <!--
 Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.com
 -->
-<html lang="en" data-bs-theme="light">
+<html lang="{{ console_lang() if console_lang is defined else 'en' }}" data-bs-theme="light">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
@@ -25,10 +25,11 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
     
     {% block extra_css %}{% endblock %}
     <script src="{{ url_for('static', filename='js/csp-actions.js') }}?v={{ app_version }}"></script>
+    {% include "common/_i18n_js.html" %}
 </head>
 <body class="sajha-app">
     <!-- #6 Skip-to-content link (A11y) -->
-    <a href="#main-content" class="visually-hidden-focusable sajha-skip">Skip to content</a>
+    <a href="#main-content" class="visually-hidden-focusable sajha-skip">{{ _('Skip to content') }}</a>
     {% include "common/_icons.html" ignore missing %}
     {# System notices for this viewer: navbar badge, banner, dashboard panel (sajha/notices) #}
     {% set _nv = notices_view(request) if (notices_view is defined and request is defined
@@ -42,8 +43,8 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
               and password_change_required(session.token) %}
         <div class="alert alert-warning d-flex align-items-center gap-2 mt-3" role="alert" id="password-change-banner">
             <i class="bi bi-shield-exclamation" aria-hidden="true"></i>
-            <div>Your password is a default or was set by an administrator.
-                <a class="alert-link" href="/account/password">Change it now</a>.</div>
+            <div>{% trans %}Your password is a default or was set by an administrator.
+                <a class="alert-link" href="/account/password">Change it now</a>.{% endtrans %}</div>
         </div>
         {% endif %}
         {% include "common/_notices_banner.html" %}
@@ -54,8 +55,8 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
     
     <!-- Footer -->
     <footer class="sajha-foot">
-        <p class="mb-0">{{ app_name }} {{ app_version }} · <a href="/help">Help</a> · <a href="/help/guides">Guides</a> · <a href="/glossary">Glossary</a> · <a href="/about">About</a>
-            · © {{ app_copyright_years }} {{ app_author }} ({{ app_author_email }}). All rights reserved. Proprietary software</p>
+        <p class="mb-0">{{ app_name }} {{ app_version }} · <a href="/help">{{ _('Help') }}</a> · <a href="/help/guides">{{ _('Guides') }}</a> · <a href="/glossary">{{ _('Glossary') }}</a> · <a href="/about">{{ _('About') }}</a>
+            · © {{ app_copyright_years }} {{ app_author }} ({{ app_author_email }}). {{ _('All rights reserved. Proprietary software') }}</p>
     </footer>
 
     <!-- jQuery (vendored) -->

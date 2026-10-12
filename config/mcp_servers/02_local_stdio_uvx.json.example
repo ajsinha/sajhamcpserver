@@ -1,21 +1,27 @@
 {
-  "_comment": "Python reference servers run over stdio with uvx (needs uv). Requires federation.allow_stdio: true. Pin the command to an absolute path in production.",
+  "_comment": "Python reference servers over stdio with uvx. Requires federation.allow_stdio: true. Each runs in its own container from an image that has uv (uvx fetches the package, so PyPI must be reachable); the command is the executable inside the image.",
   "mcpServers": {
     "fetch": {
       "command": "/usr/local/bin/uvx",
       "args": ["mcp-server-fetch"],
+      "container": {"image": "ghcr.io/astral-sh/uv:python3.13-bookworm-slim", "tmpfs_mb": 512, "network": "allowlist",
+                    "allow_hosts": ["pypi.org:443", "files.pythonhosted.org:443"]},
       "vendor": "mcp_reference"
     },
     "git": {
       "command": "uvx",
       "args": ["mcp-server-git", "--repository", "/srv/repos/risk-models"],
       "cwd": "/srv/repos/risk-models",
+      "container": {"image": "ghcr.io/astral-sh/uv:python3.13-bookworm-slim", "mounts": ["/srv/repos/risk-models:/srv/repos/risk-models"],
+                    "tmpfs_mb": 512, "network": "allowlist", "allow_hosts": ["pypi.org:443", "files.pythonhosted.org:443"]},
       "tools": ["git_status", "git_log", "git_diff*", "git_show"],
       "_tools_comment": "Read-only git: commit, add, reset and branch tools are not exposed."
     },
     "time": {
       "command": "uvx",
-      "args": ["mcp-server-time", "--local-timezone=America/Toronto"]
+      "args": ["mcp-server-time", "--local-timezone=America/Toronto"],
+      "container": {"image": "ghcr.io/astral-sh/uv:python3.13-bookworm-slim", "tmpfs_mb": 512, "network": "allowlist",
+                    "allow_hosts": ["pypi.org:443", "files.pythonhosted.org:443"]}
     }
   }
 }

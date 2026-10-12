@@ -7,20 +7,20 @@
     {% if help_related.companion %}
     <a class="help-companion" href="{{ guide_url(help_related.companion.file) }}">
         <i class="bi bi-journal-richtext" aria-hidden="true"></i>
-        <span><strong>Full reference:</strong> {{ help_related.companion.title }}
-        <span class="text-muted">, the guide that owns this topic</span></span>
+        <span><strong>{{ _('Full reference:') }}</strong> {{ help_related.companion.title }}
+        <span class="text-muted">{{ _(', the guide that owns this topic') }}</span></span>
         <i class="bi bi-arrow-right ms-auto" aria-hidden="true"></i>
     </a>
     {% endif %}
     {% if help_related.siblings %}
-    <div class="head"><i class="bi bi-signpost-2 me-1" aria-hidden="true"></i>More in <a href="/help/c/{{ help_related.cid }}">{{ help_related.category }}</a></div>
+    <div class="head"><i class="bi bi-signpost-2 me-1" aria-hidden="true"></i>{{ _('More in') }} <a href="/help/c/{{ help_related.cid }}">{{ tr(help_related.category) }}</a></div>
     {% endif %}
     <div class="chips">
         {% for t in help_related.siblings %}
-        <a class="chip" href="{{ topic_href(t) }}"><i class="bi {{ t.icon }}" aria-hidden="true"></i> {{ t.title }}</a>
+        <a class="chip" href="{{ topic_href(t) }}"><i class="bi {{ t.icon }}" aria-hidden="true"></i> {{ tr(t.title) }}</a>
         {% endfor %}
-        {% if not (help_related.siblings|selectattr('endpoint', 'equalto', 'glossary')|list) %}<a class="chip" href="/glossary"><i class="bi bi-journal-text" aria-hidden="true"></i> Glossary</a>{% endif %}
-        <a class="chip all" href="/help"><i class="bi bi-grid" aria-hidden="true"></i> All help</a>
+        {% if not (help_related.siblings|selectattr('endpoint', 'equalto', 'glossary')|list) %}<a class="chip" href="/glossary"><i class="bi bi-journal-text" aria-hidden="true"></i> {{ _('Glossary') }}</a>{% endif %}
+        <a class="chip all" href="/help"><i class="bi bi-grid" aria-hidden="true"></i> {{ _('All help') }}</a>
     </div>
 </div>
 {% endif %}

@@ -21,18 +21,18 @@
     if (!sky) return;
     // The questions are illustrative; every tool name is a real SAJHA tool (config/tools).
     var RAW = [
-      { q: "Is Apple's dividend safe if rates keep rising?",
-        steps: [['yf_dividends', '$1.00 / yr, +4.3% CAGR'], ['fred_10yr_treasury', '10Y at 4.31%'],
-                ['calc_percentage_change', 'payout ratio 15%'], ['calc_sharpe_ratio', 'Sharpe 1.12']],
-        conf: 0.86, a: 'Yes. The payout is about 15% of earnings, so a 50bp rise in the 10-year barely touches it.' },
-      { q: 'Who inside Nvidia has been buying or selling its stock?',
-        steps: [['edgar_insider_transactions', '42 Form 4 filings, 90d'], ['yf_insider_purchases', 'net −$310M'],
-                ['tavily_news_search', '3 articles on plans']],
-        conf: 0.91, a: 'Mostly scheduled 10b5-1 sales by two executives; no open-market buying in 90 days.' },
-      { q: 'Is the US yield curve still inverted?',
-        steps: [['fred_2yr_treasury', '2Y at 3.92%'], ['fred_10yr_treasury', '10Y at 4.31%'],
-                ['fred_yield_spread', '10Y−2Y +39bp'], ['calc_percentage_change', '+81bp in 12 months']],
-        conf: 0.94, a: 'No. The 10Y−2Y spread is +39bp, after twelve months of steepening.' }
+      { q: _t("Is Apple's dividend safe if rates keep rising?"),
+        steps: [['yf_dividends', _t('$1.00 / yr, +4.3% CAGR')], ['fred_10yr_treasury', _t('10Y at 4.31%')],
+                ['calc_percentage_change', _t('payout ratio 15%')], ['calc_sharpe_ratio', _t('Sharpe 1.12')]],
+        conf: 0.86, a: _t('Yes. The payout is about 15% of earnings, so a 50bp rise in the 10-year barely touches it.') },
+      { q: _t('Who inside Nvidia has been buying or selling its stock?'),
+        steps: [['edgar_insider_transactions', _t('42 Form 4 filings, 90d')], ['yf_insider_purchases', _t('net −$310M')],
+                ['tavily_news_search', _t('3 articles on plans')]],
+        conf: 0.91, a: _t('Mostly scheduled 10b5-1 sales by two executives; no open-market buying in 90 days.') },
+      { q: _t('Is the US yield curve still inverted?'),
+        steps: [['fred_2yr_treasury', _t('2Y at 3.92%')], ['fred_10yr_treasury', _t('10Y at 4.31%')],
+                ['fred_yield_spread', _t('10Y−2Y +39bp')], ['calc_percentage_change', _t('+81bp in 12 months')]],
+        conf: 0.94, a: _t('No. The 10Y−2Y spread is +39bp, after twelve months of steepening.') }
     ];
     var GROUPS = (data.groups || []).filter(function (g) { return g[1] > 0; });
     var have = {};
@@ -52,7 +52,7 @@
         ansChain = $('lpSkyChain'), sceneNo = $('lpSkyScene'), srDesc = $('lpSkyDesc'),
         pauseBtn = $('lpSkyPause'), nextBtn = $('lpSkyNext');
     var total = data.total || GROUPS.reduce(function (a, g) { return a + g[1]; }, 0);
-    $('lpSkyStats').textContent = total + ' tools · ' + GROUPS.length + ' domains';
+    $('lpSkyStats').textContent = _t('%(tools)s tools · %(domains)s domains', {tools: total, domains: GROUPS.length});
 
     var W = 0, H = 0, chains = [];
     function rectIn(el, base) {
@@ -141,9 +141,9 @@
 
       if (shownScene !== scene) {
         shownScene = scene;
-        sceneNo.textContent = 'Question ' + (scene + 1) + ' of ' + SCENES.length;
-        srDesc.textContent = 'Question: ' + sc.q + ' Tools chained: ' + sc.steps.map(function (s) { return s[0]; }).join(', ') +
-          '. Answer: ' + sc.a;
+        sceneNo.textContent = _t('Question %(n)s of %(total)s', {n: scene + 1, total: SCENES.length});
+        srDesc.textContent = _t('Question: %(q)s Tools chained: %(tools)s. Answer: %(a)s',
+          {q: sc.q, tools: sc.steps.map(function (s) { return s[0]; }).join(', '), a: sc.a});
         ansText.textContent = sc.a;
         sky.classList.toggle('is-ans-left', !!chain.left);
         ansChain.textContent = sc.steps.map(function (s) { return s[0]; }).join(' → ');
@@ -180,7 +180,7 @@
       });
 
       var show = (reduce || t > endSteps) && fade > 0.5;
-      if (show) confEl.textContent = 'confidence ' + (sc.conf * (reduce ? 1 : ease((t - endSteps) / CONF))).toFixed(2);
+      if (show) confEl.textContent = _t('confidence %(value)s', {value: (sc.conf * (reduce ? 1 : ease((t - endSteps) / CONF))).toFixed(2)});
       if (show !== ansOn) { ansOn = show; ans.classList.toggle('is-off', !show); }
     }
 
@@ -202,8 +202,8 @@
     pauseBtn.addEventListener('click', function () {
       paused = !paused;
       pauseBtn.setAttribute('aria-pressed', String(paused));
-      pauseBtn.innerHTML = paused ? '<i class="bi bi-play-fill" aria-hidden="true"></i> Play'
-                                  : '<i class="bi bi-pause-fill" aria-hidden="true"></i> Pause';
+      pauseBtn.innerHTML = paused ? '<i class="bi bi-play-fill" aria-hidden="true"></i> ' + _t('Play')
+                                  : '<i class="bi bi-pause-fill" aria-hidden="true"></i> ' + _t('Pause');
       kick();
     });
     nextBtn.addEventListener('click', function () {
@@ -233,13 +233,13 @@
     var STATE = 'eyJtIjoidG9vbHMvY2FsbCIsInQiOi….Zk3qW…';
     // Shapes follow sajha/core/mcp_modern.py and docs/MCP_2026_07_28_Compliance.md; "…" trims.
     var ACTS = [
-      { tool: 'tool registry', msgs: [
-        { hops: ['as'], note: 'Agent → SAJHA: server/discover, no initialize, no session', text:
+      { tool: _t('tool registry'), msgs: [
+        { hops: ['as'], note: _t('Agent → SAJHA: server/discover, no initialize, no session'), text:
           '// 1. Discover: no initialize, no session id\n' +
           '→ POST /mcp\n  MCP-Protocol-Version: 2026-07-28\n  Mcp-Method: server/discover\n' +
           '{"jsonrpc":"2.0","id":1,"method":"server/discover",\n "params":{"_meta":{\n  ' + V + ',\n' +
           '  "io.modelcontextprotocol/clientCapabilities":{}}}}' },
-        { hops: ['sa'], fast: true, note: 'SAJHA → Agent: every version it speaks, cacheable', text:
+        { hops: ['sa'], fast: true, note: _t('SAJHA → Agent: every version it speaks, cacheable'), text:
           '← 200 application/json\n{"jsonrpc":"2.0","id":1,"result":{\n' +
           ' "supportedVersions":["2026-07-28","2025-11-25",\n   "2025-06-18","2025-03-26","2024-11-05"],\n' +
           ' "capabilities":{"tools":{"listChanged":true},…},\n' +
@@ -248,44 +248,44 @@
           ',"version":' + JSON.stringify(srv.version || '') + ',…}}}}' }
       ] },
       { tool: 'calc_bond_price', msgs: [
-        { hops: ['as', 'st'], note: 'Agent → SAJHA → tool: tools/call with a progressToken', text:
+        { hops: ['as', 'st'], note: _t('Agent → SAJHA → tool: tools/call with a progressToken'), text:
           '// 2. Call a tool, progress streams back over SSE\n' +
           '→ POST /mcp\n  Mcp-Method: tools/call\n  Mcp-Name: calc_bond_price\n' +
           '  Accept: application/json, text/event-stream\n' +
           '{"jsonrpc":"2.0","id":2,"method":"tools/call",\n "params":{"name":"calc_bond_price",\n' +
           '  "arguments":{"face_value":1000,"coupon_rate":5,\n   "yield_rate":4.5,"years":10},\n' +
           '  "_meta":{"progressToken":"bond-1",\n   ' + V + ',…}}}' },
-        { hops: ['sa'], fast: true, note: 'SAJHA → Agent: notifications/progress, 50%', text:
+        { hops: ['sa'], fast: true, note: _t('SAJHA → Agent: notifications/progress, 50%'), text:
           '← 200 text/event-stream\n' +
           'data: {"jsonrpc":"2.0","method":"notifications/progress",\n' +
           ' "params":{"progressToken":"bond-1","progress":50,"total":100}}' },
-        { hops: ['ts', 'sa'], fast: true, note: 'tool → SAJHA → Agent: the result, text and structured', text:
+        { hops: ['ts', 'sa'], fast: true, note: _t('tool → SAJHA → Agent: the result, text and structured'), text:
           'data: {"jsonrpc":"2.0","id":2,"result":{\n' +
           ' "content":[{"type":"text","text":"{\\n  \\"face_value\\": 1000,…"}],\n' +
           ' "structuredContent":{"face_value":1000,"coupon_rate":5,\n   "yield":4.5,"price":1039.91},\n' +
           ' "resultType":"complete","_meta":{…}}}' }
       ] },
       { tool: 'duckdb_refresh_views', msgs: [
-        { hops: ['as'], note: 'Agent → SAJHA: a tool marked destructiveHint', text:
+        { hops: ['as'], note: _t('Agent → SAJHA: a tool marked destructiveHint'), text:
           '// 3. Ask first (mcp.confirm_destructive_tools on, tool marked destructiveHint)\n' +
           '→ POST /mcp\n  Mcp-Method: tools/call\n  Mcp-Name: duckdb_refresh_views\n' +
           '{"jsonrpc":"2.0","id":3,"method":"tools/call",\n "params":{"name":"duckdb_refresh_views",\n' +
           '  "arguments":{"reload_external_files":true},\n  "_meta":{' + V + ',\n' +
           '   "io.modelcontextprotocol/clientCapabilities":\n    {"elicitation":{"form":{}}}}}}' },
-        { hops: ['sa'], fast: true, note: 'SAJHA → Agent: input_required, with a signed requestState', text:
+        { hops: ['sa'], fast: true, note: _t('SAJHA → Agent: input_required, with a signed requestState'), text:
           '← 200 application/json\n{"jsonrpc":"2.0","id":3,"result":{\n "resultType":"input_required",\n' +
           ' "inputRequests":{"sajha_confirm_destructive":{\n  "method":"elicitation/create",\n' +
           '  "params":{"mode":"form",\n   "message":"\'duckdb_refresh_views\' can modify or delete data. Run it?",\n' +
           '   "requestedSchema":{…"confirm":{"type":"boolean"}…}}}},\n' +
           ' "requestState":"' + STATE + '"}}' },
-        { hops: ['as', 'st'], note: 'The user said yes: the same request again, with the answer', text:
+        { hops: ['as', 'st'], note: _t('The user said yes: the same request again, with the answer'), text:
           '// the agent asks its user, then retries the same request\n' +
           '→ POST /mcp\n  Mcp-Method: tools/call\n  Mcp-Name: duckdb_refresh_views\n' +
           '{"jsonrpc":"2.0","id":4,"method":"tools/call",\n "params":{"name":"duckdb_refresh_views",\n' +
           '  "arguments":{"reload_external_files":true},\n' +
           '  "inputResponses":{"sajha_confirm_destructive":\n   {"action":"accept","content":{"confirm":true}}},\n' +
           '  "requestState":"' + STATE + '","_meta":{…}}}' },
-        { hops: ['ts', 'sa'], fast: true, note: 'tool → SAJHA → Agent: done', text:
+        { hops: ['ts', 'sa'], fast: true, note: _t('tool → SAJHA → Agent: done'), text:
           '← 200 application/json\n{"jsonrpc":"2.0","id":4,"result":{\n' +
           ' "content":[{"type":"text","text":"…"}],\n "resultType":"complete","_meta":{…}}}' }
       ] }
@@ -350,9 +350,9 @@
         return a.msgs.map(function (m) { return '<div class="lp2-wire-msg">' + html(m.spans, m.len) + '</div>'; }).join('');
       }).join('');
       Object.keys(lanes).forEach(function (k) { lanes[k].classList.add('is-done'); });
-      toolEl.textContent = 'registry tool';
+      toolEl.textContent = _t('registry tool');
       dot.style.opacity = 0;
-      noteEl.textContent = 'Three exchanges: discover, a streamed call, and a call that asks first.';
+      noteEl.textContent = _t('Three exchanges: discover, a streamed call, and a call that asks first.');
       return;
     }
 
@@ -381,7 +381,7 @@
       schedule(msg >= A.msgs.length ? 3400 : 800);
     }
     function update() {
-      stateEl.textContent = (hover && onScreen) ? 'paused' : '';
+      stateEl.textContent = (hover && onScreen) ? _t('paused') : '';
       if (running()) { if (!started) { started = true; startAct(0); } schedule(started ? 60 : 0); }
       else if (timer) { clearTimeout(timer); timer = 0; }
     }

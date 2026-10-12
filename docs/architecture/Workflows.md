@@ -405,7 +405,7 @@ SAJHA only checks that they exist. Times are epoch seconds. Finished runs older 
 start-up when no workflow of that name exists, owned by the administrator `admin` (only when that
 user exists; `sajha/workflows/shipped.py`). An existing workflow is never changed, so edits and a
 disabled flag are kept; a deleted one is installed again at the next start, so disable it instead.
-Shipped: `sanctions_refresh` (daily; [Sanctions guide](../tools/public-data/Sanctions%20Tool%20Reference%20Guide.md#the-local-index-and-its-refresh)).
+Shipped: `sanctions_refresh` (daily; [Sanctions guide](../tools/public-data/Sanctions%20Tool%20Reference%20Guide.md#the-local-index-and-its-refresh)) and `planner_routing_learn` (weekly, its trigger off until enabled: ranks planners and writes a routing proposal for review; [LLM Tools](LLM%20Tools.md#913-automatic-planner-selection) §9.13).
 
 ---
 

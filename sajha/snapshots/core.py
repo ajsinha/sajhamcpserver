@@ -38,7 +38,10 @@ logger = logging.getLogger(__name__)
 
 FORMAT = 'sajha-snapshot/1'
 NAME_RE = re.compile(r'^snapshot-(\d{8}T\d{6}Z)-(\d{6})\.json(\.gz)?$')
-SECTIONS = {'users': 'user_id', 'roles': 'name', 'api_keys': 'id', 'tools': 'name'}
+SECTIONS = {'users': 'user_id', 'roles': 'name', 'api_keys': 'id', 'tools': 'name',
+            # the net view (SAJHA Net §20.4): recorded for audit and comparison, never restored (a restarted
+            # server learns it again from its peers)
+            'net_members': 'id', 'net_proxies': 'qualified_name', 'net_keys': 'id'}
 
 
 def canonical(obj: Any) -> str:
@@ -95,6 +98,54 @@ def collect_tools(registry) -> List[Dict[str, Any]]:
             continue
         out.append({'name': name, 'version': str(getattr(tool, 'version', '') or ''),
                     'contract_sha256': contract_hash(tool), 'enabled': bool(getattr(tool, 'enabled', True))})
+    return out
+
+
+def collect_net(svc=None) -> Dict[str, List[Dict[str, Any]]]:
+    """The SAJHA Net view (SAJHA Net §20.4), empty without a running net: the members this server holds in
+    each net (itself included) with their state, kind and features; the proxies of the host and tool table
+    with their contract hashes; and the net key directory per home (record counts and versions, never a
+    key or a hash)."""
+    out: Dict[str, List[Dict[str, Any]]] = {'net_members': [], 'net_proxies': [], 'net_keys': []}
+    if svc is None:
+        try:
+            from sajha.net.integration import get_service
+            svc = get_service()
+        except Exception:
+            svc = None
+    if svc is None or not getattr(getattr(svc, 'shared', None), 'enabled', False):
+        return out
+    for net, rt in sorted((getattr(svc, 'runtimes', None) or {}).items()):
+        node = getattr(rt, 'node', None)
+        if node is None:
+            continue
+        out['net_members'].append({'id': f'{net}/{node.name}', 'net': net, 'name': node.name, 'state': 'self',
+                                   'kind': node.cfg.kind, 'url': node.cfg.base_url,
+                                   'features': sorted(node.features)})
+        for m in node.members():
+            rec = m.get('record') or {}
+            out['net_members'].append({'id': f'{net}/{m["name"]}', 'net': net, 'name': m['name'],
+                                       'state': m.get('state') or '', 'kind': rec.get('kind') or '',
+                                       'url': rec.get('url') or '', 'features': sorted(rec.get('features') or []),
+                                       'incarnation': rec.get('incarnation')})
+        st = (getattr(getattr(svc, 'authz', None), 'nets', None) or {}).get(net)
+        store = getattr(st, 'store', None)
+        if store is not None and hasattr(store, 'summary'):
+            try:
+                for h in store.summary(net):
+                    out['net_keys'].append({'id': f'{net}/{h["home"]}', 'net': net, 'home': h['home'],
+                                            'records': h['records'], 'revoked': h['revoked'],
+                                            'disabled': h['disabled'], 'version': h['version'],
+                                            'unusable': h.get('unusable')})
+            except Exception as e:
+                logger.debug(f'snapshots: key directory of {net}: {e}')
+    router = getattr(getattr(svc, 'catalogs', None), 'router', None)
+    if router is not None:
+        for r in sorted(router.rows(), key=lambda r: r['qualified_name']):
+            out['net_proxies'].append({'qualified_name': r['qualified_name'], 'net': r['net'],
+                                       'host': r['host_instance'], 'host_tool': r['host_tool'],
+                                       'version': r.get('version') or '', 'contract_hash': r['contract_hash'],
+                                       'state': r['state'], 'trust': r.get('trust')})
     return out
 
 

@@ -60,8 +60,16 @@ class MembershipProvider(Plugin):
         return []
 
     def discover(self, cfg) -> List[str]:
-        """Addresses to try after the seeds and the saved peers (design §6.6 step 3)."""
-        return []
+        """Addresses to try after the seeds and the saved peers (design §6.6 step 3): by default those of the
+        net's ``discovery`` sources (DNS SRV, a Kubernetes headless Service, a registry; sajha/net/discovery.py)."""
+        sources = list(getattr(cfg, 'discovery', None) or [])
+        if not sources:
+            return []
+        d = getattr(self, '_discovery', None)
+        if d is None or d.sources != sources:
+            from sajha.net.discovery import Discovery
+            d = self._discovery = Discovery(sources)
+        return d.addresses()
 
 
 class AdmissionProvider(Plugin):

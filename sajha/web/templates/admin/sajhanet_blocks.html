@@ -1,0 +1,91 @@
+{% extends "common/base.html" %}
+{# Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.com #}
+{% set sn_here = '/admin/sajhanet/blocks' %}
+{% set net = view.net %}
+{% block title %}{{ _('Access and blocks - SAJHA Net - Admin - SAJHA MCP Server') }}{% endblock %}
+{% block extra_css %}{% include "admin/_sajhanet_mgmt_css.html" %}{% endblock %}
+{% block content %}
+<div class="container-fluid" data-sn-csrf="{{ csrf }}">
+  <div class="mb-3">
+    <h1 class="h3 mb-0"><i class="bi bi-slash-circle me-2" aria-hidden="true"></i>{{ _('Access and blocks') }}</h1>
+    <small class="text-muted">{{ _('Who may call whom in this net, from this server\'s blocks and the blocks the others publish; add, end and review blocks') }}</small>
+  </div>
+  {% include "admin/_sajhanet_subnav.html" %}
+  {% include "admin/_sajhanet_netsel.html" %}
+  <p class="small" data-sn-status role="status" aria-live="polite"></p>
+  {% if net and view.available %}
+  {% set api = '/api/sajhanet/nets/' ~ net|urlencode %}
+  <section class="sn-box" aria-labelledby="h-mx">
+    <h2 id="h-mx">{{ _('Access matrix') }}</h2>
+    <div class="sn-body">
+      <p class="sn-meta">{{ _('Rows call, columns host. Each cell says in words whether the caller may call the host\'s tools, from the blocks either side set (only the side that set a block enforces it).') }}</p>
+      <div class="table-responsive"><table class="sn-table sn-matrix">
+        <caption class="visually-hidden">{{ _('Callers by row, hosts by column') }}</caption>
+        <thead><tr><th scope="col">{{ _('Caller / host') }}</th>{% for h in view.instances %}<th scope="col"><code>{{ h }}</code></th>{% endfor %}</tr></thead>
+        <tbody>
+        {% for r in view.matrix %}
+          <tr><th scope="row"><code>{{ r.caller }}</code>{% if r.caller == view.instance %} <span class="sn-meta">{{ _('this server') }}</span>{% endif %}</th>
+          {% for c in r.cells %}<td>{% if c.state == 'self' %}<span class="sn-meta">—</span>{% else %}<span class="st st-{{ c.state }}">{{
+              {'allowed': _('allowed'), 'blocked': _('blocked entirely'), 'inbound': _('blocked inbound'),
+               'outbound': _('blocked outbound'), 'partial': _('some tools or users')}[c.state] }}</span>{% if c.by %}<div class="sn-meta">{% trans by=c.by|join(', ') %}set by {{ by }}{% endtrans %}</div>{% endif %}{% endif %}</td>{% endfor %}</tr>
+        {% endfor %}
+        </tbody></table></div>
+    </div>
+  </section>
+
+  <section class="sn-box" aria-labelledby="h-add">
+    <h2 id="h-add">{{ _('Add a block') }}</h2>
+    <div class="sn-body">
+      <form class="row g-2 align-items-end" data-sn-form data-method="POST" data-url="{{ api }}/blocks" data-net="{{ net }}" data-kind="block_add" data-blast-form
+            data-effect="{{ _('This server enforces the block from the next request and publishes it to the net.') }}">
+        <div class="col-6 col-md-2"><label class="form-label small" for="b-lv">{{ _('Block') }}</label>
+          <select class="form-select form-select-sm" id="b-lv" name="level">
+            <option value="instance">{{ _('instance, entirely') }}</option><option value="inbound">{{ _('inbound') }}</option>
+            <option value="outbound">{{ _('outbound') }}</option><option value="tool">{{ _('a tool') }}</option><option value="user">{{ _('a remote user') }}</option></select></div>
+        <div class="col-6 col-md-2"><label class="form-label small" for="b-tg">{{ _('Instance') }}</label>
+          <input class="form-control form-control-sm" id="b-tg" name="target_instance" list="b-members" autocomplete="off" placeholder="{{ _('risk-eu or *') }}">
+          <datalist id="b-members">{% for m in view.members %}<option value="{{ m }}">{% endfor %}<option value="*"></datalist></div>
+        <div class="col-6 col-md-2"><label class="form-label small" for="b-tool">{{ _('Tool (tool blocks)') }}</label>
+          <input class="form-control form-control-sm" id="b-tool" name="tool" autocomplete="off"></div>
+        <div class="col-6 col-md-2"><label class="form-label small" for="b-user">{{ _('User@instance (user blocks)') }}</label>
+          <input class="form-control form-control-sm" id="b-user" name="user" autocomplete="off"></div>
+        <div class="col-6 col-md-2"><label class="form-label small" for="b-dir">{{ _('Tool direction') }}</label>
+          <select class="form-select form-select-sm" id="b-dir" name="direction"><option value="inbound">{{ _('inbound: refuse calls to my tool') }}</option>
+            <option value="outbound">{{ _('outbound: hide a remote tool') }}</option></select></div>
+        <div class="col-6 col-md-1"><label class="form-label small" for="b-ex">{{ _('Minutes') }}</label>
+          <input class="form-control form-control-sm" id="b-ex" name="expires_in_minutes" type="number" min="1" placeholder="∞"></div>
+        <div class="col-auto"><button class="btn btn-sm btn-danger" type="submit">{{ _('Block') }}</button></div>
+      </form>
+    </div>
+  </section>
+
+  <section class="sn-box" aria-labelledby="h-mine">
+    <h2 id="h-mine">{{ _('Blocks set here') }}</h2>
+    <div class="sn-body"><div class="table-responsive"><table class="sn-table">
+      <thead><tr><th scope="col">{{ _('Block') }}</th><th scope="col">{{ _('Target') }}</th><th scope="col">{{ _('Reason') }}</th><th scope="col" class="opt">{{ _('Set by, expiry') }}</th><th scope="col">{{ _('Actions') }}</th></tr></thead>
+      <tbody>
+      {% for b in view.mine %}
+        <tr><td><span class="st st-{{ 'blocked' if b.active else 'left' }}">{{ b.level }}</span>{% if not b.active %} <span class="sn-meta">{{ _('expired') }}</span>{% endif %}</td>
+          <td><code>{{ b.target_instance }}</code>{% if b.tool %} · {{ b.direction }} <code>{{ b.tool }}</code>{% endif %}{% if b.user %} · <code>{{ b.user }}</code>{% endif %}</td>
+          <td>{{ b.reason }}</td>
+          <td class="opt">{% trans by=b.set_by, at=b.set_at, until=b.expires_at or _('no expiry') %}{{ by }} at {{ at }} · {{ until }}{% endtrans %}</td>
+          <td><button class="btn btn-sm btn-outline-secondary" type="button" data-sn-action data-method="DELETE" data-url="{{ api }}/blocks/{{ b.id|urlencode }}" data-net="{{ net }}" data-kind="block_remove"
+                data-blast='{}' data-effect="{{ _('End this block now.') }}">{{ _('Remove') }}</button></td></tr>
+      {% else %}<tr><td colspan="5" class="sn-meta">{{ _('This server has set no blocks in this net.') }}</td></tr>{% endfor %}
+      </tbody></table></div></div>
+  </section>
+
+  <section class="sn-box" aria-labelledby="h-pub">
+    <h2 id="h-pub">{{ _('Blocks the others publish') }}</h2>
+    <div class="sn-body"><ul class="list-unstyled mb-0">
+      {% for peer, bl in view.published.items() %}{% for b in bl %}
+        <li class="mb-1">{% trans peer=peer, level=b.level, target=b.target_instance %}<code>{{ peer }}</code> blocks ({{ level }}) <code>{{ target }}</code>{% endtrans %}{% if b.tool %} · <code>{{ b.tool }}</code>{% endif %}{% if b.user %} · <code>{{ b.user }}</code>{% endif %}{% if b.reason %} — {{ b.reason }}{% endif %}</li>
+      {% endfor %}{% else %}<li class="sn-meta">{{ _('No other member publishes a block.') }}</li>{% endfor %}
+    </ul></div>
+  </section>
+  {% elif net %}
+  <p class="sn-meta">{{ _('Identity and authorization are not running for this net.') }}</p>
+  {% endif %}
+</div>
+{% include "admin/_sajhanet_change_dialog.html" %}
+{% endblock %}

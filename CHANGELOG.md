@@ -2,6 +2,228 @@
 
 Newest first. The current version is `app.version` in `config/application.yml`.
 
+## v8.13.0 (October 2026) — security and ecosystem, SAJHA Net finished: sandbox egress and warm pool, contained stdio upstreams, signed plugins, provider packs, personal RAG, planner learning
+
+### Added
+
+- **SAJHA Net console pages, finished** (Roadmap L16; `sajha/net/integration/pages.py`, `changes.py`,
+  `sajha/routes/sajhanet_console_routes.py`, `static/js/sajhanet_console.js`;
+  [SAJHA Net](docs/architecture/SAJHA%20Net.md) §17.1): administrators get Conflicts and reviews
+  (`/admin/sajhanet/reviews`), Users across the net (`/users`), Access and blocks with the access matrix
+  (`/blocks`), Key directory (`/keys`), Snapshots (`/snapshots`: verify, compare, download, restore), Live
+  activity (`/activity`, with each call's records by trace id), Certificates (`/certificates`), Net settings
+  (`/settings`), Sponsored servers (`/sponsored`) and Change history (`/changes`), and an instance's Traffic,
+  Users, Keys, Blocks and History tabs (`/net/instances/{net}/{instance}?tab=`), each with JSON behind it, page
+  help, menu entries (Govern, Operate) and phone layouts. Every change made through the admin API or the
+  console now goes into the net's change history (`<data_dir>/<net>/changes.json`) with who, when, a reason
+  and its inverse, and is audited (`sajhanet.change_recorded`); **Undo** applies the inverse as a new change
+  (`POST /api/sajhanet/nets/{net}/changes/{id}/undo`, `sajhanet.change_undone`). Before a change the console
+  shows its **blast radius** (`GET /api/sajhanet/nets/{net}/blast-radius`) and asks for a reason. Changing
+  SAJHA Net admin routes now need the page's CSRF token (`X-CSRF-Token`) from a console session. New glossary
+  terms: Net change, Undo (net change), Blast radius, Conflicts and reviews queue, Access matrix, Live activity.
+- **The SAJHA Net agent as a home** (Roadmap L16; `sajhanet_agent/home.py`, `config.py`, `identity.py`,
+  `rules.py`; [SAJHA Net Agent](docs/clients/SAJHA%20Net%20Agent.md) sections 4 and 6): a new `--config`
+  JSON file (users and keys, identity resolvers, import rules, blocks, residency rules, re-export rules;
+  re-read when it changes) and `--client-listen` (MCP over Streamable HTTP for local clients). The agent
+  publishes its users' keys in the net key directory, lists other members' tools to its clients as
+  proxies under qualified and plain names, and forwards their calls signed through the core router. It
+  sends and accepts `api_key`, `assertion` and `token_exchange` (serving `/sajhanet/v1/token`), publishes
+  and enforces blocks (feature `blocks`), applies residency rules at the home and as a host (feature
+  `residency`; a `require_approval` rule refuses with a reason, the agent having no approval surface;
+  the router now carries such a `detail` in its refusal), and re-exports imported tools with `origin`,
+  relaying the caller's assertion (feature `reexport`). Conformance for target A: BLK-01 now runs against
+  the agent in `tests/net/test_net_mixed_conformance.py`; CALL-07, CALL-13, CALL-14 and CALL-15 in
+  `sajhanet_agent/tests/test_home.py` and, next to SAJHA, `tests/net/test_net_agent_home.py`.
+- **Planners chosen by learning from results** (Roadmap L15; `sajha/ai/planners_engine/learning.py`;
+  [LLM Tools](docs/architecture/LLM%20Tools.md#913-automatic-planner-selection) §9.13,
+  [Planner Reference](docs/architecture/Planner%20Reference.md) §6.6.2): every automatic planner choice
+  (`classify` with `menu: planners`, the shipped `auto`) and its outcome (held or not, reward, cost,
+  latency) is recorded as `planner_choice` in the run's audit record and on eval rows. A learning job
+  (`python -m sajha.ai.planners_engine.learn`, the new Planner routing page `/admin/planner-routing`, or
+  the admin-only tool `sajha_planner_routing_propose` run by the shipped workflow `planner_routing_learn`,
+  its trigger off) ranks planners per tool and question class from saved eval runs and those records and
+  writes a proposal; an administrator approves its exact hash (policy pseudo tool
+  `planners.routing.approve`) and the rules become a new immutable version that can be rolled back to
+  any earlier one or none. An opt-in online bandit (`ai.planners.learning.bandit`, Thompson sampling or
+  UCB) exploits and explores within a capped share of choices, only among the candidates the stage
+  already allows, with a kill switch in the state store and a guard that sets it. New
+  `ai.planners.learning.*` keys; `choice.by` gains `learned`, `bandit` and `explore`;
+  `tests/ai/test_planner_learning.py`, `tests/test_planner_routing_page.py`.
+- **A translation framework for the console, English only** (Roadmap L14; `sajha/web/i18n.py`;
+  [Architecture](docs/architecture/Architecture.md) §10, "Languages"): the console's own words are
+  gettext messages (`{{ _() }}` / `{% trans %}` through Jinja's i18n extension, each page's "About this
+  page" line, the help catalog's card titles through `tr()`, and `_t()` / `_nt()` in page scripts from
+  the new `static/js/i18n.js`), and `sajha/web/locale/sajha.pot` holds them all. Only English ships (by
+  the owner's decision there is no other catalog and no language picker), so every page renders in
+  English exactly as before. Adding a language later is a catalog, not a code change:
+  `scripts/i18n.py` extracts, starts, updates, compiles and checks catalogs (needs Babel; the server
+  does not), and a compiled catalog would be chosen by the browser's `Accept-Language`, then the new
+  `console.default_language` (default `en`). `tests/test_console_languages.py` checks the `.pot` is
+  current, the English fallback, the absence of a picker, and the framework with a temporary catalog.
+- **A container per federated stdio server** (Roadmap L9; `sajha/federation/container.py`;
+  [Federation](docs/architecture/Federation.md#stdio-isolation)): a stdio upstream now runs in its own
+  container per connection, launched through the sandbox's `docker` backend with its network policy
+  (`--network none` unless `container.network: allowlist`), a read-only root, read-only
+  `container.mounts` (SAJHA's own folders, the home folder and the docker socket refused), memory, CPU
+  and process limits capped by `sandbox.max`, every capability dropped and the `nobody` user; secrets
+  passed by name only. The container is removed with its connection; when it ends, the reconnect loop
+  starts a new one with backoff; orphans of a dead SAJHA process are removed. New per-upstream
+  `isolation` (`container` | `none`) and `container` (`image`, `mounts`, `memory_mb`, `cpus`,
+  `max_processes`, `network`, `allow_hosts`, `user`, `tmpfs_mb`), also in the mcpServers file, and
+  `federation.container.image`. Notices `federation.stdio_isolation:<upstream>` and
+  `federation.stdio_unconfined:<upstream>`.
+- **Signed plugins and the plugin catalog** (Roadmap L12; `sajha/core/plugin_signing.py`,
+  `sajha/core/plugin_catalog.py`; [Security Model](docs/security/Security%20Model.md#plugins)): Ed25519
+  publisher signatures (`plugin.sig`, over every file's SHA-256) verified at load against
+  `plugins.trusted_keys` and `plugins.trusted_keys_dir`; a tampered plugin is always refused, an
+  unsigned or untrusted one loads only while `plugins.allow_unsigned` (default `true`) with the warning
+  notice `plugins.unsigned:<name>`. `python -m sajha.core.plugin_signing keygen | sign | verify | pack`
+  for publishers. The admin **Plugin catalog** page (`/admin/plugins/catalog`) lists the packages of
+  `plugins.catalog.sources` (folders, `storage:<prefix>`, remote indexes through the outbound fetch
+  guard) with their verdicts and installs a trusted one through the review-and-approve gate of Describe
+  a tool: a review bound to the package hash, explicit approval, the package re-verified at install, and
+  the policy engine's `studio.deploy` (`kind: plugin`); a failed upgrade restores the old version;
+  reviews and installs are audited.
+- **Documents from connected accounts as RAG sources** (Roadmap X8; `sajha/ai/rag/personal.py`,
+  `account_sources.py`, `personal_tool.py`;
+  [Intelligence Layer](docs/architecture/Intelligence%20Layer.md#documents-from-connected-accounts)):
+  `ai.rag.accounts.sources` names Google Drive, OneDrive, SharePoint, GitHub and Confluence sources
+  that are listed and read with each user's own linked token and indexed per user, in a store of its
+  own. A search covers only the caller's own passages from sources whose link is active; a removed
+  link or lost access (403/404) removes that user's passages. Sync is incremental by each file's
+  change token (unchanged files are not downloaded, deleted files are removed; an unchanged GitHub
+  commit skips the listing), runs in the background when a search finds a source stale, and can sweep
+  every linked user (`sync_interval_seconds`). New tool `sajha_search_my_docs` and routes
+  `GET /api/ai/docs/mine`, `POST /api/ai/docs/mine/sync`, `POST /api/ai/docs/mine/search`.
+- **Optional OCR** (`ai.rag.ocr`; `sajha/ai/rag/ocr.py`): scanned PDFs, and images from
+  connected-account sources, are read by OCR when an engine is installed (`rapidocr-onnxruntime`, or
+  `pytesseract` with `tesseract`); without one they are refused with a message naming the packages.
+- **Weaviate and Chroma data connectors** (Roadmap X10; `sajha/connectors/vector_weaviate.py`,
+  `vector_chroma.py`; [Data Connectors](docs/architecture/Data%20Connectors.md#9-vector-databases-and-search-engines)):
+  two new search kinds with the same allowlist, equality filters and masking as Qdrant, over their
+  HTTP APIs (no SDK needed). Weaviate searches by `nearVector` (named vectors supported) or `bm25`,
+  with filters checked against the class's properties; Chroma supports its v2 and v1 APIs, tenants
+  and databases.
+- **Sandbox egress proxy** (Roadmap L6; `sajha/sandbox/egress.py`;
+  [Sandbox](docs/architecture/Sandbox.md#network-allowlist)): a tool whose sandbox policy says
+  `network: allowlist` no longer has direct network. It gets its own network namespace with only a
+  loopback interface (`subprocess`, `bwrap`, `nsjail`; `--network none` on `docker`), and a per-run
+  HTTP CONNECT and forward proxy on a Unix socket, reached through a bridge the runner starts on the
+  sandbox's loopback, is its only way out (`HTTP_PROXY`/`HTTPS_PROXY` are set). The proxy admits only
+  the listed `host:port` and refuses cloud metadata, link-local, loopback, multicast, reserved and (by
+  default) private addresses with the outbound guard's rule; it resolves names itself and connects to
+  the address it checked. Every allowed and denied connection is a `sandbox.egress` audit record and
+  counts in `sajha_sandbox_egress_total`. A long-lived container (a federated stdio upstream)
+  gets the same proxy through the docker backend's `network_args(policy, name)`: it joins a loopback-only
+  bridge sidecar, and both end with it. New keys `sandbox.egress.*`; `GET /api/sandbox/status`
+  reports them.
+- **Warm container pool for the docker sandbox backend** (Roadmap L6; `sajha/sandbox/pool.py`;
+  [Sandbox](docs/architecture/Sandbox.md#warm-container-pool)): `sandbox.docker.pool.size` containers
+  started ahead with the per-call confinement; a call runs with `docker exec`; afterwards the container
+  is replaced (`reset: recreate`, default) or reset and the reset verified (`reuse`: processes killed,
+  `/work`, `/tmp`, `/dev/shm` and SysV IPC emptied; replaced after `max_uses` calls or a failed reset,
+  timeout or overflow). Bounded size, background refill, health checks, stale-container cleanup,
+  metrics `sajha_sandbox_pool_containers` and `sajha_sandbox_pool_events_total`, and per-pool status.
+- **Provider packs** (Roadmap L11; `sajha/packs/`, `sajha/accounts/presets.py`, `sajha/routes/packs_routes.py`;
+  [Connected Accounts §11](docs/architecture/Connected%20Accounts.md#11-provider-packs)): a pack is a
+  connected-account preset plus a reviewed API Import of the service's OpenAPI spec, bundled with the pack
+  (never fetched at install) with its licence and a recorded SHA-256. Installing goes through the
+  review-and-approve gate of Describe a tool: a plan with a review hash (the provider as it would be built,
+  the redirect URI to register, each operation as API Import plans it, policy preview), explicit approval,
+  the same hash on install, and the policy engine's `studio.deploy` (`kind: pack`); a pack whose API is not
+  on its provider's `api_hosts` is refused. Admin API `/api/admin/packs` and `python -m sajha.packs list |
+  show | plan | install | uninstall`. Bundled packs: GitHub (MIT), Slack (MIT) and Box (Apache-2.0), each
+  an excerpt of the vendor's published spec. Presets live in `config/accounts/provider_presets/<id>.json` (storage
+  backend; the YAML overrides them) and every worker's provider registry picks a new one up within seconds.
+  New key `packs.dirs`.
+- **Cassettes for more transports** (Roadmap L5; `sajha/quality/cassette_transports.py`;
+  [Tool Quality §2.3](docs/architecture/Tool%20Quality.md#23-recorded-fixtures-cassettes)): urllib3 (and so
+  botocore, the AWS SDK's transport), aiohttp (OpenBB providers) and curl_cffi (yfinance) are recorded and
+  replayed like urllib, requests and httpx; a request made inside another intercepted client is recorded once.
+- **Model-graded eval checks** (Roadmap L5; `sajha/quality/judge.py`;
+  [Tool Quality §5](docs/architecture/Tool%20Quality.md#5-evals-for-ask-sajha)): a `graded` answer check
+  (criterion, `min_score`, `model`) scored 1-5 by a grader reached only through `llm_factory().model(alias)`;
+  off by default (skipped, not failed) unless `quality.evals.graded_checks` or `python -m sajha.quality eval
+  --graded`; deterministic on the mock provider. New keys `quality.evals.graded_checks`,
+  `quality.evals.grader_model`.
+- **SharePoint large uploads and the delegated grant** (Roadmap L7; `sajha/tools/impl/sharepoint_upload.py`;
+  [SharePoint Tool Reference Guide](docs/tools/enterprise/SharePoint%20Tool%20Reference%20Guide.md#large-uploads)):
+  files over 4 MB go through a Graph upload session (chunks in 320 KiB multiples, no token on the upload URL,
+  retries resumed from the session's expected ranges, an interrupted upload resumable with
+  `resume_upload_url`, cancelled on refusal), capped by the tool config's `max_upload_bytes`; `source_path`
+  reads a file under the tool config's `upload_roots`. `authentication.type: delegated` calls Graph as the
+  caller with their connected Microsoft account (refresh once on 401, then "reconnect").
+- **Web crawler: JavaScript rendering and PDF text** (Roadmap L7; `sajha/tools/impl/webcrawler_render.py`;
+  [Web Crawler Tool Reference Guide](docs/tools/search/Web%20Crawler%20Tool%20Reference%20Guide.md#javascript-rendering)):
+  `render_js` on crawl_url, extract_content, extract_links, extract_metadata and get_page_info runs the page in
+  headless Chromium (Playwright, optional; off unless `tools.webcrawler.javascript.enabled`) with every
+  request the browser makes fetched through the outbound fetch guard and fulfilled by SAJHA; request, byte,
+  time, concurrency and page limits (`tools.webcrawler.javascript.*`). PDF answers are read as text (title,
+  page text, link annotations) and plain text as is.
+- **SAJHA Net: tasks held at the host** (Roadmap L19; `sajha/net/integration/tasks.py`, `sajha/net/routing.py`;
+  [SAJHA Net](docs/architecture/SAJHA%20Net.md#9-what-happens-on-a-call) §9, protocol §15.6): a client that
+  runs a remote tool as a task now gets a task held by the host that runs the tool, for the user it
+  resolved and the sending server, in the host's task record store and outside the hop's deadline. The
+  home's task names the host's task and follows it with signed `tasks/get`, `tasks/update` (answers
+  checked by residency) and `tasks/cancel`, screens the result and checks its residency on arrival, and
+  survives a restart of the home. SAJHA lists the feature `tasks`; proxies of hosts that list it are
+  offered with `execution.taskSupport: optional`. A host that does not list `tasks` is served as before
+  (the home's task wraps the call). `sajhanet.tasks.enabled` (default true). The task store
+  (`sajha/core/mcp_tasks.py`) gained remote tasks and runs outside an event loop.
+- **SAJHA Net: the rest of the design** (Roadmap L16; [SAJHA Net](docs/architecture/SAJHA%20Net.md) §5.5):
+  forwarding on the 2025-11-25 era to a host that refuses 2026-07-28, on one session per net and host that
+  the host binds to the participant that opened it (another member presenting it gets
+  `404 session_invalid`; CALL-12); the `visibility` feature (`POST /sajhanet/v1/catalog/visibility`, CAT-05,
+  also checked by the conformance runner), with which a home leaves out of `tools/list` the proxies the
+  host says the caller may not call (`sajhanet.visibility.*`); mutual TLS (`sajhanet.mtls: client|require`,
+  `sajhanet.mtls_client_cert_header`; `sajha/net/integration/mtls.py`); discovery sources for joining
+  (`sajhanet.discovery`: DNS SRV, a Kubernetes headless Service, a registry; `sajha/net/discovery.py`);
+  the net view in snapshots (`net_members`, `net_proxies`, `net_keys`, compared by
+  `python -m sajha.snapshots diff`, never restored); sponsored members with the `assertion` and
+  `token_exchange` identities (the assertion or token names the sponsored member, which serves its own token
+  endpoint); an approval flow for residency rules (`effect: require_approval` on arguments leaving the home
+  refuses `approval_required` with a pending policy approval that lets that exact call through once); LLM
+  tools that record only the names of the tools they used have remote results masked in memory as if they
+  had passed their steps; per-peer breakers and rate limits in the state store across workers
+  (`sajhanet.peer.shared`, default `auto`); and opt-in caching of read-only remote results per caller
+  (`sajhanet.cache.ttl_seconds`, default off).
+
+### Changed
+
+- **The navbar wordmark** is set in Cinzel (Roman capitals), bundled in `sajha/web/static/fonts/` with its SIL Open
+  Font License (the console only loads fonts it serves itself).
+
+- **stdio upstreams no longer start unconfined by default.** With `federation.allow_stdio: true`, a
+  stdio upstream without `isolation` runs in a container when docker answers and is not started when it
+  does not (notice `federation.stdio_isolation:<upstream>`). Set `isolation: none` to keep the old
+  subprocess behaviour (with a warning notice), or give it a `container.image` that contains the server;
+  the mcpServers templates under `config/mcp_servers/` show both.
+- **The document index embeds a document before writing it**: each document's passages are embedded
+  first and then written in one short store transaction, so no database connection (pgvector) or
+  write lock (sqlite_vec) is held while a model is called. A build still holds one document's
+  passages at a time, never the corpus.
+- **Allowlisted sandbox tools go through the egress proxy by default.** A tool that opened raw sockets
+  to an allowlisted host must now tunnel through `CONNECT`; `sandbox.egress.mode: direct` restores the
+  earlier library-level check. On the `subprocess` backend the proxy needs unprivileged user
+  namespaces; without them an allowlisted tool is refused rather than given direct network. A WASM
+  backend is still planned (Roadmap L6).
+- **SAJHA Net members list `tasks` and `visibility`** in their member records and `io.sajha/net` extension
+  (protocol §6.2), and `tasks/get`, `tasks/update` and `tasks/cancel` at the 2026-07-28 endpoint now run off
+  the event loop (a task held by another server is read through it).
+
+### Fixed
+
+- **Security: a user's connected-account token could reach a host outside its provider's `api_hosts`
+  through API Import** (`sajha/api_import/service.py`, `executor.py`;
+  [API Import §4](docs/architecture/API%20Import.md#4-servers-authentication-limits)). An imported operation
+  bound to a connected account sent the caller's token to whatever base URL the import named. The preview
+  now warns, test calls and deploys are refused with an error naming the allowed hosts, and the executor
+  checks every request's URL again before it adds the token (so a config written by hand is refused too).
+- **Security: credentials followed redirects to another origin** (`sajha/api_import/fetch.py`): a GET
+  redirected to another scheme, host or port no longer carries `Authorization`, `Cookie` or
+  `Proxy-Authorization` (API Import calls and the outbound fetch guard's tools share this client).
+
+
 ## v8.12.0 (October 2026) — platform depth, operations and scale: protocol gaps closed, federation complete and at gateway scale, no freeze under load, PostgreSQL verified
 
 ### Added

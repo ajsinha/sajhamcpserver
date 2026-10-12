@@ -1925,6 +1925,8 @@ class FederationManager:
             'tools': sum(1 for n, (uid, _t) in self._exposed.items() if uid == cfg.id and n in self._tools),
             'transport': cfg.transport, 'url': cfg.url if cfg.transport != 'stdio' else '',
             'command': cfg.command if cfg.transport == 'stdio' else '',
+            'isolation': (getattr(conn, 'isolation', None) or cfg.isolation or None) if cfg.transport == 'stdio' else None,
+            'container_name': getattr(conn, 'container_name', None),
             'prefix': cfg.effective_prefix, 'state': state,
             'protocol_version': conn.protocol_version if conn else None,
             'server_info': conn.server_info if conn else {},

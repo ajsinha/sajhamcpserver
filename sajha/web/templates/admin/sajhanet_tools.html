@@ -1,6 +1,6 @@
 {% extends "common/base.html" %}
 {# Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.com #}
-{% block title %}Remote tools - SAJHA Net - Admin - SAJHA MCP Server{% endblock %}
+{% block title %}{{ _('Remote tools - SAJHA Net - Admin - SAJHA MCP Server') }}{% endblock %}
 {% block extra_css %}
 <style>
 .rt-bar{display:flex;flex-wrap:wrap;gap:.5rem;align-items:flex-end;margin-bottom:.75rem}
@@ -19,68 +19,68 @@
 </style>
 {% endblock %}
 {% block content %}
-<div class="container-fluid">
+<div class="container-fluid" data-sn-csrf="{{ csrf }}">
   <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
     <div>
-      <h1 class="h3 mb-0"><i class="bi bi-diagram-2 me-2" aria-hidden="true"></i>Remote tools</h1>
-      <small class="text-muted">The host and tool table: every tool other instances offer this server, its state and why it resolves where it does</small>
+      <h1 class="h3 mb-0"><i class="bi bi-diagram-2 me-2" aria-hidden="true"></i>{{ _('Remote tools') }}</h1>
+      <small class="text-muted">{{ _('The host and tool table: every tool other instances offer this server, its state and why it resolves where it does') }}</small>
     </div>
     <div class="d-flex gap-2">
-      <a class="btn btn-sm btn-outline-secondary" href="/admin/sajhanet">SAJHA Net admin</a>
-      <a class="btn btn-sm btn-outline-primary" href="/admin/sajhanet/tools" aria-label="Reload"><i class="bi bi-arrow-clockwise" aria-hidden="true"></i></a>
+      <a class="btn btn-sm btn-outline-secondary" href="/admin/sajhanet">{{ _('SAJHA Net admin') }}</a>
+      <a class="btn btn-sm btn-outline-primary" href="/admin/sajhanet/tools" aria-label="{{ _('Reload') }}"><i class="bi bi-arrow-clockwise" aria-hidden="true"></i></a>
     </div>
   </div>
   {% if not enabled %}
-  <div class="alert alert-info small" role="status">SAJHA Net is off (or no net is running), so no remote tools are imported.</div>
+  <div class="alert alert-info small" role="status">{{ _('SAJHA Net is off (or no net is running), so no remote tools are imported.') }}</div>
   {% endif %}
 
   {% set conf_nets = conflicts.nets %}
   <section class="rt-box" aria-labelledby="rt-conf">
-    <h2 id="rt-conf">Contract conflicts</h2>
+    <h2 id="rt-conf">{{ _('Contract conflicts') }}</h2>
     <div class="p-3">
     {% set ns = namespace(n=0) %}
     {% for net, c in conf_nets.items() %}{% for tool, r in c.quarantined.items() %}{% set ns.n = ns.n + 1 %}
-      <div class="mb-2"><span class="st st-quarantined">quarantined</span> <code>{{ tool }}</code> in {{ net }}
-        <span class="rt-meta">since {{ r.since or '—' }}{% if r.differing %} · differing host: {{ r.differing|join(', ') }}{% endif %}</span>
+      <div class="mb-2"><span class="st st-quarantined">{{ _('quarantined') }}</span> {% trans tool=tool, net=net %}<code>{{ tool }}</code> in {{ net }}{% endtrans %}
+        <span class="rt-meta">{% trans value=r.since or '—' %}since {{ value }}{% endtrans %}{% if r.differing %} {% trans differing=r.differing|join(', ') %}· differing host: {{ differing }}{% endtrans %}{% endif %}</span>
         <div class="rt-meta">{{ r.text }}</div>
         {% if r.offers %}<div class="rt-meta">{% for o in r.offers %}<code>{{ o.instance }}</code> <span class="rt-hash">{{ o.contract_hash }}</span>{% if not loop.last %}; {% endif %}{% endfor %}</div>{% endif %}
       </div>
     {% endfor %}{% for w in c.warnings %}
-      <div class="mb-2 rt-meta">Description differs for <code>{{ w.tool }}</code> in {{ net }} between {{ w.hosts|join(', ') }} (a warning, not a conflict).</div>
+      <div class="mb-2 rt-meta">{% trans tool=w.tool, net=net, hosts=w.hosts|join(', ') %}Description differs for <code>{{ tool }}</code> in {{ net }} between {{ hosts }} (a warning, not a conflict).{% endtrans %}</div>
     {% endfor %}{% endfor %}
-    {% if ns.n == 0 %}<p class="rt-meta mb-0">No tool is quarantined.</p>{% endif %}
+    {% if ns.n == 0 %}<p class="rt-meta mb-0">{{ _('No tool is quarantined.') }}</p>{% endif %}
     </div>
   </section>
 
-  <form class="rt-bar" role="search" data-onsubmit="return false" aria-label="Filter remote tools">
-    <div><label class="form-label small" for="rt-q">Search</label>
-      <input class="form-control form-control-sm" id="rt-q" placeholder="tool, host or alias" autocomplete="off"></div>
-    <div><label class="form-label small" for="rt-net">Net</label>
-      <select class="form-select form-select-sm" id="rt-net"><option value="">All</option>
+  <form class="rt-bar" role="search" data-onsubmit="return false" aria-label="{{ _('Filter remote tools') }}">
+    <div><label class="form-label small" for="rt-q">{{ _('Search') }}</label>
+      <input class="form-control form-control-sm" id="rt-q" placeholder="{{ _('tool, host or alias') }}" autocomplete="off"></div>
+    <div><label class="form-label small" for="rt-net">{{ _('Net') }}</label>
+      <select class="form-select form-select-sm" id="rt-net"><option value="">{{ _('All') }}</option>
         {% for n in (table.rows|map(attribute='net')|unique|list) %}<option>{{ n }}</option>{% endfor %}</select></div>
-    <div><label class="form-label small" for="rt-host">Host</label>
-      <select class="form-select form-select-sm" id="rt-host"><option value="">All</option>
+    <div><label class="form-label small" for="rt-host">{{ _('Host') }}</label>
+      <select class="form-select form-select-sm" id="rt-host"><option value="">{{ _('All') }}</option>
         {% for h in (table.rows|map(attribute='host_instance')|unique|list) %}<option>{{ h }}</option>{% endfor %}</select></div>
-    <div><label class="form-label small" for="rt-state">State</label>
-      <select class="form-select form-select-sm" id="rt-state"><option value="">All</option>
-        <option>active</option><option>unavailable</option><option>held</option><option>quarantined</option>
-        <option>blocked</option><option>invalid</option><option>hidden</option></select></div>
-    <div><label class="form-label small" for="rt-trust">Trust</label>
-      <select class="form-select form-select-sm" id="rt-trust"><option value="">All</option>
-        <option>auto</option><option>review</option><option>pinned</option></select></div>
+    <div><label class="form-label small" for="rt-state">{{ _('State') }}</label>
+      <select class="form-select form-select-sm" id="rt-state"><option value="">{{ _('All') }}</option>
+        <option>{{ _('active') }}</option><option>{{ _('unavailable') }}</option><option>{{ _('held') }}</option><option>{{ _('quarantined') }}</option>
+        <option>{{ _('blocked') }}</option><option>{{ _('invalid') }}</option><option>{{ _('hidden') }}</option></select></div>
+    <div><label class="form-label small" for="rt-trust">{{ _('Trust') }}</label>
+      <select class="form-select form-select-sm" id="rt-trust"><option value="">{{ _('All') }}</option>
+        <option>{{ _('auto') }}</option><option>{{ _('review') }}</option><option>{{ _('pinned') }}</option></select></div>
   </form>
   <p class="rt-meta" id="rt-count" role="status" aria-live="polite"></p>
 
   <section class="rt-box" aria-labelledby="rt-table-h">
-    <h2 id="rt-table-h">Host and tool table</h2>
+    <h2 id="rt-table-h">{{ _('Host and tool table') }}</h2>
     <div class="table-responsive">
     <table class="rt-table">
-      <thead><tr><th scope="col">Qualified name</th><th scope="col">State</th><th scope="col">Host</th>
-        <th scope="col" class="opt">Vendor</th>
-        <th scope="col" class="opt">Alias</th><th scope="col" class="opt">Net</th><th scope="col" class="opt">Version</th>
-        <th scope="col" class="opt">Contract hash</th><th scope="col" class="opt">Trust</th>
-        <th scope="col" class="opt">Data classes</th>
-        <th scope="col" class="opt">Resolution</th><th scope="col" class="opt">Last seen</th><th scope="col">Review</th></tr></thead>
+      <thead><tr><th scope="col">{{ _('Qualified name') }}</th><th scope="col">{{ _('State') }}</th><th scope="col">{{ _('Host') }}</th>
+        <th scope="col" class="opt">{{ _('Vendor') }}</th>
+        <th scope="col" class="opt">{{ _('Alias') }}</th><th scope="col" class="opt">{{ _('Net') }}</th><th scope="col" class="opt">{{ _('Version') }}</th>
+        <th scope="col" class="opt">{{ _('Contract hash') }}</th><th scope="col" class="opt">{{ _('Trust') }}</th>
+        <th scope="col" class="opt">{{ _('Data classes') }}</th>
+        <th scope="col" class="opt">{{ _('Resolution') }}</th><th scope="col" class="opt">{{ _('Last seen') }}</th><th scope="col">{{ _('Review') }}</th></tr></thead>
       <tbody>
       {% for r in table.rows %}
         <tr class="rt-row" data-net="{{ r.net }}" data-host="{{ r.host_instance }}" data-state="{{ r.state }}" data-trust="{{ r.trust }}"
@@ -88,7 +88,7 @@
           <td><code>{{ r.qualified_name }}</code>{% if r.problem %}<div class="rt-meta">{{ r.problem }}</div>{% endif %}</td>
           <td><span class="st st-{{ r.state }}">{{ r.state }}</span></td>
           <td><a href="/net/instances/{{ r.net|urlencode }}/{{ r.host_instance|urlencode }}"><code>{{ r.host_instance }}</code></a></td>
-          <td class="opt">{{ r.vendor or '—' }}{% if r.external %} <span class="rt-meta">external (via {{ r.host_instance }})</span>{% endif %}</td>
+          <td class="opt">{{ r.vendor or '—' }}{% if r.external %} <span class="rt-meta">{% trans host_instance=r.host_instance %}external (via {{ host_instance }}){% endtrans %}</span>{% endif %}</td>
           <td class="opt">{{ r.alias or '—' }}</td>
           <td class="opt">{{ r.net }}</td>
           <td class="opt">{{ r.version or '—' }}</td>
@@ -97,12 +97,12 @@
           <td class="opt">{% for k, cs in (r.data_classes or {}).items() %}<div class="rt-meta">{{ k }}: {{ cs|join(', ') }}</div>{% else %}—{% endfor %}</td>
           <td class="opt">{{ r.resolution or '—' }}</td>
           <td class="opt">{{ r.last_seen or '—' }}</td>
-          <td>{% if r.state == 'held' %}<button class="btn btn-sm btn-success" type="button" data-act="approve" data-net="{{ r.net }}" data-peer="{{ r.host_instance }}" data-tool="{{ r.host_tool }}">Approve</button>
-              {% elif r.trust == 'review' and r.state == 'active' %}<button class="btn btn-sm btn-outline-secondary" type="button" data-act="unapprove" data-net="{{ r.net }}" data-peer="{{ r.host_instance }}" data-tool="{{ r.host_tool }}">Withdraw</button>
+          <td>{% if r.state == 'held' %}<button class="btn btn-sm btn-success" type="button" data-act="approve" data-net="{{ r.net }}" data-peer="{{ r.host_instance }}" data-tool="{{ r.host_tool }}">{{ _('Approve') }}</button>
+              {% elif r.trust == 'review' and r.state == 'active' %}<button class="btn btn-sm btn-outline-secondary" type="button" data-act="unapprove" data-net="{{ r.net }}" data-peer="{{ r.host_instance }}" data-tool="{{ r.host_tool }}">{{ _('Withdraw') }}</button>
               {% else %}<span class="rt-meta">—</span>{% endif %}</td>
         </tr>
       {% else %}
-        <tr><td colspan="13" class="rt-meta">No remote tools.</td></tr>
+        <tr><td colspan="13" class="rt-meta">{{ _('No remote tools.') }}</td></tr>
       {% endfor %}
       </tbody>
     </table>
@@ -122,18 +122,18 @@
         (!host || r.dataset.host.toLowerCase() === host) && (!st || r.dataset.state === st) && (!tr || r.dataset.trust === tr);
       r.hidden = !ok; if (ok) shown++;
     });
-    document.getElementById('rt-count').textContent = shown === total ? (total + ' remote tools') : (shown + ' of ' + total + ' remote tools shown');
+    document.getElementById('rt-count').textContent = shown === total ? _t('%(n)s remote tools', {n: total}) : _t('%(shown)s of %(n)s remote tools shown', {shown: shown, n: total});
   }
   ['rt-q', 'rt-net', 'rt-host', 'rt-state', 'rt-trust'].forEach(id => document.getElementById(id).addEventListener('input', apply));
   apply();
   document.querySelectorAll('button[data-act]').forEach(b => b.addEventListener('click', () => {
     const approve = b.dataset.act === 'approve', d = b.dataset;
-    if (!confirm((approve ? 'Approve ' : 'Withdraw approval of ') + d.tool + ' from ' + d.peer + ' in ' + d.net + '?')) return;
+    if (!confirm((approve ? _t('Approve ') : _t('Withdraw approval of ')) + d.tool + ' from ' + d.peer + ' in ' + d.net + '?')) return;
     const url = '/api/sajhanet/nets/' + encodeURIComponent(d.net) + '/peers/' + encodeURIComponent(d.peer) +
                 '/tools/' + encodeURIComponent(d.tool) + '/approve';
-    fetch(url, {method: approve ? 'POST' : 'DELETE', credentials: 'same-origin'})
+    fetch(url, {method: approve ? 'POST' : 'DELETE', credentials: 'same-origin', headers: {'X-CSRF-Token': (document.querySelector('[data-sn-csrf]') || {getAttribute: function () { return ''; }}).getAttribute('data-sn-csrf')}})
       .then(r => r.json().then(x => ({ok: r.ok, x: x})))
-      .then(res => { document.getElementById('rt-act').textContent = res.ok ? 'Done.' : ('Failed: ' + (res.x.error || 'error'));
+      .then(res => { document.getElementById('rt-act').textContent = res.ok ? _t('Done.') : _t('Failed: %(error)s', {error: res.x.error || _t('error')});
                      if (res.ok) setTimeout(() => location.reload(), 600); });
   }));
 })();

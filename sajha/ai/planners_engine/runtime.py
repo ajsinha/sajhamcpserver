@@ -122,6 +122,8 @@ class RunCtx:
         self.chain: List[str] = [planner.pdef.name]
         self.resume: Optional[Dict[str, Any]] = None
         self.top: Optional[Frame] = None
+        self.learning: Optional[Dict[str, Any]] = None      # the run's first automatic planner choice (§6.6.2)
+        self.subruns: List[Dict[str, Any]] = []             # each planner stage's sub-run: frame, planner, outcome
 
     # events and metrics
     def emit(self, type_: str, **kw) -> None:
@@ -592,6 +594,8 @@ class GraphPlanner(Planner):
         self.rc: Optional[RunCtx] = None
         self._gen = None
         self._started_at = time.time()
+        self._stopped_by: Optional[str] = None
+        self._choice: Optional[Dict[str, Any]] = None
 
     @property
     def version(self) -> str:
@@ -638,6 +642,7 @@ class GraphPlanner(Planner):
         except SubStop as e:                      # the top frame's own limits
             ans = self._finish(frame, e.reason, None)
         metrics.run_seconds(self.pdef.name, time.time() - self._started_at)
+        self._stopped_by = ans.stopped_by or "answer"
         return ans
 
     # how the run ends (§6.17, §6.18, §10.3)
@@ -706,6 +711,20 @@ class GraphPlanner(Planner):
         for key in ("scenario_tables", "reconciliations"):    # scenario and reconcile (§3.3, §3.8)
             if rc.state.data.get(key):
                 out[key] = [dict(x) for x in rc.state.data[key]]
+        if rc.learning is not None:               # the automatic choice and its outcome (§6.6.2), judged once
+            if self._choice is None:
+                from sajha.ai.planners_engine import learning
+                end = rc.state.data.get("run_end") or {}      # the service's view: how the run ended, its cost
+                try:
+                    self._choice = learning.finish(rc.learning, rc.subruns, end.get("stopped_by") or self._stopped_by,
+                                                   max(rc.cost_usd, float(end.get("cost_usd") or 0.0)),
+                                                   (time.time() - rc.t0) * 1000, registry=self.registry,
+                                                   record=not self.force_model)
+                except Exception as e:
+                    logger.warning(f"planner choice not recorded: {e}")
+                    self._choice = {}
+            if self._choice:
+                out["planner_choice"] = dict(self._choice)
         return out
 
     def final_for(self, stopped_by: str) -> Optional[Tuple[str, bool, Optional[List[str]]]]:

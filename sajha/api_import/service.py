@@ -132,7 +132,8 @@ def _introspect(endpoint: str, auth: Dict[str, Any]) -> Any:
     cookies: Dict[str, str] = {}
     timeout = float(settings.timeout_seconds())
     try:
-        used = executor.apply_auth({'auth': auth, 'security': None}, headers, query, cookies, timeout)
+        used = executor.apply_auth({'auth': auth, 'security': None}, headers, query, cookies, timeout,
+                                   url=endpoint)
     except executor.APICallError as e:
         raise APIImportError(str(e))
     if cookies:
@@ -430,6 +431,24 @@ def tool_config(op: Dict[str, Any], name: str, ctx: Dict[str, Any]) -> Dict[str,
     return config
 
 
+def token_host_problems(ops: List[Dict[str, Any]], ctx: Dict[str, Any]) -> List[str]:
+    """Why a user's connected-account token may not go to these operations' base URLs (empty: fine).
+    A per-user token is only ever sent over https to one of its provider's ``api_hosts``."""
+    connected = [c for c in (ctx.get('auth') or {}).values() if c.get('type') == 'connected_account']
+    if not connected:
+        return []
+    from sajha.api_import.executor import APICallError, check_token_host
+    problems: List[str] = []
+    for url in sorted({tool_config(op, op['name'], ctx)['api_import']['server_url'] for op in ops}):
+        for c in connected:
+            try:
+                check_token_host(c['provider'], url + '/')
+            except APICallError as e:
+                if str(e) not in problems:
+                    problems.append(str(e))
+    return problems
+
+
 # ── ownership of tool names ──────────────────────────────────────────
 
 def _owner_of(name: str, registry) -> Tuple[bool, Optional[str]]:
@@ -578,6 +597,8 @@ def plan(data: Dict[str, Any], registry=None) -> Dict[str, Any]:
     unsupported = sum(1 for op in p.ops if op.get('unsupported'))
     if unsupported:
         warnings.append(f'{unsupported} operation(s) cannot be imported (see the flag on each)')
+    if not p.server_error:
+        warnings += [f'{w}; deploying is refused' for w in token_host_problems(p.ops, p.ctx())]
     if any(op.get('flagged') for op in p.ops):
         warnings.append('Some descriptions contained text that looks like instructions to a model; it was removed')
     return {
@@ -603,6 +624,9 @@ def test_call(data: Dict[str, Any], registry=None) -> Dict[str, Any]:
     op = p.op(str(data.get('operation') or ''))
     if op.get('unsupported'):
         raise APIImportError(f"{op['key']} cannot be imported: {op['unsupported']}")
+    bad = token_host_problems([op], p.ctx())
+    if bad:
+        raise APIImportError(bad[0])
     config = tool_config(op, op['name'], p.ctx())
     tool = ImportedAPITool(config)
     arguments = data.get('arguments') or {}
@@ -732,6 +756,9 @@ def deploy(data: Dict[str, Any], registry=None, user: str = '') -> Dict[str, Any
     if len(final) > cap:
         raise APIImportError(f'this would give {p.prefix} {len(final)} tools; at most {cap} '
                            f'(api_import.max_tools)')
+    bad = token_host_problems(ops, p.ctx())
+    if bad:
+        raise APIImportError(bad[0])
     if ops:
         for url in {tool_config(op, op['name'], p.ctx())['api_import']['server_url'] for op in ops}:
             try:

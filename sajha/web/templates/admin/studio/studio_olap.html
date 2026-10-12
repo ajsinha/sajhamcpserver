@@ -1,6 +1,6 @@
 {% extends "common/base.html" %}
 {# Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.com #}
-{% block title %}OLAP Dataset Creator - MCP Studio{% endblock %}
+{% block title %}{{ _('OLAP Dataset Creator - MCP Studio') }}{% endblock %}
 
 {% block extra_css %}
 <style>
@@ -153,9 +153,9 @@
             </div>
             <div>
                 <h3 class="mb-0">
-                    <i class="bi bi-boxes me-2"></i>OLAP Dataset Creator
+                    <i class="bi bi-boxes me-2"></i>{{ _('OLAP Dataset Creator') }}
                 </h3>
-                <p class="subtitle">Define semantic datasets for advanced analytics with pivot tables, time series, and statistical analysis</p>
+                <p class="subtitle">{{ _('Define semantic datasets for advanced analytics with pivot tables, time series, and statistical analysis') }}</p>
             </div>
         </div>
     </div>
@@ -164,23 +164,23 @@
     <div class="row mb-4">
         <div class="col-md-8">
             <div class="olap-info">
-                <h6><i class="bi bi-lightbulb me-2"></i>What is an OLAP Dataset?</h6>
+                <h6><i class="bi bi-lightbulb me-2"></i>{{ _('What is an OLAP Dataset?') }}</h6>
                 <ul>
-                    <li><strong>Semantic Layer:</strong> Business-friendly abstraction over raw database tables</li>
-                    <li><strong>Dimensions:</strong> Categories for grouping and filtering (e.g., Region, Date, Product)</li>
-                    <li><strong>Measures:</strong> Numeric values to aggregate (e.g., Revenue, Quantity, Profit)</li>
-                    <li><strong>Hierarchies:</strong> Drill-down paths (e.g., Year → Quarter → Month → Day)</li>
+                    <li>{% trans %}<strong>Semantic Layer:</strong> Business-friendly abstraction over raw database tables{% endtrans %}</li>
+                    <li>{% trans %}<strong>Dimensions:</strong> Categories for grouping and filtering (e.g., Region, Date, Product){% endtrans %}</li>
+                    <li>{% trans %}<strong>Measures:</strong> Numeric values to aggregate (e.g., Revenue, Quantity, Profit){% endtrans %}</li>
+                    <li>{% trans %}<strong>Hierarchies:</strong> Drill-down paths (e.g., Year → Quarter → Month → Day){% endtrans %}</li>
                 </ul>
             </div>
         </div>
         <div class="col-md-4">
             <div class="quick-tips">
-                <h6><i class="bi bi-stars me-2"></i>Quick Tips</h6>
+                <h6><i class="bi bi-stars me-2"></i>{{ _('Quick Tips') }}</h6>
                 <ul>
-                    <li>Start with a source table</li>
-                    <li>Add joins for related data</li>
-                    <li>Define meaningful measures</li>
-                    <li>Create hierarchies for drill-down</li>
+                    <li>{{ _('Start with a source table') }}</li>
+                    <li>{{ _('Add joins for related data') }}</li>
+                    <li>{{ _('Define meaningful measures') }}</li>
+                    <li>{{ _('Create hierarchies for drill-down') }}</li>
                 </ul>
             </div>
         </div>
@@ -192,37 +192,37 @@
     <!-- Dataset Info Section -->
     <div class="form-section">
         <div class="section-header">
-            <i class="bi bi-database"></i> Dataset Information
+            <i class="bi bi-database"></i> {{ _('Dataset Information') }}
         </div>
         <div class="section-body">
             <div class="row">
                 <div class="col-md-6">
                     <div class="mb-3">
-                        <label class="form-label fw-bold">Dataset Name <span class="text-danger">*</span></label>
+                        <label class="form-label fw-bold">{{ _('Dataset Name') }} <span class="text-danger">*</span></label>
                         <input type="text" id="datasetName" class="form-control" 
                                placeholder="e.g., sales_analysis" pattern="[a-z_]+" required>
-                        <div class="help-text">Lowercase letters and underscores only. This is the technical name.</div>
+                        <div class="help-text">{{ _('Lowercase letters and underscores only. This is the technical name.') }}</div>
                     </div>
                 </div>
                 <div class="col-md-6">
                     <div class="mb-3">
-                        <label class="form-label fw-bold">Display Name</label>
+                        <label class="form-label fw-bold">{{ _('Display Name') }}</label>
                         <input type="text" id="displayName" class="form-control" 
-                               placeholder="e.g., Sales Analysis">
-                        <div class="help-text">Human-readable name shown in the UI</div>
+                               placeholder="{{ _('e.g., Sales Analysis') }}">
+                        <div class="help-text">{{ _('Human-readable name shown in the UI') }}</div>
                     </div>
                 </div>
             </div>
             <div class="mb-3">
-                <label class="form-label fw-bold">Description</label>
+                <label class="form-label fw-bold">{{ _('Description') }}</label>
                 <textarea id="datasetDescription" class="form-control" rows="2"
                           placeholder="Describe what this dataset contains and its intended use..."></textarea>
             </div>
             <div class="mb-3">
-                <label class="form-label fw-bold">Source Table <span class="text-danger">*</span></label>
+                <label class="form-label fw-bold">{{ _('Source Table') }} <span class="text-danger">*</span></label>
                 <input type="text" id="sourceTable" class="form-control" 
                        placeholder="e.g., sales_data" required>
-                <div class="help-text">The primary database table for this dataset</div>
+                <div class="help-text">{{ _('The primary database table for this dataset') }}</div>
             </div>
         </div>
     </div>
@@ -230,12 +230,12 @@
     <!-- Joins Section -->
     <div class="form-section">
         <div class="section-header info">
-            <i class="bi bi-link-45deg"></i> Table Joins (Optional)
+            <i class="bi bi-link-45deg"></i> {{ _('Table Joins (Optional)') }}
         </div>
         <div class="section-body">
             <div id="joinsContainer"></div>
             <button class="btn btn-outline-info" data-onclick="addJoin()">
-                <i class="bi bi-plus-lg me-2"></i>Add Join
+                <i class="bi bi-plus-lg me-2"></i>{{ _('Add Join') }}
             </button>
         </div>
     </div>
@@ -243,13 +243,13 @@
     <!-- Dimensions Section -->
     <div class="form-section">
         <div class="section-header primary">
-            <i class="bi bi-diagram-3"></i> Dimensions
+            <i class="bi bi-diagram-3"></i> {{ _('Dimensions') }}
         </div>
         <div class="section-body">
-            <p class="mb-3">Define the dimensions (categorical attributes) for grouping and filtering data.</p>
+            <p class="mb-3">{{ _('Define the dimensions (categorical attributes) for grouping and filtering data.') }}</p>
             <div id="dimensionsContainer"></div>
             <button class="btn btn-outline-primary" data-onclick="addDimension()">
-                <i class="bi bi-plus-lg me-2"></i>Add Dimension
+                <i class="bi bi-plus-lg me-2"></i>{{ _('Add Dimension') }}
             </button>
         </div>
     </div>
@@ -257,13 +257,13 @@
     <!-- Measures Section -->
     <div class="form-section">
         <div class="section-header success">
-            <i class="bi bi-calculator"></i> Measures
+            <i class="bi bi-calculator"></i> {{ _('Measures') }}
         </div>
         <div class="section-body">
-            <p class="mb-3">Define the measures (numeric values) to aggregate in analyses.</p>
+            <p class="mb-3">{{ _('Define the measures (numeric values) to aggregate in analyses.') }}</p>
             <div id="measuresContainer"></div>
             <button class="btn btn-outline-success" data-onclick="addMeasure()">
-                <i class="bi bi-plus-lg me-2"></i>Add Measure
+                <i class="bi bi-plus-lg me-2"></i>{{ _('Add Measure') }}
             </button>
         </div>
     </div>
@@ -271,15 +271,15 @@
     <!-- Time Dimension Section -->
     <div class="form-section">
         <div class="section-header warning">
-            <i class="bi bi-calendar3"></i> Time Configuration
+            <i class="bi bi-calendar3"></i> {{ _('Time Configuration') }}
         </div>
         <div class="section-body">
             <div class="mb-3">
-                <label class="form-label fw-bold">Default Time Dimension</label>
+                <label class="form-label fw-bold">{{ _('Default Time Dimension') }}</label>
                 <select id="defaultTimeDimension" class="form-select">
-                    <option value="">None</option>
+                    <option value="">{{ _('None') }}</option>
                 </select>
-                <div class="help-text">The primary date/time dimension for time series analysis</div>
+                <div class="help-text">{{ _('The primary date/time dimension for time series analysis') }}</div>
             </div>
         </div>
     </div>
@@ -287,23 +287,23 @@
     <!-- Preview Section -->
     <div class="form-section">
         <div class="section-header">
-            <i class="bi bi-code-square"></i> Configuration Preview
+            <i class="bi bi-code-square"></i> {{ _('Configuration Preview') }}
         </div>
         <div class="section-body">
-            <div class="code-preview" id="configPreview">{"name": "your_dataset", "source_table": "your_table", "dimensions": [], "measures": []}</div>
+            <div class="code-preview" id="configPreview">{{ _('{"name": "your_dataset", "source_table": "your_table", "dimensions": [], "measures": []}') }}</div>
         </div>
     </div>
     
     <!-- Action Buttons -->
     <div class="d-flex gap-2 justify-content-end mt-4">
         <button class="btn btn-outline-secondary" data-onclick="resetForm()">
-            <i class="bi bi-arrow-counterclockwise me-2"></i>Reset
+            <i class="bi bi-arrow-counterclockwise me-2"></i>{{ _('Reset') }}
         </button>
         <button class="btn btn-primary" data-onclick="validateDataset()">
-            <i class="bi bi-check-circle me-2"></i>Validate
+            <i class="bi bi-check-circle me-2"></i>{{ _('Validate') }}
         </button>
         <button class="btn btn-success" data-onclick="deployDataset()">
-            <i class="bi bi-rocket me-2"></i>Deploy Dataset
+            <i class="bi bi-rocket me-2"></i>{{ _('Deploy Dataset') }}
         </button>
     </div>
 </div>
@@ -319,19 +319,19 @@ function addDimension() {
     const html = `
         <div class="dimension-row" id="dimension_${dimensionCount}">
             <div class="d-flex justify-content-between align-items-start mb-2">
-                <strong>Dimension ${dimensionCount}</strong>
+                <strong>${_t('Dimension %(dimensionCount)s', {dimensionCount: dimensionCount})}</strong>
                 <span class="remove-btn" data-onclick="removeDimension(${dimensionCount})"><i class="bi bi-trash"></i></span>
             </div>
             <div class="row">
                 <div class="col-md-4">
-                    <input type="text" class="form-control dim-name" placeholder="Name (e.g., region)">
+                    <input type="text" class="form-control dim-name" placeholder="${_t('Name (e.g., region)')}">
                 </div>
                 <div class="col-md-4">
-                    <input type="text" class="form-control dim-column" placeholder="Column (e.g., region)">
+                    <input type="text" class="form-control dim-column" placeholder="${_t('Column (e.g., region)')}">
                 </div>
                 <div class="col-md-4">
                     <select class="form-select dim-type">
-                        <option value="standard">Standard</option>
+                        <option value="standard">${_t('Standard')}</option>
                         <option value="time">Time/Date</option>
                     </select>
                 </div>
@@ -355,25 +355,25 @@ function addMeasure() {
     const html = `
         <div class="measure-row" id="measure_${measureCount}">
             <div class="d-flex justify-content-between align-items-start mb-2">
-                <strong>Measure ${measureCount}</strong>
+                <strong>${_t('Measure %(measureCount)s', {measureCount: measureCount})}</strong>
                 <span class="remove-btn" data-onclick="removeMeasure(${measureCount})"><i class="bi bi-trash"></i></span>
             </div>
             <div class="row">
                 <div class="col-md-3">
-                    <input type="text" class="form-control measure-name" placeholder="Name (e.g., revenue)">
+                    <input type="text" class="form-control measure-name" placeholder="${_t('Name (e.g., revenue)')}">
                 </div>
                 <div class="col-md-5">
-                    <input type="text" class="form-control measure-expr" placeholder="Expression (e.g., SUM(amount))">
+                    <input type="text" class="form-control measure-expr" placeholder="${_t('Expression (e.g., SUM(amount))')}">
                 </div>
                 <div class="col-md-2">
                     <select class="form-select measure-format">
-                        <option value="number">Number</option>
-                        <option value="currency">Currency</option>
-                        <option value="percentage">Percentage</option>
+                        <option value="number">${_t('Number')}</option>
+                        <option value="currency">${_t('Currency')}</option>
+                        <option value="percentage">${_t('Percentage')}</option>
                     </select>
                 </div>
                 <div class="col-md-2">
-                    <input type="text" class="form-control measure-desc" placeholder="Description">
+                    <input type="text" class="form-control measure-desc" placeholder="${_t('Description')}">
                 </div>
             </div>
         </div>
@@ -393,12 +393,12 @@ function addJoin() {
     const html = `
         <div class="join-row" id="join_${joinCount}">
             <div class="d-flex justify-content-between align-items-start mb-2">
-                <strong>Join ${joinCount}</strong>
+                <strong>${_t('Join %(joinCount)s', {joinCount: joinCount})}</strong>
                 <span class="remove-btn" data-onclick="removeJoin(${joinCount})"><i class="bi bi-trash"></i></span>
             </div>
             <div class="row">
                 <div class="col-md-3">
-                    <input type="text" class="form-control join-table" placeholder="Table name">
+                    <input type="text" class="form-control join-table" placeholder="${_t('Table name')}">
                 </div>
                 <div class="col-md-2">
                     <select class="form-select join-type">
@@ -409,10 +409,10 @@ function addJoin() {
                     </select>
                 </div>
                 <div class="col-md-5">
-                    <input type="text" class="form-control join-on" placeholder="ON clause (e.g., table1.id = table2.id)">
+                    <input type="text" class="form-control join-on" placeholder="${_t('ON clause (e.g., table1.id = table2.id)')}">
                 </div>
                 <div class="col-md-2">
-                    <input type="text" class="form-control join-alias" placeholder="Alias">
+                    <input type="text" class="form-control join-alias" placeholder="${_t('Alias')}">
                 </div>
             </div>
         </div>
@@ -429,7 +429,7 @@ function removeJoin(id) {
 function updateTimeDimensionOptions() {
     const select = document.getElementById('defaultTimeDimension');
     const currentValue = select.value;
-    select.innerHTML = '<option value="">None</option>';
+    select.innerHTML = '<option value="">' + _t('None') + '</option>';
     document.querySelectorAll('.dimension-row').forEach(row => {
         const name = row.querySelector('.dim-name').value;
         const type = row.querySelector('.dim-type').value;
@@ -509,15 +509,15 @@ function showStatus(message, type) {
 function validateDataset() {
     const config = buildConfig();
     const errors = [];
-    if (!config.name || config.name === 'your_dataset') errors.push('Dataset name is required');
-    if (!config.source_table || config.source_table === 'your_table') errors.push('Source table is required');
-    if (config.dimensions.length === 0) errors.push('At least one dimension is required');
-    if (config.measures.length === 0) errors.push('At least one measure is required');
+    if (!config.name || config.name === 'your_dataset') errors.push(_t('Dataset name is required'));
+    if (!config.source_table || config.source_table === 'your_table') errors.push(_t('Source table is required'));
+    if (config.dimensions.length === 0) errors.push(_t('At least one dimension is required'));
+    if (config.measures.length === 0) errors.push(_t('At least one measure is required'));
     if (errors.length > 0) {
-        showStatus('Validation errors: ' + errors.join(', '), 'error');
+        showStatus(_t('Validation errors: ') + errors.join(', '), 'error');
         return false;
     }
-    showStatus('Dataset configuration is valid!', 'success');
+    showStatus(_t('Dataset configuration is valid!'), 'success');
     return true;
 }
 
@@ -532,12 +532,12 @@ async function deployDataset() {
         });
         const result = await response.json();
         if (result.success) {
-            showStatus('Dataset deployed successfully! You can now use it in OLAP tools.', 'success');
+            showStatus(_t('Dataset deployed successfully! You can now use it in OLAP tools.'), 'success');
         } else {
-            showStatus('Deployment failed: ' + result.error, 'error');
+            showStatus(_t('Deployment failed: ') + result.error, 'error');
         }
     } catch (error) {
-        showStatus('Deployment error: ' + error.message, 'error');
+        showStatus(_t('Deployment error: ') + error.message, 'error');
     }
 }
 

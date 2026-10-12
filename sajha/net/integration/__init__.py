@@ -245,11 +245,30 @@ class SajhaNetService:
         self.errors = dict(errors)
         self._store = store
         self.documents = documents
+        from sajha.net.integration import mtls
+        s.mtls = mtls.mode_of(s.mtls)
+        if connector is None and s.mtls != 'off' and s.connector == 'sajha_native':
+            connector = mtls.MtlsConnector(self._mtls_identity)    # the instance certificate as TLS client cert
         self.connector = connector or plugins.create('connector', s.connector)
         self.runtimes: Dict[str, Runtime] = {c.name: Runtime(cfg=c) for c in configs}
         self.participant = Participant({}, enabled=s.enabled)
         self._lock = threading.RLock()
         self._docs_lock = threading.RLock()            # read-modify-write of the per-net list documents
+
+    def _mtls_identity(self, net: str):
+        """``(key, chain)`` this server signs with in ``net``, for mutual TLS (None before it has one)."""
+        rt = self.runtimes.get(net)
+        node = getattr(rt, 'node', None) if rt is not None else None
+        signer = getattr(node, 'signer', None) if node is not None else None
+        return (signer.key, list(signer.chain)) if signer is not None else None
+
+    def mtls_problem(self, path: str, headers: Dict[str, str]) -> Optional[str]:
+        """Why an inbound net request may not be served under ``sajhanet.mtls: require`` (None: it may)."""
+        if self.shared.mtls != 'require':
+            return None
+        from sajha.net.integration import mtls
+        return mtls.inbound_problem('require', path, {str(k).lower(): v for k, v in headers.items()},
+                                    mtls.client_cert_header())
 
     # ── stores ─────────────────────────────────────────────────────
 
@@ -496,9 +515,10 @@ class SajhaNetService:
             self.load_plugins()
         except Exception as e:
             logger.warning(f'SAJHA Net plug-ins: {e}', exc_info=True)
-        if self.shared.mtls not in ('off', 'false', ''):
-            logger.warning(f'sajhanet.mtls: {self.shared.mtls!r} is not built yet; requests are checked by their '
-                           f'signatures only')
+        if self.shared.mtls != 'off':
+            extra = '; inbound net requests need a verified client certificate' if self.shared.mtls == 'require' else ''
+            logger.info(f'SAJHA Net: mutual TLS {self.shared.mtls} (the instance certificate is the TLS client '
+                        f'certificate{extra})')
         for net, rt in self.runtimes.items():
             try:
                 self._build(rt)

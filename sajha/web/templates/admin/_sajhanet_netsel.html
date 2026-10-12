@@ -1,0 +1,16 @@
+{# Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.com #}
+{# A net selector for a page about one net (view.nets, view.net; sn_here: the page's path). #}
+{% if view.nets and view.nets|length > 1 %}
+<form class="sn-netsel" method="get" action="{{ sn_here }}">
+  <div><label class="form-label small" for="sn-net">{{ _('Net') }}</label>
+    <select class="form-select form-select-sm" id="sn-net" name="net">
+      {% for x in view.nets %}<option value="{{ x }}"{% if x == view.net %} selected{% endif %}>{{ x }}</option>{% endfor %}</select></div>
+  <div><button class="btn btn-sm btn-primary" type="submit">{{ _('Show') }}</button></div>
+</form>
+{% endif %}
+{% if not view.enabled %}
+<div class="alert alert-info small" role="status"><i class="bi bi-info-circle me-1" aria-hidden="true"></i>
+  {% trans %}SAJHA Net is off, so this server is a net of one: there is nothing here to manage. Set <code>sajhanet.enabled: true</code> and list the nets under <code>sajhanet.nets</code>, then restart.{% endtrans %}</div>
+{% elif not view.net %}
+<p class="text-muted">{% trans %}No nets are configured (<code>sajhanet.nets</code>).{% endtrans %}</p>
+{% endif %}

@@ -5,7 +5,7 @@ Every ``snapshots.interval_minutes`` (default 10) one worker of the instance wri
 chained JSON snapshot to ``snapshots.dir`` and keeps the last ``snapshots.keep`` (default 20),
 so an auditor can see who and what existed at any point in the retained window and an
 administrator can re-create users and persistent key records after losing the database. It
-works with or without SAJHA Net (SAJHA Net §20.4 adds the net view once that exists).
+works with or without SAJHA Net; with a net it also records the net view (SAJHA Net §20.4).
 
 * One writer: the worker holding the ``snapshots:writer`` lease (sajha/core/state/lease.py)
   writes; a per-interval claim in the state store keeps it to one snapshot per interval even
@@ -28,7 +28,7 @@ import time
 from dataclasses import dataclass
 from typing import Any, Callable, Dict, Optional
 
-from sajha.snapshots.core import SnapshotStore, collect_db, collect_tools, default_signer, instance_info
+from sajha.snapshots.core import SnapshotStore, collect_db, collect_net, collect_tools, default_signer, instance_info
 
 logger = logging.getLogger(__name__)
 
@@ -134,6 +134,7 @@ class SnapshotService:
         finally:
             db.close()
         content['tools'] = collect_tools(self._registry())
+        content.update(collect_net())           # SAJHA Net §20.4: members, proxies, key directory per home
         content['instance'] = instance_info()
         return content
 
@@ -151,7 +152,8 @@ class SnapshotService:
         _audit('snapshot.written', 'success', name, actor=actor,
                details={'seq': body['seq'], 'sha256': env['sha256'], 'prev': (body.get('prev') or {}).get('sha256'),
                         'reason': reason, 'users': len(body['users']), 'api_keys': len(body['api_keys']),
-                        'tools': len(body['tools']), 'dir': str(self.store.dir)})
+                        'tools': len(body['tools']), 'net_proxies': len(body.get('net_proxies') or []),
+                        'net_members': len(body.get('net_members') or []), 'dir': str(self.store.dir)})
         gone = self.store.rotate()
         if gone:
             _audit('snapshot.rotated', 'success', details={'deleted': gone, 'keep': self.store.keep}, actor=actor)

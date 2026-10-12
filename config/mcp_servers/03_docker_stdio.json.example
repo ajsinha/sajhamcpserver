@@ -1,9 +1,10 @@
 {
-  "_comment": "A server shipped as a container, run over stdio with docker. The token is passed by name (-e NAME) and its value comes from env, which reads an environment variable of the SAJHA process: no secret in this file.",
+  "_comment": "A server shipped as a container image, run over stdio in its own container (SAJHA runs docker for you: name the image and the executable inside it, which docker image inspect shows as its Entrypoint). The token is passed by name (-e NAME) and its value comes from env, which reads an environment variable of the SAJHA process: no secret in this file or on the docker command line.",
   "mcpServers": {
     "github_local": {
-      "command": "docker",
-      "args": ["run", "-i", "--rm", "-e", "GITHUB_PERSONAL_ACCESS_TOKEN", "ghcr.io/github/github-mcp-server"],
+      "command": "/server/github-mcp-server",
+      "args": ["stdio"],
+      "container": {"image": "ghcr.io/github/github-mcp-server", "network": "allowlist", "allow_hosts": ["api.github.com:443"]},
       "env": {"GITHUB_PERSONAL_ACCESS_TOKEN": "${GITHUB_PAT}"},
       "vendor": "github",
       "tools": ["get_*", "list_*", "search_*"]

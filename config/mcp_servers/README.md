@@ -15,7 +15,7 @@ SAJHA servers is in [SAJHA Net](../../docs/architecture/SAJHA%20Net.md#56-vendor
 |---|---|
 | `01_local_stdio_npx.json.example` | Reference servers over stdio with `npx`; a tool filter that exposes only read-only tools; `env`; a vendor and prefix of your own |
 | `02_local_stdio_uvx.json.example` | Python servers over stdio with `uvx`; an absolute command path; `cwd`; arguments |
-| `03_docker_stdio.json.example` | A container over stdio with `docker run -i`; a token passed by name from the environment |
+| `03_docker_stdio.json.example` | A server's own container image over stdio (`container.image` and the executable inside it); a token passed by name from the environment |
 | `04_remote_bearer_token.json.example` | Hosted servers over Streamable HTTP with a bearer or API-key header; `${NAME}` and `${NAME:default}`; two entries of one vendor with different prefixes |
 | `05_remote_no_auth.json.example` | Hosted servers that need no credential |
 | `06_remote_oauth_sign_in.json.example` | Hosted servers that ask each user to sign in with OAuth (`"auth": {"type": "oauth_user"}`), discovered and registered dynamically; kept disabled until you check each URL |
@@ -44,6 +44,8 @@ SAJHA keys, all optional:
 | `enabled` | `true` | `false` keeps the entry in the file without connecting to it |
 | `disabled` | `false` | `true` is the same as `"enabled": false` (as some clients write it) |
 | `cwd` | | stdio only: the working directory |
+| `isolation` | `container` when docker answers | stdio only: `container` (its own container, the default) or `none` (a process of SAJHA, with a warning notice) ([Federation](../../docs/architecture/Federation.md#stdio-isolation)) |
+| `container` | | stdio only: `image`, `mounts` (read-only), `memory_mb`, `cpus`, `max_processes`, `network` (`none` or `allowlist` with `allow_hosts`), `user`, `tmpfs_mb` |
 | `title` | the entry's name | A display name |
 | `timeout_seconds` | `federation.default_timeout_seconds` | One call's deadline |
 | `auth` | `"static"` | Who the vendor sees. `"static"`: one shared identity (the `headers`). `{"type": "token_user", ...}`: each user, with a personal token they save once on Server connections. `{"type": "oauth_user", ...}` (or just `"oauth_user"`): each user, after signing in at the vendor once on Server connections ([Per-User Sign-In for Proxied Servers](../../docs/architecture/Per-User%20Sign-In%20for%20Proxied%20Servers.md); keys in [Federation](../../docs/architecture/Federation.md#per-user-oauth-sign-in-oauth_user)). In `auth`, `client_id` may be `${NAME}` |
@@ -54,8 +56,10 @@ for that entry (the rest of the file still loads).
 ## Before you use one
 
 - Server packages, URLs and arguments change; check each against its maintainer's documentation.
-- stdio servers run as processes of SAJHA and need `federation.allow_stdio: true`; run only code you
-  would run on that machine yourself, and pin commands to absolute paths in production.
+- stdio servers need `federation.allow_stdio: true`. Each runs in its own container (no network unless
+  `container.network: allowlist`, read-only mounts, limits) from an image that contains it; with
+  `"isolation": "none"` it runs as a process of SAJHA instead, so run only code you would run on that
+  machine yourself.
 - Prefer `${NAME}` references over raw secrets. A raw secret works (SAJHA shows a notice), but then
   treat `config/mcp_servers.json` like a password file.
 - Narrow what you expose with `tools`; most servers include tools that write or delete.

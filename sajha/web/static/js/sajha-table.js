@@ -41,16 +41,16 @@
                 <div class="d-flex align-items-center gap-2">
                     <div class="input-group input-group-sm" style="width:240px">
                         <span class="input-group-text"><i class="bi bi-search"></i></span>
-                        <input type="text" class="form-control" id="${uid}_search" placeholder="Search in table...">
-                        <button class="btn btn-outline-secondary" type="button" id="${uid}_clear" title="Clear"><i class="bi bi-x-lg"></i></button>
+                        <input type="text" class="form-control" id="${uid}_search" placeholder="${_t('Search in table...')}">
+                        <button class="btn btn-outline-secondary" type="button" id="${uid}_clear" title="${_t('Clear')}"><i class="bi bi-x-lg"></i></button>
                     </div>
-                    <span class="text-muted small" id="${uid}_count">${allRows.length} rows</span>
+                    <span class="text-muted small" id="${uid}_count">${_t('%(n)s rows', {n: allRows.length})}</span>
                 </div>
                 <div class="d-flex align-items-center gap-2">
-                    <label class="form-label mb-0 small text-muted" for="${uid}_rpp">Show</label>
+                    <label class="form-label mb-0 small text-muted" for="${uid}_rpp">${_t('Show')}</label>
                     <select class="form-select form-select-sm" id="${uid}_rpp" style="width:auto">
                         ${ROWS_OPTIONS.map(n => `<option value="${n}" ${n===DEFAULT_ROWS_PER_PAGE?'selected':''}>${n}</option>`).join('')}
-                        <option value="all">All</option>
+                        <option value="all">${_t('All')}</option>
                     </select>
                 </div>
             `;
@@ -116,14 +116,14 @@
                 // Update count
                 document.getElementById(uid + '_count').textContent =
                     filtered.length === allRows.length
-                        ? `${allRows.length} rows`
-                        : `${filtered.length} of ${allRows.length} rows`;
+                        ? _t('%(n)s rows', {n: allRows.length})
+                        : _t('%(n)s of %(total)s rows', {n: filtered.length, total: allRows.length});
 
                 // Update info
                 document.getElementById(uid + '_info').textContent =
                     total > 0
-                        ? `Showing ${start+1}-${end} of ${total}`
-                        : 'No matching rows';
+                        ? _t('Showing %(from)s-%(to)s of %(total)s', {from: start + 1, to: end, total: total})
+                        : _t('No matching rows');
 
                 // Build pagination
                 const pagesEl = document.getElementById(uid + '_pages');

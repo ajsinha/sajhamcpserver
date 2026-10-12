@@ -115,8 +115,15 @@ back, so a test runs offline, fast and deterministically in CI.
   the cassette and fails on any request it does not hold (no network); the default `auto`
   replays when a cassette exists and runs live otherwise; `--live` ignores cassettes.
 * **Clients covered:** `urllib.request.urlopen` (what nearly every built-in tool uses),
-  `requests` (`Session.send`) and `httpx` (sync and async transports). A tool that uses
-  another client is not intercepted; in `--replay` such a call is not caught.
+  `requests` (`Session.send`) and `httpx` (sync and async transports) in
+  `sajha/quality/cassette.py`; `urllib3` (`HTTPConnectionPool.urlopen`), `aiohttp`
+  (`ClientSession._request`, what the OpenBB providers use) and `curl_cffi` (`Session.request`
+  and `AsyncSession.request`, what yfinance uses) in `sajha/quality/cassette_transports.py`, each
+  when its package is installed. botocore, the AWS SDK's transport, sends through urllib3, so boto3
+  clients are recorded at the wire with no AWS-specific stub (its streamed, undecoded bodies are
+  kept byte for byte). A request made inside another intercepted client (`requests` sits on
+  urllib3) is recorded once, by the outer client. A tool on any other client is not
+  intercepted; in `--replay` such a call is not caught.
 * **Matching:** method and URL, with secret-looking query parameters (`apikey`, `api_key`,
   `token`, `key`, `access_token`, `client_secret`, `password`, `sig`, `signature`) replaced
   by `REDACTED` before matching and before writing. Repeated identical requests are played in
@@ -240,7 +247,8 @@ pair and scores each answer:
 * **tool selection** is correct when every `expect_tools` tool was called and no
   `forbid_tools` tool was; recall and precision against `expect_tools` are kept too;
 * **answer checks** are the `answer` list (`contains`, `not_contains`, `regex`, `number` with
-  `tolerance`, `equals`), case-insensitive except `regex` flags you give;
+  `tolerance`, `equals`), case-insensitive except `regex` flags you give, plus the optional
+  model-graded `graded` check below;
 * **limits**: steps, total tokens, cost and latency against the question's (or the set's
   default) limits; the ask must stop by `answer` unless `expect_stop` says otherwise.
 
@@ -263,13 +271,37 @@ questions:
     answer: [{equals: billing}]
 ```
 
+**Model-graded checks.** A `graded` check states a criterion in words; a grader model scores the
+answer against it from 1 to 5 (the question is given for context) and the check passes at
+`min_score` (default 4) or above (`sajha/quality/judge.py`):
+
+```yaml
+    answer:
+      - number: 25
+        tolerance: 0.01
+      - graded: "says the value rose and by how much"
+        min_score: 4            # optional, 1-5
+        model: fast             # optional: a model alias; default quality.evals.grader_model
+```
+
+The grader is reached only through `llm_factory().model(alias)`, so the intelligence layer's role
+policy, budgets, retries, fallback, audit and cost apply to it like any model call. Graded checks
+are off by default because they cost tokens and a real model is not deterministic: while
+`quality.evals.graded_checks` is false they are skipped, listed in the question's
+`skipped_checks` and neither passed nor failed; `python -m sajha.quality eval --graded` turns them
+on for one run. On the mock provider the grader is deterministic (the call is marked
+`metadata.sajha_llm_mode: judge`: the criterion's content words found in the answer score 5,
+otherwise 3), so sets with graded checks still run offline in CI. A grader that cannot answer (no
+model, a refusal, a reply that is not a score) fails the check with the reason; it is never an
+error of the run.
+
 A question passes when all three hold. A run's summary: tool-selection accuracy, answer
 accuracy, pass rate, mean steps, total and mean tokens, total cost, mean and p95 latency, per
 (model, planner). Runs are saved in `quality_runs`; **compare** takes two runs and reports the
 metric deltas and the questions that regressed or improved.
 
 ```
-python -m sajha.quality eval [SET ...] [--model M ...] [--planner P ...] [--json FILE] [--junit FILE] [--no-save]
+python -m sajha.quality eval [SET ...] [--model M ...] [--planner P ...] [--json FILE] [--junit FILE] [--no-save] [--graded]
 python -m sajha.quality compare RUN_A RUN_B           # run ids, or JSON files written by --json
 python -m sajha.quality runs [--kind eval|test]
 ```
@@ -278,6 +310,10 @@ From the command line the runner builds its own gateway from `ai:` in the config
 its own registry from `config/tools/` and its tool folders (only the set's `tools`), so the shipped set runs offline
 on the mock provider with no server. On the Evals page (`/admin/evals`) a run executes in a
 background thread of the server against the live registry and gateway; the page polls it.
+
+Saved runs are also evidence for choosing planners: the planner learning job ranks planners per
+tool and question class from them, and each question's row carries the run's automatic planner
+choice (`planner_choice`) when it had one ([LLM Tools](LLM%20Tools.md#913-automatic-planner-selection) §9.13).
 
 ---
 
@@ -419,20 +455,23 @@ session sends the page's CSRF token as `X-CSRF-Token`); every route is listed in
 
 ## 10. Limits
 
-* Cassettes intercept `urllib.request`, `requests` and `httpx` only; tools on other clients
-  (or SDKs with their own transports) run live.
+* Cassettes intercept `urllib.request`, `requests`, `httpx`, `urllib3` (and so botocore),
+  `aiohttp` and `curl_cffi`; a tool on another client (gRPC, a raw socket, a subprocess) runs
+  live. A streamed `curl_cffi` response is recorded whole, not as a stream.
 * Rollback reacts after `min_calls` calls in the window; a canary that fails fast and rarely
   may stay up until it reaches the minimum.
 * Probe metrics are per worker (the worker that ran the probe sets them); the probe state the
   page reads is shared.
-* An eval's answer checks are lexical; they do not judge meaning.
+* An eval's lexical answer checks do not judge meaning; a `graded` check does, at the cost of a
+  model call per check, and on a real model its score can vary between runs.
 
 ## 11. Tests
 
 `tests/test_schema_defaults.py` (12.1), `tests/test_quality_check.py` (12.4),
 `tests/test_quality_harness.py` (assertions, JSONPath, cassettes in all three clients, the CLI,
-JUnit), `tests/test_quality_lint.py`, `tests/test_quality_probes.py`,
-`tests/test_quality_evals.py` (offline on the mock provider), `tests/test_quality_versions.py`
+JUnit), `tests/test_quality_cassette_transports.py` (urllib3 and botocore's call pattern, aiohttp,
+curl_cffi), `tests/test_quality_lint.py`, `tests/test_quality_probes.py`,
+`tests/test_quality_evals.py` (offline on the mock provider), `tests/test_quality_graded_checks.py`, `tests/test_quality_versions.py`
 (routing, canary stickiness, rollback, deprecation, MCP exposure), and the pages.
 
 ---

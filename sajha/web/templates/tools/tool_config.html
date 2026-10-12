@@ -2,7 +2,7 @@
 <!--
 Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.com
 -->
-{% block title %}Tool Configuration - {{ tool_name }} - SAJHA MCP Server{% endblock %}
+{% block title %}{% trans tool_name=tool_name %}Tool Configuration - {{ tool_name }} - SAJHA MCP Server{% endtrans %}{% endblock %}
 
 {% block extra_css %}
 <!-- JSONEditor CSS -->
@@ -75,13 +75,13 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
         <div class="d-flex justify-content-between align-items-center">
             <div>
                 <h1 class="h2 mb-2">
-                    <i class="bi bi-file-code-fill"></i> Tool Configuration
+                    <i class="bi bi-file-code-fill"></i> {{ _('Tool Configuration') }}
                 </h1>
                 <h3 class="h5 mb-0 opacity-75">{{ tool_name }}</h3>
             </div>
             <div>
                 <a href="{{ url_for('admin_tools') }}" class="btn btn-light">
-                    <i class="bi bi-arrow-left"></i> Back to Tools
+                    <i class="bi bi-arrow-left"></i> {{ _('Back to Tools') }}
                 </a>
             </div>
         </div>
@@ -93,29 +93,29 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
             <div class="card tool-info-card">
                 <div class="card-body">
                     <h5 class="card-title mb-3">
-                        <i class="bi bi-info-circle-fill"></i> Tool Information
+                        <i class="bi bi-info-circle-fill"></i> {{ _('Tool Information') }}
                     </h5>
                     <div class="row">
                         <div class="col-md-3">
-                            <strong>Name:</strong> <span id="toolNameDisplay">{{ tool_name }}</span>
+                            <strong>{{ _('Name:') }}</strong> <span id="toolNameDisplay">{{ tool_name }}</span>
                         </div>
                         <div class="col-md-3 text-break">
-                            <strong>File:</strong> <code id="toolFileDisplay">{{ tool_file or 'none (not file-backed)' }}</code>
+                            {% trans value=tool_file or 'none (not file-backed)' %}<strong>File:</strong> <code id="toolFileDisplay">{{ value }}</code>{% endtrans %}
                         </div>
                         <div class="col-md-3">
-                            <strong>Version:</strong> <span id="toolVersionDisplay">-</span>
+                            <strong>{{ _('Version:') }}</strong> <span id="toolVersionDisplay">-</span>
                         </div>
                         <div class="col-md-3">
-                            <strong>Status:</strong>
+                            <strong>{{ _('Status:') }}</strong>
                             <span id="toolStatusDisplay" class="badge bg-secondary">-</span>
                         </div>
                         <div class="col-md-3">
-                            <strong>Type:</strong> <span id="toolTypeDisplay">-</span>
+                            <strong>{{ _('Type:') }}</strong> <span id="toolTypeDisplay">-</span>
                         </div>
                     </div>
                     <div class="row mt-2">
                         <div class="col-md-12">
-                            <strong>Tags:</strong> <span id="toolTagsDisplay">-</span>
+                            <strong>{{ _('Tags:') }}</strong> <span id="toolTagsDisplay">-</span>
                         </div>
                     </div>
                 </div>
@@ -129,18 +129,18 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
             <div class="card">
                 <div class="card-header card-header-primary">
                     <h5 class="mb-0">
-                        <i class="bi bi-card-text"></i> Description
+                        <i class="bi bi-card-text"></i> {{ _('Description') }}
                     </h5>
                 </div>
                 <div class="card-body">
                     <textarea class="form-control description-editor" id="toolDescription"
                               placeholder="Enter tool description..."></textarea>
                     <small class="form-text text-muted mt-2">
-                        Provide a clear description of what this tool does and how to use it.
+                        {{ _('Provide a clear description of what this tool does and how to use it.') }}
                     </small>
                     {% if domain_description %}
                     <div class="mt-3" id="toolDomainDescription">
-                        <label class="form-label small fw-semibold mb-1" for="toolDomainText">Domain description of folder <code>{{ tool_folder }}</code> (read-only, from its domain.txt; served after this description, never saved into the tool)</label>
+                        <label class="form-label small fw-semibold mb-1" for="toolDomainText">{% trans tool_folder=tool_folder %}Domain description of folder <code>{{ tool_folder }}</code> (read-only, from its domain.txt; served after this description, never saved into the tool){% endtrans %}</label>
                         <textarea class="form-control" id="toolDomainText" rows="3" readonly>{{ domain_description }}</textarea>
                     </div>
                     {% endif %}
@@ -155,15 +155,15 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
             <div class="card">
                 <div class="card-header card-header-success d-flex justify-content-between align-items-center">
                     <h5 class="mb-0">
-                        <i class="bi bi-braces"></i> JSON Configuration
+                        <i class="bi bi-braces"></i> {{ _('JSON Configuration') }}
                     </h5>
                     <div class="view-mode-buttons">
                         <div class="btn-group" role="group">
                             <button type="button" class="btn btn-sm btn-light active" id="treeViewBtn">
-                                <i class="bi bi-diagram-3"></i> Tree View
+                                <i class="bi bi-diagram-3"></i> {{ _('Tree View') }}
                             </button>
                             <button type="button" class="btn btn-sm btn-light" id="rawViewBtn">
-                                <i class="bi bi-code-square"></i> Raw JSON
+                                <i class="bi bi-code-square"></i> {{ _('Raw JSON') }}
                             </button>
                         </div>
                     </div>
@@ -187,21 +187,21 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
                     <div class="d-flex justify-content-between align-items-center">
                         <div>
                             <button type="button" class="btn btn-primary btn-lg" id="saveConfigBtn">
-                                <i class="bi bi-save"></i> Save Configuration
+                                <i class="bi bi-save"></i> {{ _('Save Configuration') }}
                             </button>
                             <button type="button" class="btn btn-secondary btn-lg" id="resetConfigBtn">
-                                <i class="bi bi-arrow-clockwise"></i> Reset Changes
+                                <i class="bi bi-arrow-clockwise"></i> {{ _('Reset Changes') }}
                             </button>
                             <button type="button" class="btn btn-info" id="validateConfigBtn">
-                                <i class="bi bi-check-circle"></i> Validate
+                                <i class="bi bi-check-circle"></i> {{ _('Validate') }}
                             </button>
                         </div>
                         <div>
                             <button type="button" class="btn btn-warning" id="downloadConfigBtn">
-                                <i class="bi bi-download"></i> Download JSON
+                                <i class="bi bi-download"></i> {{ _('Download JSON') }}
                             </button>
                             <button type="button" class="btn btn-danger" id="deleteConfigBtn">
-                                <i class="bi bi-trash"></i> Delete Tool
+                                <i class="bi bi-trash"></i> {{ _('Delete Tool') }}
                             </button>
                         </div>
                     </div>
@@ -216,33 +216,33 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
             <div class="card">
                 <div class="card-header card-header-info">
                     <h5 class="mb-0">
-                        <i class="bi bi-book"></i> Configuration Guide
+                        <i class="bi bi-book"></i> {{ _('Configuration Guide') }}
                     </h5>
                 </div>
                 <div class="card-body">
-                    <h6>Required Fields:</h6>
+                    <h6>{{ _('Required Fields:') }}</h6>
                     <ul>
-                        <li><strong>name:</strong> Unique identifier for the tool</li>
-                        <li><strong>description:</strong> Clear description of tool functionality</li>
-                        <li><strong>version:</strong> Tool version (semantic versioning recommended)</li>
-                        <li><strong>enabled:</strong> Boolean flag to enable/disable the tool</li>
-                        <li><strong>inputSchema:</strong> JSON Schema defining the tool's input parameters</li>
+                        <li>{% trans %}<strong>name:</strong> Unique identifier for the tool{% endtrans %}</li>
+                        <li>{% trans %}<strong>description:</strong> Clear description of tool functionality{% endtrans %}</li>
+                        <li>{% trans %}<strong>version:</strong> Tool version (semantic versioning recommended){% endtrans %}</li>
+                        <li>{% trans %}<strong>enabled:</strong> Boolean flag to enable/disable the tool{% endtrans %}</li>
+                        <li>{% trans %}<strong>inputSchema:</strong> JSON Schema defining the tool's input parameters{% endtrans %}</li>
                     </ul>
 
-                    <h6 class="mt-3">Optional Fields:</h6>
+                    <h6 class="mt-3">{{ _('Optional Fields:') }}</h6>
                     <ul>
-                        <li><strong>type:</strong> For built-in tools (wikipedia, yahoo_finance, google_search, fed_reserve, tavily, etc.)</li>
-                        <li><strong>implementation:</strong> Python class path for custom tools</li>
-                        <li><strong>metadata:</strong> Additional metadata (author, category, tags, rateLimit, etc.)</li>
+                        <li>{% trans %}<strong>type:</strong> For built-in tools (wikipedia, yahoo_finance, google_search, fed_reserve, tavily, etc.){% endtrans %}</li>
+                        <li>{% trans %}<strong>implementation:</strong> Python class path for custom tools{% endtrans %}</li>
+                        <li>{% trans %}<strong>metadata:</strong> Additional metadata (author, category, tags, rateLimit, etc.){% endtrans %}</li>
                     </ul>
 
-                    <h6 class="mt-3">Built-in Tool Types:</h6>
+                    <h6 class="mt-3">{{ _('Built-in Tool Types:') }}</h6>
                     <div class="d-flex flex-wrap gap-2">
-                        <span class="badge bg-primary metadata-badge">wikipedia</span>
+                        <span class="badge bg-primary metadata-badge">{{ _('wikipedia') }}</span>
                         <span class="badge bg-primary metadata-badge">yahoo_finance</span>
                         <span class="badge bg-primary metadata-badge">google_search</span>
                         <span class="badge bg-primary metadata-badge">fed_reserve</span>
-                        <span class="badge bg-primary metadata-badge">tavily</span>
+                        <span class="badge bg-primary metadata-badge">{{ _('tavily') }}</span>
                     </div>
                 </div>
             </div>
@@ -312,11 +312,11 @@ function loadToolConfig() {
             updateRawJsonView();
 
             hideLoading();
-            showStatus('Configuration loaded successfully', 'success');
+            showStatus(_t('Configuration loaded successfully'), 'success');
         },
         error: function(xhr, status, error) {
             hideLoading();
-            showStatus('Failed to load configuration: ' + error, 'danger');
+            showStatus(_t('Failed to load configuration: ') + error, 'danger');
         }
     });
 }
@@ -327,11 +327,11 @@ function updateToolInfo(config) {
 
     const enabled = config.enabled !== false;
     const statusBadge = enabled ?
-        '<span class="badge bg-success">Enabled</span>' :
-        '<span class="badge bg-danger">Disabled</span>';
+        '<span class="badge bg-success">' + _t('Enabled') + '</span>' :
+        '<span class="badge bg-danger">' + _t('Disabled') + '</span>';
     $('#toolStatusDisplay').html(statusBadge);
 
-    $('#toolTypeDisplay').text(config.type || config.implementation || 'Custom');
+    $('#toolTypeDisplay').text(config.type || config.implementation || _t('Custom'));
 
     // Display tags
     if (config.metadata && config.metadata.tags) {
@@ -340,7 +340,7 @@ function updateToolInfo(config) {
         ).join(' ');
         $('#toolTagsDisplay').html(tags);
     } else {
-        $('#toolTagsDisplay').text('None');
+        $('#toolTagsDisplay').text(_t('None'));
     }
 }
 
@@ -352,12 +352,12 @@ function setupEventListeners() {
 
     // Reset button
     $('#resetConfigBtn').click(function() {
-        if (confirm('Are you sure you want to reset all changes?')) {
+        if (confirm(_t('Are you sure you want to reset all changes?'))) {
             currentConfig = JSON.parse(JSON.stringify(originalConfig));
             editor.set(currentConfig);
             $('#toolDescription').val(originalConfig.description || '');
             updateRawJsonView();
-            showStatus('Changes reset successfully', 'info');
+            showStatus(_t('Changes reset successfully'), 'info');
         }
     });
 
@@ -420,7 +420,7 @@ function updateRawJsonView() {
         const jsonString = JSON.stringify(config, null, 2);
         $('#rawJsonCode').text(jsonString);
     } catch(e) {
-        $('#rawJsonCode').text('Invalid JSON');
+        $('#rawJsonCode').text(_t('Invalid JSON'));
     }
 }
 
@@ -434,12 +434,12 @@ function saveConfiguration() {
 
         // Validate required fields
         if (!config.name) {
-            showStatus('Tool name is required', 'danger');
+            showStatus(_t('Tool name is required'), 'danger');
             return;
         }
 
         if (!config.inputSchema) {
-            showStatus('Input schema is required', 'danger');
+            showStatus(_t('Input schema is required'), 'danger');
             return;
         }
 
@@ -461,7 +461,7 @@ function saveConfiguration() {
                 originalConfig = JSON.parse(JSON.stringify(config));
                 currentConfig = config;
 
-                showStatus('Configuration saved successfully!', 'success');
+                showStatus(_t('Configuration saved successfully!'), 'success');
 
                 // Update display
                 updateToolInfo(config);
@@ -470,7 +470,7 @@ function saveConfiguration() {
                 hideLoading();
                 $('#saveConfigBtn').prop('disabled', false);
 
-                let errorMsg = 'Failed to save configuration';
+                let errorMsg = _t('Failed to save configuration');
                 if (xhr.responseJSON && xhr.responseJSON.error) {
                     errorMsg += ': ' + xhr.responseJSON.error;
                 }
@@ -479,7 +479,7 @@ function saveConfiguration() {
         });
 
     } catch(e) {
-        showStatus('Invalid JSON configuration: ' + e.message, 'danger');
+        showStatus(_t('Invalid JSON configuration: ') + e.message, 'danger');
         $('#saveConfigBtn').prop('disabled', false);
     }
 }
@@ -491,24 +491,24 @@ function validateConfiguration() {
         // Basic validation
         const errors = [];
 
-        if (!config.name) errors.push('Missing required field: name');
-        if (!config.description) errors.push('Missing required field: description');
-        if (!config.version) errors.push('Missing required field: version');
-        if (config.enabled === undefined) errors.push('Missing required field: enabled');
-        if (!config.inputSchema) errors.push('Missing required field: inputSchema');
+        if (!config.name) errors.push(_t('Missing required field: name'));
+        if (!config.description) errors.push(_t('Missing required field: description'));
+        if (!config.version) errors.push(_t('Missing required field: version'));
+        if (config.enabled === undefined) errors.push(_t('Missing required field: enabled'));
+        if (!config.inputSchema) errors.push(_t('Missing required field: inputSchema'));
 
         if (!config.type && !config.implementation) {
-            errors.push('Either "type" (for built-in tools) or "implementation" (for custom tools) is required');
+            errors.push(_t('Either "type" (for built-in tools) or "implementation" (for custom tools) is required'));
         }
 
         if (errors.length > 0) {
-            showStatus('Validation failed:\n' + errors.join('\n'), 'danger');
+            showStatus(_t('Validation failed:\n') + errors.join('\n'), 'danger');
         } else {
-            showStatus('Configuration is valid!', 'success');
+            showStatus(_t('Configuration is valid!'), 'success');
         }
 
     } catch(e) {
-        showStatus('Invalid JSON: ' + e.message, 'danger');
+        showStatus(_t('Invalid JSON: ') + e.message, 'danger');
     }
 }
 
@@ -527,18 +527,18 @@ function downloadConfiguration() {
         document.body.removeChild(a);
         URL.revokeObjectURL(url);
 
-        showStatus('Configuration downloaded', 'success');
+        showStatus(_t('Configuration downloaded'), 'success');
     } catch(e) {
-        showStatus('Failed to download: ' + e.message, 'danger');
+        showStatus(_t('Failed to download: ') + e.message, 'danger');
     }
 }
 
 function deleteTool() {
-    if (!confirm(`Are you sure you want to delete the tool "${toolName}"? This action cannot be undone.`)) {
+    if (!confirm(_t('Are you sure you want to delete the tool "%(toolName)s"? This action cannot be undone.', {toolName: toolName}))) {
         return;
     }
 
-    if (!confirm('This will permanently delete the tool configuration file. Are you absolutely sure?')) {
+    if (!confirm(_t('This will permanently delete the tool configuration file. Are you absolutely sure?'))) {
         return;
     }
 
@@ -549,14 +549,14 @@ function deleteTool() {
         method: 'DELETE',
         success: function(response) {
             hideLoading();
-            showStatus('Tool deleted successfully. Redirecting...', 'success');
+            showStatus(_t('Tool deleted successfully. Redirecting...'), 'success');
             setTimeout(function() {
                 window.location.href = '/admin/tools';
             }, 2000);
         },
         error: function(xhr, status, error) {
             hideLoading();
-            let errorMsg = 'Failed to delete tool';
+            let errorMsg = _t('Failed to delete tool');
             if (xhr.responseJSON && xhr.responseJSON.error) {
                 errorMsg += ': ' + xhr.responseJSON.error;
             }
@@ -604,7 +604,7 @@ function showLoading() {
                 z-index: 9999;
             ">
                 <div class="spinner-border text-light" role="status" style="width: 3rem; height: 3rem;">
-                    <span class="visually-hidden">Loading...</span>
+                    <span class="visually-hidden">${_t('Loading...')}</span>
                 </div>
             </div>
         `);
