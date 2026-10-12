@@ -31,6 +31,10 @@ startup logs `Storage backend init failed, falling back to local filesystem` wit
 EFS is not a separate backend. It is a POSIX mount, so the `local` backend reads it as an
 ordinary path.
 
+Setting up a pod identity for the bucket on EKS, AKS or GKE (IRSA, Entra Workload ID,
+Workload Identity Federation) is in
+[Kubernetes Deployment](Kubernetes%20Deployment.md#bucket-access-on-eks-aks-and-gke).
+
 ---
 
 ## What goes through storage
@@ -47,6 +51,9 @@ selected store.
 | Semantic tool search vector index | `data/tool_search_index.json` | loaded at start and rewritten after re-embedding; only when `ai.tool_search.embedder` is `gateway` (the default `bm25` builds nothing to persist) and `ai.tool_search.persist` is true |
 | Document search sources, uploads and memory-store index | `ai.rag.sources[].path`, `ai.rag.uploads_dir` (default `data/rag/uploads`), `ai.rag.index_path` (default `data/rag/index.json`) | sources listed and read at each index build; uploads written and deleted; the index file only with `ai.rag.store: memory` and `ai.rag.persist` true ([Intelligence Layer](../architecture/Intelligence%20Layer.md#stores)) |
 | Federation store | `federation.state_path` (default `config/federation/federation.json`) | upstreams added on `/admin/federation` and every item's approval; read at start, rewritten on change ([Federation](../architecture/Federation.md)) |
+| DuckDB data folder written `storage://<prefix>` | `<prefix>/*.csv`, `*.tsv`, `*.parquet`, `*.json` (direct children only) | listed and staged into a local temporary directory at each load of the sandbox ([below](#duckdb-data-on-the-storage-backend)) |
+| Studio-generated modules and scripts (cloud backends) | `studio/modules/<module>.py`, `config/scripts/<file>` | published when the tool JSON is written; materialised locally before the tool loads ([below](#studio-modules-without-a-shared-file-system)) |
+| Plugins (cloud backends) | `config.plugins.dir` (default `config/plugins`) | mirrored into `cache_dir` and loaded from there at start ([below](#plugins-on-a-cloud-backend)) |
 
 The tools and prompts paths come from `config.tools.dir` / `config.prompts.dir` (defaults
 `config/tools`, `config/prompts`), taken relative to the working directory.
@@ -57,11 +64,15 @@ These parts are always read from local disk, even when the backend is a cloud st
 
 - `config/application.yml` itself (and any file passed with `--config`).
 - Tool **implementation** classes (`sajha.tools.impl.*`), imported from the installed package.
-- MCP Studio-generated `.py` files (written to `sajha/tools/impl/`) and Script-tool scripts
-  (`config/scripts/`). `importlib` needs a real module on disk.
-- Plugins under `config.plugins.dir` (default `config/plugins`).
-- DuckDB / SQL-select data directories (`data.duckdb.dir`, `data.sqlselect.dir`). These are
+- The local backend's Studio-generated `.py` files (`sajha/tools/impl/`) and Script-tool
+  scripts (`config/scripts/`): on the local backend they already are the storage. On a cloud
+  backend they are also kept in the bucket ([below](#studio-modules-without-a-shared-file-system)).
+- A DuckDB data directory that is a plain path (the shipped `./data/duckdb`), the SQL-select
+  data directory (`data.sqlselect.dir`) and the advanced OLAP tool's data folder. These are
   scanned with `os.listdir`.
+- The other read-mostly folders that still use direct file IO: `config/mcp_servers.json`,
+  `mcp.apps.dir`, the tool-quality folders (`config/tool_tests`, `config/evals`,
+  `config/tool_versions`), shipped workflows (`config/workflows`) and `config/olap/datasets.json`.
 
 ### What must not go through storage
 
@@ -147,9 +158,9 @@ storage:
 
 - Paths resolve as `base_dir / <relative path>`. Writes create parent directories.
 - Use EFS when several instances need one shared POSIX filesystem on AWS. It can hold the
-  state that cannot live on an object store (the SQLite DB, the OAuth key, the cache) and the
-  Studio-generated `.py` files that every instance must import. Point `base_dir`, `db.path`,
-  or `data.dir` at the mount as needed.
+  state that cannot live on an object store (the SQLite DB, the OAuth key, the cache) and,
+  with the local backend, the Studio-generated `.py` files every instance must import. Point
+  `base_dir`, `db.path`, or `data.dir` at the mount as needed.
 - Keep `base_dir` equal to the working directory unless you have a reason not to. The local
   hot-reload pollers (below) watch `config/tools` and `config/prompts` relative to the
   working directory, while storage reads resolve against `base_dir`.
@@ -248,7 +259,8 @@ Only one tool-reload mechanism is active per deployment.
 |-----------|---------|-----------------|----------|
 | Tools registry poller | `local` only (skipped on cloud) | `config/tools/*.json` and `config/tools/<folder>/*.json` on disk (new, modified, deleted, removed folders) plus `sajha/tools/impl/*.py` | 5 s (fixed) |
 | `ConfigReloader` / `HotReloadManager` | any (local files only) | local tool JSON, tool modules, prompt JSON, and the persistent API key file (`config.apikeys.path`) if present, which is also re-read on change when a key is looked up | `hot_reload.interval_seconds` |
-| `S3SyncManager` | `s3`, `azure`, `gcs` | `config/tools` → `reload_all_tools`; `config/prompts` → prompts `reload` | `storage.s3.sync_interval` (default 60 s), used for **all** cloud backends |
+| `S3SyncManager` | `s3`, `azure`, `gcs` | `config/tools` → `reload_all_tools`; `config/prompts` → prompts `reload` | `storage.s3.sync_interval` (default 60 s), used for **all** cloud backends; `storage.events.healthy_poll_interval` while push is healthy |
+| Bucket event listener (`storage.events.provider`) | `s3`, `azure`, `gcs` | every object event in the bucket under `prefix`; watched paths go to `S3SyncManager.notify` | push: seconds ([Push-based reload](#push-based-reload)) |
 | Prompts auto-refresh | any | full reload of prompts through storage | 600 s |
 
 How `S3SyncManager` works: at start it pulls every object under the watched prefixes into
@@ -261,15 +273,165 @@ Behaviour you should expect on a cloud backend:
 - **One full reload after start.** The first poll has no remembered timestamps, so it treats
   every object as changed and reloads tools and prompts once, about `sync_interval` seconds
   after startup.
-- **Deletions are not detected on their own.** Removing an object does not trigger a reload.
-  A deleted tool disappears at the next full reload: when another tool file is added or
-  changed, or when an admin calls `POST /api/admin/tools/reload`. A deleted prompt disappears
-  at the next prompts auto-refresh.
+- **Deletions are detected.** An object that was listed before and is gone now counts as a
+  change, so a deleted tool (or a removed tool folder) disappears at the next poll, or at once
+  with push-based reload.
 - The docs viewer needs no reload because it reads the store on every request.
 
 > `sajha/core/reload_manager.py` also defines a `ReloadManager` abstraction
 > (`LocalReloadManager` / `S3ReloadManager`). Nothing in the server starts it. The live
 > mechanisms are the ones in the table above.
+
+## Push-based reload
+
+Polling delays a bucket change by up to `sync_interval` and costs a listing of every watched
+prefix each cycle. With `storage.events.provider` set, a listener thread
+(`sajha/core/storage_events.py`) reads the bucket's event notifications from a queue and hands
+each changed path to the sync manager at once (`S3SyncManager.notify`). The sync manager
+refreshes the cached copy (or drops it for a delete) and fires the same reload callback the
+poll fires, once per watched prefix per batch, so the tools and prompts registries publish the
+same change-bus events (`notifications/tools/list_changed` and the rest) as after a poll.
+
+| `storage.events.provider` | Queue | Notification path | SDK |
+|---|---|---|---|
+| `sqs` | an SQS queue | S3 event notifications to SQS directly, through SNS (`Type: Notification` is unwrapped), or an EventBridge rule (`source: aws.s3`, `Object Created` / `Object Deleted`) | `boto3` |
+| `azure_queue` | an Azure Storage Queue | an Event Grid subscription on the storage account (`Microsoft.Storage.BlobCreated` / `BlobDeleted`, Event Grid or CloudEvents schema, plain or base64 JSON) | `azure-storage-queue` (+ `azure-identity` for `account_url`) |
+| `pubsub` | a Pub/Sub pull subscription | a GCS bucket notification on a topic (`OBJECT_FINALIZE`, `OBJECT_DELETE`, `OBJECT_ARCHIVE`, `OBJECT_METADATA_UPDATE`) | `google-cloud-pubsub` |
+| `auto` | the row for the backend | `s3` → `sqs`, `azure` → `azure_queue`, `gcs` → `pubsub` | |
+
+How it behaves:
+
+- **Polling stays on.** Push is an accelerator, never the only path. While the listener is
+  healthy (its last receive succeeded within three waits, at least a minute) the sync manager
+  polls every `storage.events.healthy_poll_interval` seconds (default 600) instead of
+  `sync_interval`; as soon as it is not healthy, polling returns to `sync_interval`.
+- **Only this bucket and prefix.** An event for another bucket or container, or for a key
+  outside `prefix`, is ignored. Every message is acknowledged after it is applied, including
+  one that cannot be read, so a malformed message never loops.
+- **Order-safe.** A "deleted" path that still exists is treated as changed, and a "changed"
+  one that is gone as deleted, so late or reordered events (a versioned GCS overwrite sends
+  `OBJECT_ARCHIVE` and `OBJECT_FINALIZE`) end in the bucket's real state.
+- **Every path, not only the watched ones.** Each batch also goes to the path listeners: a
+  workflow file trigger watching the prefix polls at its next tick instead of waiting out its
+  `interval_seconds` ([Workflows](../architecture/Workflows.md#9-limits)), and a DuckDB
+  `storage://` folder reloads.
+- **Several workers.** A queue delivers each message to one consumer. With a shared state
+  store (`state.backend: redis` or `database`) the worker that received a batch relays its
+  paths to every other worker (state-store channel `storage_events`). Without one, give each
+  replica its own queue or subscription (SNS fan-out, one Event Grid subscription per queue,
+  one Pub/Sub subscription per replica), or rely on polling for the others.
+- **Never a startup error.** A missing SDK or incomplete settings (no queue URL, queue name or
+  subscription) log an info line and raise the system notice `storage.events:<provider>`
+  (`info`); receives that fail three times in a row raise it as `warning` until one succeeds
+  ([System Notices](../architecture/System%20Notices.md#4-sources)). The listener is per worker
+  and ignored on the local backend.
+
+```yaml
+storage:
+  backend: s3
+  events:
+    provider: sqs                     # or auto
+    healthy_poll_interval: 600
+    sqs:
+      queue_url: https://sqs.us-east-1.amazonaws.com/123456789012/sajha-config-events
+```
+
+Setting up the notifications (prefix-filter on your `prefix`; created and deleted events):
+
+- **S3 → SQS.** Create a queue; allow `s3.amazonaws.com` to `sqs:SendMessage` from the bucket's
+  ARN in the queue policy; add an event notification on the bucket for `s3:ObjectCreated:*` and
+  `s3:ObjectRemoved:*` with prefix `sajha/`. The identity SAJHA runs as needs
+  `sqs:ReceiveMessage` and `sqs:DeleteMessage` on the queue. With EventBridge instead: turn on
+  "Send notifications to Amazon EventBridge" on the bucket and add a rule
+  (`source: aws.s3`, `detail-type: Object Created | Object Deleted`, the bucket name) with the
+  queue as target.
+- **Azure Blob → Event Grid → Storage Queue.** Create a queue in a storage account; add an
+  Event Grid event subscription on the blob account for *Blob Created* and *Blob Deleted*, with
+  subject filter `/blobServices/default/containers/<container>/blobs/sajha/` and the queue as
+  endpoint. The identity needs *Storage Queue Data Message Processor* on the queue.
+- **GCS → Pub/Sub.** `gcloud storage buckets notifications create gs://<bucket>
+  --topic=<topic> --object-prefix=sajha/ --payload-format=json`, then a pull subscription on
+  the topic. The identity needs *Pub/Sub Subscriber* on the subscription.
+
+## DuckDB data on the storage backend
+
+Write the DuckDB data directory as `storage://<prefix>` (for example
+`data.duckdb.dir: storage://data/duckdb`, which every shipped `duckdb_*` tool config references)
+and the data files are read through the storage backend, whichever it is. The DuckDB sandbox
+copies each file into an in-memory table and then switches off all file and URL access, so the
+files are not queried in place: at each load every supported file directly under the prefix is
+staged into a temporary directory under `data.duckdb.stage_dir` (the system temp directory when
+empty), loaded into its table, and the staged copy deleted at once. A file larger than
+`data.duckdb.stage_max_file_mb` (256), or one that would pass `data.duckdb.stage_max_total_mb`
+(1024) for that load, is skipped and logged. Change detection (the tools' auto refresh) compares
+the objects' modified times; a bucket event under the prefix reloads at once. A prefix that is
+empty or contains `..` is refused.
+
+## Studio modules without a shared file system
+
+On a cloud backend, writing a tool's JSON through `write_tool_config` also copies the Studio
+module it names (`sajha/tools/impl/<module>.py`) to `studio/modules/<module>.py` and a script
+tool's script (`config/scripts/<file>`) to `config/scripts/<file>` in the bucket
+(`sajha/core/storage_modules.py`). Every generator writes the Python file before the JSON.
+Before the tools registry loads a tool whose module has a Studio-generated name (`studio_*`,
+`dbquery_*`, `rest_*`, `livelink_*`, `powerbi_*`, `powerbidax_*`, `*_script_tool`; no built-in
+module uses these), it fetches the module and the script when the local copy is missing or
+older. A module the package directory lacks is written to `<cache_dir>/studio_modules/`, which
+is appended to the `sajha.tools.impl` package path: a file in the package always wins, and the
+installed package is not written on an instance that did not generate the tool. An edited module
+replaces the cached copy, and an already imported one is reloaded. Other names are never
+fetched, so a bucket object cannot replace a built-in module. On the local backend all of this
+is a no-op.
+
+## Plugins on a cloud backend
+
+On a cloud backend the plugins folder (`config.plugins.dir`, default `config/plugins`) is a
+prefix in the bucket. At start, discovery mirrors every object under it into
+`<cache_dir>/config/plugins/` (removing mirrored files that are gone from the bucket) and loads
+plugins from the mirror, because importlib, the checksum and `requirements.txt` need real files.
+An absolute `config.plugins.dir` is taken as a local mount and read directly.
+
+## Testing the backends
+
+`tests/test_storage_emulators.py` runs one contract (list, read, write, JSON, exists, delete,
+modified time, the local mirror) on every backend available: the in-memory object store
+always, S3 under `moto` (with bucket events through SQS), MinIO, Azurite and fake-gcs-server
+when their variables are set. The unit tests (`tests/test_storage_events.py`,
+`tests/test_storage_finished.py`) use fake queue clients and an in-memory store and make no
+cloud calls. To run the emulator tests in CI, add a job like:
+
+```yaml
+  storage-emulators:
+    runs-on: ubuntu-latest
+    services:
+      minio:
+        image: bitnami/minio:latest
+        env: {MINIO_ROOT_USER: minio, MINIO_ROOT_PASSWORD: minio12345}
+        ports: ['9000:9000']
+      azurite:
+        image: mcr.microsoft.com/azure-storage/azurite
+        ports: ['10000:10000']
+      gcs:
+        image: fsouza/fake-gcs-server
+        options: --entrypoint "/bin/fake-gcs-server -scheme http"
+        ports: ['4443:4443']
+    env:
+      AWS_ACCESS_KEY_ID: minio
+      AWS_SECRET_ACCESS_KEY: minio12345
+      SAJHA_TEST_S3_ENDPOINT: http://127.0.0.1:9000
+      SAJHA_TEST_AZURITE: "UseDevelopmentStorage=true"
+      STORAGE_EMULATOR_HOST: http://127.0.0.1:4443
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: '3.13'}
+      - run: pip install -r requirements.txt -r requirements-dev.txt "moto[s3,sqs]" boto3 azure-storage-blob google-cloud-storage
+      - run: python -m pytest -q tests/test_storage_emulators.py tests/test_storage_events.py tests/test_storage_finished.py
+```
+
+`tests/test_storage_finished.py` also guards the subsystems that were moved onto storage
+(tools and prompts registries, guides, federation store, tool files, planner registry, report
+files): a direct `open('config/...')` in one of them fails the run.
 
 ---
 
@@ -304,10 +466,11 @@ Behaviour you should expect on a cloud backend:
    expected tools, and `/help/guides` lists the guides.
 5. **Keep state off the bucket.** The database, cache, and OAuth key stay on local disk or
    EFS (or PostgreSQL).
-6. **Multi-instance with MCP Studio.** Studio writes the tool JSON to the bucket, so every
-   instance sees it. It writes the `.py` implementation to the local `sajha/tools/impl/`. Put
-   that directory on shared EFS, or other instances will log a load error for the new tool.
-   Studio's "already exists" check also looks only at the local disk.
+6. **Multi-instance with MCP Studio.** Studio writes the tool JSON to the bucket, and on a
+   cloud backend the module and script too; other instances materialise them when they load the
+   tool ([Studio modules](#studio-modules-without-a-shared-file-system)), so no shared file
+   system is needed. Studio's "already exists" check looks only at the local disk.
+7. **Optionally turn on push-based reload** ([Push-based reload](#push-based-reload)).
 
 ---
 
@@ -318,9 +481,9 @@ Behaviour you should expect on a cloud backend:
 | `SAJHA_STORAGE_BACKEND=s3` set, but the log says `LocalStorageBackend` | Backend construction failed and the server fell back to local; the line before it says why (next row). The environment does win over the YAML (see [Environment variables](#environment-variables)). |
 | `Storage backend init failed, falling back to local filesystem` | The constructor raised an error, such as a missing SDK (`ImportError` names the package) or Azure with neither `connection_string` nor `account_url`. The server keeps running on the local backend. |
 | No tools load on a cloud backend | The bucket is empty, the prefix is wrong, or the credentials lack `List`. The objects must be at `<prefix>/config/tools/*.json` or `<prefix>/config/tools/<folder>/*.json`. Check the startup line `Loading tools from 'config/tools' via ...`. |
-| Bucket edits take a while to appear | Polling cadence is `storage.s3.sync_interval` (there are no push notifications). Lower it, or call `POST /api/admin/tools/reload`. |
-| A tool deleted from the bucket is still listed | Deletions alone do not trigger a reload (see [Hot reload](#hot-reload-per-backend)). Call `POST /api/admin/tools/reload`. |
-| Tool JSON loads but the class fails to import on another instance | The Studio `.py` exists only on the instance that generated it. Share `sajha/tools/impl/` via EFS. |
+| Bucket edits take a while to appear | Without push, the polling cadence is `storage.s3.sync_interval`. Turn on [push-based reload](#push-based-reload), lower the interval, or call `POST /api/admin/tools/reload`. |
+| Push is configured but edits still wait for the poll | Look for the notice `storage.events:<provider>` and the log line `Storage events (...) not started`: a missing SDK, an empty queue setting, or failing receives (permissions). Check that the notification's prefix filter matches `prefix`. |
+| Tool JSON loads but the class fails to import on another instance | The module is not in the bucket under `studio/modules/` (the tool was generated before this release, or on the local backend). Save the tool again in Studio, or copy the `.py` there. |
 | `database is locked` or a corrupt SQLite file on a shared mount | Never put SQLite on an object store. On EFS, prefer a single writer, or switch `db.type` to `postgresql`. |
 | A guide is missing from `/help/guides` | Only `*.md` under `docs/` (recursive, excluding `docs/archive/` and `README.md` files) are listed, and on a cloud backend they must be in the bucket under `<prefix>/docs/`. |
 
@@ -336,7 +499,9 @@ StorageBackend (ABC)                list_files, read/write bytes|text, exists, d
        ├── S3StorageBackend         boto3
        ├── AzureBlobStorageBackend  azure-storage-blob (+ azure-identity)
        └── GCSStorageBackend        google-cloud-storage
-S3SyncManager                       cloud hot reload (poll → cache → reload callbacks)
+S3SyncManager                       cloud hot reload (poll → cache → reload callbacks; notify() for pushed paths)
+storage_events.StorageEvents        bucket event listener (SQS, Storage Queue, Pub/Sub) → S3SyncManager.notify
+storage_modules                     Studio modules and scripts: publish to the bucket, materialise locally
 init_storage(config) / get_storage()   factory and process-wide singleton
 write_tool_config(path, cfg)           Studio helper → 'config/tools/<basename>'
 ```
@@ -354,21 +519,13 @@ not `open()`.
 These items come from the former storage roadmap. Each one was checked against the code and is
 not implemented today.
 
-- **Push-based cloud reload.** Bucket event notifications (S3 → SNS/SQS or EventBridge, and
-  equivalents) to replace polling.
-- **DuckDB reading object storage directly.** Allow `data.duckdb.dir` to be an `s3://` URI
-  read via DuckDB's `httpfs` extension. Today the data directory is scanned with `os.listdir`
-  and must be local.
-- **Studio `.py` propagation without EFS.** Write generated implementations to the backend
-  and sync them into a cache directory on `sys.path`.
-- **Per-cloud identity setup guides.** Step-by-step IAM role, managed identity, and workload
-  identity setup in the deployment guides, especially for Azure and GCS, which have no
-  deployment guide yet.
-- **Guardrails and CI.** A check that fails on new direct `open('config/...')` IO in migrated
-  subsystems, and storage-backend tests in CI (`moto` for S3, injected clients or emulators
-  such as Azurite, fake-gcs-server, or MinIO for Azure and GCS).
-- **Migrating the remaining direct file IO** (for example plugins under `config/plugins`) onto
-  `get_storage()`.
+- **The remaining direct file IO** onto `get_storage()`: the SQL-select and advanced OLAP data
+  folders, `config/mcp_servers.json`, `mcp.apps.dir`, the tool-quality folders, shipped
+  workflows and `config/olap/datasets.json` (listed under
+  [Read from local disk](#read-from-local-disk-regardless-of-backend)).
+- **The emulator job in CI.** The tests and the recipe exist ([Testing the
+  backends](#testing-the-backends)); `.github/workflows/tests.yml` does not run that job yet, so
+  in CI only the in-memory contract and the fakes run.
 - **An `fsspec`-based backend** for other targets (HTTP, FTP, HDFS), behind the same
   `StorageBackend` interface.
 

@@ -1,11 +1,12 @@
 # Per-User Sign-In for Proxied Servers
 
-**Status: built, both modes: `token_user` (phase 7.2) and `oauth_user` (phase 7.3)**; what is built
-and what is not: [§10](#10-what-is-built). How a proxied MCP server's tools should run
+**Status: built, every mode: `token_user` (phase 7.2), `oauth_user` (phase 7.3) and
+`service_with_user` (wave 9)**, with the default approval rule for proxied writes; what is built:
+[§10](#10-what-is-built). How a proxied MCP server's tools should run
 **as the person who asked**, with that person's own account at the vendor, instead of one shared
 credential. It is the prerequisite for the [Google](Google%20Integration.md),
 [GitHub](GitHub%20Integration.md) and [Atlassian](Atlassian%20Integration.md) integrations and for most
-hosted MCP servers. How proxied servers work, and how to configure both modes, is in
+hosted MCP servers. How proxied servers work, and how to configure each mode, is in
 [Federation](Federation.md#per-user-credentials-token_user); per-user accounts
 for SAJHA's own tools are in [Connected Accounts](Connected%20Accounts.md).
 
@@ -97,22 +98,24 @@ connection fails the run with a clear notice instead of silently using another i
 
 ## 10. What is built
 
-Both modes are configured and operated as described in [Federation §3](Federation.md#per-user-credentials-token_user)
-(personal tokens) and [Per-user OAuth sign-in](Federation.md#per-user-oauth-sign-in-oauth_user); the
-walkthrough is [Tutorial 42](../tutorials/TUTORIAL_42_per_user_sign_in.md).
+The modes are configured and operated as described in [Federation §3](Federation.md#per-user-credentials-token_user)
+(personal tokens), [Per-user OAuth sign-in](Federation.md#per-user-oauth-sign-in-oauth_user) and
+[A shared identity naming the user](Federation.md#a-shared-identity-naming-the-user-service_with_user);
+the walkthrough is [Tutorial 42](../tutorials/TUTORIAL_42_per_user_sign_in.md).
 
 | Design item | Built |
 |---|---|
-| Credential modes (§2) | `auth.type` `static` (default; today's headers and credentials, unchanged), `token_user` (phase 7.2) and `oauth_user` (phase 7.3), in `federation.upstreams`, console-added upstreams and `config/mcp_servers.json` alike. `service_with_user` is not built. |
+| Credential modes (§2) | `auth.type` `static` (default; today's headers and credentials, unchanged), `token_user` (phase 7.2), `oauth_user` (phase 7.3) and `service_with_user` (wave 9: the shared credential in `auth.service`, the caller's SAJHA user id in `auth.user_header`, default `X-SAJHA-User`, shaped by `user_format`; discovery with the service identity alone; anonymous callers refused; on a session-based upstream a session per user), in `federation.upstreams`, console-added upstreams and `config/mcp_servers.json` alike. |
 | At call time (§3) | The caller (signed-in user, owned API key's owner, SAJHA Net mapped user) → their token from the vault (`upstream:<id>`) → sent with that call only. An OAuth token due within `accounts.refresh_skew_seconds` is refreshed first. No token, or a refused refresh: the connected-accounts "connect your account" answers on every front end. Anonymous callers refused. A vendor 401 to an OAuth token refreshes it once and retries; otherwise a 401/403 is passed back and (for a personal token, or a refused OAuth refresh) the connection is marked "needs re-connect"; never retried as anyone else. |
 | Connecting (§4) | Personal tokens: the connect page with the token's label, where to create one, prefix/pattern checks and a test call. OAuth: discovery of the server's protected-resource metadata (RFC 9728, from the 401's `WWW-Authenticate` or the well-known URL) and its authorization server's metadata (RFC 8414 or OpenID Connect discovery), or operator-given endpoints; dynamic client registration (RFC 7591) or an operator-registered client (`client_id`, `client_secret_ref`); authorization code with PKCE `S256` and `state` on the connected-accounts machinery; one allowlisted redirect URI (`/account/server-connections/oauth/callback`); the resource indicator (RFC 8707) on authorization, token and refresh requests; read `scopes` by default and `write_scopes` only for users who opt in. The Connections view per user and the administrators' view show both kinds (OAuth: scopes and expiry), with revoke. |
 | Sessions and discovery (§5) | Per request on 2026-07-28 upstreams; one session per user on session-based ones (idle close, cap per upstream; a refreshed OAuth token opens a new one); discovery with a discovery credential or the first connected user's token (refreshed when due), the union of what users' tokens list. |
 | SAJHA Net (§6) | The connect request relayed back to a remote caller as an input request; the token stays on the defining server. |
-| Security (§7) | Encrypted in the vault, never logged or returned; revoked (OAuth tokens also at the vendor, RFC 7009, where advertised) when a user disconnects, is disabled or deleted on the console or in the users file, or signs out everywhere; every connect, refresh, disconnect and refusal audited (`proxied_connection.*`), every call's audit record names the identity mode and user. Discovered URLs pass the federation URL guard and must be https. Write approvals use the existing policy engine (no default rule is shipped for proxied writes). |
+| Security (§7) | Encrypted in the vault, never logged or returned; revoked (OAuth tokens also at the vendor, RFC 7009, where advertised) when a user disconnects, is disabled or deleted on the console or in the users file, or signs out everywhere; every connect, refresh, disconnect and refusal audited (`proxied_connection.*`), every call's audit record names the identity mode and user. Discovered URLs pass the federation URL guard and must be https. Writes: the shipped, enabled policy `config/policies/20-proxied-writes.yaml` requires approval for every proxied tool without `readOnlyHint: true` (the person at the client confirms where it can, else an administrator); `enabled: false` in that file switches it off ([Policy and Audit §5.1](Policy%20and%20Audit.md#51-the-shipped-rule-for-proxied-writes)). |
 | Background work (§8) | Workflows and scheduled jobs run as their owner, so they use the owner's token; a missing token fails the step with the connect message. |
 
-**Not built:** the `service_with_user` mode (§2) and a default policy rule that asks for approval of
-proxied writes (§7); both are one row of the [Roadmap](Roadmap.md) (L20).
+**Limits:** the write rule trusts the vendor's `readOnlyHint` (a tool that wrongly claims it is not
+caught); `service_with_user` names the user by SAJHA user id only, and the vendor decides what the
+service identity may do for that user.
 
 ---
 

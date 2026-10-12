@@ -18,7 +18,10 @@ from typing import Any, Dict, List
 from sajha.workflows import expr
 
 STEP_KINDS = ('tool', 'composite', 'ask', 'condition', 'foreach', 'wait', 'approval')
-INNER_KINDS = ('tool', 'composite', 'ask')          # what a foreach runs per item
+INNER_KINDS = ('tool', 'composite', 'ask')          # a foreach body that is one call
+BODY_KINDS = ('tool', 'composite', 'ask', 'condition', 'wait')   # the steps of a foreach sub-graph body
+BODY_MAX_STEPS = 200                                # hard ceiling; workflows.foreach_max_body_steps is the limit
+CATCH_UP = ('none', 'last', 'all')                  # replay of cron slots missed while no worker ran
 TRIGGER_TYPES = ('cron', 'webhook', 'file', 'event', 'manual')
 JOINS = ('all_success', 'any_success', 'all_done')
 ON_ERROR = ('fail', 'continue')
@@ -169,16 +172,23 @@ def _step(raw: Any, i: int) -> Dict[str, Any]:
             raise WorkflowError(f'{where}: a foreach step has "items" (a list or a "$..." reference)')
         out['items'] = items
         body = raw.get('do') or raw.get('step')
+        if isinstance(body, list):
+            body = {'steps': body}
         if not isinstance(body, dict):
-            raise WorkflowError(f'{where}: a foreach step has "do": the tool, composite or ask call per item')
-        bkind = body.get('kind') or ('tool' if body.get('tool') else None)
-        if bkind not in INNER_KINDS:
-            raise WorkflowError(f'{where}: do.kind must be one of {", ".join(INNER_KINDS)}')
-        inner: Dict[str, Any] = {'kind': bkind, 'on_error': body.get('on_error', 'fail')}
-        if inner['on_error'] not in ON_ERROR:
-            raise WorkflowError(f'{where}: do.on_error must be fail or continue')
-        _call(body, f'{where}.do', inner)
-        out['do'] = inner
+            raise WorkflowError(f'{where}: a foreach step has "do": the call per item, or {{steps: [...]}}, '
+                                f'a small graph of steps per item')
+        if 'steps' in body:
+            out['do'] = _body_graph(body, where)
+        else:
+            bkind = body.get('kind') or ('tool' if body.get('tool') else None)
+            if bkind not in INNER_KINDS:
+                raise WorkflowError(f'{where}: do.kind must be one of {", ".join(INNER_KINDS)} '
+                                    f'(or give do.steps, a graph of steps)')
+            inner: Dict[str, Any] = {'kind': bkind, 'on_error': body.get('on_error', 'fail')}
+            if inner['on_error'] not in ON_ERROR:
+                raise WorkflowError(f'{where}: do.on_error must be fail or continue')
+            _call(body, f'{where}.do', inner)
+            out['do'] = inner
         if raw.get('max_items') is not None:
             out['max_items'] = _num(raw['max_items'], f'{where}: max_items', 1, 100000, True)
         out['parallel'] = _num(raw.get('parallel', 1), f'{where}: parallel', 1, 32, True)
@@ -199,6 +209,42 @@ def _step(raw: Any, i: int) -> Dict[str, Any]:
         if raw.get('ttl_seconds') is not None:
             out['ttl_seconds'] = _num(raw['ttl_seconds'], f'{where}: ttl_seconds', 60, 86400 * 30, True)
     return out
+
+
+def _body_graph(body: Dict[str, Any], where: str) -> Dict[str, Any]:
+    """A foreach body that is a graph: ``{steps: [...], output: ..., on_error: ...}``. Its steps are
+    wired (implicit dependencies, cycles) in :func:`normalize`, which knows the outer step ids."""
+    raw_steps = body.get('steps')
+    if not isinstance(raw_steps, list) or not raw_steps:
+        raise WorkflowError(f'{where}: do.steps is a non-empty list of steps')
+    if len(raw_steps) > BODY_MAX_STEPS:
+        raise WorkflowError(f'{where}: do.steps has at most {BODY_MAX_STEPS} steps')
+    steps = []
+    for j, rs in enumerate(raw_steps):
+        try:
+            b = _step(rs, j)
+        except WorkflowError as e:
+            raise WorkflowError(f'{where}.do: {e}')
+        if b['kind'] not in BODY_KINDS:
+            raise WorkflowError(f'{where}.do: step {b["id"]}: a foreach body step is one of '
+                                f'{", ".join(BODY_KINDS)}')
+        steps.append(b)
+    out: Dict[str, Any] = {'kind': 'graph', 'steps': steps, 'on_error': body.get('on_error', 'fail')}
+    if out['on_error'] not in ON_ERROR:
+        raise WorkflowError(f'{where}: do.on_error must be fail or continue')
+    if body.get('output') is not None:
+        out['output'] = body['output']
+    return out
+
+
+def _catch_up(raw: Dict[str, Any], where: str, out: Dict[str, Any]) -> None:
+    """``catch_up`` (none, last, all) and ``catch_up_max``, when given."""
+    if raw.get('catch_up') is not None:
+        if raw['catch_up'] not in CATCH_UP:
+            raise WorkflowError(f'{where}catch_up must be one of {", ".join(CATCH_UP)}')
+        out['catch_up'] = raw['catch_up']
+    if raw.get('catch_up_max') is not None:
+        out['catch_up_max'] = _num(raw['catch_up_max'], f'{where}catch_up_max', 1, 1000, True)
 
 
 def _trigger(raw: Any, i: int) -> Dict[str, Any]:
@@ -224,6 +270,7 @@ def _trigger(raw: Any, i: int) -> Dict[str, Any]:
             raise WorkflowError(f'{where}: {e}')
         out['cron'] = str(raw['cron']).strip()
         out['timezone'] = raw.get('timezone') or 'UTC'
+        _catch_up(raw, f'{where}: ', out)
     elif ttype == 'webhook':
         secret = raw.get('secret')
         secret_ref = raw.get('secret_ref')
@@ -292,38 +339,31 @@ def normalize(raw: Dict[str, Any]) -> Dict[str, Any]:
         raise WorkflowError(f'step ids must be unique: {", ".join(sorted(dup))}')
     by_id = {s['id']: s for s in steps}
 
-    # implicit dependencies: $steps references and condition branches
+    # a foreach body graph: its own ids, wired among themselves; it may read the outer steps
+    seen_inner: set = set()
     for s in steps:
-        reads = set()
-        for key in ('params', 'question', 'items', 'when', 'seconds', 'until', 'if'):
-            if key in s:
-                reads |= expr.refs_in(s[key])
-        if 'do' in s:
-            reads |= expr.refs_in(s['do'].get('params', {})) | expr.refs_in(s['do'].get('question', ''))
-        for r in sorted(reads):
-            if r not in by_id:
-                raise WorkflowError(f'step {s["id"]} reads $steps.{r}, which is not a step')
-            if r != s['id'] and r not in s['depends_on']:
-                s['depends_on'].append(r)
-    for s in steps:
-        if s['kind'] == 'condition':
-            for b in s['then'] + s['else']:
-                if b not in by_id:
-                    raise WorkflowError(f'step {s["id"]}: branch {b} is not a step')
-                if s['id'] not in by_id[b]['depends_on']:
-                    by_id[b]['depends_on'].append(s['id'])
-    for s in steps:
-        for d in s['depends_on']:
-            if d not in by_id:
-                raise WorkflowError(f'step {s["id"]} depends on {d}, which is not a step')
-            if d == s['id']:
-                raise WorkflowError(f'step {s["id"]} depends on itself')
-    topo_order(steps)   # raises on a cycle
+        do = s.get('do') or {}
+        if do.get('kind') != 'graph':
+            continue
+        inner = [b['id'] for b in do['steps']]
+        clash = sorted(({i for i in inner if inner.count(i) > 1}) | (set(inner) & (set(by_id) | seen_inner)))
+        if clash:
+            raise WorkflowError(f'step {s["id"]}: body step ids must be unique in the workflow: {", ".join(clash)}')
+        seen_inner |= set(inner)
+        _wire(do['steps'], outer=set(by_id), where=f'step {s["id"]}.do: ')
+
+    _wire(steps)
 
     triggers = [_trigger(t, i) for i, t in enumerate(raw.get('triggers') or [])]
     tids = [t['id'] for t in triggers]
     if len(set(tids)) != len(tids):
         raise WorkflowError('trigger ids must be unique')
+    wf_catch: Dict[str, Any] = {}
+    _catch_up(raw, '', wf_catch)            # workflow-level: the default of its cron triggers
+    for t in triggers:
+        if t['type'] == 'cron':
+            for k, v in wf_catch.items():
+                t.setdefault(k, v)
 
     out: Dict[str, Any] = {'name': name, 'description': str(raw.get('description') or '')[:2000]}
     if raw.get('input_schema') is not None:
@@ -334,6 +374,7 @@ def normalize(raw: Dict[str, Any]) -> Dict[str, Any]:
     if raw.get('output') is not None:
         out['output'] = raw['output']
     out['triggers'] = triggers
+    out.update(wf_catch)
     if raw.get('concurrency') is not None:
         out['concurrency'] = _num(raw['concurrency'], 'concurrency', 1, 1000, True)
     if raw.get('max_parallel') is not None:
@@ -367,6 +408,52 @@ def normalize(raw: Dict[str, Any]) -> Dict[str, Any]:
             p['description'] = str(publish['description'])[:2000]
         out['publish'] = p
     return out
+
+
+def _reads(s: Dict[str, Any]) -> set:
+    """The step ids a step reads through ``$steps.<id>`` (a body graph: only what it reads outside itself)."""
+    reads = set()
+    for key in ('params', 'question', 'items', 'when', 'seconds', 'until', 'if'):
+        if key in s:
+            reads |= expr.refs_in(s[key])
+    do = s.get('do')
+    if do:
+        if do.get('kind') == 'graph':
+            inner = set()
+            for b in do['steps']:
+                inner |= _reads(b)
+            inner |= expr.refs_in(do.get('output'))
+            reads |= inner - {b['id'] for b in do['steps']}
+        else:
+            reads |= expr.refs_in(do.get('params', {})) | expr.refs_in(do.get('question', ''))
+    return reads
+
+
+def _wire(steps: List[Dict[str, Any]], outer: set = frozenset(), where: str = '') -> None:
+    """Implicit dependencies (``$steps`` reads, condition branches), checks, and no cycle. Reads of
+    ``outer`` ids (a body graph reading the workflow's steps) are allowed and left to the caller."""
+    by_id = {s['id']: s for s in steps}
+    for s in steps:
+        for r in sorted(_reads(s)):
+            if r in by_id:
+                if r != s['id'] and r not in s['depends_on']:
+                    s['depends_on'].append(r)
+            elif r not in outer:
+                raise WorkflowError(f'{where}step {s["id"]} reads $steps.{r}, which is not a step')
+    for s in steps:
+        if s['kind'] == 'condition':
+            for b in s['then'] + s['else']:
+                if b not in by_id:
+                    raise WorkflowError(f'{where}step {s["id"]}: branch {b} is not a step')
+                if s['id'] not in by_id[b]['depends_on']:
+                    by_id[b]['depends_on'].append(s['id'])
+    for s in steps:
+        for d in s['depends_on']:
+            if d not in by_id:
+                raise WorkflowError(f'{where}step {s["id"]} depends on {d}, which is not a step')
+            if d == s['id']:
+                raise WorkflowError(f'{where}step {s["id"]} depends on itself')
+    topo_order(steps)   # raises on a cycle
 
 
 def topo_order(steps: List[Dict[str, Any]]) -> List[str]:

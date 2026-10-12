@@ -63,7 +63,7 @@ with its variable `basePath` (`v1` or `v2`); the effective base URL is
 | `petstore_show_pet_by_id` | `GET /pets/{petId}` | read-only |
 | `petstore_update_pet` | `PUT /pets/{petId}` | destructive, idempotent |
 | `petstore_delete_pet` | `DELETE /pets/{petId}` | destructive, idempotent |
-| `petstore_upload_pet_image` | `POST /pets/{petId}/image` | flagged: multipart bodies are not supported, so it cannot be selected |
+| `petstore_upload_pet_image` | `POST /pets/{petId}/image` | file upload (a multipart body: its `file` argument takes `content_base64`, `text` or a `path`) |
 
 The names come from each `operationId` (`showPetById` → `show_pet_by_id`) after the
 prefix; each one can be edited before deploying.

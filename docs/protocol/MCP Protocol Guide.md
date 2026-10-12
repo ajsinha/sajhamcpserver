@@ -129,6 +129,13 @@ enable/disable). The bus coalesces bursts, so reloading
 many tools is one notification. `mcp.subscriptions.max_streams` caps concurrent
 streams.
 
+A client that declares the tasks extension may also list `taskIds` (SEP-2663). The
+acknowledgement names the ones it honours: the listed tasks of the calling user that
+exist. Each then gets `notifications/tasks` carrying the full task, exactly what `tasks/get`
+would return at that moment (with `result` or `error` inlined once it is terminal): first
+its current state, then one per change (status, pending input). Without the extension the
+listen request is `-32021`. Polling `tasks/get` works the same with or without it.
+
 ### Multi Round-Trip Requests (MRTR)
 
 A stateless server cannot send the client a request mid-call. Instead, `tools/call`,
@@ -146,8 +153,11 @@ cannot answer input requests (2025-11-25 sessions, REST, A2A) get a tool error a
 call over 2026-07-28, as for a federated tool.
 
 Built on MRTR: optional confirmation before running a tool annotated
-`destructiveHint: true` (`mcp.confirm_destructive_tools`, off by default), and sampling by
-LLM tools (below).
+`destructiveHint: true` (`mcp.confirm_destructive_tools`, off by default), sampling by
+LLM tools (below), and the confirmation `sajha_ask` asks for before a destructive call it wants
+to make: one `elicitation/create` form per pending call, keyed `sajha_confirm_<fingerprint>`,
+when the client declared form-mode elicitation; without it the result is
+`stopped_by: needs_confirmation` ([Intelligence Layer](../architecture/Intelligence%20Layer.md#sajha_ask-mcp)).
 
 ### Sampling by LLM tools
 
@@ -177,7 +187,9 @@ and `metadata.sajha_llm_tool`. Without a capable client `prefer` uses SAJHA's ow
 `"execution": {"taskSupport": "optional" | "required"}` in its JSON config; the
 client opts in per request. Task records are scoped to the calling user (`mcp.tasks.*`)
 and kept in the state store: per process by default, shared and durable with a shared
-backend ([Scaling and State](../architecture/Scaling%20and%20State.md)).
+backend ([Scaling and State](../architecture/Scaling%20and%20State.md)). Instead of
+polling, a client can listen for `notifications/tasks` (`taskIds` on
+`subscriptions/listen`, above).
 
 MCP tasks are not the same thing as SAJHA's **async execution** (`/admin/async-tasks`,
 `async.*` config), a fire-and-forget worker pool that delivers results to a webhook,
@@ -229,9 +241,22 @@ curl -s http://localhost:3002/mcp -H 'Content-Type: application/json' \
 - Requests without a session header are still accepted, which keeps simple scripts
   working.
 - Tools that talk to the client while running (sampling, elicitation; LLM tools with
-  `llm.sampling`, section 2) answer with an SSE stream on the POST; the client POSTs its
-  JSON-RPC responses back.
-- `ping`, `logging/setLevel`, `resources/subscribe` are available here.
+  `llm.sampling`, section 2; `sajha_ask` asking a session that declared form-mode elicitation
+  to confirm a destructive call; a proxied MCP server's tool whose upstream asks its client for
+  sampling, elicitation or roots, [Federation](../architecture/Federation.md#7-calls)) answer with
+  an SSE stream on the POST; the client POSTs its JSON-RPC responses back.
+- `ping`, `logging/setLevel`, `resources/subscribe` are available here. `resources/subscribe` adds
+  the URI to the session's subscriptions (`initialize` advertises `resources.subscribe: true`), and
+  `notifications/resources/updated` for it travels on the session's `GET /mcp` stream.
+- `GET /mcp` with the session header and `Accept: text/event-stream` opens the session's
+  own server-to-client stream, which carries `notifications/tools/list_changed`,
+  `prompts/list_changed` and `resources/list_changed` from the change bus (so
+  `initialize` advertises `listChanged: true`). One such stream per session: a second
+  GET is 409, a GET without a session header 405, an unknown session 404, a session of
+  another user 404. `DELETE /mcp` (or the session expiring) ends it; `Last-Event-ID` is
+  not replayed.
+- Tasks (`tasks/*`, `notifications/tasks/status`) are not offered on this path; they
+  are a 2026-07-28 extension here.
 - `notifications/cancelled` (with the session header) cancels the named in-flight
   `tools/call`: the call runs in a worker thread, so it sets a flag that
   `mcp_tool_context.is_cancelled()` reports and federated tools act on by cancelling their
@@ -249,9 +274,10 @@ curl -s http://localhost:3002/mcp -H 'Content-Type: application/json' \
 | WebSocket (SAJHA extension) | `/mcp/ws` | legacy | Full-duplex clients; accepts JSON-RPC batches; authenticates with `?token=` or `?api_key=`. |
 | stdio | the server's stdin/stdout (`sajha serve --stdio`, `python run_sajha_web.py --stdio`) | both | Desktop clients (Claude Desktop, Claude Code, IDEs) that launch the server as a subprocess. |
 
-The legacy SSE and WebSocket streams receive the same change-bus notifications as
-`subscriptions/listen`, and therefore advertise `listChanged: true`. Streamable HTTP
-sessions have no push channel (`GET /mcp` is 405), so they advertise `false`.
+Every session-based transport has a push channel and advertises `listChanged: true`:
+a 2025-11-25 Streamable HTTP session receives the change-bus notifications on its
+`GET /mcp` stream (section 3), the legacy SSE and WebSocket streams on their own stream,
+stdio on stdout. The 2026-07-28 path gets them on `subscriptions/listen`.
 
 ### Progress and cancellation per transport
 
@@ -343,7 +369,8 @@ These behave the same on both paths:
   `mcp.anonymous.prompts` (none by default; see §6).
 - **Resources** include the tool and prompt catalogs (`sajha://tools/catalog`,
   `sajha://prompts/catalog`) and resource templates; `completion/complete` completes
-  prompt arguments and tool enum values. The catalogs and completions cover only the
+  prompt arguments and tool enum values (a proxied server's prompts and templates are completed by
+  that server, [Federation](../architecture/Federation.md#4-namespacing)). The catalogs and completions cover only the
   tools and prompts the caller may see.
 - **Origin check.** A browser `Origin` that is not loopback and not listed in
   `mcp.allowed_origins` gets 403 (DNS-rebinding protection). Requests without an

@@ -40,12 +40,13 @@ import copy
 import json
 import logging
 import re
+import uuid
 from dataclasses import dataclass, field
 from typing import Any, Awaitable, Callable, Dict, List, Mapping, Optional, Tuple, Union
 
 from starlette.concurrency import run_in_threadpool
 
-from sajha.core.change_bus import PROMPTS, RESOURCE_UPDATED, RESOURCES, TOOLS, get_change_bus
+from sajha.core.change_bus import PROMPTS, RESOURCE_UPDATED, RESOURCES, TASK, TOOLS, get_change_bus
 from sajha.core.mcp_2025_11_25 import MCPError, SUPPORTED_PROTOCOL_VERSIONS as HANDSHAKE_PROTOCOL_VERSIONS
 from sajha.core.mcp_mrtr import (MRTR_METHODS, InputRequired, RequestStateError, accepted_content,
                                  elicitation_form_supported, elicitation_request, missing_capabilities_for,
@@ -730,7 +731,7 @@ class ModernMCPServer:
                 raise ModernError(METHOD_NOT_FOUND, f"Method not found: {method}", method)
             accepts_sse = "text/event-stream" in (headers.get("accept") or "")
             if method == "subscriptions/listen":
-                return self._listen(rid, params, ctx, accepts_sse)
+                return self._listen(rid, params, ctx, accepts_sse, session)
         except ModernError as e:
             return self._error_response(rid, e)
 
@@ -828,9 +829,10 @@ class ModernMCPServer:
             result = await run_in_threadpool(h._handle_resources_list, params, session)
             if mcp_apps.apps_enabled() and not result.get("nextCursor"):
                 # MCP Apps ui:// views ride on the last page
-                result = dict(result, resources=list(result.get("resources") or []) + mcp_apps.resources())
+                result = dict(result, resources=list(result.get("resources") or []) + mcp_apps.resources()
+                              + h.federated_views(session))      # proxied tools' views (Federation.md)
         elif method == "resources/templates/list":
-            result = await run_in_threadpool(h._handle_resources_templates_list, params)
+            result = await run_in_threadpool(h._handle_resources_templates_list, params, session)
         elif method in self.TASK_METHODS:
             result = self._task_method(method, params, ctx, session)
         else:  # completion/complete
@@ -1110,7 +1112,8 @@ class ModernMCPServer:
     _FILTER_KINDS = (("toolsListChanged", TOOLS), ("promptsListChanged", PROMPTS),
                      ("resourcesListChanged", RESOURCES))
 
-    def _listen(self, rid, params: Dict[str, Any], ctx: ModernRequestContext, accepts_sse: bool) -> ModernStream:
+    def _listen(self, rid, params: Dict[str, Any], ctx: ModernRequestContext, accepts_sse: bool,
+                session: Optional[Dict] = None) -> ModernStream:
         """
         ``subscriptions/listen``: a long-lived POST answered with SSE.  First
         ``notifications/subscriptions/acknowledged`` (the honored subset of the
@@ -1118,6 +1121,12 @@ class ModernMCPServer:
         with ``_meta["io.modelcontextprotocol/subscriptionId"]`` (= the request
         id).  The stream ends with a SubscriptionsListenResult when the server
         shuts down, or when the client goes away.
+
+        ``notifications.taskIds`` (SEP-2663, needs the tasks extension, else
+        -32021): ``notifications/tasks`` carrying the DetailedTask (what
+        ``tasks/get`` would return) for each listed task of the caller, first
+        its current state, then on every change.  Ids the caller does not own
+        (or that do not exist) are left out of the acknowledgement.
         """
         from sajha.core.config import _int
         requested = params.get("notifications")
@@ -1136,13 +1145,21 @@ class ModernMCPServer:
                 honored[field_name] = True
                 kinds.add(kind)
         uris = requested.get("resourceSubscriptions")
+        federated: List[str] = []
         if isinstance(uris, list) and uris:
             uris = [u for u in uris if isinstance(u, str)]
+            uris, federated = self._federated_subscriptions(uris, session)
             if uris:
                 honored["resourceSubscriptions"] = uris
                 kinds.add(RESOURCE_UPDATED)
         else:
             uris = []
+        task_ids = self._listen_task_ids(requested.get("taskIds"), ctx, session)
+        if task_ids is not None:
+            honored["taskIds"] = task_ids
+            if task_ids:
+                kinds.add(TASK)
+        owner = (session or {}).get("user_id")
 
         server_info = self.server_info
 
@@ -1151,22 +1168,87 @@ class ModernMCPServer:
             p["_meta"] = {**(p.get("_meta") or {}), SUBSCRIPTION_ID_META_KEY: rid}
             return {**message, "params": p}
 
+        sent: Dict[str, Tuple[Any, Any]] = {}     # task id -> (status, lastUpdatedAt) last sent
+
+        async def emit_task(emit, task_id: str) -> None:
+            try:
+                detailed = (await run_in_threadpool(get_task_store().get, task_id, owner)).detailed()
+            except TaskNotFound:               # expired meanwhile
+                return
+            except Exception as e:
+                logger.debug(f"listen: task {task_id} not readable: {e}")
+                return
+            mark = (detailed.get("status"), detailed.get("lastUpdatedAt"),
+                    tuple(sorted(detailed.get("inputRequests") or ())))
+            if sent.get(task_id) == mark:
+                return
+            sent[task_id] = mark
+            emit(tag({"jsonrpc": "2.0", "method": "notifications/tasks", "params": detailed}))
+
         async def produce(emit):
-            sub = bus.subscribe(kinds, uris)
+            sub = bus.subscribe(kinds, uris, task_ids=task_ids or ())
+            holder = f"listen:{uuid.uuid4().hex}"
+            fed = self.handler._federation() if federated else None
+            for uri in federated:            # a proxied server's resource: subscribed at its upstream meanwhile
+                fed.watch(holder, uri)
             try:
                 emit(tag({"jsonrpc": "2.0", "method": "notifications/subscriptions/acknowledged",
                           "params": {"notifications": honored}}))
+                for task_id in task_ids or ():   # the current state, so no change is missed
+                    await emit_task(emit, task_id)
                 while True:
                     event = await sub.get()
                     if event is None:      # server shutting down: graceful end of the subscription
                         return {"jsonrpc": "2.0", "id": rid, "result": {
                             "resultType": "complete",
                             "_meta": {SUBSCRIPTION_ID_META_KEY: rid, SERVER_INFO_META_KEY: server_info}}}
-                    emit(tag(event.notification()))
+                    if event.kind == TASK:
+                        await emit_task(emit, event.uri)
+                    else:
+                        emit(tag(event.notification()))
             finally:
                 sub.close()
+                if fed is not None:
+                    fed.release(holder)
 
         return ModernStream(produce)
+
+    def _federated_subscriptions(self, uris: List[str], session: Optional[Dict]) -> Tuple[List[str], List[str]]:
+        """(the URIs to honor, the proxied servers' ones among them): a proxied server's resource is
+        honored when the caller may read it and its upstream offers subscriptions (Federation.md)."""
+        fed = self.handler._federation()
+        if fed is None:
+            return uris, []
+        keep, federated = [], []
+        for uri in uris:
+            if not fed.owns_resource(uri):
+                keep.append(uri)
+            elif self.handler.can_read_resource(session, uri) and fed.subscribe_problem(uri) is None:
+                keep.append(uri)
+                federated.append(uri)
+        return keep, federated
+
+    def _listen_task_ids(self, requested: Any, ctx: ModernRequestContext,
+                         session: Optional[Dict]) -> Optional[List[str]]:
+        """The honored ``taskIds`` of a listen filter: None when not requested (or tasks are off),
+        else the listed ids that name a task of this caller."""
+        if requested is None or not self.tasks_enabled():
+            return None
+        if not isinstance(requested, list) or not all(isinstance(t, str) for t in requested):
+            raise ModernError(INVALID_PARAMS, "notifications.taskIds must be an array of strings")
+        if not client_declares_tasks(ctx.client_capabilities):
+            raise ModernError(MISSING_REQUIRED_CLIENT_CAPABILITY,
+                              f"Task status notifications require the {TASKS_EXTENSION} extension",
+                              {"requiredCapabilities": required_capability()})
+        owner = (session or {}).get("user_id")
+        store, owned = get_task_store(), []
+        for task_id in dict.fromkeys(requested):
+            try:
+                store.get(task_id, owner)
+                owned.append(task_id)
+            except TaskNotFound:
+                continue
+        return owned
 
     # -- errors ------------------------------------------------------
 

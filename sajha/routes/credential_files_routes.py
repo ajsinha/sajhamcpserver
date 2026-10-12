@@ -152,7 +152,7 @@ async def apikeys_file_update(kid: str, request: Request, auth: AuthContext = De
 
 
 @router.delete('/api/admin/apikeys/file/{kid}')
-async def apikeys_file_delete(kid: str, request: Request, auth: AuthContext = Depends(require_admin),
+def apikeys_file_delete(kid: str, request: Request, auth: AuthContext = Depends(require_admin),
                               db: Session = Depends(get_db)):
     bad = _refuse(request, auth)
     if bad:
@@ -165,7 +165,7 @@ async def apikeys_file_delete(kid: str, request: Request, auth: AuthContext = De
 
 
 @router.get('/api/admin/apikeys/file/{kid}/reveal')
-async def apikeys_file_reveal(kid: str, request: Request, auth: AuthContext = Depends(require_admin),
+def apikeys_file_reveal(kid: str, request: Request, auth: AuthContext = Depends(require_admin),
                               db: Session = Depends(get_db)):
     bad = _refuse(request, auth)
     if bad:
@@ -211,14 +211,14 @@ def _known_roles(db: Session) -> set:
 
 
 @router.get('/admin/users/file', name='users_file_page')
-async def users_file_page(request: Request, auth: AuthContext = Depends(require_admin), db: Session = Depends(get_db)):
+def users_file_page(request: Request, auth: AuthContext = Depends(require_admin), db: Session = Depends(get_db)):
     return render(request, 'admin/credential_file.html', {
         'user': _user_ctx(auth), 'is_admin': True, 'csrf': csrf_token(request, auth), 'kind': 'users',
         'path': str(_users().path), 'roles': sorted(_known_roles(db))})
 
 
 @router.get('/api/admin/users/file')
-async def users_file_list(request: Request, auth: AuthContext = Depends(require_admin), db: Session = Depends(get_db)):
+def users_file_list(request: Request, auth: AuthContext = Depends(require_admin), db: Session = Depends(get_db)):
     bad = _refuse(request, auth)
     if bad:
         return bad
@@ -271,7 +271,7 @@ async def users_file_update(uid: str, request: Request, auth: AuthContext = Depe
 
 
 @router.delete('/api/admin/users/file/{uid}')
-async def users_file_delete(uid: str, request: Request, auth: AuthContext = Depends(require_admin),
+def users_file_delete(uid: str, request: Request, auth: AuthContext = Depends(require_admin),
                             db: Session = Depends(get_db)):
     bad = _refuse(request, auth)
     if bad:

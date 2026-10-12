@@ -79,6 +79,14 @@ def wait_for(cond, timeout=10.0):
     return False
 
 
+@pytest.fixture(autouse=True)
+def _no_policy_engine(monkeypatch):
+    """These tests exercise proxied calls themselves, with fake tools that do not declare readOnlyHint;
+    the shipped approval rule for such calls (config/policies/20-proxied-writes.yaml) is tested in
+    tests/test_proxied_service_with_user.py."""
+    monkeypatch.setenv('SAJHA_POLICY_ENABLED', 'false')
+
+
 @pytest.fixture
 def fake():
     f = fake_mod.FakeOAuthMCP().start()

@@ -137,10 +137,44 @@ class PluginManager:
             logger.warning(f"Error handled: {e}", exc_info=True)
             pass
 
+    def _backend(self):
+        if self._storage is not None:
+            return self._storage
+        from sajha.core.storage import get_storage
+        return get_storage()
+
+    def _local_plugins_dir(self) -> str:
+        """The directory plugins are read from. On the local backend, ``PLUGINS_DIR`` itself. On a
+        cloud backend (s3, azure, gcs) the ``PLUGINS_DIR`` prefix is mirrored from the bucket into
+        the backend's cache (files gone from the bucket are removed from the mirror) and read
+        there, since importlib, the checksum and pip need real files."""
+        from sajha.core.storage import LocalStorageBackend
+        backend = self._backend()
+        if isinstance(backend, LocalStorageBackend) or not hasattr(backend, 'cache_dir'):
+            return self.PLUGINS_DIR
+        import posixpath
+        prefix = posixpath.normpath(str(self.PLUGINS_DIR).replace('\\', '/')).strip('/')
+        if os.path.isabs(str(self.PLUGINS_DIR)) or '..' in prefix.split('/'):
+            return self.PLUGINS_DIR        # an absolute directory is a local mount, not a bucket path
+        mirror = os.path.join(str(backend.cache_dir), prefix)
+        try:
+            listed = set(backend.list_files(prefix))
+            for path in listed:
+                backend.read_bytes(path)          # read-through: writes the cached copy
+            for root, _dirs, files in os.walk(mirror):
+                for fname in files:
+                    rel = os.path.relpath(os.path.join(root, fname), str(backend.cache_dir)).replace(os.sep, '/')
+                    if rel not in listed:
+                        os.unlink(os.path.join(root, fname))
+            logger.info(f"Plugins: {len(listed)} file(s) mirrored from the storage backend into {mirror}")
+        except Exception as e:
+            logger.warning(f"Plugins: mirroring {prefix} from the storage backend failed: {e}", exc_info=True)
+        return mirror
+
     def discover(self) -> List[PluginManifest]:
-        """Scan plugins directory for installed plugins."""
+        """Scan plugins directory for installed plugins (on a cloud backend, its mirror)."""
         plugins = []
-        plugins_dir = self.PLUGINS_DIR
+        plugins_dir = self._local_plugins_dir()
         if not os.path.isdir(plugins_dir):
             os.makedirs(plugins_dir, exist_ok=True)
             return plugins

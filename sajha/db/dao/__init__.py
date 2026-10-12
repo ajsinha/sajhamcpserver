@@ -142,7 +142,12 @@ class PermissionDAO(BaseDAO[Permission]):
         permissions = self.db.query(Permission).filter(
             Permission.role_id.in_(role_ids)
         ).all()
+        return self.matches(permissions, resource_type, resource_name, action)
 
+    @staticmethod
+    def matches(permissions, resource_type: str, resource_name: str, action: str) -> bool:
+        """Does any of these permission rows grant the action on the resource (the rule of
+        :meth:`check_access`, on rows already in memory)?"""
         for perm in permissions:
             # Check resource_type match
             if perm.resource_type != '*' and perm.resource_type != resource_type:

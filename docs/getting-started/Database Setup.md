@@ -29,6 +29,15 @@ database ([Security Model](../security/Security%20Model.md#credential-storage-an
 | Tables or columns missing at start-up | created from `schema.sql` (missing columns of an existing table are reported) | SAJHA refuses to start (`db.schema_check: strict`) or warns (`warn`) |
 | Does SAJHA ever run DDL on it | yes | no |
 
+**Which one.** SQLite for one machine and light load: one file, one writer at a time (SAJHA opens it
+with `journal_mode=WAL`, so readers do not wait for the writer, `synchronous=NORMAL` and a 30 s
+`busy_timeout`). PostgreSQL for real concurrency: several workers, pods or hosts, sustained writes,
+hundreds of calls in flight. The switch is configuration only (`db.type`, or `DB_TYPE` /
+`SAJHA_DB_TYPE`, with the connection keys of section 2); the same code and the same pool settings
+(`db.pool.*`) serve both. How large the pool should be for a number of workers, and how SAJHA keeps a
+connection only while it reads or writes, is in [Scaling and State](../architecture/Scaling%20and%20State.md)
+§7; measured numbers for both databases are in its §9.
+
 ---
 
 ## 1. SQLite (development)
@@ -83,11 +92,33 @@ GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public TO sajha;
 GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public TO sajha;
 ```
 
-**3. Check, then start SAJHA:**
+**3. Point SAJHA at it.** Configuration alone switches the database; no code changes. Either
+set the connection keys:
+
+```bash
+export SAJHA_DB_TYPE=postgresql SAJHA_DB_HOST=db-host SAJHA_DB_PORT=5432 \
+       SAJHA_DB_NAME=sajha SAJHA_DB_USER=sajha SAJHA_DB_PASSWORD='...'
+```
+
+or give one URL, which replaces every other connection key:
+`SAJHA_DB_URL=postgresql+psycopg2://sajha:PASSWORD@db-host:5432/sajha` (put `?sslmode=require`
+on it for TLS; `db.ssl` is not read). The short names `DB_TYPE`, `DB_HOST`, `DB_PORT`, `DB_NAME`,
+`DB_USER`, `DB_PASSWORD` and `DB_URL` work too when neither the `SAJHA_DB_*` name nor the YAML sets
+the key. Always set the database name: the code default is `sajha_mcp`, not the `sajha` used on
+this page ([Configuration Reference](Configuration%20Reference.md)). To run the state store on
+PostgreSQL as well, add `SAJHA_STATE_BACKEND=database` (it uses this database unless
+`state.database.url` names another).
+
+**4. Check, then start SAJHA:**
 
 ```bash
 python -m sajha.db check          # exit 0: complete; exit 3: something is missing
 ```
+
+This procedure, exactly as written (`psql -f` of the two files, then the variables above), was run
+on PostgreSQL 17.11 (`postgres:17-alpine`): the start-up check passed, and a server on it (with
+`state.backend: database`) passed the console check, both MCP conformance suites, and tool calls,
+workflows, reports, BI, Ask SAJHA, API keys, audit, notices and the usage reports.
 
 If `state.database.url` points the state store at a different PostgreSQL database, run
 `schema.sql` there too (only its `sajha_state` and `sajha_state_events` tables are used).
@@ -194,7 +225,16 @@ compares it with every `MetaData` in the code (tables, columns, types, nullabili
 foreign keys, indexes), parses the PostgreSQL file and compares it the same way, and finds
 any `Table(` or `__tablename__` the check would miss. With `SAJHA_TEST_POSTGRES_URL` set to
 a disposable database it applies the PostgreSQL file to a real server and compares what it
-reflects.
+reflects (it drops and recreates that database's `public` schema).
+
+With `SAJHA_TEST_PG_URL` set to a disposable PostgreSQL database, `tests/test_postgresql.py` runs the
+repositories (the DAOs of `sajha/db/dao`, the workflow store, the connected-accounts vault,
+conversation memory, the audit chain) on it, and `tests/test_state_store.py` runs the state store's
+whole contract there as the `database_pg` backend. Each test process builds its own PostgreSQL schema
+from the two files with `psql`-equivalent statements and drops it at exit (`tests/pg_support.py`).
+Without the variable these tests skip. To run the application tests on PostgreSQL as well, set
+`SAJHA_DB_TYPE=postgresql` and `SAJHA_DB_URL` to a database prepared with section 2; tests that build
+their own SQLite database still use SQLite.
 
 ## 8. Troubleshooting
 

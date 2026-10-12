@@ -2,6 +2,246 @@
 
 Newest first. The current version is `app.version` in `config/application.yml`.
 
+## v8.12.0 (October 2026) — platform depth, operations and scale: protocol gaps closed, federation complete and at gateway scale, no freeze under load, PostgreSQL verified
+
+### Added
+
+- **Federation at gateway scale** (Roadmap L10; `sajha/federation/scale.py`;
+  [Federation](docs/architecture/Federation.md#gateway-scale)): connection pools per upstream
+  (`federation.pool_size` or per upstream `pool_size`, default 1: one primary connection runs discovery,
+  the others carry `tools/call`, each call taking the least busy connected one); a bound on calls in
+  flight per upstream (`max_in_flight`, default no limit) with a first-come-first-served queue
+  (`max_queue`, `federation.queue_timeout_seconds`), over which a call is refused at once with a
+  retryable "at capacity" error that sends nothing and spares the breaker; replicas (`urls`: more
+  endpoints of one upstream) chosen by health, with failover and a new primary when the primary
+  connection is down; and shared upstream health: every worker publishes its view of each upstream to
+  the state store (`fed:health:<upstream>:<worker>`, `federation.health.*`), the admin page and status
+  show the cluster-wide view, and a breaker one worker opened opens the others' (each then probes on its
+  own; `federation.health.follow_peer_breakers`). New metrics `sajha_federation_upstream_in_flight`,
+  `_waiting`, `_shed_total`, `sajha_federation_pool_connections_connected` and
+  `sajha_federation_cluster_*` ([Observability](docs/architecture/Observability.md#22-the-metrics)).
+  `tools/bench/bench_federation.py` measures proxied calls and shedding.
+- **API Import: multipart and binary request bodies** (Roadmap L4; `sajha/api_import/bodies.py`;
+  [API Import](docs/architecture/API%20Import.md) §3, §5.1): operations with a `multipart/form-data` or
+  binary body (`application/octet-stream`, or another media type whose schema is a binary string) are now
+  imported instead of flagged. A file argument is a file value: `content_base64`, `text` or `path` (a
+  storage-backend file under `api_import.file_roots`, empty by default; `{user}` in a root is the caller),
+  with an optional `filename` and `content_type`. The whole body is capped by `api_import.max_upload_bytes`
+  and refused before any connection when larger; the request goes through the SSRF guard.
+- **API Import: opt-in pagination following** (Roadmap L4; `sajha/api_import/paging.py`;
+  [API Import](docs/architecture/API%20Import.md) §5.2): per GET operation (the preview's **Pages** column, or
+  the import request's `pagination` object), modes `link`, `next_url`, `cursor`, `page` and `offset`, with a
+  page cap and a row cap per operation under `api_import.pagination_max_pages` and
+  `api_import.pagination_max_items`. Off by default; kept in the import record. A next URL is checked by the
+  SSRF guard and must keep the first request's origin before it is followed; the answer reports `pages`,
+  `items`, `truncated`, `stopped` and how to continue.
+- **API Import: Swagger 2.0 remote `$ref`** (Roadmap L4; `swagger2.bundle`): definitions, parameters and
+  responses in other documents are fetched through the SSRF guard (bounded by `api_import.max_ref_documents`
+  and `api_import.max_spec_bytes`) and bundled into the spec before conversion.
+- **MCP: task status notifications** (Roadmap X12; `sajha/core/mcp_tasks.py`, `sajha/core/mcp_modern.py`;
+  [MCP Protocol Guide](docs/protocol/MCP%20Protocol%20Guide.md) §2): a 2026-07-28 `subscriptions/listen` may name
+  `taskIds` (SEP-2663; the client must declare the tasks extension, else `-32021`). The acknowledgement lists the
+  caller's tasks among them, and each gets `notifications/tasks` with the full task (what `tasks/get` returns):
+  its current state, then one per change. Task changes travel on the change bus, so a listen stream on one
+  worker hears about a task on another when the state store is shared.
+- **MCP: `list_changed` on 2025-11-25 Streamable HTTP sessions** (Roadmap X12; `sajha/routes/mcp_routes.py`):
+  `GET /mcp` with a live `Mcp-Session-Id` and `Accept: text/event-stream` opens the session's server-to-client
+  stream, which carries `notifications/{tools,prompts,resources}/list_changed` from the change bus. One per
+  session (409 for a second), and it ends with the session. `initialize` on this transport now advertises
+  `listChanged: true` (it was `false`, and that GET was 405).
+- **Federation, complete** (Roadmap L2; `sajha/federation/`, `sajha/federation/tasks.py`, `sajha/federation/relay.py`;
+  [Federation](docs/architecture/Federation.md) §4, §7, §12): a proxied MCP server's other features are carried
+  through with the same namespacing, approval and access rules. Resource templates (approval kind `template`,
+  listed as `sajha-federation://<id>/<template>`, expansions read from the upstream); `completion/complete` for
+  proxied prompts and templates, answered by the upstream; `resources/subscribe` (2025-11-25 sessions) and
+  `resourceSubscriptions` (2026-07-28 `subscriptions/listen`) subscribe at the upstream, whose
+  `notifications/resources/updated` come back under SAJHA's URI; upstream tasks (SAJHA declares the tasks
+  extension to 2026-07-28 upstreams, follows a task to its end, sends `tasks/cancel` when its own call is
+  cancelled, and keeps `execution.taskSupport` so clients can make the call a SAJHA task); MCP Apps views of proxied
+  tools as `ui://sajha-federation/<id>/...`, served without the upstream's CSP domains or permissions; and a
+  2025-11-25 upstream's `sampling/createMessage`, `elicitation/create` and `roots/list` relayed to a 2025-11-25
+  caller that declared the capability and took a streamed response (on a connection opened for that call), or
+  refused with an error that says why (they were declined before).
+- **MCP: `resources/updated` on 2025-11-25 Streamable HTTP sessions** (`sajha/routes/mcp_routes.py`,
+  `sajha/core/mcp_handler.py`; [MCP 2025-11-25 Compliance](docs/protocol/MCP%202025-11-25%20Compliance.md) §2):
+  `resources/subscribe` records the URI with the session, and `notifications/resources/updated` for it travels on
+  the session's `GET /mcp` stream; `initialize` on this transport now advertises `resources.subscribe: true`.
+- **OAuth: RFC 7662 token introspection for external issuers** (Roadmap X12; `sajha/auth/oauth/introspection.py`;
+  [OAuth Guide](docs/protocol/OAuth%20Guide.md) §5): `mcp.auth.external.introspection.mode` `opaque` (tokens that
+  are not JWTs) or `always`. The endpoint is configured or discovered from the issuer metadata, and SAJHA
+  authenticates with `client_id` and a secret from `SAJHA_MCP_AUTH_EXTERNAL_INTROSPECTION_CLIENT_SECRET`. It
+  checks `active`, `iss`, `exp`, `nbf` and `aud` (required unless `require_audience: false`), fails closed, and
+  caches answers per process for `cache_seconds` (never past `exp`; failures are not cached).
+- **OAuth: CORS for browser-based clients** (Roadmap X12; `sajha/auth/oauth/cors.py`): origins in
+  `mcp.auth.cors.allowed_origins` (default none; `*` for any) get `Access-Control-Allow-Origin` and answered
+  pre-flights on the protected-resource and authorization-server metadata, `/oauth/jwks`, `/oauth/token` and
+  `/oauth/register`, never with credentials. `/oauth/authorize` gets none.
+- **LLM providers: the last synchronous paths** (Roadmap X9; [Intelligence Layer](docs/architecture/Intelligence%20Layer.md)
+  §3): embeddings on the HTTP providers (OpenAI and the compatible presets, Azure OpenAI, Mistral, Cohere,
+  Gemini, Ollama) are natively async on `httpx.AsyncClient` (`HTTPEmbeddingModel` in `sajha/ai/llm/adapter.py`,
+  exported by the SPI), and the governed `aembeddings_create` / `aembed` no longer use a worker thread. Bedrock's
+  async chat, stream and embeddings are native when `aiobotocore` is installed (`pip install aiobotocore`, or
+  aioboto3), one client per event loop, and fall back to boto3 in a worker thread otherwise; the module stays
+  importable without either. Bedrock now sends `reasoning_effort` in `additionalModelRequestFields` for
+  Anthropic Claude (`output_config.effort`) and Amazon Nova 2 (`reasoningConfig`) models that declare it, and
+  refuses it for other families with an error naming the ones that take it.
+- **Proxied servers: `auth.type: service_with_user`** (Roadmap L20;
+  [Federation](docs/architecture/Federation.md#a-shared-identity-naming-the-user-service_with_user)): one shared
+  service credential (`auth.service`) with the calling SAJHA user named in an audit header the vendor records
+  (`auth.user_header`, default `X-SAJHA-User`; `auth.user_format`, default `{user}`). Discovery uses the service
+  identity alone; anonymous callers are refused; a session-based upstream gets a session per user; the audit
+  names the mode and the user.
+- **Policy: approval for proxied writes, shipped and enabled** (Roadmap L20; `config/policies/20-proxied-writes.yaml`;
+  [Policy and Audit](docs/architecture/Policy%20and%20Audit.md#51-the-shipped-rule-for-proxied-writes) §5.1): a
+  proxied MCP server's tool without `readOnlyHint: true` now needs approval (`approver: caller`: the person at the
+  client confirms where it can, else an administrator). This changes behaviour for existing deployments with
+  proxied servers; set `enabled: false` in the file to keep the old behaviour. The rule language gains
+  `match.proxied` and conditions on annotations (`annotations: {readOnlyHint: {ne: true}}`).
+- **Ask SAJHA over MCP: confirmation through the client** (Roadmap X7; `sajha/ai/llm_tools/confirmation.py`;
+  [Intelligence Layer](docs/architecture/Intelligence%20Layer.md#sajha_ask-mcp) §6): when `sajha_ask` (any
+  answer-mode LLM tool that is the MCP call's own tool) wants to run a destructive tool, or a policy rule asks the
+  caller to approve a call, the user is asked through the client. On 2026-07-28 the call answers
+  `input_required` with one form `elicitation/create` per pending call (key `sajha_confirm_<fingerprint>`,
+  boolean `confirm`); the retry runs the call when confirmed and tells the model the user declined otherwise. On
+  2025-11-25 a session that declared form-mode elicitation and accepts `text/event-stream` gets the same request
+  on the call's SSE stream. Clients without form elicitation still get `needs_confirmation` and `confirm`.
+- **Ask SAJHA: trimming on `ContextTooLong`** (Roadmap X7; [Intelligence Layer](docs/architecture/Intelligence%20Layer.md)
+  §6): a model call carrying earlier conversation turns that is too long for the model drops the oldest turn and
+  asks the same model again before falling back to the alias's next (larger) model. Each trim is a
+  `context_trimmed` event and an entry of `context_trims` in the result, the `ai_ask` audit record and the LLM
+  tool's `llm_tool_run` record.
+- **Workflows: `foreach` bodies that are graphs** (Roadmap L3; `sajha/workflows/model.py`, `engine.py`;
+  [Workflows](docs/architecture/Workflows.md) §2): `do: {steps: [...], output: ..., on_error: ...}` runs a small
+  graph of `tool`, `composite`, `ask`, `condition` and `wait` steps per item, in dependency order, with `$item`,
+  `$index` and `$steps` (the run's steps and this item's), condition branches, `join`, `when` and per-step
+  `on_error`. Bounded by `max_items` and `parallel` as before plus `workflows.foreach_max_body_steps` (default
+  20). A body cannot park the run (no `approval`; a `wait` at most `workflows.inline_wait_seconds`).
+- **Workflows: change-bus event triggers on every worker** (Roadmap L3; `sajha/core/change_bus.py`,
+  `sajha/workflows/service.py`; [Workflows](docs/architecture/Workflows.md) §4,
+  [Scaling and State](docs/architecture/Scaling%20and%20State.md) §4.5): with a shared state store the workflow
+  service hears events relayed from other workers too (`ChangeBus.add_listener(fn, remote=True)`); every event
+  carries an id, and a worker claims `wf:evclaim:<workflow>:<trigger>:<id>` before firing, so one event starts
+  one run cluster-wide.
+- **Workflows: cron catch-up** (Roadmap L3; [Workflows](docs/architecture/Workflows.md) §4): a cron trigger (or
+  the whole definition) may set `catch_up: last` (one run for the latest slot missed while no worker ran) or
+  `all` (one per missed slot, oldest first, at most `catch_up_max`, default 10), counted from the trigger's
+  newest run. The default, `none`, is unchanged.
+- **Storage: push-based reload** (Roadmap X11; `sajha/core/storage_events.py`;
+  [Storage Guide](docs/getting-started/Storage%20Guide.md#push-based-reload)): with `storage.events.provider`
+  (`sqs`, `azure_queue`, `pubsub` or `auto`) a listener reads the bucket's event notifications (S3 to SQS,
+  through SNS or EventBridge; Azure Event Grid to a Storage Queue; GCS to a Pub/Sub pull subscription) and hands
+  each changed path to the object-store sync manager, which fires the same reload callbacks, and so the same
+  change-bus events, as its poll. Polling stays as the fallback and runs every
+  `storage.events.healthy_poll_interval` seconds while the listener is healthy. With a shared state store the
+  receiving worker relays the paths to the others. Workflow file triggers poll at the next tick on an event.
+  Each SDK is imported lazily; a missing one or incomplete settings raise the info notice
+  `storage.events:<provider>`, never a start-up error. The Dockerfile's `azure` and `gcs` extras add the queue
+  SDKs.
+- **Storage, finished** (Roadmap L1; [Storage Guide](docs/getting-started/Storage%20Guide.md)): a DuckDB data
+  directory written `storage://<prefix>` is read through the storage backend, staged per load into a temporary
+  directory within `data.duckdb.stage_max_file_mb` and `data.duckdb.stage_max_total_mb`; on a cloud backend
+  Studio-generated modules and scripts are published to the bucket (`studio/modules/`, `config/scripts/`) with
+  the tool JSON and materialised locally before the tool loads (`sajha/core/storage_modules.py`), and plugins
+  are mirrored from the bucket, so no shared file system is needed for them; storage contract tests for moto,
+  MinIO, Azurite and fake-gcs-server (`tests/test_storage_emulators.py`, run when available) with a CI recipe; a
+  guard against direct `config/` IO in the migrated subsystems; pod identity for the bucket on EKS, AKS and GKE
+  in [Kubernetes Deployment](docs/getting-started/Kubernetes%20Deployment.md#bucket-access-on-eks-aks-and-gke).
+- **A load harness with published numbers** (Roadmap X13; `tools/bench/bench.py`;
+  [Scaling and State §9](docs/architecture/Scaling%20and%20State.md#9-measured-performance)): starts
+  `run_sajha_web.py` on each `state.backend` (memory; database on a scratch SQLite file; redis when a server
+  answers, otherwise skipped with a note) at one and several workers, and drives `/mcp` on both eras
+  (2026-07-28 stateless; 2025-11-25 with one session per client) with `tools/list` and `tools/call` on a local
+  calculator, new arguments every call so the cache never answers. It reports p50, p95 and p99 latency,
+  throughput and errors as JSON and a markdown table, with the CPU, cores, RAM, OS, Python, SAJHA version and
+  commit. Standard library and httpx only. One run's numbers, with the machine, date and load, are in Scaling
+  and State; the deck may cite only those ([deck guide](tools/deck/GUIDE.md)).
+- **Service level objectives and failure tests** (Roadmap X14;
+  [Observability §6](docs/architecture/Observability.md#6-service-level-objectives)): availability of `/mcp`
+  (99.9% not 5xx), latency of in-process tool calls (99% within 100 ms) and their errors (under 1%), each over
+  30 days on existing metrics, with a `sajha-slo` group in `deployment/observability/sajha-alerts.yml` (fast
+  and slow error-budget burn on availability; latency and error rules). `tests/test_failure_behaviour.py`
+  (marker `failure`) asserts the failure behaviour of
+  [Scaling and State §7](docs/architecture/Scaling%20and%20State.md#7-failure-behaviour-and-limits): an
+  unreachable redis or database store stops start-up; Redis lost at run time fails requests that touch
+  shared state with HTTP 500, `/health` reports it, nothing falls back and service resumes when it is back;
+  the database store raises while its database is gone and keeps its rows; a worker killed with SIGKILL
+  mid-task leaves the task `failed` with -32603 on the other worker once its heartbeat is gone, never re-run;
+  a broken federated upstream keeps its tools listed, fails fast, opens its breaker and closes it after the
+  upstream returns.
+- **Database connection pool: fail fast, sized, visible** ([Scaling and State
+  §7](docs/architecture/Scaling%20and%20State.md#7-failure-behaviour-and-limits)): new keys
+  `db.pool.max_overflow` (default -1, as many as `db.pool.size`) and `db.pool.timeout_seconds` (default 5;
+  validated at start-up). A request that finds no free connection within the timeout is answered at once with
+  HTTP 503 and `Retry-After: 1` (on `/mcp` a JSON-RPC error, code -32000, `data.reason: db_pool_exhausted`,
+  `retryable: true`), never a hang and never a 401. SQLite files get the same counting pool as PostgreSQL, with
+  `synchronous=NORMAL` added to WAL. New metrics `sajha_db_pool_size`, `sajha_db_pool_max_overflow`,
+  `sajha_db_pool_checked_out`, `sajha_db_pool_overflow_in_use`, `sajha_db_pool_waiting` and
+  `sajha_db_pool_exhausted_total`, the alert rule `SajhaDbPoolExhausted`, a "Database Connection Pool" panel per
+  worker on the System monitor page (`db_pool` in `/api/admin/system-monitor`: database type, URL with the
+  password hidden, size, overflow, checked out, waiting, checkout timeouts). With `state.backend: database` the
+  state store opens its own small pool (`state.database.pool_size`, default 3). `db.type` and the connection
+  keys also take the short `DB_*` environment names. `session_scope()` in `sajha/db/engine.py` is the one way
+  for services and jobs to open a session (always closed, rolled back on error).
+- **Load harness: high concurrency with a pass/fail check** (`tools/bench/bench.py --scenario highconc`):
+  `tools/call` on both eras at 64, 256 and 512 requests in flight, at 1 and 4 workers on SQLite and on
+  PostgreSQL when `SAJHA_BENCH_PG_URL` is set (a scratch database with SAJHA's schema, dropped afterwards; the
+  URL is never printed), `/health` probed throughout, and a verdict: no request unanswered or slower than the
+  bound, `/health` within its bound, errors (503 shedding excluded) under the threshold. Guards in the suite:
+  `tests/test_db_session_hold.py` (an AST check that fails when an async route holds a database session across
+  an `await`), `tests/test_db_pool.py` (503 on a dry pool; a raising tool, a route raising after a database
+  read and a client disconnecting mid-request all return their connection) and a bounded run of 128
+  concurrent calls against one worker with a two-connection pool (`failure` marker).
+
+### Changed
+
+- **Ask SAJHA: freshness and agreement in the confidence score** (Roadmap X7;
+  [Intelligence Layer](docs/architecture/Intelligence%20Layer.md) §6): each step records its result's as-of
+  date (`as_of`), and a cited result older than a day lowers the score (0.95 to a week, 0.9 to 30 days, 0.8 to a
+  year, 0.7 beyond) unless the question asked for that date; a reconciliation with differences beyond tolerance
+  multiplies it by 0.8; figures of the answer found in the results of two or more different tools raise it by up
+  to a quarter of the gap to 1. Scores of existing asks can change.
+
+- **PostgreSQL test path** ([Database Setup](docs/getting-started/Database%20Setup.md) section 7): with
+  `SAJHA_TEST_PG_URL` set to a disposable database, `tests/test_postgresql.py` runs the repositories (DAOs,
+  workflow store, connected-accounts vault, conversation memory, audit chain) and `tests/test_state_store.py`
+  runs the state store's contract (`database_pg`) on PostgreSQL, each in a private schema built from the
+  schema files; without it they skip. CI sets it. Database Setup now gives the connection settings that
+  switch SAJHA to PostgreSQL by environment alone, and notes that an unset `db.name` is `sajha_mcp`.
+
+### Fixed
+
+- **`/mcp` stalled under concurrent calls** (found by the load harness, Roadmap X13): an MCP request kept
+  its database connection from authentication until its response ended, so with as many calls in flight as
+  the pool has connections (15 on SQLite; twice `db.pool.size` on PostgreSQL) the next request's
+  authentication blocked the event loop on the pool for its 30 s timeout, and every request on that worker
+  waited. The request's session now gives its connection back once the caller's identity and tool policy are
+  known (`AuthContext.to_legacy_session`), before the call runs or a stream opens.
+- **Other routes held a database connection across slow work** (the same pool exhaustion as `/mcp`): every
+  route signed in through `get_current_user` kept the connection its authentication used until the response
+  ended, including streams (the notices stream of every open console tab, Ask SAJHA's step stream); so did the
+  OpenAI-compatible endpoint (`/v1/*`) through its model call or stream, the REST tool endpoint
+  (`/api/tools/execute`) and A2A (`tasks/send`) through the tool call, and the legacy `GET /mcp/sse` stream for
+  its whole life. Each now gives the connection back (`release_session`, `AuthContext.release_db`) before the
+  slow part and right after its own writes, so an async route never holds one across an `await`. A2A ran its
+  tool on the event loop, and `/api/ai/complete`, the provider health check and the tool resolver made their
+  model or network calls there; they now run in the thread pool, so `/health` and other requests answer while
+  they wait. A client that disconnects before its request body arrives is logged at INFO ("Client
+  disconnected"), no longer as an ERROR "Internal server error".
+- **Database work on the event loop**: MCP authentication (`authorize_mcp`: the key or token lookup and the
+  caller's tool policy), the WebSocket transport's authentication, `/oauth/authorize`, `/oauth/token` (with
+  its password check) and the SSO callback ran their queries on the event loop, so a slow or busy database
+  stalled every request of the worker; they now run in the thread pool. The contract-test and shell routes ran
+  the tool or the code there too, and the System monitor API took its half-second CPU sample there; routes
+  whose whole body is database work (console pages, reports, key and user lists) are now sync handlers.
+  `AuthContext.has_permission` reads permissions already loaded instead of querying. Five API-key routes read
+  their request body after a database lookup, holding a connection while the body arrived; they read it first.
+  The audit log writer (`sajha/core/audit.py`) leaked its session when the write failed.
+- **PostgreSQL tests that could not pass on a real server**: `tests/test_db_schema.py` expected four seeded
+  roles after `seed.sql` on PostgreSQL (there are five since `llm_author`), and the pgvector cases of
+  `tests/ai/test_rag_store_contract.py` errored on a PostgreSQL without the `vector` extension; they now skip
+  there. No application code changed: SAJHA ran unchanged on PostgreSQL 17 built by `psql -f` of the two
+  schema files ([Database Setup](docs/getting-started/Database%20Setup.md) section 2).
+
 ## v8.11.0 (October 2026) — business intelligence and reports: metrics, analysis, charts, report definitions, formats, narration
 
 ### Added

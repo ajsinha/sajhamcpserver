@@ -147,7 +147,8 @@ def bench_call(data: Dict[str, Any]) -> Dict[str, Any]:
     t = tools_registry.get_tool(tool) if tools_registry else None
     cfg = getattr(t, 'config', None) or {}
     ann = cfg.get('annotations') if isinstance(cfg.get('annotations'), dict) else {}
-    call = Call(tool, args, caller, str(data.get('source') or 'rest'), ann, now)
+    call = Call(tool, args, caller, str(data.get('source') or 'rest'), ann, now,
+                proxied=bool(getattr(t, 'upstream_id', None)))
     d = _engine().evaluate(call, include_disabled=bool(data.get('include_disabled')))
     out = {'decision': d.to_dict(), 'tool_known': t is not None, 'annotations': ann,
            'would_run': d.effect == 'allow', 'evaluated_at': now.isoformat()}

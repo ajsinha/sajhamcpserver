@@ -47,9 +47,11 @@ class FederatedTool(BaseMCPTool):
             'version': definition.get('version') or '1.0.0',
             'enabled': True,
         }
-        for key in ('title', 'annotations', 'icons'):
+        # execution: the upstream's task support (SAJHA offers the call as a task); _meta.ui: its MCP Apps
+        # view, namespaced (sajha/core/mcp_apps.py lists both on the 2026-07-28 path only)
+        for key in ('title', 'annotations', 'icons', 'execution', '_meta'):
             if definition.get(key):
-                cfg[key] = definition[key]
+                cfg[key] = copy.deepcopy(definition[key])
         cfg.update(config_extra or {})
         super().__init__(cfg)
         self.manager = manager

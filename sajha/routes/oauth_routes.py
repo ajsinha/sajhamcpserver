@@ -29,6 +29,7 @@ from urllib.parse import parse_qsl, unquote, urlencode, urlsplit, urlunsplit
 from fastapi import APIRouter, Depends, Request
 from fastapi.responses import JSONResponse, RedirectResponse, Response
 from sqlalchemy.orm import Session
+from starlette.concurrency import run_in_threadpool
 
 from sajha.auth.oauth import settings
 from sajha.auth.oauth import authorization_server as asrv
@@ -150,9 +151,17 @@ def _error_redirect(redirect_uri: str, issuer: str, state: Optional[str], error:
 
 
 def _session_user(request: Request, db: Session):
+    """The signed-in console user (thread pool); the connection goes back to the pool before returning."""
     from sajha.auth import AuthManager
+    from sajha.db.engine import release_session
     token = request.cookies.get('sajha_token', '')
-    return AuthManager.authenticate_jwt(db, token) if token else None
+    try:
+        ctx = AuthManager.authenticate_jwt(db, token) if token else None
+        if ctx is not None:
+            ctx.release_db()
+        return ctx
+    finally:
+        release_session(db)
 
 
 def _single(request: Request, name: str) -> Optional[str]:
@@ -238,7 +247,7 @@ async def oauth_authorize(request: Request, db: Session = Depends(get_db)):
     resource = resource or settings.resource_uri(request)
     scopes = asrv.normalize_scope(q.get('scope'))
 
-    user = _session_user(request, db)
+    user = await run_in_threadpool(_session_user, request, db)     # database work off the event loop
     if q.get('prompt') == 'none':
         return fail('login_required' if not user else 'consent_required', 'interaction required')
 
@@ -273,7 +282,7 @@ async def oauth_authorize_decision(request: Request, db: Session = Depends(get_d
             or not hmac.compare_digest(str(form.get('csrf') or ''), asrv.consent_csrf(req_id, browser_token)):
         return _error_page(request, 'Invalid or missing form token. Start again from your client.', 403)
 
-    user = _session_user(request, db)
+    user = await run_in_threadpool(_session_user, request, db)
     decision = form.get('decision')
     if decision == 'approve' and user is None:
         from sajha.auth import AuthManager
@@ -282,9 +291,11 @@ async def oauth_authorize_decision(request: Request, db: Session = Depends(get_d
             return _render_consent(request, pending, req_id, browser_token, None,
                                    'Too many sign-in attempts. Wait a minute and retry.', 429)
         login_id = str(form.get('user_id') or '')
-        jwt_token, outcome = AuthManager.sign_in(db, login_id, str(form.get('password') or '')) \
+        # password hashing and the user lookup run in the thread pool, never on the event loop
+        jwt_token, outcome = await run_in_threadpool(AuthManager.sign_in, db, login_id,
+                                                     str(form.get('password') or '')) \
             if login_id else (None, 'invalid')
-        user = AuthManager.authenticate_jwt(db, jwt_token) if jwt_token else None
+        user = await run_in_threadpool(AuthManager.authenticate_jwt, db, jwt_token) if jwt_token else None
         if user is None:
             record_login_failure(request)
             return _render_consent(request, pending, req_id, browser_token, None,
@@ -356,10 +367,11 @@ async def oauth_token(request: Request, db: Session = Depends(get_db)):
     try:
         client = _authenticate_client(request, form)
         grant = form.get('grant_type')
+        # the grant reads the user and the state store: in the thread pool, off the event loop
         if grant == 'authorization_code':
-            body = _grant_code(request, form, client, db)
+            body = await run_in_threadpool(_grant_code, request, form, client, db)
         elif grant == 'refresh_token':
-            body = _grant_refresh(request, form, client, db)
+            body = await run_in_threadpool(_grant_refresh, request, form, client, db)
         else:
             raise asrv.OAuthError('unsupported_grant_type', 'grant_type must be authorization_code or refresh_token')
     except asrv.OAuthError as e:

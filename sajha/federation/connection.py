@@ -10,8 +10,13 @@ it open, and reconnects with backoff when it fails. While connected it
 * listens for list changes: ``subscriptions/listen`` on a 2026-07-28 upstream,
   ``notifications/*/list_changed`` on a 2025-11-25 session.
 
-Calls are made from other tasks on the same loop (``call_tool``, ``get_prompt``,
-``read_resource``); a transport failure marks the connection lost so the runner reopens it.
+It also keeps the upstream subscribed to the resources SAJHA's clients watch (``set_watched``:
+``resources/subscribe`` on a session, ``resourceSubscriptions`` on the listen stream) and passes
+resource updates on. Calls are made from other tasks on the same loop (``call_tool``,
+``call_tool_relayed``, ``get_prompt``, ``read_resource``, ``complete``); a task answer is followed
+to its end (sajha/federation/tasks.py), and a session-based upstream's requests to its client go to
+the relay of the call, if any (sajha/federation/relay.py). A transport failure marks the connection
+lost so the runner reopens it.
 Design: docs/architecture/Federation.md.
 """
 
@@ -33,6 +38,11 @@ BACKOFF_MAX_SECONDS = 60.0
 
 class UpstreamUnavailable(RuntimeError):
     """The upstream cannot be reached (not connected, connection lost, refused)."""
+
+
+class UpstreamNotConnected(UpstreamUnavailable):
+    """The connection was not open when the call came: nothing was sent, so another pool member
+    or replica may take the call whatever the tool does."""
 
 
 class UpstreamTimeout(TimeoutError):
@@ -130,6 +140,21 @@ class UpstreamConnection:
         self._task: Optional[asyncio.Task] = None
         self._fatal = asyncio.Event()       # user sessions: the vendor refused the token
         self._wake = asyncio.Event()        # kick(): try again now instead of after the backoff
+        # resources/subscribe carried through (Federation.md section 4): the upstream URIs SAJHA's
+        # clients watch, and what to call when the upstream says one changed
+        self.watched: set = set()
+        self._subscribed: set = set()       # what a session-based upstream was sent resources/subscribe for
+        self._watch_changed = asyncio.Event()
+        self.on_resource_updated: Optional[Callable[[str], None]] = None
+        self.relay = None                   # a ClientRelay (sajha/federation/relay.py): this call's caller
+        # gateway scale (sajha/federation/scale.py): 'primary' runs discovery and change listening;
+        # 'pool' members (more connections, other replicas) only carry calls
+        self.role = 'primary'
+        self.replica = 0                    # index in the upstream's replica_urls
+        self.slot = 0                       # index in that replica's pool
+        self.in_flight = 0
+        self.ewma_ms: Optional[float] = None
+        self.fail_streak = 0
 
     # ── lifecycle ──────────────────────────────────────────────────
     def start(self) -> None:
@@ -194,10 +219,15 @@ class UpstreamConnection:
                         self._ready.set()
                         logger.info(f'federation: upstream {self.config.id} connected '
                                     f'(MCP {self.protocol_version})')
-                        tasks = [asyncio.ensure_future(self._refresher())]
-                        if self._is_modern():
-                            tasks.append(asyncio.ensure_future(self._listener(client)))
-                        self._refresh.set()                          # discover now
+                        tasks = []
+                        self._subscribed = set()
+                        if self.role == 'primary':                   # pool members only carry calls
+                            tasks.append(asyncio.ensure_future(self._refresher()))
+                            if self._is_modern():
+                                tasks.append(asyncio.ensure_future(self._listener(client)))
+                            else:
+                                tasks.append(asyncio.ensure_future(self._subscriber(client)))
+                            self._refresh.set()                      # discover now
                         try:
                             await _first(self._stop.wait(), self._lost.wait())
                         finally:
@@ -307,10 +337,22 @@ class UpstreamConnection:
             target = await self._http_transport(stack, timeout, connect_timeout)
             if cfg.transport == 'sse':
                 mode = 'legacy'
+        # requests from a session-based upstream to its client: relayed to SAJHA's caller when a relay is
+        # bound for this call (sajha/federation/relay.py), else answered with a clear error
+        extra: Dict[str, Any] = {}
+        if self.relay is not None:
+            from sajha.federation.relay import ROOTS, SAMPLING
+            if self.relay.supports(SAMPLING):
+                extra['sampling_callback'] = self._on_sampling
+            if self.relay.supports(ROOTS):
+                extra['list_roots_callback'] = self._on_roots
+        if not self.user_session:          # upstream tasks on the shared connection (sajha/federation/tasks.py)
+            from sajha.federation.tasks import TasksExtension
+            extra['extensions'] = [TasksExtension()]
         client = Client(
             target, mode=mode, read_timeout_seconds=timeout, cache=None,
             client_info=Implementation(name='sajha-federation', version=str(get_settings().app_version)),
-            message_handler=self._on_message, elicitation_callback=self._decline_elicitation,
+            message_handler=self._on_message, elicitation_callback=self._on_elicitation, **extra,
         )
         await stack.enter_async_context(client)
         self.protocol_version = client.protocol_version
@@ -408,43 +450,140 @@ class UpstreamConnection:
                     f.set_result(None)
 
     async def _listener(self, client) -> None:
+        """A 2026-07-28 upstream's ``subscriptions/listen`` stream: list changes trigger a refresh;
+        ``resourceSubscriptions`` carry the URIs SAJHA's clients watch, and the stream is reopened
+        when that set changes."""
+        from mcp.client.subscriptions import ResourceUpdated
         caps = self.capabilities or {}
         want = dict(tools_list_changed=bool((caps.get('tools') or {}).get('listChanged')),
                     prompts_list_changed=bool(self.config.expose_prompts and (caps.get('prompts') or {}).get('listChanged')),
                     resources_list_changed=bool(self.config.expose_resources and (caps.get('resources') or {}).get('listChanged')))
-        if not any(want.values()):
-            return
         delay = 1.0
         while True:
+            self._watch_changed.clear()
+            uris = sorted(self.watched)
+            if not any(want.values()) and not uris:
+                await self._watch_changed.wait()
+                continue
+            restart = False
             try:
-                async with client.listen(**want) as sub:
+                async with client.listen(**want, resource_subscriptions=uris) as sub:
                     self.listening = True
                     delay = 1.0
-                    async for _event in sub:
-                        self._refresh.set()
+                    it = sub.__aiter__()
+                    while True:
+                        nxt = asyncio.ensure_future(it.__anext__())
+                        changed = asyncio.ensure_future(self._watch_changed.wait())
+                        try:
+                            await asyncio.wait({nxt, changed}, return_when=asyncio.FIRST_COMPLETED)
+                        finally:
+                            changed.cancel()
+                            if not nxt.done():
+                                nxt.cancel()
+                                await asyncio.gather(nxt, return_exceptions=True)
+                        if not nxt.done() or nxt.cancelled():
+                            restart = True              # the watched set changed: reopen with it
+                            break
+                        try:
+                            event = nxt.result()
+                        except StopAsyncIteration:
+                            break
+                        if isinstance(event, ResourceUpdated):
+                            self._resource_updated(event.uri)
+                        else:
+                            self._refresh.set()
                 self.listening = False
             except asyncio.CancelledError:
                 raise
             except Exception as e:
                 self.listening = False
                 logger.debug(f'federation: listen stream on {self.config.id} ended: {describe(e)}')
+            if restart:
+                continue
             await asyncio.sleep(delay)
             delay = min(delay * 2, BACKOFF_MAX_SECONDS)
             self._refresh.set()                 # no replay on a new stream: refetch
 
+    async def _subscriber(self, client) -> None:
+        """A session-based upstream: keep ``resources/subscribe`` in step with the watched set."""
+        while True:
+            self._watch_changed.clear()
+            want, have = set(self.watched), set(self._subscribed)
+            for uri in sorted(want - have):
+                try:
+                    await client.subscribe_resource(uri)
+                    self._subscribed.add(uri)
+                except Exception as e:
+                    logger.warning(f'federation: resources/subscribe {uri} on {self.config.id}: {describe(e)}')
+            for uri in sorted(have - want):
+                self._subscribed.discard(uri)
+                try:
+                    await client.unsubscribe_resource(uri)
+                except Exception as e:
+                    logger.debug(f'federation: resources/unsubscribe {uri} on {self.config.id}: {describe(e)}')
+            await self._watch_changed.wait()
+
+    def set_watched(self, uris) -> None:
+        """The upstream URIs SAJHA's clients subscribe to now (called on the federation loop)."""
+        uris = set(uris or ())
+        if uris != self.watched:
+            self.watched = uris
+            self._watch_changed.set()
+
+    def _resource_updated(self, uri: Any) -> None:
+        cb = self.on_resource_updated
+        if cb is not None and isinstance(uri, str) and uri:
+            try:
+                cb(uri)
+            except Exception as e:
+                logger.debug(f'federation: resource update {uri} from {self.config.id}: {e}')
+
     async def _on_message(self, message) -> None:
-        """Legacy-era notifications on the session: a list change triggers a refresh."""
+        """Legacy-era notifications on the session: a list change triggers a refresh; a resource
+        update is passed to SAJHA's subscribed clients."""
         root = getattr(message, 'root', message)
         method = getattr(root, 'method', '') or ''
         if isinstance(method, str) and method.endswith('/list_changed'):
             self._refresh.set()
+        elif method == 'notifications/resources/updated':
+            params = getattr(root, 'params', None)
+            self._resource_updated(getattr(params, 'uri', None) if params is not None else None)
 
-    @staticmethod
-    async def _decline_elicitation(context, params):
-        """A 2025-11-25 upstream asking SAJHA for input mid-call: SAJHA's caller is not on this
-        connection to answer, so decline (2026-07-28 upstreams use MRTR, which is forwarded)."""
+    # ── requests from the upstream to its client (sajha/federation/relay.py) ──
+    async def _relay(self, method: str, params: Any):
+        """Send a 2025-11-25 upstream's request on to SAJHA's caller, or refuse it with a clear error."""
+        from mcp_types import ErrorData
+        from sajha.federation.relay import refusal
+        body = params.model_dump(mode='json', by_alias=True, exclude_none=True) if params is not None else {}
+        body.pop('_meta', None)
+        relay = self.relay
+        if relay is None or not relay.supports(method, body):
+            logger.info(f'federation: {self.config.id} asked for {method}; not relayed')
+            return ErrorData(code=-32600, message=refusal(self.config.id, method, relay is not None))
+        try:
+            return await relay.request(method, body)
+        except Exception as e:
+            return ErrorData(code=-32603, message=f'SAJHA\'s caller did not answer {method}: {e}'[:500])
+
+    async def _on_elicitation(self, context, params):
         from mcp_types import ElicitResult
-        return ElicitResult(action='decline')
+        out = await self._relay('elicitation/create', params)
+        return out if not isinstance(out, dict) else ElicitResult.model_validate(out)
+
+    async def _on_sampling(self, context, params):
+        from mcp_types import CreateMessageResult, CreateMessageResultWithTools
+        out = await self._relay('sampling/createMessage', params)
+        if not isinstance(out, dict):
+            return out
+        try:
+            return CreateMessageResult.model_validate(out)
+        except Exception:
+            return CreateMessageResultWithTools.model_validate(out)
+
+    async def _on_roots(self, context):
+        from mcp_types import ListRootsResult
+        out = await self._relay('roots/list', None)
+        return out if not isinstance(out, dict) else ListRootsResult.model_validate(out)
 
     # ── operations (called on the loop from other tasks) ───────────
     async def ready_client(self, wait: float):
@@ -461,10 +600,10 @@ class UpstreamConnection:
             if not self._ready.is_set():
                 raise asyncio.TimeoutError()
         except asyncio.TimeoutError:
-            raise UpstreamUnavailable(f'upstream {self.config.id} is not connected'
+            raise UpstreamNotConnected(f'upstream {self.config.id} is not connected'
                                       + (f' ({self.last_error})' if self.last_error else ''))
         if self._client is None:
-            raise UpstreamUnavailable(f'upstream {self.config.id} is not connected')
+            raise UpstreamNotConnected(f'upstream {self.config.id} is not connected')
         return self._client
 
     async def _guarded(self, coro_fn, timeout: float, what: str):
@@ -492,9 +631,11 @@ class UpstreamConnection:
             raise
 
     async def list_all(self, kind: str, timeout: float) -> List[Any]:
-        """Every page of tools/list, prompts/list or resources/list."""
+        """Every page of tools/list, prompts/list, resources/list or resources/templates/list
+        (``kind`` ``resource_templates``)."""
         client = await self.ready_client(min(timeout, 5.0))
-        fn = {'tools': client.list_tools, 'prompts': client.list_prompts, 'resources': client.list_resources}[kind]
+        fn = {'tools': client.list_tools, 'prompts': client.list_prompts, 'resources': client.list_resources,
+              'resource_templates': client.list_resource_templates}[kind]
         items: List[Any] = []
         cursor = None
         for _ in range(100):
@@ -514,11 +655,42 @@ class UpstreamConnection:
         responses = _input_responses(input_responses) if input_responses else None
 
         async def call():
-            return await client.session.call_tool(
-                name, arguments, read_timeout_seconds=timeout, progress_callback=progress,
-                input_responses=responses, request_state=request_state, allow_input_required=True,
-                meta=meta or None)
+            return await _call_following_tasks(client.session, name, arguments, timeout, progress, responses,
+                                               request_state, meta)
         return await self._guarded(call, timeout, f'tools/call {name}')
+
+    async def call_tool_relayed(self, relay, name: str, arguments: Dict[str, Any], timeout: float,
+                                progress: Optional[Callable] = None, meta: Optional[Dict[str, Any]] = None):
+        """One tools/call on a session-based upstream, on a connection opened for this call (with
+        the shared credentials) whose server-to-client requests go to ``relay``, the calling
+        client: the only way to know which caller such a request is for."""
+        async def _no_discovery(_conn):
+            return None
+        eph = UpstreamConnection(self.config, self.settings, _no_discovery, refresh_seconds=0)
+        eph.relay = relay
+
+        async def call():
+            try:
+                async with AsyncExitStack() as stack:
+                    client = await eph._open(stack)
+                    return await _call_following_tasks(client.session, name, arguments, timeout, progress, None,
+                                                       None, meta)
+            except BaseExceptionGroup as group:         # the connection's task group wraps the upstream's answer
+                leaves = [e for e in _leaves(group) if not isinstance(e, asyncio.CancelledError)]
+                if len(leaves) == 1 and isinstance(leaves[0], Exception) and not is_transport_error(leaves[0]):
+                    raise leaves[0] from None
+                raise
+        return await eph._guarded(call, timeout, f'tools/call {name}')
+
+    async def complete(self, ref: Dict[str, Any], argument: Dict[str, str], context_arguments: Optional[Dict],
+                       timeout: float):
+        """completion/complete for one of the upstream's prompts or resource templates."""
+        from mcp_types import PromptReference, ResourceTemplateReference
+        client = await self.ready_client(min(timeout, 5.0))
+        r = (PromptReference(type='ref/prompt', name=ref['name']) if ref.get('type') == 'ref/prompt'
+             else ResourceTemplateReference(type='ref/resource', uri=ref['uri']))
+        return await self._guarded(lambda: client.complete(r, argument, context_arguments or None), timeout,
+                                   'completion/complete')
 
     async def call_tool_as(self, bearer: str, name: str, arguments: Dict[str, Any], timeout: float,
                            progress: Optional[Callable] = None, input_responses: Optional[Dict] = None,
@@ -532,12 +704,14 @@ class UpstreamConnection:
     async def call_tool_with_header(self, header: str, value: str, name: str, arguments: Dict[str, Any],
                                     timeout: float, progress: Optional[Callable] = None,
                                     input_responses: Optional[Dict] = None, request_state: Optional[str] = None,
-                                    meta: Optional[Dict[str, Any]] = None, refuse_403: bool = True):
+                                    meta: Optional[Dict[str, Any]] = None, refuse_403: bool = True,
+                                    inner=None):
         """One tools/call carrying ``header: value`` (one user's credential) on a connection opened
         for this call and closed after it: on a 2026-07-28 upstream that is the credential riding on
         the request, with no per-user state kept. Raises UpstreamUnauthorized on HTTP 401 (and 403
-        when ``refuse_403``)."""
-        eph = self.user_connection(header, value)
+        when ``refuse_403``). ``inner``: the shared service credential sent with the header
+        (auth.type service_with_user)."""
+        eph = self.user_connection(header, value, inner)
         responses = _input_responses(input_responses) if input_responses else None
 
         async def call():
@@ -580,14 +754,15 @@ class UpstreamConnection:
                 raise
         return await eph._guarded(listing, timeout, 'tools/list')
 
-    def user_connection(self, header: str, value: str) -> 'UpstreamConnection':
-        """An unstarted connection to this upstream presenting one user's credential."""
-        from sajha.federation.auth import StaticHeaderAuth
+    def user_connection(self, header: str, value: str, inner=None) -> 'UpstreamConnection':
+        """An unstarted connection to this upstream presenting one user's credential (or, with
+        ``inner``, the shared service credential plus the header naming the user)."""
+        from sajha.federation.auth import OnBehalfAuth, StaticHeaderAuth
 
         async def _no_discovery(_conn):
             return None
         c = UpstreamConnection(self.config, self.settings, _no_discovery, refresh_seconds=0)
-        c._auth_override = StaticHeaderAuth(header, value)
+        c._auth_override = OnBehalfAuth(inner, header, value) if inner is not None else StaticHeaderAuth(header, value)
         c.user_session = True
         return c
 
@@ -613,6 +788,18 @@ class UpstreamConnection:
 
     def secret_values(self) -> List[str]:
         return list(self._secret_values)
+
+
+async def _call_following_tasks(session, name, arguments, timeout, progress, responses, request_state, meta):
+    """tools/call; a task answer (the upstream supports the tasks extension) is followed to its end."""
+    from sajha.federation.tasks import CreateTaskResult, follow
+    result = await session.call_tool(
+        name, arguments, read_timeout_seconds=timeout, progress_callback=progress,
+        input_responses=responses, request_state=request_state, allow_input_required=True,
+        allow_claimed=True, meta=meta or None)
+    if isinstance(result, CreateTaskResult):
+        return await follow(session, result, timeout)
+    return result
 
 
 def _consume(task: asyncio.Future) -> None:

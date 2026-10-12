@@ -159,7 +159,7 @@ Design: docs/architecture/API Import.md
                         </div>
                         <div class="table-responsive">
                             <table class="table table-sm ai-ops">
-                                <thead><tr><th></th><th>Status</th><th>Operation</th><th>Tool name</th><th>Hints</th></tr></thead>
+                                <thead><tr><th></th><th>Status</th><th>Operation</th><th>Tool name</th><th>Hints</th><th title="Follow pages (GET only; off by default)">Pages</th></tr></thead>
                                 <tbody id="aiOps"></tbody>
                             </table>
                         </div>
@@ -260,7 +260,35 @@ Design: docs/architecture/API Import.md
             timeout_seconds: parseInt($('aiTimeout').value || '0', 10) || 0,
             rate_limit_per_minute: parseInt($('aiRate').value || '0', 10) || 0,
             graphql_depth: parseInt($('aiDepth').value || '0', 10) || 0, names
-        }, extra || {});
+        }, pagingRequest(), extra || {});
+    }
+
+    // ── pagination following, per operation (off by default) ────
+    const PG_MODES = ['off', 'link', 'next_url', 'cursor', 'page', 'offset'];
+    function pagingCell(o) {
+        if (o.method !== 'GET') return '';
+        const cfg = o.paginate || {};
+        const opts = Object.entries(cfg).filter(([k, v]) => k !== 'mode' && v !== '' && v !== null).map(([k, v]) => k + '=' + v).join(' ');
+        return '<select class="form-select form-select-sm ai-pg-mode" data-key="' + esc(o.key) + '" aria-label="follow pages of ' + esc(o.key) + '">' +
+            PG_MODES.map(m => '<option' + ((cfg.mode || 'off') === m ? ' selected' : '') + '>' + m + '</option>').join('') + '</select>' +
+            '<input class="form-control form-control-sm mt-1 ai-pg-opts" data-key="' + esc(o.key) + '" value="' + esc(opts) + '"' +
+            ' placeholder="items=data next_field=meta.next max_pages=5" aria-label="pagination options of ' + esc(o.key) + '">';
+    }
+    function pagingRequest() {
+        const modes = document.querySelectorAll('.ai-pg-mode');
+        if (!modes.length) return {};               // nothing shown yet: the server keeps what is recorded
+        const out = {};
+        modes.forEach(sel => {
+            if (sel.value === 'off') return;
+            const cfg = {mode: sel.value};
+            const opts = document.querySelector('.ai-pg-opts[data-key="' + CSS.escape(sel.dataset.key) + '"]');
+            (opts ? opts.value : '').split(/\s+/).filter(Boolean).forEach(kv => {
+                const i = kv.indexOf('=');
+                if (i > 0) cfg[kv.slice(0, i)] = kv.slice(i + 1);
+            });
+            out[sel.dataset.key] = cfg;
+        });
+        return {pagination: out};
     }
 
     // ── auth rows ───────────────────────────────────────────────
@@ -347,7 +375,8 @@ Design: docs/architecture/API Import.md
                 (a.destructiveHint ? '<span class="badge bg-danger ai-hint">destructive</span>' : '') +
                 (a.idempotentHint ? '<span class="badge bg-secondary ai-hint">idempotent</span>' : '') +
                 (o.deprecated ? '<span class="badge bg-warning text-dark ai-hint">deprecated</span>' : '') +
-                (o.pagination.length ? '<span class="badge bg-light text-dark ai-hint">paged</span>' : '');
+                (o.pagination.length ? '<span class="badge bg-light text-dark ai-hint">paged</span>' : '') +
+                (o.files ? '<span class="badge bg-light text-dark ai-hint">file upload</span>' : '');
             const flags = (o.unsupported ? '<div class="ai-flag">' + esc(o.unsupported) + '</div>' : '') +
                 (o.conflict ? '<div class="ai-flag">name used by ' + esc(o.conflict) + '; rename it</div>' : '') +
                 (o.flagged ? '<div class="ai-flag">description screened</div>' : '');
@@ -357,7 +386,7 @@ Design: docs/architecture/API Import.md
                 '<td><span class="ai-method">' + esc(o.method) + '</span> <span class="ai-path">' + esc(o.path || o.operation_id) + '</span>' +
                 '<div class="small text-muted">' + esc(o.summary) + '</div>' + flags + '</td>' +
                 '<td><input class="form-control form-control-sm ai-name" data-key="' + esc(o.key) + '" data-orig="' + esc(o.name) + '" value="' + esc(o.name) + '" aria-label="tool name"></td>' +
-                '<td>' + hints + '</td></tr>';
+                '<td>' + hints + '</td><td>' + pagingCell(o) + '</td></tr>';
         }).join('');
         $('aiCounts').textContent = data.counts.shown + ' of ' + data.counts.total + ' operations shown; at most ' + data.max_tools + ' tools';
         $('aiRemovedWrap').classList.toggle('d-none', !(data.removed || []).length);
@@ -426,6 +455,7 @@ Design: docs/architecture/API Import.md
             $('aiDepth').value = q.graphql_depth || ''; $('aiFilterPath').value = (q.filters || {}).path || '';
             if (q.uploaded) { $('aiText').value = ''; message('This API was uploaded: upload or paste the new version, then press Read the API.', 'warning'); $('aiAuth').innerHTML = ''; return; }
             $('aiText').value = '';
+            $('aiOps').innerHTML = '';             // the saved pagination comes back with the plan
             await parse(q.auth || {});
         }
         if (del && confirm('Delete ' + del.dataset.delete + ' and all its tools?')) {

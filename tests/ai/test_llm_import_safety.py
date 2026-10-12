@@ -78,3 +78,15 @@ def test_a_provider_module_that_fails_to_import_is_skipped_and_the_rest_register
         print("OK")
     """)
     assert r.returncode == 0 and "OK" in r.stdout, r.stderr[-2000:]
+
+
+def test_bedrock_async_path_without_aiobotocore_falls_back_to_the_worker_thread():
+    r = _run("""
+        sys.meta_path.insert(0, Block({'boto3', 'botocore', 'aiobotocore', 'aioboto3'}))
+        from sajha.ai.llm import registry
+        registry.ensure_builtins()
+        p = registry.registered_providers()['bedrock'].from_settings('bedrock', {'enabled': True})
+        assert p.async_native() is False
+        print("OK")
+    """)
+    assert r.returncode == 0 and "OK" in r.stdout, r.stderr[-2000:]

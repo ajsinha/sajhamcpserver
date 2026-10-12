@@ -178,6 +178,9 @@ def _roles_by_name(db, names: Iterable[str]) -> list:
         from sajha.db.models import Role
         return db.query(Role).filter(Role.name.in_(names)).all()
     except Exception as e:      # a policy lookup must never take a request down
+        from sajha.db.engine import is_pool_exhausted
+        if is_pool_exhausted(e):
+            raise               # a dry pool: 503 + Retry-After, not a caller with no tools
         logger.warning(f'Role lookup failed ({type(e).__name__}); granting no tool access')
         return []
 
@@ -305,7 +308,17 @@ def anonymous_policy(db=None) -> ToolPolicy:
 
 def _caller_roles(auth) -> list:
     user = getattr(auth, '_user', None)
-    return user.roles if user is not None else _roles_by_name(getattr(auth, '_db', None), auth.roles)
+    if user is not None:
+        return user.roles
+    cached = getattr(auth, '_roles_by_name_cache', None)     # one lookup per request, not one per rule
+    if cached is not None:
+        return cached
+    roles = _roles_by_name(getattr(auth, '_db', None), auth.roles)
+    try:
+        auth._roles_by_name_cache = roles
+    except Exception:
+        pass
+    return roles
 
 
 def policy_for(auth) -> ToolPolicy:

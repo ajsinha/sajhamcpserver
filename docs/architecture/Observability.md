@@ -99,6 +99,12 @@ units). The live list is the endpoint itself; each family carries `# HELP` and `
 | `sajha_sandbox_run_duration_seconds` | histogram | `backend` |
 | `sajha_federation_upstream_up` | gauge (collected) | `upstream`, `state`; 1 when connected. Present only when `sajha/federation` is importable and a manager is running. |
 | `sajha_federation_upstream_calls_total`, `sajha_federation_upstream_failures_total` | counter (collected) | `upstream` |
+| `sajha_federation_upstream_in_flight`, `sajha_federation_upstream_waiting` | gauge (collected) | `upstream`; calls in flight to the upstream and calls waiting for a slot, in this worker ([Gateway scale](Federation.md#gateway-scale)) |
+| `sajha_federation_upstream_shed_total` | counter (collected) | `upstream`; calls refused because the upstream was at `max_in_flight` with its queue full or the wait timed out |
+| `sajha_federation_pool_connections_connected` | gauge (collected) | `upstream`, `replica` (index in the upstream's URLs); connected shared connections in this worker |
+| `sajha_federation_cluster_workers_connected`, `sajha_federation_cluster_breakers_open` | gauge (collected) | `upstream`; from the cluster-wide view in the state store: workers that report the upstream connected, and workers whose breaker for it is open or half open. Every worker reports the same cluster numbers, so aggregate them with `max`, not `sum`. Present once the first health tick has run. |
+| `sajha_db_pool_size`, `sajha_db_pool_max_overflow`, `sajha_db_pool_checked_out`, `sajha_db_pool_overflow_in_use`, `sajha_db_pool_waiting` | gauge (collected) | `db_type` (`sqlite`, `postgresql`); this worker's request pool: connections kept (`db.pool.size`), extra allowed under load, in use now, in use beyond the size, and threads waiting for one (approximate). The System monitor page (`/admin/system-monitor`, `db_pool` in `/api/admin/system-monitor`) shows them for every live worker, with the database type and its URL with the password hidden ([Scaling and State](Scaling%20and%20State.md) §7). |
+| `sajha_db_pool_exhausted_total` | counter (collected) | `db_type`; checkouts that found no free connection within `db.pool.timeout_seconds`, each answered with HTTP 503 and `Retry-After` |
 | `sajha_alerts_fired_total` | counter | `rule` |
 | `sajha_policy_decisions_total`, `sajha_policy_redactions_total`, `sajha_policy_output_flags_total`, `sajha_audit_records_total`, `sajha_audit_export_total` | counter | policy and audit; labels in [Policy and Audit §6](Policy%20and%20Audit.md#6-decisions-are-logged-and-counted) |
 | `sajha_tool_probe_runs_total`, `sajha_tool_probe_up`, `sajha_tool_probe_duration_seconds`, `sajha_tool_version_calls_total`, `sajha_tool_version_call_duration_seconds`, `sajha_tool_version_rollbacks_total` | counter, gauge, histogram | health probes and tool versions; labels in [Tool Quality §4 and §6.4](Tool%20Quality.md#4-health-probes) |
@@ -106,7 +112,7 @@ units). The live list is the endpoint itself; each family carries `# HELP` and `
 | `process_*`, `python_*` | gauge / counter (collected) | resident memory, CPU seconds, open file descriptors, start time, threads, GC collections, Python version |
 
 "Collected" families are read from their owner (the cache, the breaker registry, the
-federation manager, the process) when `/metrics` is scraped, so they are never stale and
+federation manager, the database pool, the process) when `/metrics` is scraped, so they are never stale and
 cost nothing between scrapes.
 
 SAJHA Net adds its own `sajha_net_*` family (remote calls, fallbacks, catalog exchanges, gossip,
@@ -356,7 +362,51 @@ on the families above) and `grafana-sajha-dashboard.json` (an importable dashboa
 
 ---
 
-## 6. As built: decisions and limits
+## 6. Service level objectives
+
+Three objectives, each stated on a family of section 2.2, so a deployment can measure itself
+against them without new instrumentation. The targets are starting points: a deployment adopts
+them, tightens them or replaces them. The alert rules
+that watch them are the `sajha-slo` group of `deployment/observability/sajha-alerts.yml`.
+
+| Objective | Indicator (the metric) | Target | Window |
+|---|---|---|---|
+| **Availability** of the MCP endpoint | share of `sajha_http_requests_total{route="/mcp"}` whose `status` is not 5xx | 99.9% | 30 days |
+| **Latency** of calls to in-process tools | share of `sajha_tool_call_duration_seconds` observations at or under 0.1 s (`le="0.1"`), for the in-process tools | 99% | 30 days |
+| **Errors** of calls to in-process tools | share of `sajha_tool_calls_total` for those tools whose `outcome` is `error` or `circuit_open` | under 1% | 30 days |
+
+"In-process tools" are tools whose work happens inside SAJHA, with no network call: the shipped
+rules select them with `tool=~"calc_.*"` (the calculators). Edit that selector to the tools you
+run that way; a tool that calls a vendor API measures the vendor too and belongs to its own
+objective, if any. The latency indicator is the tool's own execution time; the time a request
+spends queued before it reaches the tool is in `sajha_mcp_request_duration_seconds`, and the
+harness in [Scaling and State](Scaling%20and%20State.md#9-measured-performance) measures the
+end-to-end figure from outside. The selector needs `observability.metrics.tool_label: name`
+(the default); with `group` use `tool="calc"`.
+
+The **error budget** is what the target leaves: 0.1% of `/mcp` requests in 30 days may fail.
+The rules alert on the **burn rate** (how many times faster than the budget allows it is being
+spent), over a long and a short window together, so a brief spike does not page and a real
+outage pages within minutes:
+
+| Rule | Fires when | Severity |
+|---|---|---|
+| `SajhaSloAvailabilityFastBurn` | 5xx share of `/mcp` above 14.4 × 0.1% over both 1 h and 5 m (2% of the month's budget in an hour) | critical |
+| `SajhaSloAvailabilitySlowBurn` | above 6 × 0.1% over both 6 h and 30 m (5% of the budget in six hours) | warning |
+| `SajhaSloToolLatency` | more than 1% of in-process tool calls slower than 0.1 s over 1 h, with at least 100 calls, for 15 m | warning |
+| `SajhaSloToolErrors` | more than 1% of in-process tool calls fail over 1 h, with at least 100 calls, for 15 m | warning |
+
+These complement the rules above them (`SajhaHttp5xxRate` at 5%, `SajhaToolErrorRate` at 25%
+per tool), which catch a broken server or tool quickly; the SLO rules catch a slow leak of
+reliability that never crosses those thresholds. With several workers the expressions sum over
+the `worker` label (section 2.4), so they judge the deployment, not one process. The failure
+behaviour the objectives assume (a lost state store, a killed worker, a broken upstream) is
+tested by `tests/test_failure_behaviour.py`
+([Scaling and State §7](Scaling%20and%20State.md#7-failure-behaviour-and-limits)).
+
+---
+
+## 7. As built: decisions and limits
 
 * **No `prometheus_client` dependency.** The exposition format is small and stable;
   writing it keeps SAJHA's install unchanged and lets the multi-worker merge add a

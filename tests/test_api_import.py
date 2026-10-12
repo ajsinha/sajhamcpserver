@@ -209,8 +209,11 @@ def test_petstore_operations_become_tools_with_schemas_and_annotations():
     assert ops['PUT /pets/{petId}']['annotations']['idempotentHint'] is True
     assert ops['POST /pets']['annotations']['destructiveHint'] is False
     assert all(o['annotations']['openWorldHint'] for o in ops.values())
-    assert 'multipart/form-data' in ops['POST /pets/{petId}/image']['unsupported']
-    assert ops['POST /pets/{petId}/image']['selectable'] is False
+    image = ops['POST /pets/{petId}/image']                                   # multipart: a file value
+    assert not image['unsupported'] and image['selectable'] and image['files']
+    assert image['body'] == 'multipart/form-data'
+    assert set(image['input_schema']['properties']['body']['properties']['file']['properties']) == \
+        {'content_base64', 'text', 'path', 'filename', 'content_type'}
     assert ops['GET /pets']['pagination'] == ['limit']
 
     schema = ops['GET /pets/{petId}']['input_schema']
@@ -275,7 +278,8 @@ def test_swagger_2_is_converted():
     assert schemes['basic']['scheme'] == 'basic'
     ops = _ops(plan)
     assert len(ops) == 8
-    assert 'multipart' in ops['POST /pet/{petId}/uploadImage']['unsupported']
+    assert ops['POST /pet/{petId}/uploadImage']['body'] == 'multipart/form-data'     # formData with a file
+    assert not ops['POST /pet/{petId}/uploadImage']['unsupported']
     assert ops['POST /pet/{petId}']['body'] == 'application/x-www-form-urlencoded'
     find = _config(SWAGGER, 'GET /pet/findByStatus', prefix='pet2')
     status = find['api_import']['params'][0]
@@ -610,9 +614,12 @@ def test_max_tools_cap(fake, local, store_dir, monkeypatch):
 def test_unsupported_operations_cannot_be_deployed(fake, local, store_dir):
     from sajha.api_import import service
     from sajha.api_import.service import APIImportError
+    xml_only = json.dumps({'openapi': '3.0.3', 'info': {'title': 'X', 'version': '1'}, 'paths': {'/x': {'post': {
+        'requestBody': {'content': {'application/xml': {'schema': {'type': 'object'}}}},
+        'responses': {'200': {'description': 'ok'}}}}}})
     with pytest.raises(APIImportError, match='cannot be imported'):
-        service.deploy({'kind': 'openapi', 'text': PETSTORE, 'prefix': 'pets', 'base_url': f'{fake.url}/v1',
-                        'selected': ['POST /pets/{petId}/image']}, FakeRegistry())
+        service.deploy({'kind': 'openapi', 'text': xml_only, 'prefix': 'pets', 'base_url': f'{fake.url}/v1',
+                        'selected': ['POST /x']}, FakeRegistry())
 
 
 def test_test_call_without_deploying(fake, local, store_dir):

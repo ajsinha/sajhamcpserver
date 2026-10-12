@@ -173,7 +173,12 @@ def main():
                                 log_level=log_level.lower(), **extra)
         config.load()
         harden_ssl_context(config.ssl)       # server.tls.min_version
-        uvicorn.Server(config).run()
+        server = uvicorn.Server(config)
+        server.run()
+        if not server.started:
+            # start-up failed (e.g. a shared state store that does not answer): exit non-zero, as
+            # uvicorn.run does, so a supervisor or orchestrator sees a failed deployment
+            sys.exit(3)
 
 
 if __name__ == '__main__':

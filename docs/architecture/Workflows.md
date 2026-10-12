@@ -102,7 +102,7 @@ publish: {enabled: true, tool_name: rates_watch, timeout_seconds: 120}  # option
 | `composite` | `tool`, `params` | The same, for a composite tool (composites are registry tools); kept as its own kind so the graph says what it is |
 | `ask` | `question`, `model` | Asks Ask SAJHA (`sajha/ai/intelligence.py`) as the owner; the output is the answer record (`answer`, `steps`, `citations`, ...). Fails when no LLM provider is configured |
 | `condition` | `if`, `then`, `else` | Evaluates a condition to `{"result": true/false}`; the steps named in the branch not taken are skipped |
-| `foreach` | `items`, `do`, `max_items`, `parallel`, `on_overflow` | Runs one `tool`, `composite` or `ask` call per element of a list (`$item`, `$index`); output `{items, count, truncated, failed}` |
+| `foreach` | `items`, `do`, `max_items`, `parallel`, `on_overflow` | Runs a body per element of a list (`$item`, `$index`): one `tool`, `composite` or `ask` call, or a small graph of steps (below); output `{items, count, truncated, failed}` |
 | `wait` | `seconds` or `until` | Waits; up to `workflows.inline_wait_seconds` in the worker, longer by parking the run |
 | `approval` | `reason`, `ttl_seconds` | Holds the run for a human decision on the Approvals page (the policy engine's approval store) |
 
@@ -110,6 +110,48 @@ Every step also takes `depends_on`, `join` (`all_success`, the default; `any_suc
 `all_done`), `when` (a condition; false skips the step), `on_error` (`fail`, the default,
 fails the run; `continue` records the failure and goes on) and, for calls, `retry`,
 `timeout_seconds`, `idempotent` and `idempotency_param`.
+
+### A `foreach` body that is a graph
+
+`do` is either one call (`{tool, params}`, `{kind: ask, question}`) or a graph run for each
+item: `do: {steps: [...], output: ..., on_error: ...}` (a bare list is the same as `{steps:
+[...]}`).
+
+```yaml
+  - id: each_issuer
+    kind: foreach
+    items: $steps.issuers.rows
+    parallel: 4                          # items at once; the body's steps run one after another
+    do:
+      steps:
+        - {id: quote, tool: get_quote, params: {symbol: $item.symbol}}
+        - {id: moved, kind: condition, if: "$steps.quote.change_pct > 5", then: [explain]}
+        - {id: explain, kind: ask, question: "Why did {{$item.symbol}} move? {{$steps.quote}}"}
+      output: {symbol: $item.symbol, quote: $steps.quote, note: $steps.explain.answer}
+      on_error: continue                 # a failed item is {"error": ...}; fail (default) fails the step
+```
+
+- Body steps are `tool`, `composite`, `ask`, `condition` and `wait` (no `foreach`, no
+  `approval`), with every step field (`depends_on`, `join`, `when`, `on_error`, `retry`,
+  `timeout_seconds`, condition branches). Their ids are unique across the whole workflow.
+- Inside the body, `$item` and `$index` are the element and its position, and `$steps.<id>`
+  sees the run's finished steps and this item's body steps. A body that reads an outer step
+  makes the `foreach` depend on it.
+- Each item runs its body steps in dependency order, one at a time; `parallel` items run at
+  once. A body step with `on_error: fail` (the default) fails its item; then the body's
+  `on_error` decides whether the item fails the `foreach` (`fail`) or is recorded as
+  `{"error": ...}` (`continue`).
+- An item's result is the body's `output` mapping, or every body step's output keyed by id
+  (a failed `continue` step as `{"error": ...}`).
+- Limits: at most `workflows.foreach_max_body_steps` body steps (checked on save and at run
+  time), items capped by `max_items` and `workflows.loop_hard_max_items` as before. A body
+  `wait` runs in the worker and may not exceed `workflows.inline_wait_seconds`. A policy
+  approval inside a body fails the item.
+- The body's steps are not rows of their own: the `foreach` step is recorded (input, output,
+  attempts) and resumed as one step. After a worker dies mid-`foreach`, the step runs again
+  only if it is idempotent, which for a graph body means every body step is.
+
+### Implicit dependencies and checks
 
 A step that reads `$steps.<id>` depends on that step without saying so, and a step named
 in a condition's `then` or `else` depends on the condition. A cycle, an unknown step, a
@@ -125,7 +167,7 @@ Parameter mapping extends the composite syntax (`resolve_source` in
 |---|---|
 | `$input.x` (or `$.input.x`) | the run's input |
 | `$steps.<id>`, `$steps.<id>.a.0.b` | a finished step's output, or a path into it |
-| `$item`, `$item.x`, `$index` | inside a `foreach`: the element and its position |
+| `$item`, `$item.x`, `$index` | inside a `foreach`: the element and its position (in a graph body, `$steps` also has this item's body steps) |
 | `$run.id`, `$run.workflow`, `$run.trigger` | the run |
 | `"text {{$input.x}} text"` | interpolation (non-strings are inserted as JSON) |
 | anything else | a literal |
@@ -229,10 +271,10 @@ a repeated request returns the first run instead of starting another.
 | Type | Fields | Fires |
 |---|---|---|
 | manual | (always available) | the page, `sajha workflows run`, `POST /api/workflows/{name}/runs` |
-| `cron` | `cron`, `timezone` | at each due slot of a five-field cron expression in an IANA timezone |
+| `cron` | `cron`, `timezone`, `catch_up`, `catch_up_max` | at each due slot of a five-field cron expression in an IANA timezone |
 | `webhook` | `secret` or `secret_ref: env:NAME`, `tolerance_seconds` | on a correctly signed `POST /api/workflows/{name}/hooks/{trigger}` |
 | `file` | `prefix`, `pattern`, `interval_seconds`, `fire_existing` | when a file under `prefix` matching `pattern` appears or changes on the storage backend |
-| `event` | `kinds`, `uri`, `debounce_seconds` | on a change-bus event (`tools`, `prompts`, `resources`, `resource_updated`) |
+| `event` | `kinds`, `uri`, `debounce_seconds` | on a change-bus event (`tools`, `prompts`, `resources`, `resource_updated`) on any worker |
 
 Every trigger may carry `input` (merged under what the trigger supplies) and `enabled`.
 A disabled workflow fires no triggers; it can still be run by hand.
@@ -241,13 +283,29 @@ A disabled workflow fires no triggers; it can still be run by hand.
 month and weekday names, plus `@hourly`, `@daily`, `@weekly`, `@monthly`, `@yearly`.
 When both day fields are restricted, either matching fires (classic cron). Times are
 evaluated in `timezone` (default UTC): a wall time skipped by a daylight-saving change does
-not fire that day, and a repeated one fires once. Slots missed while no worker was running
-are coalesced: at most one run (the latest slot) per tick. **One fire across workers:**
+not fire that day, and a repeated one fires once. Slots that fall due between two ticks of a
+running worker are coalesced into one run (the latest slot). **One fire across workers:**
 the worker that fires a slot first claims `wf:cron:<workflow>:<trigger>:<slot>` with an
 atomic `add` in the state store; the others see it taken. The run's idempotency key is
 `cron:<trigger>:<slot>`, so even two workers with separate memory stores could not create
 two runs for one slot in one database. With several workers, use a shared state store
 (`state.backend: redis` or `database`, see [Scaling and State](Scaling%20and%20State.md)).
+
+**Missed slots (`catch_up`).** A worker that starts looks back only one tick window (at
+least 60 seconds), so by default slots that fell due while no worker was running are not
+run (`catch_up: none`). A cron trigger can opt in to replaying them:
+
+| `catch_up` | When a worker first looks at the trigger after a gap |
+|---|---|
+| `none` (default) | Nothing older than the look-back window runs |
+| `last` | One run for the latest missed slot |
+| `all` | One run per missed slot, oldest first, at most `catch_up_max` (default 10, at most 1000; the latest ones are kept). It also stops coalescing slots that fall due between ticks |
+
+The gap starts at the trigger's newest run in `workflow_runs` (its slot), or, when it has
+none, at the workflow's last save. Each replayed slot is claimed and keyed like any other
+(`cron:<trigger>:<slot>`), so it runs once across workers and restarts, and its run's
+`trigger_detail` has `catch_up`. `catch_up` and `catch_up_max` set at the top of the
+definition are the default for its cron triggers; a trigger's own value wins.
 
 **Signed webhooks.** On save, a webhook trigger without `secret` or `secret_ref` gets a
 generated secret (shown masked; `GET /api/workflows/{name}?reveal=1` shows it to the owner
@@ -271,13 +329,21 @@ on the configured storage backend (`sajha/core/storage.py`: local disk, S3, Azur
 GCS; see the [Storage Guide](../getting-started/Storage%20Guide.md)), matching `pattern`
 against the file name. A file is new when its modification time differs from the one
 recorded in the state store; the run's input has `path` and `modified`. The first poll
-records what is there without firing unless `fire_existing: true`. This is polling, not
-notification: a file can wait up to an interval, and object stores are listed in full each
-time (the first 1000 matches are considered).
+records what is there without firing unless `fire_existing: true`. Firing is by polling: a
+file can wait up to an interval, and object stores are listed in full each time (the first
+1000 matches are considered). With [push-based reload](../getting-started/Storage%20Guide.md#push-based-reload)
+on a cloud backend, a bucket event for a path under `prefix` drops the trigger's poll claim, so
+the next scheduler tick polls it at once instead of waiting out the interval.
 
 **Change-bus events.** The service listens to the change bus (`sajha/core/change_bus.py`)
-on each worker; an event fires on the worker that produced it, debounced per trigger. The
-run's input has `event: {kind, uri}`.
+for this worker's events and, with a shared state store, for every other worker's, which the
+change bus relays on the store's `changes` channel ([Scaling and State](Scaling%20and%20State.md#45-change-bus)).
+Each event carries an id that is the same on every worker; before firing a trigger, a worker
+claims `wf:evclaim:<workflow>:<trigger>:<id>` with an atomic `add`, so one event starts one
+run however many workers hear it, and a worker without a running scheduler (workflows
+switched off there) still has its events acted on elsewhere. Then `debounce_seconds` applies
+per trigger, across workers. The run's input has `event: {kind, uri}`; its `trigger_detail`
+names the event id and the worker that fired it.
 
 ---
 
@@ -384,14 +450,21 @@ sajha workflows show <run-id>
   killed); it is abandoned and its result ignored.
 - Waits and approvals are checked on the scheduler tick, so a parked run resumes up to
   `workflows.tick_seconds` late.
-- File triggers poll; they do not receive storage notifications.
-- Change-bus event triggers fire on the worker that produced the event; events from other
-  workers reach only their own triggers.
-- A `foreach` body is one call (tool, composite or ask), not a sub-graph; a policy
-  approval inside a `foreach` fails the item.
+- File triggers fire from a poll; a bucket event (push-based reload) only brings that poll forward to the next tick.
+- A `foreach` body cannot park the run: it has no `approval` or `foreach` steps, a body
+  `wait` is at most `workflows.inline_wait_seconds`, and a policy approval inside a body
+  fails the item. Body steps are not recorded one by one: the `foreach` step is the unit of
+  recording, resume and re-run.
 - A resumed run sees a truncated preview, not the full value, for a step output larger
   than `workflows.step_output_max_chars`.
-- Cron slots missed while every worker was down are coalesced into one run, not replayed.
+- With `state.backend: memory` the change bus relays nothing, so each worker's events fire
+  only there (one worker is the supported case for `memory`).
+- The change bus coalesces a burst of identical events on the relay (the first at once,
+  then at most one per 0.5 s), so other workers hear fewer of them than the producing
+  worker; that worker fires the rest itself, and `debounce_seconds` usually merges them anyway.
+- Cron catch-up starts from the trigger's newest run: when runs are pruned
+  (`workflows.run_retention_days`) or the trigger was renamed, it starts from the
+  workflow's last save instead.
 
 ---
 

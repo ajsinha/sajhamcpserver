@@ -101,6 +101,24 @@ def unmatched(answer: str, question: str, results: List[Dict[str, Any]], workspa
     return out
 
 
+def corroboration(answer: str, question: str, results_by_source: Dict[str, List[Dict[str, Any]]],
+                  settings: Optional[Dict[str, Any]] = None) -> List[Dict[str, Any]]:
+    """The answer's checked figures (the ``ignore`` rules of the numbers checks) that appear in at least one
+    source's results, each ``{raw, value, sources}``: the sources (tool names) whose results contain it.
+    The confidence score's agreement (docs/architecture/Intelligence Layer.md §6) reads this."""
+    s = dict(settings or {})
+    tol = float(s.get("tolerance", 0.005))
+    ctx = CheckContext(draft=answer or "", draft_json=None, citations=[], question=question or "",
+                       results=[], output_schema=None, lookup=lambda r: None, evaluate=lambda e: True)
+    pools = {src: _result_numbers(rs) for src, rs in results_by_source.items()}
+    out = []
+    for n in _figures(ctx, s):
+        sources = sorted(src for src, pool in pools.items() if _in_results(n, pool, tol))
+        if sources:
+            out.append({"raw": ctx.draft[n["start"]:n["end"]].strip(), "value": n["value"], "sources": sources})
+    return out
+
+
 def remove_figures(answer: str, figures: List[Dict[str, Any]]) -> str:
     """``answer`` with each figure's text replaced by a marker (spans from the last to the first)."""
     text = answer

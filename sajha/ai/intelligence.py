@@ -31,6 +31,7 @@ the AskResult. Event schema (stable; every event has ``type`` and ``seq``):
     {"type": "needs_connection", "id", "name", "provider", "provider_title", "connect_url", "reason"}
     {"type": "answer_delta","text"}            # display chunks of the final answer
     {"type": "answer",      "text"}
+    {"type": "context_trimmed", "step", "model", "dropped_messages", "dropped_turns", "turns_left"}
     {"type": "confidence",  "value", "basis": [...]}
     {"type": "stage_start", "stage", "type", "visit", "planner"}       # planner files (sajha/ai/planners_engine)
     {"type": "stage_end",   "stage", "outcome", "ms", "planner"}
@@ -145,6 +146,7 @@ class AskStep:
     confidence: float = 0.0
     fingerprint: str = ""
     net: Optional[Dict[str, str]] = None   # a SAJHA Net remote tool: the net and host that answered
+    as_of: Optional[str] = None            # the newest as-of date in the result (freshness, ISO 8601 UTC)
 
     def to_dict(self):
         return dict(self.__dict__)
@@ -181,6 +183,7 @@ class AskResult:
     workspace: Optional[Dict[str, Any]] = None                       # the run's quantities (sajha/ai/quant), JSON
     scenario_tables: List[Dict[str, Any]] = field(default_factory=list)  # sensitivity tables (scenario): rows per point
     reconciliations: List[Dict[str, Any]] = field(default_factory=list)  # comparisons across sources (reconcile)
+    context_trims: List[Dict[str, Any]] = field(default_factory=list)    # oldest turns dropped on ContextTooLong
 
     def to_dict(self) -> Dict[str, Any]:
         return {"question": self.question, "answer": self.answer, "confidence": round(self.confidence, 4),
@@ -194,7 +197,8 @@ class AskResult:
                 "planner_path": self.planner_path, "loops_exhausted": self.loops_exhausted,
                 "planner_by": self.planner_by, "input_request": self.input_request,
                 "queries": self.queries, "code_runs": self.code_runs, "workspace": self.workspace,
-                "scenario_tables": self.scenario_tables, "reconciliations": self.reconciliations}
+                "scenario_tables": self.scenario_tables, "reconciliations": self.reconciliations,
+                "context_trims": self.context_trims}
 
 
 def fingerprint(name: str, arguments: Dict[str, Any]) -> str:
@@ -284,6 +288,98 @@ def _tool_definition(name: str, tool: Any) -> ToolDefinition:
     if not isinstance(desc, str):
         desc = getattr(tool, "description", "") or ""
     return ToolDefinition.of(name, desc, schema)
+
+
+# ── freshness and agreement (confidence; Intelligence Layer §6 "Confidence") ──
+AS_OF_KEYS = ("as_of", "asOf", "as_of_date", "as_of_time", "data_as_of", "last_updated", "lastUpdated",
+              "updated_at", "updatedAt")
+# (age in days at most, factor): a result dated within a day is fresh; older ones count less
+FRESHNESS_STEPS = ((1.0, 1.0), (7.0, 0.95), (30.0, 0.9), (365.0, 0.8))
+FRESHNESS_FLOOR = 0.7
+AGREEMENT_WEIGHT = 0.25          # full corroboration closes this share of the gap to 1
+DISAGREEMENT_FACTOR = 0.8        # a reconciliation found differences beyond tolerance
+
+
+def _when(value: Any) -> Optional[float]:
+    """Epoch seconds of an as-of value: an ISO 8601 date or date-time, or epoch seconds or milliseconds."""
+    from datetime import datetime, timezone
+    if isinstance(value, bool):
+        return None
+    if isinstance(value, (int, float)):
+        v = float(value) / (1000.0 if value > 1e11 else 1.0)
+        return v if 1e8 < v < 1e11 else None
+    if not isinstance(value, str) or not (6 <= len(value.strip()) <= 40):
+        return None
+    text = value.strip().replace("Z", "+00:00")
+    for cand in (text, text[:10]):
+        try:
+            dt = datetime.fromisoformat(cand)
+        except ValueError:
+            continue
+        if dt.tzinfo is None:
+            dt = dt.replace(tzinfo=timezone.utc)
+        return dt.timestamp()
+    return None
+
+
+def as_of_of(out: Any, _depth: int = 0) -> Optional[float]:
+    """The newest as-of date (epoch seconds) in a tool result: keys named in ``AS_OF_KEYS`` at most three
+    levels down (the first 50 items of a list). None when the result names no date."""
+    if _depth > 3:
+        return None
+    found: List[float] = []
+    if isinstance(out, dict):
+        for k, v in out.items():
+            if k in AS_OF_KEYS:
+                t = _when(v)
+                if t is not None:
+                    found.append(t)
+            elif isinstance(v, (dict, list)):
+                t = as_of_of(v, _depth + 1)
+                if t is not None:
+                    found.append(t)
+    elif isinstance(out, list):
+        for v in out[:50]:
+            t = as_of_of(v, _depth + 1)
+            if t is not None:
+                found.append(t)
+    return max(found) if found else None
+
+
+def freshness_factor(age_days: float) -> float:
+    for limit, factor in FRESHNESS_STEPS:
+        if age_days <= limit:
+            return factor
+    return FRESHNESS_FLOOR
+
+
+def _iso(ts: float) -> str:
+    from datetime import datetime, timezone
+    return datetime.fromtimestamp(ts, tz=timezone.utc).isoformat().replace("+00:00", "Z")
+
+
+# ── trimming on ContextTooLong ──────────────────────────────────
+
+def _too_long(e: BaseException) -> bool:
+    from sajha.ai.llm.errors import ContextTooLong
+    return isinstance(e, ContextTooLong) or isinstance(getattr(e, "__cause__", None), ContextTooLong)
+
+
+def drop_oldest_turn(msgs: List[ChatMessage], history: List[ChatMessage]) -> Optional[List[ChatMessage]]:
+    """``msgs`` without the oldest earlier-conversation turn (a history user message and the history
+    messages after it, up to the next history user message). System messages, the latest question and
+    this ask's tool calls and results are never dropped. None when no earlier turn is left."""
+    if not history:
+        return None
+    last_user = max((i for i, m in enumerate(msgs) if m.role == "user"), default=-1)
+    hist = [i for i, m in enumerate(msgs[:max(0, last_user)]) if m.role not in ("system", "developer") and m in history]
+    if not hist:
+        return None
+    start = hist[0]
+    end = start + 1
+    while end in hist and msgs[end].role != "user":
+        end += 1
+    return msgs[:start] + msgs[end:]
 
 
 class IntelligenceService:
@@ -436,7 +532,8 @@ class IntelligenceService:
                    limits: Optional[Dict[str, Any]] = None, memory_context: Any = None,
                    tools: Optional[List[str]] = None, should_stop: Optional[Callable[[AskResult], Optional[str]]] = None,
                    token_stop: str = "budget", audit: bool = True,
-                   planner_info: Optional[Dict[str, Any]] = None, locality: Any = None) -> Iterator[Dict[str, Any]]:
+                   planner_info: Optional[Dict[str, Any]] = None, locality: Any = None,
+                   confirmer: Any = None) -> Iterator[Dict[str, Any]]:
         """The ask as events. ``conversation_id`` ("new" or an id this user owns) adds conversation
         memory; ``planner`` overrides ``ai.ask.planner`` for this ask: a planner reference
         (``name``, ``name@version``, ``package.module:Class``), an inline definition or an overlay
@@ -453,7 +550,11 @@ class IntelligenceService:
         ``force_model``: how the tool resolved its planner, LLM Tools §9.12).
 
         ``locality`` (``any`` | ``local`` | ``net:<name>``) restricts where offered tools run; unset, the
-        planner's ``settings.locality`` and then ``ai.ask.locality`` decide (sajha/ai/locality.py)."""
+        planner's ``settings.locality`` and then ``ai.ask.locality`` decide (sajha/ai/locality.py).
+
+        ``confirmer`` (sajha/ai/llm_tools/confirmation.py): the MCP client's channel for confirming a
+        destructive call (an MRTR input request on 2026-07-28, elicitation on 2025-11-25); without one a
+        destructive call stops the ask with ``needs_confirmation``."""
         from sajha.ai.planners import Answer, CallTools, Emit, Limits, PlanState, ShortlistEntry, as_tool_call
         from sajha.ai.planners_engine import ask_overlays, get_registry
         s = self.settings
@@ -531,11 +632,26 @@ class IntelligenceService:
         queued: List[Dict[str, Any]] = []
         step_no = [1]
 
+        def trimmed(target: str, dropped: List[ChatMessage]) -> None:
+            """The oldest turns were dropped to fit ``target``'s window: later calls leave them out too."""
+            for m in dropped:
+                if m in messages:
+                    messages.remove(m)
+                if m in history:
+                    history.remove(m)
+            rec = {"step": step_no[0], "model": target, "dropped_messages": len(dropped),
+                   "dropped_turns": sum(1 for m in dropped if m.role == "user"), "turns_left": len(history) // 2}
+            res.context_trims.append(rec)
+            queued.append(ev("context_trimmed", **rec))
+
         def chat(request: ChatCompletionRequest, needs: Any = None, model: Optional[str] = None) -> ChatCompletion:
             req = request.model_copy(update={"model": model or ask_model})
             if req.sajha is not None and needs is not None:
                 req.sajha = req.sajha.model_copy(update={"needs": needs})
-            resp = self.gateway.chat_completions_create(req)
+            if history and any(m in history for m in req.messages):
+                resp = self._create_trimming(req, history, trimmed)
+            else:
+                resp = self.gateway.chat_completions_create(req)
             queued.append(ev("model", model=count(resp), step=step_no[0]))
             return resp
 
@@ -663,19 +779,22 @@ class IntelligenceService:
                 tool_calls += 1
                 yield ev("tool_call", id=call.id, name=call.function.name, arguments=_args(call), step=step)
                 if not parallel:
-                    outcome = self._run_call(call, offered, confirmed, state.data.get("raw_results"))
+                    outcome = self._run_call(call, offered, confirmed, state.data.get("raw_results"),
+                                             confirmer=confirmer)
                     pending_here = self._record_call(call, outcome, res, parts) or pending_here
                     yield from self._call_events(call, outcome, ev)
                 else:
                     admitted.append(call)
             if admitted:
                 for call, outcome in zip(admitted, self._run_parallel(admitted, offered, confirmed,
-                                                                      state.data.get("raw_results"))):
+                                                                      state.data.get("raw_results"), confirmer)):
                     pending_here = self._record_call(call, outcome, res, parts) or pending_here
                     yield from self._call_events(call, outcome, ev)
             messages.extend(parts[c.id] for c in calls if c.id in parts)
             if pending_here:
                 stopped = "needs_connection" if res.connections else "needs_confirmation"
+                if stopped == "needs_confirmation" and confirmer is not None:
+                    confirmer.ask(res.pending)    # 2026-07-28: an MRTR input request (raises InputRequired)
                 break
             if stopped == "tool_limit":
                 break
@@ -740,7 +859,12 @@ class IntelligenceService:
                 note = f"{st.name} {'was refused' if st.status == 'refused' else 'failed'}: {st.summary[:160]}"
                 if note not in res.caveats:
                     res.caveats.append(note)
-        res.confidence, basis = self._confidence(res)
+        try:
+            from sajha.ai.planners_engine import numbers as _N
+            scored = _N.results_from_messages(res.steps, state.results(), state.data.get("raw_results"))
+        except Exception:
+            scored = None
+        res.confidence, basis = self._confidence(res, scored, question=asked)
         res.duration_ms = int((time.time() - t0) * 1000)
         if mc is not None and own_memory:
             res.turn = self.memory.record(mc, ctx, question, res) or res.turn
@@ -781,40 +905,71 @@ class IntelligenceService:
                  latency_ms=step_rec.latency_ms, **extra)
 
     def _run_parallel(self, calls: List[ToolCall], offered: Dict[str, Any], confirmed: Set[str],
-                      raw: Optional[Dict[str, Any]] = None):
+                      raw: Optional[Dict[str, Any]] = None, confirmer: Any = None):
         """Run independent calls together (each in a copy of this context: caller, policy source)."""
         import contextvars
         from concurrent.futures import ThreadPoolExecutor
         with ThreadPoolExecutor(max_workers=min(len(calls), 8), thread_name_prefix="ask-call") as pool:
-            futures = [pool.submit(contextvars.copy_context().run, self._run_call, c, offered, confirmed, raw)
-                       for c in calls]
+            futures = [pool.submit(contextvars.copy_context().run, self._run_call, c, offered, confirmed, raw,
+                                   confirmer=confirmer) for c in calls]
             return [f.result() for f in futures]
 
     # ── pieces ─────────────────────────────────────────────────
     def _run_call(self, call: ToolCall, offered: Dict[str, Any], confirmed: Set[str],
-                  raw: Optional[Dict[str, Any]] = None):
+                  raw: Optional[Dict[str, Any]] = None, *, confirmer: Any = None):
         s = self.settings
         name, args = call.function.name, _args(call)
         fp = fingerprint(name, args)
         tool = offered.get(name)
+        declined = "not run: the user declined to run it"
 
         def refused(status: str, msg: str, extra=None):
             return (AskStep(call.id, name, args, False, status, msg, 0, 0.0, fp),
                     ChatMessage.tool(call.id, msg, is_error=True, tool_name=name), extra)
 
+        def ask_client(pending: Dict[str, Any]) -> Optional[bool]:
+            """The MCP client's answer (sajha/ai/llm_tools/confirmation.py); None: no channel or no answer yet."""
+            if confirmer is None:
+                return None
+            try:
+                return confirmer.decide(pending)
+            except Exception as e:
+                logger.info(f"ask: confirming {name} through the client failed ({e})")
+                return None
+
         if tool is None:
             return refused("refused", f"tool '{name}' was not offered for this question; not run")
         if s.confirm_destructive and is_destructive(tool) and fp not in confirmed:
-            return refused("needs_confirmation", "not run: this tool is destructive and needs the user's confirmation",
-                           {"id": call.id, "name": name, "arguments": args, "fingerprint": fp, "reason": "destructive"})
+            pending = {"id": call.id, "name": name, "arguments": args, "fingerprint": fp, "reason": "destructive"}
+            answer = ask_client(pending)
+            if answer is None:
+                return refused("needs_confirmation", "not run: this tool is destructive and needs the user's confirmation",
+                               pending)
+            if not answer:
+                return refused("refused", declined)
+            confirmed = set(confirmed) | {fp}          # this call only (the set is the ask's own)
         t = time.time()
         from sajha.policy import context as _pctx
         from sajha.policy.errors import ApprovalRequired, PolicyError
         try:
             # policy (docs/architecture/Policy and Audit.md): this page can ask its user to confirm
             # source "ask": a model chose this call (scoped to the call, never leaked to the caller)
-            with _pctx.interactive(confirmed_=fp in confirmed), _pctx.using_source('ask', override=True):
-                out = tool.execute_with_tracking(dict(args))
+            try:
+                with _pctx.interactive(confirmed_=fp in confirmed), _pctx.using_source('ask', override=True):
+                    out = tool.execute_with_tracking(dict(args))
+            except ApprovalRequired as e:
+                if not e.interactive or fp in confirmed:
+                    raise
+                pending = {"id": call.id, "name": name, "arguments": args, "fingerprint": fp,
+                           "reason": f"policy: {e.reason}"}
+                answer = ask_client(pending)
+                if answer is None:
+                    raise
+                if not answer:
+                    return refused("refused", declined)
+                confirmed = set(confirmed) | {fp}
+                with _pctx.interactive(confirmed_=True), _pctx.using_source('ask', override=True):
+                    out = tool.execute_with_tracking(dict(args))
             ok = not (isinstance(out, dict) and (set(out) == {"error"} or out.get("isError") is True))
         except ApprovalRequired as e:
             if e.interactive:            # approver: caller -> the same Confirm button as destructive tools
@@ -838,8 +993,10 @@ class IntelligenceService:
         from sajha.ai.llm_tools.runtime import observe_result     # an LLM-tool run's working set (§10.4)
         out = observe_result(name, call.id, out)
         content = _cap(out, s.max_result_chars)
+        when = as_of_of(out) if ok else None
         step = AskStep(call.id, name, args, ok, "ok" if ok else "error", _summary(content), latency,
-                       get_tool_confidence(name) if ok else 0.0, fp, _net_of(out))
+                       get_tool_confidence(name) if ok else 0.0, fp, _net_of(out),
+                       _iso(when) if when is not None else None)
         return step, ChatMessage.tool(call.id, content, is_error=not ok, tool_name=name), None
 
     def _numbers_check(self, res: AskResult, plan, ref, info: Dict[str, Any], planner, state, messages, ctx, model,
@@ -907,6 +1064,42 @@ class IntelligenceService:
             out["removed"] = [f["raw"] for f in still][:50]
         return out
 
+    def _create_trimming(self, req: ChatCompletionRequest, history: List[ChatMessage],
+                         on_trim: Callable[[str, List[ChatMessage]], None]) -> ChatCompletion:
+        """A model call whose request carries earlier conversation turns. On ContextTooLong the oldest
+        turn is dropped and the same model is asked again, until it fits or no earlier turn is left; only
+        then does the call move to the alias's next candidate (a larger model), as the gateway's own
+        fallback would. Each candidate is called pinned (``provider/model``), so policy, budgets,
+        retries, breakers, cache and audit still apply to every call."""
+        from sajha.ai.llm.errors import NoModelAvailable
+        gw = self.gateway
+        try:
+            ctx = req.sajha.context if req.sajha is not None else None
+            need = gw.request_needs(req, req.sajha.needs if req.sajha is not None else None)
+            targets = [c.qualified_id for c in gw.candidates(req.model or "default", need, ctx)]
+        except Exception:
+            targets = []
+        targets = targets or [req.model or "default"]
+        last: Optional[LLMError] = None
+        for target in targets:
+            while True:
+                try:
+                    return gw.chat_completions_create(req.model_copy(update={"model": target}))
+                except LLMError as e:
+                    if _too_long(e):
+                        shorter = drop_oldest_turn(list(req.messages), history)
+                        if shorter is not None:
+                            dropped = [m for m in req.messages if m not in shorter]
+                            req = req.model_copy(update={"messages": shorter})
+                            on_trim(target, dropped)
+                            continue
+                    if isinstance(e, NoModelAvailable) or _too_long(e):
+                        last = e               # this candidate cannot answer: the next one (a larger model)
+                        break
+                    raise
+        assert last is not None
+        raise last
+
     def _synthesize(self, messages: List[ChatMessage], final_text: str, ok_ids: List[str], ctx, model, res):
         if not res.steps:
             return final_text, [], []
@@ -935,8 +1128,12 @@ class IntelligenceService:
             logger.info(f"ask: synthesis failed ({e}); using the loop's answer")
             return final_text or "", ok_ids, []
 
-    def _confidence(self, res: AskResult):
-        """Composition-framework confidence over the tool results the answer rests on."""
+    def _confidence(self, res: AskResult, results: Optional[List[Dict[str, Any]]] = None, *, question: str = "",
+                    now: Optional[float] = None):
+        """Composition-framework confidence over the tool results the answer rests on, discounted for
+        stale results (freshness) and for sources a reconciliation found apart, and raised when several
+        sources agree on the answer's figures (agreement). ``results``: the ask's results as the
+        numbers checks read them (``{id, ok, data, preview}``)."""
         from sajha.core.composition import EntropyGuard
         if res.stopped_by in ("needs_confirmation",) or (res.stopped_by == "error" and not res.answer):
             return 0.0, [{"rule": "no answer", "value": 0.0}]
@@ -955,7 +1152,56 @@ class IntelligenceService:
         if res.stopped_by in ("step_limit", "tool_limit", "timeout", "budget", "token_limit", "cost_limit",
                               "memory_pressure", "cancelled"):
             guard.record_step(f"incomplete:{res.stopped_by}", 0.8)
-        return guard.cumulative_confidence, guard.step_entropies
+        # freshness: each cited result's as-of date, unless the question asked for that date
+        now = time.time() if now is None else now
+        for st in cited:
+            when = _when(st.as_of) if st.as_of else None
+            if when is None or st.as_of[:10] in (question or res.question):
+                continue
+            factor = freshness_factor(max(0.0, (now - when) / 86400.0))
+            if factor < 1.0:
+                guard.record_step(f"freshness:{st.name}", factor)
+        # disagreement: a reconciliation found differences beyond tolerance
+        broke = [x for x in res.reconciliations if x.get("breaks")]
+        if broke:
+            guard.record_step("disagreement:reconcile", DISAGREEMENT_FACTOR)
+        value, basis = guard.cumulative_confidence, list(guard.step_entropies)
+        agreement = self._agreement(res, cited, results, question)
+        if agreement is not None and not broke and agreement["corroboration"] > 0:
+            value = value + (1.0 - value) * AGREEMENT_WEIGHT * agreement["corroboration"]
+            basis.append({"rule": "agreement", **agreement, "cumulative_confidence": round(value, 4)})
+        return value, basis
+
+    @staticmethod
+    def _agreement(res: AskResult, cited: List[AskStep], results: Optional[List[Dict[str, Any]]],
+                   question: str) -> Optional[Dict[str, Any]]:
+        """How far the answer's figures are backed by more than one source: ``corroboration`` is the share
+        of the answer's figures found in a result that appear in the results of two or more different
+        tools (a reconciliation whose figures were compared with no differences counts as 1). None when
+        fewer than two tools were cited or no figure could be matched."""
+        agreed = [x for x in res.reconciliations
+                  if not x.get("breaks") and any(f.get("status") == "compared" for f in x.get("figures") or [])]
+        if agreed:
+            return {"corroboration": 1.0, "by": "reconcile", "figures": sum(len(x.get("figures") or []) for x in agreed)}
+        tools = {st.name for st in cited}
+        if len(tools) < 2 or not results or not res.answer:
+            return None
+        ids = {st.id: st.name for st in cited}
+        by_tool: Dict[str, List[Dict[str, Any]]] = {}
+        for r in results:
+            if r.get("id") in ids and r.get("ok"):
+                by_tool.setdefault(ids[r["id"]], []).append(r)
+        try:
+            from sajha.ai.planners_engine.numbers import corroboration
+            figures = corroboration(res.answer, question or res.question, by_tool)
+        except Exception as e:
+            logger.debug(f"ask: agreement not scored: {e}")
+            return None
+        if not figures:
+            return None
+        backed = [f for f in figures if len(f["sources"]) >= 2]
+        return {"corroboration": round(len(backed) / len(figures), 4), "by": "figures", "figures": len(figures),
+                "corroborated": [f["raw"] for f in backed][:20], "sources": sorted(tools)}
 
     def _write_audit(self, res: AskResult, ctx: RequestContext) -> None:
         if not self.settings.audit:
@@ -965,6 +1211,8 @@ class IntelligenceService:
                  "planner_path": res.planner_path, "loops_exhausted": res.loops_exhausted,
                  "tokens": res.usage.total_tokens, "outcome": res.stopped_by,
                  "confidence": round(res.confidence, 4)}
+        if res.context_trims:            # oldest turns dropped on ContextTooLong (each: step, model, counts)
+            entry["context_trims"] = res.context_trims[:10]
         if res.queries:                  # SQL over loaded tool results: the query and its source calls
             entry["queries"] = [{"id": q.get("id"), "sql": str(q.get("sql") or "")[:500], "ok": q.get("ok"),
                                  "sources": q.get("sources")} for q in res.queries[:10]]

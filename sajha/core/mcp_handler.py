@@ -67,11 +67,11 @@ class MCPHandler:
 
         # Server capabilities (MCP 2025-11-25).  Only server-side capabilities
         # belong here; elicitation and sampling are *client* capabilities.
-        # listChanged is false here because a streamable-HTTP 2025-11-25
-        # session has no channel for it (SAJHA answers GET /mcp with 405);
-        # transports with a push channel (2024-11-05 SSE, WebSocket) flip it
-        # to true in their initialize response (mcp_routes.with_push_capabilities)
-        # and receive list_changed from the change bus.  2026-07-28 clients get
+        # listChanged is false here because a bare handler has no push channel;
+        # transports with one (streamable-HTTP sessions with their GET /mcp
+        # stream, 2024-11-05 SSE, WebSocket, stdio) flip it to true in their
+        # initialize response (mcp_routes.with_push_capabilities) and deliver
+        # list_changed from the change bus.  2026-07-28 clients get
         # listChanged/subscribe via subscriptions/listen (mcp_modern).
         self.capabilities = {
             "tools": {"listChanged": False},
@@ -217,11 +217,11 @@ class MCPHandler:
             elif method == 'resources/read':
                 result = self._handle_resources_read(params, session)
             elif method == 'resources/templates/list':
-                result = self._handle_resources_templates_list(params)
+                result = self._handle_resources_templates_list(params, session)
             elif method == 'resources/subscribe':
-                result = self._handle_resources_subscribe(params)
+                result = self._handle_resources_subscribe(params, session)
             elif method == 'resources/unsubscribe':
-                result = self._handle_resources_unsubscribe(params)
+                result = self._handle_resources_unsubscribe(params, session)
 
             # ── MCP v3 additions: Completion ─────────────────────
             elif method == 'completion/complete':
@@ -736,8 +736,11 @@ class MCPHandler:
         if schema and isinstance(json_value, dict):
             response["structuredContent"] = json_value
             try:
-                import jsonschema
-                jsonschema.validate(json_value, schema)
+                # a cached validator per schema (jsonschema.validate re-checks the schema on every call)
+                from sajha.tools.base_mcp_tool import _schema_validator
+                validator = _schema_validator(schema, getattr(tool, 'name', '?'), self.logger)
+                if validator is not None:
+                    validator.validate(json_value)
             except ImportError:
                 pass
             except Exception as e:
@@ -865,6 +868,17 @@ class MCPHandler:
                 raise
             except Exception as e:
                 raise MCPError(self.INTERNAL_ERROR, f'Federated resource read failed: {e}')
+        if federation is not None and federation.owns_view(uri):
+            # a proxied tool's MCP Apps view: readable by a caller who may see a tool that uses it
+            from sajha.core import mcp_apps
+            if not mcp_apps.apps_enabled():
+                raise MCPError(-32002, 'Resource not found', {'uri': uri})
+            try:
+                return federation.read_view(uri, lambda name: self.can_see_tool(session, name))
+            except MCPError:
+                raise
+            except Exception as e:
+                raise MCPError(self.INTERNAL_ERROR, f'Federated view read failed: {e}')
 
         if uri == 'sajha://tools/catalog':
             tools = self._visible_tools(session)        # the tools/list policy
@@ -900,9 +914,21 @@ class MCPHandler:
         # MCP spec: unknown resource -> -32002 Resource not found
         raise MCPError(-32002, 'Resource not found', {'uri': uri})
 
-    def _handle_resources_templates_list(self, params: Dict) -> Dict:
-        """Handle resources/templates/list — parameterized resource templates."""
+    def federated_views(self, session: Optional[Dict] = None) -> List[Dict]:
+        """MCP Apps views of proxied tools the caller may see (resources/list, 2026-07-28 path)."""
+        federation = self._federation()
+        if federation is None:
+            return []
+        return federation.view_definitions(lambda name: self.can_see_tool(session, name))
+
+    def _handle_resources_templates_list(self, params: Dict, session: Optional[Dict] = None) -> Dict:
+        """Handle resources/templates/list — parameterized resource templates (a proxied
+        server's approved templates too, by the resource rule on the namespaced template)."""
         templates = self._sajha_resource_templates()
+        federation = self._federation()
+        if federation is not None:
+            templates.extend(t for t in federation.template_definitions()
+                             if self.can_read_resource(session, t.get('uriTemplate')))
         fixtures = self._fixtures()
         if fixtures:
             templates.extend(fixtures.resource_templates())
@@ -923,21 +949,55 @@ class MCPHandler:
                 },
             ])
 
-    def _handle_resources_subscribe(self, params: Dict) -> Dict:
+    def _handle_resources_subscribe(self, params: Dict, session: Optional[Dict] = None) -> Dict:
         """
-        Handle resources/subscribe.  Accepted for compatibility, but the
-        server advertises resources.subscribe=false because it does not send
-        notifications/resources/updated.
+        Handle resources/subscribe.  On a streamable-HTTP session (``mcp_session_id`` in the
+        session dict, set by the transport) the URI joins the session's subscriptions, and
+        ``notifications/resources/updated`` for it travels on the session's GET /mcp stream; a
+        proxied server's resource (``sajha-federation://``) is subscribed at its upstream while
+        any session holds it (docs/architecture/Federation.md).  Elsewhere it is accepted and
+        no updates are sent (the capability is advertised only where they are).
         """
         uri = params.get('uri', '')
+        if not isinstance(uri, str) or not uri:
+            raise MCPError(self.INVALID_PARAMS, "uri is required")
+        federation = self._federation()
+        federated = federation is not None and federation.owns_resource(uri)
+        if federated:
+            if not self.can_read_resource(session, uri):     # hidden == missing
+                raise MCPError(-32002, 'Resource not found', {'uri': uri})
+            problem = federation.subscribe_problem(uri)
+            if problem:
+                raise MCPError(-32002 if problem.startswith('Resource not found') else self.INVALID_PARAMS,
+                               problem, {'uri': uri})
+        mcp_session = self._mcp_session(session)
+        if mcp_session is not None:
+            mcp_session.subscriptions.add(uri)
+            if federated:
+                federation.watch(f'session:{mcp_session.session_id}', uri)
         self.logger.info(f"Client subscribed to resource: {uri}")
         return {}
 
-    def _handle_resources_unsubscribe(self, params: Dict) -> Dict:
+    def _handle_resources_unsubscribe(self, params: Dict, session: Optional[Dict] = None) -> Dict:
         """Handle resources/unsubscribe — unsubscribe from resource changes."""
         uri = params.get('uri', '')
+        mcp_session = self._mcp_session(session)
+        if mcp_session is not None and isinstance(uri, str):
+            mcp_session.subscriptions.discard(uri)
+            federation = self._federation()
+            if federation is not None and federation.owns_resource(uri):
+                federation.unwatch(f'session:{mcp_session.session_id}', uri)
         self.logger.info(f"Client unsubscribed from resource: {uri}")
         return {}
+
+    @staticmethod
+    def _mcp_session(session: Optional[Dict]):
+        """The streamable-HTTP MCP session this request belongs to (its id is set by the transport)."""
+        sid = (session or {}).get('mcp_session_id') if isinstance(session, dict) else None
+        if not sid:
+            return None
+        from sajha.core.mcp_sessions import get_session_store
+        return get_session_store().get(sid)
 
     # ═════════════════════════════════════════════════════════════
     # MCP v3: Completion
@@ -952,6 +1012,22 @@ class MCPHandler:
         partial = str(argument.get('value', '') or '')
 
         values = []
+
+        federation = self._federation()
+        if federation is not None and federation.owns_completion(ref):
+            # a proxied server's prompt or resource template: its upstream answers, after the
+            # caller's prompt or resource rule (hidden == no values)
+            visible = (self.can_see_prompt(session, ref.get('name')) if ref.get('type') == 'ref/prompt'
+                       else self.can_read_resource(session, ref.get('uri')))
+            if not visible:
+                return {'completion': {'values': [], 'hasMore': False, 'total': 0}}
+            context = params.get('context') if isinstance(params.get('context'), dict) else {}
+            try:
+                return federation.complete(ref, argument, context.get('arguments'))
+            except MCPError:
+                raise
+            except Exception as e:
+                raise MCPError(self.INTERNAL_ERROR, f'Federated completion failed: {e}')
 
         if ref.get('type') == 'ref/tool':
             tool_name = ref.get('name', '')

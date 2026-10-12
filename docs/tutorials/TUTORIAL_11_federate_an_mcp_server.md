@@ -125,6 +125,12 @@ From code: `POST /api/ai/ask` with `{"question": "..."}` (see
 
 ### 7. A tool that needs the user
 
+First, the shipped policy for proxied writes (`config/policies/20-proxied-writes.yaml`) holds it for approval before it
+reaches the upstream, because it declares no `readOnlyHint`
+([Policy and Audit §5.1](../architecture/Policy%20and%20Audit.md#51-the-shipped-rule-for-proxied-writes)). To see
+the upstream's own question in this step, set `enabled: false` in that file (it is reloaded within
+seconds) and set it back to `true` afterwards.
+
 `units__reset_counter` asks the user to confirm. Over 2026-07-28 the upstream answers with
 an input request; SAJHA passes it to its own client as an `InputRequiredResult` and carries
 the upstream's state, so a client with an elicitation handler completes it:

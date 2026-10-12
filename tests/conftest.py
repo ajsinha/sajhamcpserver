@@ -45,6 +45,11 @@ _SHIFTED_CLOCK = start_shifted_clock()
 import pytest
 
 
+def pytest_configure(config):
+    # tests/test_failure_behaviour.py: the failure behaviour of Scaling and State §7 (pytest -m failure)
+    config.addinivalue_line('markers', 'failure: failure tests (state store lost, worker killed, upstream broken)')
+
+
 @pytest.fixture(autouse=True)
 def _keep_the_database_engine():
     """Safety net for test order: a test that clears or re-points the process-wide database

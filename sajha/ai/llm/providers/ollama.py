@@ -32,13 +32,13 @@ from typing import Any, ClassVar, Dict, List, Optional, Union
 
 from pydantic import Field
 
-from sajha.ai.llm.adapter import (HTTPChatModel, StreamTranslator, WireCall, assistant_text, tool_names,
-                                  tool_result_text)
+from sajha.ai.llm.adapter import (HTTPChatModel, HTTPEmbeddingModel, StreamTranslator, WireCall, assistant_text,
+                                  tool_names, tool_result_text)
 from sajha.ai.llm.canonical import (ChatCompletion, ChatCompletionRequest, ChatMessage, Choice, CompletionUsage,
                                     FunctionCall, ToolCall, split_data_url)
 from sajha.ai.llm.errors import ProviderUnavailable
 from sajha.ai.llm.http import get_json, post_json
-from sajha.ai.llm.model import EmbeddingModel, HealthStatus, ModelCapabilities, ModelDescriptor
+from sajha.ai.llm.model import HealthStatus, ModelCapabilities, ModelDescriptor
 from sajha.ai.llm.provider import ProviderBase
 from sajha.ai.llm.registry import register_provider
 from sajha.ai.llm.settings import ProviderConfig
@@ -185,8 +185,8 @@ class OllamaChatModel(HTTPChatModel):
         return OllamaStreamTranslator(self, request)
 
 
-class OllamaEmbeddingModel(EmbeddingModel):
-    def _embed(self, texts, purpose=None, dimensions=None):
+class OllamaEmbeddingModel(HTTPEmbeddingModel):
+    def embed_wire(self, texts, purpose=None, dimensions=None) -> WireCall:
         cfg = self.provider.config
         body: Dict[str, Any] = {"model": self.id, "input": list(texts)}
         if cfg.keep_alive is not None:
@@ -194,8 +194,9 @@ class OllamaEmbeddingModel(EmbeddingModel):
         dims = dimensions or cfg.embedding_dimensions
         if dims:
             body["dimensions"] = dims
-        with self.provider.slot():
-            data = post_json(self.provider.http, "/api/embed", body, provider=self.provider.name, model=self.id)
+        return WireCall("/api/embed", body)
+
+    def embed_parse(self, data):
         return data.get("embeddings") or []
 
 

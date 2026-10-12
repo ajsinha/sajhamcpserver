@@ -13,6 +13,7 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha
 """
 import logging
 
+from starlette.concurrency import run_in_threadpool
 from fastapi import APIRouter, Depends, Request
 from fastapi.responses import JSONResponse, RedirectResponse
 from sqlalchemy.orm import Session
@@ -76,19 +77,35 @@ async def sso_callback(request: Request, db: Session = Depends(get_db)):
             raise sso.SSOError('The sign-in response has no code.')
         tokens = await sso.exchange_code(code, rec)
         claims = await sso.validate_id_token(tokens['id_token'], rec['nonce'], tokens.get('access_token'))
-        user = sso.resolve_user(db, claims)
-        token = sso.sign_in(db, user, claims, tokens['id_token'],
-                            ip=request.client.host if request.client else None)
+        # the database part (find or create the user, start the session) runs in the thread pool
+        ip = request.client.host if request.client else None
+
+        def _sign_in():
+            from sajha.db.engine import release_session
+            try:
+                return sso.sign_in(db, sso.resolve_user(db, claims), claims, tokens['id_token'], ip=ip)
+            finally:
+                release_session(db)
+        token = await run_in_threadpool(_sign_in)
     except sso.SSOError as e:
         record_login_failure(request)
         logger.warning(f'SSO sign-in refused: {e}')
         from sajha.db.dao import AuditDAO
-        try:
-            AuditDAO(db).log('user.login_failed', None, 'user', None, details={'method': 'sso', 'reason': str(e)})
-        except Exception:  # noqa: BLE001
-            pass
+
+        def _audit():
+            from sajha.db.engine import release_session
+            try:
+                AuditDAO(db).log('user.login_failed', None, 'user', None, details={'method': 'sso', 'reason': str(e)})
+            except Exception:  # noqa: BLE001
+                pass
+            finally:
+                release_session(db)
+        await run_in_threadpool(_audit)
         return _login_error(request, str(e), 403)
     except Exception as e:  # noqa: BLE001 - provider unreachable mid-flow
+        from sajha.db.engine import is_pool_exhausted
+        if is_pool_exhausted(e):
+            raise       # a dry pool: 503 + Retry-After (sajha/app.py), not "the provider did not answer"
         logger.warning(f'SSO sign-in failed: {e}', exc_info=True)
         return _login_error(request, 'Single sign-on failed: the identity provider did not answer.', 502)
     from sajha.routes.auth_routes import start_session

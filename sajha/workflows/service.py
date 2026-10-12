@@ -6,15 +6,18 @@ One :class:`WorkflowService` per process. Its scheduler thread ticks every
 
 * fires due cron schedules: each slot is claimed with an atomic ``add`` in the state
   store (``wf:cron:<workflow>:<trigger>:<slot>``) and the run carries the slot as its
-  idempotency key, so exactly one worker fires it even with many workers;
+  idempotency key, so exactly one worker fires it even with many workers; a trigger with
+  ``catch_up: last|all`` also replays slots missed while no worker ran (from the trigger's
+  last run in the database, at most ``catch_up_max``);
 * polls file triggers (one worker per interval, through a state-store lock) on the
   storage backend (local disk, S3, Azure Blob or GCS listing);
 * resumes runs whose worker died (status ``running`` with a stale heartbeat, taken over
   with a conditional UPDATE), wakes parked runs whose wait or approval is over, and
   starts queued runs when the workflow's concurrency limit allows.
 
-Change-bus events fire ``event`` triggers on the worker that produced them; webhooks
-arrive through ``POST /api/workflows/{name}/hooks/{trigger}`` (HMAC-signed).
+Change-bus events fire ``event`` triggers on every worker: the change bus relays them through
+the state store, and each event is claimed once per trigger (``wf:evclaim:...``), so one event
+starts one run cluster-wide; webhooks arrive through ``POST /api/workflows/{name}/hooks/{trigger}`` (HMAC-signed).
 Design: docs/architecture/Workflows.md.
 
 Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.com
@@ -54,13 +57,15 @@ def _cfg(key: str, default):
 
 class WorkflowService:
     def __init__(self, tools_registry=None, store: Optional[WorkflowStore] = None, state=None,
-                 worker_id: Optional[str] = None, storage: Optional[Callable[[], Any]] = None):
+                 worker_id: Optional[str] = None, storage: Optional[Callable[[], Any]] = None,
+                 change_bus=None):
         from sajha.core.state import WORKER_ID
         self.registry = tools_registry
         self.store = store or WorkflowStore()
         self._state = state
         self.worker_id = worker_id or WORKER_ID
         self._storage = storage
+        self._bus = change_bus
         self.enabled = _cfg('workflows.enabled', True)
         self.tick_seconds = _cfg('workflows.tick_seconds', 5.0)
         self.max_runs = _cfg('workflows.max_concurrent_runs', 8)
@@ -68,6 +73,7 @@ class WorkflowService:
         self.max_parallel = _cfg('workflows.max_parallel_steps', 4)
         self.loop_max_items = _cfg('workflows.loop_max_items', 100)
         self.loop_hard_max = _cfg('workflows.loop_hard_max_items', 10000)
+        self.body_max_steps = _cfg('workflows.foreach_max_body_steps', 20)
         self.step_timeout = _cfg('workflows.step_timeout_seconds', 300.0)
         self.inline_wait_seconds = _cfg('workflows.inline_wait_seconds', 5.0)
         self.heartbeat_seconds = _cfg('workflows.heartbeat_seconds', 5.0)
@@ -95,6 +101,12 @@ class WorkflowService:
         from sajha.core.state import get_state_store
         return get_state_store()
 
+    def change_bus(self):
+        if self._bus is not None:
+            return self._bus
+        from sajha.core.change_bus import get_change_bus
+        return get_change_bus()
+
     def storage(self):
         if self._storage is not None:
             return self._storage()
@@ -119,7 +131,13 @@ class WorkflowService:
     def validate(self, raw: Any) -> Dict[str, Any]:
         if isinstance(raw, str):
             raw = model.parse_text(raw)
-        return model.normalize(raw)
+        defn = model.normalize(raw)
+        for s in defn['steps']:
+            do = s.get('do') or {}
+            if do.get('kind') == 'graph' and len(do['steps']) > self.body_max_steps:
+                raise WorkflowError(f'step {s["id"]}: a foreach body has at most {self.body_max_steps} steps '
+                                    f'(workflows.foreach_max_body_steps)')
+        return defn
 
     def save(self, raw: Any, user_id: str, is_admin: bool = False, enabled: Optional[bool] = None) -> Dict[str, Any]:
         """Create or update a definition. The owner (run-as) is the creator; admins may edit any."""
@@ -529,31 +547,66 @@ class WorkflowService:
                 if t['type'] == ttype and t.get('enabled', True):
                     yield wf, t
 
+    def _catch_up_since(self, wf: Dict[str, Any], t: Dict[str, Any]) -> Optional[datetime]:
+        """Where a catch-up trigger's missed slots start: its last run's slot (database), else when the
+        workflow was last saved."""
+        try:
+            last = self.store.last_trigger_run(wf['name'], 'cron', t['id'])
+        except Exception as e:
+            logger.debug(f'workflow cron catch-up: {e}')
+            last = None
+        slot = ((last or {}).get('trigger_detail') or {}).get('slot') if isinstance(
+            (last or {}).get('trigger_detail'), dict) else None
+        if slot:
+            try:
+                return datetime.strptime(slot, '%Y-%m-%dT%H:%MZ').replace(tzinfo=timezone.utc)
+            except ValueError:
+                pass
+        if wf.get('updated_at'):
+            return datetime.fromtimestamp(float(wf['updated_at']), timezone.utc)
+        return None
+
     def tick_cron(self, now: Optional[datetime] = None) -> List[Dict]:
+        """Fire due cron slots. Slots due since the last tick coalesce into the latest unless the trigger
+        has ``catch_up: all``; slots missed while no worker ran are dropped (``catch_up: none``, the
+        default), replayed as one run (``last``) or replayed each (``all``, at most ``catch_up_max``)."""
         from sajha.workflows.cron import CronSchedule
         now = now or datetime.now(timezone.utc)
         fired = []
         for wf, t in self._triggers('cron'):
             k = f'{wf["name"]}:{t["id"]}:{t["cron"]}:{t.get("timezone")}'
+            mode = t.get('catch_up') or 'none'
             since = self._cron_seen.get(k)
+            window = now - timedelta(seconds=max(self.tick_seconds * 2, 60))
             if since is None:
-                # first look on this worker: the slot due in the last tick window counts
-                since = now - timedelta(seconds=max(self.tick_seconds * 2, 60))
+                # first look on this worker: the slot due in the last tick window counts, and a
+                # catch-up trigger also looks back to its last run
+                since = window
+                if mode != 'none':
+                    last = self._catch_up_since(wf, t)
+                    if last is not None and last < since:
+                        since = last
             self._cron_seen[k] = now
             try:
-                slot = CronSchedule(t['cron'], t.get('timezone')).latest_due(since, now)
+                sched = CronSchedule(t['cron'], t.get('timezone'))
+                if mode == 'all':
+                    slots = sched.due_between(since, now, int(t.get('catch_up_max') or 10))
+                else:
+                    slot = sched.latest_due(since, now)
+                    slots = [slot] if slot is not None else []
             except Exception as e:
                 logger.warning(f'workflow {wf["name"]}: cron {t["id"]}: {e}')
                 continue
-            if slot is None:
-                continue
-            iso = slot.strftime('%Y-%m-%dT%H:%MZ')
-            if not self.state.add(f'wf:cron:{wf["name"]}:{t["id"]}:{iso}', self.worker_id, ttl=86400 * 2):
-                continue        # another worker fired this slot
-            run = self._fire(wf, t, {'scheduled_for': iso}, f'cron:{t["id"]}:{iso}',
-                             {'slot': iso, 'timezone': t.get('timezone'), 'worker': self.worker_id})
-            if run:
-                fired.append(run)
+            for slot in slots:
+                iso = slot.strftime('%Y-%m-%dT%H:%MZ')
+                if not self.state.add(f'wf:cron:{wf["name"]}:{t["id"]}:{iso}', self.worker_id, ttl=86400 * 2):
+                    continue        # another worker fired this slot
+                detail = {'slot': iso, 'timezone': t.get('timezone'), 'worker': self.worker_id}
+                if slot <= window:
+                    detail['catch_up'] = mode
+                run = self._fire(wf, t, {'scheduled_for': iso}, f'cron:{t["id"]}:{iso}', detail)
+                if run:
+                    fired.append(run)
         return fired
 
     def tick_files(self) -> List[Dict]:
@@ -586,24 +639,42 @@ class WorkflowService:
                     fired.append(run)
         return fired
 
+    def on_storage_paths(self, paths: List[str]) -> None:
+        """Bucket event notifications (sajha/core/storage_events.py) named these storage paths:
+        a file trigger watching one of them drops its poll claim, so the next tick polls it at once
+        instead of waiting out ``interval_seconds``. Firing stays with :meth:`tick_files`."""
+        try:
+            for wf, t in self._triggers('file'):
+                prefix = str(t.get('prefix') or '').strip('/')
+                if any(p == prefix or p.startswith(prefix + '/') or not prefix for p in paths):
+                    self.state.delete(f'wf:filepoll:{wf["name"]}:{t["id"]}')
+        except Exception as e:
+            logger.debug(f'workflows: storage paths: {e}')
+
     def on_change(self, event) -> None:
-        """Change-bus listener: fire matching ``event`` triggers (off the producer's thread)."""
+        """Change-bus listener (this worker's events and, through the state store, every other worker's):
+        fire matching ``event`` triggers off the delivering thread. Each worker that hears an event
+        tries to claim it per trigger; one wins, so one event starts one run cluster-wide."""
         if self._stop.is_set():
             return
 
         def go():
             try:
+                eid = getattr(event, 'id', None)
                 for wf, t in self._triggers('event'):
                     if event.kind not in t['kinds']:
                         continue
                     if t.get('uri') and t['uri'] != event.uri:
                         continue
+                    if eid and not self.state.add(f'wf:evclaim:{wf["name"]}:{t["id"]}:{eid}', self.worker_id,
+                                                  ttl=3600):
+                        continue        # another worker took this event
                     deb = float(t.get('debounce_seconds', 5))
                     if deb > 0 and not self.state.add(f'wf:event:{wf["name"]}:{t["id"]}:{event.kind}:{event.uri}',
                                                       1, ttl=deb):
                         continue
                     self._fire(wf, t, {'event': {'kind': event.kind, 'uri': event.uri}}, None,
-                               {'kind': event.kind, 'uri': event.uri})
+                               {'kind': event.kind, 'uri': event.uri, 'event_id': eid, 'worker': self.worker_id})
             except Exception as e:
                 logger.debug(f'workflow event trigger: {e}')
         threading.Thread(target=go, name='wf-event', daemon=True).start()
@@ -685,22 +756,30 @@ class WorkflowService:
             return
         self._stop.clear()
         try:
-            from sajha.core.change_bus import get_change_bus
             self._listener = self.on_change
-            get_change_bus().add_listener(self._listener)
+            self.change_bus().add_listener(self._listener, remote=True)    # other workers' events too
         except Exception as e:
             logger.debug(f'workflows: change bus unavailable: {e}')
         if self.registry is not None and hasattr(self.registry, 'add_reload_listener'):
             self.registry.add_reload_listener(self._on_registry_reload)
+        try:
+            from sajha.core.storage_events import add_path_listener
+            add_path_listener(self.on_storage_paths)       # file triggers: poll at once on a bucket event
+        except Exception as e:
+            logger.debug(f'workflows: storage events unavailable: {e}')
         self._thread = threading.Thread(target=self._loop, name='wf-scheduler', daemon=True)
         self._thread.start()
 
     def stop(self, timeout: float = 5.0) -> None:
         self._stop.set()
+        try:
+            from sajha.core.storage_events import remove_path_listener
+            remove_path_listener(self.on_storage_paths)
+        except Exception:
+            pass
         if self._listener is not None:
             try:
-                from sajha.core.change_bus import get_change_bus
-                get_change_bus().remove_listener(self._listener)
+                self.change_bus().remove_listener(self._listener)
             except Exception:
                 pass
             self._listener = None

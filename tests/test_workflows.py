@@ -5,7 +5,8 @@ mapping, DAG execution order and parallelism, branches, loops, retries, timeouts
 resume after a simulated crash, re-run from a failed step, concurrency limits, idempotency
 keys, cron schedules (timezones, and one fire across two workers sharing a state store),
 signed webhooks with replay protection, file triggers, change-bus events, run-as RBAC,
-approval steps, delivery, and a workflow published as a tool over MCP in both eras.
+approval steps, delivery, a workflow published as a tool over MCP in both eras, and (Roadmap L3)
+foreach bodies that are graphs, event triggers relayed across workers and fired once, and cron catch-up.
 """
 
 from __future__ import annotations
@@ -13,6 +14,7 @@ from __future__ import annotations
 import hashlib
 import hmac
 import json
+import re
 import threading
 import time
 from datetime import datetime, timezone
@@ -691,3 +693,189 @@ def test_webhook_route(app_svc):
     assert client.post('/api/workflows/wf_app_hook/hooks/in', content=body, headers=hh).status_code == 409
     hh['X-Sajha-Signature'] = 'sha256=00'
     assert client.post('/api/workflows/wf_app_hook/hooks/in', content=body, headers=hh).status_code == 401
+
+
+# ── Roadmap L3: foreach sub-graph bodies, relayed event triggers, cron catch-up ──
+
+def test_foreach_graph_body_per_item(env):
+    svc, reg, _ = env
+    reg.add(Fn('list', lambda a: {'rows': [{'x': i} for i in range(5)], 'tag': 'T'}),
+            Fn('sq', lambda a: {'sq': a['x'] ** 2}),
+            Fn('label', lambda a: {'label': f'{a["size"]}:{a["tag"]}:{a["i"]}'}),
+            Fn('boom', lambda a: (_ for _ in ()).throw(RuntimeError('nope')) if a['x'] == 3 else {'ok': a['x']}))
+    svc.save({'name': 'graphloop', 'steps': [
+        {'id': 'l', 'tool': 'list'},
+        {'id': 'each', 'kind': 'foreach', 'items': '$steps.l.rows', 'parallel': 3, 'do': {'steps': [
+            {'id': 'calc', 'tool': 'sq', 'params': {'x': '$item.x'}},
+            {'id': 'big', 'kind': 'condition', 'if': '$steps.calc.sq > 5', 'then': ['lbig'], 'else': ['lsmall']},
+            {'id': 'lbig', 'tool': 'label', 'params': {'size': 'big', 'tag': '$steps.l.tag', 'i': '$index'}},
+            {'id': 'lsmall', 'tool': 'label', 'params': {'size': 'small', 'tag': '$steps.l.tag', 'i': '$index'}},
+            {'id': 'risky', 'tool': 'boom', 'params': {'x': '$item.x'}, 'on_error': 'continue'},
+            {'id': 'pick', 'kind': 'wait', 'seconds': 0, 'depends_on': ['lbig', 'lsmall'], 'join': 'any_success'}],
+            'output': {'x': '$item.x', 'sq': '$steps.calc.sq', 'big': '$steps.big.result',
+                       'label': '$steps.lbig.label', 'small': '$steps.lsmall.label', 'risky': '$steps.risky'}}}]},
+             'alice', True)
+    d = svc.store.get_workflow('graphloop')['definition']
+    assert d['steps'][1]['depends_on'] == ['l']               # the body reads $steps.l: an outer dependency
+    body = {b['id']: b for b in d['steps'][1]['do']['steps']}
+    assert body['lbig']['depends_on'] == ['big'] and body['big']['depends_on'] == ['calc']
+    r = run_and_wait(svc, 'graphloop')
+    assert r['status'] == 'succeeded', r.get('error')
+    items = r['output']['each']['items']
+    assert [i['sq'] for i in items] == [0, 1, 4, 9, 16]
+    assert [i['big'] for i in items] == [False, False, False, True, True]
+    assert items[4]['label'] == 'big:T:4' and items[1]['small'] == 'small:T:1'
+    assert items[3]['risky'] is None and items[2]['risky'] == {'ok': 2}   # a failed body step (continue)
+    # without an output mapping: every body step's output, and failures as {"error": ...}
+    d['steps'][1]['do'].pop('output')
+    svc.save(d, 'alice', True)
+    out = run_and_wait(svc, 'graphloop')['output']['each']['items']
+    assert out[3]['risky'] == {'error': 'nope'} and 'lsmall' not in out[3] and out[0]['calc'] == {'sq': 0}
+    # a body step failing with on_error fail fails the item, and the item fails the foreach
+    d['steps'][1]['do']['steps'][4]['on_error'] = 'fail'
+    svc.save(d, 'alice', True)
+    r = run_and_wait(svc, 'graphloop')
+    assert r['status'] == 'failed' and 'body step risky' in r['error']
+
+
+def test_foreach_graph_body_validation_and_cap(env):
+    svc, reg, _ = env
+    base = {'name': 'g', 'steps': [{'id': 'a', 'tool': 'x'},
+                                   {'id': 'each', 'kind': 'foreach', 'items': [1, 2], 'do': None}]}
+
+    def with_body(body):
+        d = json.loads(json.dumps(base))
+        d['steps'][1]['do'] = body
+        return d
+    for bad, msg in (
+            ({'steps': []}, 'non-empty list'),
+            ({'steps': [{'id': 'p', 'kind': 'approval'}]}, 'a foreach body step is one of'),
+            ({'steps': [{'id': 'n', 'kind': 'foreach', 'items': [], 'do': {'tool': 'x'}}]}, 'a foreach body step'),
+            ({'steps': [{'id': 'a', 'tool': 'x'}]}, 'unique in the workflow'),
+            ({'steps': [{'id': 'p', 'tool': 'x', 'params': {'v': '$steps.zz'}}]}, 'reads $steps.zz'),
+            ({'steps': [{'id': 'p', 'tool': 'x', 'depends_on': ['q']},
+                        {'id': 'q', 'tool': 'x', 'depends_on': ['p']}]}, 'cycle'),
+            ({'steps': [{'id': 'p', 'tool': 'x'}], 'on_error': 'maybe'}, 'on_error')):
+        with pytest.raises(WorkflowError, match=re.escape(msg)):
+            normalize(with_body(bad))
+    ok = normalize(with_body([{'id': 'p', 'tool': 'x'}, {'id': 'q', 'tool': 'x', 'params': {'v': '$steps.p'}}]))
+    assert ok['steps'][1]['do']['kind'] == 'graph' and ok['steps'][1]['do']['steps'][1]['depends_on'] == ['p']
+    svc.body_max_steps = 1
+    with pytest.raises(WorkflowError, match='foreach_max_body_steps'):
+        svc.save(with_body({'steps': [{'id': 'p', 'tool': 'x'}, {'id': 'q', 'tool': 'x'}]}), 'alice', True)
+
+
+def _shared_state(kind, tmp_path):
+    if kind == 'memory':
+        return MemoryStateStore(f't{time.time_ns()}:')
+    from sajha.core.state.database import DatabaseStateStore
+    return DatabaseStateStore(url=f'sqlite:///{tmp_path / "state.db"}', prefix='wfev:', poll_interval=0.05)
+
+
+@pytest.mark.parametrize('backend', ['memory', 'database'])
+def test_event_trigger_relayed_and_fired_once_across_workers(env, tmp_path, backend):
+    """Two workers (two change buses, two services) on one state store and one database: an event
+    published on either starts exactly one run, and reaches a worker other than the producer."""
+    from sajha.core.change_bus import ChangeBus, TOOLS
+    _, reg, _ = env
+    state = _shared_state(backend, tmp_path)
+    engine = create_engine(f'sqlite:///{tmp_path / "shared.db"}', connect_args={'check_same_thread': False})
+    buses = [ChangeBus(), ChangeBus()]
+    svcs = []
+    try:
+        for i, bus in enumerate(buses):
+            bus.attach_store(state)
+            svcs.append(WorkflowService(reg, WorkflowStore(engine), state, worker_id=f'ev{i}', change_bus=bus))
+        a, b = svcs
+        reg.add(Fn('echo', lambda x: dict(x)))
+        a.save({'name': 'onrelay', 'steps': [{'id': 'e', 'tool': 'echo', 'params': {'k': '$input.event.kind'}}],
+                'triggers': [{'id': 't', 'type': 'event', 'kinds': ['tools'], 'debounce_seconds': 0}]},
+               'alice', True)
+
+        def runs_after(n, settle=0.6):
+            end = time.time() + 5
+            while time.time() < end and len(a.store.list_runs('onrelay')) < n:
+                time.sleep(0.05)
+            time.sleep(settle)
+            return a.store.list_runs('onrelay')
+
+        # only B listens (A has no workflow scheduler): A's event still fires, on B
+        b.start()
+        buses[0].publish(TOOLS)
+        runs = runs_after(1)
+        assert len(runs) == 1 and runs[0]['trigger_detail']['worker'] == 'ev1'
+        # both listen: one event, one run, whichever worker produced it
+        a.start()
+        for bus in buses:
+            time.sleep(0.6)                                # past the change bus's relay window
+            bus.publish(TOOLS)
+        runs = runs_after(3)
+        assert len(runs) == 3
+        ids = [r['trigger_detail']['event_id'] for r in runs]
+        assert len(set(ids)) == 3 and all(ids)
+        for r in runs:
+            assert a.wait_for(r['id'], 5)['status'] == 'succeeded'
+    finally:
+        for s in svcs:
+            s.stop(timeout=1)
+        for bus in buses:
+            bus.detach_store()
+        state.close()
+
+
+def _prior_cron_run(svc, name, trig, slot):
+    iso = slot.strftime('%Y-%m-%dT%H:%MZ')
+    wf = svc.store.get_workflow(name)
+    run, _ = svc.store.create_run(workflow=name, version=wf['version'], definition=wf['definition'], run_as='alice',
+                                  trigger_type='cron', trigger_id=trig, trigger_detail={'slot': iso},
+                                  input={}, idempotency_key=f'cron:{trig}:{iso}', status='succeeded')
+    return run
+
+
+def test_cron_catch_up_none_last_all(env):
+    from datetime import timedelta
+    svc, reg, make = env
+    reg.add(Fn('tick', lambda a: {'at': a.get('scheduled_for')}))
+    now = datetime.now(timezone.utc).replace(minute=30, second=0, microsecond=0)
+    prior = (now - timedelta(hours=5)).replace(minute=0)          # last fired 5 hours ago; 5 slots missed
+    for name, extra in (('cu_none', {}), ('cu_last', {'catch_up': 'last'}),
+                        ('cu_all', {'catch_up': 'all', 'catch_up_max': 3})):
+        svc.save({'name': name, 'steps': [{'id': 't', 'tool': 'tick', 'params': {'scheduled_for': '$input.scheduled_for'}}],
+                  'triggers': [dict({'id': 'hourly', 'type': 'cron', 'cron': '0 * * * *'}, **extra)]}, 'alice', True)
+        _prior_cron_run(svc, name, 'hourly', prior)
+    fresh = make('w-restarted')                                  # a worker that has not looked at cron yet
+    fired = fresh.tick_cron(now)
+    by = {}
+    for r in fired:
+        by.setdefault(r['workflow'], []).append(r)
+    assert 'cu_none' not in by                                  # default: missed slots are not replayed
+    last_slot = now.replace(minute=0)
+    assert [r['input']['scheduled_for'] for r in by['cu_last']] == [last_slot.strftime('%Y-%m-%dT%H:%MZ')]
+    assert by['cu_last'][0]['trigger_detail']['catch_up'] == 'last'
+    want = [(last_slot - timedelta(hours=h)).strftime('%Y-%m-%dT%H:%MZ') for h in (2, 1, 0)]
+    assert [r['input']['scheduled_for'] for r in by['cu_all']] == want          # the latest catch_up_max, in order
+    assert [r['idempotency_key'] for r in by['cu_all']] == [f'cron:hourly:{w}' for w in want]
+    # another worker restarting at the same moment fires nothing more; nor does a later tick
+    assert make('w-other').tick_cron(now) == [] and fresh.tick_cron(now) == []
+    for r in fired:
+        assert fresh.wait_for(r['id'], 5)['status'] == 'succeeded'
+
+
+def test_cron_catch_up_model():
+    d = normalize({'name': 'c', 'catch_up': 'all', 'catch_up_max': 7, 'steps': [{'id': 'a', 'tool': 'x'}],
+                   'triggers': [{'id': 'one', 'type': 'cron', 'cron': '@hourly'},
+                                {'id': 'two', 'type': 'cron', 'cron': '@daily', 'catch_up': 'none'}]})
+    t = {x['id']: x for x in d['triggers']}
+    assert (t['one']['catch_up'], t['one']['catch_up_max']) == ('all', 7)
+    assert t['two']['catch_up'] == 'none' and t['two']['catch_up_max'] == 7
+    plain = normalize({'name': 'p', 'steps': [{'id': 'a', 'tool': 'x'}],
+                       'triggers': [{'id': 'one', 'type': 'cron', 'cron': '@hourly'}]})
+    assert 'catch_up' not in plain['triggers'][0]                # default unchanged
+    for bad in ({'catch_up': 'some'}, {'catch_up_max': 0}, {'catch_up_max': 5000}):
+        with pytest.raises(WorkflowError, match='catch_up'):
+            normalize({'name': 'b', 'steps': [{'id': 'a', 'tool': 'x'}],
+                       'triggers': [dict({'id': 'one', 'type': 'cron', 'cron': '@hourly'}, **bad)]})
+    s = CronSchedule('0 * * * *')
+    t0 = datetime(2026, 1, 1, 0, 30, tzinfo=timezone.utc)
+    assert [x.hour for x in s.due_between(t0, t0.replace(hour=5), 10)] == [1, 2, 3, 4, 5]
+    assert [x.hour for x in s.due_between(t0, t0.replace(hour=5), 2)] == [4, 5]

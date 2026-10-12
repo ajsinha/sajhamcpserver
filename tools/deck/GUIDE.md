@@ -73,7 +73,10 @@ calls SAJHA open source.
 
 **What it deliberately is not.** It has no "Built:" status slides: built things are on the
 capability slides, and only what is not built is under "Where it's going". It claims no
-performance it has not measured. Slide titles keep a short heading's shape but say
+performance it has not measured. The only measured numbers it may cite are those in the
+"Measured performance" section of `docs/architecture/Scaling and State.md`, read from that
+section at build time (never typed into a slide), and always with what the section states
+beside them: the hardware, the date, the load and that they are one machine's run. Slide titles keep a short heading's shape but say
 something ("Four transports in SAJHA; two of them are the MCP standard"). Worked workflows
 that were not run are marked *Illustrative*; the real runs are captured at build time.
 

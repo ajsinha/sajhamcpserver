@@ -125,6 +125,20 @@ class CircuitBreaker:
                 self.last_state_change = time.time()
                 logger.warning(f"Circuit {self.name}: CLOSED → OPEN after {self.failure_count} failures")
 
+    def trip(self, at: Optional[float] = None) -> None:
+        """Open now, as if the last failure happened at ``at`` (default now): another worker
+        opened its breaker for the same upstream (sajha/federation/scale.py). This breaker then
+        probes on its own after ``recovery_timeout``, like after its own failures."""
+        old = self.state
+        with self._lock:
+            self.state = CircuitState.OPEN
+            self.success_count = 0
+            self.last_failure_time = float(at) if at else time.time()
+            self.last_state_change = time.time()
+        if old != self.state:
+            logger.warning(f"Circuit {self.name}: {old.value.upper()} → OPEN (opened on another worker)")
+            _notify(self, old.value, self.state.value)
+
     def to_dict(self) -> Dict:
         return {
             'name': self.name,

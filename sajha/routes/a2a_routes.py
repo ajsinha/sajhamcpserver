@@ -17,8 +17,9 @@ from datetime import datetime, timezone
 from fastapi import APIRouter, Request, Depends
 from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
+from starlette.concurrency import run_in_threadpool
 
-from sajha.db.engine import get_db
+from sajha.db.engine import get_db, release_session
 from sajha.db.models import A2ATask
 from sajha.db.dao import A2ATaskDAO
 from sajha.auth import get_current_user, AuthContext
@@ -131,8 +132,10 @@ async def a2a_endpoint(
 
     try:
         result = await handler(params, auth, db)
+        release_session(db)     # done with the database: nothing held across the response's awaits
         return JSONResponse({'jsonrpc': '2.0', 'id': req_id, 'result': result})
     except Exception as e:
+        release_session(db)
         logger.error(f'A2A error in {method}: {e}', exc_info=True)
         return JSONResponse({
             'jsonrpc': '2.0', 'id': req_id,
@@ -176,6 +179,10 @@ async def _tasks_send(params: dict, auth: AuthContext, db: Session) -> dict:
         caller_agent=_caller(auth),
     )
     dao.create(task)
+    # The record is written: give the connection back before the tool runs (it may be slow), so
+    # in-flight tasks never hold the pool (docs/architecture/Scaling and State.md §7). The task is
+    # detached until it is added back below to save its result.
+    release_session(db)
 
     # Try to match to a tool and execute
     # Simple strategy: look for tool name in the text, or use first tool mentioned
@@ -195,7 +202,8 @@ async def _tasks_send(params: dict, auth: AuthContext, db: Session) -> dict:
         tool = tools_registry.get_tool(matched_tool)
         if tool:
             try:
-                result = tool.execute_with_tracking({})
+                # off the event loop (a tool may be slow); the caller and source set above go with it
+                result = await run_in_threadpool(tool.execute_with_tracking, {})
                 result_text = json.dumps(result) if isinstance(result, (dict, list)) else str(result)
                 task.state = 'completed'
             except Exception as e:
@@ -217,6 +225,7 @@ async def _tasks_send(params: dict, auth: AuthContext, db: Session) -> dict:
     task.output_artifacts = json.dumps([{
         'parts': [{'type': 'text', 'text': result_text}],
     }])
+    db.add(task)
     dao.update(task)
 
     return _task_to_response(task)

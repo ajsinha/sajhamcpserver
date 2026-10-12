@@ -12,14 +12,15 @@ elsewhere (``ai.providers[].class: package.module:Class`` or an entry point in t
     ChatModel         implements the abstract LLMModel for chat; implement ``_create`` and
                       ``_stream`` (canonical hooks), or use HTTPChatModel and supply
                       ``build_request`` / ``parse_response`` / a StreamTranslator
-    EmbeddingModel    implements LLMModel for embeddings; implement ``_embed``
+    EmbeddingModel    implements LLMModel for embeddings; implement ``_embed`` (and ``_aembed`` for
+                      native async), or use HTTPEmbeddingModel and supply ``embed_wire`` / ``embed_parse``
     register_provider / register_model    put a class in the registry
 
 See docs/architecture/Extending the Intelligence Layer.md. The pre-6.x interface
 (``LegacyLLMProvider`` + ``register_provider_class``) is still served, deprecated.
 """
 
-from sajha.ai.llm.adapter import HTTPChatModel, StreamTranslator, WireCall, system_text
+from sajha.ai.llm.adapter import HTTPChatModel, HTTPEmbeddingModel, StreamTranslator, WireCall, system_text
 from sajha.ai.llm.base import LLMModel, LLMProvider
 from sajha.ai.llm.http import get_json, post_json, safe_json_loads
 from sajha.ai.llm.legacy import (LegacyLLMProvider, LegacyModelInfo, LLMResponse, get_registered_types,
@@ -34,7 +35,7 @@ from sajha.ai.llm.secrets import SecretStore
 from sajha.ai.llm.settings import Layered, ModelOverride, ProviderConfig
 
 __all__ = [
-    "ChatModel", "EmbeddingModel", "HTTPChatModel", "HealthStatus", "LLMModel", "LLMProvider", "LLMResponse",
+    "ChatModel", "EmbeddingModel", "HTTPChatModel", "HTTPEmbeddingModel", "HealthStatus", "LLMModel", "LLMProvider", "LLMResponse",
     "Layered", "LegacyLLMProvider", "LegacyModelInfo", "ModelCapabilities", "ModelDescriptor", "ModelInfo",
     "ModelOverride", "Needs", "OpenAIChatModel", "ProviderBase", "ProviderConfig", "SecretStore",
     "StreamTranslator", "WireCall", "estimate_tokens", "get_json", "get_registered_types", "load_class",

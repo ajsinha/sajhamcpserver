@@ -68,14 +68,14 @@ streams, what each phase waits for, and its status.
 | 6 | 8.2.0 | Protocol uniformity between servers, and its security | Server to server on the same streaming MCP as client to server: progress, partial results, cancellation and input requests relayed to the client on its own transport, tasks at the home wrapping forwarded calls (Roadmap L17a; host-side tasks are L19), with security per event: signing, replay protection, residency on partial results (L17b) | 5 | done (8.2.0) |
 | 7 | 8.4.0 | Per-user sign-in, access to prompts and resources, a hardened test suite | Roadmap X3 (prompts and data resources under the same allow/deny rules as tools), the Adversarial QA Plan's first automation (suite integrity and P0 attacks), Roadmap L18 (proxied MCP servers acting as each user: personal tokens, then OAuth; per-user sessions; the SAJHA Net connect relay), with GitHub and Atlassian as the first integrations | 6 | done (8.4.0) |
 | 8 | 8.8.0–8.11.0 | Tool health, quantitative planners, open data, business intelligence and reports | Schema defaults applied, broken tools fixed or removed, a live tool check, domain descriptions, generated guide tables (8.8.0); a quantitative workspace and planners that compute figures with units and lineage (8.9.0); verified open data sources in their tool folders (8.10.0); a metrics layer and BI tools (8.11.0); report definitions, formats and narration under a numbers check (8.11.0, with BI). Roadmap L21–L59 | 7 | done, in its wrap-up scope: 8.1 (8.8.0), 8.2 (8.9.0), 8.3 P1 (8.10.0), 8.4 and 8.5 cores (8.11.0); the slipped parts are Roadmap rows |
-| 9 | 8.12.0 | Platform depth | Ask SAJHA over MCP finished (X7), protocol gaps (X12), async provider paths (X9), federation carrying every MCP feature (L2), `service_with_user` and an approval rule for proxied writes (L20), workflow engine limits (L3), API Import multipart and pagination (L4) | 8 | planned |
-| 10 | 8.13.0 | Operations and scale | A benchmark suite with published numbers (X13), SLOs and failure tests (X14), federation at gateway scale (L10), push-based reload (X11), storage finished (L1) | 9 | planned |
-| 11 | 8.14.0 | Security and ecosystem | Sandbox egress proxy and warm pool (L6), a container per federated stdio server (L9), signed plugins and a catalog (L12), SaaS provider packs (L11), RAG sources through connected accounts with OCR (X8), Weaviate and Chroma (X10), tool quality reach (L5), provider tool gaps (L7) | 10 | planned |
-| 12 | 8.15.0 | Finishing | SAJHA Net finished and tasks held at the host (L16, L19), planners chosen by learning from results (L15), the console in other languages (L14) | 11 | planned |
-| 13 | 8.16.0 | Cleanup and hardening | Runtime files untracked, the legacy `test/` folder archived, the `tools.apply_schema_defaults` switch removed, every tool fetch through the outbound guard, known broken tools fixed, cassettes for the wave 8 tools, a tighter numbers check, policy-denied tools not offered to Ask SAJHA, domain text in Studio, a faster test suite | 12 | planned |
-| 14 | 8.17.0 | Reports finished | Delivery with approval and scheduling (L48), PNG charts in PPTX and DOCX (L46), the Studio Report creator (L49), more flagships (L50), figure lineage on the Ask page and `x-sajha-unit` (L60) | 13 | planned |
-| 15 | 8.18.0 | Business intelligence finished | Cohort retention, anomalies, forecast (L41); dataset catalogue, profiling and data quality (L43); dashboards and the BI page (L44) | 14 | planned |
-| 16 | 8.19.0 | Open data P2 and P3 | CFTC, Eurostat and OECD, the statistics offices, BLS, BEA and EIA (L32–L35); hazards, research, news events, public spending (L36–L39), each source's terms checked again first | 15 | planned |
+| 9 | 8.12.0 | Platform depth | Ask SAJHA over MCP finished (X7), protocol gaps (X12), async provider paths (X9), federation carrying every MCP feature (L2), `service_with_user` and an approval rule for proxied writes (L20), workflow engine limits (L3), API Import multipart and pagination (L4) | 8 | done (8.12.0) |
+| 10 | 8.12.0 | Operations and scale | A benchmark suite with published numbers (X13), SLOs and failure tests (X14), federation at gateway scale (L10), push-based reload (X11), storage finished (L1) | 9 | done (8.12.0) |
+| 11 | 8.13.0 | Security and ecosystem | Sandbox egress proxy and warm pool (L6), a container per federated stdio server (L9), signed plugins and a catalog (L12), SaaS provider packs (L11), RAG sources through connected accounts with OCR (X8), Weaviate and Chroma (X10), tool quality reach (L5), provider tool gaps (L7) | 10 | planned |
+| 12 | 8.13.0 | Finishing | SAJHA Net finished and tasks held at the host (L16, L19), planners chosen by learning from results (L15), the console in other languages (L14) | 11 | planned |
+| 13 | 8.14.0 | Cleanup and hardening | Runtime files untracked, the legacy `test/` folder archived, the `tools.apply_schema_defaults` switch removed, every tool fetch through the outbound guard, known broken tools fixed, cassettes for the wave 8 tools, a tighter numbers check, policy-denied tools not offered to Ask SAJHA, domain text in Studio, a faster test suite | 12 | planned |
+| 14 | 8.14.0 | Reports finished | Delivery with approval and scheduling (L48), PNG charts in PPTX and DOCX (L46), the Studio Report creator (L49), more flagships (L50), figure lineage on the Ask page and `x-sajha-unit` (L60) | 13 | planned |
+| 15 | 8.15.0 | Business intelligence finished | Cohort retention, anomalies, forecast (L41); dataset catalogue, profiling and data quality (L43); dashboards and the BI page (L44) | 14 | planned |
+| 16 | 8.15.0 | Open data P2 and P3 | CFTC, Eurostat and OECD, the statistics offices, BLS, BEA and EIA (L32–L35); hazards, research, news events, public spending (L36–L39), each source's terms checked again first | 15 | planned |
 Wave 4 is a major version because it adds a new table (`sajhanet_api_keys`), new columns on
 `api_keys` and a new signed protocol surface; operators must apply schema changes on PostgreSQL by
 hand, as for every schema change.
@@ -326,10 +326,14 @@ parallel streams, and passes the gates of section 9.
 
 | Phase | Streams | Release | Status |
 |---|---|---|---|
-| 9.1 | A Ask SAJHA over MCP finished (X7) ‖ B protocol gaps (X12) ‖ C async Bedrock and embeddings (X9), `service_with_user` and the proxied-write approval rule (L20) ‖ D API Import multipart and pagination (L4) | 8.12.0 | planned |
-| 9.2 | A federation: resource templates, completions, subscriptions, upstream tasks, `ui://` views, 2025-11-25 upstream requests (L2) ‖ B workflow sub-graph bodies, trigger relay through the state store, opt-in replay of missed slots (L3) | 8.12.0 | planned |
+| 9.1 | A Ask SAJHA over MCP finished (X7) ‖ B protocol gaps (X12) ‖ C async Bedrock and embeddings (X9), `service_with_user` and the proxied-write approval rule (L20) ‖ D API Import multipart and pagination (L4) | 8.12.0 | done |
+| 9.2 | A federation: resource templates, completions, subscriptions, upstream tasks, `ui://` views, 2025-11-25 upstream requests (L2) ‖ B workflow sub-graph bodies, trigger relay through the state store, opt-in replay of missed slots (L3) | 8.12.0 | done |
 
-Waves 10 to 16 are cut into phases when each starts; their content is in section 2 and the Roadmap.
+| 10 | A benchmark suite and SLOs with failure tests (X13, X14) ‖ B push-based reload and storage finished (X11, L1, the remainder stays on the Roadmap) ‖ C federation at gateway scale (L10) | 8.12.0 | done |
+
+Owner decision, 2026-10-11: releases pair the waves, one gate and drill per pair (9 and 10 in 8.12.0,
+11 and 12 in 8.13.0, 13 and 14 in 8.14.0, 15 and 16 in 8.15.0). Waves 11 to 16 are cut into phases when
+each starts; their content is in section 2 and the Roadmap.
 
 ## 8. After wave 5
 

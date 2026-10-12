@@ -284,7 +284,7 @@ OAuth access tokens are accepted **only** on the MCP endpoints. They are RS256 (
 There are two choices, set with `mcp.auth.authorization_server`:
 
 - **`builtin`.** SAJHA's own authorization server, backed by SAJHA users. It is implemented in `sajha/auth/oauth/authorization_server.py`, `sajha/auth/oauth/clients.py`, `sajha/auth/oauth/keys.py` and `sajha/routes/oauth_routes.py`.
-- **An external issuer URL** (Keycloak, Okta, Entra ID, ...). SAJHA then only validates the issuer's JWT access tokens. Opaque tokens and introspection are not supported.
+- **An external issuer URL** (Keycloak, Okta, Entra ID, ...). SAJHA then only validates the issuer's access tokens: JWTs by signature, and opaque tokens by RFC 7662 introspection when `mcp.auth.external.introspection.mode` is `opaque` or `always` (fail closed; answers cached per process for `cache_seconds`, so a token revoked at the issuer is refused within that time; [OAuth Guide](../protocol/OAuth%20Guide.md#opaque-tokens-introspection-rfc-7662)).
 
 The built-in server makes these security decisions (see the [OAuth Guide](../protocol/OAuth%20Guide.md) for detail):
 
@@ -344,6 +344,8 @@ session. Details: [Python Playground](../getting-started/Python%20Playground.md#
 ### CORS
 
 `CORSMiddleware` (`sajha/app.py`) allows the origins in `SAJHA_CORS_ORIGINS` (comma-separated). The default is `http://localhost:3002`, `http://127.0.0.1:3002` and `http://0.0.0.0:3002`. It sets `allow_credentials=True` with all methods and headers allowed, and exposes `Mcp-Session-Id`. Set `SAJHA_CORS_ORIGINS` to your real UI origins in production.
+
+The OAuth discovery documents, `/oauth/jwks`, `/oauth/token` and `/oauth/register` also answer the origins in `mcp.auth.cors.allowed_origins` (default none; `*` for any), for browser-based MCP clients (`sajha/auth/oauth/cors.py`). They never send `Access-Control-Allow-Credentials`: those endpoints take explicit credentials and not the console cookie, so a listed origin cannot act with a signed-in user's session. `/oauth/authorize` gets no CORS headers ([OAuth Guide](../protocol/OAuth%20Guide.md#browser-based-clients-cors)).
 
 ### Cross-site requests (CSRF)
 

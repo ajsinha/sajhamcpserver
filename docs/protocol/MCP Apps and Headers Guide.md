@@ -46,6 +46,7 @@ An invalid `_meta.ui` (a URI that is not `ui://`, names no available view, or a 
 |---|---|
 | Bundled views in `sajha/core/mcp_app_views/*.html` | `ui://sajha/<file name with "_" replaced by "-">` |
 | Your views: `*.html` in `mcp.apps.dir` (default `config/apps`; the directory does not exist until you create it) | same rule |
+| A proxied MCP server's tool with a view | `ui://sajha-federation/<upstream id>/<its URI, percent-encoded>`, read from that server with its CSP domains and permissions removed ([Federation](../architecture/Federation.md#4-namespacing)) |
 
 So `config/apps/fx_chart.html` becomes `ui://sajha/fx-chart.html`. Views are read
 from the local filesystem (not the storage backend), symlinks are skipped, and a view

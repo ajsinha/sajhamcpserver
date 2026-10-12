@@ -144,10 +144,10 @@ if is_cancelled(): return partial_result        # the client went away
 
 ### 2.3 `subscriptions/listen` and the change bus
 
-`subscriptions/listen` is a long-lived POST answered with SSE (a client that does not accept `text/event-stream` gets 406 / `-32600`). `params.notifications` is the opt-in filter: `toolsListChanged`, `promptsListChanged`, `resourcesListChanged`, `resourceSubscriptions: [uri, ...]`.
+`subscriptions/listen` is a long-lived POST answered with SSE (a client that does not accept `text/event-stream` gets 406 / `-32600`). `params.notifications` is the opt-in filter: `toolsListChanged`, `promptsListChanged`, `resourcesListChanged`, `resourceSubscriptions: [uri, ...]`, and `taskIds: [taskId, ...]` (SEP-2663; §3.3).
 
 1. The first message is `notifications/subscriptions/acknowledged` with the honored subset of the filter.
-2. Only opted-in notification types follow: `notifications/tools/list_changed`, `notifications/prompts/list_changed`, `notifications/resources/list_changed`, `notifications/resources/updated {uri}`.
+2. Only opted-in notification types follow: `notifications/tools/list_changed`, `notifications/prompts/list_changed`, `notifications/resources/list_changed`, `notifications/resources/updated {uri}`, `notifications/tasks {DetailedTask}`.
 3. Every message carries `params._meta["io.modelcontextprotocol/subscriptionId"]` = the listen request's id.
 4. On server shutdown the stream ends with a `SubscriptionsListenResult` (`resultType: "complete"`, `_meta` with `subscriptionId` and `serverInfo`); if the client disconnects the subscription is dropped.
 
@@ -157,14 +157,15 @@ The events come from `sajha/core/change_bus.py`, a thread-safe, coalescing fan-o
 |---|---|
 | `ToolsRegistry` register / unregister / enable / disable / `reload_all_tools` (hot-reload, admin enable/disable, composite-tool save) | tools list_changed, resources list_changed, `resources/updated` for `sajha://tools/catalog` |
 | `PromptsRegistry` create / update / delete, and reloads that actually change the prompt set | prompts list_changed, resources list_changed, `resources/updated` for `sajha://prompts/catalog` |
+| `TaskStore` (`sajha/core/mcp_tasks.py`): every change of a task record (created, settled, parked for input, answered, cancelled, orphaned) | `notifications/tasks` for that task id, on listen streams that named it (never to the bus's synchronous listeners, such as workflow event triggers) |
 
-Consumers: `subscriptions/listen` streams; the legacy 2024-11-05 HTTP+SSE stream (`GET /mcp/sse`); the WebSocket transport (`/mcp/ws`). The old ad-hoc "push list_changed after a method name containing enable/disable/reload" code in `/mcp/message` and `/mcp/ws` is gone; the bus covers every change, whoever made it. `mcp.subscriptions.max_streams` (default 1000) caps concurrent listen streams.
+Consumers: `subscriptions/listen` streams; a 2025-11-25 Streamable HTTP session's `GET /mcp` stream; the legacy 2024-11-05 HTTP+SSE stream (`GET /mcp/sse`); the WebSocket transport (`/mcp/ws`); stdio. The old ad-hoc "push list_changed after a method name containing enable/disable/reload" code in `/mcp/message` and `/mcp/ws` is gone; the bus covers every change, whoever made it. `mcp.subscriptions.max_streams` (default 1000) caps concurrent listen streams.
 
 ### 2.4 Capabilities (advertised truthfully)
 
 | | modern (`server/discover`) | legacy streamable HTTP `initialize` | legacy `/mcp/sse` and `/mcp/ws` `initialize` |
 |---|---|---|---|
-| `tools.listChanged`, `prompts.listChanged`, `resources.listChanged` | `true` | `false` (no push channel: GET /mcp is 405) | `true` |
+| `tools.listChanged`, `prompts.listChanged`, `resources.listChanged` | `true` | `true` (the session's `GET /mcp` stream carries them) | `true` |
 | `resources.subscribe` | `true` (catalog URIs are really updated) | `false` | `false` |
 | `logging` | `{}` | `{}` | `{}` |
 | `extensions["io.modelcontextprotocol/tasks"]` | `{}` (when `mcp.tasks.enabled`) | — | — |
@@ -215,7 +216,9 @@ Advertised under `capabilities.extensions` (never a v1 `capabilities.tasks`). A 
 
 `tasks/get|update|cancel` require `Mcp-Name: <taskId>` like other name-bearing methods. MRTR composes with tasks: a tool can gather input synchronously (`input_required`) and create the task on the final round (fixture `test_tool_with_task`).
 
-**Store.** `sajha/core/mcp_tasks.py` keeps task records in the task record store (process memory by default, the database for durable tasks; [Scaling and State](../architecture/Scaling%20and%20State.md)), runs each task in the event loop of the worker that started it, scoped to the calling user, for `mcp.tasks.ttl_ms` (1 h) after their last update, at most `mcp.tasks.max_tasks` (1000; oldest terminal tasks are evicted first). It is deliberately **not** the `/admin/async-tasks` executor (`sajha/core/async_executor.py`): that is a fire-and-forget worker pool that delivers results to webhooks/Kafka/files, cannot park a job for client input, and cannot cancel a running job — the three things SEP-2663 needs. With the default memory backend tasks are per process; with a shared backend any worker reads, cancels and answers them. `notifications/tasks` on listen streams (optional in SEP-2663) is not sent.
+**Store.** `sajha/core/mcp_tasks.py` keeps task records in the task record store (process memory by default, the database for durable tasks; [Scaling and State](../architecture/Scaling%20and%20State.md)), runs each task in the event loop of the worker that started it, scoped to the calling user, for `mcp.tasks.ttl_ms` (1 h) after their last update, at most `mcp.tasks.max_tasks` (1000; oldest terminal tasks are evicted first). It is deliberately **not** the `/admin/async-tasks` executor (`sajha/core/async_executor.py`): that is a fire-and-forget worker pool that delivers results to webhooks/Kafka/files, cannot park a job for client input, and cannot cancel a running job — the three things SEP-2663 needs. With the default memory backend tasks are per process; with a shared backend any worker reads, cancels and answers them.
+
+**Status notifications** (optional in SEP-2663). A `subscriptions/listen` whose filter carries `taskIds` (from a client that declares the extension; otherwise `-32021` with `requiredCapabilities`, and a non-array is `-32602`) is acknowledged with the subset that names tasks of the caller (unknown and other users' ids are left out). Each honoured task then gets `notifications/tasks` whose params are the DetailedTask `tasks/get` would return at that moment (`result` or `error` inlined when terminal, `inputRequests` when `input_required`), tagged with the `subscriptionId`: first its current state, then one per record change. The change travels on the change bus, so with a shared state store a listen stream on one worker hears about a task running on another. A change that leaves status, `lastUpdatedAt` and pending input as they were is not sent twice. No progress or log messages are sent on the listen stream for a task. `tests/test_protocol_gaps.py` covers it. The conformance scenario `tasks-status-notifications` in `@modelcontextprotocol/conformance@0.2.0-alpha.12` is a placeholder (0 checks) pending a rewrite against the listen channel, so no conformance run covers this yet.
 
 ### 3.4 Fixtures added for Waves 2–3 (modern only, opt-in)
 
@@ -243,7 +246,7 @@ Existing SAJHA credentials (`X-API-Key` / `sja_` keys, SAJHA login JWTs, the `sa
 - Protected Resource Metadata at `/.well-known/oauth-protected-resource`, `/.well-known/oauth-protected-resource/mcp` and `.../api/mcp`: `resource` (= `<public_url>/mcp`), `authorization_servers`, `scopes_supported` (`mcp:read mcp:tools`, never `offline_access`), `bearer_methods_supported: ["header"]`.
 - Token validation: asymmetric signature only (RS/PS/ES; `none` and `HS*` refused), `iss` = the configured authorization server, `aud` contains this server's resource URI (or a value in `mcp.auth.accepted_audiences`), `exp`/`nbf` with `clock_skew_seconds` leeway; built-in tokens must also carry `typ: at+jwt` and the current `kid`.
 - Scopes: `tools/call` needs `mcp:tools`, every other method `mcp:read`; `mcp` implies both. A token lacking the scope gets **403** `error="insufficient_scope", scope="mcp:tools", resource_metadata=...` (one challenge with all needed scopes).
-- `mcp.auth.authorization_server`: `builtin` or an external issuer URL (Keycloak, Okta, Entra ID, ...). External: SAJHA only validates, discovering `jwks_uri` via RFC 8414 then OIDC discovery (metadata `issuer` must equal the configured string), caching the JWKS (`jwks_cache_seconds`, forced refetch on unknown `kid` at most every 30 s). The `sub` (or `mcp.auth.external.user_claim`) is matched to a SAJHA user ID; unmatched identities get the least-privilege `api_consumer` role. JWT access tokens only (no introspection).
+- `mcp.auth.authorization_server`: `builtin` or an external issuer URL (Keycloak, Okta, Entra ID, ...). External: SAJHA only validates, discovering `jwks_uri` via RFC 8414 then OIDC discovery (metadata `issuer` must equal the configured string), caching the JWKS (`jwks_cache_seconds`, forced refetch on unknown `kid` at most every 30 s). The `sub` (or `mcp.auth.external.user_claim`) is matched to a SAJHA user ID; unmatched identities get the least-privilege `api_consumer` role. Opaque tokens are checked by RFC 7662 introspection when `mcp.auth.external.introspection.mode` is `opaque` (tokens that are not JWTs) or `always`: the endpoint is configured or taken from the issuer metadata's `introspection_endpoint`, SAJHA authenticates as a client (`client_secret_basic` or `_post`, the secret from the environment), the answer must be `active: true` with a matching `iss`, unexpired `exp`, reached `nbf` and an `aud` of this resource when present (an answer with no `aud` is refused unless `require_audience: false`), and it fails closed (no endpoint, no credentials, network error, non-200 or non-object answer → 401, never cached). Answers are cached per process for `cache_seconds` (60), an active one never past its `exp`. CORS: origins in `mcp.auth.cors.allowed_origins` (default none, `*` for any) get `Access-Control-Allow-Origin`, never with credentials, and answered pre-flights on the PRM, AS metadata, JWKS, token and registration endpoints; `/oauth/authorize` (a navigation, not a fetch) gets none ([OAuth Guide](OAuth%20Guide.md)).
 
 **Built-in authorization server** (`authorization_server: builtin`, active while mode ≠ off), backed by SAJHA users:
 - RFC 8414 metadata at `/.well-known/oauth-authorization-server`: `code` + `S256` only, `authorization_code` and `refresh_token` grants, `token_endpoint_auth_methods_supported: none, client_secret_basic, client_secret_post`, `client_id_metadata_document_supported: true`, `authorization_response_iss_parameter_supported: true`, `registration_endpoint` only when DCR is on. No OpenID Connect discovery (no ID tokens are issued).
@@ -288,7 +291,7 @@ done
 | tasks extension scenarios (`--force`) | 10/10 | **44 passed, 0 failed** |
 | `authorization` (built-in AS, `--spec-version 2026-07-28` and `2025-11-25`) | 2/2 | **3 passed, 0 failed** |
 
-Both server suites were also run with `mcp.auth.mode=optional` (same results). The authorization suite runs against the built-in AS with a pre-registered public client; the browser step of `authorization-code-grant` (sign in, approve) was driven by a script:
+Both server suites were also run with `mcp.auth.mode=optional` (same results). After the Roadmap X12 changes (`notifications/tasks`, the 2025-11-25 session `GET /mcp` stream, token introspection, OAuth CORS) the two `--suite all` runs and the ten tasks scenarios were run again with the fixtures on and `mcp.auth.mode` off: 43/43, 152/152 and 44/44 checks passed, 0 failed (`tasks-status-notifications` has 0 checks). The authorization suite runs against the built-in AS with a pre-registered public client; the browser step of `authorization-code-grant` (sign in, approve) was driven by a script:
 
 ```bash
 SAJHA_MCP_AUTH_MODE=required SAJHA_MCP_AUTH_BUILTIN_CLIENTS='[{"client_id":"conformance","redirect_uris":["http://127.0.0.1:3000/callback"]}]' \
@@ -335,15 +338,17 @@ Waves 2–3 with the same SDK (auto mode, elicitation / sampling / roots callbac
 - destructive-tool confirmation: off by default, accept / decline, no elicitation capability, non-destructive tools;
 - tasks: create / get / complete, sync fallback, `required` → `-32021`, gating, unknown task, `Mcp-Name`, cancel (idempotent), tool error vs protocol error, partial `tasks/update`, MRTR → task, registry tool `execution.taskSupport`, per-user scoping.
 
-`tests/test_mcp_2025_11_25.py` still passes unchanged.
+`tests/test_protocol_gaps.py` covers Roadmap X12: `notifications/tasks` (snapshot then change, `result` inlined, cancel, other users' and unknown ids left out, `-32021` without the extension, invalid `taskIds`), the 2025-11-25 session `GET /mcp` stream (`listChanged: true`, 405 / 404 / 406 / 409, `list_changed` delivered, ended by `DELETE`, another user's session refused), token introspection (accepted and cached, every refusal rule, fail closed and not cached, configured endpoint with `client_secret_post`, `off` and `builtin` never introspect, `always` covers JWTs) and OAuth CORS (off by default, listed origin with pre-flight, `*`, other origins and `/oauth/authorize` untouched).
+
+`tests/test_mcp_2025_11_25.py` passes; its GET test now expects 405 only without a session id.
 
 ## 8. Known limits
 
 - **No resumability** on the modern path (by design of 2026-07-28). Legacy streams carry event IDs (and a priming event on streamed tool calls) but do not replay on reconnect: `Last-Event-ID` is ignored, because a stream belongs to one connection (see the 2025-11-25 report §7).
 - **Thread-pool tools are abandoned, not killed** on cancel; they stop early only if they poll `is_cancelled()`.
 - **Tasks and listen streams are per process with `state.backend: memory`** (the default): run one worker, or use `redis` or `database`, which share task records and relay change events to every worker's listen streams (the HMAC `requestState` is process-independent once `mcp.mrtr.state_secret` is set).
-- **Legacy streamable-HTTP sessions get no `list_changed`** (SAJHA has no GET stream; capability says `false`); 2024-11-05 SSE and WebSocket sessions do.
-- **`notifications/tasks`** (optional) is not emitted.
+- **A legacy streamable-HTTP session's `GET /mcp` stream** carries `list_changed` only (no `resources/updated`; `resources.subscribe` is `false` there), one per session per process, and is not resumable.
+- **`notifications/tasks`** go only to `subscriptions/listen` streams that name the task ids; a task created after the stream opened needs a new listen request (the filter is fixed when the stream opens).
 - **OAuth state is per process with `state.backend: memory`**: pending consents, codes, refresh tokens and DCR registrations live in the state store (with the memory backend, a restart signs OAuth clients out; access tokens stay valid until expiry since the key is persisted). A single access token is not revocable before `exp` (15 min default); all of a user's tokens are, through the user's token version ([Revocable sign-in](../security/Security%20Model.md#revocable-sign-in)).
-- **External authorization servers**: JWT access tokens only (no RFC 7662 introspection); no CORS on `/oauth/*` for browser-based clients; set `mcp.auth.public_url` in production (without it, issuer and audience follow the request `Host`).
+- **External authorization servers**: opaque tokens need introspection (`mcp.auth.external.introspection.mode`), whose answers are cached per process for `cache_seconds`, so a token revoked at the issuer is refused here within that time at most. CORS on the OAuth endpoints is off until origins are listed in `mcp.auth.cors.allowed_origins`, and `/oauth/authorize` never gets it. Set `mcp.auth.public_url` in production (without it, issuer and audience follow the request `Host`).
 - **The WebSocket transport** accepts SAJHA JWTs / API keys only (`?token=` / `?api_key=`); in `required` mode an unauthenticated socket is closed (1008).

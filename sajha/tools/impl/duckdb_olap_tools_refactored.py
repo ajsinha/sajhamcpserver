@@ -10,6 +10,15 @@ switched off and the configuration locked, so no query can read or write a file 
 turn that back on. A reload builds a new sandbox and swaps it in. Caller-supplied table
 and column names are looked up in the catalog and used quoted; values are bound;
 ``duckdb_query`` runs exactly one read-only statement (``sajha/olap/sql_safety.py``).
+
+Data on the storage backend: a data directory written ``storage://<prefix>`` (for example
+``data.duckdb.dir: storage://data/duckdb``) is read through ``get_storage()`` (local, S3, Azure
+Blob or GCS) instead of the local disk. At each (re)load every data file directly under the
+prefix is staged into a temporary local directory (``data.duckdb.stage_dir``), copied into its
+table, and the staged copy deleted; a file over ``data.duckdb.stage_max_file_mb``, or past
+``data.duckdb.stage_max_total_mb`` for one load, is skipped and logged. Change detection uses
+the objects' modified times, and a bucket event notification under the prefix
+(sajha/core/storage_events.py) reloads the sandbox at once.
 """
 
 import os
@@ -71,22 +80,73 @@ def _table_name_for(filename: str) -> str:
     return ''.join(c if c.isalnum() or c == '_' else '_' for c in stem)
 
 
-def scan_data_files(data_directory: str, file_type: str = 'all') -> List[Dict]:
-    """The supported data files directly inside ``data_directory``."""
+STORAGE_SCHEME = 'storage://'
+
+
+def storage_prefix(data_directory: str) -> Optional[str]:
+    """The storage-backend prefix of a ``storage://<prefix>`` data directory, else None."""
+    d = str(data_directory or '')
+    if not d.startswith(STORAGE_SCHEME):
+        return None
+    prefix = d[len(STORAGE_SCHEME):].strip('/')
+    if not prefix or '..' in prefix.split('/'):
+        raise ValueError(f'{data_directory!r}: give a folder on the storage backend, without ".."')
+    return prefix
+
+
+def _extensions(file_type: str) -> List[str]:
     if file_type != 'all':
-        extensions = _SUPPORTED_EXTENSIONS.get(file_type, [])
-    else:
-        extensions = [ext for exts in _SUPPORTED_EXTENSIONS.values() for ext in exts]
+        return _SUPPORTED_EXTENSIONS.get(file_type, [])
+    return [ext for exts in _SUPPORTED_EXTENSIONS.values() for ext in exts]
+
+
+def _wanted(filename: str, extensions: List[str]) -> Optional[str]:
+    if filename.startswith('.') or filename.endswith('.db'):
+        return None
+    ext = os.path.splitext(filename)[1].lower()
+    if ext not in extensions:
+        return None
+    return next(t for t, exts in _SUPPORTED_EXTENSIONS.items() if ext in exts)
+
+
+def _scan_storage(prefix: str, file_type: str) -> List[Dict]:
+    """Data files directly under ``prefix`` on the storage backend (``file_path`` is the
+    storage path; the size is known only once a load stages the file)."""
+    from sajha.core.storage import get_storage
+    backend = get_storage()
+    extensions = _extensions(file_type)
+    files = []
+    base = prefix + '/'
+    for path in backend.list_files(prefix, '*'):
+        rest = path[len(base):] if path.startswith(base) else None
+        if not rest or '/' in rest:
+            continue
+        ftype = _wanted(rest, extensions)
+        if not ftype:
+            continue
+        info = {'filename': rest, 'file_type': ftype, 'file_path': path, 'source': 'storage'}
+        try:
+            info['modified_date'] = datetime.fromtimestamp(float(backend.get_modified_time(path))).isoformat()
+        except Exception:
+            pass
+        files.append(info)
+    return sorted(files, key=lambda f: f['filename'])
+
+
+def scan_data_files(data_directory: str, file_type: str = 'all') -> List[Dict]:
+    """The supported data files directly inside ``data_directory`` (a local directory, or
+    ``storage://<prefix>`` on the storage backend)."""
+    prefix = storage_prefix(data_directory)
+    if prefix is not None:
+        return _scan_storage(prefix, file_type)
+    extensions = _extensions(file_type)
     files = []
     if not os.path.isdir(data_directory):
         return files
     for filename in sorted(os.listdir(data_directory)):
-        if filename.startswith('.') or filename.endswith('.db'):
+        ftype = _wanted(filename, extensions)
+        if not ftype:
             continue
-        ext = os.path.splitext(filename)[1].lower()
-        if ext not in extensions:
-            continue
-        ftype = next(t for t, exts in _SUPPORTED_EXTENSIONS.items() if ext in exts)
         path = os.path.join(data_directory, filename)
         if not os.path.isfile(path):
             continue
@@ -102,6 +162,18 @@ def scan_data_files(data_directory: str, file_type: str = 'all') -> List[Dict]:
     return files
 
 
+def _stage_limits() -> tuple:
+    from sajha.core.config import _get
+
+    def mb(key, default):
+        try:
+            return max(0.0, float(_get(key, default) or default)) * 1024 * 1024
+        except (TypeError, ValueError):
+            return float(default) * 1024 * 1024
+    return (mb('data.duckdb.stage_max_file_mb', 256), mb('data.duckdb.stage_max_total_mb', 1024),
+            str(_get('data.duckdb.stage_dir', '') or '') or None)
+
+
 class DuckDbSandbox:
     """One locked-down in-memory DuckDB per data directory, shared by the duckdb_* tools."""
 
@@ -110,7 +182,7 @@ class DuckDbSandbox:
 
     @classmethod
     def for_directory(cls, data_directory: str) -> 'DuckDbSandbox':
-        key = os.path.realpath(data_directory)
+        key = data_directory if storage_prefix(data_directory) is not None else os.path.realpath(data_directory)
         with cls._instances_lock:
             box = cls._instances.get(key)
             if box is None:
@@ -124,10 +196,33 @@ class DuckDbSandbox:
         self.file_states: Dict[str, Dict[str, Any]] = {}
         self._refresh_thread: Optional[threading.Thread] = None
         self._stop = threading.Event()
+        self.prefix = storage_prefix(data_directory)
         self.reload()
+        if self.prefix is not None:
+            try:
+                from sajha.core.storage_events import add_path_listener
+                add_path_listener(self._on_storage_paths)
+            except Exception as e:
+                logger.debug(f'DuckDB: storage events unavailable: {e}')
+
+    def _on_storage_paths(self, paths: List[str]) -> None:
+        """A bucket event named paths: reload (off the delivering thread) when one is a data file
+        directly under this sandbox's prefix."""
+        base = self.prefix + '/'
+        if any(p.startswith(base) and '/' not in p[len(base):] for p in paths):
+            threading.Thread(target=self.reload, daemon=True, name='DuckDB-StorageReload').start()
 
     def _signature(self, files: List[Dict]) -> Dict[str, tuple]:
         sig = {}
+        if self.prefix is not None:
+            from sajha.core.storage import get_storage
+            backend = get_storage()
+            for f in files:
+                try:
+                    sig[f['filename']] = (float(backend.get_modified_time(f['file_path'])), None)
+                except Exception:
+                    pass
+            return sig
         for f in files:
             try:
                 st = os.stat(f['file_path'])
@@ -136,11 +231,61 @@ class DuckDbSandbox:
                 pass
         return sig
 
+    def _load_storage(self, conn, files: List[Dict]) -> Dict[str, Dict[str, Any]]:
+        """Stage each storage file into a temporary local directory, copy it into its table,
+        delete the staged copy. Files over the size limits are skipped."""
+        import shutil
+        import tempfile
+        from sajha.core.storage import get_storage
+        backend = get_storage()
+        max_file, max_total, stage_dir = _stage_limits()
+        if stage_dir:
+            os.makedirs(stage_dir, exist_ok=True)
+        tmp = tempfile.mkdtemp(prefix='sajha-duckdb-', dir=stage_dir)
+        states: Dict[str, Dict[str, Any]] = {}
+        total = 0
+        try:
+            for f in files:
+                table = _table_name_for(f['filename'])
+                try:
+                    mtime = float(backend.get_modified_time(f['file_path']))
+                    data = backend.read_bytes(f['file_path'])
+                    if max_file and len(data) > max_file:
+                        logger.warning(f"DuckDB: {f['file_path']} is {_format_file_size(len(data))}, over "
+                                       f"data.duckdb.stage_max_file_mb; skipped")
+                        continue
+                    if max_total and total + len(data) > max_total:
+                        logger.warning(f"DuckDB: {f['file_path']} would pass data.duckdb.stage_max_total_mb "
+                                       f"for one load; skipped")
+                        continue
+                    total += len(data)
+                    local = os.path.join(tmp, f['filename'])
+                    with open(local, 'wb') as fh:
+                        fh.write(data)
+                    del data
+                    conn.execute(
+                        f"CREATE OR REPLACE TABLE {sq.quote_identifier(table)} AS "
+                        f"SELECT * FROM {_LOADERS[f['file_type']]}", [local])
+                    size = os.path.getsize(local)
+                    os.unlink(local)
+                    states[f['filename']] = {'mtime': mtime, 'size': size, 'sig': (mtime, None),
+                                             'view_name': table, 'table_name': table,
+                                             'file_type': f['file_type'], 'file_path': f['file_path'],
+                                             'source': 'storage'}
+                except Exception as e:
+                    logger.error(f"DuckDB: could not load {f['file_path']} from storage: {e}")
+        finally:
+            shutil.rmtree(tmp, ignore_errors=True)
+        return states
+
     def reload(self) -> Dict[str, Dict[str, Any]]:
         """Load every data file into a new sandbox, lock it, and swap it in."""
         files = scan_data_files(self.data_directory)
         conn = duckdb.connect(':memory:')
         states: Dict[str, Dict[str, Any]] = {}
+        if self.prefix is not None:
+            states = self._load_storage(conn, files)
+            files = []
         for f in files:
             table = _table_name_for(f['filename'])
             try:
@@ -167,7 +312,7 @@ class DuckDbSandbox:
 
     def changed(self) -> bool:
         current = self._signature(scan_data_files(self.data_directory))
-        known = {n: (s['mtime'], s['size']) for n, s in self.file_states.items()}
+        known = {n: s.get('sig') or (s['mtime'], s['size']) for n, s in self.file_states.items()}
         return current != known
 
     def start_auto_refresh(self, interval: int):
@@ -214,8 +359,9 @@ class DuckDbBaseTool(BaseMCPTool):
         self.auto_refresh_enabled = self.config.get('auto_refresh_enabled', True)
         self.auto_refresh_interval = self.config.get('auto_refresh_interval', 600)  # Default: 10 minutes (600 seconds)
 
-        # Ensure data directory exists
-        os.makedirs(self.data_directory, exist_ok=True)
+        # Ensure a local data directory exists (a storage:// one lives on the storage backend)
+        if storage_prefix(self.data_directory) is None:
+            os.makedirs(self.data_directory, exist_ok=True)
 
         self.sandbox = DuckDbSandbox.for_directory(self.data_directory)
         if self.auto_refresh_enabled:

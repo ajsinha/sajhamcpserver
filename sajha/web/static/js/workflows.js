@@ -86,7 +86,7 @@
         h += field('Items', '<input class="form-control form-control-sm" data-f="items" placeholder="$steps.list.rows" value="' + esc(typeof s.items === 'string' ? s.items : json(s.items)) + '">', 'col-md-4');
         h += field('Max items', '<input class="form-control form-control-sm" type="number" min="1" data-f="max_items" data-num="1" value="' + esc(s.max_items || '') + '">', 'col-6 col-md-2');
         h += field('Parallel', '<input class="form-control form-control-sm" type="number" min="1" data-f="parallel" data-num="1" value="' + esc(s.parallel || 1) + '">', 'col-6 col-md-2');
-        h += field('Do <small class="text-muted">(JSON: {"tool": ..., "params": {"x": "$item.x"}})</small>', '<textarea class="form-control form-control-sm" rows="2" data-f="do" data-json="1">' + esc(json(s['do'] || {kind: 'tool', tool: TOOLS[0] || '', params: {}})) + '</textarea>', 'col-md-4');
+        h += field('Do <small class="text-muted">(JSON: {"tool": ..., "params": {"x": "$item.x"}}, or {"steps": [...]} for a graph per item)</small>', '<textarea class="form-control form-control-sm" rows="2" data-f="do" data-json="1">' + esc(json(s['do'] || {kind: 'tool', tool: TOOLS[0] || '', params: {}})) + '</textarea>', 'col-md-4');
       } else if (k === 'wait') {
         h += field('Seconds', '<input class="form-control form-control-sm" data-f="seconds" data-num="1" value="' + esc(s.seconds == null ? '' : s.seconds) + '">', 'col-6 col-md-4');
       } else if (k === 'approval') {

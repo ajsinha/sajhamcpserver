@@ -101,6 +101,14 @@ class Upstream:
         self._thread.join(timeout=10)
 
 
+@pytest.fixture(autouse=True)
+def _no_policy_engine(monkeypatch):
+    """These tests exercise proxied calls themselves, with fake tools that do not declare readOnlyHint;
+    the shipped approval rule for such calls (config/policies/20-proxied-writes.yaml) is tested in
+    tests/test_proxied_service_with_user.py."""
+    monkeypatch.setenv('SAJHA_POLICY_ENABLED', 'false')
+
+
 @pytest.fixture(scope='module')
 def upstream():
     u = Upstream()

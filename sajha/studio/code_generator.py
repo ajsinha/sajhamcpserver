@@ -365,15 +365,15 @@ class ToolCodeGenerator:
                 logger.error(f"Generated Python has syntax error: {e}", exc_info=True)
                 return False, f"Generated Python has syntax error on line {e.lineno}: {e.msg}", None, None
             
-            # Save JSON config
-            from sajha.core.storage import write_tool_config
-            json_path = write_tool_config(json_path, json_content)
-            logger.info(f"Saved tool JSON via storage backend: {json_path}")
-            
-            # Save Python implementation
+            # Python first: the registry's config watcher may load the JSON at once, and on a
+            # cloud backend write_tool_config also publishes the module (storage_modules)
             with open(python_path, 'w', encoding='utf-8') as f:
                 f.write(python_content)
             logger.info(f"Saved tool Python: {python_path}")
+
+            from sajha.core.storage import write_tool_config
+            json_path = write_tool_config(json_path, json_content)
+            logger.info(f"Saved tool JSON via storage backend: {json_path}")
             
             return True, "Tool saved successfully", str(json_path), str(python_path)
             

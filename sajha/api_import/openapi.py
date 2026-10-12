@@ -11,7 +11,8 @@ Operation dict::
 
     key, operation_id, method, path, summary, description, tags, deprecated,
     params:  [{arg, name, in, required, schema, style, explode, description}],
-    body:    {arg, content_type, required, schema, description} | None,
+    body:    {arg, content_type, required, schema, description,
+              fields (multipart: field -> file | files | json | value), part_types, binary} | None,
     response_schema, response_content_type, security ([[scheme, ...], ...] | None),
     servers (path- or operation-level server URLs), pagination ([param names]),
     unsupported (reason | None), flagged (text was screened), base_name
@@ -24,6 +25,7 @@ import re
 from typing import Any, Callable, Dict, List, Optional, Tuple
 
 from sajha.api_import import naming
+from sajha.api_import.bodies import MULTIPART, file_schema, is_binary_body, multipart_schema
 from sajha.api_import.refs import RefError, RefResolver, parse_text
 from sajha.api_import.schema import is_valid_schema, limit_depth, to_json_schema
 
@@ -42,8 +44,10 @@ class SpecError(ValueError):
     """The document is not a usable OpenAPI or Swagger description."""
 
 
-def load(text_or_data: Any, source_url: Optional[str] = None) -> Dict[str, Any]:
-    """A parsed OpenAPI 3.x document (Swagger 2.0 converted). Raises SpecError."""
+def load(text_or_data: Any, source_url: Optional[str] = None,
+         fetcher: Optional[Callable[[str], str]] = None, max_documents: int = 20) -> Dict[str, Any]:
+    """A parsed OpenAPI 3.x document (Swagger 2.0 converted; its remote ``$ref`` documents
+    bundled first when a ``fetcher`` is given). Raises SpecError."""
     try:
         data = parse_text(text_or_data) if isinstance(text_or_data, (str, bytes)) else text_or_data
     except RefError as e:
@@ -53,8 +57,8 @@ def load(text_or_data: Any, source_url: Optional[str] = None) -> Dict[str, Any]:
     if not isinstance(data, dict):
         raise SpecError('the document is not a JSON or YAML object')
     if str(data.get('swagger', '')).startswith('2'):
-        from sajha.api_import.swagger2 import convert
-        return convert(data, source_url)
+        from sajha.api_import.swagger2 import bundle, convert
+        return convert(bundle(data, source_url, fetcher, max_documents), source_url)
     version = str(data.get('openapi', ''))
     if not version.startswith('3.'):
         found = f"openapi: {version}" if version else ('a GraphQL introspection result' if
@@ -194,6 +198,31 @@ class OpenAPIDocument:
             return {'description': 'schema from the API description was not valid JSON Schema; not enforced'}
         return converted
 
+    def _file_body(self, content: Dict[str, Any]) -> Optional[Tuple[str, Dict[str, Any], Dict[str, Any]]]:
+        """(content type, input schema, extra body config) for a multipart or binary body, else None.
+        multipart/form-data is preferred; then application/octet-stream; then any other media type
+        whose schema is a binary string (or absent)."""
+        types = {ct.split(';')[0].strip().lower(): (media if isinstance(media, dict) else {})
+                 for ct, media in content.items()}
+        if MULTIPART in types:
+            media = types[MULTIPART]
+            schema = self._schema(media.get('schema') or {'type': 'object'}, 'input')
+            schema, kinds, part_types = multipart_schema(schema, self.resolver.deref(media.get('encoding') or {}))
+            extra: Dict[str, Any] = {'fields': kinds}
+            if part_types:
+                extra['part_types'] = part_types
+            return MULTIPART, schema, extra
+        ordered = (['application/octet-stream'] if 'application/octet-stream' in types else []) + \
+            [ct for ct in types if ct != 'application/octet-stream']
+        for ct in ordered:
+            if ct == 'application/x-www-form-urlencoded' or _JSON_CT.match(ct):
+                continue
+            raw = types[ct].get('schema')
+            schema = self._schema(raw, 'input') if raw else {}
+            if ct == 'application/octet-stream' or is_binary_body(schema):
+                return ct, file_schema(schema.get('description', '')), {'binary': True}
+        return None
+
     def _operation(self, path: str, method: str, item: Dict[str, Any], op: Dict[str, Any]) -> Dict[str, Any]:
         flagged = False
         summary, f1 = _screen(op.get('summary') or '', 200)
@@ -248,8 +277,20 @@ class OpenAPIDocument:
                         chosen = (ct, content[ct] or {})
                         break
             if chosen is None and content:
-                unsupported = (f"request body type {', '.join(sorted(content))} is not supported "
-                               f"(multipart and binary bodies cannot be imported)")
+                chosen_file = self._file_body(content)
+                if chosen_file is None:
+                    unsupported = (f"request body type {', '.join(sorted(content))} is not supported "
+                                   f"(only JSON, form, text, multipart/form-data and binary bodies are)")
+                else:
+                    ct, schema, extra = chosen_file
+                    arg = 'body' if 'body' not in used else 'request_body'
+                    rb_desc, f = _screen(rb.get('description') or '', 400)
+                    flagged = flagged or f
+                    if rb_desc:
+                        rest = schema.get('description') or ''
+                        schema = {**schema, 'description': f'{rb_desc}. {rest}' if rest else rb_desc}
+                    body = {'arg': arg, 'content_type': ct, 'required': bool(rb.get('required')),
+                            'schema': schema, **extra}
             elif chosen is not None:
                 ct, media = chosen
                 arg = 'body' if 'body' not in used else 'request_body'

@@ -18,7 +18,7 @@ from fastapi.responses import JSONResponse, Response
 from sse_starlette.sse import EventSourceResponse
 from sqlalchemy.orm import Session
 
-from sajha.db.engine import get_db
+from sajha.db.engine import get_db, release_session
 from sajha.auth import AuthManager, AuthContext, require_admin, require_auth
 from sajha.auth.oauth.resource_server import authorize_mcp
 
@@ -74,10 +74,10 @@ def _lookup_session(request: Request):
 def with_push_capabilities(response):
     """
     An initialize response for a transport with a server -> client push
-    channel (2024-11-05 HTTP+SSE stream, WebSocket): those receive
-    list_changed notifications from the change bus, so they advertise
-    listChanged.  Streamable-HTTP 2025-11-25 sessions do not (SAJHA offers no
-    GET stream there), so the shared handler capabilities keep it false.
+    channel (streamable-HTTP sessions, whose GET /mcp stream carries them;
+    2024-11-05 HTTP+SSE stream; WebSocket): those receive list_changed
+    notifications from the change bus, so they advertise listChanged.  The
+    shared handler capabilities keep it false.
     """
     import copy
     if not isinstance(response, dict) or not isinstance(response.get('result'), dict):
@@ -201,6 +201,7 @@ async def mcp_post(request: Request, db: Session = Depends(get_db)):
     session_data = auth.to_legacy_session()  # identity + tool policy (anonymous too)
     if mcp_session is not None:     # what the client can do (URL elicitation: sajha/accounts/respond.py)
         session_data['client_capabilities'] = dict(mcp_session.client_capabilities or {})
+        session_data['mcp_session_id'] = mcp_session.session_id     # resources/subscribe (mcp_handler)
 
     # Notification: no id -> 202, no body
     if body.get('jsonrpc') == '2.0' and isinstance(body.get('method'), str) and 'id' not in body:
@@ -231,10 +232,19 @@ async def mcp_post(request: Request, db: Session = Depends(get_db)):
         wants_sse = 'text/event-stream' in request.headers.get('accept', '')
         sampled = (mcp_session is not None and mcp_session.supports('sampling') and wants_sse
                    and _samples(mcp_handler, params.get('name')))
+        # An answer-mode LLM tool (sajha_ask): a destructive call it wants to make is confirmed by the
+        # user through an elicitation/create request on this call's SSE stream (Intelligence Layer §6)
+        confirms = (mcp_session is not None and wants_sse and _elicits_form(mcp_session)
+                    and _confirms(mcp_handler, params.get('name')))
         # A call with _meta.progressToken from a client that takes SSE: the tool's progress (a remote
         # SAJHA Net tool's too) streams before the result; without either, JSON as before
-        if sampled or (wants_sse and _progress_token(params) is not None and not legacy_sid):
-            return await _stream_registry_call(body, params, session_data, mcp_session, mcp_handler, sampled)
+        # A proxied MCP server's tool: its upstream's requests to the client (sampling, elicitation, roots)
+        # go to this client on this call's SSE stream (sajha/federation/relay.py, Federation.md section 7)
+        relayed = (mcp_session is not None and wants_sse and not sampled and not confirms
+                   and _relays(mcp_handler, params.get('name'), mcp_session))
+        if sampled or confirms or relayed or (wants_sse and _progress_token(params) is not None and not legacy_sid):
+            return await _stream_registry_call(body, params, session_data, mcp_session, mcp_handler, sampled,
+                                               confirms, relayed)
 
     if method == 'tools/call' and legacy_sid:
         # 2024-11-05 HTTP+SSE: progress goes over the client's SSE stream, ahead of the response
@@ -257,6 +267,8 @@ async def mcp_post(request: Request, db: Session = Depends(get_db)):
 
     headers = {}
     if method == 'initialize' and isinstance(response, dict) and 'result' in response:
+        response = with_push_capabilities(response)     # the session's GET /mcp stream carries list_changed
+        response = _with_subscribe(response)             # ... and notifications/resources/updated
         new_session = store.create(
             protocol_version=response['result'].get('protocolVersion'),
             client_info=params.get('clientInfo') or {},
@@ -395,6 +407,21 @@ def _samples(handler, name) -> bool:
     return wants_sampling(tool)
 
 
+def _elicits_form(mcp_session) -> bool:
+    from sajha.core.mcp_mrtr import elicitation_form_supported
+    return elicitation_form_supported(getattr(mcp_session, 'client_capabilities', None) or {})
+
+
+def _confirms(handler, name) -> bool:
+    """Is ``name`` an answer-mode LLM tool, whose destructive inner calls the client's user may confirm?"""
+    registry = getattr(handler, 'tools_registry', None)
+    tool = registry.get_tool(name) if registry is not None and isinstance(name, str) else None
+    if tool is None:
+        return False
+    from sajha.ai.llm_tools.confirmation import wants_confirmation
+    return wants_confirmation(tool)
+
+
 def _progress_token(params: dict):
     meta = params.get('_meta') if isinstance(params.get('_meta'), dict) else {}
     token = meta.get('progressToken')
@@ -409,13 +436,38 @@ def _cancel_scope(request: Request, mcp_session):
     return sid if sid and _sse_relay.exists(sid) else None
 
 
+def _relays(handler, name, mcp_session) -> bool:
+    """Is ``name`` a proxied server's tool, called by a client that can answer its upstream's requests?"""
+    registry = getattr(handler, 'tools_registry', None)
+    tool = registry.get_tool(name) if registry is not None and isinstance(name, str) else None
+    if tool is None or not hasattr(tool, 'upstream_id'):
+        return False
+    from sajha.federation.relay import wanted
+    if not wanted(getattr(mcp_session, 'client_capabilities', None)):
+        return False
+    manager = getattr(tool, 'manager', None)
+    return bool(manager is not None and manager.relays_for(tool))
+
+
+def _with_subscribe(response):
+    """A streamable-HTTP session's initialize result: resources.subscribe is true, because its GET /mcp
+    stream carries notifications/resources/updated for the URIs it subscribed to."""
+    result = response.get('result') if isinstance(response, dict) else None
+    caps = result.get('capabilities') if isinstance(result, dict) else None
+    if isinstance(caps, dict) and isinstance(caps.get('resources'), dict):
+        caps['resources']['subscribe'] = True
+    return response
+
+
 async def _stream_registry_call(body: dict, params: dict, session_data: dict, mcp_session, handler,
-                                sampled: bool = False):
+                                sampled: bool = False, confirms: bool = False, relayed: bool = False):
     """tools/call of a registry tool over SSE (2025-11-25): the tool runs in a worker thread under a
     TransportToolContext, so its progress (and log, when the request set a logLevel) travels on this
     stream before the response; with ``sampled``, the 2025-11-25 sampling channel is bound too: the
     tool's sampling/createMessage requests travel here and the client's answers arrive as JSON-RPC
-    responses on POST /mcp. A client notifications/cancelled reaches the tool (is_cancelled())."""
+    responses on POST /mcp. With ``confirms``, an answer-mode LLM tool's destructive-call confirmations
+    travel here the same way, as elicitation/create requests. A client notifications/cancelled reaches the
+    tool (is_cancelled())."""
     from sajha.core.mcp_sessions import ToolCallContext
     from sajha.core.mcp_tool_context import ModernToolContext, TransportToolContext
     import contextlib
@@ -436,6 +488,15 @@ async def _stream_registry_call(body: dict, params: dict, session_data: dict, mc
                     from sajha.ai.llm_tools.sampling import SessionSampler, bound
                     ctx = ToolCallContext(mcp_session, queue, _progress_token(params))
                     stack.enter_context(bound(SessionSampler(ctx, loop), name))
+                if confirms:
+                    from sajha.ai.llm_tools import confirmation
+                    cctx = ToolCallContext(mcp_session, queue, _progress_token(params))
+                    stack.enter_context(confirmation.bound(confirmation.SessionConfirmer(cctx, loop), name))
+                if relayed:
+                    from sajha.federation import relay
+                    rctx = ToolCallContext(mcp_session, queue, _progress_token(params))
+                    stack.enter_context(relay.bound(relay.ClientRelay(
+                        rctx, loop, dict(mcp_session.client_capabilities or {})), name))
                 stack.enter_context(mcp_cancellation.track(scope, body.get('id')))
                 return handler.handle_request(body, session_data)
         finally:
@@ -492,6 +553,10 @@ async def mcp_delete(request: Request, db: Session = Depends(get_db)):
         return _rpc_error(-32600, 'Mcp-Session-Id header required', 400)
     if not get_session_store().delete(sid):
         return _rpc_error(-32001, 'Session not found', 404)
+    stream = _open_session_streams.get(sid)
+    if stream is not None:
+        stream.put_nowait(None)               # end the session's GET stream
+    _release_subscriptions(sid)
     return Response(status_code=204)
 
 
@@ -504,10 +569,12 @@ async def mcp_sse(request: Request, db: Session = Depends(get_db)):
     GET on the MCP endpoint.
 
     * Streamable HTTP clients (2025-03-26 and later) identify themselves with
-      the Mcp-Session-Id and/or MCP-Protocol-Version header.  SAJHA does not
-      push unsolicited server -> client messages, so — as the spec allows —
-      it answers 405 Method Not Allowed instead of opening an idle stream
-      (unknown session id -> 404).
+      the Mcp-Session-Id and/or MCP-Protocol-Version header.  With a live
+      session id and ``Accept: text/event-stream`` this opens the session's
+      standalone server -> client stream, which carries
+      ``notifications/{tools,prompts,resources}/list_changed`` from the change
+      bus (one stream per session in this process: a second one is 409).
+      Without a session id it answers 405 (unknown session id -> 404).
     * Requests without those headers (and every GET /mcp/sse) get the legacy
       2024-11-05 HTTP+SSE stream whose first event is ``endpoint``, so old
       clients keep working.
@@ -525,16 +592,19 @@ async def mcp_sse(request: Request, db: Session = Depends(get_db)):
         err = _check_protocol_header(request)
         if err is not None:
             return err
-        _, err = _lookup_session(request)
+        session, err = _lookup_session(request)
         if err is not None:
             return err
-        return JSONResponse({'error': 'Method Not Allowed: this server does not offer a '
-                                      'standalone server-to-client SSE stream'},
-                            status_code=405, headers={'Allow': 'POST, DELETE'})
+        if session is None:
+            return JSONResponse({'error': 'Method Not Allowed: the standalone server-to-client SSE '
+                                          'stream needs an Mcp-Session-Id (initialize first)'},
+                                status_code=405, headers={'Allow': 'POST, DELETE'})
+        return await _session_stream(request, db, session)
 
     _, err = await authorize_mcp(request, db, None)
     if err is not None:
         return err
+    release_session(db)     # the stream stays open for the connection's life: it holds no pool connection
     session_id = str(uuid.uuid4())
     sse_queue = _sse_relay.register(session_id)
 
@@ -575,6 +645,83 @@ async def mcp_sse(request: Request, db: Session = Depends(get_db)):
             _sse_relay.unregister(session_id)
 
     return EventSourceResponse(event_generator())
+
+
+_open_session_streams: dict = {}       # session id -> queue of its GET /mcp stream open in this process
+_SESSION_STREAM_CHECK_SECONDS = 15.0
+
+
+def _forward_resource_updates(queue: asyncio.Queue, session):
+    """Copy notifications/resources/updated for the URIs this session subscribed to (resources/subscribe,
+    the session's ``subscriptions``) into its GET stream's queue; returns the function that stops it.
+    Subscriptions live with the session in this process."""
+    from sajha.core.change_bus import RESOURCE_UPDATED, get_change_bus
+    loop = asyncio.get_running_loop()
+
+    def on_change(event):
+        if event.kind == RESOURCE_UPDATED and event.uri in session.subscriptions:
+            loop.call_soon_threadsafe(queue.put_nowait, event.notification())
+    bus = get_change_bus()
+    bus.add_listener(on_change)
+    return lambda: bus.remove_listener(on_change)
+
+
+def _release_subscriptions(sid: str) -> None:
+    """A deleted session's subscriptions to proxied servers' resources end (sajha/federation)."""
+    try:
+        from sajha.federation.manager import get_federation
+        fed = get_federation()
+        if fed is not None:
+            fed.release(f'session:{sid}')
+    except Exception as e:
+        logger.debug(f'releasing subscriptions of session {sid}: {e}')
+
+
+async def _session_stream(request: Request, db, session):
+    """The standalone GET /mcp SSE stream of a 2025-11-25 streamable-HTTP session: list_changed
+    notifications from the change bus (every worker's, with a shared state store), and
+    notifications/resources/updated for the URIs the session subscribed to (this worker's), until the
+    client goes away or the session ends (DELETE /mcp or expiry).  No resumption: Last-Event-ID is ignored."""
+    from sajha.core.mcp_sessions import get_session_store
+    auth, err = await authorize_mcp(request, db, None)
+    if err is not None:
+        return err
+    if 'text/event-stream' not in request.headers.get('accept', ''):
+        return _rpc_error(-32600, 'GET /mcp opens an SSE stream: Accept must include text/event-stream', 406)
+    caller = (auth.to_legacy_session() or {}).get('user_id')
+    release_session(db)     # the stream stays open for the session's life: it holds no pool connection
+    if session.user_id and session.user_id != caller:
+        return _rpc_error(-32001, 'Session not found', 404)     # never attach to another user's session
+    sid = session.session_id
+    if sid in _open_session_streams:
+        return _rpc_error(-32000, 'Conflict: this session already has an open SSE stream', 409)
+    queue: asyncio.Queue = asyncio.Queue()
+    _open_session_streams[sid] = queue
+    stream_id = uuid.uuid4().hex[:12]
+
+    async def events():
+        forwarder = asyncio.create_task(forward_changes(queue))
+        updates = _forward_resource_updates(queue, session)
+        counter = 0
+        try:
+            while True:
+                try:
+                    message = await asyncio.wait_for(queue.get(), timeout=_SESSION_STREAM_CHECK_SECONDS)
+                except asyncio.TimeoutError:
+                    if get_session_store().get(sid) is None or await request.is_disconnected():
+                        return
+                    continue
+                if message is None:            # the session was deleted
+                    return
+                counter += 1
+                yield {'id': f'{stream_id}:{counter}', 'event': 'message', 'data': json.dumps(message)}
+        finally:
+            forwarder.cancel()
+            updates()
+            if _open_session_streams.get(sid) is queue:
+                del _open_session_streams[sid]
+
+    return EventSourceResponse(events(), ping=15)
 
 
 @router.post('/mcp/message')

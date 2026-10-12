@@ -105,9 +105,13 @@ def test_shipped_policies_are_permissive_and_parse():
     pols = load_dir(str(ROOT / 'config' / 'policies'))
     assert pols and not [p.error for p in pols if p.error]
     enforced = [r for p in pols if p.enabled for r in p.rules]
-    # the only enforced shipped rule keeps sanctions_* from models (config/policies/10-sanctions.yaml)
-    assert [r.id for r in enforced] == ['no-sanctions-for-models']
+    # two enforced shipped rules: sanctions_* kept from models (config/policies/10-sanctions.yaml), and
+    # approval for proxied servers' tools without readOnlyHint (20-proxied-writes.yaml; the design of
+    # per-user sign-in, section 7, makes it a default). Nothing else is enforced out of the box.
+    assert [r.id for r in enforced] == ['no-sanctions-for-models', 'approve-proxied-writes']
     assert enforced[0].match.tools == ['sanctions_*'] and enforced[0].match.sources == ['ask', 'openai_api']
+    pw = enforced[1]
+    assert pw.effect == 'require_approval' and pw.match.proxied is True and not pw.match.tools
     assert any(not p.enabled and p.rules for p in pols)     # the examples ship disabled
 
 

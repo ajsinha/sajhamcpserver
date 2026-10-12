@@ -135,6 +135,26 @@ mcp_handler = None
 config_reloader = None
 
 
+def pool_exhausted_response(request: Request):
+    """503 for a request shed because the database pool stayed dry (``sqlalchemy.exc.TimeoutError``
+    from a checkout): ``Retry-After`` always; on /mcp and the legacy MCP paths a JSON-RPC error
+    (code -32000, ``data.retryAfterSeconds``) so MCP clients see a retryable server error."""
+    from starlette.responses import JSONResponse as _J
+    retry = 1
+    logger.warning(f'Database pool exhausted: shed {request.method} {request.url.path} with 503')
+    headers = {'Retry-After': str(retry)}
+    path = request.url.path
+    if path in ('/mcp', '/api/mcp') or path.startswith('/mcp/'):
+        return _J({'jsonrpc': '2.0', 'id': None,
+                   'error': {'code': -32000, 'message': 'Server busy: no database connection was free; retry shortly',
+                             'data': {'reason': 'db_pool_exhausted', 'retryable': True,
+                                      'retryAfterSeconds': retry}}},
+                  status_code=503, headers=headers)
+    return _J({'error': 'service_unavailable', 'reason': 'db_pool_exhausted',
+               'message': 'Server busy: no database connection was free; retry shortly',
+               'retry_after_seconds': retry}, status_code=503, headers=headers)
+
+
 class SajhaMCPServerWebApp:
     """
     Main application class. Orchestrates all components.
@@ -188,6 +208,10 @@ class SajhaMCPServerWebApp:
             allow_headers=['*'],
             expose_headers=['Mcp-Session-Id'],
         )
+        # CORS for browser-based MCP clients on the OAuth endpoints (mcp.auth.cors.allowed_origins);
+        # outside the CORS middleware above so it answers for the origins it allows
+        from sajha.auth.oauth.cors import OAuthCorsMiddleware
+        app.add_middleware(OAuthCorsMiddleware)
 
         # Security headers middleware
         from sajha.security import (SecurityHeadersMiddleware, RequestSizeLimitMiddleware,
@@ -322,8 +346,31 @@ class SajhaMCPServerWebApp:
                 'message': "You don't have permission to access this resource",
             }, status_code=403)
 
+        from starlette.requests import ClientDisconnect
+
+        @app.exception_handler(ClientDisconnect)
+        async def client_disconnected(request: Request, exc):
+            # The client went away before its request body arrived (a cancelled call, a load test
+            # stopping): not a server error, and nobody is left to read a response.
+            logger.info(f'Client disconnected: {request.method} {request.url.path}')
+            from starlette.responses import Response
+            return Response(status_code=400)
+
+        from sqlalchemy.exc import TimeoutError as _PoolTimeout
+
+        @app.exception_handler(_PoolTimeout)
+        async def database_pool_exhausted(request: Request, exc):
+            # Every connection of this worker's pool stayed busy for db.pool.timeout_seconds: shed the
+            # request at once with 503 + Retry-After (a JSON-RPC error with retry data on the MCP
+            # endpoints) instead of hanging or answering a misleading 401. Counted in
+            # sajha_db_pool_exhausted_total (sajha/db/engine.py). Scaling and State §7.
+            return pool_exhausted_response(request)
+
         @app.exception_handler(500)
         async def internal_error(request: Request, exc):
+            from sajha.db.engine import is_pool_exhausted
+            if is_pool_exhausted(exc):
+                return pool_exhausted_response(request)
             logger.error(f'Internal server error: {exc}')
             return render(request, 'common/error.html', {
                 'error': 'Internal Server Error',
@@ -512,6 +559,13 @@ class SajhaMCPServerWebApp:
                 self._sync_mgr = sync_mgr
                 logger.info(f'Object-store sync manager active for {type(_storage).__name__} '
                             f'(interval={interval}s) — watching config/tools + config/prompts')
+                # Push-based reload (storage.events.*): bucket event notifications feed the
+                # same sync manager; polling stays as the fallback (sajha/core/storage_events.py)
+                try:
+                    from sajha.core.storage_events import start_storage_events
+                    start_storage_events(pc, _storage, sync_mgr)
+                except Exception as ee:
+                    logger.warning(f'Storage events not started: {ee}', exc_info=True)
         except Exception as e:
             logger.warning(f'Object-store sync manager init failed: {e}', exc_info=True)
 
@@ -901,6 +955,13 @@ class SajhaMCPServerWebApp:
             _state_shutdown()
         except Exception as e:
             logger.debug(f'state shutdown: {e}')
+        try:   # bucket event listener and object-store sync manager (cloud backends)
+            from sajha.core.storage_events import stop_storage_events
+            stop_storage_events()
+            if getattr(self, '_sync_mgr', None) is not None:
+                self._sync_mgr.stop()
+        except Exception as e:
+            logger.debug(f'storage sync shutdown: {e}')
         if config_reloader:
             config_reloader.stop()
         if tools_registry:

@@ -8,6 +8,7 @@ Every test runs against each backend that is available here:
 * fakeredis  when the ``fakeredis`` package (with ``lupa`` for Lua) is installed
 * redis      a real server at SAJHA_TEST_REDIS_URL (default redis://127.0.0.1:6379/15), when it answers
 * database   SQLite in a temporary directory
+* database_pg  PostgreSQL, when SAJHA_TEST_PG_URL names a disposable database (tests/pg_support.py)
 
 "Two workers" are simulated in one process by two component instances (two
 AuthorizationStores, two MCPSessionStores, two TaskStores, two ChangeBuses)
@@ -65,10 +66,15 @@ def _make(kind, tmp):
             pytest.skip(f"no Redis server at {REDIS_URL}")
         from sajha.core.state.redis_store import RedisStateStore
         return RedisStateStore(REDIS_URL, prefix)
+    if kind == "database_pg":
+        from tests.pg_support import pg_engine
+        if pg_engine() is None:
+            pytest.skip("SAJHA_TEST_PG_URL not set")
+        return DatabaseStateStore(engine=pg_engine(), prefix=prefix, poll_interval=0.05)
     return DatabaseStateStore(url=f"sqlite:///{tmp}/state.db", prefix=prefix, poll_interval=0.05)
 
 
-BACKENDS = ["memory", "fakeredis", "redis", "database"]
+BACKENDS = ["memory", "fakeredis", "redis", "database", "database_pg"]
 
 
 @pytest.fixture(params=BACKENDS)

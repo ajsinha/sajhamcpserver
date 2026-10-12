@@ -81,7 +81,7 @@ def start_session(request: Request, response, token: str) -> None:
 
 
 @router.post('/login')
-async def login_form(
+def login_form(
     request: Request,
     db: Session = Depends(get_db),
     user_id: str = Form(...),
@@ -192,7 +192,7 @@ async def change_password_page(request: Request, auth: AuthContext = Depends(req
 
 
 @router.post('/account/password')
-async def change_password_form(
+def change_password_form(
     request: Request,
     auth: AuthContext = Depends(require_auth),
     db: Session = Depends(get_db),
@@ -332,7 +332,7 @@ def _session_user(auth: AuthContext, db: Session):
 
 
 @router.post('/api/auth/sessions/revoke')
-async def api_sign_out_everywhere(request: Request, auth: AuthContext = Depends(require_auth),
+def api_sign_out_everywhere(request: Request, auth: AuthContext = Depends(require_auth),
                                   db: Session = Depends(get_db)):
     """Sign out everywhere: every SAJHA JWT and built-in OAuth token of this user stops working,
     including the one making this request. Signed-in users only (not API keys)."""
@@ -352,7 +352,7 @@ async def api_sign_out_everywhere(request: Request, auth: AuthContext = Depends(
 
 
 @router.post('/account/sessions/revoke')
-async def account_sign_out_everywhere(request: Request, auth: AuthContext = Depends(require_auth),
+def account_sign_out_everywhere(request: Request, auth: AuthContext = Depends(require_auth),
                                       db: Session = Depends(get_db), csrf: str = Form('')):
     """The "Sign out everywhere" button (account API keys page): ends every session, then the login page."""
     from sajha.routes.apikeys_routes import csrf_ok
@@ -367,7 +367,7 @@ async def account_sign_out_everywhere(request: Request, auth: AuthContext = Depe
 
 
 @router.post('/api/admin/users/{uid}/sessions/revoke')
-async def api_admin_revoke_sessions(uid: str, auth: AuthContext = Depends(require_admin),
+def api_admin_revoke_sessions(uid: str, auth: AuthContext = Depends(require_admin),
                                     db: Session = Depends(get_db)):
     """Administrators: end every session (SAJHA JWTs, built-in OAuth tokens) of a user."""
     from sajha.db.dao import UserDAO

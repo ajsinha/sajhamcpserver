@@ -108,7 +108,7 @@ Every HTTP MCP route also rejects a disallowed browser `Origin` with 403 (`mcp.a
 | Method | Path | Purpose |
 |---|---|---|
 | POST | `/mcp`, `/api/mcp` | Streamable HTTP, both eras (below). |
-| GET | `/mcp` | 405 for Streamable HTTP clients (no standalone server stream); legacy HTTP+SSE stream for clients that send neither `Mcp-Session-Id` nor `MCP-Protocol-Version`. |
+| GET | `/mcp` | With a live `Mcp-Session-Id` and `Accept: text/event-stream`: the 2025-11-25 session's server-to-client SSE stream (`list_changed` notifications; 409 if one is already open, 404 unknown or another user's session, 406 without `text/event-stream`). 405 with `MCP-Protocol-Version` but no session id, or a 2026-07-28 version. The legacy HTTP+SSE stream for clients that send neither header. |
 | DELETE | `/mcp`, `/api/mcp` | End a 2025-11-25 session (`Mcp-Session-Id` required): 204, or 404 unknown session, 400 no header. A 2026-07-28 `MCP-Protocol-Version` header gets 405. |
 | GET | `/mcp/sse` | Legacy 2024-11-05 HTTP+SSE stream. |
 | POST | `/mcp/message` | Legacy 2024-11-05 message endpoint; returns the JSON-RPC response directly. |
@@ -188,6 +188,8 @@ These take a JSON-RPC-like body (`{"params": {...}}`) and return a JSON-RPC-shap
 ## 3. OAuth and discovery endpoints
 
 Defined in `oauth_routes.py`. Full flow, configuration and client setup: [OAuth Guide](OAuth%20Guide.md).
+
+Browser origins listed in `mcp.auth.cors.allowed_origins` get CORS (no credentials) on the metadata documents, `/oauth/jwks`, `/oauth/token` and `/oauth/register`, not on `/oauth/authorize` ([OAuth Guide](OAuth%20Guide.md#browser-based-clients-cors)).
 
 All of these return **404 `{"error": "not_found"}` while `mcp.auth.mode` is `off`** (the default). The authorization-server endpoints (`/.well-known/oauth-authorization-server`, `/oauth/*`) also return 404 when `mcp.auth.authorization_server` names an external issuer rather than `builtin`; only the protected-resource metadata is served then.
 
@@ -564,7 +566,8 @@ What each creator's fields mean is in the [MCP Studio User Guide](../studio/MCP%
 API Import (`api_import_routes.py`, prefixes `/studio`, `/admin/studio/api-import` and `/api/studio/api-import`; design
 in [API Import](../architecture/API%20Import.md)). Every body is the import request
 (`kind`, `url` or `text`, `prefix`, `server_index`, `server_variables`, `base_url`, `auth`,
-`filters`, `timeout_seconds`, `rate_limit_per_minute`, `graphql_depth`, `names`); errors are
+`filters`, `timeout_seconds`, `rate_limit_per_minute`, `graphql_depth`, `names`, `pagination`: operation key →
+`paginate` block, absent to keep what the import record holds); errors are
 400 with `{"success": false, "error"}`.
 
 | Method | Path | Auth | Purpose |

@@ -1,0 +1,55 @@
+# A Swagger 2.0 description whose definitions, parameters and responses live partly in a
+# second document (swagger_remote_common.yaml), referenced relative to this file's URL.
+# Used by tests/test_api_import.py (remote $ref bundling for Swagger 2.0).
+swagger: "2.0"
+info:
+  title: Orders
+  version: "1.0"
+host: orders.example
+basePath: /v1
+schemes: [https]
+paths:
+  /orders:
+    get:
+      operationId: listOrders
+      parameters:
+        - $ref: "swagger_remote_common.yaml#/parameters/Limit"
+      responses:
+        "200":
+          description: The orders
+          schema:
+            type: array
+            items:
+              $ref: "#/definitions/Order"
+        default:
+          $ref: "swagger_remote_common.yaml#/responses/Problem"
+    post:
+      operationId: createOrder
+      parameters:
+        - in: body
+          name: body
+          required: true
+          schema:
+            $ref: "swagger_remote_common.yaml#/definitions/NewOrder"
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: "#/definitions/Order"
+  /broken:
+    get:
+      operationId: broken
+      responses:
+        "200":
+          description: Points at a document that does not exist
+          schema:
+            $ref: "missing.yaml#/definitions/Nothing"
+definitions:
+  Order:
+    type: object
+    required: [id]
+    properties:
+      id:
+        type: integer
+      customer:
+        $ref: "swagger_remote_common.yaml#/definitions/Customer"

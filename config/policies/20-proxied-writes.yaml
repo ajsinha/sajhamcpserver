@@ -1,0 +1,24 @@
+# SAJHA shipped policy: a proxied MCP server's tool that may write needs approval.
+#
+# Design (docs/architecture/Per-User Sign-In for Proxied Servers.md, section 7): writes through a
+# proxied server (send, create, update, delete, share, merge) require approval by default policy.
+# "May write" means the tool does not declare readOnlyHint: true (an absent hint takes the MCP
+# default, false). The upstream's annotations are hints from the vendor: SAJHA keeps only boolean
+# hints (Federation.md) but cannot check that a tool claiming readOnlyHint really is read-only.
+#
+# approver: caller asks the person at the client (an MCP 2026-07-28 form, Ask SAJHA's Confirm
+# button); every other client falls back to an administrator on the Approvals page.
+#
+# To switch it off, set "enabled: false" below (the rule stays listed and testable on the
+# Policies page). The rule language: docs/architecture/Policy and Audit.md.
+name: proxied-writes
+description: A proxied MCP server's tool without readOnlyHint needs approval before it runs.
+enabled: true
+rules:
+  - id: approve-proxied-writes
+    match:
+      proxied: true
+      annotations: {readOnlyHint: {ne: true}}
+    effect: require_approval
+    reason: this proxied server's tool may change data at the vendor (it does not declare readOnlyHint)
+    approval: {approver: caller}

@@ -152,6 +152,18 @@ class CronSchedule:
             last = nxt
         return last
 
+    def due_between(self, since: datetime, now: datetime, limit: int) -> List[datetime]:
+        """Every fire time in (since, now], oldest first; only the latest ``limit`` when there are more."""
+        from collections import deque
+        out: deque = deque(maxlen=max(1, int(limit)))
+        t = since
+        for _ in range(100000):
+            t = self.next_after(t)
+            if t > now:
+                break
+            out.append(t)
+        return list(out)
+
     def upcoming(self, n: int = 3, after: Optional[datetime] = None) -> List[datetime]:
         t = after or datetime.now(timezone.utc)
         out = []

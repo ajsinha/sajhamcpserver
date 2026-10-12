@@ -655,6 +655,8 @@ def cmd_studio_import_openapi(ctx: Context) -> int:
         body["server_index"] = a.server_index
     if a.auth:
         body["auth"] = load_json_arg(a.auth, "--auth")
+    if getattr(a, "pagination", None):
+        body["pagination"] = load_json_arg(a.pagination, "--pagination")
     body["filters"] = {"tags": a.tag or [], "methods": a.method or [], "path": a.path or ""}
 
     def _post(endpoint: str, data: Dict[str, Any]) -> Dict[str, Any]:
@@ -1326,6 +1328,8 @@ def build_parser() -> argparse.ArgumentParser:
     si.add_argument("--auth", metavar="JSON", help="credentials by scheme as JSON (@file, '-'); secrets as "
                                                    "references, e.g. {\"api_key\": {\"type\": \"apiKey\", "
                                                    "\"value_ref\": \"env:KEY\"}}")
+    si.add_argument("--pagination", metavar="JSON", help="follow pages, per GET operation, as JSON (@file, '-'), "
+                                                         "e.g. {\"GET /pets\": {\"mode\": \"link\", \"max_pages\": 5}}")
     si.add_argument("--graphql", action="store_true", help="the source is a GraphQL endpoint or introspection file")
     si.add_argument("--dry-run", action="store_true", help="preview only (POST /admin/studio/api-import/parse)")
     sdesc = add(ss, "describe", cmd_studio_describe,

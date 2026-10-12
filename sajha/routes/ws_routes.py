@@ -37,7 +37,7 @@ from fastapi import APIRouter, WebSocket, WebSocketDisconnect, Depends
 from starlette.concurrency import run_in_threadpool
 from sqlalchemy.orm import Session
 
-from sajha.db.engine import get_db_session
+from sajha.db.engine import session_scope
 from sajha.auth import AuthManager, AuthContext, require_admin
 
 logger = logging.getLogger(__name__)
@@ -140,15 +140,21 @@ async def mcp_websocket(ws: WebSocket):
     token = ws.query_params.get('token', '')
     api_key = ws.query_params.get('api_key', '')
 
-    db = get_db_session()
-    try:
-        if token:
-            auth = AuthManager.authenticate_jwt(db, token)
-        elif api_key:
-            auth = AuthManager.authenticate_apikey(db, api_key)
-        else:
-            auth = None
+    def _authenticate():
+        # the database part, in the thread pool: the event loop never waits on the pool
+        with session_scope() as db:
+            if token:
+                auth = AuthManager.authenticate_jwt(db, token)
+            elif api_key:
+                auth = AuthManager.authenticate_apikey(db, api_key)
+            else:
+                auth = None
+            if auth and auth.authenticated:
+                auth.prepare_mcp_session()      # identity + tool policy, then the connection goes back
+            return auth
 
+    try:
+        auth = await run_in_threadpool(_authenticate)
         if auth and auth.authenticated:
             session.user_id = auth.user_id
             session.auth_context = auth
@@ -156,8 +162,6 @@ async def mcp_websocket(ws: WebSocket):
             session.session_data = auth.to_legacy_session()
     except Exception as e:
         logger.warning(f"WS auth failed: {e}", exc_info=True)
-    finally:
-        db.close()
 
     from sajha.auth.oauth.settings import auth_mode
     from sajha.auth.access import anonymous_enabled, mcp_session_for

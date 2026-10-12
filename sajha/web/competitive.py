@@ -110,8 +110,9 @@ SAJHA = {
                     ['sajha/core/mcp_tasks.py'], 'MCP Protocol Guide.md'),
         'apps': _s('Yes', 'ui:// views served as text/html;profile=mcp-app (mcp.apps.enabled).',
                    ['sajha/core/mcp_apps.py'], 'MCP Apps and Headers Guide.md'),
-        'oauth_rs': _s('Yes', 'RFC 9728 metadata, audience-bound tokens; off by default (mcp.auth.mode).',
-                       ['sajha/auth/oauth/resource_server.py'], 'OAuth Guide.md'),
+        'oauth_rs': _s('Yes', 'RFC 9728 metadata, audience-bound JWTs or RFC 7662 introspection of opaque tokens; '
+                              'off by default (mcp.auth.mode).',
+                       ['sajha/auth/oauth/resource_server.py', 'sajha/auth/oauth/introspection.py'], 'OAuth Guide.md'),
         'oauth_as': _s('Yes', 'Built in (PKCE S256, client ID metadata documents, rotating refresh tokens) or external.',
                        ['sajha/auth/oauth/authorization_server.py'], 'OAuth Guide.md'),
         'rbac': _s('Yes', 'One policy for REST, MCP and A2A: role permissions, API-key allow/deny/regex lists; '
@@ -130,7 +131,7 @@ SAJHA = {
                            ['sajha/accounts', 'sajha/routes/accounts_routes.py'], 'Connected Accounts.md'),
         'nocode': _s('Yes', 'MCP Studio (admins): import an OpenAPI 3 or Swagger 2 spec, or a GraphQL schema, as '
                             'reviewed tools on one generic executor (no code generated; re-import shows a diff; '
-                            'multipart bodies not supported); REST, SQL, script, Power BI, LiveLink, '
+                            'multipart and binary uploads; opt-in page following with caps); REST, SQL, script, Power BI, LiveLink, '
                             'SharePoint and OLAP creators; and Describe a tool: a sentence becomes a proposed, '
                             'tested tool an admin reviews and approves (the offline mock knows a few shapes; '
                             'real designs need an LLM); an LLM tool creator and a planner editor with dry runs; '

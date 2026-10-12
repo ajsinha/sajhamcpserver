@@ -49,7 +49,7 @@ def build_server(name: str = 'units') -> MCPServer:
         return round(km * 0.621371, 4)
 
     @server.tool(description='Count down from a number of steps, reporting progress at each step '
-                             '(seconds_per_step apart, at most 2).')
+                             '(seconds_per_step apart, at most 2).', annotations=READ_ONLY)
     async def countdown(steps: int, ctx: Context, seconds_per_step: float = 0.05) -> str:
         steps = max(1, min(int(steps), 20))
         pause = max(0.0, min(float(seconds_per_step), 2.0))

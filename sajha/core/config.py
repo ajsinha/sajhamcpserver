@@ -156,6 +156,14 @@ def _int(key: str, default: int = 0) -> int:
         return default
 
 
+def _float(key: str, default: float = 0.0) -> float:
+    val = _get(key, str(default))
+    try:
+        return float(val) if val != '' else default
+    except (ValueError, TypeError):
+        return default
+
+
 def parse_bool(value, default: bool = False) -> bool:
     """A config value as a bool: true/1/yes/on are True, false/0/no/off/'' are False."""
     if isinstance(value, bool):
@@ -208,7 +216,7 @@ class Settings(BaseSettings):
 
     # Application
     app_name: str = Field(default_factory=lambda: _get('app.name', 'SAJHA MCP Server'))
-    app_version: str = Field(default_factory=lambda: _get('app.version', '8.11.0'))
+    app_version: str = Field(default_factory=lambda: _get('app.version', '8.12.0'))
     app_description: str = Field(default_factory=lambda: _get('app.description', 'Model Context Protocol Server'))
     app_author: str = Field(default_factory=lambda: _get('app.author', 'Ashutosh Sinha'))
     app_email: str = Field(default_factory=lambda: _get('app.email', 'ajsinha@gmail.com'))
@@ -225,16 +233,21 @@ class Settings(BaseSettings):
     secret_key: str = Field(default_factory=lambda: _get('auth.session.secret_key', ''))
 
     # Database
-    db_type: str = Field(default_factory=lambda: _get('db.type', 'sqlite'))
-    db_url: Optional[str] = Field(default_factory=lambda: _get('db.url', '') or None)
+    # The connection keys also take the short DB_* names (DB_TYPE, DB_HOST, ...) when neither the
+    # SAJHA_DB_* name nor the YAML sets them, so the database is switched by environment alone.
+    db_type: str = Field(default_factory=lambda: _get('db.type', os.environ.get('DB_TYPE') or 'sqlite'))
+    db_url: Optional[str] = Field(default_factory=lambda: _get('db.url', os.environ.get('DB_URL', '')) or None)
     db_path: str = Field(default_factory=lambda: _get('db.path', 'data/sajha.db'))
-    db_host: str = Field(default_factory=lambda: _get('db.host', 'localhost'))
-    db_port: int = Field(default_factory=lambda: _int('db.port', 5432))
-    db_name: str = Field(default_factory=lambda: _get('db.name', 'sajha_mcp'))
-    db_user: str = Field(default_factory=lambda: _get('db.user', 'sajha'))
-    db_password: str = Field(default_factory=lambda: _get('db.password', 'sajha'))
+    db_host: str = Field(default_factory=lambda: _get('db.host', os.environ.get('DB_HOST') or 'localhost'))
+    db_port: int = Field(default_factory=lambda: _int('db.port', int(os.environ.get('DB_PORT') or 5432)))
+    db_name: str = Field(default_factory=lambda: _get('db.name', os.environ.get('DB_NAME') or 'sajha_mcp'))
+    db_user: str = Field(default_factory=lambda: _get('db.user', os.environ.get('DB_USER') or 'sajha'))
+    db_password: str = Field(default_factory=lambda: _get('db.password', os.environ.get('DB_PASSWORD') or 'sajha'))
     db_driver: str = Field(default_factory=lambda: _get('db.driver', 'psycopg2'))
     db_pool_size: int = Field(default_factory=lambda: _int('db.pool.size', 10))
+    # -1 = as many as db.pool.size; checkout timeout: a dry pool answers 503 after this, never hangs
+    db_pool_max_overflow: int = Field(default_factory=lambda: _int('db.pool.max_overflow', -1))
+    db_pool_timeout_seconds: float = Field(default_factory=lambda: _float('db.pool.timeout_seconds', 5.0))
     db_echo: bool = Field(default_factory=lambda: _bool('db.echo', False))
     db_scripts_dir: str = Field(default_factory=lambda: _get('db.scripts_dir', 'db/scripts'))
     db_schema_check: str = Field(default_factory=lambda: _get('db.schema_check', 'strict'))

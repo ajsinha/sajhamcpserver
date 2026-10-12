@@ -730,10 +730,11 @@ class TestLegacyPush:
             methods = {json.loads(ws.receive_text())['method'] for _ in range(2)}
             assert 'notifications/tools/list_changed' in methods
 
-    def test_streamable_http_initialize_keeps_list_changed_false(self, client):
+    def test_streamable_http_initialize_advertises_list_changed(self, client):
+        # the session's GET /mcp stream carries them (tests/test_protocol_gaps.py)
         r = client.post('/mcp', json={'jsonrpc': '2.0', 'id': 1, 'method': 'initialize', 'params': {
             'protocolVersion': '2025-11-25', 'capabilities': {}, 'clientInfo': {'name': 't', 'version': '1'}}})
-        assert r.json()['result']['capabilities']['tools']['listChanged'] is False
+        assert r.json()['result']['capabilities']['tools']['listChanged'] is True
 
 
 # ═════════════════════════════════════════════════════════════════

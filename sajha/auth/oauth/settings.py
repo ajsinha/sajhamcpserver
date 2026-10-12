@@ -155,6 +155,54 @@ def external_user_claim() -> str:
     return (_get('mcp.auth.external.user_claim', 'sub') or 'sub').strip()
 
 
+# ── RFC 7662 token introspection (external issuers with opaque tokens) ──
+
+INTROSPECTION_MODES = ('off', 'opaque', 'always')
+
+
+def introspection_mode() -> str:
+    """off (JWTs only) | opaque (introspect tokens that are not JWTs) | always (introspect every token)."""
+    mode = (_get('mcp.auth.external.introspection.mode', 'off') or 'off').strip().lower()
+    if mode not in INTROSPECTION_MODES:
+        logger.warning(f"Unknown mcp.auth.external.introspection.mode {mode!r}; treating as 'off'")
+        return 'off'
+    return mode
+
+
+def introspection_endpoint() -> str:
+    """The configured endpoint; empty means: discover ``introspection_endpoint`` from the issuer's metadata."""
+    return (_get('mcp.auth.external.introspection.endpoint', '') or '').strip()
+
+
+def introspection_client_id() -> str:
+    return (_get('mcp.auth.external.introspection.client_id', '') or '').strip()
+
+
+def introspection_client_secret() -> str:
+    """Set it in the environment (SAJHA_MCP_AUTH_EXTERNAL_INTROSPECTION_CLIENT_SECRET), never in the YAML."""
+    return _get('mcp.auth.external.introspection.client_secret', '') or ''
+
+
+def introspection_auth_method() -> str:
+    value = (_get('mcp.auth.external.introspection.auth_method', 'client_secret_basic')
+             or 'client_secret_basic').strip().lower()
+    return value if value in ('client_secret_basic', 'client_secret_post') else 'client_secret_basic'
+
+
+def introspection_cache_seconds() -> int:
+    """How long an introspection answer is reused (an active one never past the token's exp); 0 = never."""
+    return max(0, _int('mcp.auth.external.introspection.cache_seconds', 60))
+
+
+def introspection_timeout_seconds() -> float:
+    return float(max(1, min(30, _int('mcp.auth.external.introspection.timeout_seconds', 5))))
+
+
+def introspection_require_audience() -> bool:
+    """Refuse an active token whose introspection answer names no audience (fail closed)."""
+    return _bool('mcp.auth.external.introspection.require_audience', True)
+
+
 # ── built-in authorization server ──────────────────────────────────
 
 def signing_key_path() -> Path:

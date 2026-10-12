@@ -27,6 +27,20 @@ aws s3 sync sajha/tools/impl/ "s3://$BUCKET/${PREFIX}sajha/tools/impl/" \
     --exclude "__pycache__/*" --exclude "*.pyc" --delete
 echo "  ✓ sajha/tools/impl/"
 
+# Studio-generated modules and scripts, where every instance materialises them from
+# (docs/getting-started/Storage Guide.md, "Studio modules without a shared file system")
+for f in sajha/tools/impl/studio_*.py sajha/tools/impl/dbquery_*.py sajha/tools/impl/rest_*.py \
+         sajha/tools/impl/livelink_*.py sajha/tools/impl/powerbi_*.py sajha/tools/impl/powerbidax_*.py \
+         sajha/tools/impl/*_script_tool.py; do
+    [ -f "$f" ] && aws s3 cp "$f" "s3://$BUCKET/${PREFIX}studio/modules/$(basename "$f")" >/dev/null
+done
+[ -d config/scripts ] && aws s3 sync config/scripts/ "s3://$BUCKET/${PREFIX}config/scripts/" >/dev/null
+echo "  ✓ studio/modules/, config/scripts/"
+
+# Plugins (mirrored by every instance at start)
+[ -d config/plugins ] && aws s3 sync config/plugins/ "s3://$BUCKET/${PREFIX}config/plugins/" \
+    --exclude "__pycache__/*" --exclude "*.pyc" >/dev/null && echo "  ✓ config/plugins/"
+
 # Application config (without secrets — those go to Secrets Manager)
 aws s3 cp config/application.yml "s3://$BUCKET/${PREFIX}config/application.yml"
 echo "  ✓ application.yml"

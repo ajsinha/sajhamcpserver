@@ -51,7 +51,8 @@ and checks that every registered provider implements the abstract classes. Addin
 a provider never touches the factory, the service or its consumers. Nothing in `sajha/ai/llm/`
 imports a vendor SDK either: the native providers speak each vendor's REST API with `httpx`;
 Bedrock alone needs SigV4 signing and imports `boto3` lazily (an optional dependency; without
-it the Bedrock provider reports itself down with an install hint).
+it the Bedrock provider reports itself down with an install hint), and `aiobotocore` (also
+optional; `aioboto3` brings it) for its native async path.
 
 **The public API** is what `sajha.ai.llm` exports (its package docstring lists it):
 
@@ -88,7 +89,7 @@ v = llm_factory().model("embedding").embeddings_create(input=["a", "b"]).vectors
 | `sajha/ai/llm/spi.py` | the provider SPI for extension code: `ProviderBase`, `ChatModel`, `EmbeddingModel`, `HTTPChatModel`, `register_provider`, `register_model`, the HTTP helpers, the legacy interface |
 | `sajha/ai/llm/canonical.py` | the canonical format: `ChatCompletionRequest`, `ChatMessage`, `ToolDefinition`, `ResponseFormat`, `ChatCompletion`, `ChatCompletionChunk`, `ChunkAccumulator`, `EmbeddingsRequest`, `EmbeddingsResponse`, the `sajha` fields, and the provider-independent refusals (`check_request`) |
 | `sajha/ai/llm/convert.py` | internal: lossless converters between the original types and the canonical ones |
-| `sajha/ai/llm/adapter.py` | `HTTPChatModel` (sync and native async I/O over `wire` / `parse` / `translator`) and `StreamTranslator` |
+| `sajha/ai/llm/adapter.py` | `HTTPChatModel` (sync and native async I/O over `wire` / `parse` / `translator`), `HTTPEmbeddingModel` (the same over `embed_wire` / `embed_parse`) and `StreamTranslator` |
 | `sajha/ai/llm/cloud_auth.py` | short-lived credentials: `GoogleTokenSource` (Vertex AI), `EntraTokenSource` (Azure OpenAI) |
 | `sajha/ai/llm/types.py` | `RequestContext` and `Usage` (public through the package), and the original types used only inside the package: `Message` and its parts (`TextPart`, `ImagePart`, `ToolCallPart`, `ToolResultPart`), `ToolSpec`, `ChatRequest`, `ChatResponse`, `Usage`, `RequestContext`, stream events (`TextDelta`, `ToolCallDelta`, `UsageEvent`, `Done`) |
 | `sajha/ai/llm/model.py` | `ModelCapabilities`, `ModelInfo`, `ChatModel`, `EmbeddingModel`, `ModelDescriptor`, `HealthStatus`, `Needs` |
@@ -198,7 +199,7 @@ request (`request_headers()`), from cached token sources that refresh before exp
 | `openai` | Chat Completions | yes | `response_format` json_schema | SSE | `/embeddings` | `OPENAI_API_KEY` |
 | `azure_openai` | Chat Completions, GA `v1` path or deployments + `api-version`; api-key, bearer or Entra ID (`auth: entra`) | yes | yes | SSE | yes | `AZURE_OPENAI_API_KEY`, `AZURE_OPENAI_ENDPOINT`; Entra `AZURE_TENANT_ID`, `AZURE_CLIENT_ID`, `AZURE_CLIENT_SECRET`, `AZURE_FEDERATED_TOKEN_FILE` |
 | `gemini` | `generateContent` (AI Studio), or Vertex AI (`platform: vertex`) | yes | `responseJsonSchema` | SSE | `batchEmbedContents` (Vertex: `predict`) | `GEMINI_API_KEY`, `GOOGLE_API_KEY`; on Vertex `GOOGLE_CLOUD_PROJECT`, `GOOGLE_CLOUD_LOCATION`, `GOOGLE_APPLICATION_CREDENTIALS` |
-| `bedrock` | Converse / ConverseStream (boto3) | yes | no | event stream | Titan, Cohere (InvokeModel) | AWS credential chain |
+| `bedrock` | Converse / ConverseStream (boto3; aiobotocore for async) | yes | no | event stream | Titan, Cohere (InvokeModel) | AWS credential chain |
 | `mistral` | Chat Completions shape | yes (`any` for required) | yes | SSE | `mistral-embed` | `MISTRAL_API_KEY` |
 | `cohere` | v2 Chat / Embed | yes | `json_object` + schema | SSE | yes | `COHERE_API_KEY` |
 | `ollama` | native chat and embed endpoints | yes | `format` (JSON Schema) | NDJSON | yes | none (`OLLAMA_HOST`) |
@@ -218,8 +219,17 @@ are kept: OpenAI's `refusal`, Anthropic `stop_reason: refusal`, Gemini safety fi
 Bedrock `guardrail_intervened` become `finish_reason: content_filter` with
 `message.refusal`. Embedding purpose maps to Cohere `input_type` (`search_query` /
 `search_document`) and Gemini `taskType` (`RETRIEVAL_QUERY` / `RETRIEVAL_DOCUMENT`). Every
-HTTP provider has a native async path on `httpx.AsyncClient`; Bedrock's runs boto3 in a
-worker thread. Each provider maps its errors onto the taxonomy above: 429 →
+HTTP provider has a native async path on `httpx.AsyncClient`, for chat, streams and
+embeddings (`aembeddings_create`, and the governed `aembed`, never use a worker thread on
+them). Bedrock's async path is native when `aiobotocore` is installed (one client per event
+loop) and otherwise runs boto3 in a worker thread; `BedrockProvider.async_native()` says which.
+Bedrock sends `reasoning_effort` in `additionalModelRequestFields` per model family
+(`REASONING_FAMILIES` in `providers/bedrock.py`): Anthropic Claude as `output_config.effort`,
+Amazon Nova 2 as `reasoningConfig` (`maxReasoningEffort` low, medium or high; `none` disables
+it); for any other family it is refused with `UnsupportedFeature` naming the families that take it.
+As elsewhere, the model must declare the capability (the catalogue's `reasoning` tag, or
+`reasoning_effort: true` in `models`), and operator fields in `additional_model_request_fields`
+and the request's `extra_body` are merged over it. Each provider maps its errors onto the taxonomy above: 429 →
 `RateLimited` with `Retry-After`/`retry-after-ms`; 401/403 → `AuthenticationFailed`;
 context-length messages and 413 → `ContextTooLong`; safety blocks → `ContentFiltered`;
 404 (unknown model or deployment) → `UnsupportedFeature`; 5xx, timeouts and connection
@@ -392,7 +402,8 @@ first loads the conversation (below); then:
    (`annotations.destructiveHint: true`, or `metadata.destructive: true`) is not run while
    `ai.ask.confirm_destructive` is on (the default): the ask stops with
    `stopped_by: needs_confirmation` and a fingerprint per pending call; re-asking with
-   `confirm: [fingerprint]` runs it. Results are capped at `ai.ask.max_result_chars` and
+   `confirm: [fingerprint]` runs it. Called over MCP, the user is asked through the client instead
+   (`sajha_ask` below). Results are capped at `ai.ask.max_result_chars` and
    returned as `ToolResultPart` data; the system prompt states that tool output is data,
    never instructions.
 3. **Synthesize.** A final structured-output call (`ai.ask.synthesize`) produces
@@ -446,12 +457,45 @@ sections 13 and 14 own the rules.
 `timeout_s`; the reason the loop stopped is reported as `stopped_by`: `answer`,
 `step_limit`, `tool_limit`, `budget`, `timeout`, `needs_confirmation` or `error`.
 
-**Confidence** is not the model's opinion. Each cited, successful step contributes its
-tool's confidence (`get_tool_confidence`, by tool-name prefix) chained through the
-composition framework's `EntropyGuard`; a failed call contributes 0.9 and an incomplete
-loop 0.8; an answer resting on no tool result is 0.5; no answer is 0. The `confidence`
-event carries the guard's per-step basis. Freshness and cross-source agreement are not yet
-scored.
+**When the context is too long.** A model call that carries earlier turns of a conversation
+(below) and is answered `ContextTooLong` drops the oldest earlier turn (its question and answer)
+and asks the same model again, until the request fits or no earlier turn is left; only then does
+it move on to the alias's next candidate (a larger model), as the factory's own fallback would.
+The system prompt (with the summary of older turns), the latest question and this ask's tool calls
+and results are never dropped, and later calls of the ask leave the dropped turns out too. While
+earlier turns are present, each candidate of the alias is called pinned (`provider/model`), so
+policy, budgets, retries, breakers, cache and audit still apply to every call; an ask without
+earlier turns calls the alias as before. Each trim is a `context_trimmed` event and an entry of
+`context_trims` in the result and in the audit record (`step`, `model`, `dropped_messages`,
+`dropped_turns`, `turns_left`).
+
+**Confidence** is not the model's opinion. It is computed in `IntelligenceService._confidence`
+(`sajha/ai/intelligence.py`), in this order:
+
+1. **Tools.** Each cited, successful step contributes its tool's confidence
+   (`get_tool_confidence`, by tool-name prefix), chained through the composition framework's
+   `EntropyGuard` (the product); a failed call contributes 0.9 and an incomplete loop 0.8. An
+   answer resting on no tool result is 0.5 and no answer is 0; nothing below applies to them.
+2. **Freshness.** A step's `as_of` is the newest date under the keys `as_of`, `asOf`,
+   `as_of_date`, `as_of_time`, `data_as_of`, `last_updated`, `lastUpdated`, `updated_at` or
+   `updatedAt` in its result, up to three levels down (an ISO 8601 date or date-time, or epoch
+   seconds or milliseconds). Each cited step with one multiplies the score by a factor for its
+   age: up to 1 day 1.0, up to 7 days 0.95, up to 30 days 0.9, up to 365 days 0.8, older 0.7.
+   A step whose date (`YYYY-MM-DD`) appears in the question is not discounted: the user asked for
+   that date. A result with no as-of date is not scored for freshness.
+3. **Disagreement.** When a reconciliation (the `reconcile` stage, [Quantitative
+   Planners](Quantitative%20Planners.md) §3.8) reports differences beyond tolerance, the score is
+   multiplied by 0.8.
+4. **Agreement.** With no such differences, the score `c` becomes `c + (1 − c) × 0.25 × a`,
+   where `a` (0 to 1) is the corroboration: the share of the answer's figures found in a result
+   (the numbers check's rules: figures from the question, years, ordinals and small integers are
+   skipped) that appear in the results of two or more different tools. A reconciliation whose
+   figures were compared with no differences counts as `a = 1`. With fewer than two cited tools,
+   or no matched figure, there is no agreement term.
+
+The `confidence` event carries the basis: the guard's per-step entries (with `freshness:<tool>`
+and `disagreement:reconcile` among them) and, when it applied, an `agreement` entry
+(`corroboration`, `by`, `figures`, `corroborated`, `sources`).
 
 **Audit**: each ask writes an `ai_ask` audit-log entry (question, tools, models, planner,
 tokens, outcome, confidence, and a summary of any `queries`, `code_runs`, `scenario_tables` and
@@ -606,6 +650,7 @@ its `tool_result`, all tool results before the answer.
 | `tool_call` | `id`, `name`, `arguments`, `step` |
 | `tool_result` | `id`, `name`, `ok`, `summary`, `latency_ms` |
 | `needs_confirmation` | `id`, `name`, `arguments`, `fingerprint`, `reason` |
+| `context_trimmed` | `step`, `model`, `dropped_messages`, `dropped_turns`, `turns_left` |
 | `answer_delta` | `text` (display chunks; their concatenation is the answer) |
 | `answer` | `text` |
 | `confidence` | `value` (0..1), `basis` |
@@ -616,12 +661,13 @@ its `tool_result`, all tool results before the answer.
 | `done` | `result`: the `AskResult` |
 
 `AskResult` fields: `question`, `answer`, `confidence`, `steps` (`id`, `name`, `arguments`,
-`ok`, `status`, `summary`, `latency_ms`, `confidence`, `fingerprint`), `citations`,
+`ok`, `status`, `summary`, `latency_ms`, `confidence`, `fingerprint`, `net`, `as_of`), `citations`,
 `caveats`, `usage`, `models`, `stopped_by`, `shortlist`, `pending`, `connections`,
 `duration_ms`, `error`, `planner`, `plan` (the last plan, each step with its final status),
 `conversation_id` and `turn` (for a turn of a conversation), `standalone_question` (when the
 question was rewritten), and from planner files `planner_version`, `planner_path`,
-`loops_exhausted`, `planner_by` and `input_request` (`stopped_by: needs_input`). The quantitative
+`loops_exhausted`, `planner_by` and `input_request` (`stopped_by: needs_input`), and
+`context_trims`. The quantitative
 planners add `workspace` (the run's quantities with their lineage), `queries` (`data_analyst`'s
 SQL), `code_runs` (`code_act`), `scenario_tables` (`scenario`) and `reconciliations` (`reconcile`),
 each also filled when that planner ran as a sub-run, for example under `auto`
@@ -683,6 +729,28 @@ when they are set. `sajha_ask` never calls itself. Only when no entry point reco
 ([Inner calls](../security/Security%20Model.md#inner-calls)). A signed-in caller gets a
 `conversation_id` to continue the conversation; anonymous callers keep nothing.
 
+**Confirmation over MCP.** When a call the model wants to make needs the user's confirmation (a
+destructive tool, or a policy rule that asks the caller to approve it), `sajha_ask` asks the
+user through the MCP client when it can (`sajha/ai/llm_tools/confirmation.py`; the same applies
+to any LLM tool in mode `answer` that is the MCP call's own tool, never to an inner call):
+
+- **2026-07-28.** When the client declared form-mode elicitation, the call answers
+  `resultType: "input_required"` with one `elicitation/create` request per pending call, keyed
+  `sajha_confirm_<fingerprint>`: a form with a boolean `confirm` (the same form as
+  `mcp.confirm_destructive_tools`), whose message names the tool and its arguments. The client
+  calls again with `inputResponses` and the `requestState`; the ask runs again from the start,
+  and a call with the same tool and arguments (so the same fingerprint) finds its answer: accepted
+  with `confirm: true`, it runs; anything else (unticked, declined, cancelled), it is not run and
+  the model is told the user declined. Model calls of the first round are made (and charged)
+  again in the second.
+- **2025-11-25.** When the session declared form-mode elicitation and the call accepts
+  `text/event-stream`, the response is an SSE stream that carries the same `elicitation/create`
+  request; the client POSTs its JSON-RPC answer to `/mcp` and the ask continues in place.
+- **Otherwise** (no elicitation, URL-only elicitation, a JSON-only 2025-11-25 call, stdio, REST,
+  A2A, an inner call), or when the client does not answer the session request, the result is
+  `stopped_by: needs_confirmation` with `pending` as before; calling again with
+  `confirm: [fingerprint]` runs the call.
+
 ## 7. The mock provider
 
 `mock` needs no network and no keys and passes the same contract tests as the real
@@ -704,6 +772,9 @@ reliability paths. Calls are priced at zero but report token usage.
 
 `tests/ai/`: a provider contract suite run against every provider family offline
 (recorded-shape fake APIs on `httpx.MockTransport`; a fake boto3 client for Bedrock), with
+`test_llm_async_paths.py` for the async paths (native async embeddings with no worker thread,
+Bedrock through an aiobotocore-shaped fake and its worker-thread fallback, `reasoning_effort`
+per Bedrock model family), and
 live runs when a vendor key is present; golden translation tests
 (`test_golden_translation.py`: canonical requests to each vendor's wire format, recorded
 vendor replies and stream events back, against stored expectations in `tests/ai/golden/`);
@@ -717,7 +788,9 @@ contract of every registered provider; ask-loop tests over the real offline `cal
 limits, confirmation, injected instructions in tool output, RBAC and the event order; and
 the HTTP route in JSON and SSE. `tests/ai/test_planners.py` runs every built-in planner through
 the same safety tests (RBAC, tools not offered, confirmation, limits, injection, event order)
-and tests each strategy; `tests/ai/test_memory.py` covers multi-turn asks, summaries, privacy
+and tests each strategy; `tests/ai/test_ask_over_mcp.py` the confirmation through the client on both
+eras (unit and over `/mcp`), trimming on `ContextTooLong` and freshness and agreement in the
+confidence score; `tests/ai/test_memory.py` covers multi-turn asks, summaries, privacy
 between users, retention and the conversation routes, and `tests/ai/test_memory_tools.py` the
 LLM-tool handle, scoping, expiry, folding, client history and the scheduled purge;
 `tests/ai/test_rag.py` the chunking, the index, uploads, the stores and the search route,
@@ -728,12 +801,10 @@ tool registered by any path is shortlisted without a reload.
 
 ## 9. Not built yet
 
-- Native async for Bedrock (boto3 is synchronous; it runs in a worker thread) and for
-  embeddings (a worker thread).
-- `reasoning_effort` on Bedrock (`additionalModelRequestFields` per model).
-- Over MCP 2026-07-28, destructive-tool confirmation inside `sajha_ask` as a Multi
-  Round-Trip Request (it is returned as `needs_confirmation` today).
-- Freshness and agreement in the confidence score; trimming history on `ContextTooLong`.
+- Bedrock without `aiobotocore` still runs boto3 in a worker thread, and its `reasoning_effort`
+  covers the Anthropic Claude and Amazon Nova 2 families only.
+- Confirmation through the client over the stdio transport: its 2025-11-25 sessions bind no
+  confirmation channel for registry tools, so a stdio client gets `needs_confirmation`.
 - Document connectors (SharePoint, Drive, Confluence, or a connected account) as RAG sources;
   today a source is a folder in the storage backend, or an upload. No OCR for scanned PDFs.
 

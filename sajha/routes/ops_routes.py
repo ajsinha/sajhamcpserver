@@ -3,6 +3,7 @@ SAJHA MCP Server v4.5.0 — Operations, Versioning & Plugins Routes
 Copyright All rights Reserved 2025-2030, Ashutosh Sinha
 """
 import json, logging
+from starlette.concurrency import run_in_threadpool
 from fastapi import APIRouter, Request, Depends
 from fastapi.responses import JSONResponse
 from sajha.auth import AuthContext, require_auth, require_admin
@@ -95,7 +96,8 @@ async def api_test_tool(tool_name: str, request: Request, auth: AuthContext = De
     from sajha.app import tools_registry
     runner = ContractTestRunner(tools_registry)
     data = await request.json() if request.headers.get('content-length', '0') != '0' else {}
-    result = runner.test_tool(tool_name, data.get('arguments'))
+    # the tool runs in the thread pool: the event loop (and /health) keeps answering meanwhile
+    result = await run_in_threadpool(runner.test_tool, tool_name, data.get('arguments'))
     return JSONResponse(result.to_dict())
 
 @router.post('/api/contract-test')
@@ -103,7 +105,7 @@ async def api_test_all(auth: AuthContext = Depends(require_admin)):
     from sajha.core.tool_versioning import ContractTestRunner
     from sajha.app import tools_registry
     runner = ContractTestRunner(tools_registry)
-    results = runner.test_all()
+    results = await run_in_threadpool(runner.test_all)
     passed = sum(1 for r in results if r.passed)
     return JSONResponse({
         'total': len(results), 'passed': passed, 'failed': len(results) - passed,
@@ -281,7 +283,7 @@ async def webhook_unsubscribe(request: Request, auth: AuthContext = Depends(requ
 
 
 @router.get('/api/audit')
-async def audit_log(request: Request, auth: AuthContext = Depends(require_admin)):
+def audit_log(request: Request, auth: AuthContext = Depends(require_admin)):
     """Query audit log. Params: action, user_id, from, to, limit."""
     from sajha.db.engine import get_db_session
     from sajha.db.models import AuditLog
@@ -473,7 +475,7 @@ async def shell_execute_python(request: Request, auth: AuthContext = Depends(req
     code = body.get('code', '')
     if not code:
         return JSONResponse({'error': 'code is required'}, status_code=400)
-    result = executor.execute_python(code, user_id=auth.user_id)
+    result = await run_in_threadpool(executor.execute_python, code, user_id=auth.user_id)
     return result.to_dict()
 
 
@@ -490,7 +492,7 @@ async def shell_execute_bash(request: Request, auth: AuthContext = Depends(requi
     command = body.get('command', '')
     if not command:
         return JSONResponse({'error': 'command is required'}, status_code=400)
-    result = executor.execute_bash(command, user_id=auth.user_id)
+    result = await run_in_threadpool(executor.execute_bash, command, user_id=auth.user_id)
     return result.to_dict()
 
 
@@ -510,8 +512,10 @@ async def shell_history(auth: AuthContext = Depends(require_admin)):
 
 
 @router.get('/api/admin/system-monitor')
-async def admin_system_monitor_api(auth: AuthContext = Depends(require_admin)):
-    """System monitor API — returns CPU, memory, disk, network, process data."""
+def admin_system_monitor_api(auth: AuthContext = Depends(require_admin)):
+    """System monitor API — returns CPU, memory, disk, network, process data, and the database
+    connection pool of every live worker (``db_pool``).  A sync route: FastAPI runs it in the thread
+    pool, so its half-second CPU sample never stalls the event loop."""
     import os, sys, time, platform, socket
 
     data = {
@@ -535,6 +539,11 @@ async def admin_system_monitor_api(auth: AuthContext = Depends(require_admin)):
         data['tools_loaded'] = len(tools_registry.tools) if tools_registry else 0
     except Exception:
         pass
+    try:   # the database connection pool, per worker (docs/architecture/Observability.md)
+        from sajha.observability.metrics import db_pool_workers
+        data['db_pool'] = {'workers': db_pool_workers()}
+    except Exception as e:
+        data['db_pool'] = {'workers': [], 'error': str(e)}
 
     try:
         import psutil

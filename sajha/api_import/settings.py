@@ -43,6 +43,27 @@ def max_response_bytes() -> int:
     return max(1024, _int('api_import.max_response_bytes', 5 * 1024 * 1024))
 
 
+def max_upload_bytes() -> int:
+    """The largest request body (all file parts together) an imported tool sends."""
+    return max(1024, _int('api_import.max_upload_bytes', 10 * 1024 * 1024))
+
+
+def file_roots() -> List[str]:
+    """Storage-backend folders a file argument's ``path`` may name (``{user}``: the caller's id);
+    empty: file arguments carry their content inline only."""
+    return [r.strip().strip('/') for r in _list('api_import.file_roots', []) if r and r.strip().strip('/')]
+
+
+def pagination_max_pages() -> int:
+    """The most pages one call follows (a per-operation ``max_pages`` is capped by it)."""
+    return max(1, _int('api_import.pagination_max_pages', 10))
+
+
+def pagination_max_items() -> int:
+    """The most rows one call collects across pages (a per-operation ``max_items`` is capped by it)."""
+    return max(1, _int('api_import.pagination_max_items', 1000))
+
+
 def graphql_depth() -> int:
     return min(5, max(1, _int('api_import.graphql_depth', 2)))
 

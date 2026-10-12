@@ -61,11 +61,13 @@ upstream connection is an SDK `Client` (`sajha/federation/connection.py`).
 | `sajha/federation/auth.py` | credentials sent to an upstream: static header, OAuth client credentials |
 | `sajha/federation/connection.py` | `UpstreamConnection`: the official `mcp` SDK v2 `Client` for one upstream |
 | `sajha/federation/tool.py` | `FederatedTool`, the `BaseMCPTool` subclass registered in the registry |
+| `sajha/federation/tasks.py` | upstream tasks: the tasks extension SAJHA declares to an upstream, and following a task to its end |
+| `sajha/federation/relay.py` | a 2025-11-25 upstream's requests to the client (sampling, elicitation, roots), relayed to SAJHA's caller |
 | `sajha/federation/store.py` | `FederationStore`: admin-managed upstreams and approvals, through the storage backend |
 | `sajha/federation/manager.py` | `FederationManager`: discovery, approval, registration, routing, status |
 | `sajha/routes/federation_routes.py` | the admin page (`/admin/federation`) and its JSON API (`/api/federation/...`) |
 | `sajha/examples/federation/units_server.py` | a small upstream for trying it out (Tutorial 11) |
-| `tests/test_federation.py` | an in-process upstream on the official SDK server; every behaviour below |
+| `tests/test_federation.py`, `tests/test_federation_complete.py` | in-process upstreams on the official SDK server; every behaviour below |
 
 ## 2. The upstream model
 
@@ -104,9 +106,13 @@ places, merged:
 | `cache_ttl` | `0` | seconds a successful result may be served from SAJHA's tool cache |
 | `cache_per_user` | `cache.per_user_federated` (`true`) | keep a cached result per calling user, so one user's result is never served to another; `false` shares it |
 | `breaker` | `{failure_threshold: 5, recovery_timeout: 60}` | the upstream's circuit breaker |
+| `urls` | none | replicas: more endpoints serving this same upstream (HTTP only); calls go to a healthy one ([Gateway scale](#gateway-scale)) |
+| `pool_size` | `federation.pool_size` (`1`) | shared connections to the upstream (to each replica) in each worker |
+| `max_in_flight` | `federation.max_in_flight` (`0`, no limit) | calls in flight to this upstream in each worker; over it calls wait in the queue |
+| `max_queue` | `federation.max_queue` (`64`) | calls that may wait for a slot; over it a call is refused at once |
 | `refresh_interval_seconds` | `federation.refresh_interval_seconds` | periodic re-discovery |
 | `include_tools`, `exclude_tools` | all, none | fnmatch patterns on the upstream's own tool names |
-| `expose_prompts`, `expose_resources` | `false` | also federate prompts and resources |
+| `expose_prompts`, `expose_resources` | `false` | also federate prompts, and resources with their templates |
 | `auto_approve` | `false` | trust this upstream: expose new tools without approval |
 | `on_change` | `withdraw` | what serves while a changed definition waits for review: `withdraw` (nothing) or `hold` (the previously approved version; section 6) |
 | `command`, `args`, `env`, `env_refs`, `cwd` | | stdio only: the process to launch |
@@ -141,10 +147,12 @@ or the store: every secret is a **reference** resolved by the intelligence layer
 | `oauth_client_credentials` | `token_url`, `client_id`, `client_secret_ref`, `scope`, `audience`, `resource` | a bearer token from an OAuth 2.0 client-credentials grant, cached until shortly before it expires and fetched again on a 401 |
 | `connected_account` | `provider`, `scopes`, `discovery` (one of the types above, for `tools/list`) | per-user token passthrough: each tool call carries the **calling user's** token for `provider` on a connection opened for that call; a caller without a link is asked to connect |
 | `token_user` | `header` (default `Authorization`), `format` (default `Bearer {token}`), `label`, `help_url`, `token_prefix`, `token_pattern`, `test_call` (default true), `discovery` | each tool call carries the **calling user's own personal token** (one they saved on Server connections) as `<header>: <format>`; a caller without one is asked to connect ([Per-user credentials](#per-user-credentials-token_user)) |
+| `service_with_user` | `service` (one of `none`, `bearer`, `header`, `oauth_client_credentials`, with its fields; or the shared credential in `headers`), `user_header` (default `X-SAJHA-User`), `user_format` (default `{user}`) | the **shared service identity** on every request, and on each tool call the **calling SAJHA user's id** in `user_header` for the vendor's audit record ([A shared identity naming the user](#a-shared-identity-naming-the-user-service_with_user)) |
 | `oauth_user` | `scopes`, `write_scopes`, `vendor`, `client_id`, `client_secret_ref`, `token_auth_method`, `authorization_server`, `authorize_url`, `token_url`, `revoke_url`, `revoke_style`, `resource`, `resource_indicator` (default true), `authorize_params`, `help_url`, `discovery` | each tool call carries the **calling user's own OAuth access token** (`Authorization: Bearer`), obtained when they signed in at the vendor on Server connections; a caller who has not is asked to connect ([Per-user OAuth sign-in](#per-user-oauth-sign-in-oauth_user)) |
 
 In YAML, the console and the mcpServers file alike, `auth: token_user` is short for
-`auth: {type: token_user}` (and `auth: oauth_user` for `{type: oauth_user}`).
+`auth: {type: token_user}` (and `auth: oauth_user` for `{type: oauth_user}`, `auth: service_with_user`
+for `{type: service_with_user}`).
 
 The token URL passes the same URL guard as the upstream URL (section 9). With
 `connected_account` the upstream acts as the SAJHA user who made the call; `cache_ttl` and
@@ -155,9 +163,11 @@ who may make the call.
 
 ### Per-user credentials (token_user)
 
-The **credential mode** says who the vendor sees: `static` (every type above except the two
-per-user ones: one shared identity), `token_user` (each user, with a personal token they paste
-once) or `oauth_user` (each user, after an OAuth sign-in at the vendor: [below](#per-user-oauth-sign-in-oauth_user)).
+The **credential mode** says who the vendor sees: `static` (every type above except the per-user
+ones and `service_with_user`: one shared identity), `token_user` (each user, with a personal token
+they paste once), `oauth_user` (each user, after an OAuth sign-in at the vendor:
+[below](#per-user-oauth-sign-in-oauth_user)) or `service_with_user` (one shared identity that names
+the user on each call: [below](#a-shared-identity-naming-the-user-service_with_user)).
 The design and what is built is [Per-User Sign-In for Proxied Servers](Per-User%20Sign-In%20for%20Proxied%20Servers.md).
 
 ```yaml
@@ -262,6 +272,46 @@ how the token is obtained and kept fresh (`sajha/federation/oauth_user.py`).
   advertises a revocation endpoint (RFC 7009; `revoke_style: github` or `google` for those vendors'
   own forms), then delete it; the token is deleted even when the vendor cannot be reached.
 
+### A shared identity naming the user (service_with_user)
+
+For vendors that let a service identity act on behalf of named users and record who asked:
+every request carries the shared service credential, and each tool call adds a header naming
+the SAJHA user who made it.
+
+```yaml
+- id: tickets
+  url: https://tickets.example.com/mcp
+  auth:
+    type: service_with_user
+    service: {type: bearer, token_ref: env:TICKETS_SERVICE_TOKEN}
+    user_header: X-On-Behalf-Of        # default X-SAJHA-User
+    user_format: "sajha:{user}"        # default {user}: the SAJHA user id
+```
+
+* **Discovery** (`tools/list`) uses the service identity alone, without a user header.
+* **Calls.** On a 2026-07-28 upstream the call goes on a connection of its own carrying the
+  service credential and the header (nothing kept per user); on a session-based upstream each user
+  gets a session of their own, opened on first use and closed when idle, under the same cap as
+  `token_user` (`federation.per_user_session_idle_seconds`, `federation.per_user_sessions_max`),
+  because a session's headers are fixed when it opens.
+* **The user's name.** `{user}` in `user_format` is the SAJHA user id; a value outside printable
+  ASCII is percent-encoded, so no header can be injected. An anonymous caller is refused before
+  anything is sent: the mode exists to say who asked.
+* **Refusals.** A vendor 403 (it will not act for this user) is passed back to that caller as the
+  vendor's answer and does not count against the upstream's circuit breaker; a 401 means the shared
+  service credential was refused, and the error tells the caller an administrator must fix
+  `auth.service`. Neither is retried without the header or as anyone else.
+* **Rules.** `user_header` must be a plain header name, not `Authorization`, a cookie or an MCP
+  protocol header, and must not also be in `headers` or be the service credential's header;
+  `user_format` contains `{user}` and no other placeholder; `cache_ttl` and `stdio` are refused, as
+  for the per-user modes. The tool-call audit names the mode (`service_with_user`) and the user.
+
+The Federation page offers this mode with a bearer service token (and the header); a `header` or
+`oauth_client_credentials` service credential is configured in YAML or the mcpServers file.
+
+The vendor is trusted to honour the header: SAJHA names the user, the vendor decides what that user
+may do. Choose `token_user` or `oauth_user` when each user's own permissions at the vendor must apply.
+
 ## 4. Namespacing
 
 Every federated name is `<prefix>__<name>`: the upstream's prefix, two underscores, the
@@ -336,6 +386,39 @@ Who may see a federated prompt or resource is SAJHA's own prompt and data-resour
 applied to the namespaced name or the rewritten URI (role `prompt` / `resource` permissions,
 API-key `prompt:` / `resource:` entries, `mcp.anonymous.prompts` / `mcp.anonymous.resources`;
 [Security Model](../security/Security%20Model.md#tool-access)).
+
+Everything else an upstream offers around them is carried the same way:
+
+* **Resource templates.** With `expose_resources`, the upstream's `resources/templates/list` is
+  discovered too; each template is an approval item of kind `template` and is listed by SAJHA's
+  `resources/templates/list` as `sajha-federation://<upstream id>/<template>`, its literal parts
+  percent-encoded like a resource URI and its `{...}` expressions kept, so a client expands it as
+  usual (`units://factor/{unit}` becomes `sajha-federation://units/units%3A%2F%2Ffactor%2F{unit}`).
+  `resources/read` of an expansion goes to the upstream's own URI when it matches an approved
+  template. The resource rule applies to the template as listed and to each URI read.
+* **Completions.** `completion/complete` for a federated prompt (`ref/prompt`, the namespaced name)
+  or template (`ref/resource`, the rewritten template) is answered by the upstream, after the
+  caller's prompt or resource rule (a hidden item gets no values) and only for approved items of an
+  upstream that offers `completions`. Values are screened like other upstream text.
+* **Subscriptions.** A client that subscribes to a federated resource (2025-11-25:
+  `resources/subscribe` on a Streamable HTTP session, delivered on the session's `GET /mcp` stream;
+  2026-07-28: `resourceSubscriptions` on `subscriptions/listen`) makes SAJHA subscribe at the
+  upstream while anyone holds it: `resources/subscribe` on a 2025-11-25 upstream, a
+  `subscriptions/listen` stream with `resourceSubscriptions` on a 2026-07-28 one (reopened when the
+  set changes). The upstream's `notifications/resources/updated` comes back to the subscribed
+  clients under SAJHA's URI. Subscribing needs the resource rule, an approved resource or template
+  expansion, and an upstream that offers subscriptions; otherwise the request is refused (2025-11-25)
+  or the URI is left out of the acknowledged filter (2026-07-28). Unsubscribing, deleting the
+  session or closing the stream releases it.
+* **MCP Apps views.** An upstream tool's `_meta.ui.resourceUri` (`ui://...`) is rewritten to
+  `ui://sajha-federation/<upstream id>/<the original URI, percent-encoded>` and listed on the
+  2026-07-28 path like SAJHA's own views (`resources/list`, the tool's `_meta.ui`), when
+  `mcp.apps.enabled`. Reading it fetches the view from the upstream, and only for a caller who may
+  see a tool that uses it. SAJHA's view rules apply: only a `text/html;profile=mcp-app` document
+  within SAJHA's view size limit is served, and the upstream's `_meta.ui.csp` domains and
+  `permissions` are removed, so the host's sandbox gives the view no network access and no extra
+  permissions ([MCP Apps and Headers Guide](../protocol/MCP%20Apps%20and%20Headers%20Guide.md)).
+  A view is not a separate approval item: it is served while a tool that uses it is.
 
 ## 5. Discovery and refresh
 
@@ -434,8 +517,16 @@ boolean values are kept, so anything else falls back to the cautious MCP default
 and `openWorldHint` is always `true`, because the tool runs on another server. The title is
 screened like any upstream text. SAJHA adds
 `_meta["sajha/federation"] = {"upstream": <id>, "tool": <upstream name>}` to each listed
-tool. The upstream's own `_meta` (MCP Apps views, for instance) and its task support are
-not carried over.
+tool. Two parts of the upstream's tool are carried as well: its MCP Apps view (section 4) and its
+task support (below); the rest of its `_meta` is not.
+
+**Writes need approval.** The shipped policy `config/policies/20-proxied-writes.yaml` (enabled)
+requires approval for every proxied server's tool that does not declare `readOnlyHint: true`
+(an absent hint takes the MCP default, `false`): the person at the client confirms where the
+client can (an MCP 2026-07-28 form, Ask SAJHA's Confirm button), otherwise an administrator approves
+on the Approvals page ([Policy and Audit §5](Policy%20and%20Audit.md#5-approvals)). Annotations are
+the vendor's hints: a tool that wrongly claims `readOnlyHint` is not caught. To switch the rule off,
+set `enabled: false` in that file.
 
 **Progress** reported by the upstream is forwarded to the SAJHA caller when the caller
 asked for it (a 2026-07-28 `tools/call` with `_meta.progressToken` on a streamed
@@ -464,8 +555,28 @@ upstream's opaque `requestState` is carried inside SAJHA's signed `requestState`
 caller retries with `inputResponses`, SAJHA calls the upstream again with those responses
 and the upstream's state. A caller that cannot provide the input (it did not declare the
 capability, or it is on the 2025-11-25 era, REST, A2A or Ask SAJHA) gets a tool error
-saying so. A 2025-11-25 upstream that sends a server-to-client `elicitation/create` during
-a call is declined: SAJHA's client is not on that connection to answer it.
+saying so.
+
+**Requests from the upstream (sampling, elicitation, roots).** A 2025-11-25 upstream may send its
+client `sampling/createMessage`, `elicitation/create` or `roots/list` during a call. SAJHA relays
+them to its own caller when the caller can answer: a 2025-11-25 client on a Streamable HTTP session
+that declared `sampling` or `elicitation`, calling with `Accept: text/event-stream`. The call then
+runs on an upstream connection opened for it (with the upstream's shared credentials), so every
+request the upstream sends on it belongs to this caller; each one goes to the caller on the call's
+SSE stream and the caller's answer (a POST to `/mcp`) goes back to the upstream. A request whose
+capability the caller did not declare (an elicitation mode included), and every such request from a
+call that has no relay (2026-07-28 callers, REST, A2A, Ask SAJHA, a client that took no stream, a
+per-user credential mode), is answered with an error that says so, which the upstream reports as it
+sees fit.
+
+**Tasks.** SAJHA's shared connection to a 2026-07-28 upstream declares the tasks extension
+(`io.modelcontextprotocol/tasks`). When an upstream tool answers with a task, SAJHA polls
+`tasks/get` at the upstream's `pollIntervalMs` until it ends, within the upstream's
+`timeout_seconds`, and returns its result as the call's own; when SAJHA's call is cancelled (any of
+the ways above), `tasks/cancel` goes to the upstream. A tool that declares
+`execution.taskSupport` keeps it in SAJHA's `tools/list` (2026-07-28), so a client that declares the
+extension can make the call a SAJHA task and poll and cancel it through SAJHA
+([MCP Protocol Guide](../protocol/MCP%20Protocol%20Guide.md)); the cancel reaches the upstream task.
 
 ## 8. Health, status and failure isolation
 
@@ -486,7 +597,60 @@ The admin page and `GET /api/federation/upstreams` report, per upstream: state
 per-user OAuth, [below](#the-mcpservers-file)), the negotiated protocol version, the
 server's name and version, the last error (redacted), the last refresh time, counts of
 tools by status, calls and failures, and the circuit breaker. The breaker is also listed
-by `GET /api/circuits` with SAJHA's other providers.
+by `GET /api/circuits` with SAJHA's other providers. With the fields of
+[Gateway scale](#gateway-scale) they also report `pool`, `replicas`, `admission` (the limit, calls
+in flight and waiting, calls shed) and `cluster`, every worker's published view.
+
+### Gateway scale
+
+Built in `sajha/federation/scale.py` for one SAJHA in front of many upstreams. With the defaults
+(one connection, no limit, no replicas) a call takes the same path as before.
+
+**Connection pools.** Each worker opens `pool_size` shared connections to an upstream (to each
+replica). One of them, the **primary**, runs discovery, listens for list changes and carries
+resource subscriptions; the others only carry `tools/call`. A call takes the connected connection
+with the fewest calls in flight, then the lowest recent latency, then the next in turn. Prompts,
+resource reads and completions use the primary. Per-user credential modes (section 3) open a
+connection per call or per user as before and do not use the pool.
+
+**Admission and load shedding.** `max_in_flight` bounds the calls in flight to one upstream in a
+worker; when it is reached, up to `max_queue` calls wait in line, first come first served, for at
+most `federation.queue_timeout_seconds`. A call over the bound (the queue is full, or there is no
+queue, or the wait timed out) is refused at once with a tool error that says the upstream is at
+capacity, that nothing was sent and to retry in a moment. A refused call is never sent, so it is safe
+to retry whatever the tool does. It does not count as a call, a failure or against the breaker, and
+it is counted in `sajha_federation_upstream_shed_total` ([Observability](Observability.md#22-the-metrics)).
+The bound is per worker: with N workers an upstream sees at most N × `max_in_flight` calls.
+
+**Replicas.** `urls` lists more endpoints of the same upstream (the same tools, behind one id and
+one prefix); `url` is the first replica. Each replica gets its own pool. A call prefers a connected
+connection on a replica that neither this worker nor a peer reports failing. When a connection is
+found closed before the call is sent, the next connection takes the call, for any tool; after a
+failure during the call, another replica is tried only for a tool that may be retried (`retries`,
+read-only or idempotent tools). When the primary connection is down and another is connected, that
+one becomes the primary (on another replica when there is one) at the next health tick, and
+discovery and change listening continue there. Every replica URL passes the SSRF guard (section 9).
+
+**Shared upstream health.** Every `federation.health.publish_seconds` each worker publishes its view
+of each upstream to the state store, under `fed:health:<upstream>:<worker id>` with a TTL of
+`federation.health.ttl_seconds`: the state, connected connections, calls, failures, average latency,
+calls in flight, waiting and shed, the last error (redacted), each replica's connections, and the
+breaker (state, when it changed, the last failure, and whether this worker opened it or followed a
+peer). It then reads every live worker's view back. The admin page and status show that view as
+`cluster` (workers reporting, workers connected, workers whose breaker is open), `/metrics` exports
+it, and routing uses it: replica choice skips replicas peers report failing, and breakers follow
+peers. A worker that stops publishing drops out of the view after the TTL. With the `memory` backend
+the view is this worker's own ([Scaling and State](Scaling%20and%20State.md)).
+
+**The breaker rule.** Each worker keeps its own breaker for an upstream. When a peer's published view
+shows a breaker that the peer opened after its own failures, a worker whose breaker is closed opens its
+own as of the peer's last failure (`federation.health.follow_peer_breakers`, on by default), so the
+other workers stop sending calls to a failing upstream without each paying the failures first. From
+then on each worker probes on its own: after its `recovery_timeout` it lets one call through (half
+open) and closes on success, whatever the peer does. A breaker opened by following is published as
+followed and is never followed in turn, and one peer's opening is followed once (a worker that has
+recovered is not re-opened by the same news). News older than the recovery timeout is ignored. With
+following off, a peer's open breaker is only shown.
 
 ## 9. Security
 
@@ -618,18 +782,32 @@ is in the [API Reference](../protocol/API%20Reference.md#416-federation-federati
 
 ## 12. Limits
 
-* Per-user credentials (`auth.type: connected_account`, and `token_user` or `oauth_user` on a
-  2026-07-28 upstream) cost one connection per call: a user's token is never put on the shared
+* Per-user credentials (`auth.type: connected_account`, and `token_user`, `oauth_user` or
+  `service_with_user` on a 2026-07-28 upstream) cost one connection per call: a user's token is never put on the shared
   connection (section 3). Per-user sessions (on a session-based upstream) and discovered OAuth metadata
   are per process.
-* Server-to-client requests from a 2025-11-25 upstream (elicitation, sampling, roots) are
-  declined; client input reaches upstreams only through 2026-07-28 MRTR (section 7).
-* Resource templates, completions, `resources/subscribe` and upstream tasks are not
-  federated; an upstream's MCP Apps views (`ui://`) are not carried over.
-* Connection state, the event loop and the circuit breaker are per process; the store
-  (upstreams and approvals) is shared by every process that shares the storage backend,
-  and `max_calls_per_minute` counts in the state store
-  ([Scaling and State](Scaling%20and%20State.md)).
+* A 2025-11-25 upstream's requests to the client are relayed only to a 2025-11-25 caller on a
+  streamed call, and that call costs one upstream connection; 2026-07-28 callers get an error for
+  them (2026-07-28 has no server-to-client requests; MRTR from a 2026-07-28 upstream is forwarded,
+  section 7). A request the upstream sends outside any call (a `roots/list` after connecting) is
+  refused.
+* Upstream tasks are followed on 2026-07-28 upstreams over the shared connection only: a per-user
+  credential mode, and a 2025-11-25 upstream, call such a tool without a task (a tool whose task
+  support is `required` then fails). An upstream task that asks for client input is cancelled with an
+  error. Polling stops at the upstream's `timeout_seconds`.
+* Resource subscriptions: on 2025-11-25 they live with the session in the worker that took the
+  request, and updates go out on that worker's `GET /mcp` stream of the session (several workers
+  need sticky sessions for them); the WebSocket, legacy SSE and stdio transports accept
+  `resources/subscribe` without sending updates. A session that expires without unsubscribing is
+  released at the next discovery.
+* Connections, the event loop, the circuit breaker, the admission bound and the queue are per
+  process; each worker publishes its view of every upstream to the state store, follows peers' open
+  breakers and reads the cluster-wide view ([Gateway scale](#gateway-scale)). The store (upstreams and
+  approvals) is shared by every process that shares the storage backend, and `max_calls_per_minute`
+  counts in the state store ([Scaling and State](Scaling%20and%20State.md)).
+* `max_in_flight` is a bound per worker, not per cluster. Replicas must serve the same tools: discovery
+  runs on the primary only, and a replica whose tools differ is not detected. Per-user credential modes
+  go to the primary's replica (failing over when the primary moves) and do not use the pool.
 * A 2025-11-25 `notifications/cancelled` is matched to its request through the MCP session
   id; a sessionless 2025-11-25 request cannot be cancelled that way.
 * The SSRF guard checks addresses before each connection; a DNS answer that changes
@@ -654,6 +832,13 @@ including re-approval after a definition change and held versions (`on_change: h
 injection screen, refresh on a list change, MRTR pass-through, an upstream that is down
 at start-up and one that goes down later, the SSRF guard, the store, the admin API, and
 that federated tools appear in `tools/list` on both eras and in Ask SAJHA's shortlist.
+`tests/test_federation_complete.py` adds an upstream with the MCP Apps extension and a small tasks
+extension and checks, on both eras where they apply: resource templates (listed, expanded, read,
+approval and the resource rule), completions for prompts and templates (and none when hidden),
+subscriptions reaching the upstream and updates coming back (also end to end on a session's
+`GET /mcp` stream), upstream tasks followed and cancelled upstream, views namespaced, listed, read
+without CSP or permissions and hidden with their tool, and sampling, roots and elicitation relayed to
+a caller that can answer (end to end over a session's SSE stream) or refused with a clear error.
 `tests/test_proxied_per_user_tokens.py` covers `token_user` against a fake vendor that checks each
 request's token: per-user answers, the connect answer on every front end, vendor refusals, per-user
 sessions with idle eviction and the cap, the discovery union, secrecy (a canary token), revocation,
@@ -663,6 +848,16 @@ the SAJHA Net relay of the connect request, and that static upstreams are unchan
 discovery and dynamic registration, two users signing in, PKCE and `state` refusals, refresh before
 expiry and after a 401, a refused refresh, an operator client, write scopes on opt-in, revocation at the
 vendor on every path, secrecy, the SAJHA Net relay, a session-based upstream and the pages.
+`tests/test_federation_scale.py` covers gateway scale: configuration rules, the admission queue (order,
+the bound, the timeout), connection choice, pools spreading calls, load shedding (fast refusal, no
+breaker count, the metric), replica failover and promotion of a new primary, and, with two managers
+standing for two workers on the memory, fakeredis and SQLite state stores, the shared view, a followed
+breaker probing on its own, the view expiring, and following switched off. `tools/bench/bench_federation.py`
+measures proxied calls and shedding ([Scaling and State](Scaling%20and%20State.md#9-measured-performance)).
+`tests/test_proxied_service_with_user.py` covers `service_with_user` against a fake vendor that accepts
+only the service token and records the user header (configuration rules, discovery without the header,
+per-request and per-session calls, refusals, the audit identity) and the shipped approval rule for
+proxied writes.
 
 ---
 

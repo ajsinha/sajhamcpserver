@@ -18,10 +18,12 @@ limits. Every key and default is in the
 the walkthrough is [Tutorial 20](../tutorials/TUTORIAL_20_policies_approvals_and_audit.md);
 terms are in the [Glossary](../../GLOSSARY.md).
 
-**Nothing changes by default.** The shipped policy file has no rules, the shipped example
-policies are disabled, `policy.default_effect` is `allow`, and no SIEM sink is configured. A
-fresh SAJHA behaves exactly as before; the audit records it already wrote are now also
-hash-chained.
+**Little changes by default.** The shipped default policy has no rules, the shipped example
+policies are disabled, `policy.default_effect` is `allow`, and no SIEM sink is configured. Two
+shipped rules are enforced: `sanctions_*` results are not given to a model (`10-sanctions.yaml`),
+and a proxied MCP server's tool without `readOnlyHint: true` needs approval
+(`20-proxied-writes.yaml`, section 5.1); each is switched off with `enabled: false` in its file.
+The audit records SAJHA already wrote are now also hash-chained.
 
 ---
 
@@ -60,7 +62,7 @@ hash-chained.
 | `sajha/audit/sinks.py` | the SIEM exporters: syslog (RFC 5424 over TCP/TLS), HTTP, JSONL file |
 | `sajha/audit/__main__.py` | `python -m sajha.audit verify|chains|show` |
 | `sajha/routes/policy_routes.py` | the Policies, Approvals and Audit admin pages and their JSON API |
-| `config/policies/` | the policy files: `00-default.yaml` (no rules), `10-sanctions.yaml` (`sanctions_*` refused for the sources `ask` and `openai_api`; [Open Data Tools](Open%20Data%20Tools.md#6-decisions) section 6) and disabled examples |
+| `config/policies/` | the policy files: `00-default.yaml` (no rules), `10-sanctions.yaml` (`sanctions_*` refused for the sources `ask` and `openai_api`; [Open Data Tools](Open%20Data%20Tools.md#6-decisions) section 6), `20-proxied-writes.yaml` (approval for proxied tools that may write; section 5.1) and disabled examples |
 | `tests/test_policy.py`, `tests/test_audit_chain.py` | every behaviour below |
 
 ---
@@ -128,7 +130,8 @@ Every key is optional; all given keys must hold (AND); list values are alternati
 |---|---|
 | `tools` / `exclude_tools` | the tool name matches one of the globs (`fnmatch`, case-sensitive) / none of them |
 | `groups` | the tool group (GLOSSARY "Tool group": the text before the first `_`) is listed |
-| `annotations` | each listed annotation has that value in the tool's config (`{destructiveHint: true}`) |
+| `annotations` | each listed annotation has that value in the tool's config (`{destructiveHint: true}`), or, given a mapping, satisfies that condition (3.3): `{readOnlyHint: {ne: true}}` also matches a tool without the hint |
+| `proxied` | `true`: the tool is a proxied MCP server's tool (a federation upstream's, [Federation](Federation.md)); `false`: any other tool, SAJHA Net's remote tools included |
 | `callers.anonymous` | `true`: only unauthenticated calls; `false`: only authenticated ones |
 | `callers.users` / `callers.api_keys` | the user id / API key name matches a glob |
 | `callers.roles` | the caller has one of the roles |
@@ -301,6 +304,27 @@ How each path shows a policy outcome:
 | `POST /api/tools/execute` | 403 `{"error", "policy": {...}}` | 202 `{"success": false, "approval_id", ...}` | 429 with `Retry-After` |
 | Ask SAJHA | step `refused` with the reason | `approver: caller`: step `needs_confirmation` (Confirm button); `admin`: step `refused` naming the approval id | step `refused` |
 | A2A, async tasks | failed task with the reason | failed task naming the approval id | failed task |
+
+### 5.1 The shipped rule for proxied writes
+
+`config/policies/20-proxied-writes.yaml` ships enabled, as the design of per-user sign-in requires
+([Per-User Sign-In for Proxied Servers](Per-User%20Sign-In%20for%20Proxied%20Servers.md) §7):
+
+```yaml
+rules:
+  - id: approve-proxied-writes
+    match: {proxied: true, annotations: {readOnlyHint: {ne: true}}}
+    effect: require_approval
+    approval: {approver: caller}
+```
+
+A proxied server's tool that does not declare `readOnlyHint: true` (an absent hint is `false`, the
+MCP default) needs approval: the person at the client confirms where the client can, any other
+client waits for an administrator. Read-only proxied tools, SAJHA's own tools and SAJHA Net's remote
+tools are not matched (a Net tool proxied at its defining instance is governed there). The hints
+come from the vendor; SAJHA keeps only boolean ones ([Federation §7](Federation.md#7-calls)) and
+cannot tell a tool that wrongly claims `readOnlyHint`. Set `enabled: false` in the file to switch it
+off, or change `approver` to `admin`.
 
 ---
 
@@ -552,6 +576,8 @@ contents, chain, signature, tamper detection, rotation, one writer, the CLI and 
 `tests/test_tool_call_audit.py` covers section 13: the record's fields, each argument mode,
 the volume rules, deferred storage with a verified chain, SIEM export, the overhead bound,
 trace continuation and the per-user cache key.
+`tests/test_proxied_service_with_user.py` covers 5.1 (the shipped rule, the `proxied` match and
+conditions on annotations).
 `tests/net/test_net_residency.py` covers 3.5 and field redaction by data class: parsing, decisions,
 redaction of arguments and results, and the end-to-end residency tests on three instances.
 

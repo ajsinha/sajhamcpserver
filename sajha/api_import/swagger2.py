@@ -7,13 +7,22 @@ Converts the parts API Import reads: servers (host, basePath, schemes), schemas
 (``in: body`` and ``in: formData`` → ``requestBody``; ``collectionFormat`` → style and
 explode), responses (``schema`` → ``content`` per ``produces`` type) and security
 definitions. Shared ``#/parameters/...`` and ``#/responses/...`` are inlined.
+
+Remote references (another document's definitions, parameters or responses) are bundled
+first (:func:`bundle`): each referenced document is fetched through the SSRF guard (the
+fetcher API Import passes, at most ``api_import.max_ref_documents`` of them, each capped at
+``api_import.max_spec_bytes``), the target is copied into the root's own ``definitions``,
+``parameters`` or ``responses`` under a fresh name, and the reference is rewritten to point
+there; references inside the copied part are bundled the same way (cycles end at the name
+already given). The bundled document then converts like a single-file one.
 """
 
 from __future__ import annotations
 
 import copy
-from typing import Any, Dict, List, Optional
-from urllib.parse import urlsplit
+import re
+from typing import Any, Callable, Dict, List, Optional
+from urllib.parse import urldefrag, urljoin, urlsplit
 
 _METHODS = ('get', 'put', 'post', 'delete', 'options', 'head', 'patch')
 _PARAM_SCHEMA_KEYS = ('type', 'format', 'items', 'enum', 'default', 'minimum', 'maximum',
@@ -148,6 +157,93 @@ def _operation(doc: Dict[str, Any], op: Dict[str, Any], path_params: List[Any]) 
         responses[str(code)] = out
     new['responses'] = responses
     return new
+
+
+BUNDLE_DEPTH = 64
+
+
+def bundle(doc: Dict[str, Any], source_url: Optional[str], fetcher: Optional[Callable[[str], str]],
+           max_documents: int = 20) -> Dict[str, Any]:
+    """A copy of a Swagger 2.0 ``doc`` with every remote ``$ref`` brought into it (see the module
+    docstring). A reference that cannot be fetched is left pointing at its absolute location, so
+    the operations using it are flagged with the reason when they are read."""
+    from sajha.api_import.refs import RefError, _pointer, parse_text
+    if fetcher is None:
+        return doc
+    root_url = urldefrag(source_url or '')[0]
+    out = copy.deepcopy(doc)
+    documents: Dict[str, Any] = {}
+    failed: Dict[str, str] = {}
+    names: Dict[str, str] = {}
+
+    def fetch_doc(url: str) -> Any:
+        if url in failed:
+            raise RefError(failed[url])
+        if url not in documents:
+            if len(documents) >= max_documents:
+                raise RefError(f'more than {max_documents} referenced documents (api_import.max_ref_documents)')
+            try:
+                documents[url] = parse_text(fetcher(url))
+            except (RefError, ValueError) as e:
+                failed[url] = str(e)
+                raise
+        return documents[url]
+
+    def fresh(section: str, wanted: str) -> str:
+        base = re.sub(r'[^A-Za-z0-9_.-]', '_', wanted) or 'Ref'
+        taken = out.setdefault(section, {})
+        name, n = base, 2
+        while name in taken:
+            name, n = f'{base}_{n}', n + 1
+        taken[name] = {}                          # reserved before its content is walked (cycles)
+        return name
+
+    def localize(ref: str, base: str, depth: int) -> str:
+        if ref.startswith('#'):
+            if base == root_url:
+                return ref
+            absolute = base + ref
+        elif not base and '://' not in ref:
+            return ref                            # relative, nothing to resolve it against
+        else:
+            absolute = urljoin(base, ref) if base else ref
+        doc_url, fragment = urldefrag(absolute)
+        if root_url and doc_url == root_url:
+            return '#' + fragment
+        if absolute in names:
+            return names[absolute]
+        try:
+            target = _pointer(fetch_doc(doc_url), fragment, ref)
+        except (RefError, ValueError):
+            return absolute
+        section = ('parameters' if fragment.startswith('/parameters/') else
+                   'responses' if fragment.startswith('/responses/') else 'definitions')
+        token = fragment.rstrip('/').rsplit('/', 1)[-1] if fragment.strip('/') else \
+            urlsplit(doc_url).path.rsplit('/', 1)[-1].rsplit('.', 1)[0]
+        name = fresh(section, token.replace('~1', '/').replace('~0', '~'))
+        names[absolute] = f'#/{section}/{name}'
+        out[section][name] = walk(target, doc_url, depth + 1)
+        return names[absolute]
+
+    def walk(node: Any, base: str, depth: int) -> Any:
+        if depth > BUNDLE_DEPTH:
+            return node
+        if isinstance(node, list):
+            return [walk(v, base, depth + 1) for v in node]
+        if not isinstance(node, dict):
+            return node
+        res = {k: walk(v, base, depth + 1) for k, v in node.items() if k != '$ref'}
+        if isinstance(node.get('$ref'), str):
+            res['$ref'] = localize(node['$ref'], base, depth)
+        return res
+
+    for key in list(out):
+        if key in ('definitions', 'parameters', 'responses') and isinstance(out[key], dict):
+            for name in list(out[key]):           # in place: bundling adds entries to these maps
+                out[key][name] = walk(out[key][name], root_url, 0)
+        else:
+            out[key] = walk(out[key], root_url, 0)
+    return out
 
 
 def convert(doc: Dict[str, Any], source_url: Optional[str] = None) -> Dict[str, Any]:

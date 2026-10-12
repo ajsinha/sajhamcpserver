@@ -85,3 +85,67 @@ groups:
         labels: {severity: warning}
         annotations:
           summary: "The usage ledger is dropping rows (database slow or queue too small)"
+
+      - alert: SajhaDbPoolExhausted
+        expr: sum by (instance) (increase(sajha_db_pool_exhausted_total[5m])) > 0
+        labels: {severity: warning}
+        annotations:
+          summary: "Requests shed with 503: the database pool stayed dry for db.pool.timeout_seconds (raise db.pool.size or add workers)"
+
+  # Service level objectives (docs/architecture/Observability.md, section 6). Availability: 99.9% of
+  # /mcp requests are not 5xx over 30 days, alerted on the error budget's burn rate over a long and a
+  # short window together. Latency and errors: calls to in-process tools; edit the tool selector
+  # (calc_.* here) to the tools you run inside SAJHA.
+  - name: sajha-slo
+    rules:
+      - alert: SajhaSloAvailabilityFastBurn
+        expr: |
+          (
+            sum(rate(sajha_http_requests_total{route="/mcp",status=~"5.."}[1h]))
+              / clamp_min(sum(rate(sajha_http_requests_total{route="/mcp"}[1h])), 1e-9) > (14.4 * 0.001)
+          )
+          and
+          (
+            sum(rate(sajha_http_requests_total{route="/mcp",status=~"5.."}[5m]))
+              / clamp_min(sum(rate(sajha_http_requests_total{route="/mcp"}[5m])), 1e-9) > (14.4 * 0.001)
+          )
+        labels: {severity: critical, slo: availability}
+        annotations:
+          summary: "/mcp is spending its 99.9% availability budget 14x too fast (2% of the month in an hour)"
+
+      - alert: SajhaSloAvailabilitySlowBurn
+        expr: |
+          (
+            sum(rate(sajha_http_requests_total{route="/mcp",status=~"5.."}[6h]))
+              / clamp_min(sum(rate(sajha_http_requests_total{route="/mcp"}[6h])), 1e-9) > (6 * 0.001)
+          )
+          and
+          (
+            sum(rate(sajha_http_requests_total{route="/mcp",status=~"5.."}[30m]))
+              / clamp_min(sum(rate(sajha_http_requests_total{route="/mcp"}[30m])), 1e-9) > (6 * 0.001)
+          )
+        labels: {severity: warning, slo: availability}
+        annotations:
+          summary: "/mcp is spending its 99.9% availability budget 6x too fast (5% of the month in six hours)"
+
+      - alert: SajhaSloToolLatency
+        expr: |
+          (
+            1 - sum(rate(sajha_tool_call_duration_seconds_bucket{tool=~"calc_.*",le="0.1"}[1h]))
+              / clamp_min(sum(rate(sajha_tool_call_duration_seconds_count{tool=~"calc_.*"}[1h])), 1e-9)
+          ) > 0.01
+          and sum(increase(sajha_tool_call_duration_seconds_count{tool=~"calc_.*"}[1h])) > 100
+        for: 15m
+        labels: {severity: warning, slo: latency}
+        annotations:
+          summary: "More than 1% of in-process tool calls took longer than 100 ms over the last hour"
+
+      - alert: SajhaSloToolErrors
+        expr: |
+          sum(rate(sajha_tool_calls_total{tool=~"calc_.*",outcome=~"error|circuit_open"}[1h]))
+            / clamp_min(sum(rate(sajha_tool_calls_total{tool=~"calc_.*"}[1h])), 1e-9) > 0.01
+          and sum(increase(sajha_tool_calls_total{tool=~"calc_.*"}[1h])) > 100
+        for: 15m
+        labels: {severity: warning, slo: errors}
+        annotations:
+          summary: "More than 1% of in-process tool calls failed over the last hour"

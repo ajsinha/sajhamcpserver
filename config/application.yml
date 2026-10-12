@@ -11,7 +11,7 @@
 
 app:
   name: SAJHA MCP Server
-  version: 8.11.0
+  version: 8.12.0
   description: Model Context Protocol Server
   author: Ashutosh Sinha
   author_email: ajsinha@gmail.com       # shown with the copyright notice; SAJHA is proprietary (see LICENSE)
@@ -55,7 +55,7 @@ security:
 
 db:
   # ── SQLite (default — works out of the box) ──
-  type: sqlite
+  type: ${DB_TYPE:sqlite}                 # sqlite | postgresql  (env DB_TYPE or SAJHA_DB_TYPE)
   path: data/sajha.db
 
   # ── PostgreSQL (uncomment for production) ──
@@ -88,8 +88,14 @@ db:
   # driver: psycopg2
   # ssl: true
 
+  # Connection pool, per worker process (SQLite file and PostgreSQL alike). A request holds a
+  # connection only while it reads or writes, so a small pool serves many concurrent calls.
+  # PostgreSQL: workers x (size + max_overflow), plus other clients, must stay below max_connections.
+  # docs/architecture/Scaling and State.md §7
   pool:
     size: ${DB_POOL_SIZE:10}
+    max_overflow: -1                      # extra connections under load; -1 = as many as size
+    timeout_seconds: 5                    # a dry pool waits this long, then answers 503 + Retry-After
   echo: false                             # Log all SQL statements (debug only)
   scripts_dir: db/scripts                 # <scripts_dir>/<sqlite|postgresql>/schema.sql and seed.sql
   # Start-up check of the tables and columns SAJHA uses (python -m sajha.db check runs it too).
@@ -109,6 +115,7 @@ state:
   database:
     url: ""                               # empty = SAJHA's own database (db.*)
     poll_interval_ms: 500                 # pub/sub latency of the database backend
+    pool_size: 3                          # url empty: the store's own pool on SAJHA's database (+2 overflow)
   tasks:
     durable: auto                         # auto = on for redis/database: MCP task records in the database
 
@@ -253,8 +260,8 @@ mcp:
     # "builtin" (SAJHA's own authorization server, backed by SAJHA users) or an
     # external issuer URL, e.g. https://login.example.com/realms/mcp (Keycloak),
     # https://dev-123.okta.com/oauth2/default, https://login.microsoftonline.com/<tenant>/v2.0
-    # With an external issuer SAJHA only validates its JWT access tokens
-    # (discovery + JWKS); opaque tokens / introspection are not supported.
+    # With an external issuer SAJHA validates its JWT access tokens (discovery
+    # + JWKS); opaque tokens need external.introspection (RFC 7662) below.
     authorization_server: builtin
     # Externally visible origin, e.g. https://mcp.example.com.  Token audience
     # (resource = <public_url>/mcp) and the built-in issuer derive from it.
@@ -272,6 +279,22 @@ mcp:
       # Token claim matched against SAJHA user IDs (unmatched -> least-privilege
       # api_consumer identity).  Use only a claim the IdP controls.
       user_claim: sub
+      # RFC 7662 token introspection: off (JWTs only) | opaque (introspect tokens
+      # that are not JWTs) | always (introspect every token).  Fail closed.
+      introspection:
+        mode: "off"                 # quoted: bare off is a YAML boolean
+        endpoint: ""                # empty: introspection_endpoint from the issuer's metadata
+        client_id: ""
+        # client_secret: never here; SAJHA_MCP_AUTH_EXTERNAL_INTROSPECTION_CLIENT_SECRET
+        auth_method: client_secret_basic   # or client_secret_post
+        cache_seconds: 60           # reuse an answer (never past the token's exp); 0 = never
+        timeout_seconds: 5
+        require_audience: true      # refuse an active answer that names no aud
+    # CORS for browser-based MCP clients on the OAuth discovery, token, JWKS and
+    # registration endpoints (not /oauth/authorize).  Exact origins, or "*" for
+    # any; never with credentials.  Empty: no CORS there beyond SAJHA_CORS_ORIGINS.
+    cors:
+      allowed_origins: []
     builtin:
       access_token_ttl_seconds: 900
       refresh_token_ttl_seconds: 2592000
@@ -376,7 +399,10 @@ logging:
 data:
   dir: ./data                              # Base data directory
   duckdb:
-    dir: ./data/duckdb
+    dir: ./data/duckdb                       # or storage://<prefix> to read the folder from the storage backend
+    stage_dir: ""                            # storage:// staging directory; empty: the system temp directory
+    stage_max_file_mb: 256                   # storage:// files larger than this are skipped
+    stage_max_total_mb: 1024                 # most staged per load
   sqlselect:
     dir: ./data/sqlselect
 
@@ -412,6 +438,22 @@ storage:
     project: ""                           # env: GOOGLE_CLOUD_PROJECT — uses Application Default Credentials / workload identity
     prefix: "sajha/"
     cache_dir: /tmp/sajha-cache
+  events:                                    # push-based reload from bucket event notifications (cloud backends)
+    provider: none                           # none | auto | sqs | azure_queue | pubsub  (env: SAJHA_STORAGE_EVENTS_PROVIDER)
+    wait_seconds: 20                         # long-poll wait (SQS, Pub/Sub); pause between empty reads (Azure)
+    max_messages: 10
+    healthy_poll_interval: 600               # poll seconds while the listener is healthy (fallback; 0 keeps sync_interval)
+    sqs:
+      queue_url: ""                          # env: SAJHA_STORAGE_EVENTS_SQS_QUEUE_URL
+      region: ""                             # empty: storage.s3.region
+      endpoint_url: ""
+    azure:
+      queue_name: ""                         # Storage Queue fed by an Event Grid subscription
+      account_url: ""                        # empty: storage.azure.account_url with .blob. -> .queue.
+      connection_string: ""                  # empty: storage.azure.connection_string — keep secrets in env
+    pubsub:
+      subscription: ""                       # projects/<p>/subscriptions/<s>, or a name with project below
+      project: ""                            # empty: storage.gcs.project
 
 # ── External API Keys ───────────────────────────────────────────────────────
 
@@ -659,6 +701,7 @@ workflows:
   step_timeout_seconds: 300       # a step that sets no timeout_seconds
   loop_max_items: 100             # foreach cap when the step sets no max_items
   loop_hard_max_items: 10000      # foreach cap no step can exceed
+  foreach_max_body_steps: 20      # steps in a foreach body that is a graph (do: {steps: [...]})
   inline_wait_seconds: 5          # longer waits park the run and free the worker
   heartbeat_seconds: 5
   stale_seconds: 60               # a running run whose heartbeat is older is resumed elsewhere
@@ -755,6 +798,15 @@ federation:
   # auth.type token_user or oauth_user (each user's own credential) on a session-based upstream: one session per user
   per_user_session_idle_seconds: 900   # close a user's upstream session after this long without a call
   per_user_sessions_max: 50            # per upstream; the oldest idle session is closed to make room
+  # gateway scale (docs/architecture/Federation.md "Gateway scale"); each also settable per upstream
+  pool_size: 1                     # shared connections per upstream (and per replica) in each worker
+  max_in_flight: 0                 # calls in flight per upstream in each worker; 0 = no limit
+  max_queue: 64                    # calls waiting for a slot; over it a call is refused at once (retryable)
+  queue_timeout_seconds: 5         # longest wait for a slot
+  health:                          # each worker's view of every upstream, shared in the state store
+    publish_seconds: 5
+    ttl_seconds: 30
+    follow_peer_breakers: true     # a breaker another worker opened opens this one's; each probes on its own
 
 # ── API Import: OpenAPI / Swagger / GraphQL → tools (Studio → Import an API) ──
 # Every key: docs/getting-started/Configuration Reference.md#api-import; design:
@@ -768,6 +820,10 @@ api_import:
   max_ref_documents: 20            # remote documents one spec's $refs may pull in
   timeout_seconds: 30              # one call's deadline (per-import override on the page)
   max_response_bytes: 5242880      # largest API answer read
+  max_upload_bytes: 10485760       # largest request body (all file parts) an imported tool sends
+  file_roots: []                   # storage folders a file argument's path may name ({user}: the caller); empty = inline only
+  pagination_max_pages: 10         # most pages one call follows (pagination is opt-in per operation)
+  pagination_max_items: 1000       # most rows one call collects across pages
   graphql_depth: 2                 # selection-set depth generated for GraphQL tools (1-5)
   records_dir: config/api_imports  # import records (storage backend)
 

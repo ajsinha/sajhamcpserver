@@ -30,9 +30,20 @@ PROTOCOLS = ('auto', 'legacy', '2026-07-28')
 ON_CHANGE = ('withdraw', 'hold')
 #: credential modes: one shared identity ('static' = 'none' plus fixed ``headers``; bearer, header,
 #: oauth_client_credentials), the caller's connected account, or per-user sign-in for proxied servers
-#: (token_user, oauth_user). See sajha/federation/user_tokens.py and sajha/federation/oauth_user.py.
+#: (token_user, oauth_user), or a shared service identity naming the SAJHA user in an audit header
+#: (service_with_user). See sajha/federation/user_tokens.py and sajha/federation/oauth_user.py.
 AUTH_TYPES = ('none', 'static', 'bearer', 'header', 'oauth_client_credentials', 'connected_account',
-              'token_user', 'oauth_user')
+              'token_user', 'oauth_user', 'service_with_user')
+#: service_with_user: the header that names the SAJHA user, and its value (``{user}`` is the user id)
+DEFAULT_USER_HEADER = 'X-SAJHA-User'
+DEFAULT_USER_FORMAT = '{user}'
+_HEADER_NAME = re.compile(r'^[A-Za-z0-9][A-Za-z0-9-]{0,63}$')
+#: headers service_with_user must never use for the user's name (credentials and hop-by-hop)
+_RESERVED_HEADERS = {'authorization', 'proxy-authorization', 'cookie', 'host', 'content-type', 'content-length',
+                     'mcp-session-id', 'mcp-protocol-version', 'x-api-key', 'api-key'}
+#: gateway scale: shared connections per upstream (per replica) in a worker, and replicas per upstream
+POOL_MAX = 32
+REPLICAS_MAX = 16
 #: what a connected_account upstream may use for discovery (tools/list) when no user is calling
 DISCOVERY_AUTH_TYPES = ('none', 'bearer', 'header', 'oauth_client_credentials')
 
@@ -61,6 +72,14 @@ class FederationSettings:
     mcp_servers_reload_seconds: float = 5.0
     per_user_session_idle_seconds: float = 900.0   # token_user, session-based upstreams: close a user's idle session
     per_user_sessions_max: int = 50                # token_user: open per-user sessions per upstream (oldest idle evicted)
+    # gateway scale (sajha/federation/scale.py): defaults for every upstream, each overridable per upstream
+    pool_size: int = 1                   # shared connections per upstream (and per replica) in each worker
+    max_in_flight: int = 0               # calls in flight per upstream in each worker; 0 = no limit
+    max_queue: int = 64                  # calls waiting for a slot when max_in_flight is reached
+    queue_timeout_seconds: float = 5.0   # longest wait for a slot before the call is refused
+    health_publish_seconds: float = 5.0  # how often this worker publishes its view of each upstream
+    health_ttl_seconds: float = 30.0     # a worker's published view expires after this
+    follow_peer_breakers: bool = True    # a breaker another worker opened opens this worker's too
 
     @classmethod
     def load(cls) -> 'FederationSettings':
@@ -92,6 +111,13 @@ class FederationSettings:
             mcp_servers_reload_seconds=max(1.0, _float('federation.mcp_servers_reload_seconds', 5.0)),
             per_user_session_idle_seconds=max(1.0, _float('federation.per_user_session_idle_seconds', 900.0)),
             per_user_sessions_max=max(1, _int('federation.per_user_sessions_max', 50)),
+            pool_size=max(1, min(POOL_MAX, _int('federation.pool_size', 1))),
+            max_in_flight=max(0, _int('federation.max_in_flight', 0)),
+            max_queue=max(0, _int('federation.max_queue', 64)),
+            queue_timeout_seconds=max(0.0, _float('federation.queue_timeout_seconds', 5.0)),
+            health_publish_seconds=max(0.5, _float('federation.health.publish_seconds', 5.0)),
+            health_ttl_seconds=max(1.0, _float('federation.health.ttl_seconds', 30.0)),
+            follow_peer_breakers=_bool('federation.health.follow_peer_breakers', True),
         )
 
 
@@ -161,12 +187,17 @@ class UpstreamConfig:
     env: Dict[str, str] = field(default_factory=dict)
     env_refs: Dict[str, str] = field(default_factory=dict)
     cwd: str = ''
+    urls: List[str] = field(default_factory=list)   # replicas: more URLs serving this same upstream
+    pool_size: Optional[int] = None                 # None: federation.pool_size
+    max_in_flight: Optional[int] = None             # None: federation.max_in_flight (0 = no limit)
+    max_queue: Optional[int] = None                 # None: federation.max_queue
     source: str = 'config'          # 'config' (application.yml / env) or 'store' (admin page)
 
     FIELDS = ('id', 'url', 'title', 'enabled', 'transport', 'protocol', 'prefix', 'auth', 'headers',
               'timeout_seconds', 'retries', 'max_calls_per_minute', 'cache_ttl', 'cache_per_user', 'breaker',
               'refresh_interval_seconds', 'include_tools', 'exclude_tools', 'expose_prompts',
-              'expose_resources', 'auto_approve', 'on_change', 'command', 'args', 'env', 'env_refs', 'cwd')
+              'expose_resources', 'auto_approve', 'on_change', 'command', 'args', 'env', 'env_refs', 'cwd',
+              'urls', 'pool_size', 'max_in_flight', 'max_queue')
 
     @classmethod
     def from_dict(cls, data: Dict[str, Any], source: str = 'config') -> 'UpstreamConfig':
@@ -241,6 +272,10 @@ class UpstreamConfig:
             env={str(k): str(v) for k, v in _d('env').items()},
             env_refs={str(k): str(v) for k, v in _d('env_refs').items()},
             cwd=str(data.get('cwd') or '').strip(),
+            urls=[u.strip() for u in _lst('urls') if u.strip()],
+            pool_size=None if data.get('pool_size') in (None, '') else _i('pool_size', 1),
+            max_in_flight=None if data.get('max_in_flight') in (None, '') else _i('max_in_flight', 0),
+            max_queue=None if data.get('max_queue') in (None, '') else _i('max_queue', 0),
             source=source,
         )
         cfg.validate()
@@ -284,11 +319,29 @@ class UpstreamConfig:
             self._validate_connected_account()
         if atype in ('token_user', 'oauth_user'):
             self._validate_per_user(atype)
+        if atype == 'service_with_user':
+            self._validate_service_with_user()
         if atype == 'static' and set(self.auth) - {'type'}:
             raise ConfigError('auth.type static takes no other fields: the shared credential goes in headers')
         for name, ref in self.env_refs.items():
             if not _is_ref(ref):
                 raise ConfigError(f'env_refs.{name} must be a secret reference')
+        if self.urls:
+            if self.transport == 'stdio':
+                raise ConfigError('urls (replicas) needs an HTTP transport')
+            if len(self.urls) > REPLICAS_MAX - 1:
+                raise ConfigError(f'urls: at most {REPLICAS_MAX - 1} replicas besides url')
+            for u in self.urls:
+                if not re.match(r'^https?://', u, re.I):
+                    raise ConfigError(f'urls: {u} is not an http or https URL')
+            if len(set(self.replica_urls)) != len(self.replica_urls):
+                raise ConfigError('urls: each replica URL must differ from url and from the others')
+        if self.pool_size is not None and not (1 <= self.pool_size <= POOL_MAX):
+            raise ConfigError(f'pool_size must be between 1 and {POOL_MAX}')
+        if self.max_in_flight is not None and self.max_in_flight < 0:
+            raise ConfigError('max_in_flight must be 0 (no limit) or more')
+        if self.max_queue is not None and self.max_queue < 0:
+            raise ConfigError('max_queue must be 0 or more')
         if self.timeout_seconds is not None and not (0 < self.timeout_seconds <= 3600):
             raise ConfigError('timeout_seconds must be between 0 and 3600')
 
@@ -321,6 +374,50 @@ class UpstreamConfig:
         unknown = set(a) - {'type', 'provider', 'scopes', 'discovery'}
         if unknown:
             raise ConfigError(f'auth: unknown field(s) for connected_account: {", ".join(sorted(unknown))}')
+
+    def _validate_service_with_user(self) -> None:
+        """service_with_user: the shared service identity (``service``, one of the discovery credential
+        types, or the shared ``headers``) with the calling SAJHA user named in ``user_header`` on every
+        tool call (``user_format``, where ``{user}`` is the user id)."""
+        a = self.auth
+        unknown = set(a) - {'type', 'service', 'user_header', 'user_format'}
+        if unknown:
+            raise ConfigError(f'auth: unknown field(s) for service_with_user: {", ".join(sorted(unknown))}')
+        if self.transport == 'stdio':
+            raise ConfigError('auth.type service_with_user needs an HTTP transport (a header per call)')
+        if self.cache_ttl:
+            raise ConfigError('cache_ttl cannot be used with auth.type service_with_user: results are per user')
+        svc = a.get('service') or {}
+        if not isinstance(svc, dict):
+            raise ConfigError('auth.service must be an object (the shared service credential)')
+        stype = svc.get('type', 'none') or 'none'
+        if stype not in DISCOVERY_AUTH_TYPES:
+            raise ConfigError(f'auth.service.type must be one of {", ".join(DISCOVERY_AUTH_TYPES)}')
+        for key, value in svc.items():
+            if key.endswith('_ref') and value and not _is_ref(value):
+                raise ConfigError(f'auth.service.{key} must be a secret reference (env:NAME, file:/path or db:table/key)')
+            if key in ('token', 'value', 'client_secret', 'password', 'api_key'):
+                raise ConfigError(f'auth.service.{key}: put secrets in a reference ({key}_ref: env:NAME)')
+        if stype == 'bearer' and not svc.get('token_ref'):
+            raise ConfigError('auth.service type bearer needs token_ref')
+        if stype == 'header' and not (svc.get('header') and svc.get('value_ref')):
+            raise ConfigError('auth.service type header needs header and value_ref')
+        if stype == 'oauth_client_credentials' and not (svc.get('token_url') and svc.get('client_id')
+                                                        and svc.get('client_secret_ref')):
+            raise ConfigError('auth.service type oauth_client_credentials needs token_url, client_id and '
+                              'client_secret_ref')
+        header = a.get('user_header') or DEFAULT_USER_HEADER
+        if not isinstance(header, str) or not _HEADER_NAME.match(header) or header.lower() in _RESERVED_HEADERS:
+            raise ConfigError('auth.user_header must be a plain header name (letters, digits, "-"), not a '
+                              'credential or protocol header')
+        if any(k.lower() == header.lower() for k in self.headers or {}):
+            raise ConfigError(f'headers.{header} conflicts with auth.user_header: each call names its own user there')
+        if stype == 'header' and str(svc.get('header', '')).lower() == header.lower():
+            raise ConfigError('auth.user_header and auth.service.header must differ')
+        fmt = a.get('user_format') or DEFAULT_USER_FORMAT
+        if not isinstance(fmt, str) or '{user}' not in fmt or len(fmt) > 200 \
+                or fmt.replace('{user}', '').count('{') or fmt.replace('{user}', '').count('}'):
+            raise ConfigError('auth.user_format must contain {user} (the SAJHA user id) and no other placeholder')
 
     def _validate_per_user(self, atype: str) -> None:
         """token_user: each call carries the caller's own personal token (sajha/federation/user_tokens.py);
@@ -367,6 +464,11 @@ class UpstreamConfig:
         if any(k.lower() == spec.header.lower() for k in self.headers or {}):
             raise ConfigError(f'headers.{spec.header} conflicts with auth.header: a token_user upstream never sends a '
                               f'shared value in the header that carries each user\'s token')
+
+    @property
+    def replica_urls(self) -> List[str]:
+        """``url`` and then the replicas in ``urls`` (one entry for stdio)."""
+        return [self.url] + [u for u in self.urls] if self.transport != 'stdio' else [self.url]
 
     @property
     def effective_prefix(self) -> str:

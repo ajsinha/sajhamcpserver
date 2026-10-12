@@ -122,15 +122,20 @@ curl -s -X POST http://127.0.0.1:3002/api/tools/execute -H "X-API-Key: $SAJHA_KE
 ... "you are alice-lab with scopes notes:read" ...
 ```
 
-(An API key acts as its owner, so use a key you own.) `notes__add_note` fails: the fake answers HTTP 403
-`insufficient_scope`, and SAJHA passes that back with a hint to re-connect, without marking your connection.
+(An API key acts as its owner, so use a key you own.) `notes__add_note` declares no `readOnlyHint`, so the
+shipped rule for proxied writes (`config/policies/20-proxied-writes.yaml`) holds it for approval first: the
+answer names an approval id. Approve it on the **Approvals** page (`/admin/approvals`, as an administrator other
+than the caller) and repeat the call; for the lab you may instead set `enabled: false` in that file. Then it
+fails: the fake answers HTTP 403 `insufficient_scope`, and SAJHA passes that back with a hint to re-connect,
+without marking your connection.
 
 ### 7. Allow changes
 
 On the connect page tick **Also allow changes (notes:write)** and **Sign in again with Lab notes**. The
 request now asks for `notes:read notes:write`; the page shows "changes allowed", and `notes__add_note`
 answers "added for alice-lab". Signing in again without ticking it goes back to read only. In production,
-pair write scopes with an approval rule ([Policy and Audit](../architecture/Policy%20and%20Audit.md)).
+keep write scopes paired with the approval rule for proxied writes
+([Policy and Audit §5.1](../architecture/Policy%20and%20Audit.md#51-the-shipped-rule-for-proxied-writes)).
 
 ### 8. Refresh and "needs re-connect"
 

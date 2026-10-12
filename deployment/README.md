@@ -51,13 +51,14 @@ All deployments use the same SAJHA application. The only difference is the stora
 # Bare metal / Hetzner (local filesystem)
 SAJHA_STORAGE_BACKEND=local
 
-# AWS (S3 for configs, hot-reload via S3 polling)
+# AWS (S3 for configs, hot-reload via S3 polling or SQS bucket events)
 SAJHA_STORAGE_BACKEND=s3
 SAJHA_S3_BUCKET=sajha-prod-123456
 ```
 
 Tool and prompt configs, the federation store and the guides go through the storage backend,
-and hot reload follows them; plugins, Studio-generated `.py` files, the database and the cache
+and hot reload follows them (by polling, or by bucket event notifications); on a cloud backend
+plugins and Studio-generated modules travel through the bucket too. The database and the cache
 stay on a real filesystem whatever the backend. What goes where is in the
 [Storage Guide](../docs/getting-started/Storage%20Guide.md).
 

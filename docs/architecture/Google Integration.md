@@ -16,8 +16,8 @@ Proxy Google's own MCP servers rather than writing Google tools by hand.
 2. Add Google's Drive and Calendar MCP servers as external proxied servers (`vendor: google`), read
    tools first.
 3. Add the Gmail server once the approval rules in section 5 are agreed.
-4. Writes (send, share, create events) always behind an approval rule in SAJHA's policy engine; no
-   default rule for proxied writes ships yet ([Roadmap](Roadmap.md) L20), so the operator writes it.
+4. Writes (send, share, create events) always behind an approval rule in SAJHA's policy engine: the
+   shipped rule for proxied writes covers every tool without `readOnlyHint` ([Policy and Audit §5.1](Policy%20and%20Audit.md#51-the-shipped-rule-for-proxied-writes)).
 
 The same per-user sign-in also lets SAJHA proxy every other hosted MCP server that asks each user to
 sign in (section 7), which hand-written Google tools would not.
@@ -60,8 +60,8 @@ mail content cannot travel to another SAJHA Net member), and sharing the tools a
 
 - **Prompt injection.** An email or document is untrusted text. An assistant that reads mail and can
   also send it is the classic attack path. Every write tool (send, reply, share, upload, create or
-  change an event) should require a human approval: write that [policy](Policy%20and%20Audit.md) rule, as no
-  default rule for proxied writes ships yet ([Roadmap](Roadmap.md) L20); mail and document content is screened
+  change an event) requires a human approval under the shipped rule for proxied writes
+  ([Policy and Audit §5.1](Policy%20and%20Audit.md#51-the-shipped-rule-for-proxied-writes)), as long as it is enabled; mail and document content is screened
   and treated as untrusted by the planners; see the [Adversarial QA Plan](Adversarial%20QA%20Plan.md).
 - **Google's app review.** Gmail's restricted scopes need Google's verification and a security
   assessment for apps used by personal accounts. An **Internal** OAuth app on the organisation's own

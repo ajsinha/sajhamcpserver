@@ -10,18 +10,29 @@ system/developer -> ``system``; tools -> ``toolSpec``, tool_choice auto | any | 
 tool calls/results -> ``toolUse`` / ``toolResult`` (``status: error`` for error results);
 images (data: URLs) -> bytes; temperature, top_p, stop -> ``inferenceConfig``; ``extra_body``
 -> ``additionalModelRequestFields``. Converse has no JSON output mode, so ``response_format``
-is refused (structured_output and json_mode are false), as are seed, reasoning_effort and
-``parallel_tool_calls: false``. ``stopReason: guardrail_intervened`` becomes
-``finish_reason: content_filter`` with ``message.refusal``. Async runs in a worker thread
-(boto3 is synchronous). Embeddings: Titan Text v2 (``dimensions``) and Cohere Embed
+is refused (structured_output and json_mode are false), as are seed and
+``parallel_tool_calls: false``. ``reasoning_effort`` goes into ``additionalModelRequestFields``
+per model family (``REASONING_FAMILIES``): Anthropic Claude -> ``output_config.effort``; Amazon
+Nova 2 -> ``reasoningConfig`` (``maxReasoningEffort`` low | medium | high, ``none`` disables
+it). Any other family refuses it with UnsupportedFeature naming the families that take it.
+``stopReason: guardrail_intervened`` becomes ``finish_reason: content_filter`` with
+``message.refusal``. Embeddings: Titan Text v2 (``dimensions``) and Cohere Embed
 (``input_type`` from the request's purpose) through InvokeModel.
+
+Async: with aiobotocore installed (``pip install aiobotocore``, or aioboto3 which brings it) the
+async paths (chat, stream, embeddings) call Bedrock natively, one client per event loop;
+without it they run the boto3 client in a worker thread. Neither library is needed to import
+this module.
 """
 
 from __future__ import annotations
 
+import asyncio
 import base64
+import inspect
 import json
-from typing import Any, ClassVar, Dict, Iterator, List, Optional
+import weakref
+from typing import Any, AsyncIterator, ClassVar, Dict, Iterator, List, Optional
 
 from pydantic import SecretStr
 
@@ -92,6 +103,57 @@ def map_bedrock_error(e: Exception, provider: str, model: str = "") -> LLMError:
                                  "ConnectionClosedError"):
         return ProviderUnavailable(msg, **kw)
     return ProviderUnavailable(msg, **kw)
+
+
+# ── reasoning_effort per model family ───────────────────────────
+
+_REGION_PREFIXES = ("us", "eu", "apac", "global", "us-gov", "jp", "au", "ca", "ap")
+NOVA_EFFORT = {"minimal": "low", "low": "low", "medium": "medium", "high": "high", "xhigh": "high"}
+
+
+def model_family(model_id: str) -> str:
+    """The vendor family of a Bedrock model id, inference-profile id or ARN
+    ("anthropic", "amazon.nova-2", "amazon", "meta", ...)."""
+    mid = (model_id or "").rsplit("/", 1)[-1].lower()
+    parts = mid.split(".")
+    if len(parts) > 2 and parts[0] in _REGION_PREFIXES:
+        parts = parts[1:]
+    vendor = parts[0]
+    if vendor == "amazon" and len(parts) > 1 and parts[1].startswith("nova-2"):
+        return "amazon.nova-2"
+    return vendor
+
+
+def _claude_effort(effort: str) -> Dict[str, Any]:
+    return {"output_config": {"effort": effort}}
+
+
+def _nova2_effort(effort: str) -> Dict[str, Any]:
+    if effort == "none":
+        return {"reasoningConfig": {"type": "disabled"}}
+    return {"reasoningConfig": {"type": "enabled", "maxReasoningEffort": NOVA_EFFORT[effort]}}
+
+
+REASONING_FAMILIES = {"anthropic": _claude_effort, "amazon.nova-2": _nova2_effort}
+
+
+def reasoning_fields(model_id: str, effort: str, provider: str = "bedrock") -> Dict[str, Any]:
+    """``additionalModelRequestFields`` for ``reasoning_effort`` on this model, or UnsupportedFeature."""
+    fn = REASONING_FAMILIES.get(model_family(model_id))
+    if fn is None:
+        raise UnsupportedFeature(
+            f"{provider}/{model_id} does not support reasoning_effort: on Bedrock it is sent for Anthropic "
+            f"Claude (output_config.effort) and Amazon Nova 2 (reasoningConfig) models only; for another "
+            f"model put its own field in additional_model_request_fields or extra_body",
+            provider=provider, model=model_id)
+    return fn(effort)
+
+
+def _merge(base: Dict[str, Any], over: Dict[str, Any]) -> Dict[str, Any]:
+    out = dict(base)
+    for k, v in over.items():
+        out[k] = {**out[k], **v} if isinstance(v, dict) and isinstance(out.get(k), dict) else v
+    return out
 
 
 def _image_format(mime: str) -> str:
@@ -170,7 +232,10 @@ def to_bedrock_kwargs(request: ChatCompletionRequest, *, model: str, cfg: "Bedro
     if cfg.guardrail_identifier:
         kw["guardrailConfig"] = {"guardrailIdentifier": cfg.guardrail_identifier,
                                  "guardrailVersion": cfg.guardrail_version or "DRAFT"}
-    extra = {**(cfg.additional_model_request_fields or {}), **(request.extra_body or {})}
+    extra: Dict[str, Any] = {}
+    if request.reasoning_effort is not None:
+        extra = reasoning_fields(model, request.reasoning_effort)
+    extra = _merge(_merge(extra, cfg.additional_model_request_fields or {}), request.extra_body or {})
     if extra:
         kw["additionalModelRequestFields"] = extra
     return kw
@@ -245,6 +310,11 @@ class BedrockChatModel(ChatModel):
                                  max_tokens=self.effective_max_tokens(request),
                                  temperature=self.effective_temperature(request))
 
+    def prepare(self, req: ChatCompletionRequest, stream: bool = False):
+        if req.reasoning_effort is not None:
+            reasoning_fields(self.id, req.reasoning_effort, self.provider.name)   # the family's refusal first
+        return super().prepare(req, stream)
+
     def _create(self, request: ChatCompletionRequest) -> ChatCompletion:
         client = self.provider.client()
         try:
@@ -270,31 +340,76 @@ class BedrockChatModel(ChatModel):
             raise map_bedrock_error(e, self.provider.name, self.id) from None
         yield from tr.close()
 
-
-class BedrockEmbeddingModel(EmbeddingModel):
-    def _embed(self, texts, purpose=None, dimensions=None):
-        client = self.provider.client()
-        cfg = self.provider.config
-        out: List[List[float]] = []
+    async def _acreate(self, request: ChatCompletionRequest) -> ChatCompletion:
+        if not self.provider.async_native():
+            return await super()._acreate(request)
         try:
-            if self.id.startswith("cohere."):
-                body = {"texts": list(texts),
-                        "input_type": {"query": "search_query", "document": "search_document"}.get(
-                            purpose or "") or cfg.embedding_input_type}
-                data = self._invoke(client, body)
-                emb = data.get("embeddings")
-                return emb.get("float") if isinstance(emb, dict) else emb
-            dims = dimensions or cfg.embedding_dimensions
-            for t in texts:
-                body: Dict[str, Any] = {"inputText": t}
-                if dims:
-                    body["dimensions"] = dims
-                out.append(self._invoke(client, body).get("embedding") or [])
+            kw = self.request_kwargs(request)
+            client = await self.provider.aclient()
+            async with self.provider.aslot():
+                data = await client.converse(**kw)
+        except Exception as e:
+            raise map_bedrock_error(e, self.provider.name, self.id) from None
+        comp = parse_bedrock(data, self.id)
+        comp._raw = data
+        return comp
+
+    async def _astream(self, request: ChatCompletionRequest) -> AsyncIterator:
+        if not self.provider.async_native():
+            async for c in super()._astream(request):
+                yield c
+            return
+        tr = BedrockStreamTranslator(self, request)
+        try:
+            kw = self.request_kwargs(request)
+            client = await self.provider.aclient()
+            async with self.provider.aslot():
+                resp = await client.converse_stream(**kw)
+                stream = resp.get("stream") or []
+                if hasattr(stream, "__aiter__"):
+                    async for ev in stream:
+                        for c in tr.feed("", ev):
+                            yield c
+                else:
+                    for ev in stream:
+                        for c in tr.feed("", ev):
+                            yield c
         except LLMError:
             raise
         except Exception as e:
             raise map_bedrock_error(e, self.provider.name, self.id) from None
-        return out
+        for c in tr.close():
+            yield c
+
+
+def _embed_body(model_id: str, cfg: "BedrockConfig", texts: List[str], purpose: Optional[str],
+                dimensions: Optional[int]) -> List[Dict[str, Any]]:
+    """InvokeModel bodies: one for a Cohere batch, one per text for Titan."""
+    if model_id.startswith("cohere."):
+        return [{"texts": list(texts), "input_type": {"query": "search_query", "document": "search_document"}.get(
+            purpose or "") or cfg.embedding_input_type}]
+    dims = dimensions or cfg.embedding_dimensions
+    return [{"inputText": t, **({"dimensions": dims} if dims else {})} for t in texts]
+
+
+def _embed_vectors(model_id: str, replies: List[Dict[str, Any]]) -> List[List[float]]:
+    if model_id.startswith("cohere."):
+        emb = replies[0].get("embeddings")
+        return emb.get("float") if isinstance(emb, dict) else emb
+    return [r.get("embedding") or [] for r in replies]
+
+
+class BedrockEmbeddingModel(EmbeddingModel):
+    def _embed(self, texts, purpose=None, dimensions=None):
+        client = self.provider.client()
+        try:
+            replies = [self._invoke(client, body)
+                       for body in _embed_body(self.id, self.provider.config, texts, purpose, dimensions)]
+        except LLMError:
+            raise
+        except Exception as e:
+            raise map_bedrock_error(e, self.provider.name, self.id) from None
+        return _embed_vectors(self.id, replies)
 
     def _invoke(self, client, body):
         with self.provider.slot():
@@ -304,6 +419,30 @@ class BedrockEmbeddingModel(EmbeddingModel):
         raw = raw.read() if hasattr(raw, "read") else raw
         return json.loads(raw)
 
+    async def _aembed(self, texts, purpose=None, dimensions=None):
+        if not self.provider.async_native():
+            return await super()._aembed(texts, purpose, dimensions)
+        try:
+            client = await self.provider.aclient()
+            replies = [await self._ainvoke(client, body)
+                       for body in _embed_body(self.id, self.provider.config, texts, purpose, dimensions)]
+        except LLMError:
+            raise
+        except Exception as e:
+            raise map_bedrock_error(e, self.provider.name, self.id) from None
+        return _embed_vectors(self.id, replies)
+
+    async def _ainvoke(self, client, body):
+        async with self.provider.aslot():
+            resp = await client.invoke_model(modelId=self.id, body=json.dumps(body),
+                                             contentType="application/json", accept="application/json")
+            raw = resp.get("body")
+            if hasattr(raw, "read"):
+                raw = raw.read()
+                if inspect.isawaitable(raw):
+                    raw = await raw
+        return json.loads(raw)
+
 
 @register_provider
 class BedrockProvider(ProviderBase):
@@ -311,7 +450,7 @@ class BedrockProvider(ProviderBase):
     config_model = BedrockConfig
     requires_key = False            # boto3's credential chain
     catalog_key = "bedrock"
-    feature_defaults = {"json_mode": False}
+    feature_defaults = {"json_mode": False, "reasoning_effort": "tagged"}
     unknown_model_capabilities = ModelCapabilities(tools=True, structured_output=False, context_window=128_000)
     chat_model_class = BedrockChatModel
     embedding_model_class = BedrockEmbeddingModel
@@ -319,36 +458,77 @@ class BedrockProvider(ProviderBase):
     def __init__(self, *a, **kw):
         super().__init__(*a, **kw)
         self._boto = None
+        self._aio: Optional[bool] = None
+        self._aboto: "weakref.WeakKeyDictionary" = weakref.WeakKeyDictionary()   # event loop -> client
 
     def auto_enabled(self) -> bool:
         cfg = self.config
         return bool(cfg.aws_access_key_id or cfg.profile)
 
+    def _injected(self):
+        t = self._transport
+        return t if t is not None and hasattr(t, "converse") else None
+
+    def _session_kwargs(self) -> Dict[str, Any]:
+        cfg = self.config
+        return dict(region_name=cfg.region or None, aws_access_key_id=cfg.aws_access_key_id or None,
+                    aws_secret_access_key=cfg.aws_secret_access_key.get_secret_value()
+                    if cfg.aws_secret_access_key else None,
+                    aws_session_token=cfg.aws_session_token.get_secret_value() if cfg.aws_session_token else None)
+
+    def _client_kwargs(self, config_cls) -> Dict[str, Any]:
+        cfg = self.config
+        bc = config_cls(connect_timeout=cfg.connect_timeout_s, read_timeout=cfg.read_timeout_s,
+                        retries={"max_attempts": 1, "mode": "standard"},
+                        max_pool_connections=max(10, cfg.max_concurrency),
+                        proxies={"https": cfg.proxy, "http": cfg.proxy} if cfg.proxy else None)
+        verify: Any = cfg.ca_bundle if (cfg.verify_tls and cfg.ca_bundle) else cfg.verify_tls
+        return dict(config=bc, endpoint_url=cfg.base_url or None, verify=verify)
+
     def client(self):
         """The bedrock-runtime client (an injected fake in tests)."""
-        if self._transport is not None and hasattr(self._transport, "converse"):
-            return self._transport
+        if self._injected() is not None:
+            return self._injected()
         if self._boto is None:
             try:
                 import boto3
                 from botocore.config import Config
             except ImportError:
                 raise ConfigurationError("bedrock needs boto3: pip install boto3", provider=self.name) from None
-            cfg = self.config
-            session = boto3.Session(
-                profile_name=cfg.profile or None, region_name=cfg.region or None,
-                aws_access_key_id=cfg.aws_access_key_id or None,
-                aws_secret_access_key=cfg.aws_secret_access_key.get_secret_value()
-                if cfg.aws_secret_access_key else None,
-                aws_session_token=cfg.aws_session_token.get_secret_value() if cfg.aws_session_token else None)
-            bc = Config(connect_timeout=cfg.connect_timeout_s, read_timeout=cfg.read_timeout_s,
-                        retries={"max_attempts": 1, "mode": "standard"},
-                        max_pool_connections=max(10, cfg.max_concurrency),
-                        proxies={"https": cfg.proxy, "http": cfg.proxy} if cfg.proxy else None)
-            verify: Any = cfg.ca_bundle if (cfg.verify_tls and cfg.ca_bundle) else cfg.verify_tls
-            self._boto = session.client("bedrock-runtime", config=bc, endpoint_url=cfg.base_url or None,
-                                        verify=verify)
+            sk = self._session_kwargs()
+            session = boto3.Session(profile_name=self.config.profile or None, **sk)
+            self._boto = session.client("bedrock-runtime", **self._client_kwargs(Config))
         return self._boto
+
+    def async_native(self) -> bool:
+        """True when the async paths call Bedrock natively: aiobotocore is installed (or the injected
+        test client is async). Otherwise they run the boto3 client in a worker thread."""
+        t = self._injected()
+        if t is not None:
+            return inspect.iscoroutinefunction(t.converse)
+        if self._aio is None:
+            try:
+                import aiobotocore.session  # noqa: F401
+                self._aio = True
+            except ImportError:
+                self._aio = False
+        return self._aio
+
+    async def aclient(self):
+        """The aiobotocore bedrock-runtime client for the running event loop (one per loop)."""
+        t = self._injected()
+        if t is not None:
+            return t
+        loop = asyncio.get_running_loop()
+        c = self._aboto.get(loop)
+        if c is None:
+            from aiobotocore.config import AioConfig
+            from aiobotocore.session import AioSession
+            session = AioSession(profile=self.config.profile or None)
+            c = await session.create_client("bedrock-runtime", **self._session_kwargs(),
+                                            **self._client_kwargs(AioConfig)).__aenter__()
+            self._aboto[loop] = c
+        return c
 
     def health(self) -> HealthStatus:
         if not self.active:
@@ -362,3 +542,4 @@ class BedrockProvider(ProviderBase):
 
     def close(self) -> None:
         self._boto = None
+        self._aboto = weakref.WeakKeyDictionary()

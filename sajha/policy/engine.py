@@ -81,6 +81,7 @@ class Call:
     # the other names the same tool answers to (a SAJHA Net tool's qualified name and plain alias): a rule
     # naming any of them decides for all, so a denied tool is not reachable under another name
     aliases: List[str] = field(default_factory=list)
+    proxied: bool = False                            # a proxied MCP server's tool (federation upstream)
 
     @property
     def group(self) -> str:
@@ -305,7 +306,8 @@ class PolicyEngine:
         cfg = getattr(tool, 'config', None) or {}
         ann = cfg.get('annotations') if isinstance(cfg, dict) else None
         call = Call(name, arguments if isinstance(arguments, dict) else {}, current(), context.source(),
-                    ann if isinstance(ann, dict) else {}, confirmed=context.confirmed(), aliases=tool_aliases(tool))
+                    ann if isinstance(ann, dict) else {}, confirmed=context.confirmed(), aliases=tool_aliases(tool),
+                    proxied=bool(getattr(tool, 'upstream_id', None)))
         if any(r.match.data_classes or (r.redact and r.redact.data_classes) for r in self.rules()):
             try:
                 from sajha.net.integration.residency import tool_classes

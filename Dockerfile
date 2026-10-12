@@ -17,8 +17,8 @@
 #   EXTRAS             optional packages, space separated:
 #                        redis  state.backend: redis
 #                        s3     storage.backend: s3 (boto3; also the bedrock provider)
-#                        azure  storage.backend: azure
-#                        gcs    storage.backend: gcs
+#                        azure  storage.backend: azure (+ azure-storage-queue for storage.events)
+#                        gcs    storage.backend: gcs (+ google-cloud-pubsub for storage.events)
 #                        otel   OpenTelemetry OTLP export
 #   WITH_OPENBB        true installs the OpenBB SDK (several hundred MB); the openbb_*
 #                      tools report an error without it
@@ -57,8 +57,8 @@ RUN set -eux; \
       case "$e" in \
         redis) pkgs="$pkgs redis>=5.0.0,<9.0.0" ;; \
         s3|boto3) pkgs="$pkgs boto3>=1.34.0,<2.0.0" ;; \
-        azure) pkgs="$pkgs azure-storage-blob>=12.19.0,<13.0.0 azure-identity>=1.15.0,<2.0.0" ;; \
-        gcs) pkgs="$pkgs google-cloud-storage>=2.14.0,<4.0.0" ;; \
+        azure) pkgs="$pkgs azure-storage-blob>=12.19.0,<13.0.0 azure-identity>=1.15.0,<2.0.0 azure-storage-queue>=12.9.0,<13.0.0" ;; \
+        gcs) pkgs="$pkgs google-cloud-storage>=2.14.0,<4.0.0 google-cloud-pubsub>=2.18.0,<3.0.0" ;; \
         otel) pkgs="$pkgs opentelemetry-sdk>=1.20.0,<2.0.0 opentelemetry-exporter-otlp>=1.20.0,<2.0.0" ;; \
         *) echo "unknown EXTRAS entry: $e" >&2; exit 1 ;; \
       esac; \

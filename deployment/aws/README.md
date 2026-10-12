@@ -131,7 +131,9 @@ deployment/aws/scripts/sync_to_s3.sh <bucket> config/
 ```
 
 The script also uploads `config/application.yml`; keep secrets out of it (they come from
-Secrets Manager). Plugins are not read from S3 (only from a local `config/plugins`, which this image does not include).
+Secrets Manager). It also uploads Studio-generated modules (to `studio/modules/`), scripts and
+plugins, which every task materialises from the bucket. For change notifications in seconds
+instead of the poll interval, see [push-based reload](../../docs/getting-started/Storage%20Guide.md#push-based-reload).
 What goes through storage is in the [Storage Guide](../../docs/getting-started/Storage%20Guide.md).
 
 Provider API keys (LLM, FMP, FRED, SharePoint, ...) go in the `sajha/<env>/app` secret the

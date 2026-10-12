@@ -27,11 +27,11 @@ from typing import Any, ClassVar, Dict, List, Literal, Optional
 
 from pydantic import Field, SecretStr
 
-from sajha.ai.llm.adapter import HTTPChatModel, StreamTranslator, WireCall, finish_with_calls
+from sajha.ai.llm.adapter import HTTPChatModel, HTTPEmbeddingModel, StreamTranslator, WireCall, finish_with_calls
 from sajha.ai.llm.canonical import (ChatCompletion, ChatCompletionRequest, ChatMessage, Choice, ChoiceDelta,
                                     CompletionUsage, FunctionCall, ToolCall)
-from sajha.ai.llm.http import post_json, safe_json_loads
-from sajha.ai.llm.model import EmbeddingModel, ModelCapabilities
+from sajha.ai.llm.http import safe_json_loads
+from sajha.ai.llm.model import ModelCapabilities
 from sajha.ai.llm.provider import ProviderBase
 from sajha.ai.llm.registry import register_provider
 from sajha.ai.llm.settings import ProviderConfig
@@ -254,7 +254,7 @@ class OpenAIChatModel(HTTPChatModel):
         return OpenAIStreamTranslator(self, request)
 
 
-class OpenAIEmbeddingModel(EmbeddingModel):
+class OpenAIEmbeddingModel(HTTPEmbeddingModel):
     def url(self) -> str:
         return self.provider.config.embeddings_path
 
@@ -264,15 +264,14 @@ class OpenAIEmbeddingModel(EmbeddingModel):
     def wire_model(self) -> str:
         return self.id
 
-    def _embed(self, texts, purpose=None, dimensions=None):
+    def embed_wire(self, texts, purpose=None, dimensions=None) -> WireCall:
         body: Dict[str, Any] = {"model": self.wire_model(), "input": list(texts)}
         dims = dimensions or self.provider.config.embedding_dimensions
         if dims:
             body["dimensions"] = dims
-        with self.provider.slot():
-            data = post_json(self.provider.http, self.url(), body, params=self.params(),
-                             headers=self.provider.request_headers() or None,
-                             provider=self.provider.name, model=self.id)
+        return WireCall(self.url(), body, self.params())
+
+    def embed_parse(self, data):
         rows = sorted(data.get("data") or [], key=lambda r: r.get("index", 0))
         vectors = [r.get("embedding") or [] for r in rows]
         tokens = (data.get("usage") or {}).get("prompt_tokens")

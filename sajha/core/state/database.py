@@ -56,6 +56,31 @@ class StateSchemaMissing(RuntimeError):
     """The state tables are missing on a database SAJHA must not change (run schema.sql there)."""
 
 
+def _own_pool_on_sajha_db():
+    """An engine on SAJHA's own database with a small pool of its own (``state.database.pool_size``,
+    default 3, plus as many overflow connections at most 2): state-store calls made on the event loop
+    (session lookups, rate-limit counters) then never wait behind request threads for a connection of
+    the request pool. SAJHA's engine itself when its database is in memory (a second engine would be
+    a second, empty database). docs/architecture/Scaling and State.md §7."""
+    from types import SimpleNamespace
+    from sajha.db import engine as eng
+    main = eng.get_engine()
+    url = main.url.render_as_string(hide_password=False)
+    if main.dialect.name == "sqlite" and eng._is_memory_sqlite(url):
+        return main
+    try:
+        from sajha.core.config import _int, get_settings
+        s = get_settings()
+        size = max(1, _int("state.database.pool_size", 3))
+        shim = SimpleNamespace(**{k: getattr(s, k) for k in dir(s) if k.startswith("db_")})
+        shim.db_pool_size, shim.db_pool_max_overflow = size, 2
+        shim.database_url = url
+        return eng.create_db_engine(shim, url=url)
+    except Exception as e:
+        logger.warning(f"state store: own pool not created ({e}); using SAJHA's pool")
+        return main
+
+
 def ensure_tables(engine) -> None:
     """SQLite (development): create the two tables if missing.  Any other database: no DDL; the
     tables come from db/scripts/<dialect>/schema.sql, and their absence is a clear error."""
@@ -90,6 +115,7 @@ class DatabaseStateStore(StateStore):
         super().__init__(prefix)
         self._engine = engine
         self._url = url
+        self._owns_engine = False
         self.poll_interval = max(0.05, poll_interval)
         self._ready = False
         self._init_lock = threading.Lock()
@@ -110,14 +136,23 @@ class DatabaseStateStore(StateStore):
                     {"pool_pre_ping": True}
                 self._engine = create_engine(self._url, **kwargs)
             else:
-                from sajha.db.engine import get_engine
-                self._engine = get_engine()
+                self._engine = _own_pool_on_sajha_db()
+                from sajha.db import engine as eng
+                self._owns_engine = self._engine is not eng._engine
         if not self._ready:
             with self._init_lock:
                 if not self._ready:
                     ensure_tables(self._engine)
                     self._ready = True
         return self._engine
+
+    def dispose(self) -> None:
+        """Close this store's own pool (only one it made; SAJHA's engine is never disposed here)."""
+        if self._engine is not None and self._owns_engine:
+            try:
+                self._engine.dispose()
+            except Exception:
+                pass
 
     def _sweep(self) -> None:
         now = time.time()
@@ -347,3 +382,4 @@ class DatabaseStateStore(StateStore):
 
     def close(self) -> None:
         self._stop.set()
+        self.dispose()      # the pool it opened on SAJHA's database (never one it was given)

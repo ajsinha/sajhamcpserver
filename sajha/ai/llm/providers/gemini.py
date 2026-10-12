@@ -42,12 +42,12 @@ from typing import Any, ClassVar, Dict, List, Literal, Optional
 import httpx
 from pydantic import Field
 
-from sajha.ai.llm.adapter import HTTPChatModel, StreamTranslator, WireCall, assistant_text, system_text, tool_names
+from sajha.ai.llm.adapter import (HTTPChatModel, HTTPEmbeddingModel, StreamTranslator, WireCall, assistant_text,
+                                  system_text, tool_names)
 from sajha.ai.llm.canonical import (ChatCompletion, ChatCompletionRequest, ChatMessage, Choice, CompletionUsage,
                                     FunctionCall, MessageSajha, ToolCall, split_data_url)
 from sajha.ai.llm.errors import AuthenticationFailed, ContentFiltered, ModelFailed
-from sajha.ai.llm.http import post_json
-from sajha.ai.llm.model import EmbeddingModel, ModelCapabilities
+from sajha.ai.llm.model import ModelCapabilities
 from sajha.ai.llm.provider import ProviderBase
 from sajha.ai.llm.registry import register_provider
 from sajha.ai.llm.settings import ProviderConfig
@@ -344,22 +344,21 @@ class GeminiChatModel(HTTPChatModel):
         return GeminiStreamTranslator(self, request)
 
 
-class GeminiEmbeddingModel(EmbeddingModel):
-    def _embed(self, texts, purpose=None, dimensions=None):
+class GeminiEmbeddingModel(HTTPEmbeddingModel):
+    def classify(self, resp):
+        return _classify(resp)
+
+    def embed_wire(self, texts, purpose=None, dimensions=None) -> WireCall:
         cfg = self.provider.config
         task = TASK_TYPE.get(purpose or "") or cfg.embedding_task_type
         dims = dimensions or cfg.embedding_dimensions
-        headers = self.provider.request_headers() or None
         prefix = self.provider.model_prefix(self.id)
         if self.provider.vertex:
             instances = [{"content": t, **({"task_type": task} if task else {})} for t in texts]
             body: Dict[str, Any] = {"instances": instances}
             if dims:
                 body["parameters"] = {"outputDimensionality": dims}
-            with self.provider.slot():
-                data = post_json(self.provider.http, f"{prefix}:predict", body, headers=headers,
-                                 provider=self.provider.name, model=self.id, classify=_classify)
-            return [((p.get("embeddings") or {}).get("values") or []) for p in data.get("predictions") or []]
+            return WireCall(f"{prefix}:predict", body)
         reqs = []
         for t in texts:
             r: Dict[str, Any] = {"model": f"models/{self.id}", "content": {"parts": [{"text": t}]}}
@@ -368,9 +367,11 @@ class GeminiEmbeddingModel(EmbeddingModel):
             if dims:
                 r["outputDimensionality"] = dims
             reqs.append(r)
-        with self.provider.slot():
-            data = post_json(self.provider.http, f"{prefix}:batchEmbedContents", {"requests": reqs},
-                             headers=headers, provider=self.provider.name, model=self.id, classify=_classify)
+        return WireCall(f"{prefix}:batchEmbedContents", {"requests": reqs})
+
+    def embed_parse(self, data):
+        if self.provider.vertex:                       # Vertex AI :predict
+            return [((p.get("embeddings") or {}).get("values") or []) for p in data.get("predictions") or []]
         return [e.get("values") or [] for e in data.get("embeddings") or []]
 
 

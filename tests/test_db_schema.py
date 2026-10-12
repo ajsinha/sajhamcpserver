@@ -379,4 +379,5 @@ def test_postgresql_file_applied_to_a_real_server_matches_the_code():
     assert schema.check(engine, 'strict') == {}
     with engine.connect() as c:
         assert c.exec_driver_sql("SELECT must_change_password FROM users WHERE user_id = 'admin'").scalar() is True
-        assert c.exec_driver_sql('SELECT COUNT(*) FROM roles').scalar() == 4
+        assert {r[0] for r in c.exec_driver_sql('SELECT name FROM roles')} == {
+            'admin', 'user', 'viewer', 'developer', 'llm_author'}             # seed.sql's default roles

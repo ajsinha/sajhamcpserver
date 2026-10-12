@@ -25,12 +25,13 @@ from __future__ import annotations
 
 from typing import Any, ClassVar, Dict, List, Literal, Optional
 
-from sajha.ai.llm.adapter import HTTPChatModel, StreamTranslator, WireCall, assistant_text, tool_result_text
+from sajha.ai.llm.adapter import (HTTPChatModel, HTTPEmbeddingModel, StreamTranslator, WireCall, assistant_text,
+                                  tool_result_text)
 from sajha.ai.llm.canonical import (ChatCompletion, ChatCompletionRequest, ChatMessage, Choice, CompletionUsage,
                                     FunctionCall, ToolCall)
 from sajha.ai.llm.errors import ModelFailed
-from sajha.ai.llm.http import post_json, safe_json_loads
-from sajha.ai.llm.model import EmbeddingModel, ModelCapabilities
+from sajha.ai.llm.http import safe_json_loads
+from sajha.ai.llm.model import ModelCapabilities
 from sajha.ai.llm.provider import ProviderBase
 from sajha.ai.llm.registry import register_provider
 from sajha.ai.llm.settings import ProviderConfig
@@ -181,8 +182,8 @@ class CohereChatModel(HTTPChatModel):
         return CohereStreamTranslator(self, request)
 
 
-class CohereEmbeddingModel(EmbeddingModel):
-    def _embed(self, texts, purpose=None, dimensions=None):
+class CohereEmbeddingModel(HTTPEmbeddingModel):
+    def embed_wire(self, texts, purpose=None, dimensions=None) -> WireCall:
         cfg = self.provider.config
         body: Dict[str, Any] = {"model": self.id, "texts": list(texts),
                                 "input_type": INPUT_TYPE.get(purpose or "") or cfg.embedding_input_type,
@@ -190,8 +191,9 @@ class CohereEmbeddingModel(EmbeddingModel):
         dims = dimensions or cfg.embedding_dimensions
         if dims:
             body["output_dimension"] = dims
-        with self.provider.slot():
-            data = post_json(self.provider.http, cfg.embed_path, body, provider=self.provider.name, model=self.id)
+        return WireCall(cfg.embed_path, body)
+
+    def embed_parse(self, data):
         emb = data.get("embeddings") or {}
         vectors = emb.get("float") if isinstance(emb, dict) else emb
         tokens = ((data.get("meta") or {}).get("billed_units") or {}).get("input_tokens")

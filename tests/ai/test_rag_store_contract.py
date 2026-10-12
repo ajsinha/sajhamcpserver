@@ -40,8 +40,13 @@ def make_store(name, tmp_path) -> VectorStore:
         return SqliteVecStore(str(tmp_path / "rag" / "vectors.db"))
     from sqlalchemy import create_engine, text
     eng = create_engine(PG_URL)
+    try:
+        with eng.begin() as c:
+            c.execute(text("CREATE EXTENSION IF NOT EXISTS vector"))
+    except Exception as e:      # a plain PostgreSQL image has no pgvector: the other PG tests still run
+        eng.dispose()
+        pytest.skip(f"the vector extension is not available on SAJHA_TEST_POSTGRES_URL ({type(e).__name__})")
     with eng.begin() as c:
-        c.execute(text("CREATE EXTENSION IF NOT EXISTS vector"))
         c.execute(text("DROP TABLE IF EXISTS rag_chunks"))
         c.execute(text("CREATE TABLE rag_chunks (id VARCHAR(64) PRIMARY KEY, source VARCHAR(200) NOT NULL, "
                        "document VARCHAR(1000) NOT NULL, doc_hash VARCHAR(64) NOT NULL, embedder VARCHAR(200) NOT NULL, "

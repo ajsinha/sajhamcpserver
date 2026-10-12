@@ -209,6 +209,24 @@
         </div>
     </div>
 
+    <!-- Database connection pool, per worker (sajha/db/engine.py pool_status) -->
+    <div class="card mb-3" id="dbPoolCard">
+        <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
+            <span><i class="bi bi-hdd-stack me-2"></i>Database Connection Pool</span>
+            <span class="small text-muted" id="dbPoolSummary">—</span>
+        </div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-sm mb-0 process-table">
+                    <thead><tr><th>Worker</th><th>Database</th><th>Size</th><th>Max overflow</th><th>Checked out</th>
+                        <th>Overflow in use</th><th>Waiting</th><th>Checkout timeouts</th></tr></thead>
+                    <tbody id="dbPoolRows"></tbody>
+                </table>
+            </div>
+            <div class="small text-muted px-3 py-2" id="dbPoolUrl"></div>
+        </div>
+    </div>
+
     <!-- Cache Statistics -->
     <div class="card mb-3">
         <div class="card-header d-flex justify-content-between align-items-center">
@@ -282,6 +300,31 @@ function fmtUptime(secs) {
     if (d > 0) return d + 'd ' + h + 'h ' + m + 'm';
     if (h > 0) return h + 'h ' + m + 'm';
     return m + 'm ' + Math.floor(secs%60) + 's';
+}
+
+function renderDbPool(pool) {
+    var tbody = document.getElementById('dbPoolRows');
+    var workers = pool.workers || [];
+    tbody.textContent = '';
+    var timeouts = 0, url = '', timeout = null;
+    workers.forEach(function(w) {
+        var tr = document.createElement('tr');
+        var label = (w.worker || '—') + (w.this_worker ? ' (this worker)' : '');
+        [label, w.db_type || '—', w.size, w.max_overflow, w.checked_out, w.overflow_in_use, w.waiting,
+         w.exhausted_total].forEach(function(v) {
+            var td = document.createElement('td');
+            td.textContent = (v === undefined || v === null) ? '—' : String(typeof v === 'number' ? Math.round(v) : v);
+            tr.appendChild(td);
+        });
+        if ((w.exhausted_total || 0) > 0) tr.className = 'table-warning';
+        tbody.appendChild(tr);
+        timeouts += (w.exhausted_total || 0);
+        if (w.this_worker) { url = w.url || ''; timeout = w.timeout_seconds; }
+    });
+    document.getElementById('dbPoolSummary').textContent = workers.length + ' worker(s)'
+        + (timeout !== null && timeout !== undefined ? ', checkout timeout ' + timeout + ' s' : '')
+        + ', ' + Math.round(timeouts) + ' checkout timeout(s)';
+    document.getElementById('dbPoolUrl').textContent = url ? 'Database: ' + url : '';
 }
 
 function refreshData() {
@@ -364,6 +407,9 @@ function refreshData() {
             document.getElementById('mcpVersion').textContent = d.mcp_protocol_version || '—';
             document.getElementById('toolsLoaded').textContent = d.tools_loaded || '—';
             document.getElementById('dbType').textContent = d.db_type || '—';
+
+            // Database connection pool, one row per live worker
+            renderDbPool(d.db_pool || {});
 
             // Top processes
             var rows = d.top_processes || [];

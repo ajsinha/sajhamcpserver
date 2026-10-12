@@ -67,6 +67,7 @@ class AuthContext:
     _user: Optional[User] = field(default=None, repr=False)
     _db: Optional[Session] = field(default=None, repr=False)
     _presented: Optional[Any] = field(default=None, repr=False, compare=False)  # the raw API key (this request)
+    _mcp_session: Optional[dict] = field(default=None, repr=False, compare=False)  # prepare_mcp_session()
 
     def has_tool_access(self, tool_name: str) -> bool:
         """May this caller execute the tool?  (sajha/auth/access.py: roles, API key lists.)"""
@@ -81,19 +82,73 @@ class AuthContext:
             return False
         if self.is_admin:
             return True
-        if self._user and self._db:
-            perm_dao = PermissionDAO(self._db)
-            return perm_dao.check_access(self._user.roles, resource_type, resource_name, action)
-        return False
+        if self._user is None:
+            return False
+        # From the roles' permissions in memory: release_db (get_current_user, authorize_mcp) has read
+        # them already, so this check checks no connection out (an async route that calls it and then
+        # awaits slow work holds none). docs/architecture/Scaling and State.md §7
+        try:
+            perms = [p for role in (self._user.roles or ()) for p in (role.permissions or ())]
+        except Exception:           # detached before its permissions were read: ask the database
+            if self._db is None:
+                return False
+            from sajha.auth.access import _roles_by_name
+            perms = [p for role in (_roles_by_name(self._db, self.roles) or ()) for p in (role.permissions or ())]
+        return PermissionDAO.matches(perms, resource_type, resource_name, action)
 
     def to_legacy_session(self) -> dict:
         """
         The session dict MCPHandler receives: identity plus this caller's tool policy
         (``tools`` = execute patterns, ``visible_tools``, ``denied_tools``).  Works for an
         unauthenticated context too (the anonymous policy, ``mcp.anonymous.*``).
+
+        The dict is all the call path needs, so the request's database session then gives its
+        connection back to the pool (``Session.close``, which the request's end would do anyway;
+        the session stays usable).  An MCP request awaits its call, or holds a stream open, after
+        this: a connection kept through that let in-flight requests exhaust the pool, and the next
+        request's authentication then blocked the event loop on the pool for up to its timeout
+        (docs/architecture/Scaling and State.md §7).
         """
+        if self._mcp_session is not None:      # built in the thread pool by prepare_mcp_session
+            return dict(self._mcp_session)
         from sajha.auth.access import mcp_session_for
-        return mcp_session_for(self)
+        out = mcp_session_for(self)
+        self.release_db()
+        return out
+
+    def prepare_mcp_session(self) -> 'AuthContext':
+        """Build the MCP session dict now (it reads the caller's roles, permissions and the anonymous
+        role from the database) and give the connection back; :meth:`to_legacy_session` then returns
+        it without touching the database.  ``authorize_mcp`` calls this in the thread pool, so an async
+        MCP route never waits on the database on the event loop."""
+        from sajha.auth.access import mcp_session_for
+        self._mcp_session = mcp_session_for(self)
+        self.release_db()
+        return self
+
+    def release_db(self) -> None:
+        """Give this request's database connection back to the pool (``release_session``), before
+        the request awaits long work: a tool call, a model call, a stream.
+
+        The caller's roles and their permissions are read first, so the checks made after the
+        release (``has_tool_access``, the tool policy) read them from memory; the session itself
+        stays usable (``has_permission`` and the route's own queries check a connection out again).
+        ``get_current_user`` calls this for every route that authenticates through it
+        (docs/architecture/Scaling and State.md §7).
+        """
+        if self._db is None:
+            return
+        user = self._user
+        if user is not None:
+            try:
+                for role in (user.roles or ()):
+                    _ = role.id, role.name
+                    for perm in (role.permissions or ()):
+                        _ = perm.resource_type, perm.resource_name, perm.actions
+            except Exception as e:
+                logger.debug(f'release_db: reading the roles first: {e}')
+        from sajha.db.engine import release_session
+        release_session(self._db)
 
 
 def _observe_auth_failure(method: str, lockout: bool = False) -> None:
@@ -262,6 +317,9 @@ class AuthManager:
         try:
             valid, api_key, msg = apikey_dao.validate_key(raw_key)
         except Exception as e:
+            from sajha.db.engine import is_pool_exhausted
+            if is_pool_exhausted(e):
+                raise       # the pool is dry, the database is fine: 503 + Retry-After, never a 401
             logger.warning(f'API key lookup in the database failed ({type(e).__name__}); trying the persistent key file')
             db_ok, valid, api_key, msg = False, False, None, 'database unavailable'
             try:
@@ -342,7 +400,10 @@ class AuthManager:
             if db_ok:
                 try:
                     user = UserDAO(db).get_by_user_id(owner_id)
-                except Exception:
+                except Exception as e:
+                    from sajha.db.engine import is_pool_exhausted
+                    if is_pool_exhausted(e):
+                        raise       # 503 + Retry-After, not a downgraded identity
                     db_ok = False
                     try:
                         db.rollback()
@@ -444,6 +505,12 @@ def get_current_user(
         request.state.auth = auth      # render() reads it for the navigation (can_use_studio)
     except Exception:
         pass
+    # Authentication is done with the connection: give it back now, so a route that then awaits a
+    # tool, a model or a stream holds none (the session stays usable for the route's own queries).
+    auth.release_db()
+    if auth._db is not db:
+        from sajha.db.engine import release_session
+        release_session(db)
     return auth
 
 

@@ -26,7 +26,7 @@ async def monitoring_tools(request: Request, auth: AuthContext = Depends(require
 
 
 @router.get('/monitoring/users')
-async def monitoring_users(request: Request, auth: AuthContext = Depends(require_admin)):
+def monitoring_users(request: Request, auth: AuthContext = Depends(require_admin)):
     from sajha.db.engine import get_db_session
     from sajha.db.dao import UserDAO
     db = get_db_session()

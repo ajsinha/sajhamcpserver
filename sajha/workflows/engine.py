@@ -8,6 +8,10 @@ a step that had succeeded is never run again (its stored output is reused); a st
 was running when the worker died runs again only if it is idempotent, otherwise it is
 marked failed (and can be re-run from the UI, CLI or API).
 
+A ``foreach`` body is one call or a small graph of steps (tool, composite, ask, condition,
+wait) run per item in dependency order with the item in context; its steps' state is held in
+memory for the item (the foreach step as a whole is what is recorded and resumed).
+
 Waits longer than ``workflows.inline_wait_seconds`` and approvals park the run
 (status ``waiting``) and free the worker; the scheduler resumes it when the time has come
 or the approval is decided.
@@ -68,6 +72,39 @@ class Cancelled(Exception):
 def _key(*parts: Any) -> str:
     raw = json.dumps(parts, sort_keys=True, default=str, separators=(',', ':'))
     return hashlib.sha256(raw.encode()).hexdigest()[:32]
+
+
+def _decide(step: Dict[str, Any], steps: Dict[str, Dict[str, Any]], status: Dict[str, str],
+            outputs: Dict[str, Any], ctx_fn) -> str:
+    """'wait' (dependencies not done), 'run' or 'skip:<reason>' for one step of a graph (the run's
+    DAG or a foreach body): dependencies, condition branches, ``join`` and ``when``."""
+    deps = step['depends_on']
+    states = [status.get(d, 'pending') for d in deps]
+    if any(s not in STEP_DONE for s in states):
+        return 'wait'
+    sid = step['id']
+    for cid, c in steps.items():
+        if c['kind'] != 'condition' or status.get(cid) != 'succeeded':
+            continue
+        result = bool((outputs.get(cid) or {}).get('result'))
+        if sid in c.get('then', []) and not result:
+            return f'skip:branch not taken ({cid} was false)'
+        if sid in c.get('else', []) and result:
+            return f'skip:branch not taken ({cid} was true)'
+    join = step.get('join', 'all_success')
+    if deps:
+        ok = [s == 'succeeded' for s in states]
+        if join == 'all_success' and not all(ok):
+            return 'skip:a dependency did not succeed'
+        if join == 'any_success' and not any(ok):
+            return 'skip:no dependency succeeded'
+    if step.get('when') is not None:
+        try:
+            if not expr.evaluate(step['when'], ctx_fn()):
+                return 'skip:"when" was false'
+        except Exception as e:
+            return f'skip:"when" could not be evaluated: {e}'
+    return 'run'
 
 
 def _parse_until(v: Any) -> float:
@@ -164,6 +201,8 @@ class RunExecutor:
         if kind in ('condition', 'wait', 'approval'):
             return True
         if kind == 'foreach':
+            if step['do'].get('kind') == 'graph':
+                return all(self.idempotent(b) for b in step['do']['steps'])
             return self.idempotent(dict(step['do']))
         if kind in ('tool', 'composite'):
             tool = self.svc.get_tool(step['tool'])
@@ -221,33 +260,8 @@ class RunExecutor:
 
     def _readiness(self, sid: str) -> str:
         """'wait' (dependencies not done), 'run' or 'skip:<reason>'."""
-        step = self.steps[sid]
-        deps = step['depends_on']
-        states = [self.records[d]['status'] for d in deps]
-        if any(s not in STEP_DONE for s in states):
-            return 'wait'
-        for cid, c in self.steps.items():
-            if c['kind'] != 'condition' or self.records[cid]['status'] != 'succeeded':
-                continue
-            result = bool((self.outputs.get(cid) or {}).get('result'))
-            if sid in c.get('then', []) and not result:
-                return f'skip:branch not taken ({cid} was false)'
-            if sid in c.get('else', []) and result:
-                return f'skip:branch not taken ({cid} was true)'
-        join = step.get('join', 'all_success')
-        if deps:
-            ok = [s == 'succeeded' for s in states]
-            if join == 'all_success' and not all(ok):
-                return 'skip:a dependency did not succeed'
-            if join == 'any_success' and not any(ok):
-                return 'skip:no dependency succeeded'
-        if step.get('when') is not None:
-            try:
-                if not expr.evaluate(step['when'], self.ctx()):
-                    return 'skip:"when" was false'
-            except Exception as e:
-                return f'skip:"when" could not be evaluated: {e}'
-        return 'run'
+        status = {k: r['status'] for k, r in self.records.items()}
+        return _decide(self.steps[sid], self.steps, status, self.outputs, self.ctx)
 
     def _wait_satisfied(self, sid: str) -> bool:
         detail = self.records[sid].get('detail') or {}
@@ -465,8 +479,14 @@ class RunExecutor:
         body = step['do']
         results: List[Any] = [None] * len(items)
         errors: List[Optional[str]] = [None] * len(items)
+        graph = body.get('kind') == 'graph'
+        if graph and len(body['steps']) > self.svc.body_max_steps:
+            raise StepError(f'foreach: the body has {len(body["steps"])} steps, more than '
+                            f'workflows.foreach_max_body_steps ({self.svc.body_max_steps})')
 
         def one(i):
+            if graph:
+                return self._run_body(sid, body, items[i], i)
             c = self.ctx(items[i], i, with_item=True)
             out, _ = self._call(sid, body, c, top_level=False, salt=i)
             return out
@@ -490,6 +510,66 @@ class RunExecutor:
         return ({'items': results, 'count': len(items), 'truncated': truncated,
                  'failed': sum(1 for e in errors if e)},
                 {'items': bounded(items, 2000), 'max_items': cap})
+
+    def _run_body(self, sid: str, body: Dict[str, Any], item: Any, index: int) -> Any:
+        """One item of a foreach whose body is a graph: its steps in dependency order, one at a time,
+        with ``$item``/``$index`` and ``$steps`` seeing the run's finished steps plus this item's.
+        Returns the body's ``output`` mapping, or every body step's output keyed by id."""
+        bsteps = {b['id']: b for b in body['steps']}
+        status: Dict[str, str] = {}
+        outs: Dict[str, Any] = {}
+        errors: Dict[str, str] = {}
+
+        def c():
+            ctx = self.ctx(item, index, with_item=True)
+            ctx['steps'].update(outs)
+            return ctx
+
+        for bid in topo_order(body['steps']):
+            if self.cancelled():
+                raise Cancelled()
+            b = bsteps[bid]
+            r = _decide(b, bsteps, status, outs, c)
+            if r != 'run':                      # in topo order a dependency is always done: a skip
+                status[bid] = 'skipped'
+                continue
+            try:
+                if b['kind'] == 'condition':
+                    outs[bid] = {'result': bool(expr.evaluate(b['if'], c()))}
+                elif b['kind'] == 'wait':
+                    outs[bid] = self._body_wait(b, c())
+                else:
+                    outs[bid], _ = self._call(sid, b, c(), top_level=False, salt=(index, bid))
+                status[bid] = 'succeeded'
+            except (Waiting, Cancelled):
+                raise
+            except Exception as e:  # noqa: BLE001
+                status[bid] = 'failed'
+                if b.get('on_error', 'fail') == 'fail':
+                    raise StepError(f'body step {bid}: {e}')
+                errors[bid] = str(e) or e.__class__.__name__
+        if body.get('output') is not None:
+            return expr.resolve(body['output'], c())
+        result: Dict[str, Any] = {b: outs[b] for b in bsteps if b in outs}
+        result.update({b: {'error': e} for b, e in errors.items()})
+        return result
+
+    def _body_wait(self, b: Dict[str, Any], ctx: Dict[str, Any]) -> Dict[str, Any]:
+        """A wait inside a foreach body: in the worker only (an item cannot park the run)."""
+        if b.get('until') is not None:
+            wake = _parse_until(expr.resolve(b['until'], ctx))
+        else:
+            secs = expr.resolve(b.get('seconds'), ctx)
+            try:
+                wake = time.time() + max(0.0, float(secs))
+            except (TypeError, ValueError):
+                raise StepError(f'wait: seconds resolved to {secs!r}, not a number')
+        left = wake - time.time()
+        if left > self.svc.inline_wait_seconds:
+            raise StepError(f'a wait inside a foreach body is at most workflows.inline_wait_seconds '
+                            f'({self.svc.inline_wait_seconds:g}s); this one is {left:.0f}s')
+        self.sleep(left)
+        return {'woke_at': time.time(), 'wake_at': wake}
 
     def _call(self, sid: str, spec: Dict[str, Any], ctx: Dict[str, Any], top_level: bool, salt: Any = None):
         """A tool / composite / ask call with retries, backoff and a timeout."""

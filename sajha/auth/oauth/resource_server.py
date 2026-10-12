@@ -7,7 +7,9 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha
   (401, and 403 insufficient_scope).
 * Bearer validation: signature (built-in key, or the external issuer's JWKS
   found via RFC 8414 / OIDC discovery, cached), ``iss``, ``aud`` == this MCP
-  resource (RFC 8707), ``exp``/``nbf``, then per-method scope checks.
+  resource (RFC 8707), ``exp``/``nbf``, then per-method scope checks.  An
+  external issuer's opaque tokens are checked by RFC 7662 introspection
+  instead (sajha.auth.oauth.introspection).
 
 Existing SAJHA credentials (X-API-Key / sja_ keys, SAJHA login JWTs, the
 session cookie) keep working in every mode; OAuth access tokens are accepted
@@ -196,6 +198,9 @@ def _scopes_of(claims: Dict[str, Any]) -> Set[str]:
 
 async def validate_bearer(token: str, request: Request) -> TokenInfo:
     from jose import jwt, JWTError
+    from sajha.auth.oauth.introspection import get_introspector, should_introspect
+    if should_introspect(token):      # external issuer, RFC 7662 (mcp.auth.external.introspection.mode)
+        return await get_introspector().introspect(token, request, settings.external_issuer())
     try:
         header = jwt.get_unverified_header(token)
     except JWTError:
@@ -285,9 +290,13 @@ async def authorize_mcp(request: Request, db, method: Optional[str] = None):
     Authenticate an MCP transport request.  Returns ``(AuthContext, error_response)``;
     when error_response is not None the caller returns it as is.
     """
-    from sajha.auth import AuthManager, AuthContext
+    from sajha.auth import AuthContext
     from sajha.auth.access import anonymous_enabled
-    ctx = AuthManager.authenticate_request(request, db)
+    from starlette.concurrency import run_in_threadpool
+    # The database part (key or token lookup, the caller's roles and tool policy) runs in the thread
+    # pool and gives its connection back before returning: the event loop never waits on the pool
+    # (docs/architecture/Scaling and State.md §7).
+    ctx = await run_in_threadpool(_authenticate_sync, request, db)
     from sajha.auth.presented_key import bind
     bind(ctx)                       # the API key this request presented (SAJHA Net forwards it), or none
     mode = settings.auth_mode()
@@ -299,7 +308,9 @@ async def authorize_mcp(request: Request, db, method: Optional[str] = None):
         # or 401 when mcp.anonymous.enabled is false.
         if presented_credentials(request):
             return ctx, invalid_credentials()
-        return ctx, (None if anonymous_enabled() else anonymous_refused())
+        if not anonymous_enabled():
+            return ctx, anonymous_refused()
+        return await run_in_threadpool(ctx.prepare_mcp_session), None
 
     token = _bearer(request)
     if token:
@@ -308,7 +319,7 @@ async def authorize_mcp(request: Request, db, method: Optional[str] = None):
         except TokenError as e:
             logger.info(f'Rejected MCP bearer token: {e}')
             return AuthContext(authenticated=False), challenge(request, 401, 'invalid_token', str(e))
-        oauth_ctx = context_for_token(info, db)
+        oauth_ctx = await run_in_threadpool(_oauth_context_sync, info, db)
         if oauth_ctx is None:
             return AuthContext(authenticated=False), challenge(request, 401, 'invalid_token',
                                                                'unknown or disabled user')
@@ -322,7 +333,33 @@ async def authorize_mcp(request: Request, db, method: Optional[str] = None):
         return ctx, challenge(request, 401, 'invalid_token', 'invalid or expired credentials')
     if mode == 'required' or not anonymous_enabled():
         return ctx, challenge(request, 401)
-    return ctx, None
+    return await run_in_threadpool(ctx.prepare_mcp_session), None
+
+
+def _authenticate_sync(request: Request, db):
+    """authorize_mcp's database part (thread pool): authenticate, then build the MCP session of a
+    signed-in caller and release the connection."""
+    from sajha.auth import AuthManager
+    from sajha.db.engine import release_session
+    try:
+        ctx = AuthManager.authenticate_request(request, db)
+        if ctx.authenticated:
+            ctx.prepare_mcp_session()
+        return ctx
+    finally:
+        release_session(db)
+
+
+def _oauth_context_sync(info: TokenInfo, db):
+    """context_for_token plus the MCP session, in the thread pool."""
+    from sajha.db.engine import release_session
+    try:
+        ctx = context_for_token(info, db)
+        if ctx is not None:
+            ctx.prepare_mcp_session()
+        return ctx
+    finally:
+        release_session(db)
 
 
 def presented_credentials(request: Request) -> bool:

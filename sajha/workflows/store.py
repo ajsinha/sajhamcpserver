@@ -266,6 +266,16 @@ class WorkflowStore:
         with self.ensure().connect() as c:
             return [self._run(r) for r in c.execute(q)]
 
+    def last_trigger_run(self, workflow: str, trigger_type: str, trigger_id: str) -> Optional[Dict[str, Any]]:
+        """The newest run a trigger started (cron catch-up reads its slot)."""
+        q = select(workflow_runs).where(and_(workflow_runs.c.workflow == workflow,
+                                             workflow_runs.c.trigger_type == trigger_type,
+                                             workflow_runs.c.trigger_id == trigger_id)) \
+            .order_by(workflow_runs.c.created_at.desc()).limit(1)
+        with self.ensure().connect() as c:
+            r = c.execute(q).first()
+        return self._run(r) if r else None
+
     def runs_with_status(self, statuses: Iterable[str]) -> List[Dict[str, Any]]:
         q = select(workflow_runs).where(workflow_runs.c.status.in_(list(statuses))) \
             .order_by(workflow_runs.c.created_at)

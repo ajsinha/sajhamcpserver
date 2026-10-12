@@ -16,7 +16,12 @@ the envelope ``{"status", "body", "next_page"?}`` for a 2xx answer. Anything els
     params: [{arg, name, in, style, explode}], body: {arg, content_type} | None,
     response_content_type, security: [[scheme, ...], ...] | None,
     auth: {scheme: {type, ... *_ref secret references}}, timeout_seconds,
-    rate_limit_per_minute, pagination, graphql: {document, field, operation_name}, fingerprint
+    rate_limit_per_minute, pagination (pager parameter names, a hint),
+    paginate (opt-in page following, sajha/api_import/paging.py) | absent,
+    graphql: {document, field, operation_name}, fingerprint
+
+    body may also carry ``fields`` / ``part_types`` (multipart/form-data) or ``binary: true``;
+    file values are encoded by sajha/api_import/bodies.py.
 """
 
 from __future__ import annotations
@@ -29,7 +34,7 @@ from collections import deque
 from typing import Any, Dict, List, Optional, Tuple
 from urllib.parse import quote, urlencode
 
-from sajha.api_import import fetch, settings
+from sajha.api_import import bodies, fetch, paging, settings
 from sajha.tools.base_mcp_tool import BaseMCPTool
 
 USER_AGENT = 'SAJHA-API-Import'
@@ -271,7 +276,15 @@ def build_request(spec: Dict[str, Any], arguments: Dict[str, Any]):
     elif body and body.get('arg') in arguments:
         value = arguments[body['arg']]
         ct = body.get('content_type') or 'application/json'
-        if ct == 'application/x-www-form-urlencoded':
+        if ct == bodies.MULTIPART or body.get('binary'):
+            try:
+                if ct == bodies.MULTIPART:
+                    content, ct = bodies.encode_multipart(value, body.get('fields') or {}, body.get('part_types'))
+                else:
+                    content, ct = bodies.encode_binary(value, ct)
+            except bodies.BodyError as e:
+                raise APICallError(f'{body["arg"]}: {e}')
+        elif ct == 'application/x-www-form-urlencoded':
             pairs = []
             for k, v in (value or {}).items() if isinstance(value, dict) else []:
                 pairs += [(k, _scalar(x)) for x in v] if isinstance(v, list) else [(k, _scalar(v))]
@@ -304,13 +317,10 @@ def _redact(text: str, secrets_used: List[str]) -> str:
     return redact(text, secrets_used)
 
 
-def call(spec: Dict[str, Any], arguments: Dict[str, Any]) -> Dict[str, Any]:
-    """Make the call ``spec`` describes with ``arguments``; the envelope, or APICallError."""
-    timeout = float(spec.get('timeout_seconds') or settings.timeout_seconds())
-    _check_rate(str(spec.get('api_id') or ''), int(spec.get('rate_limit_per_minute') or 0))
-    method, url, query, headers, cookies, content = build_request(spec, arguments or {})
-    label = f"{method} {spec.get('path') or url}" if spec.get('kind') != 'graphql' else \
-        f"GraphQL {(spec.get('graphql') or {}).get('field', '')}"
+def _send(spec: Dict[str, Any], method: str, url: str, query: List[Tuple[str, str]], headers: Dict[str, str],
+          cookies: Dict[str, str], content: Optional[bytes], timeout: float, label: str):
+    """One guarded request with the credentials applied (an OAuth 401 retried once with a fresh
+    token); (response, secret values used). Raises APICallError."""
     resp, secrets_used = None, []
     for attempt in (0, 1):
         send_headers, send_query, send_cookies = dict(headers), list(query), dict(cookies)
@@ -340,6 +350,17 @@ def call(spec: Dict[str, Any], arguments: Dict[str, Any]) -> Dict[str, Any]:
         if snippet:
             msg += f': {snippet}'
         raise APICallError(_redact(msg, secrets_used), resp.status)
+    return resp, secrets_used
+
+
+def call(spec: Dict[str, Any], arguments: Dict[str, Any]) -> Dict[str, Any]:
+    """Make the call ``spec`` describes with ``arguments``; the envelope, or APICallError."""
+    timeout = float(spec.get('timeout_seconds') or settings.timeout_seconds())
+    _check_rate(str(spec.get('api_id') or ''), int(spec.get('rate_limit_per_minute') or 0))
+    method, url, query, headers, cookies, content = build_request(spec, arguments or {})
+    label = f"{method} {spec.get('path') or url}" if spec.get('kind') != 'graphql' else \
+        f"GraphQL {(spec.get('graphql') or {}).get('field', '')}"
+    resp, secrets_used = _send(spec, method, url, query, headers, cookies, content, timeout, label)
     body = _parse_body(resp)
     if spec.get('kind') == 'graphql':
         if not isinstance(body, dict):
@@ -355,9 +376,132 @@ def call(spec: Dict[str, Any], arguments: Dict[str, Any]) -> Dict[str, Any]:
         if errors:
             out['errors'] = errors
         return out
+    if spec.get('paginate') and method == 'GET':
+        return _follow(spec, spec['paginate'], resp, body, url, query, headers, cookies, timeout, label)
     out = {'status': resp.status, 'body': body}
     if resp.links.get('next'):
         out['next_page'] = resp.links['next']
+    return out
+
+
+# ── pagination following (opt-in per operation; sajha/api_import/paging.py) ──
+
+def _replace(query: List[Tuple[str, str]], name: str, value: str) -> List[Tuple[str, str]]:
+    return [(k, v) for k, v in query if k != name] + [(name, value)]
+
+
+def _first(query: List[Tuple[str, str]], name: str) -> Optional[str]:
+    return next((v for k, v in query if k == name), None)
+
+
+def _follow(spec: Dict[str, Any], cfg: Dict[str, Any], first: fetch.Response, body: Any, url: str,
+            query: List[Tuple[str, str]], headers: Dict[str, str], cookies: Dict[str, str],
+            timeout: float, label: str) -> Dict[str, Any]:
+    """Follow the pages after ``first`` within the caps; the merged envelope."""
+    import logging
+    mode = cfg.get('mode')
+    max_pages, max_items = paging.caps(cfg)
+    rows, path = paging.items_of(body, str(cfg.get('items') or ''))
+    out: Dict[str, Any] = {'status': first.status}
+    if rows is None:
+        out.update(body=body, pages=1, truncated=False,
+                   stopped='the answer has no row array to collect (set items to its dot path)')
+        if first.links.get('next'):
+            out['next_page'] = first.links['next']
+        return out
+    collected, pages, resp, page_body, page_rows = list(rows), 1, first, body, rows
+    seen = {first.url}
+    page_no = offset = 0
+    if mode == 'page':
+        try:
+            page_no = int(_first(query, cfg['page_param']) or 1)
+        except ValueError:
+            page_no = 1
+    elif mode == 'offset':
+        try:
+            offset = int(_first(query, cfg['offset_param']) or 0)
+        except ValueError:
+            offset = 0
+    stopped, truncated = '', False
+    continuation: Dict[str, Any] = {}
+    while True:
+        nxt_url, nxt_query = None, None
+        if mode == 'link':
+            nxt_url = paging.next_url(resp.url, resp.links.get('next'))
+        elif mode == 'next_url':
+            nxt_url = paging.next_url(resp.url, paging.dig(page_body, cfg['next_field']))
+        elif mode == 'cursor':
+            token = paging.dig(page_body, cfg['next_field'])
+            if token not in (None, '', False):
+                nxt_query = _replace(query, cfg['cursor_param'], _scalar(token))
+                continuation = {cfg['cursor_param']: token}
+        elif mode == 'page' and page_rows:
+            nxt_query = _replace(query, cfg['page_param'], str(page_no + 1))
+            continuation = {cfg['page_param']: page_no + 1}
+        elif mode == 'offset' and page_rows:
+            nxt_query = _replace(query, cfg['offset_param'], str(offset + len(page_rows)))
+            continuation = {cfg['offset_param']: offset + len(page_rows)}
+        if nxt_url is None and nxt_query is None:
+            break                                     # the last page
+        if nxt_url:
+            continuation = {'url': nxt_url}
+        if pages >= max_pages or len(collected) >= max_items:
+            truncated = True
+            break
+        if nxt_url:
+            if nxt_url in seen:
+                stopped = 'the next page URL repeats an earlier one'
+                break
+            try:
+                fetch.guard(nxt_url)
+            except fetch.UnsafeURLError as e:
+                logging.getLogger(__name__).warning(f'{label}: next page refused by the SSRF guard: {e}')
+                stopped, truncated, continuation = f'the next page {nxt_url} was refused by the SSRF guard: {e}', True, {}
+                break
+            if not paging.same_origin(nxt_url, url):
+                stopped, truncated = (f'the next page {nxt_url} is on another origin than {spec.get("server_url")}; '
+                                      f'not followed (credentials stay with their API)'), True
+                continuation = {}
+                break
+            send_url, send_query = nxt_url, []
+        else:
+            send_url, send_query = url, nxt_query
+            key = url + '?' + '&'.join(f'{k}={v}' for k, v in nxt_query)
+            if key in seen:
+                stopped = 'the next page repeats an earlier one'
+                break
+            seen.add(key)
+        try:
+            _check_rate(str(spec.get('api_id') or ''), int(spec.get('rate_limit_per_minute') or 0))
+            resp, _ = _send(spec, 'GET', send_url, send_query, headers, cookies, None, timeout, label)
+        except APICallError as e:
+            stopped, truncated = f'page {pages + 1}: {e}', True
+            break
+        seen.add(resp.url)
+        page_body = _parse_body(resp)
+        page_rows, _ = paging.items_of(page_body, path) if path or isinstance(page_body, list) else (None, '')
+        if page_rows is None:
+            stopped = f'page {pages + 1} has no row array; stopped'
+            break
+        pages += 1
+        collected.extend(page_rows)
+        if mode == 'page':
+            page_no += 1
+        elif mode == 'offset':
+            offset += len(page_rows)
+        if not page_rows:
+            break
+    if len(collected) > max_items:
+        collected, truncated = collected[:max_items], True
+    out.update(body=paging.with_items(body, path, collected), pages=pages, items=len(collected), truncated=truncated)
+    if stopped:
+        out['stopped'] = stopped
+    if truncated and continuation:
+        if 'url' in continuation:
+            out['next_page'] = continuation['url']
+        else:
+            wire_to_arg = {p['name']: p['arg'] for p in spec.get('params') or [] if p.get('in') == 'query'}
+            out['next_arguments'] = {wire_to_arg.get(k, k): v for k, v in continuation.items()}
     return out
 
 

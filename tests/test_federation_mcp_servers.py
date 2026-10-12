@@ -228,7 +228,7 @@ def test_reserved_separator_in_tool_names():
 
         def get_output_schema(self):
             return {}
-    reg = ToolsRegistry.__new__(ToolsRegistry)                 # the registry's register_tool, nothing loaded
+    reg = object.__new__(ToolsRegistry)                 # a private registry (ToolsRegistry.__new__ returns the shared one)
     import logging
     reg.tools, reg.tool_errors, reg.logger = {}, {}, logging.getLogger('t')
     reg._tools_lock = threading.RLock()

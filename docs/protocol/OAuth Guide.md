@@ -170,12 +170,67 @@ What SAJHA needs from the identity provider:
 | Requirement | Detail |
 |---|---|
 | Discovery | RFC 8414 metadata or OpenID discovery at the issuer, with an `issuer` equal to the configured string and a `jwks_uri`. The JWKS is cached for `jwks_cache_seconds`, and refetched (at most every 30 s) when an unknown `kid` arrives. |
-| JWT access tokens | Signed with an asymmetric algorithm (RS*, PS*, ES*). `none` and HS* are refused. Opaque tokens are not supported (no introspection). |
+| Access tokens | JWTs signed with an asymmetric algorithm (RS*, PS*, ES*); `none` and HS* are refused. Opaque tokens need introspection (below). |
 | Audience | `aud` must contain `<public_url>/mcp` (or `/api/mcp`), or a value in `accepted_audiences`. Configure an audience mapper or API identifier in the IdP. |
 | Scopes | `mcp:read` / `mcp:tools` (or `mcp`) in the `scope` or `scp` claim. |
 | Identity | The `user_claim` value is matched to a SAJHA user ID, which becomes the caller's identity. An unmatched identity gets the least-privilege `api_consumer` role. Use a claim the IdP controls. |
 
 The client itself registers with your IdP as usual; SAJHA is not involved in that step.
+
+### Opaque tokens: introspection (RFC 7662)
+
+Some issuers hand out opaque access tokens, which SAJHA cannot check by signature. Then
+register SAJHA with the IdP as a confidential client allowed to introspect, and turn on
+introspection (`sajha/auth/oauth/introspection.py`):
+
+```yaml
+mcp:
+  auth:
+    external:
+      introspection:
+        mode: opaque              # off | opaque (tokens that are not JWTs) | always (every token)
+        endpoint: ""              # empty: introspection_endpoint from the issuer's metadata
+        client_id: sajha-mcp
+        auth_method: client_secret_basic   # or client_secret_post
+        cache_seconds: 60
+        timeout_seconds: 5
+        require_audience: true
+```
+
+Put the secret in the environment, never in the YAML:
+`SAJHA_MCP_AUTH_EXTERNAL_INTROSPECTION_CLIENT_SECRET`.
+
+SAJHA POSTs `token` and `token_type_hint=access_token` to the endpoint, authenticated as
+that client. It accepts the token only if the answer says `active: true`, and when the
+answer names them: `iss` equal to the configured issuer, an unexpired `exp`, a reached `nbf`,
+an `aud` of this server (as for JWTs). An answer without `aud` is refused unless
+`require_audience` is `false`, and a refresh token is refused. The identity and scopes
+come from the answer as from a JWT's claims (`user_claim`, then `sub`, then `username`;
+`scope`).
+
+It fails closed: no endpoint, no client credentials, a network error, a non-200 answer or
+one that is not a JSON object refuses the token (401), and such a failure is not cached.
+Answers (active or not) are cached per process for `cache_seconds`, an active one never
+beyond the token's `exp`. A token revoked at the issuer is refused here within that time
+at most; `0` asks the issuer on every request.
+
+### Browser-based clients: CORS
+
+A browser-based MCP client on another origin has to `fetch` the discovery documents and
+call the token endpoint. List its origin in `mcp.auth.cors.allowed_origins` (exact
+`scheme://host[:port]` values, or `*` for any; default none). The listed origins get
+`Access-Control-Allow-Origin` (and answered pre-flights) on
+`/.well-known/oauth-protected-resource` (all three paths),
+`/.well-known/oauth-authorization-server`, `/oauth/jwks`, `/oauth/token` and
+`/oauth/register` (`sajha/auth/oauth/cors.py`). The header is never sent with
+`Access-Control-Allow-Credentials`: these endpoints take an explicit `Authorization`
+header or form fields and never the console cookie, so a page on another origin cannot act
+with a signed-in user's session. That is also why `*` is acceptable here. `/oauth/authorize`
+gets no CORS headers, because it is a browser navigation to the consent page and not a
+`fetch`. Other origins fall through to the server-wide `SAJHA_CORS_ORIGINS` list.
+
+With an external issuer, CORS on its endpoints is the IdP's business; SAJHA's own PRM
+document still follows this list.
 
 ---
 

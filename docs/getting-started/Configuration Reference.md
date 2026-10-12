@@ -103,21 +103,25 @@ Browser and transport hardening (`sajha/security.py`; [Security Model §3](../se
 
 Reader: Settings, which is used by `sajha/db/engine.py`. The YAML enables SQLite. The
 PostgreSQL keys appear only as comments, so their code defaults apply until you uncomment
-them.
+them. Environment alone switches to PostgreSQL: the `SAJHA_DB_*` names win over the YAML, and the
+short `DB_*` names apply when neither sets the key (the procedure is in
+[Database Setup](Database%20Setup.md) section 2).
 
 | Key | Default (YAML / code) | Env | Purpose |
 |-----|-----------------------|-----|---------|
-| `db.type` | `sqlite` | `SAJHA_DB_TYPE` | `sqlite` or `postgresql`. It also selects the schema file `db/scripts/<type>/schema.sql`. SQLite runs it at start-up; on PostgreSQL SAJHA never runs DDL and an operator runs it (see [Database Setup](Database%20Setup.md)). |
+| `db.type` | `${DB_TYPE:sqlite}` | `SAJHA_DB_TYPE`, `DB_TYPE` | `sqlite` or `postgresql`. It also selects the schema file `db/scripts/<type>/schema.sql`. SQLite runs it at start-up; on PostgreSQL SAJHA never runs DDL and an operator runs it (see [Database Setup](Database%20Setup.md)). |
 | `db.path` | `data/sajha.db` | `SAJHA_DB_PATH` | SQLite file. The parent directory is created if missing. |
-| `db.url` | not in YAML / empty | `SAJHA_DB_URL` | A full SQLAlchemy URL. When set, it replaces every other connection key. |
-| `db.host` | commented / `localhost` | `SAJHA_DB_HOST` | PostgreSQL host. |
-| `db.port` | commented / `5432` | `SAJHA_DB_PORT` | PostgreSQL port. |
-| `db.name` | commented `sajha` / code `sajha_mcp` | `SAJHA_DB_NAME` | PostgreSQL database. **The defaults differ.** |
-| `db.user` | commented / `sajha` | `SAJHA_DB_USER` | PostgreSQL user. |
-| `db.password` | commented / `sajha` | `SAJHA_DB_PASSWORD` | PostgreSQL password. Set it through the env var. |
+| `db.url` | not in YAML / empty | `SAJHA_DB_URL`, `DB_URL` | A full SQLAlchemy URL. When set, it replaces every other connection key. |
+| `db.host` | commented / `localhost` | `SAJHA_DB_HOST`, `DB_HOST` | PostgreSQL host. |
+| `db.port` | commented / `5432` | `SAJHA_DB_PORT`, `DB_PORT` | PostgreSQL port. |
+| `db.name` | commented `sajha` / code `sajha_mcp` | `SAJHA_DB_NAME`, `DB_NAME` | PostgreSQL database. **The defaults differ**: with the YAML block commented, an unset name connects to `sajha_mcp`, not the `sajha` of [Database Setup](Database%20Setup.md). Set it. |
+| `db.user` | commented / `sajha` | `SAJHA_DB_USER`, `DB_USER` | PostgreSQL user. |
+| `db.password` | commented / `sajha` | `SAJHA_DB_PASSWORD`, `DB_PASSWORD` | PostgreSQL password. Set it through the env var. |
 | `db.driver` | commented / `psycopg2` | `SAJHA_DB_DRIVER` | `psycopg2`. If psycopg2 is not installed, the engine falls back to `psycopg` (v3). |
 | `db.ssl` | commented only | — | **Not read.** Nothing reads this key. To configure SSL, put `sslmode` in `db.url`. |
-| `db.pool.size` | `10` (YAML `${DB_POOL_SIZE:10}`) | `DB_POOL_SIZE`, `SAJHA_DB_POOL_SIZE` | PostgreSQL `pool_size` and `max_overflow`. |
+| `db.pool.size` | `10` (YAML `${DB_POOL_SIZE:10}`) | `DB_POOL_SIZE`, `SAJHA_DB_POOL_SIZE` | Connections each worker's pool keeps open (SQLite file and PostgreSQL alike). Below 1 stops start-up. Sizing: [Scaling and State](../architecture/Scaling%20and%20State.md) §7. |
+| `db.pool.max_overflow` | `-1` | `SAJHA_DB_POOL_MAX_OVERFLOW` | Extra connections a worker may open under load, closed again when returned to a full pool. Below 0 means as many as `db.pool.size`. |
+| `db.pool.timeout_seconds` | `5` | `SAJHA_DB_POOL_TIMEOUT_SECONDS` | How long a request waits for a free connection before it is shed with HTTP 503 and `Retry-After: 1` (on `/mcp` a JSON-RPC error, code `-32000` with `data.reason: db_pool_exhausted`); counted in `sajha_db_pool_exhausted_total`. More than 0 and at most 300, or start-up stops. |
 | `db.echo` | `false` | `SAJHA_DB_ECHO` | Logs every SQL statement. |
 | `db.scripts_dir` | `db/scripts` | `SAJHA_DB_SCRIPTS_DIR` | Root of the schema files (`<scripts_dir>/<dialect>/schema.sql` and `seed.sql`, dialect `sqlite` or `postgresql`). A relative path is tried from the working directory, then from the checkout. |
 | `db.schema_check` | `strict` | `SAJHA_DB_SCHEMA_CHECK` | `strict`: refuse to start while a table or column the code uses is missing, naming them and the `psql` command. `warn`: log that and start. Any other value stops start-up. Checked on PostgreSQL, and on SQLite after its schema file has run. [Database Setup](Database%20Setup.md) |
@@ -135,6 +139,7 @@ per process, is in [Scaling and State](../architecture/Scaling%20and%20State.md)
 | `state.key_prefix` | `sajha:` | `SAJHA_STATE_KEY_PREFIX` | Prefix of every key and pub/sub channel, so several deployments can share one Redis or database. |
 | `state.redis.url` | `redis://localhost:6379/0` | `SAJHA_STATE_REDIS_URL` | Redis URL (`redis://`, `rediss://` for TLS, with `user:password@` when needed). Put a password in the env var, not in the YAML. Needs the optional `redis` package (`pip install "redis>=5"`). |
 | `state.database.url` | `""` | `SAJHA_STATE_DATABASE_URL` | SQLAlchemy URL for the `database` backend and the durable task store. Empty uses SAJHA's own database (`db.*`). The tables `sajha_state` and `sajha_state_events` are in the schema file; SAJHA creates them on first use on SQLite only, and on PostgreSQL a missing table stops start-up ([Database Setup](Database%20Setup.md)). |
+| `state.database.pool_size` | `3` (min 1) | `SAJHA_STATE_DATABASE_POOL_SIZE` | With `state.database.url` empty: the connections the store's own pool on SAJHA's database keeps (plus at most 2 overflow), apart from the request pool, so state calls made on the event loop never wait behind request threads. Ignored when SAJHA's database is an in-memory SQLite. [Scaling and State](../architecture/Scaling%20and%20State.md) §7. |
 | `state.database.poll_interval_ms` | `500` (min 50) | `SAJHA_STATE_DATABASE_POLL_INTERVAL_MS` | How often the `database` backend polls for pub/sub events, which bounds how late a change notification reaches another worker. |
 | `state.tasks.durable` | `auto` | `SAJHA_STATE_TASKS_DURABLE` | `auto`, `true` or `false`. Durable MCP task records are kept in the database (`state.database.url`, or SAJHA's own), so they survive a restart and every worker sees them. `auto` turns it on for the `redis` and `database` backends. |
 
@@ -262,6 +267,15 @@ The reader is `sajha/auth/oauth/settings.py` unless the table says otherwise. Se
 | `mcp.auth.clock_skew_seconds` | `60` (min 0) | Leeway for `exp` and `nbf`. |
 | `mcp.auth.jwks_cache_seconds` | `3600` (min 60) | How long fetched JWKS are cached. |
 | `mcp.auth.external.user_claim` | `sub` | The claim matched against SAJHA user IDs when an external issuer is used. |
+| `mcp.auth.external.introspection.mode` | `off` | RFC 7662 introspection of an external issuer's tokens: `off` (JWTs only), `opaque` (tokens that are not JWTs) or `always` (every token). Any other value is `off`. Quote `"off"` in YAML (`sajha/auth/oauth/introspection.py`). |
+| `mcp.auth.external.introspection.endpoint` | `""` | The introspection endpoint. Empty: `introspection_endpoint` from the issuer's RFC 8414 or OIDC metadata. |
+| `mcp.auth.external.introspection.client_id` | `""` | The client SAJHA authenticates as. Without it (or the secret) every introspected token is refused. |
+| `mcp.auth.external.introspection.client_secret` | not in YAML / `""` | Its secret: set `SAJHA_MCP_AUTH_EXTERNAL_INTROSPECTION_CLIENT_SECRET`, never the YAML. |
+| `mcp.auth.external.introspection.auth_method` | `client_secret_basic` | `client_secret_basic` (HTTP Basic) or `client_secret_post` (form fields). |
+| `mcp.auth.external.introspection.cache_seconds` | `60` (min 0) | How long an answer is reused per process; an active one never past the token's `exp`. `0`: ask on every request. Failures are never cached. |
+| `mcp.auth.external.introspection.timeout_seconds` | `5` (1–30) | Timeout for discovery and the introspection call. |
+| `mcp.auth.external.introspection.require_audience` | `true` | Refuse an active answer that names no `aud`. |
+| `mcp.auth.cors.allowed_origins` | `[]` | Browser origins (exact `scheme://host[:port]`, or `*`) given CORS, never with credentials, on the protected-resource and authorization-server metadata, `/oauth/jwks`, `/oauth/token` and `/oauth/register` (not `/oauth/authorize`). Other origins fall through to `SAJHA_CORS_ORIGINS` (`sajha/auth/oauth/cors.py`). |
 | `mcp.auth.builtin.access_token_ttl_seconds` | `900` (min 60) | Access-token lifetime. |
 | `mcp.auth.builtin.refresh_token_ttl_seconds` | `2592000` (min 300) | Refresh-token lifetime. |
 | `mcp.auth.builtin.code_ttl_seconds` | `60` (30–600) | Authorization-code lifetime. |
@@ -352,6 +366,9 @@ Reader: `sajha/core/config.py::_get` (`Limits.from_config` in `sajha/tools/impl/
 |-----|---------|-----|------------------|
 | `data.dir` | `./data` | `SAJHA_DATA_DIR` | Base of the default OAuth signing-key path (`sajha/auth/oauth/settings.py`). |
 | `data.duckdb.dir` | `./data/duckdb` | YAML only | Not read by Python. Tool JSON configs (DuckDB tools) and `config/olap/datasets.json` reference it as `${data.duckdb.dir}`, and the tools registry resolves those references through PropertiesConfigurator. |
+| `data.duckdb.stage_dir` | `""` (the system temp directory) | `SAJHA_DATA_DUCKDB_STAGE_DIR` | Where a `storage://<prefix>` DuckDB data folder is staged during a load; each load uses a temporary subdirectory and deletes it (`sajha/tools/impl/duckdb_olap_tools_refactored.py`, [Storage Guide](Storage%20Guide.md#duckdb-data-on-the-storage-backend)). |
+| `data.duckdb.stage_max_file_mb` | `256` | `SAJHA_DATA_DUCKDB_STAGE_MAX_FILE_MB` | A `storage://` data file larger than this is skipped (logged). |
+| `data.duckdb.stage_max_total_mb` | `1024` | `SAJHA_DATA_DUCKDB_STAGE_MAX_TOTAL_MB` | The most one load stages; files past it are skipped (logged). |
 | `data.sqlselect.dir` | `./data/sqlselect` | YAML only | Referenced as `${data.sqlselect.dir}` by the sqlselect tool configs. |
 
 ## sanctions
@@ -387,6 +404,18 @@ string is ignored. See the [Storage Guide](Storage%20Guide.md).
 | `storage.gcs.project` | `""` | `GOOGLE_CLOUD_PROJECT` | GCP project. |
 | `storage.gcs.prefix` | `sajha/` / code `""` | `SAJHA_GCS_PREFIX` | Object prefix. **The defaults differ.** |
 | `storage.gcs.cache_dir` | `/tmp/sajha-cache` | `SAJHA_GCS_CACHE_DIR` | Local cache. |
+| `storage.events.provider` | `none` | `SAJHA_STORAGE_EVENTS_PROVIDER` | Push-based reload from bucket event notifications: `none`, `auto` (by backend: `s3` → `sqs`, `azure` → `azure_queue`, `gcs` → `pubsub`), `sqs`, `azure_queue` or `pubsub` (`sajha/core/storage_events.py`, [Storage Guide](Storage%20Guide.md#push-based-reload)). Ignored on the local backend. |
+| `storage.events.wait_seconds` | `20` | `SAJHA_STORAGE_EVENTS_WAIT_SECONDS` | Long-poll wait of one receive (SQS at most 20; Pub/Sub); the pause after an empty read of an Azure queue. |
+| `storage.events.max_messages` | `10` | `SAJHA_STORAGE_EVENTS_MAX_MESSAGES` | Messages per receive (SQS at most 10, Azure at most 32). |
+| `storage.events.healthy_poll_interval` | `600` | `SAJHA_STORAGE_EVENTS_HEALTHY_POLL_INTERVAL` | Seconds between polls of the object-store sync manager while the listener is healthy; polling falls back to `storage.s3.sync_interval` as soon as it is not. `0` (or a value not above `sync_interval`) keeps `sync_interval`. |
+| `storage.events.sqs.queue_url` | `""` | `SAJHA_STORAGE_EVENTS_SQS_QUEUE_URL` | The SQS queue the bucket's notifications (direct, through SNS, or an EventBridge rule) go to. |
+| `storage.events.sqs.region` | `""` (`storage.s3.region`) | `SAJHA_STORAGE_EVENTS_SQS_REGION` | Region of the queue. |
+| `storage.events.sqs.endpoint_url` | `""` | `SAJHA_STORAGE_EVENTS_SQS_ENDPOINT_URL` | SQS-compatible endpoint (LocalStack, ElasticMQ). |
+| `storage.events.azure.queue_name` | `""` | `SAJHA_STORAGE_EVENTS_AZURE_QUEUE_NAME` | The Storage Queue an Event Grid subscription on the account delivers to. |
+| `storage.events.azure.account_url` | `""` (`storage.azure.account_url` with `.blob.` replaced by `.queue.`) | `SAJHA_STORAGE_EVENTS_AZURE_ACCOUNT_URL` | Queue service URL, used with `DefaultAzureCredential`. |
+| `storage.events.azure.connection_string` | `""` (`storage.azure.connection_string`) | `SAJHA_STORAGE_EVENTS_AZURE_CONNECTION_STRING` | Connection-string authentication for the queue. Keep it out of the YAML. |
+| `storage.events.pubsub.subscription` | `""` | `SAJHA_STORAGE_EVENTS_PUBSUB_SUBSCRIPTION` | Pull subscription on the bucket notification's topic: `projects/<p>/subscriptions/<s>`, or a bare name with the project below. |
+| `storage.events.pubsub.project` | `""` (`storage.gcs.project`) | `SAJHA_STORAGE_EVENTS_PUBSUB_PROJECT` | Project of a bare subscription name. |
 
 `sajha/app.py` calls `init_storage()` twice. The first call reads `storage_*` attributes
 that `Settings` does not define, so it always builds a local backend. The second call, in
@@ -712,8 +741,15 @@ file are re-read when it changes. Design, the upstream fields and operation:
 | `federation.upstreams` | `[]` | The upstreams defined in configuration; each entry's fields are in [Federation](../architecture/Federation.md#2-the-upstream-model). An id also in the mcpServers file uses this definition. |
 | `federation.mcp_servers_file` | `config/mcp_servers.json` | The mcpServers file: proxied MCP servers in the `{"mcpServers": {...}}` JSON of Claude Desktop, Cursor and VS Code, git-ignored (templates: `config/mcp_servers.json.example`, `config/mcp_servers/`). Each entry is an upstream, external unless it says `"external": false`; its keys are in [Federation](../architecture/Federation.md#the-mcpservers-file). Empty: no file. A missing file is no error. |
 | `federation.mcp_servers_reload_seconds` | `5` | How often the mcpServers file's modification time and size are checked; a change is applied without a restart. |
-| `federation.per_user_session_idle_seconds` | `900` | `auth.type: token_user` or `oauth_user` on a session-based (2025-11-25 or legacy SSE) upstream: a user's own upstream session is closed after this long without a call ([Per-user credentials](../architecture/Federation.md#per-user-credentials-token_user)). |
+| `federation.per_user_session_idle_seconds` | `900` | `auth.type: token_user`, `oauth_user` or `service_with_user` on a session-based (2025-11-25 or legacy SSE) upstream: a user's own upstream session is closed after this long without a call ([Per-user credentials](../architecture/Federation.md#per-user-credentials-token_user)). |
 | `federation.per_user_sessions_max` | `50` | The most per-user sessions open at once per such upstream; the oldest idle one is closed to make room, and a call is refused when every one is busy. |
+| `federation.pool_size` | `1` | Shared connections each worker opens to an upstream (to each replica), 1 to 32; one runs discovery, the others only carry `tools/call` ([Gateway scale](../architecture/Federation.md#gateway-scale)). Per upstream: `pool_size`. |
+| `federation.max_in_flight` | `0` | Calls in flight to one upstream in each worker; `0` is no limit. Per upstream: `max_in_flight`. |
+| `federation.max_queue` | `64` | Calls that wait for a slot when `max_in_flight` is reached; a call over it is refused at once with a retryable "at capacity" error (nothing sent). Per upstream: `max_queue`. |
+| `federation.queue_timeout_seconds` | `5` | The longest a call waits in that queue before it is refused the same way. |
+| `federation.health.publish_seconds` | `5` | How often each worker publishes its view of every upstream to the state store (`fed:health:<upstream>:<worker id>`) and reads every worker's view back. |
+| `federation.health.ttl_seconds` | `30` | A published view expires after this, so a worker that stopped drops out of the cluster-wide view. |
+| `federation.health.follow_peer_breakers` | `true` | A breaker another worker opened after its own failures opens this worker's closed breaker too; each worker then probes on its own after its recovery timeout. `false`: a peer's open breaker is only shown. |
 
 ## SAJHA Net
 
@@ -848,6 +884,10 @@ are not configured here: each import stores secret references (`env:NAME`, `file
 | `api_import.max_ref_documents` | `20` | Remote documents one spec's `$ref`s may pull in. |
 | `api_import.timeout_seconds` | `30` | One call's deadline (spec fetch, introspection, tool call); an import can set its own. |
 | `api_import.max_response_bytes` | `5242880` | Largest API answer an imported tool reads. |
+| `api_import.max_upload_bytes` | `10485760` | Largest request body an imported tool sends (every multipart part together, or a binary body); a larger one is refused before the call. |
+| `api_import.file_roots` | `[]` | Storage-backend folders a file argument's `path` may name; `{user}` in a root is the calling user's id. Empty: file content is sent inline only (`content_base64` or `text`). |
+| `api_import.pagination_max_pages` | `10` | The most pages one call follows when following pages is turned on for an operation; caps the operation's `max_pages`. |
+| `api_import.pagination_max_items` | `1000` | The most rows one call collects across pages; caps the operation's `max_items`. |
 | `api_import.graphql_depth` | `2` | Depth of the selection sets generated for GraphQL tools (1 to 5); an import can set its own. |
 | `api_import.records_dir` | `config/api_imports` | Storage-backend folder of the import records (one JSON document per imported API). |
 
@@ -1012,6 +1052,7 @@ format and operation: [Workflows](../architecture/Workflows.md). Delivery uses
 | `workflows.step_timeout_seconds` | `300` | Timeout of a call step that sets none. |
 | `workflows.loop_max_items` | `100` | `foreach` cap when the step sets no `max_items`. |
 | `workflows.loop_hard_max_items` | `10000` | `foreach` cap no step can exceed. |
+| `workflows.foreach_max_body_steps` | `20` | Steps in a `foreach` body that is a graph (`do: {steps: [...]}`), checked when a definition is saved and when the step runs (at most 200 in any case). |
 | `workflows.inline_wait_seconds` | `5` | Waits up to this long run in the worker; longer ones park the run (status `waiting`) and free the worker. |
 | `workflows.heartbeat_seconds` | `5` | How often a worker refreshes the heartbeat of a run it executes. |
 | `workflows.stale_seconds` | `60` | A `running` run whose heartbeat is older (and whose worker is gone from the state store) is resumed by another worker. |
@@ -1152,6 +1193,7 @@ Supply secrets through the environment, and never commit them to `application.ym
 | MRTR state secret | `mcp.mrtr.state_secret` | Optional; it derives from the session secret. |
 | OAuth signing key | the file at `mcp.auth.builtin.signing_key_path`, by default `<data.dir>/oauth/signing_key.pem` | It is generated on first use with mode 0600. Keep it out of version control, and share or mount the same file across workers. |
 | Pre-registered client secrets | `mcp.auth.builtin.clients[].client_secret` | Use `${ENV_VAR}` placeholders, or set `SAJHA_MCP_AUTH_BUILTIN_CLIENTS`. |
+| Token introspection client secret | `mcp.auth.external.introspection.client_secret` | Set `SAJHA_MCP_AUTH_EXTERNAL_INTROSPECTION_CLIENT_SECRET`; never the YAML. |
 | Database password | `db.password` / `db.url` | Set `SAJHA_DB_PASSWORD` or `SAJHA_DB_URL`. |
 | Provider and data-API keys | `ai.*.api_key`, `fmp`, `fred`, `google`, `tavily` | Set the env var named in the YAML placeholder. |
 | SIEM sink tokens | `audit.export.sinks[].token` as a secret reference (`env:SPLUNK_HEC_TOKEN`, `file:/run/secrets/hec`) | Never a literal token in the YAML. |

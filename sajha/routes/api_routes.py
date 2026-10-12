@@ -18,7 +18,7 @@ from fastapi import APIRouter, Request, Depends
 from fastapi.responses import JSONResponse, StreamingResponse
 from sqlalchemy.orm import Session
 
-from sajha.db.engine import get_db
+from sajha.db.engine import get_db, release_session
 from sajha.db.dao import ToolUsageDAO, AuditDAO, UserDAO, ApiKeyDAO
 from sajha.auth import (
     AuthManager, AuthContext,
@@ -71,6 +71,10 @@ async def api_tool_execute(
     def _run():
         with _versions.collect_meta() as meta:
             return tool.execute_with_tracking(arguments), meta
+    # No pool connection is held while the tool runs, nor across any later await: this coroutine runs
+    # on the event loop, and a connection kept there while another request on the loop waits for one
+    # (synchronously) is never given back (docs/architecture/Scaling and State.md §7).
+    release_session(db)
     try:
         # off the event loop (a tool may be slow or CPU-bound); the context set above goes with it
         from starlette.concurrency import run_in_threadpool
@@ -88,6 +92,7 @@ async def api_tool_execute(
             client_ip=request.client.host if request.client else None,
             user_agent=request.headers.get('User-Agent'),
         )
+        release_session(db)          # written: never hold a connection across the response's awaits
 
         body = {'success': not getattr(result, 'is_error', False), 'result': result}
         if version_meta:
@@ -114,6 +119,7 @@ async def api_tool_execute(
             arguments=arguments,
             client_ip=request.client.host if request.client else None,
         )
+        release_session(db)
         from sajha.tools.base_mcp_tool import ToolArgumentError
         from sajha.policy.errors import ApprovalRequired, PolicyError, RateLimited
         if isinstance(e, PolicyError):
@@ -174,7 +180,7 @@ async def api_tool_schema(tool_name: str, request: Request, db: Session = Depend
 # ── Admin: Tool Management ───────────────────────────────────────
 
 @router.post('/api/admin/tools/{tool_name}/enable')
-async def api_enable_tool(tool_name: str, auth: AuthContext = Depends(require_admin), db: Session = Depends(get_db)):
+def api_enable_tool(tool_name: str, auth: AuthContext = Depends(require_admin), db: Session = Depends(get_db)):
     from sajha.app import tools_registry
     if tools_registry.enable_tool(tool_name):
         AuditDAO(db).log('tool.enable', auth.user_id, 'tool', tool_name)
@@ -183,7 +189,7 @@ async def api_enable_tool(tool_name: str, auth: AuthContext = Depends(require_ad
 
 
 @router.post('/api/admin/tools/{tool_name}/disable')
-async def api_disable_tool(tool_name: str, auth: AuthContext = Depends(require_admin), db: Session = Depends(get_db)):
+def api_disable_tool(tool_name: str, auth: AuthContext = Depends(require_admin), db: Session = Depends(get_db)):
     from sajha.app import tools_registry
     if tools_registry.disable_tool(tool_name):
         AuditDAO(db).log('tool.disable', auth.user_id, 'tool', tool_name)
@@ -230,7 +236,7 @@ async def api_reload_tools(auth: AuthContext = Depends(require_admin)):
 # ── Admin: User Management ───────────────────────────────────────
 
 @router.get('/api/admin/users')
-async def api_list_users(auth: AuthContext = Depends(require_admin), db: Session = Depends(get_db)):
+def api_list_users(auth: AuthContext = Depends(require_admin), db: Session = Depends(get_db)):
     user_dao = UserDAO(db)
     users = user_dao.get_all_users()
     return JSONResponse({'users': [
@@ -298,7 +304,7 @@ async def api_create_user(
 
 
 @router.post('/api/admin/users/{uid}/enable')
-async def api_enable_user(uid: str, auth: AuthContext = Depends(require_admin), db: Session = Depends(get_db)):
+def api_enable_user(uid: str, auth: AuthContext = Depends(require_admin), db: Session = Depends(get_db)):
     user_dao = UserDAO(db)
     user = user_dao.get_by_user_id(uid)
     if not user:
@@ -310,7 +316,7 @@ async def api_enable_user(uid: str, auth: AuthContext = Depends(require_admin), 
 
 
 @router.post('/api/admin/users/{uid}/disable')
-async def api_disable_user(uid: str, auth: AuthContext = Depends(require_admin), db: Session = Depends(get_db)):
+def api_disable_user(uid: str, auth: AuthContext = Depends(require_admin), db: Session = Depends(get_db)):
     if uid == 'admin':
         return JSONResponse({'error': 'Cannot disable admin'}, status_code=400)
     user_dao = UserDAO(db)
@@ -326,7 +332,7 @@ async def api_disable_user(uid: str, auth: AuthContext = Depends(require_admin),
 
 
 @router.delete('/api/admin/users/{uid}/delete')
-async def api_delete_user(uid: str, auth: AuthContext = Depends(require_admin), db: Session = Depends(get_db)):
+def api_delete_user(uid: str, auth: AuthContext = Depends(require_admin), db: Session = Depends(get_db)):
     if uid == 'admin':
         return JSONResponse({'error': 'Cannot delete admin'}, status_code=400)
     user_dao = UserDAO(db)

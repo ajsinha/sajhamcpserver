@@ -271,7 +271,9 @@ def test_reexport_keeps_the_external_published_name(tmp_path, isolate):  # noqa:
     re-exports treasury__ledger to risk-eu under the same name."""
     conn = Capture()
     fed = FakeFederation()
-    ledger = FederatedTool(fed, 'tre', 'ledger', {'name': 'trefed__ledger', 'inputSchema': {'type': 'object'}})
+    # read-only: a proxied tool that may write needs approval (config/policies/20-proxied-writes.yaml)
+    ledger = FederatedTool(fed, 'tre', 'ledger', {'name': 'trefed__ledger', 'inputSchema': {'type': 'object'},
+                                                  'annotations': {'readOnlyHint': True}})
     perms = 'lookup,var_calc,trefed__ledger,treasury__ledger,acme-net__cust-na__treasury__ledger'
     c = Peer(tmp_path, 'treasury-na', conn, [ledger], [(M, True, [])],
              auth={M: {'export': [{'tools': ['*'], 'to_instances': ['cust-na']}]}},

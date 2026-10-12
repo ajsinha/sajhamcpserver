@@ -15,7 +15,7 @@ from sqlalchemy.orm import Session
 from starlette.concurrency import run_in_threadpool
 
 from sajha.ai import openai_api as api
-from sajha.db.engine import get_db
+from sajha.db.engine import get_db, release_session
 
 logger = logging.getLogger(__name__)
 router = APIRouter(tags=['openai'])
@@ -32,6 +32,9 @@ def _caller(request: Request, db: Session = Depends(get_db)):
         return None, _error(api.APIError(404, 'The OpenAI-compatible API is turned off (ai.openai_api.enabled).',
                                          type='not_found_error', code='not_found'))
     auth = api.authenticate(request, db)
+    if auth is not None:
+        auth.release_db()     # the model call and the stream that follow hold no pool connection
+    release_session(db)
     if auth is None:
         err = api.APIError(401, 'Incorrect or missing API key: send a SAJHA API key as "Authorization: Bearer '
                                 'sja_..."', type='invalid_request_error', code='invalid_api_key')

@@ -48,9 +48,25 @@ _HEADER = re.compile(r'^[A-Za-z0-9][A-Za-z0-9-]{0,63}$')
 
 def auth_mode(config) -> str:
     """``static`` (one shared identity: headers or a configured credential), ``token_user``,
-    ``oauth_user`` or ``connected_account``."""
+    ``oauth_user``, ``connected_account`` or ``service_with_user`` (a shared identity naming the user)."""
     t = ((getattr(config, 'auth', None) or {}).get('type') or 'none')
-    return t if t in ('token_user', 'oauth_user', 'connected_account') else 'static'
+    return t if t in ('token_user', 'oauth_user', 'connected_account', 'service_with_user') else 'static'
+
+
+def on_behalf_header(config, user_id: str):
+    """auth.type service_with_user: ``(header, value)`` naming the SAJHA user for the vendor's audit
+    record. Refuses anonymous callers: the mode exists to say who asked."""
+    from sajha.federation.config import DEFAULT_USER_FORMAT, DEFAULT_USER_HEADER
+    if not user_id or user_id == 'anonymous':
+        raise PermissionError(f'{getattr(config, "display_title", "this server")} acts for a named SAJHA user; '
+                              f'sign in (or use an API key that has an owner) to call it')
+    a = getattr(config, 'auth', None) or {}
+    uid = str(user_id)
+    if not all(32 < ord(ch) < 127 for ch in uid):          # a header carries printable ASCII only
+        from urllib.parse import quote
+        uid = quote(uid, safe='@._-+:~')
+    return (a.get('user_header') or DEFAULT_USER_HEADER,
+            (a.get('user_format') or DEFAULT_USER_FORMAT).replace('{user}', uid))
 
 
 def vault_provider(upstream_id: str) -> str:

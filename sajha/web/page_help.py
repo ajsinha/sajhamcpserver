@@ -223,9 +223,10 @@ PAGE_HELP: dict = {
                   'Sign out everywhere', 'Token version'],
         'guide': 'Security Model.md'},
     'admin_system_monitor_page': {
-        'what': 'The process: CPU, memory, connections, provider health and the tool cache.',
-        'terms': ['Monitoring', 'Circuit breaker', 'ProviderHealth', 'Tool cache / cache_ttl',
-                  'Latency'],
+        'what': 'The process: CPU, memory, connections, each worker\'s database connection pool, provider health '
+                'and the tool cache.',
+        'terms': ['Monitoring', 'Database connection pool', 'Overflow connection', 'Pool checkout timeout',
+                  'Circuit breaker', 'ProviderHealth', 'Tool cache / cache_ttl', 'Latency'],
         'guide': 'TUTORIAL_06_configure_tool_caching.md'},
     'admin_federation_page': {
         'what': 'Proxied MCP servers: every MCP server this instance embeds and proxies calls to (federation), from '

@@ -805,8 +805,17 @@ class Governor:
 
     async def aembed(self, texts: List[str], model: str = "embedding", purpose: Optional[str] = None
                      ) -> "EmbeddingVectors":
-        import anyio
-        return await anyio.to_thread.run_sync(lambda: self.embed(texts, model=model, purpose=purpose))
+        resp = await self._governed_aembeddings(model=self._embed_target(model), input=list(texts),
+                                                sajha=SajhaRequest(input_purpose=purpose) if purpose else None)
+        return EmbeddingVectors(resp.vectors, resp.model, resp.sajha.provider if resp.sajha else "")
+
+    def _embed_target(self, model: str = "", provider: str = "") -> str:
+        target = model or "embedding"
+        if provider:
+            target = f"{provider}/{model}" if model else provider
+        elif model and model not in self.settings.aliases and "/" not in model:
+            target = "embedding"
+        return target
 
     # ── embeddings ─────────────────────────────────────────────
     def embedding_model(self, model: str = "embedding") -> EmbeddingModel:
@@ -837,49 +846,78 @@ class Governor:
 
         ``sajha.input_purpose`` (query | document) selects the vendor's input type where it has
         one (Cohere ``input_type``, Gemini ``taskType``)."""
-        req = EmbeddingsRequest.coerce(request, **fields)
-        target = req.model or "embedding"
-        ctx = req.sajha.context if req.sajha else None
-        policy = self.effective_policy(ctx)
+        req, target, ctx, cands = self._embedding_candidates(request, fields)
         last: Optional[Exception] = None
         tried: List[str] = []
-        for entry in self._expand(target, None, "embedding"):
-            try:
-                em = self.embedding_model(entry)
-            except NoModelAvailable as e:
-                last = e
-                continue
-            if not self._allowed(policy, em.qualified_id):
+        for em in cands:
+            if isinstance(em, Exception):
+                last = em
                 continue
             tried.append(em.qualified_id)
             try:
                 resp = self._call_with_retries(em, lambda: em.embeddings_create(req))
             except (RateLimited, ProviderUnavailable, AuthenticationFailed, UnsupportedFeature) as e:
-                last = e
-                if isinstance(e, AuthenticationFailed):
-                    self._mark_down(em.provider.name, "authentication failed")
+                last = self._embedding_failed(em, e)
                 continue
-            if ctx is not None:
-                sj = resp.sajha
-                self._record(ctx, em.provider.name, em.id,
-                             Usage(resp.usage.prompt_tokens, 0, 0, sj.cost_usd if sj else 0.0))
-            return resp
+            return self._embedding_done(ctx, em, resp)
         raise NoModelAvailable(f"no embedding model available for '{target}' (tried {tried})") from last
 
+    def _embedding_candidates(self, request: Any, fields: Dict[str, Any]):
+        """(request, alias, context, candidates): each candidate an EmbeddingModel the policy allows,
+        or the NoModelAvailable met while resolving that entry."""
+        req = EmbeddingsRequest.coerce(request, **fields)
+        target = req.model or "embedding"
+        ctx = req.sajha.context if req.sajha else None
+        policy = self.effective_policy(ctx)
+
+        def gen():
+            for entry in self._expand(target, None, "embedding"):
+                try:
+                    em = self.embedding_model(entry)
+                except NoModelAvailable as e:
+                    yield e
+                    continue
+                if self._allowed(policy, em.qualified_id):
+                    yield em
+        return req, target, ctx, gen()
+
+    def _embedding_failed(self, em: EmbeddingModel, e: Exception) -> Exception:
+        if isinstance(e, AuthenticationFailed):
+            self._mark_down(em.provider.name, "authentication failed")
+        return e
+
+    def _embedding_done(self, ctx: Optional[RequestContext], em: EmbeddingModel,
+                        resp: EmbeddingsResponse) -> EmbeddingsResponse:
+        if ctx is not None:
+            sj = resp.sajha
+            self._record(ctx, em.provider.name, em.id,
+                         Usage(resp.usage.prompt_tokens, 0, 0, sj.cost_usd if sj else 0.0))
+        return resp
+
     async def _governed_aembeddings(self, request: Any = None, /, **fields) -> EmbeddingsResponse:
-        import anyio
-        return await anyio.to_thread.run_sync(lambda: self._governed_embeddings(request, **fields))
+        """The native-async twin: HTTP providers call their vendor with httpx.AsyncClient (and
+        Bedrock with aiobotocore when installed); other models run in a worker thread."""
+        req, target, ctx, cands = self._embedding_candidates(request, fields)
+        last: Optional[Exception] = None
+        tried: List[str] = []
+        for em in cands:
+            if isinstance(em, Exception):
+                last = em
+                continue
+            tried.append(em.qualified_id)
+            try:
+                resp = await self._acall_with_retries(em, lambda: em.aembeddings_create(req))
+            except (RateLimited, ProviderUnavailable, AuthenticationFailed, UnsupportedFeature) as e:
+                last = self._embedding_failed(em, e)
+                continue
+            return self._embedding_done(ctx, em, resp)
+        raise NoModelAvailable(f"no embedding model available for '{target}' (tried {tried})") from last
 
     def embed(self, texts: List[str], provider: str = "", model: str = "", purpose: Optional[str] = None
               ) -> EmbeddingVectors:
         """embed(texts, model="embedding", purpose="query"|"document"|None) -> vectors. Also accepts
         the legacy (provider=, model=) form."""
-        target = model or "embedding"
-        if provider:
-            target = f"{provider}/{model}" if model else provider
-        elif model and model not in self.settings.aliases and "/" not in model:
-            target = "embedding"
-        resp = self._governed_embeddings(model=target, input=list(texts),
+        resp = self._governed_embeddings(model=self._embed_target(model, provider), input=list(texts),
                                       sajha=SajhaRequest(input_purpose=purpose) if purpose else None)
         return EmbeddingVectors(resp.vectors, resp.model, resp.sajha.provider if resp.sajha else "")
 

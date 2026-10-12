@@ -159,7 +159,7 @@ chart refuses to render a combination that would split state silently:
 | PostgreSQL | Users, API keys, audit and durable task records live in the database; SQLite cannot be shared between pods. | `database.type: postgresql` and `database.postgresql.*` |
 | A shared state store | MCP sessions, OAuth codes, tasks, rate limits and change notifications are per process otherwise. | `state.backend: auto` resolves to `redis` when Redis is configured, else `database` |
 | No `ReadWriteOnce` volume | Pods on different nodes cannot mount it. | `persistence.data.enabled: false` (PostgreSQL holds the data), or `ReadWriteMany`, or `existingClaim` |
-| Shared tool configuration | An admin edit or MCP Studio tool made on one pod must reach the others. | `storage.backend: s3`, `azure` or `gcs` for tool and prompt JSON, and `persistence.config` on a `ReadWriteMany` volume for Studio-generated `.py` files ([Storage Guide](Storage%20Guide.md)) |
+| Shared tool configuration | An admin edit or MCP Studio tool made on one pod must reach the others. | `storage.backend: s3`, `azure` or `gcs` for tool and prompt JSON; Studio-generated modules and plugins travel through the bucket too, so no `ReadWriteMany` volume is needed ([Storage Guide](Storage%20Guide.md#studio-modules-without-a-shared-file-system)) |
 
 `redis.enabled: true` adds a single-node Redis StatefulSet with a generated password; for
 production prefer a managed Redis and `state.redis.existingSecret` (a Secret holding the
@@ -227,6 +227,39 @@ the first install an operator runs `db/scripts/postgresql/schema.sql` and `seed.
 that changes the schema needs, are in [Database Setup](Database%20Setup.md)). Until then
 the pods exit with `Refusing to start: database schema is not ready` and the missing
 tables, and restart.
+
+### Bucket access on EKS, AKS and GKE
+
+Give the pods a cloud identity through the service account, never keys in a Secret. The
+chart's `serviceAccount.annotations` and `podLabels` carry what each cloud needs; the roles
+below cover the bucket (read, write, list, delete) and, with
+[push-based reload](Storage%20Guide.md#push-based-reload), its event queue. Push settings go in
+`config.env` (for example `SAJHA_STORAGE_EVENTS_PROVIDER: auto` and the queue key); the image
+needs the matching extra, which for `azure` and `gcs` includes the queue SDK.
+
+| Cluster | Identity | Bucket role | Event queue role | Chart values |
+|---|---|---|---|---|
+| EKS | IAM role for the service account (IRSA) or EKS Pod Identity | `s3:GetObject`, `s3:PutObject`, `s3:DeleteObject`, `s3:ListBucket` on the bucket and prefix | `sqs:ReceiveMessage`, `sqs:DeleteMessage` on the queue | `serviceAccount.annotations: {eks.amazonaws.com/role-arn: arn:aws:iam::<acct>:role/<role>}`; `storage.backend: s3`, `storage.s3.*` |
+| AKS | Microsoft Entra Workload ID: a user-assigned managed identity with a federated credential for `system:serviceaccount:<namespace>:<service account>` | *Storage Blob Data Contributor* on the container | *Storage Queue Data Message Processor* on the queue | `serviceAccount.annotations: {azure.workload.identity/client-id: <client id>}`, `podLabels: {azure.workload.identity/use: "true"}`; `storage.backend: azure`, `storage.azure.accountUrl` (`DefaultAzureCredential` picks the workload identity up) |
+| GKE | Workload Identity Federation: the Kubernetes service account bound to a Google service account (`roles/iam.workloadIdentityUser`), or granted directly as a principal | *Storage Object Admin* on the bucket | *Pub/Sub Subscriber* on the subscription | `serviceAccount.annotations: {iam.gke.io/gcp-service-account: <gsa>@<project>.iam.gserviceaccount.com}`; `storage.backend: gcs`, `storage.gcs.*` |
+
+Steps, in short:
+
+- **EKS.** Create an IAM role whose trust policy names the cluster's OIDC provider and the
+  service account (`eksctl create iamserviceaccount ... --attach-policy-arn <policy>` does
+  both), attach a policy with the actions above, and set the annotation.
+- **AKS.** Enable the OIDC issuer and workload identity on the cluster
+  (`az aks update --enable-oidc-issuer --enable-workload-identity`), create a managed identity,
+  add a federated credential (`az identity federated-credential create --issuer <oidc issuer>
+  --subject system:serviceaccount:<ns>:<sa>`), assign the roles on the storage account, and set
+  the annotation and pod label.
+- **GKE.** Enable Workload Identity on the cluster and node pool, create a Google service
+  account with the roles above, allow the Kubernetes service account to impersonate it
+  (`gcloud iam service-accounts add-iam-policy-binding <gsa> --role roles/iam.workloadIdentityUser
+  --member "serviceAccount:<project>.svc.id.goog[<ns>/<sa>]"`), and set the annotation.
+
+Studio-generated modules and plugins need no shared volume on any of them: they travel
+through the bucket ([Storage Guide](Storage%20Guide.md#studio-modules-without-a-shared-file-system)).
 
 ### SAJHA Net
 
@@ -375,7 +408,7 @@ against a local server; the commands are in the
 | Users signed out when a request lands on another pod | Pods have different JWT or session secrets | Use one Secret for all pods (section 3); never set `JWT_SECRET` per pod |
 | Streams cut after 60 s | The request did not hit the streams Ingress, or another controller is buffering | Section 5 |
 | `/metrics` answers 401 | The scrape sends no token or the wrong one | `metrics.serviceMonitor`, or `Authorization: Bearer <metrics-token>` |
-| A Studio tool loads on one pod only | Its `.py` is on that pod's `emptyDir` | `persistence.config` on `ReadWriteMany` (section 4) |
+| A Studio tool loads on one pod only | Its `.py` is on that pod's `emptyDir` | A cloud `storage.backend`, which carries Studio modules through the bucket ([Storage Guide](Storage%20Guide.md#studio-modules-without-a-shared-file-system)), or `persistence.config` on `ReadWriteMany` |
 | Playground says its assets are missing | Image built without `PLAYGROUND_ASSETS=true` | Rebuild, or `playground.assets: cdn` |
 | `Read-only file system` in the log | Code writing outside the mounted directories | Report it; mount the path with `extraVolumes` / `extraVolumeMounts` meanwhile |
 

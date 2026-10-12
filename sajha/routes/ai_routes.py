@@ -38,7 +38,7 @@ from sqlalchemy.orm import Session
 # ── Admin: Provider Management (DB-driven) ───────────────────
 
 @router.get('/api/ai/providers')
-async def api_list_providers(auth: AuthContext = Depends(require_auth), db: Session = Depends(get_db)):
+def api_list_providers(auth: AuthContext = Depends(require_auth), db: Session = Depends(get_db)):
     """List all LLM providers from database with health status."""
     from sajha.db.dao import LLMProviderDAO, LLMModelDAO
     gw = _get_gateway()
@@ -80,7 +80,7 @@ async def api_list_providers(auth: AuthContext = Depends(require_auth), db: Sess
 
 
 @router.get('/api/ai/models')
-async def api_list_all_models(auth: AuthContext = Depends(require_auth), db: Session = Depends(get_db)):
+def api_list_all_models(auth: AuthContext = Depends(require_auth), db: Session = Depends(get_db)):
     """List all models from database."""
     from sajha.db.dao import LLMModelDAO
     dao = LLMModelDAO(db)
@@ -124,7 +124,8 @@ async def api_provider_health(provider_type: str, auth: AuthContext = Depends(re
     prov = gw.provider(provider_type)
     if not prov:
         return JSONResponse({'error': f'Provider {provider_type} not registered'}, status_code=404)
-    h = gw.provider_health(provider_type, refresh=True)
+    from starlette.concurrency import run_in_threadpool
+    h = await run_in_threadpool(lambda: gw.provider_health(provider_type, refresh=True))   # a network probe
     return JSONResponse({'provider': provider_type, 'healthy': h.ok and prov.active,
                          'active': prov.active, 'status': h.status, 'detail': h.detail})
 
@@ -190,7 +191,7 @@ async def api_update_model(model_id: str, request: Request,
 
 
 @router.delete('/api/ai/models/{model_id}')
-async def api_delete_model(model_id: str, auth: AuthContext = Depends(require_admin),
+def api_delete_model(model_id: str, auth: AuthContext = Depends(require_admin),
                             db: Session = Depends(get_db)):
     """Delete a model entry."""
     from sajha.db.dao import LLMModelDAO
@@ -288,7 +289,8 @@ async def api_resolve_tool(request: Request, auth: AuthContext = Depends(require
     if not query:
         return JSONResponse({'error': 'query is required'}, status_code=400)
 
-    matches = resolver.resolve(query, top_k=top_k, extract_params=extract_params)
+    from starlette.concurrency import run_in_threadpool
+    matches = await run_in_threadpool(lambda: resolver.resolve(query, top_k=top_k, extract_params=extract_params))
     return JSONResponse({
         'query': query,
         'matches': [m.to_dict() for m in matches],
@@ -303,7 +305,8 @@ async def api_rebuild_index(auth: AuthContext = Depends(require_admin)):
     resolver = _get_resolver()
     if not resolver:
         return JSONResponse({'error': 'Resolver not initialized'}, status_code=503)
-    count = resolver.build_index()
+    from starlette.concurrency import run_in_threadpool
+    count = await run_in_threadpool(resolver.build_index)
     return JSONResponse({'success': True, 'indexed_tools': count})
 
 
@@ -326,8 +329,9 @@ async def api_complete(request: Request, auth: AuthContext = Depends(require_aut
         model = gw.model(gw.qualify(data.get('provider', ''), data.get('model', '')), context=ctx)
         messages = ([ChatMessage.system(data['system'])] if data.get('system') else []) + [ChatMessage.user(prompt)]
         max_tokens = int(data.get('max_tokens', 0) or 0)
-        c = model.chat_completions_create(messages=messages, temperature=float(data.get('temperature', 0)),
-                                          max_completion_tokens=max_tokens or None)
+        from starlette.concurrency import run_in_threadpool     # the model call: off the event loop
+        c = await run_in_threadpool(lambda: model.chat_completions_create(
+            messages=messages, temperature=float(data.get('temperature', 0)), max_completion_tokens=max_tokens or None))
         u, sj = c.usage, c.sajha
         return JSONResponse({
             'content': c.text,
@@ -548,7 +552,8 @@ async def api_ask(request: Request, auth: AuthContext = Depends(require_auth)):
 
     gen = svc.stream_ask(question, ctx, model=model, confirm=confirm, conversation_id=conversation_id,
                          planner=planner, locality=locality)
-    # The shortlist (the only step that consults RBAC) runs now, while the request's DB session is open.
+    # The shortlist (the only step that consults RBAC) runs now; it reads the caller's roles from memory
+    # (get_current_user gave the request's database connection back after authenticating).
     first = await run_in_threadpool(next, gen)
 
     def events():

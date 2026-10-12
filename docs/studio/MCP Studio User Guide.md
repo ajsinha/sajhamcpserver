@@ -128,8 +128,9 @@ instead of one endpoint at a time:
    [connected account](../architecture/Connected%20Accounts.md)); secrets are secret references such as `env:PETSTORE_KEY`. **Add a
    credential** applies one to every operation.
 4. **Operations.** Filter by tag, method or path; each row shows the proposed tool name
-   (editable), its hints (read-only, destructive, idempotent, paged) and any flag
-   (unsupported multipart body, a name already used by another tool). Select and **Deploy
+   (editable), its hints (read-only, destructive, idempotent, paged, file upload), the
+   **Pages** setting (following pages for a GET operation; off by default) and any flag
+   (an unsupported body type, a name already used by another tool). Select and **Deploy
    selected**: the configs are written and the tools are live at once.
 5. **Test-call** any operation once without deploying it.
 

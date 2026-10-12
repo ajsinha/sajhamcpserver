@@ -30,7 +30,7 @@ from sajha.ai.llm.canonical import (ChatCompletion, ChatCompletionChunk, ChatCom
                                     MessageSajha, ResponseSajha, new_id)
 from sajha.ai.llm.http import (aiter_ndjson, aiter_sse, apost_json, astream_post, iter_ndjson, iter_sse,
                                post_json, safe_json_loads, stream_post)
-from sajha.ai.llm.model import ChatModel
+from sajha.ai.llm.model import ChatModel, EmbeddingModel
 
 
 @dataclass
@@ -180,6 +180,41 @@ class HTTPChatModel(ChatModel):
                             yield c
         for c in tr.close():
             yield c
+
+
+class HTTPEmbeddingModel(EmbeddingModel):
+    """An embedding model reached with JSON POSTs: implement ``embed_wire`` (the calls for a batch of
+    texts) and ``embed_parse`` (vectors, optionally with the vendor's token count). The sync path
+    uses the provider's httpx.Client; the async path its httpx.AsyncClient (native, no worker thread)."""
+
+    def embed_wire(self, texts: List[Any], purpose: Optional[str],
+                   dimensions: Optional[int]) -> WireCall:   # pragma: no cover - abstract
+        raise NotImplementedError
+
+    def embed_parse(self, data: Dict[str, Any]) -> Any:      # pragma: no cover - abstract
+        raise NotImplementedError
+
+    def classify(self, resp) -> Any:
+        """Vendor-specific HTTP error mapping (None = the generic map_http_error)."""
+        return None
+
+    def _kw(self, call: WireCall, headers: Dict[str, str]) -> Dict[str, Any]:
+        return dict(params=call.params, headers=headers or None, provider=self.provider.name, model=self.id,
+                    classify=self.classify)
+
+    def _embed(self, texts, purpose=None, dimensions=None):
+        call = self.embed_wire(list(texts), purpose, dimensions)
+        headers = self.provider.request_headers()
+        with self.provider.slot():
+            data = post_json(self.provider.http, call.path, call.body, **self._kw(call, headers))
+        return self.embed_parse(data)
+
+    async def _aembed(self, texts, purpose=None, dimensions=None):
+        call = self.embed_wire(list(texts), purpose, dimensions)
+        headers = await self.provider.arequest_headers()
+        async with self.provider.aslot():
+            data = await apost_json(self.provider.ahttp, call.path, call.body, **self._kw(call, headers))
+        return self.embed_parse(data)
 
 
 # ── shared translation helpers ────────────────────────────────────

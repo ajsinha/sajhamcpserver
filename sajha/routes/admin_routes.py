@@ -15,7 +15,7 @@ router = APIRouter(prefix='/admin', tags=['admin'])
 
 
 @router.get('/users')
-async def admin_users_page(
+def admin_users_page(
     request: Request,
     auth: AuthContext = Depends(require_admin),
     db: Session = Depends(get_db),

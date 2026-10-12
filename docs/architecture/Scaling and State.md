@@ -100,6 +100,7 @@ Every piece of per-process state found in the code, with its classification:
 | MCP 2026-07-28 tasks | `sajha/core/mcp_tasks.py` | Durable, or Shared | Records are in the task record store (§4.4). The running coroutine stays on its worker. |
 | Legacy `TaskManager`, `ElicitationManager`, `SamplingManager` | `sajha/core/mcp_2025_11_25.py` | Local (inert) | Nothing in the server creates entries in them, so they are always empty. |
 | `subscriptions/listen` streams and change-bus subscriptions | `sajha/core/change_bus.py`, `sajha/core/mcp_modern.py` | Local, relayed | A stream belongs to one connection. Events are relayed on the `changes` channel (§4.5). |
+| Workflow trigger claims | `sajha/workflows/service.py` | Shared claim | One-slot claims fire each cron slot (`wf:cron:...`), each change-bus event per trigger (`wf:evclaim:...`) and each file poll (`wf:filepoll:...`) on one worker; the run records themselves are in the database ([Workflows](Workflows.md#4-triggers)). |
 | Rate limits (`auth`, `api`) | `sajha/security.py` (`RateLimiter`) | Shared | Sliding windows `ratelimit:<name>:<key>`. |
 | Policy rate limits and quotas | `sajha/policy/engine.py` | Shared | Sliding windows `policy:rate:<rule>:<scope>` and period counters `policy:quota:<rule>:<scope>:<period>` ([Policy and Audit](Policy%20and%20Audit.md)). |
 | Signed-out tokens | `sajha/auth/revocation.py` | Shared | `auth:revoked:<jti>` until the token would have expired. With `memory`, only the worker that handled the sign-out refuses the token. |
@@ -120,7 +121,7 @@ Every piece of per-process state found in the code, with its classification:
 | Execution replay | `sajha/core/tool_health.py` | Local | Per-worker history. The replay views show the worker that answered. |
 | WebSocket sessions | `sajha/routes/ws_routes.py` | Local | A WebSocket is one connection to one worker. The admin listing shows that worker's connections only. |
 | Tool, prompt, user and API-key configuration | `sajha/tools/tools_registry.py`, `sajha/core/prompts_registry.py`, the `users` / `api_keys` tables | Already shared (files and database) | Each worker loads and hot-reloads the files. The local tool-config poller runs every 5 s, so a tool enabled on one worker reaches the others' registries within about that time. |
-| Federation upstream connections and breakers | `sajha/federation/` | Local | Each worker opens its own connections to upstreams. The upstream list and approvals are in the federation store (storage backend), and an upstream's `max_calls_per_minute` window is in the state store. |
+| Federation upstream connections, pools, admission queues and breakers | `sajha/federation/` | Local, published | Each worker opens its own connections (a pool per upstream and replica) and bounds its own calls in flight. Each worker publishes its view of every upstream (state, connections, latency, load, last error, breaker) to `fed:health:<upstream>:<worker id>` with a TTL, reads every worker's view back, and opens its breaker when a peer opened its own (§4.9). The upstream list and approvals are in the federation store (storage backend), and an upstream's `max_calls_per_minute` window is in the state store. |
 | SAJHA Net membership, catalogs, the host and tool table, contract quarantines, seen request nonces, assertion `jti`s, host-scoped tokens (hashed) | `sajha/net/node.py`, `sajha/net/integration/` | Shared | Keys under `sajhanet:<net>:` (`PrefixKV`). Each worker keeps its registry's proxies equal to the shared table. A nonce or `jti` seen on one worker is a replay on every other. |
 | SAJHA Net gossip agent | `sajha/net/integration/__init__.py` | Shared (lease) | One worker per net holds the renewing lease `sajhanet:agent:<net>` (§4.7, TTL `sajhanet.agent_lease_seconds`) and runs that net's gossip; another takes over within one TTL. |
 | SAJHA Net key directory | `sajha/net/integration/keystore.py` | Already shared (database) | The `sajhanet_api_keys` table. |
@@ -169,14 +170,23 @@ its worker.
 - **Orphans.** A `working` task whose worker has no heartbeat is marked `failed` with
   `-32603` "The worker running this task stopped before it finished" when it is read. It is
   never re-run on another worker, because SAJHA cannot assume that tools are idempotent.
+- **Status notifications.** Every change of a task record is published on the change bus
+  (section 4.5) under the task id. A `subscriptions/listen` stream on any worker that named
+  the task re-reads the record and sends `notifications/tasks`.
 
 ### 4.5 Change bus
 
 `ChangeBus.attach_store` (called at start-up for shared backends) publishes every event on
 the `changes` channel as well, tagged with the bus's own origin. Events from other workers
-go to this worker's `Subscription`s only: listen streams, legacy SSE and WebSocket pushes.
-They do not go to synchronous listeners, which stay local. Coalescing still applies per
-subscriber.
+go to this worker's `Subscription`s: listen streams, a 2025-11-25 session's `GET /mcp`
+stream, legacy SSE and WebSocket pushes. Synchronous listeners stay local unless registered
+with `add_listener(fn, remote=True)`; the only such listener is the workflow service, whose
+event triggers therefore hear every worker's events. Task events never reach a listener. Each
+publish carries an `id`, the same on every worker that receives it, and the workflow service
+claims `wf:evclaim:<workflow>:<trigger>:<id>` before it fires, so one event starts one run
+across all workers ([Workflows](Workflows.md#4-triggers)). Coalescing still applies per subscriber. A session's `GET /mcp`
+stream lives on the worker that opened it, and the one-stream-per-session rule is enforced
+per worker.
 
 Bursts are kept off the store. The tools registry announces bulk work (start-up loading,
 reloads, the config poller's scan, composite and federation sync) once at the end, and not
@@ -228,6 +238,20 @@ another; all anonymous callers share one key. Federated tools default to per-use
 the upstream may answer differently per caller. Tools bound to a connected account are
 never cached at all. Invalidating a tool removes every user's entries.
 
+### 4.9 Federation upstream health
+
+A connection to an upstream belongs to one worker's event loop, so connections, pools and the
+admission queue stay per process. What other workers need is each worker's view: every
+`federation.health.publish_seconds` (5 s) each worker writes one document per upstream,
+`fed:health:<upstream>:<worker id>`, with a TTL of `federation.health.ttl_seconds` (30 s), and reads all
+of them back with one `scan`. A worker that dies drops out when its documents expire. The breaker is
+followed, not shared: a worker whose breaker is closed opens it when a peer published a breaker it
+opened after its own failures, and from then on probes on its own after its recovery timeout, so one
+worker's local network fault keeps the other workers off the upstream for at most one recovery
+timeout. A followed breaker is published as followed and never followed in turn. The rules and the
+switch (`federation.health.follow_peer_breakers`) are in
+[Federation](Federation.md#gateway-scale).
+
 ## 5. Secrets every worker must share
 
 The state store moves data. These secrets must also be identical everywhere:
@@ -271,12 +295,89 @@ The AWS CDK stack runs several Fargate tasks with `SAJHA_STATE_BACKEND=database`
 - **Redis unavailable at runtime.** Requests that touch shared state fail with HTTP 500
   until Redis is back. The pub/sub listener reconnects with backoff. Nothing falls back to
   per-process state, because that fallback would silently break the guarantees in §1.
+  `/health` reports `state.reachable: false` meanwhile. Sessions and other records written
+  before the outage are there when Redis returns.
+- **Shared store unreachable at start-up** (redis or database). Start-up stops ("refusing to
+  start") and the process exits non-zero (§6), so the deployment fails visibly.
+- **Database backend unavailable at runtime.** State-store operations raise rather than fall
+  back, and the rows written before are there when the database is reachable again.
+- **A worker dies mid-task.** Its tasks stay `working` until its heartbeat expires (up to
+  30 s), then any worker that reads one marks it `failed` with -32603 (§4.4); it is never re-run.
+- **A federated upstream breaks.** Its tools stay listed and calls fail fast; after the
+  breaker's `failure_threshold` failures it opens and calls stop reaching the upstream, and
+  after `recovery_timeout` one probe call closes it again once the upstream answers
+  ([Federation](Federation.md)).
+- **Database connections and concurrent calls.** The rule: a database connection is held for
+  the shortest time the work needs. One session per unit of work, given back to the pool as soon
+  as the database part is done, and always closed or rolled back when the work raises
+  (`sajha/db/engine.py`: `get_db` for a request, `session_scope()` for services, tools and
+  background jobs, `release_session` and `AuthContext.release_db` to give a request's connection
+  back early). A session checks a connection out at its first query and keeps it until it is
+  closed; held across a tool call, a model call, a federated call or an open stream, one
+  connection per call in flight was tied up, and in the release before this change `/mcp` froze at
+  16 concurrent calls (the pool's 15 connections on SQLite were gone and the next request's
+  authentication, on the event loop, blocked the whole worker for the pool's 30 s timeout). What
+  the code does now:
+  - *Requests give the connection back before slow work.* `get_current_user`, behind every
+    signed-in page and API route, releases it once the caller is known; the MCP endpoints
+    (`authorize_mcp`) look the caller up, build their identity and tool policy and release the
+    connection, all in the thread pool, before the call runs or a stream opens; the
+    OpenAI-compatible endpoint after its key check; the REST tool endpoint and A2A before the tool
+    runs and again after their own writes. `AuthContext.has_permission` reads the roles'
+    permissions that were loaded then, in memory, so it checks nothing out.
+  - *No database wait on the event loop.* Authentication on `/mcp`, `/mcp/message`, the legacy SSE
+    stream, the WebSocket transport, `/oauth/authorize`, `/oauth/token` and the SSO callback runs
+    in the thread pool (`run_in_threadpool`), and so do the tool and shell work of the contract-test
+    and shell routes. Routes whose whole body is database work are plain `def` handlers, which
+    FastAPI runs in the thread pool. Some console API routes still make short queries on the event
+    loop after reading their request body (key and user administration, provider and model edits);
+    they hold no connection across an `await`, and the pool timeout bounds any wait.
+  - *A dry pool answers at once.* A checkout waits at most `db.pool.timeout_seconds` (5 s), then
+    the request is shed: HTTP 503 with `Retry-After: 1`; on `/mcp` a JSON-RPC error, code `-32000`,
+    `data: {reason: "db_pool_exhausted", retryable: true, retryAfterSeconds: 1}`. It is never a hang,
+    and never a 401 (authentication passes a pool timeout through instead of treating the key as
+    unknown). Each one counts in `sajha_db_pool_exhausted_total`; the pool's gauges and every
+    worker's pool on the System monitor page are in [Observability](Observability.md) §2.2.
+  - *The state store has a pool of its own.* With `state.backend: database` on SAJHA's database,
+    the store opens its own small pool (`state.database.pool_size`, default 3, plus at most 2
+    overflow), so its calls made on the event loop (session lookups, rate-limit counters) never
+    wait behind request threads for a connection.
+  - *Guards.* `tests/test_db_session_hold.py` reads every async route in `sajha/routes/` and fails
+    when one holds a database session across an `await` without releasing it (an AST check with an
+    explicit, commented allowlist, empty today). `tests/test_db_pool.py` drives a one-connection
+    pool: a dry pool answers 503 fast on `/mcp` and the REST endpoint while `/health` answers, and
+    a tool that raises, a route that raises after a database read and a client that disconnects
+    mid-request all leave the checked-out count at its baseline. `tests/test_failure_behaviour.py`
+    runs more slow calls than the pool holds on three endpoints at once, and 128 concurrent
+    `tools/call` requests per era against one worker with a two-connection pool (every answer a
+    success or a 503, none hung, `/health` alive).
+
+  **Sizing the pool.** Per worker, a connection is needed only while a thread is inside a query,
+  and the threads that touch the database are bounded by the thread pool (AnyIO's default 40
+  tokens) plus the background jobs, so `db.pool.size` 10 with `db.pool.max_overflow` 10 (the
+  defaults: overflow -1 means "as many as the size") serves hundreds of concurrent calls; §9
+  measures it. On PostgreSQL every worker opens its own pools, so keep
+
+  ```
+  workers × (db.pool.size + max_overflow + state pool, 5 with state.backend: database)  +  other clients
+      ≤  max_connections − a reserve for administration
+  ```
+
+  (four workers with the defaults: 4 × (10 + 10 + 5) = 100, PostgreSQL's default
+  `max_connections`, so raise it or lower the pool). Raise `db.pool.size` when
+  `sajha_db_pool_waiting` is often above zero or `sajha_db_pool_exhausted_total` grows; add workers
+  (or hosts) when the CPU of each worker is the limit, which is what §9 shows. **SQLite** is for one
+  machine and light load: its file takes one writer at a time (WAL lets readers go on; SAJHA sets
+  `journal_mode=WAL`, `synchronous=NORMAL` and a 30 s `busy_timeout`, and gives the file the same
+  kind of pool). **PostgreSQL** is for real concurrency: several workers, pods or hosts, and write
+  traffic ([Database Setup](../getting-started/Database%20Setup.md)).
 - **Database backend latency.** Pub/sub is a polled table, so change notifications and
   task cancels arrive one poll interval late (500 ms by default). Event rows are deleted
   after a minute.
 - **Blocking calls.** State-store calls are synchronous, and some are made on the event
   loop. With Redis or a local database they take well under a millisecond to a few
-  milliseconds. A remote PostgreSQL adds its round-trip time.
+  milliseconds. A remote PostgreSQL adds its round-trip time. With the database backend they use
+  the store's own pool (above), so they never queue behind request threads.
 - **A stream belongs to one worker.** An open SSE or WebSocket stream lives where it was
   opened. Only the messages that must reach it are relayed. If that worker dies, the stream
   ends and the client reconnects, as it would after a restart.
@@ -297,10 +398,159 @@ The AWS CDK stack runs several Fargate tasks with `SAJHA_STATE_BACKEND=database`
   failures add up across workers, and an event on A reaches a `subscriptions/listen` stream
   on B. It also starts `run_sajha_web.py --workers 2` and checks that both workers report the
   shared backend.
+- `tests/test_federation_scale.py` runs two federation managers standing for two workers on the
+  memory, fakeredis and SQLite stores: the shared upstream view, a breaker followed from a peer and
+  probing on its own, a view expiring with its TTL.
+- `tests/test_failure_behaviour.py` (marker `failure`) asserts the behaviour of §7: an
+  unreachable redis or database store stops start-up with a non-zero exit; Redis lost at run
+  time (fakeredis with its connection cut) fails a new 2025-11-25 session with HTTP 500, reports
+  `reachable: false` and recovers; the database store raises while its file's folder is gone and
+  keeps its rows; two real servers on one SQLite state database, one killed with SIGKILL during a
+  task, and the other reports the task `failed` with -32603 once the heartbeat is gone (the test
+  deletes the heartbeat key instead of waiting out its TTL); a federated upstream stopped and
+  restarted opens and closes its breaker; the request's database session is closed once the
+  identity is known; more slow calls than the pool holds complete on three endpoints at once; and 128
+  concurrent `tools/call` requests per era against one real worker with a two-connection pool are each
+  a success or a 503 with `Retry-After`, none hung, with `/health` answering throughout. Each test has
+  its own scratch folder, key prefix and ports, and bounded waits.
+- `tests/test_db_pool.py` checks the pool settings and their validation, the counting pool on a SQLite
+  file, the `DB_*` switch, the 503 of a dry pool, connections returned on error paths, and the pool on
+  the System monitor; `tests/test_db_session_hold.py` is the static guard of §7.
 - `tests/test_state_lease.py` runs the lease contract (exclusive and re-entrant claim,
   renewal only by the holder, expiry and takeover, release, one-slot claims, a race of
   six claimants, the `Lease` keeper's renewal and loss) on the same backends; the real
   Redis case is skipped when no server answers at `SAJHA_TEST_REDIS_URL`.
+
+## 9. Measured performance
+
+These are evidence of one run on one machine, not promises: rerun the harness on your own hardware
+before sizing a deployment. The load generator shares the machine with the server, so absolute numbers
+are lower than on a dedicated host; compare rows with each other.
+
+### MCP endpoint
+
+`tools/bench/bench.py` (standard library and httpx) starts `run_sajha_web.py` for each configuration (a
+database and state backend, and a worker count) on a local port with a scratch database, scratch
+credential files and a scratch API key, waits until `/health` has answered from every worker, and drives
+`/mcp` from several load processes (asyncio and httpx) that keep a fixed number of requests in flight: a
+warm-up, unmeasured, then a measured window. Modern requests are MCP 2026-07-28 (stateless, `_meta` on
+every request); legacy clients run `initialize` once and send their requests on that `Mcp-Session-Id`
+(2025-11-25). The call is `calc_future_value`, a calculator that runs in the process with no network, with
+new arguments every time so the tool cache never answers. A non-200 answer, a JSON-RPC error or a tool
+result with `isError` is an error, not a latency sample; a 503 with `Retry-After` (a dry database pool,
+§7) is counted apart as shed; a request with no answer within the bound is hung. The output is a JSON file
+and a markdown table, with the CPU, cores, RAM, OS, Python, SAJHA version and commit, the load average
+before the run and before each row, and the reasons for any errors.
+
+Two scenarios. The standard one runs `tools/list` and `tools/call` on both eras at one level (32 in flight
+by default) on `memory`, `database` (SQLite) and `redis` (skipped when no server answers). The high
+concurrency one (`--scenario highconc`) runs `tools/call` on both eras at 64, 256 and 512 requests in
+flight, on SQLite and PostgreSQL at 1 and 4 workers (the state store on the same database:
+`state.backend: database`), probes `/health` every half second during each row, and passes or fails the
+run: no request unanswered or slower than 30 s, `/health` answering within 5 s throughout, errors (shed
+requests excluded) at most 1%. PostgreSQL rows run only when `SAJHA_BENCH_PG_URL` names a server: each
+configuration gets a scratch database built from SAJHA's two schema files and dropped afterwards, and the
+URL is never printed. `tests/test_failure_behaviour.py` runs a bounded version in the suite (128 in flight,
+one worker, a two-connection pool).
+
+Run of 2026-10-11 (high concurrency): AMD Ryzen AI 9 HX 370 w/ Radeon 890M, 24 logical cores, 60.8 GB RAM,
+Linux 7.1.5 (glibc 2.43), Python 3.14.4, SAJHA 8.11.0 at commit `3e72309` with this release's changes
+uncommitted, PostgreSQL 17 in a local container. Default pool (`db.pool.size` 10, overflow 10, 5 s
+checkout timeout). 4 load processes on the same machine; 2 s warm-up and 10 s measured per row. The
+one-minute load average was 2.0 at the start and 8.0 at the end: the server workers and the load
+processes themselves account for most of it, and other jobs ran on the machine too (the "Load avg" column
+is the value before each row). Verdict: **pass**, every row.
+
+| Database | Workers | Era | In flight | Requests | Shed (503) | Errors | Hung | Throughput (req/s) | p50 (ms) | p99 (ms) | Slowest (ms) | /health max (ms) | Load avg |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| SQLite | 1 | modern (2026-07-28) | 64 | 2956 | 0 | 0 | 0 | 295.6 | 199.08 | 395.99 | 648.76 | 178.57 | 2.02 |
+| SQLite | 1 | legacy (2025-11-25) | 64 | 3352 | 0 | 0 | 0 | 335.2 | 175.98 | 352.04 | 364.63 | 204.51 | 2.6 |
+| SQLite | 1 | modern (2026-07-28) | 256 | 2757 | 0 | 0 | 0 | 275.7 | 795.06 | 1319.61 | 1371.81 | 1533.7 | 2.31 |
+| SQLite | 1 | legacy (2025-11-25) | 256 | 3134 | 0 | 0 | 0 | 313.4 | 776.64 | 1268.89 | 1296.49 | 1694.39 | 2.34 |
+| SQLite | 1 | modern (2026-07-28) | 512 | 2306 | 0 | 0 | 0 | 230.6 | 1785.71 | 2024.63 | 2093.27 | 992.53 | 2.48 |
+| SQLite | 1 | legacy (2025-11-25) | 512 | 2251 | 0 | 0 | 0 | 225.1 | 1551.28 | 7067.77 | 8472.67 | 3243.3 | 3.37 |
+| SQLite | 4 | modern (2026-07-28) | 64 | 12061 | 0 | 0 | 0 | 1206.1 | 48.12 | 287.76 | 456.54 | 60.73 | 5.21 |
+| SQLite | 4 | legacy (2025-11-25) | 64 | 8135 | 0 | 0 | 0 | 813.5 | 51.67 | 354.55 | 2306.33 | 30.99 | 5.57 |
+| SQLite | 4 | modern (2026-07-28) | 256 | 8865 | 0 | 0 | 0 | 886.5 | 271.42 | 630.35 | 862.11 | 182.56 | 5.29 |
+| SQLite | 4 | legacy (2025-11-25) | 256 | 4862 | 0 | 0 | 0 | 486.2 | 255.2 | 3522.55 | 3891.13 | 183.19 | 5.11 |
+| SQLite | 4 | modern (2026-07-28) | 512 | 7096 | 0 | 5 | 0 | 709.6 | 434.97 | 3057.8 | 5606.64 | 820.81 | 6.98 |
+| SQLite | 4 | legacy (2025-11-25) | 512 | 5779 | 0 | 4 | 0 | 577.9 | 434.02 | 3912.36 | 3943.69 | 944.12 | 6.97 |
+| PostgreSQL | 1 | modern (2026-07-28) | 64 | 2658 | 0 | 0 | 0 | 265.8 | 228.86 | 457.99 | 496.19 | 58.52 | 6.22 |
+| PostgreSQL | 1 | legacy (2025-11-25) | 64 | 2676 | 0 | 0 | 0 | 267.6 | 231.97 | 404.0 | 425.73 | 122.7 | 6.06 |
+| PostgreSQL | 1 | modern (2026-07-28) | 256 | 2447 | 0 | 0 | 0 | 244.7 | 965.49 | 1080.68 | 1122.35 | 950.05 | 6.25 |
+| PostgreSQL | 1 | legacy (2025-11-25) | 256 | 2619 | 0 | 0 | 0 | 261.9 | 975.61 | 1200.75 | 1256.29 | 1792.19 | 5.16 |
+| PostgreSQL | 1 | modern (2026-07-28) | 512 | 2206 | 0 | 0 | 0 | 220.6 | 1886.19 | 2219.55 | 2278.41 | 342.25 | 5.05 |
+| PostgreSQL | 1 | legacy (2025-11-25) | 512 | 2614 | 0 | 0 | 0 | 261.4 | 1959.8 | 2152.57 | 2180.25 | 3048.18 | 4.51 |
+| PostgreSQL | 4 | modern (2026-07-28) | 64 | 9008 | 0 | 0 | 0 | 900.8 | 64.16 | 182.05 | 570.24 | 502.75 | 3.85 |
+| PostgreSQL | 4 | legacy (2025-11-25) | 64 | 8371 | 0 | 0 | 0 | 837.1 | 70.88 | 167.12 | 478.99 | 353.07 | 4.69 |
+| PostgreSQL | 4 | modern (2026-07-28) | 256 | 8174 | 0 | 0 | 0 | 817.4 | 283.45 | 663.08 | 756.55 | 133.25 | 5.84 |
+| PostgreSQL | 4 | legacy (2025-11-25) | 256 | 7725 | 0 | 0 | 0 | 772.5 | 307.33 | 675.75 | 812.78 | 194.54 | 6.61 |
+| PostgreSQL | 4 | modern (2026-07-28) | 512 | 6282 | 0 | 2 | 0 | 628.2 | 543.93 | 2869.93 | 4835.43 | 907.76 | 7.21 |
+| PostgreSQL | 4 | legacy (2025-11-25) | 512 | 6497 | 0 | 2 | 0 | 649.7 | 504.49 | 4807.96 | 6239.77 | 765.65 | 7.35 |
+
+What the rows show. The freeze is gone: 512 calls in flight against one worker with a pool of 20
+connections complete, none hung, none shed, where the release before froze at 16 (§7). No row shed a
+request: connections are held for milliseconds, so the pool never ran dry. One worker is bound by one
+Python process (about one core): throughput stays near 230 to 330 calls per second whatever the level,
+and latency grows with the queue (512 in flight at about 230 per second is about 2 s each); `/health`
+waits in the same queue and stayed within 3.3 s. Four workers carry two and a half to four times as much at 64 in
+flight, less as the level rises, because the load processes and the workers share the 24 cores. SQLite
+and PostgreSQL perform alike here (PostgreSQL local, so no network round trip; the writes per call are
+an audit record and a usage row). At 512 in flight on four workers a few requests (at most 5 per row,
+0.1%) failed with `ReadError`: the worker's event loop lagged by seconds and uvicorn's 5 s keep-alive
+timer closed a connection the client was about to reuse; a client retries those. More workers or hosts,
+not a larger pool, raise throughput.
+
+Reproduce:
+
+```
+.venv/bin/python tools/bench/bench.py --scenario highconc --out /tmp/sajha-bench    # SQLite rows
+SAJHA_BENCH_PG_URL=postgresql://user:password@host:5432/postgres \
+    .venv/bin/python tools/bench/bench.py --scenario highconc --out /tmp/sajha-bench    # and PostgreSQL
+.venv/bin/python tools/bench/bench.py --configs memory:1,database:1,database:4,redis:1,redis:4 \
+    --duration 20 --warmup 3 --out /tmp/sajha-bench                                    # standard
+```
+
+### Federation
+
+`tools/bench/bench_federation.py` starts the example upstream (`sajha/examples/federation/units_server.py`)
+and, for each configuration, a SAJHA server with that upstream configured twice (once unbounded, once
+with `max_in_flight: 4` and no queue), and drives MCP 2026-07-28 `tools/call` with 32 requests in flight
+from 4 load processes: a local tool (`calc_future_value`, the baseline), a proxied tool
+(`units__celsius_to_fahrenheit`), and a proxied tool that takes about 100 ms upstream
+(`unitsbounded__countdown`) to show shedding. It reuses the server start-up of `tools/bench/bench.py`.
+
+Run of 2026-10-11, measured earlier than the MCP endpoint run above (before the connection changes of
+§7): AMD Ryzen AI 9 HX 370, 24 logical cores, 60.8 GB RAM, Linux, Python 3.14.4, SAJHA 8.11.0 with the
+gateway-scale changes uncommitted; 2 s warm-up and 10 s measured per row, on a machine other jobs were
+using at the same time.
+
+| Backend | Workers | Pool | Phase | Requests | Shed | Errors | Throughput (req/s) | p50 (ms) | p95 (ms) | p99 (ms) |
+|---|---|---|---|---|---|---|---|---|---|---|
+| memory | 1 | 1 | local | 4024 | 0 | 0 | 402.4 | 67.56 | 128.04 | 297.46 |
+| memory | 1 | 1 | proxied | 1661 | 0 | 0 | 166.1 | 177.99 | 285.58 | 584.34 |
+| memory | 1 | 1 | shed | 286 | 1983 | 0 | 28.6 | 224.74 | 363.56 | 719.2 |
+| memory | 1 | 4 | local | 3603 | 0 | 0 | 360.3 | 84.13 | 123.24 | 255.08 |
+| memory | 1 | 4 | proxied | 2579 | 0 | 0 | 257.9 | 116.89 | 158.56 | 391.94 |
+| memory | 1 | 4 | shed | 311 | 3247 | 0 | 31.1 | 187.33 | 237.58 | 617.8 |
+| database | 4 | 1 | local | 11040 | 0 | 0 | 1104.0 | 27.33 | 42.9 | 78.78 |
+| database | 4 | 1 | proxied | 7019 | 0 | 0 | 701.9 | 42.82 | 69.79 | 94.34 |
+| database | 4 | 1 | shed | 1336 | 8710 | 0 | 133.6 | 123.37 | 163.87 | 528.86 |
+
+What the rows show: with one worker and one connection, a proxied call costs about two and a half times
+a local one under this load, because every call to the upstream goes through one connection on the
+federation event loop; four pooled connections raise proxied throughput by about half (166 to 258
+requests per second) and cut the tail. Four workers multiply both. The shed rows hold the bounded
+upstream at its limit (4 calls in flight per worker: about 40, and with four workers about 160, calls
+per second of 100 ms each, less overhead) and refuse the rest at once without errors; the "Shed" column
+counts those refusals.
+
+Reproduce:
+
+```
+.venv/bin/python tools/bench/bench_federation.py --configs memory:1:1,memory:1:4,database:4:1 \
+    --duration 10 --warmup 2 --out /tmp/sajha-bench
+```
 
 ---
 

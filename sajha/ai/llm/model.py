@@ -17,6 +17,7 @@ The model interface is shaped like an OpenAI-style client (docs/architecture/LLM
 
     class EmbeddingModel:
         embeddings_create(request=None, **fields)  -> EmbeddingsResponse
+        aembeddings_create(...)                     -> EmbeddingsResponse  (async; native where _aembed is)
 
 Each call first runs ``prepare``: the provider-independent refusals of canonical.check_request,
 then the model's declared capabilities. A feature the model does not declare raises
@@ -629,7 +630,8 @@ def _merge_samples(comps: List[ChatCompletion]) -> ChatCompletion:
 
 class EmbeddingModel(LLMModel):
     """One embedding model (the shared implementation of LLMModel for embeddings). Implement ``_embed(texts, purpose, dimensions)`` (or the original
-    ``embed(texts)``); callers use ``embeddings_create``."""
+    ``embed(texts)``), and ``_aembed`` for native async (the default runs ``_embed`` in a worker thread);
+    callers use ``embeddings_create`` / ``aembeddings_create``."""
 
     id: str
     provider: "LLMProvider"
@@ -681,9 +683,17 @@ class EmbeddingModel(LLMModel):
         """Vectors (optionally with the vendor-reported token count). Default: ``embed``."""
         return self.embed(texts)
 
-    def embeddings_create(self, request: Any = None, /, **fields) -> EmbeddingsResponse:
+    async def _aembed(self, texts: List[str], purpose: Optional[str] = None,
+                      dimensions: Optional[int] = None) -> Union[List[List[float]], Tuple[List[List[float]], int]]:
+        """The native-async twin of ``_embed``. Default: ``_embed`` (or ``embed``) in a worker thread;
+        HTTP providers override it with httpx.AsyncClient (adapter.HTTPEmbeddingModel)."""
+        import anyio
+        if type(self)._embed is EmbeddingModel._embed:
+            return await anyio.to_thread.run_sync(self.embed, texts)
+        return await anyio.to_thread.run_sync(lambda: self._embed(texts, purpose, dimensions))
+
+    def _embeddings_begin(self, request: Any, fields: Dict[str, Any]) -> Tuple[EmbeddingsRequest, List[Any]]:
         req = EmbeddingsRequest.coerce(request, **fields)
-        t0 = time.time()
         if req.encoding_format not in (None, "float", "base64"):
             raise InvalidRequest(f"encoding_format: unknown value '{req.encoding_format}'")
         if req.is_tokens and not getattr(self.provider, "openai_compatible", False):
@@ -692,11 +702,10 @@ class EmbeddingModel(LLMModel):
         if req.dimensions and not self.capabilities.variable_dimensions and req.dimensions != self.dimensions:
             raise UnsupportedFeature(f"{self.qualified_id} has a fixed size; 'dimensions' is not supported",
                                      provider=self.provider.name, model=self.id)
-        texts = req.input if req.is_tokens else req.texts
-        if type(self)._embed is EmbeddingModel._embed:
-            out: Any = self.embed(texts)
-        else:
-            out = self._embed(texts, req.purpose, req.dimensions)
+        return req, (req.input if req.is_tokens else req.texts)
+
+    def _embeddings_response(self, req: EmbeddingsRequest, texts: List[Any], out: Any,
+                             t0: float) -> EmbeddingsResponse:
         vectors, tokens = (out if isinstance(out, tuple) else (out, None))
         estimated = tokens is None
         if estimated:
@@ -710,6 +719,17 @@ class EmbeddingModel(LLMModel):
                                                       cost_usd=cost, usage_estimated=estimated,
                                                       latency_ms=int((time.time() - t0) * 1000)))
 
+    def embeddings_create(self, request: Any = None, /, **fields) -> EmbeddingsResponse:
+        t0 = time.time()
+        req, texts = self._embeddings_begin(request, fields)
+        if type(self)._embed is EmbeddingModel._embed:
+            out: Any = self.embed(texts)
+        else:
+            out = self._embed(texts, req.purpose, req.dimensions)
+        return self._embeddings_response(req, texts, out, t0)
+
     async def aembeddings_create(self, request: Any = None, /, **fields) -> EmbeddingsResponse:
-        import anyio
-        return await anyio.to_thread.run_sync(lambda: self.embeddings_create(request, **fields))
+        t0 = time.time()
+        req, texts = self._embeddings_begin(request, fields)
+        out = await self._aembed(texts, req.purpose, req.dimensions)
+        return self._embeddings_response(req, texts, out, t0)

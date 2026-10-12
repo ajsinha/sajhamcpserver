@@ -22,6 +22,11 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
 * ``oauth_user``                per-user OAuth sign-in (sajha/federation/oauth_user.py): each call
                                 carries the caller's own access token as a bearer token; discovery
                                 as for token_user.
+* ``service_with_user``         one shared service identity (``service``: one of none, bearer,
+                                header, oauth_client_credentials; or the shared ``headers``) with the
+                                calling SAJHA user named in an audit header (``user_header``, default
+                                ``X-SAJHA-User``) on every tool call (OnBehalfAuth); discovery uses the
+                                service identity alone.
 * ``static``                    the same as ``none``: the shared credential is in ``headers``.
 
 Secrets are references (``env:``, ``file:``, ``db:``) resolved when the connection is
@@ -138,9 +143,49 @@ class ClientCredentialsAuth(httpx2.Auth):
         return [v for v in (self._secret, self._token) if v]
 
 
+class OnBehalfAuth(httpx2.Auth):
+    """The shared service credential (``inner``, or none) plus ``header: value`` naming the SAJHA user
+    the call is made for (auth.type service_with_user). The user header is not a secret; it is the
+    vendor's audit record of who asked."""
+
+    def __init__(self, inner: Optional[httpx2.Auth], header: str, value: str):
+        self.inner = inner
+        self.header = header
+        self.value = value
+
+    def sync_auth_flow(self, request):
+        request.headers[self.header] = self.value
+        if self.inner is None:
+            yield request
+            return
+        yield from self.inner.sync_auth_flow(request)
+
+    async def async_auth_flow(self, request):
+        request.headers[self.header] = self.value
+        if self.inner is None:
+            yield request
+            return
+        flow = self.inner.async_auth_flow(request)
+        try:
+            req = await flow.__anext__()
+            while True:
+                response = yield req
+                req = await flow.asend(response)
+        except StopAsyncIteration:
+            return
+
+    def secret_values(self) -> List[str]:
+        return list(getattr(self.inner, 'secret_values', lambda: [])()) if self.inner is not None else []
+
+
 def build_auth(config, settings) -> Optional[httpx2.Auth]:
     a = dict(config.auth or {})
     kind = a.get('type') or 'none'
+    if kind == 'service_with_user':
+        # the shared connection (discovery, and the credential under every call) is the service identity;
+        # each tool call adds the user header on a connection of its own (FederationManager)
+        a = dict(a.get('service') or {})
+        kind = a.get('type') or 'none'
     if kind == 'connected_account':
         # the shared connection only discovers (tools/list): it uses auth.discovery, if any.
         # Tool calls carry the caller's own token on a connection of their own (call_tool_as).

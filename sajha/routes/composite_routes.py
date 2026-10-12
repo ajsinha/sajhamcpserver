@@ -18,14 +18,14 @@ router = APIRouter(tags=['composite'])
 
 
 @router.get('/api/composite-tools')
-async def api_list(auth: AuthContext = Depends(require_auth), db: Session = Depends(get_db)):
+def api_list(auth: AuthContext = Depends(require_auth), db: Session = Depends(get_db)):
     from sajha.db.dao import CompositeToolDAO
     dao = CompositeToolDAO(db)
     return JSONResponse({'tools': [dao.to_dict(r) for r in dao.get_all(enabled_only=False)]})
 
 
 @router.get('/api/composite-tools/{name}')
-async def api_get(name: str, auth: AuthContext = Depends(require_auth), db: Session = Depends(get_db)):
+def api_get(name: str, auth: AuthContext = Depends(require_auth), db: Session = Depends(get_db)):
     from sajha.db.dao import CompositeToolDAO
     dao = CompositeToolDAO(db)
     rec = dao.get_by_name(name)
@@ -92,7 +92,7 @@ async def api_update(name: str, request: Request, auth: AuthContext = Depends(re
 
 
 @router.delete('/api/composite-tools/{name}')
-async def api_delete(name: str, auth: AuthContext = Depends(require_creator('composite')), db: Session = Depends(get_db)):
+def api_delete(name: str, auth: AuthContext = Depends(require_creator('composite')), db: Session = Depends(get_db)):
     from sajha.db.dao import CompositeToolDAO
     dao = CompositeToolDAO(db)
     refused = _not_owner(dao, name, auth)
@@ -114,7 +114,7 @@ async def api_delete(name: str, auth: AuthContext = Depends(require_creator('com
 
 
 @router.get('/api/composite-tools/{name}/preview-schema')
-async def api_preview_schema(name: str, auth: AuthContext = Depends(require_auth), db: Session = Depends(get_db)):
+def api_preview_schema(name: str, auth: AuthContext = Depends(require_auth), db: Session = Depends(get_db)):
     """Preview the auto-generated input/output schemas without registering."""
     from sajha.db.dao import CompositeToolDAO
     from sajha.app import tools_registry

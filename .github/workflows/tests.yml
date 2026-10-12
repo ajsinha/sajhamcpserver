@@ -41,6 +41,7 @@ jobs:
           --health-interval 5s --health-timeout 5s --health-retries 20
     env:
       SAJHA_TEST_POSTGRES_URL: postgresql+psycopg2://sajha:sajha@127.0.0.1:5432/sajha_schema_test
+      SAJHA_TEST_PG_URL: postgresql+psycopg2://sajha:sajha@127.0.0.1:5432/sajha_schema_test   # tests/test_postgresql.py (own schema)
       SAJHA_TEST_WAIT: '0'          # the live-server client tests skip at once (no server here)
       PYTHONDONTWRITEBYTECODE: '1'
     steps:

@@ -11,6 +11,12 @@ fields) and keeps running here.  The client then uses
     tasks/update  -> deliver inputResponses to an ``input_required`` task (ack)
     tasks/cancel  -> cancel (ack; idempotent on terminal tasks)
 
+Status notifications: every change of a task record is announced on the change
+bus (``TASK``); a ``subscriptions/listen`` stream that named the task in
+``notifications.taskIds`` reads the record and sends ``notifications/tasks``
+with the DetailedTask (sajha.core.mcp_modern).  Optional in SEP-2663; polling
+``tasks/get`` works the same with or without it.
+
 There is no tasks/list or tasks/result on this surface (both -32601), and the
 legacy 2025-11-25 core ``tasks/*`` (sajha.core.mcp_2025_11_25) are untouched.
 
@@ -217,16 +223,27 @@ class TaskStore:
 
     def _save(self, task: McpTask) -> None:
         self.records.set(_KEY + task.task_id, task.record(), ttl=task.ttl_ms / 1000.0)
+        _announce(task.task_id)
 
     def _write(self, task_id: str, fn: Callable[[Dict[str, Any]], Optional[Dict[str, Any]]],
                ttl_ms: int) -> Optional[Dict[str, Any]]:
-        """Atomic change of a record; ``fn`` returns the changed record or None to leave it."""
+        """Atomic change of a record; ``fn`` returns the changed record or None to leave it.
+        A change is announced on the change bus (``notifications/tasks`` on listen streams)."""
+        changed: List[bool] = []
+
         def apply(cur):
+            changed.clear()
             if cur is None:
                 return None
             new = fn(dict(cur))
-            return cur if new is None else new
-        return self.records.update(_KEY + task_id, apply, ttl=ttl_ms / 1000.0)
+            if new is None:
+                return cur
+            changed.append(True)
+            return new
+        rec = self.records.update(_KEY + task_id, apply, ttl=ttl_ms / 1000.0)
+        if changed and rec is not None:
+            _announce(task_id)
+        return rec
 
     # -- lifecycle ------------------------------------------------------
 
@@ -450,6 +467,15 @@ class TaskStore:
     def __len__(self) -> int:
         with self._lock:
             return self._size_locked()
+
+
+def _announce(task_id: str) -> None:
+    """Tell listen streams (every worker's, with a shared state store) that this task changed."""
+    try:
+        from sajha.core.change_bus import get_change_bus
+        get_change_bus().task_changed(task_id)
+    except Exception as e:          # notifications are optional: never fail the task over one
+        logger.debug(f"Task {task_id}: change not announced: {e}")
 
 
 def _jsonable(spec: Optional[Dict[str, Any]]) -> Optional[Dict[str, Any]]:

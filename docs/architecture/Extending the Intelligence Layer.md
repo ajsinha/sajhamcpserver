@@ -500,6 +500,10 @@ temperature; `prepare` has already recorded a dropped one in `sajha.ignored`).
 `purpose` is `query`, `document` or `None` — map it to the vendor's input type where it has
 one (Cohere `input_type`, Gemini `taskType`). `dimensions` is refused before `_embed` unless
 the model declares `variable_dimensions`; `base64` encoding is done by the base class.
+`aembeddings_create` calls `_aembed` (default: `_embed` on a worker thread). Over HTTP, subclass
+`HTTPEmbeddingModel` and write two pure functions, `embed_wire(texts, purpose, dimensions) ->
+WireCall` and `embed_parse(data)` (plus `classify` if needed); it implements `_embed` and a
+native async `_aembed` on the provider's `httpx.AsyncClient`.
 
 **Models written against the original interface** (`generate(ChatRequest) -> ChatResponse`, optionally `stream`
 yielding `TextDelta`/`ToolCallDelta`/`UsageEvent`/`Done`, and `embed(texts)`) keep working:

@@ -621,6 +621,13 @@ class ToolsRegistry:
                 elif 'implementation' in config:
                     impl_path = config['implementation']
                     try:
+                        # Studio-generated module or script kept on a cloud storage backend:
+                        # fetch it when the local copy is missing or stale (no shared file system)
+                        from sajha.core.storage_modules import materialise_for_config
+                        materialise_for_config(config)
+                    except Exception as e:
+                        self.logger.warning(f"Tool {tool_name}: materialising from storage failed: {e}")
+                    try:
                         # User code (Studio Python code and script tools) runs in a
                         # sandbox and is never imported here: docs/architecture/Sandbox.md
                         from sajha.sandbox.tools import build_sandboxed_tool

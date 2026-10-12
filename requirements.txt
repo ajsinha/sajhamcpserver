@@ -100,6 +100,8 @@ sqlite-vec>=0.1.6,<1.0
 # azure-storage-blob>=12.19.0,<13.0.0        # storage.backend: azure
 # azure-identity>=1.15.0,<2.0.0              #   (managed identity when using account_url)
 # google-cloud-storage>=2.14.0,<3.0.0        # storage.backend: gcs
+# azure-storage-queue>=12.9.0,<13.0.0        # storage.events.provider: azure_queue (boto3 covers sqs)
+# google-cloud-pubsub>=2.18.0,<3.0.0         # storage.events.provider: pubsub
 
 # ── Shared state for several workers / hosts (optional — only for state.backend: redis) ─
 # Lazy-imported in sajha/core/state/redis_store.py; memory and database need nothing extra.

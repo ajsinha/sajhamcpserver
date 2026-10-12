@@ -75,7 +75,8 @@ class TestLifecycle:
         assert 'tasks' not in caps
         assert 'websocket' not in caps and 'jsonSchema' not in caps
         assert 'sajha' in caps['experimental']
-        assert caps['resources']['subscribe'] is False
+        # a session's GET /mcp stream carries notifications/resources/updated for what it subscribed to
+        assert caps['resources']['subscribe'] is True
         info = res['serverInfo']
         assert info['name'] and info['version'] and info['title']
         assert info['websiteUrl'].startswith('http')
@@ -129,10 +130,15 @@ class TestTransport:
         r = rpc(client, 'ping', headers={'MCP-Protocol-Version': '2020-01-01'})
         assert r.status_code == 400
 
-    def test_get_with_session_is_405(self, client):
-        sid = init(client).headers['mcp-session-id']
-        r = client.get('/mcp', headers={'Mcp-Session-Id': sid, 'Accept': 'text/event-stream'})
+    def test_get_without_session_is_405(self, client):
+        # with a live session GET opens the session's list_changed stream (tests/test_protocol_gaps.py)
+        r = client.get('/mcp', headers={'MCP-Protocol-Version': '2025-11-25', 'Accept': 'text/event-stream'})
         assert r.status_code == 405
+
+    def test_get_with_session_needs_event_stream(self, client):
+        sid = init(client).headers['mcp-session-id']
+        r = client.get('/mcp', headers={'Mcp-Session-Id': sid, 'Accept': 'application/json'})
+        assert r.status_code == 406
 
     def test_get_with_unknown_session_is_404(self, client):
         r = client.get('/mcp', headers={'Mcp-Session-Id': 'nope', 'Accept': 'text/event-stream'})

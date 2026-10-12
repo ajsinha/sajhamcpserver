@@ -34,7 +34,8 @@ terms are in the [Glossary](../../GLOSSARY.md). The code is `sajha/api_import/`.
                folder: the request's "folder", else the one recorded, else the prefix)
                + the import record in config/api_imports/<api_id>.json
                                    │   hot-loaded into the registry
- execute       ImportedAPITool (executor.py): one generic class, configured per tool
+ execute       ImportedAPITool (executor.py): one generic class, configured per tool;
+               file bodies (bodies.py), opt-in page following (paging.py)
 ```
 
 No Python is generated. Every imported tool has the same implementation,
@@ -58,7 +59,8 @@ builds the request in generated source.)
   it closes: the inner occurrence becomes `{}` (anything) with a `$comment` naming the
   reference, so a recursive `Category.parent` is still described one level deep. A
   relative reference in an uploaded document (no URL to resolve against) is reported as
-  an error.
+  an error, and so is a document the guard refuses or that cannot be read: the operations
+  that use it are flagged with the reason and cannot be selected.
 * **Schema dialect.** Tool schemas are JSON Schema 2020-12 (the dialect MCP and
   `BaseMCPTool.validate_arguments` use). OpenAPI 3.1 schemas already are; 3.0 schemas are
   converted: `nullable: true` → a `"null"` member in `type`, boolean
@@ -73,7 +75,15 @@ builds the request in generated source.)
   file); `collectionFormat` → `style`/`explode`; response `schema` → `content` for each
   `produces` type; `securityDefinitions` → `securitySchemes` (`basic` → HTTP basic,
   OAuth2 `application` flow → client credentials, `accessCode` → authorization code).
-  Shared `#/parameters/...` and `#/responses/...` are inlined.
+  Shared `#/parameters/...` and `#/responses/...` are inlined. Remote references
+  (`common.yaml#/definitions/Error`, `#/parameters/Limit` or `#/responses/Problem` in
+  another document) are bundled before the conversion (`swagger2.bundle`): each
+  referenced document is fetched once through the SSRF guard (within
+  `api_import.max_ref_documents` documents of at most `api_import.max_spec_bytes` each),
+  the target is copied into the spec's own `definitions`, `parameters` or `responses`
+  under a fresh name, and references inside the copied part are bundled the same way
+  (a cycle ends at the name already given; nesting deeper than 64 levels is left as it is).
+  The bundled spec then converts like a single-file one.
 * **Untrusted text.** Summaries, descriptions and schema descriptions are what a model
   reads when it picks a tool, so they pass through the federation screen
   (`sajha/federation/security.py::screen_text`/`screen_schema`): control characters
@@ -88,10 +98,10 @@ builds the request in generated source.)
 | Prefix | Per API; it is also the API's id (`api_id`). Default: the spec title, sanitised. |
 | Title, description | `summary`, and `summary` + `description` + `METHOD /path`, screened. |
 | Parameters | Every path, query, header and cookie parameter becomes a top-level property of `inputSchema`, its schema converted, `required` kept (path parameters are always required), `enum`, `format`, `default` and `description` carried over. Path-level parameters merge with operation-level ones (the operation wins). A property name that is not `[A-Za-z0-9_.-]{1,64}` (some model APIs reject others) is sanitised, and the same name in two locations is disambiguated (`id`, `id_header`); the config keeps the mapping back to the wire name. |
-| Request body | One property, `body` (`request_body` if a parameter is already called `body`), holding the body schema; required when the spec says so. JSON (`application/json`, `*+json`) is preferred, then `application/x-www-form-urlencoded`, then `text/plain`. `multipart/form-data` and `application/octet-stream` bodies are **not supported**: the operation is flagged and cannot be selected. |
-| Output | `outputSchema` is an envelope, always an object (MCP requires one): `{"status": <HTTP status>, "body": <2xx JSON schema>, "next_page": <URL, when the response has a Link rel="next">}`. The first 2xx response with JSON content gives `body`'s schema (nested deeper than 8 levels is cut to `{}`); a 204 or non-JSON response leaves it open. |
+| Request body | One property, `body` (`request_body` if a parameter is already called `body`), holding the body schema; required when the spec says so. JSON (`application/json`, `*+json`) is preferred, then `application/x-www-form-urlencoded`, then `text/plain`, then `multipart/form-data`, then a binary body (`application/octet-stream`, or any other media type whose schema is a binary string or absent, such as `image/png`). In a multipart body each binary property (`format: binary` or `base64`, `contentMediaType`, `contentEncoding`, Swagger `type: file`) becomes a **file value**, an array of them an array of file values; a binary body is one file value ([§5.1](#51-file-arguments)). Any other body (XML with an object schema, say) is flagged and the operation cannot be selected. |
+| Output | `outputSchema` is an envelope, always an object (MCP requires one): `{"status": <HTTP status>, "body": <2xx JSON schema>, "next_page": <URL, when the response has a Link rel="next">}`; an operation that follows pages adds `pages`, `items`, `truncated`, `stopped` and `next_arguments` ([§5.2](#52-following-pages)). The first 2xx response with JSON content gives `body`'s schema (nested deeper than 8 levels is cut to `{}`); a 204 or non-JSON response leaves it open. |
 | Annotations | `readOnlyHint: true` for GET, HEAD and OPTIONS; `destructiveHint: true` for DELETE, PUT and PATCH, `false` for POST; `idempotentHint: true` for PUT and DELETE; `openWorldHint: true` for every imported tool (it reaches an external system); `title` from `summary`. |
-| Pagination | A query parameter named like a pager (`page`, `per_page`, `limit`, `offset`, `cursor`, `page_token`, `after`, ...) is noted in the description and the config (`api_import.pagination`); the executor returns `next_page` from a `Link: <...>; rel="next"` header. It does not follow pages by itself. |
+| Pagination | A query parameter named like a pager (`page`, `per_page`, `limit`, `offset`, `cursor`, `page_token`, `after`, ...) is noted in the description and the config (`api_import.pagination`); the executor returns `next_page` from a `Link: <...>; rel="next"` header. Following pages is off unless it is turned on for the operation ([§5.2](#52-following-pages)). |
 
 ### Large specs
 
@@ -152,12 +162,66 @@ whose `api_import.api_id` is its own.
 `ImportedAPITool.execute` builds the request from the arguments (validated against
 `inputSchema` by `BaseMCPTool` before it runs): path parameters percent-encoded into the
 path, query parameters serialised by `style`/`explode` (`form`, `spaceDelimited`,
-`pipeDelimited`, `deepObject`), header and cookie parameters, the body as JSON, a form or
-text. A 2xx answer is returned as the envelope above (JSON parsed, otherwise text). Any
+`pipeDelimited`, `deepObject`), header and cookie parameters, the body as JSON, a form,
+text, `multipart/form-data` or raw bytes. A 2xx answer is returned as the envelope above (JSON parsed, otherwise text). Any
 other status raises, so MCP returns `isError: true` with `HTTP <status> <reason> from
 <METHOD> <path>` and the first 500 characters of the body; a timeout, a connection
 failure and a refused address do the same with their own message. Failures count toward
 the tool's circuit breaker like any tool's.
+
+### 5.1 File arguments
+
+A file value is an object with exactly one of:
+
+| Field | Meaning |
+|---|---|
+| `content_base64` | The bytes, base64 (the URL-safe alphabet is accepted too). |
+| `text` | The content as UTF-8 text. |
+| `path` | A file in the storage backend, under one of `api_import.file_roots`. |
+
+plus an optional `filename` and `content_type` (guessed from the file name when absent). In
+a multipart body a file part is sent with `Content-Disposition: form-data; name=...;
+filename=...` and its content type (the value's, else the spec's `encoding.contentType`,
+else `application/octet-stream`); an object or array field is sent as a JSON part, anything
+else as a text part. A binary body is sent with the spec's media type, or the value's
+`content_type` when the spec gives a wildcard.
+
+* **Paths.** `api_import.file_roots` lists storage-backend folders a `path` may name; it is
+  empty by default, so file content travels inline only. A root containing `{user}` is
+  per caller: `uploads/{user}` lets user `alice` send `uploads/alice/...` and nothing else,
+  and a caller the server cannot identify cannot use it. A path must be relative and
+  without `..`; on the local storage backend a symbolic link that leads out of its root is
+  refused. Anyone allowed to call the tool may send any file under a shared root, so
+  choose roots with that in mind.
+* **Size.** The whole request body (every part together) is capped at
+  `api_import.max_upload_bytes`; a larger one is refused before any connection is made.
+  The request then goes through the SSRF guard like every other call.
+
+### 5.2 Following pages
+
+Off by default. On the import request (the **Pages** column of the preview, or the
+`pagination` object of the API: operation key → block) a GET operation can be given a
+`paginate` block; it is written into the tool config and kept in the import record, so a
+re-import keeps it.
+
+| Field | Meaning |
+|---|---|
+| `mode` | `link` (the `Link: <...>; rel="next"` header), `next_url` (a URL in a body field), `cursor` (a token in a body field sent back as a query parameter), `page` (a page-number parameter plus one), `offset` (an offset parameter advanced by the rows received) |
+| `items` | Dot path to the row array in the body; empty: the body itself when it is an array, else the first of `items`, `data`, `results`, `values`, `records`, `entries` that is one |
+| `next_field` | `next_url` and `cursor`: dot path to the next URL or token (for example `links.next`, `meta.next_cursor`) |
+| `cursor_param`, `page_param`, `offset_param` | The query parameter to send; guessed from the operation's pager parameters when omitted, and it must be one of its query parameters |
+| `max_pages`, `max_items` | Per-operation caps; never above `api_import.pagination_max_pages` and `api_import.pagination_max_items` |
+
+One call fetches the first page, then the next ones until there is no next page, a page is
+empty, or a cap is reached; the rows are merged into the first page's body at the `items`
+path. Every page is a separate guarded request with the credentials and counts toward the
+API's rate limit. A next URL is checked against the SSRF guard before it is followed, and it
+must keep the first request's origin (scheme, host and port) so credentials never travel
+to another host; one that fails either check is not requested. The answer then says how
+far it got: `pages`, `items`, `truncated` (more rows exist than were collected), `stopped`
+(why following ended early: a refused or foreign next URL, a repeated page, a failed
+page), and, when a cap cut it short, `next_page` (the next URL) or `next_arguments` (the
+arguments that continue from there).
 
 ## 6. GraphQL
 
@@ -190,13 +254,19 @@ its tools and the record.
 
 ## 8. Limits
 
-* Multipart and binary request bodies, callbacks, webhooks and links are not imported.
-* XML responses are returned as text.
-* GraphQL subscriptions are not imported.
+* Callbacks, webhooks and links are not imported, and neither are GraphQL subscriptions:
+  each needs the server to receive or hold a connection, which a tool call does not. They
+  are out of scope, not planned.
+* Request bodies other than JSON, form, text, multipart and binary (XML with an object
+  schema, for example) are not imported. A multipart part's per-part headers
+  (`encoding.headers`) are not sent.
+* XML responses are returned as text; a binary response is returned as text too (decoded
+  with replacement characters), not as a file.
 * Per-user OAuth needs the connected-accounts feature; otherwise use a static credential.
-* The executor does not follow pagination; the model calls again with the next page.
-* Remote `$ref` documents inside a Swagger 2.0 spec are not converted (their own
-  `definitions` pointers are followed as they are).
+* Following pages is for GET operations only, one call at a time (each page is read up to
+  `api_import.max_response_bytes`); GraphQL connections (`pageInfo`) are not followed.
+* `file_roots` grants by folder, not by file: there is no per-file ownership check beyond
+  the `{user}` placeholder.
 * Environment proxies are not used for imported calls (the address pin needs a direct
   connection).
 

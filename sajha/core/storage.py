@@ -551,6 +551,66 @@ class S3SyncManager:
         self._timestamps: Dict[str, float] = {}
         self._thread: Optional[threading.Thread] = None
         self._stop_event = threading.Event()
+        self._state_lock = threading.RLock()
+        # push-based reload (sajha/core/storage_events.py): while push_healthy() is true the
+        # poll runs only every healthy_interval seconds; polling never stops entirely
+        self.push_healthy: Callable[[], bool] = lambda: False
+        self.healthy_interval = 0
+        self.pushed = 0                 # paths applied from bucket events
+
+    def set_push(self, healthy: Callable[[], bool], healthy_interval: int) -> None:
+        """Called by the storage events listener: lengthen polling while it is healthy."""
+        self.push_healthy = healthy
+        self.healthy_interval = max(0, int(healthy_interval or 0))
+
+    def current_interval(self) -> int:
+        """Seconds between polls now: ``healthy_interval`` while push is healthy, else ``interval``."""
+        try:
+            healthy = bool(self.push_healthy())
+        except Exception:
+            healthy = False
+        if healthy and self.healthy_interval > self.interval:
+            return self.healthy_interval
+        return self.interval
+
+    def notify(self, changes) -> List[str]:
+        """Apply pushed changes, ``[(path, deleted), ...]``: refresh the cache and timestamps of
+        each path under a watched prefix and fire each affected prefix's callback once (the
+        callbacks the poll fires, so the registries publish the same change-bus events). A
+        "deleted" path that still exists is treated as changed, a "changed" one that is gone as
+        deleted. Returns the prefixes whose callbacks ran."""
+        fired = []
+        with self._state_lock:
+            for path, deleted in changes:
+                path = str(path).lstrip('/')
+                prefixes = [p for p in self._callbacks if path.startswith(p.rstrip('/') + '/')]
+                if not prefixes:
+                    continue
+                gone = bool(deleted) and not self.storage.exists(path)
+                if not gone:
+                    try:
+                        mtime = self.storage.get_modified_time(path)
+                        self.storage.read_bytes(path)
+                        self._timestamps[path] = mtime
+                    except FileNotFoundError:
+                        gone = True
+                if gone:
+                    self._timestamps.pop(path, None)
+                    try:
+                        cp = self.storage._cache_path(path)
+                        if cp.exists():
+                            cp.unlink()
+                    except Exception:
+                        pass
+                self.pushed += 1
+                fired.extend(p for p in prefixes if p not in fired)
+        for prefix in fired:
+            try:
+                logger.info(f"Bucket event: changes in {prefix}; reloading")
+                self._callbacks[prefix]()
+            except Exception as e:
+                logger.error(f"Reload after a bucket event failed for {prefix}: {e}", exc_info=True)
+        return fired
 
     def watch(self, prefix: str, callback: Callable) -> None:
         """Register a callback for changes under prefix."""
@@ -576,13 +636,20 @@ class S3SyncManager:
         for prefix in self._callbacks:
             self.storage.sync_prefix(prefix)
 
+        last = time.time()
         while not self._stop_event.is_set():
+            # wake every `interval` seconds; poll once the current interval (longer while push
+            # notifications are healthy) has passed since the last poll
             self._stop_event.wait(self.interval)
             if self._stop_event.is_set():
                 break
-            for prefix, callback in self._callbacks.items():
+            if time.time() - last < self.current_interval() - 0.5:
+                continue
+            last = time.time()
+            for prefix, callback in list(self._callbacks.items()):
                 try:
-                    changed = self._check_changes(prefix)
+                    with self._state_lock:
+                        changed = self._check_changes(prefix)
                     if changed:
                         logger.info(f"S3 changes detected in {prefix}: {len(changed)} files")
                         callback()
@@ -736,5 +803,18 @@ def write_tool_config(local_path, config_or_text, folder: Optional[str] = None) 
         else:
             st.write_text(s, config_or_text)
         idx.note(s, tool_files._name_of(config_or_text, s))
+        _publish_generated(config_or_text)
         return s
-    return tool_files.write_config(Path(s).stem, config_or_text, folder)
+    written = tool_files.write_config(Path(s).stem, config_or_text, folder)
+    _publish_generated(config_or_text)
+    return written
+
+
+def _publish_generated(config_or_text) -> None:
+    """On a cloud backend, copy the Studio-generated module and script the config names to the
+    backend too, so other instances can materialise them (sajha/core/storage_modules.py)."""
+    try:
+        from sajha.core.storage_modules import publish_for_config
+        publish_for_config(config_or_text)
+    except Exception as e:
+        logger.warning(f'Publishing the generated module to the storage backend failed: {e}')

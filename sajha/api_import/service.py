@@ -70,6 +70,7 @@ class ImportRequest:
     selected: List[str] = field(default_factory=list)         # op keys to deploy
     remove: List[str] = field(default_factory=list)           # op keys whose tools to delete
     folder: str = ''                                          # tool folder of new tools ('' -> the prefix)
+    pagination: Optional[Dict[str, Dict[str, Any]]] = None    # op key -> paginate block (None: as recorded)
 
     @classmethod
     def from_dict(cls, d: Dict[str, Any]) -> 'ImportRequest':
@@ -93,7 +94,9 @@ class ImportRequest:
                    names={str(k): str(v).strip().lower() for k, v in (d.get('names') or {}).items() if v},
                    selected=[str(x) for x in d.get('selected') or []],
                    remove=[str(x) for x in d.get('remove') or []],
-                   folder=str(d.get('folder') or '').strip().strip('/'))
+                   folder=str(d.get('folder') or '').strip().strip('/'),
+                   pagination=({str(k): dict(v) for k, v in d['pagination'].items() if isinstance(v, dict)}
+                               if isinstance(d.get('pagination'), dict) else None))
 
 
 # ── the source ───────────────────────────────────────────────────────
@@ -178,7 +181,7 @@ def load_document(req: ImportRequest):
         raise APIImportError('give a spec URL or upload a spec')
     _check_size(text)
     try:
-        doc = load_openapi(text, spec_url or None)
+        doc = load_openapi(text, spec_url or None, _ref_fetcher, settings.max_ref_documents())
     except SpecError as e:
         raise APIImportError(str(e))
     return OpenAPIDocument(doc, spec_url or None, _ref_fetcher, settings.max_ref_documents()), spec_url
@@ -340,6 +343,14 @@ def output_schema_for(op: Dict[str, Any]) -> Dict[str, Any]:
         props['errors'] = {'type': 'array', 'description': 'GraphQL errors returned with partial data'}
     else:
         props['next_page'] = {'type': 'string', 'description': 'The next page URL (Link rel="next")'}
+    if op.get('paginate'):
+        props.update({
+            'pages': {'type': 'integer', 'description': 'Pages fetched and merged into body'},
+            'items': {'type': 'integer', 'description': 'Rows collected across the pages'},
+            'truncated': {'type': 'boolean', 'description': 'More rows exist than were collected (a cap or a stop)'},
+            'stopped': {'type': 'string', 'description': 'Why following stopped before the last page'},
+            'next_arguments': {'type': 'object', 'description': 'Arguments that continue from where this call stopped'},
+        })
     return {'type': 'object', 'properties': props, 'required': ['status', 'body']}
 
 
@@ -380,7 +391,8 @@ def tool_config(op: Dict[str, Any], name: str, ctx: Dict[str, Any]) -> Dict[str,
         'operation_id': op.get('operation_id', ''), 'method': op['method'], 'path': op['path'],
         'server_url': server,
         'params': [{k: p[k] for k in ('arg', 'name', 'in', 'style', 'explode')} for p in op.get('params') or []],
-        'body': ({k: op['body'][k] for k in ('arg', 'content_type')} if op.get('body') else None),
+        'body': ({k: op['body'][k] for k in ('arg', 'content_type', 'fields', 'part_types', 'binary')
+                  if k in op['body']} if op.get('body') else None),
         'response_content_type': op.get('response_content_type') or 'application/json',
         'security': op.get('security'), 'auth': copy.deepcopy(ctx.get('auth') or {}),
         'timeout_seconds': ctx.get('timeout_seconds') or settings.timeout_seconds(),
@@ -389,6 +401,8 @@ def tool_config(op: Dict[str, Any], name: str, ctx: Dict[str, Any]) -> Dict[str,
     }
     if gql:
         spec['graphql'] = dict(gql)
+    if op.get('paginate'):
+        spec['paginate'] = dict(op['paginate'])
     config: Dict[str, Any] = {
         'name': name,
         'implementation': IMPLEMENTATION,
@@ -508,6 +522,13 @@ def build_plan(req: ImportRequest, registry=None) -> Plan:
             op['status'] = 'changed'
         else:
             op['status'] = 'unchanged'
+    wanted_paging = req.pagination if req.pagination is not None else ((record or {}).get('pagination') or {})
+    from sajha.api_import import paging
+    for op in ops:
+        try:
+            op['paginate'] = paging.normalize(wanted_paging.get(op['key']), op)
+        except paging.PaginationConfigError as e:
+            raise APIImportError(str(e))
     present = {op['key'] for op in all_ops}
     removed = [{'key': k, 'name': v.get('tool_name'), 'status': 'removed'}
                for k, v in sorted(recorded.items()) if k not in present]
@@ -543,6 +564,8 @@ def plan(data: Dict[str, Any], registry=None) -> Dict[str, Any]:
             'params': [{'arg': x['arg'], 'in': x['in'], 'required': x['required']} for x in op.get('params') or []],
             'body': (op['body'] or {}).get('content_type', '') if op.get('body') else '',
             'security': op.get('security'), 'pagination': op.get('pagination') or [],
+            'paginate': op.get('paginate'), 'files': bool((op.get('body') or {}).get('fields') or
+                                                         (op.get('body') or {}).get('binary')),
             'selectable': selectable, 'selected': default,
             'input_schema': input_schema_for(op),
         })
@@ -761,6 +784,7 @@ def deploy(data: Dict[str, Any], registry=None, user: str = '') -> Dict[str, Any
         'base_url': req.base_url, 'auth': p.auth, 'filters': req.filters,
         'timeout_seconds': req.timeout_seconds, 'rate_limit_per_minute': req.rate_limit_per_minute,
         'graphql_depth': req.graphql_depth, 'folder': folder,
+        'pagination': _recorded_paging(p, recorded),
         'operations': recorded, 'created_at': (p.record or {}).get('created_at') or now,
         'updated_at': now, 'updated_by': user,
         'created_by': (p.record or {}).get('created_by') or user,
@@ -773,6 +797,15 @@ def deploy(data: Dict[str, Any], registry=None, user: str = '') -> Dict[str, Any
             'removed': removed, 'failed': failed,
             'message': (f"{p.prefix}: {len(deployed)} added, {len(updated)} updated, {len(removed)} removed"
                         + (f", {len(failed)} failed" if failed else ''))}
+
+
+def _recorded_paging(p: Plan, recorded: Dict[str, Any]) -> Dict[str, Any]:
+    """The paginate blocks to keep with the record: this plan's, else the ones recorded for
+    operations the filter hid."""
+    shown = {op['key'] for op in p.ops}
+    out = {k: v for k, v in ((p.record or {}).get('pagination') or {}).items() if k in recorded and k not in shown}
+    out.update({op['key']: op['paginate'] for op in p.ops if op.get('paginate') and op['key'] in recorded})
+    return out
 
 
 def delete_api(api_id: str, registry=None) -> Dict[str, Any]:
@@ -817,4 +850,5 @@ def reimport_request(api_id: str) -> Dict[str, Any]:
             'base_url': r.get('base_url', ''), 'auth': r.get('auth') or {}, 'filters': r.get('filters') or {},
             'timeout_seconds': r.get('timeout_seconds', 0), 'graphql_depth': r.get('graphql_depth', 0),
             'rate_limit_per_minute': r.get('rate_limit_per_minute', 0),
+            'pagination': r.get('pagination') or {},
             'uploaded': bool((r.get('source') or {}).get('uploaded'))}

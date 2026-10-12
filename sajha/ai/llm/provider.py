@@ -153,6 +153,9 @@ class ProviderBase(LLMProvider):
         return {}
 
     async def arequest_headers(self) -> Dict[str, str]:
+        """The async twin of request_headers: none without a worker thread when it is not overridden."""
+        if type(self).request_headers is ProviderBase.request_headers:
+            return {}
         import anyio
         return await anyio.to_thread.run_sync(self.request_headers)
 

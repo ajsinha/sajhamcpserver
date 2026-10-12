@@ -33,6 +33,7 @@ APP_MIME_TYPE = 'text/html;profile=mcp-app'
 URI_PREFIX = 'ui://sajha/'
 _BUNDLED_DIR = Path(__file__).parent / 'mcp_app_views'
 _MAX_VIEW_BYTES = 2 * 1024 * 1024
+MAX_VIEW_BYTES = _MAX_VIEW_BYTES      # also the limit on a proxied server's view (sajha/federation)
 
 # Titles/descriptions for bundled views (file name -> metadata)
 _BUNDLED = {
@@ -89,7 +90,7 @@ def tool_ui_meta(tool_config: Optional[Dict[str, Any]], tool_name: str = '?') ->
     problem = None
     if not isinstance(uri, str) or not uri.startswith('ui://'):
         problem = f'resourceUri {uri!r} is not a ui:// URI'
-    elif uri not in ui_views():
+    elif uri not in ui_views() and not _federated_view(uri):
         problem = f'resourceUri {uri!r} names no available view'
     out: Dict[str, Any] = {'resourceUri': uri}
     visibility = ui.get('visibility')
@@ -104,6 +105,16 @@ def tool_ui_meta(tool_config: Optional[Dict[str, Any]], tool_name: str = '?') ->
             logger.warning(f'Tool {tool_name!r}: ignoring _meta.ui ({problem})')
         return None
     return out
+
+
+def _federated_view(uri: str) -> bool:
+    """A proxied server's view of a served tool (ui://sajha-federation/..., docs/architecture/Federation.md)."""
+    try:
+        from sajha.federation.manager import get_federation
+        fed = get_federation()
+        return bool(fed is not None and fed.has_view(uri))
+    except Exception:
+        return False
 
 
 def resources() -> List[Dict[str, Any]]:

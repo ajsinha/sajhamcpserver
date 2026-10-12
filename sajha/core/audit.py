@@ -30,9 +30,8 @@ class AuditLogger:
         except Exception as e:
             logger.error(f"Audit chain record failed: {e}")
         try:
-            from sajha.db.engine import get_db_session
+            from sajha.db.engine import session_scope
             from sajha.db.models import AuditLog
-            db = get_db_session()
             entry = AuditLog(
                 id=str(uuid.uuid4()),
                 action=action,
@@ -43,9 +42,8 @@ class AuditLogger:
                 ip_address=ip_address,
                 created_at=datetime.now(timezone.utc),
             )
-            db.add(entry)
-            db.commit()
-            db.close()
+            with session_scope(commit=True) as db:     # closed (and rolled back on error) always
+                db.add(entry)
             logger.info(f"Audit: {action} by {user_id or 'system'} on {resource_type}:{resource_id}")
         except Exception as e:
             # Audit logging must never crash the application

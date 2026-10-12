@@ -382,18 +382,102 @@ def _federation_families() -> Iterable[Collected]:
     except Exception:
         return []
     up, calls, fails = [], [], []
+    in_flight, waiting, shed, pool, workers, opened = [], [], [], [], [], []
     for s in status:
         uid = str(s.get('id', ''))
         up.append(('sajha_federation_upstream_up', {'upstream': uid, 'state': str(s.get('state', ''))},
                    1.0 if s.get('state') == 'connected' else 0.0))
         calls.append(('sajha_federation_upstream_calls_total', {'upstream': uid}, float(s.get('calls') or 0)))
         fails.append(('sajha_federation_upstream_failures_total', {'upstream': uid}, float(s.get('failures') or 0)))
-    return [('sajha_federation_upstream_up', 'gauge', 'Federated upstream connected (1) or not (0), with its state.', up),
-            ('sajha_federation_upstream_calls_total', 'counter', 'Calls forwarded to each federated upstream.', calls),
-            ('sajha_federation_upstream_failures_total', 'counter', 'Failed calls to each federated upstream.', fails)]
+        adm = s.get('admission') or {}         # gateway scale (sajha/federation/scale.py)
+        in_flight.append(('sajha_federation_upstream_in_flight', {'upstream': uid}, float(adm.get('in_flight') or 0)))
+        waiting.append(('sajha_federation_upstream_waiting', {'upstream': uid}, float(adm.get('waiting') or 0)))
+        shed.append(('sajha_federation_upstream_shed_total', {'upstream': uid}, float(adm.get('shed') or 0)))
+        for r in s.get('replicas') or []:
+            pool.append(('sajha_federation_pool_connections_connected', {'upstream': uid, 'replica': str(r.get('replica', 0))},
+                         float(r.get('connected') or 0)))
+        cl = s.get('cluster')
+        if cl:
+            workers.append(('sajha_federation_cluster_workers_connected', {'upstream': uid}, float(cl.get('connected') or 0)))
+            opened.append(('sajha_federation_cluster_breakers_open', {'upstream': uid},
+                           float(len(cl.get('breaker_open') or []))))
+    out = [('sajha_federation_upstream_up', 'gauge', 'Federated upstream connected (1) or not (0), with its state.', up),
+           ('sajha_federation_upstream_calls_total', 'counter', 'Calls forwarded to each federated upstream.', calls),
+           ('sajha_federation_upstream_failures_total', 'counter', 'Failed calls to each federated upstream.', fails),
+           ('sajha_federation_upstream_in_flight', 'gauge', 'Calls in flight to each federated upstream (this worker).',
+            in_flight),
+           ('sajha_federation_upstream_waiting', 'gauge', 'Calls waiting for a slot of each federated upstream.', waiting),
+           ('sajha_federation_upstream_shed_total', 'counter',
+            'Calls refused because the upstream was at max_in_flight with a full queue.', shed),
+           ('sajha_federation_pool_connections_connected', 'gauge',
+            'Connected shared connections per federated upstream and replica (this worker).', pool)]
+    if workers:
+        out += [('sajha_federation_cluster_workers_connected', 'gauge',
+                 'Workers whose published view says the upstream is connected (the cluster-wide view).', workers),
+                ('sajha_federation_cluster_breakers_open', 'gauge',
+                 'Workers whose published view has the upstream\'s breaker open or half open.', opened)]
+    return out
+
+
+#: pool families: (metric, pool_status() field, type, help)
+DB_POOL_FAMILIES = (
+    ('sajha_db_pool_size', 'size', 'gauge', 'Connections the database pool keeps (db.pool.size), this worker.'),
+    ('sajha_db_pool_max_overflow', 'max_overflow', 'gauge',
+     'Extra connections the pool may open under load (db.pool.max_overflow), this worker.'),
+    ('sajha_db_pool_checked_out', 'checked_out', 'gauge', 'Database connections in use now, this worker.'),
+    ('sajha_db_pool_overflow_in_use', 'overflow_in_use', 'gauge',
+     'Connections in use beyond db.pool.size (overflow), this worker.'),
+    ('sajha_db_pool_waiting', 'waiting', 'gauge', 'Threads waiting for a free database connection now, this worker.'),
+    ('sajha_db_pool_exhausted_total', 'exhausted_total', 'counter',
+     'Checkouts that found no free connection within db.pool.timeout_seconds (each answered 503 + Retry-After).'),
+)
+
+
+def _db_pool_families() -> Iterable[Collected]:
+    """The database connection pool of this process (sajha/db/engine.py pool_status)."""
+    try:
+        from sajha.db.engine import pool_status
+        st = pool_status()
+    except Exception:
+        return []
+    if not st:
+        return []
+    labels = {'db_type': str(st.get('db_type', ''))}
+    return [(name, kind, help_, [(name, labels, float(st[field]))])
+            for name, field, kind, help_ in DB_POOL_FAMILIES if st.get(field) is not None]
+
+
+def db_pool_workers() -> List[Dict[str, Any]]:
+    """The pool of every live worker: this one from the pool itself, the others from their published
+    metrics snapshots (shared state store; ``[]`` beyond this worker otherwise). The System page and
+    ``/api/admin/system-monitor`` show it."""
+    from sajha.db.engine import pool_status
+    me = _worker_id()
+    out = [{'worker': me, 'this_worker': True, **pool_status()}]
+    store = _shared_store()
+    if store is None:
+        return out
+    fields = {name: field for name, field, _k, _h in DB_POOL_FAMILIES}
+    try:
+        for key, snap in store.scan(_SNAP_PREFIX):
+            wid = key[len(_SNAP_PREFIX):] if key.startswith(_SNAP_PREFIX) else key.rsplit(':', 3)[-1]
+            if wid == me or not isinstance(snap, dict):
+                continue
+            row: Dict[str, Any] = {'worker': wid, 'this_worker': False, 'as_of': snap.get('at')}
+            for f in snap.get('families') or []:
+                if f[0] in fields and f[3]:
+                    sample = f[3][0]
+                    row[fields[f[0]]] = float(sample[2])
+                    row.setdefault('db_type', (sample[1] or {}).get('db_type'))
+            if len(row) > 3:
+                out.append(row)
+    except Exception as e:
+        logger.debug(f'db pool snapshot read failed: {e}')
+    return out
 
 
 REGISTRY.add_collector(_process_families)
+REGISTRY.add_collector(_db_pool_families)
 REGISTRY.add_collector(_cache_and_breaker_families)
 REGISTRY.add_collector(_federation_families)
 

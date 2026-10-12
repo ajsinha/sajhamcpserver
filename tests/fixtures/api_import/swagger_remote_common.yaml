@@ -1,0 +1,41 @@
+# Shared parts of swagger_remote_2_0.yaml (a Swagger 2.0 fragment: definitions,
+# parameters, responses). Its own #/definitions pointers are relative to this document.
+definitions:
+  Customer:
+    type: object
+    properties:
+      name:
+        type: string
+        x-nullable: true
+      address:
+        $ref: "#/definitions/Address"
+      referredBy:
+        $ref: "#/definitions/Customer"
+  Address:
+    type: object
+    properties:
+      city:
+        type: string
+  NewOrder:
+    type: object
+    required: [customer]
+    properties:
+      customer:
+        $ref: "#/definitions/Customer"
+  Problem:
+    type: object
+    properties:
+      message:
+        type: string
+parameters:
+  Limit:
+    name: limit
+    in: query
+    type: integer
+    minimum: 1
+    maximum: 100
+responses:
+  Problem:
+    description: An error
+    schema:
+      $ref: "#/definitions/Problem"

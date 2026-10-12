@@ -14,10 +14,12 @@ from __future__ import annotations
 
 import asyncio
 import concurrent.futures
+import dataclasses
 import fnmatch
 import hashlib
 import json
 import logging
+import re
 import threading
 import time
 from typing import Any, Callable, Dict, List, Optional, Tuple
@@ -27,6 +29,7 @@ from sajha.federation.config import (ConfigError, FederationSettings, UpstreamCo
                                      namespaced)
 from sajha.federation.connection import (UpstreamConnection, UpstreamTimeout, UpstreamUnavailable,
                                          describe)
+from sajha.federation import scale
 from sajha.federation.security import (correct_annotations, redact, schema_problem, screen_schema,
                                        screen_text)
 from sajha.federation.store import FederationStore
@@ -35,9 +38,11 @@ from sajha.federation.tool import FederatedTool, FederatedToolError
 logger = logging.getLogger(__name__)
 
 RESOURCE_SCHEME = 'sajha-federation'
+VIEW_PREFIX = 'ui://sajha-federation/'      # an upstream's MCP Apps views (ui://), namespaced by upstream id
 STATE_KEY = 'sajha.federation'
 STATUSES = ('pending', 'approved', 'changed', 'rejected', 'disabled', 'invalid')
-KINDS = ('tool', 'prompt', 'resource')
+KINDS = ('tool', 'prompt', 'resource', 'template')
+_TEMPLATE_EXPR = re.compile(r'(\{[^{}]*\})')
 _TITLE_LIMIT = 200
 _SCHEMA_TEXT_LIMIT = 512
 
@@ -72,6 +77,13 @@ class _Upstream:
         # tools users saw with their own tokens (discovery offers the union)
         self.user_sessions: Dict[str, '_UserSession'] = {}
         self.user_tools: Dict[str, Dict[str, Any]] = {}
+        # service_with_user: the shared service credential, built once (None: the shared headers only)
+        self.service_auth = None
+        self.service_auth_built = False
+        # gateway scale (sajha/federation/scale.py): every shared connection (``conn`` is the primary
+        # one, which runs discovery), and the bound on calls in flight
+        self.pool: List[UpstreamConnection] = []
+        self.admission: Optional[scale.Admission] = None
         if config.max_calls_per_minute:
             from sajha.security import RateLimiter
             # Named per upstream: the window key is ratelimit:<name>:calls, so a shared
@@ -117,6 +129,8 @@ class FederationManager:
         self._exposed: Dict[str, Tuple[str, str]] = {}          # exposed tool name -> (upstream id, tool)
         self._tools: Dict[str, FederatedTool] = {}               # exposed tool name -> registered tool
         self._prompts: Dict[str, Tuple[str, str]] = {}           # exposed prompt name -> (upstream id, prompt)
+        self._views: Dict[str, Tuple[str, str, List[str]]] = {}   # exposed ui:// view -> (upstream, view, tools)
+        self._holders: Dict[str, set] = {}                       # subscriber -> exposed resource URIs it watches
         self._loop: Optional[asyncio.AbstractEventLoop] = None
         self._thread: Optional[threading.Thread] = None
         self._started = False
@@ -129,6 +143,13 @@ class FederationManager:
         self._file_thread: Optional[threading.Thread] = None
         if registry is not None and hasattr(registry, 'add_reload_listener'):
             registry.add_reload_listener(self._reregister_after_reload)
+        # the cluster-wide view of upstream health (sajha/federation/scale.py)
+        from sajha.core.state import WORKER_ID
+        self.worker_id = WORKER_ID
+        self.health = scale.HealthBoard(self.worker_id, self.settings.health_ttl_seconds)
+        self._health_stop = threading.Event()
+        self._health_thread: Optional[threading.Thread] = None
+        self._peer_tripped: Dict[str, float] = {}     # upstream -> when a peer's open breaker opened ours
 
     # ══ lifecycle ══════════════════════════════════════════════════
     def start(self) -> None:
@@ -143,6 +164,7 @@ class FederationManager:
             return
         self._watch_file()
         self._ensure_loop()
+        self._watch_health()
         for up in list(self._upstreams.values()):
             if up.config.enabled:
                 self._connect(up)
@@ -165,6 +187,9 @@ class FederationManager:
 
     def stop(self) -> None:
         self._file_stop.set()
+        self._health_stop.set()
+        for uid in list(self._upstreams):
+            self.health.forget(uid)
         loop = self._loop
         if loop is None:
             return
@@ -183,7 +208,7 @@ class FederationManager:
         sessions = [s.conn for u in self._upstreams.values() for s in u.user_sessions.values()]
         for u in self._upstreams.values():
             u.user_sessions.clear()
-        await asyncio.gather(*(u.conn.stop() for u in self._upstreams.values() if u.conn is not None),
+        await asyncio.gather(*(c.stop() for u in self._upstreams.values() for c in self._members(u)),
                              *(c.stop(timeout=2.0) for c in sessions), return_exceptions=True)
 
     def _ensure_loop(self) -> asyncio.AbstractEventLoop:
@@ -408,7 +433,8 @@ class FederationManager:
             raise ConfigError('stdio upstreams are disabled (federation.allow_stdio)')
         if cfg.transport != 'stdio':
             from sajha.federation.security import check_url
-            check_url(cfg.url, self.settings)
+            for url in cfg.replica_urls:            # url and every replica
+                check_url(url, self.settings)
         prefixes = {u.config.effective_prefix: uid for uid, u in self._upstreams.items() if uid != cfg.id}
         if cfg.effective_prefix in prefixes:
             raise ConfigError(f'prefix {cfg.effective_prefix} is already used by upstream {prefixes[cfg.effective_prefix]}')
@@ -454,20 +480,194 @@ class FederationManager:
                 logger.debug(f'federation: closing per-user sessions of {up.config.id}: {e}')
         if up.conn is not None and self._loop is not None:
             try:
-                self._run(up.conn.stop(), timeout=10)
+                self._run(self._stop_members(self._members(up)), timeout=10)
             except Exception as e:
                 logger.debug(f'federation: stopping {up.config.id}: {e}')
         up.conn = None
+        up.pool = []
+        self.health.forget(up.config.id)
         self._sync_registry()
+
+    @staticmethod
+    async def _stop_members(members: List[UpstreamConnection]) -> None:
+        await asyncio.gather(*(c.stop() for c in members), return_exceptions=True)
 
     def _connect(self, up: _Upstream) -> None:
         if up.conn is not None:
             return
         loop = self._ensure_loop()
-        up.conn = UpstreamConnection(up.config, self.settings, self._discover,
-                                     refresh_seconds=up.config.refresh_interval_seconds)
-        self._register_breaker(up.config)
-        loop.call_soon_threadsafe(up.conn.start)
+        cfg = up.config
+        pool: List[UpstreamConnection] = []
+        size = self._pool_size(cfg)
+        for r, url in enumerate(cfg.replica_urls):          # url, then each replica in urls
+            mcfg = cfg if r == 0 else dataclasses.replace(cfg, url=url, urls=[])
+            for i in range(size):
+                c = UpstreamConnection(mcfg, self.settings, self._discover,
+                                       refresh_seconds=cfg.refresh_interval_seconds)
+                c.role, c.replica, c.slot = ('primary' if not pool else 'pool'), r, i
+                pool.append(c)
+        up.pool = pool
+        up.conn = pool[0]
+        up.conn.on_resource_updated = lambda uri, uid=cfg.id: self._resource_updated(uid, uri)
+        up.conn.watched = self._watched_originals(cfg.id)
+        limit, queue = self._limits(cfg)
+        if up.admission is None:
+            up.admission = scale.Admission(cfg.id, limit, queue, self.settings.queue_timeout_seconds)
+        else:
+            up.admission.reconfigure(limit, queue, self.settings.queue_timeout_seconds)
+        self._register_breaker(cfg)
+        for c in pool:
+            loop.call_soon_threadsafe(c.start)
+
+    # ── gateway scale: pools, replicas, admission, shared health ────
+    def _pool_size(self, cfg: UpstreamConfig) -> int:
+        from sajha.federation.config import POOL_MAX
+        return max(1, min(POOL_MAX, int(cfg.pool_size or self.settings.pool_size or 1)))
+
+    def _limits(self, cfg: UpstreamConfig) -> Tuple[int, int]:
+        limit = cfg.max_in_flight if cfg.max_in_flight is not None else self.settings.max_in_flight
+        queue = cfg.max_queue if cfg.max_queue is not None else self.settings.max_queue
+        return max(0, int(limit or 0)), max(0, int(queue or 0))
+
+    @staticmethod
+    def _members(up: _Upstream) -> List[UpstreamConnection]:
+        return list(up.pool) if up.pool else ([up.conn] if up.conn is not None else [])
+
+    def _pick(self, up: _Upstream, exclude=()) -> Optional[UpstreamConnection]:
+        """The shared connection for the next call (scale.pick_member); the primary when none is
+        connected (its ready_client then waits briefly and names the failure)."""
+        members = self._members(up)
+        if len(members) <= 1:
+            return up.conn
+        m = scale.pick_member(members, exclude, self.health.down_replicas(up.config.id))
+        if m is None:
+            rest = [c for c in members if c not in exclude]
+            return up.conn if up.conn in rest or not rest else rest[0]
+        return m
+
+    def _breaker(self, cfg: UpstreamConfig):
+        try:
+            from sajha.core.circuit_breaker import get_circuit_registry
+            return get_circuit_registry().get_breaker(cfg.effective_prefix + SEPARATOR + 'x')
+        except Exception:
+            return None
+
+    def _watch_health(self) -> None:
+        if self._health_thread is not None:
+            return
+        every = self.settings.health_publish_seconds
+
+        def loop():
+            while not self._health_stop.wait(every):
+                try:
+                    self.health_tick()
+                except Exception as e:
+                    logger.debug(f'federation: health tick: {e}')
+        self._health_thread = threading.Thread(target=loop, name='federation-health', daemon=True)
+        self._health_thread.start()
+
+    def health_snapshot(self, up: _Upstream) -> Dict[str, Any]:
+        """This worker's view of one upstream, as published to the state store."""
+        members = self._members(up)
+        conn = up.conn
+        b = self._breaker(up.config)
+        breaker = None
+        if b is not None:
+            d = b.to_dict()
+            followed = self._peer_tripped.get(up.config.id)
+            source = 'peer' if (d['state'] != 'closed' and followed and abs(followed - d['last_failure']) < 1e-6) \
+                else 'local'
+            breaker = {'state': d['state'], 'since': d['last_state_change'], 'last_failure': d['last_failure'],
+                       'failure_count': d['failure_count'], 'source': source}
+        replicas = []
+        for r, _url in enumerate(up.config.replica_urls):
+            mine = [c for c in members if c.replica == r]
+            replicas.append({'replica': r, 'members': len(mine),
+                             'connected': sum(1 for c in mine if c.state == 'connected'),
+                             'fail_streak': max([c.fail_streak for c in mine] or [0])})
+        lat = [c.ewma_ms for c in members if c.ewma_ms is not None]
+        adm = up.admission.snapshot() if up.admission is not None else {}
+        secrets = conn.secret_values() if conn else []
+        state = ('disabled' if not (self.settings.enabled and up.config.enabled) else
+                 conn.state if conn is not None else 'connecting')
+        if state != 'connected' and any(c.state == 'connected' for c in members):
+            state = 'connected'                     # a pool member or replica carries calls
+        return {'state': state,
+                'connected': sum(1 for c in members if c.state == 'connected'), 'pool': len(members),
+                'calls': up.calls, 'failures': up.failures,
+                'latency_ms': round(sum(lat) / len(lat), 1) if lat else None,
+                'in_flight': adm.get('in_flight', 0), 'waiting': adm.get('waiting', 0), 'shed': adm.get('shed', 0),
+                'last_error': redact((conn.last_error if conn else None) or up.last_refresh_error or '', secrets)[:300]
+                or None,
+                'breaker': breaker, 'replicas': replicas}
+
+    def health_tick(self) -> None:
+        """Publish this worker's view of every upstream, read every worker's back, follow a peer's open
+        breaker (when federation.health.follow_peer_breakers) and promote a connected member when the
+        primary connection is down. Runs every federation.health.publish_seconds."""
+        if not self.settings.enabled:
+            return
+        ups = list(self._upstreams.values())
+        for up in ups:
+            if up.conn is None:
+                continue
+            try:
+                self.health.publish(up.config.id, self.health_snapshot(up))
+            except Exception as e:
+                logger.debug(f'federation: publishing health of {up.config.id}: {e}')
+        try:
+            self.health.read()
+        except Exception as e:
+            logger.debug(f'federation: reading the cluster health: {e}')
+            return
+        for up in ups:
+            if up.conn is None:
+                continue
+            if self.settings.follow_peer_breakers:
+                self._follow_peer_breaker(up)
+            self._promote(up)
+
+    def _follow_peer_breaker(self, up: _Upstream) -> None:
+        """A breaker a peer opened after its own failures opens this worker's (closed) breaker as of
+        the peer's last failure; this breaker then probes on its own after its recovery timeout. One
+        peer opening is followed once; a breaker the peer itself followed is never passed on."""
+        peer = self.health.open_breaker_from_peer(up.config.id)
+        b = self._breaker(up.config)
+        if peer is None or b is None or b.state.value != 'closed':
+            return
+        since = float(peer.get('since') or 0)
+        if since <= self._peer_tripped.get(up.config.id + ':seen', 0.0):
+            return
+        at = float(peer.get('last_failure') or since) or time.time()
+        if time.time() - at > b.recovery_timeout:
+            return                                  # the peer is probing by now; do not follow stale news
+        self._peer_tripped[up.config.id + ':seen'] = since
+        self._peer_tripped[up.config.id] = at
+        b.trip(at)
+        logger.warning(f'federation: breaker of {up.config.id} opened: worker {peer.get("worker")} opened its own')
+
+    def _promote(self, up: _Upstream) -> None:
+        """The primary connection (discovery, change listening, subscriptions) is down while another
+        member is connected: that member becomes the primary (on another replica when there is one)."""
+        old = up.conn
+        if old is None or old.state == 'connected' or len(up.pool) < 2 or self._loop is None:
+            return
+        live = [c for c in up.pool if c is not old and c.state == 'connected']
+        if not live:
+            return
+        new = sorted(live, key=lambda c: (c.replica == old.replica, c.fail_streak, c.slot))[0]
+
+        def swap():
+            if up.conn is not old:
+                return
+            old.role, new.role = 'pool', 'primary'
+            new.on_resource_updated, old.on_resource_updated = old.on_resource_updated, None
+            new.watched = set(old.watched)
+            up.conn = new
+            new.kick()                      # reopen as primary: discovery and change listening start
+        self._loop.call_soon_threadsafe(swap)
+        logger.warning(f'federation: upstream {up.config.id}: primary connection down; replica {new.replica} '
+                       f'connection {new.slot} takes over discovery')
 
     def _register_breaker(self, cfg: UpstreamConfig) -> None:
         try:
@@ -496,12 +696,20 @@ class FederationManager:
         except Exception as e:
             up.last_refresh_error = describe(e)
             raise
+        templates = []
+        if cfg.expose_resources and 'resources' in caps:
+            try:                    # optional on the upstream: one that does not serve it has none
+                templates = await conn.list_all('resource_templates', timeout)
+            except Exception as e:
+                logger.debug(f'federation: resources/templates/list on {cfg.id}: {describe(e)}')
         dump = lambda m: m.model_dump(mode='json', by_alias=True, exclude_none=True)   # noqa: E731
         tool_dicts = [dump(t) for t in tools]
         if up.user_tools:           # token_user: the union of what each user's own token lists
             seen = {t.get('name') for t in tool_dicts}
             tool_dicts += [t for n, t in sorted(up.user_tools.items()) if n not in seen]
-        changed = self._reconcile(up, tool_dicts, [dump(p) for p in prompts], [dump(r) for r in resources])
+        changed = self._reconcile(up, tool_dicts, [dump(p) for p in prompts], [dump(r) for r in resources],
+                                  [dump(t) for t in templates])
+        self._prune_holders()
         up.last_refresh = time.time()
         up.last_refresh_error = None
         if changed:
@@ -535,7 +743,26 @@ class FederationManager:
                  str(i.get('src', '')).startswith(('https://', 'data:image/'))]
         if icons:
             d['icons'] = icons
+        support = (raw.get('execution') or {}).get('taskSupport') if isinstance(raw.get('execution'), dict) else None
+        if support in ('optional', 'required'):      # upstream tasks (sajha/federation/tasks.py)
+            d['execution'] = {'taskSupport': support}
+        ui = self._tool_view(cfg, raw)
+        if ui:
+            d['_meta'] = {'ui': ui}
         return d, bool(f1 or f2 or f3 or f4 or f5)
+
+    def _tool_view(self, cfg: UpstreamConfig, raw: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+        """An upstream tool's MCP Apps view (``_meta.ui``), namespaced: ``ui://sajha-federation/<id>/<view>``."""
+        meta = raw.get('_meta')
+        ui = meta.get('ui') if isinstance(meta, dict) else None
+        uri = ui.get('resourceUri') if isinstance(ui, dict) else None
+        if not isinstance(uri, str) or not uri.startswith('ui://') or len(uri) > 1000:
+            return None
+        out: Dict[str, Any] = {'resourceUri': self.view_uri(cfg.id, uri)}
+        visibility = ui.get('visibility')
+        if isinstance(visibility, list) and visibility and all(v in ('model', 'app') for v in visibility):
+            out['visibility'] = list(visibility)
+        return out
 
     @staticmethod
     def _tool_problem(raw: Dict[str, Any]) -> Optional[str]:
@@ -579,7 +806,23 @@ class FederationManager:
             d['mimeType'] = str(raw['mimeType'])[:100]
         return d, bool(f1 or f2)
 
-    def _reconcile(self, up: _Upstream, tools: List[Dict], prompts: List[Dict], resources: List[Dict]) -> bool:
+    def _screen_template(self, cfg: UpstreamConfig, raw: Dict[str, Any]) -> Tuple[Dict[str, Any], bool]:
+        limit = self.settings.max_description_chars
+        desc, f1 = screen_text(raw.get('description') or '', limit)
+        name, f2 = screen_text(raw.get('name') or raw.get('uriTemplate'), _TITLE_LIMIT)
+        d = {'uriTemplate': self.template_uri(cfg.id, raw['uriTemplate']),
+             'name': f'{cfg.effective_prefix}{SEPARATOR}{name}'}
+        if desc:
+            d['description'] = desc
+        if raw.get('title'):
+            d['title'], f3 = screen_text(raw['title'], _TITLE_LIMIT)
+            f2 = f2 or f3
+        if raw.get('mimeType'):
+            d['mimeType'] = str(raw['mimeType'])[:100]
+        return d, bool(f1 or f2)
+
+    def _reconcile(self, up: _Upstream, tools: List[Dict], prompts: List[Dict], resources: List[Dict],
+                   templates: List[Dict] = ()) -> bool:
         """Record what the upstream offers now and decide each item's status. True when the
         set of exposed definitions changed."""
         cfg = up.config
@@ -590,7 +833,8 @@ class FederationManager:
         before_status = {k: v.get('status') for k, v in records.items()}
         discovered: Dict[str, Dict[str, Dict[str, Any]]] = {k: {} for k in KINDS}
         sources = (('tool', tools, 'name', self._screen_tool), ('prompt', prompts, 'name', self._screen_prompt),
-                   ('resource', resources, 'uri', self._screen_resource))
+                   ('resource', resources, 'uri', self._screen_resource),
+                   ('template', templates, 'uriTemplate', self._screen_template))
         for kind, raws, key, screen in sources:
             for raw in raws:
                 ident = raw.get(key)
@@ -633,8 +877,9 @@ class FederationManager:
                 rec['flagged'] = bool(flagged)
                 rec['current_hash'] = h
                 records[rk] = rec
-                discovered[kind][ident] = {'exposed': definition.get('name') if kind != 'resource'
-                                           else definition['uri'], 'definition': definition, 'hash': h,
+                exposed = {'resource': definition.get('uri'), 'template': definition.get('uriTemplate')}.get(
+                    kind, definition.get('name'))
+                discovered[kind][ident] = {'exposed': exposed, 'definition': definition, 'hash': h,
                                            'flagged': flagged, 'raw': raw}
         # forget pending records of items that vanished; keep decisions (approved/rejected/disabled)
         live = {f'{k}:{n}' for k in KINDS for n in discovered[k]}
@@ -750,6 +995,15 @@ class FederationManager:
                             prompts.setdefault(item['exposed'], (uid, name))
             prompts_changed = prompts != self._prompts
             self._prompts = prompts
+            # MCP Apps views of the served tools (resolved back to their upstream on read)
+            views: Dict[str, Tuple[str, str, List[str]]] = {}
+            for name in sorted(self._tools):
+                tool = self._tools[name]
+                ui = ((tool.definition.get('_meta') or {}).get('ui') or {}).get('resourceUri')
+                if isinstance(ui, str) and ui.startswith(VIEW_PREFIX):
+                    original = unquote(ui[len(VIEW_PREFIX):].partition('/')[2])
+                    views.setdefault(ui, (tool.upstream_id, original, []))[2].append(name)
+            self._views = views
         if changed:
             self._notify_registry()
         if prompts_changed:
@@ -806,6 +1060,16 @@ class FederationManager:
             uid = caller_user_id()
             token = get_tokens().resolve(up.config, uid, tool=tool.name)
             user_cred = (uid, token, header_for(up.config, token))
+        service_user = None
+        if mode == 'service_with_user':
+            # the shared service identity, with the caller named in the audit header; anonymous refused
+            from sajha.accounts.injection import caller_user_id
+            from sajha.federation.user_tokens import on_behalf_header
+            uid = caller_user_id()
+            try:
+                service_user = (uid,) + tuple(on_behalf_header(up.config, uid))
+            except PermissionError as e:
+                raise FederationError(str(e)) from None
         if up.limiter is not None and not up.limiter.is_allowed('calls'):
             raise FederationError(f'rate limit reached for upstream {tool.upstream_id} '
                                   f'({up.config.max_calls_per_minute} calls per minute)')
@@ -826,6 +1090,9 @@ class FederationManager:
         ann = tool.definition.get('annotations') or {}
         safe_to_retry = bool(ann.get('readOnlyHint') or ann.get('idempotentHint'))
         attempts = 1 + (up.config.retries if safe_to_retry else 0)
+        adm = up.admission                          # max_in_flight and the queue (scale.Admission)
+        if adm is not None:
+            adm.acquire()                           # UpstreamOverloaded: refused before anything is sent
         started = time.time()
         up.calls += 1
         up.last_call = started
@@ -835,6 +1102,8 @@ class FederationManager:
             chain_depth = inner_calls.proxy_outgoing(tool.name)
         except inner_calls.CallTooDeep as e:
             up.calls -= 1
+            if adm is not None:
+                adm.release()
             raise FederationError(str(e))
         trace_meta = _inject_trace({}) or {}        # W3C context, sent as params._meta.traceparent
         trace_meta[inner_calls.PROXY_META_KEY] = {'depth': chain_depth}
@@ -842,23 +1111,41 @@ class FederationManager:
             # Per-user token passthrough (auth.type connected_account): the caller's own token,
             # on a connection of its own; ConnectedAccountRequired when the caller has none.
             user_token = self._caller_token(up, tool) if self._passthrough(up) else None
-            for attempt in range(attempts):
+            # a 2025-11-25 caller that can answer the upstream's requests to its client (sampling,
+            # elicitation, roots): the call gets a connection of its own whose requests go to that caller
+            from sajha.federation import relay as _relay
+            client_relay = (_relay.current(tool.name) if user_cred is None and service_user is None
+                            and user_token is None and self._modern(up) is False else None)
+            tried: List[UpstreamConnection] = []    # the shared connections this call tried (pool, replicas)
+            attempt = 0
+            while True:
                 try:
                     if user_cred is not None:
                         result = self._call_token_user(up, tool, user_cred, arguments, timeout, progress,
                                                        responses, request_state, ctx, trace_meta)
+                    elif service_user is not None:
+                        result = self._call_service_with_user(up, tool, service_user, arguments, timeout,
+                                                              progress, responses, request_state, ctx, trace_meta)
                     elif user_token is not None:
                         result = self._call_as_user(up, tool, user_token, arguments, timeout, progress,
                                                     responses, request_state, ctx, trace_meta)
+                    elif client_relay is not None:
+                        result = self._wait(up.conn.call_tool_relayed(client_relay, tool.upstream_name, arguments,
+                                                                      timeout, progress, trace_meta),
+                                            timeout + min(timeout, 30.0) + 5.0, ctx)
                     else:
-                        result = self._wait(up.conn.call_tool(tool.upstream_name, arguments, timeout, progress,
-                                                              responses, request_state, trace_meta),
-                                            timeout + 5.0, ctx)
+                        result = self._call_member(up, tried, tool, arguments, timeout, progress, responses,
+                                                   request_state, ctx, trace_meta)
                     break
-                except UpstreamUnavailable:
-                    if attempt + 1 >= attempts:
+                except UpstreamUnavailable as e:
+                    from sajha.federation.connection import UpstreamNotConnected
+                    if (isinstance(e, UpstreamNotConnected) and tried
+                            and len(tried) < len(self._members(up))):
+                        continue                    # nothing was sent: the next member or replica takes it
+                    attempt += 1
+                    if attempt >= attempts:
                         raise
-                    time.sleep(min(0.25 * (attempt + 1), 1.0))
+                    time.sleep(min(0.25 * attempt, 1.0))
             from mcp_types import InputRequiredResult
             if isinstance(result, InputRequiredResult):
                 ir = result.model_dump(mode='json', by_alias=True, exclude_none=True)
@@ -884,6 +1171,37 @@ class FederationManager:
             raise
         finally:
             up.total_ms += (time.time() - started) * 1000
+            if adm is not None:
+                adm.release()
+
+    def _call_member(self, up: _Upstream, tried: List[UpstreamConnection], tool: FederatedTool, arguments,
+                     timeout, progress, responses, request_state, ctx, trace_meta):
+        """tools/call on the shared credentials, on one pool connection (scale.pick_member: connected,
+        healthy replica, least busy); a retry or failover takes another one."""
+        member = self._pick(up, tried) or up.conn
+        tried.append(member)
+        member.in_flight += 1
+        t0 = time.time()
+        ok = True
+        try:
+            return self._wait(member.call_tool(tool.upstream_name, arguments, timeout, progress, responses,
+                                               request_state, trace_meta), timeout + 5.0, ctx)
+        except (UpstreamUnavailable, UpstreamTimeout):
+            ok = False
+            raise
+        finally:
+            member.in_flight -= 1
+            scale.record_outcome(member, ok, (time.time() - t0) * 1000)
+
+    def relays_for(self, tool: FederatedTool) -> bool:
+        """Would a call of ``tool`` relay its upstream's requests to the client (a session-based upstream
+        on its shared credentials)? The transport streams such a call only then."""
+        up = self._upstreams.get(getattr(tool, 'upstream_id', None))
+        if up is None or up.conn is None or self._passthrough(up):
+            return False
+        from sajha.federation.user_tokens import PER_USER_MODES, auth_mode
+        mode = auth_mode(up.config)
+        return mode not in PER_USER_MODES and mode != 'service_with_user' and self._modern(up) is False
 
     @staticmethod
     def _passthrough(up: _Upstream) -> bool:
@@ -978,10 +1296,49 @@ class FederationManager:
                 raise err from None
         raise AssertionError('unreachable')
 
-    async def _call_in_session(self, up: _Upstream, uid: str, header: str, value: str, name: str, arguments,
-                               timeout: float, progress, responses, request_state, meta):
+    # ── service_with_user: the service identity, naming the caller ──
+    def _service_auth(self, up: _Upstream):
+        if not up.service_auth_built:
+            from sajha.federation.auth import build_auth
+            up.service_auth = build_auth(up.config, self.settings)
+            up.service_auth_built = True
+        return up.service_auth
+
+    def _call_service_with_user(self, up: _Upstream, tool: FederatedTool, cred, arguments, timeout, progress,
+                                responses, request_state, ctx, trace_meta=None):
+        """tools/call with the shared service credential and the caller named in ``user_header``: on a
+        2026-07-28 upstream on this call's own connection; on a session-based one in a session per
+        user (the header is per connection). A 401/403 is the vendor's answer, passed back; never
+        retried without the header or as anyone else."""
         from sajha.federation.connection import UpstreamUnauthorized
-        s = await self._acquire_session(up, uid, header, value)
+        uid, header, value = cred
+        inner = self._service_auth(up)
+        connect_wait = min(timeout, 30.0)
+        try:
+            if self._modern(up):
+                coro = up.conn.call_tool_with_header(header, value, tool.upstream_name, arguments, timeout,
+                                                     progress, responses, request_state, trace_meta, inner=inner)
+            else:
+                coro = self._call_in_session(up, uid, header, value, tool.upstream_name, arguments, timeout,
+                                             progress, responses, request_state, trace_meta, inner=inner)
+            return self._wait(coro, timeout + connect_wait + 5.0, ctx)
+        except UpstreamUnauthorized as e:
+            secrets = list(getattr(inner, 'secret_values', lambda: [])()) if inner is not None else []
+            vendor = redact(e.vendor or '', secrets).strip()
+            if e.status == 403:
+                msg = (f'{up.config.display_title} refused this call for {uid} (HTTP 403)'
+                       + (f': {vendor}' if vendor else '') + '. The service identity may not act for this user.')
+            else:
+                msg = (f'{up.config.display_title} refused the shared service credential (HTTP {e.status})'
+                       + (f': {vendor}' if vendor else '') + '. An administrator must fix auth.service.')
+            err = FederatedToolError(msg, {'content': [], 'isError': True})
+            err.caller_specific = e.status == 403        # one user refused: not the upstream's failure
+            raise err from None
+
+    async def _call_in_session(self, up: _Upstream, uid: str, header: str, value: str, name: str, arguments,
+                               timeout: float, progress, responses, request_state, meta, inner=None):
+        from sajha.federation.connection import UpstreamUnauthorized
+        s = await self._acquire_session(up, uid, header, value, inner)
         try:
             try:
                 await s.conn.ready_client(min(timeout, 30.0))
@@ -1004,7 +1361,8 @@ class FederationManager:
             await self._close_sessions(up, [uid], only=s)      # stateless after all: nothing to keep
         return result
 
-    async def _acquire_session(self, up: _Upstream, uid: str, header: str, value: str) -> _UserSession:
+    async def _acquire_session(self, up: _Upstream, uid: str, header: str, value: str,
+                               inner=None) -> _UserSession:
         fp = hashlib.sha256(f'{header}\n{value}'.encode('utf-8')).hexdigest()
         s = up.user_sessions.get(uid)
         if s is not None and (s.fingerprint != fp or s.conn.refused is not None or s.conn.state == 'disabled'):
@@ -1018,7 +1376,7 @@ class FederationManager:
                     raise FederationError(f'upstream {up.config.id}: every per-user session is busy '
                                           f'(federation.per_user_sessions_max = {self.settings.per_user_sessions_max})')
                 await self._close_sessions(up, [idle[0][0]])
-            conn = up.conn.user_connection(header, value)
+            conn = up.conn.user_connection(header, value, inner)
             conn.start()
             s = _UserSession(conn, fp)
             up.user_sessions[uid] = s
@@ -1191,12 +1549,9 @@ class FederationManager:
 
     def read_resource(self, uri: str) -> Dict[str, Any]:
         from sajha.core.mcp_2025_11_25 import MCPError
-        rest = uri[len(RESOURCE_SCHEME) + 3:]
-        uid, _, encoded = rest.partition('/')
-        original = unquote(encoded)
-        up = self._upstreams.get(uid)
-        if (up is None or not self.settings.enabled or not up.config.enabled or not up.config.expose_resources
-                or original not in up.items['resource'] or self._status(up, 'resource', original) != 'approved'):
+        up, original = self._split(uri)
+        uid = up.config.id if up is not None else '?'
+        if not self._readable(up, original):          # an approved resource, or an approved template's expansion
             raise MCPError(-32002, 'Resource not found', {'uri': uri})
         if up.conn is None:
             raise MCPError(-32603, f'upstream {uid} is not connected')
@@ -1207,6 +1562,217 @@ class FederationManager:
             if isinstance(c, dict):
                 c['uri'] = uri
         return {'contents': data.get('contents') or []}
+
+    def _readable(self, up: Optional[_Upstream], original: str) -> bool:
+        """An approved resource of the upstream, or a URI an approved template of it expands to."""
+        if up is None or not self.settings.enabled or not up.config.enabled or not up.config.expose_resources:
+            return False
+        if original in up.items['resource'] and self._status(up, 'resource', original) == 'approved':
+            return True
+        return self._template_of(up, original) is not None
+
+    def _template_of(self, up: _Upstream, original: str) -> Optional[str]:
+        for tmpl in sorted(up.items['template']):
+            if self._status(up, 'template', tmpl) == 'approved' and _template_regex(tmpl).fullmatch(original):
+                return tmpl
+        return None
+
+    def _split(self, uri: str) -> Tuple[Optional[_Upstream], str]:
+        rest = uri[len(RESOURCE_SCHEME) + 3:]
+        uid, _, encoded = rest.partition('/')
+        return self._upstreams.get(uid), unquote(encoded)
+
+    # ── resource templates ────────────────────────────────────────
+    @staticmethod
+    def template_uri(upstream_id: str, template: str) -> str:
+        """``sajha-federation://<id>/<template>``: literal parts percent-encoded like a resource URI,
+        the ``{...}`` expressions kept, so a client expands it as usual and the expansion reads back
+        as the upstream's own URI."""
+        parts = _TEMPLATE_EXPR.split(template)
+        return f'{RESOURCE_SCHEME}://{upstream_id}/' + ''.join(
+            p if _TEMPLATE_EXPR.fullmatch(p) else quote(p, safe='') for p in parts)
+
+    def template_definitions(self) -> List[Dict[str, Any]]:
+        out = []
+        if not self.settings.enabled:
+            return out
+        with self._lock:
+            for uid in sorted(self._upstreams):
+                up = self._upstreams[uid]
+                if not up.config.enabled or not up.config.expose_resources:
+                    continue
+                for tmpl, item in sorted(up.items['template'].items()):
+                    if self._status(up, 'template', tmpl) == 'approved':
+                        out.append(dict(item['definition']))
+        return out
+
+    # ── completions ───────────────────────────────────────────────
+    def owns_completion(self, ref: Dict[str, Any]) -> bool:
+        if not isinstance(ref, dict):
+            return False
+        if ref.get('type') == 'ref/prompt':
+            return self.has_prompt(ref.get('name'))
+        return ref.get('type') == 'ref/resource' and self.owns_resource(ref.get('uri'))
+
+    def complete(self, ref: Dict[str, Any], argument: Dict[str, Any],
+                 context_arguments: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+        """completion/complete for a federated prompt or resource template, answered by its upstream
+        (no values when the item is not approved or the upstream does not offer completions)."""
+        empty = {'completion': {'values': [], 'hasMore': False}}
+        if ref.get('type') == 'ref/prompt':
+            uid, upstream_name = self._prompts.get(ref.get('name'), (None, None))
+            up = self._upstreams.get(uid) if uid else None
+            upstream_ref = {'type': 'ref/prompt', 'name': upstream_name}
+        else:
+            up, original = self._split(str(ref.get('uri') or ''))
+            if (up is None or not up.config.expose_resources or original not in up.items['template']
+                    or self._status(up, 'template', original) != 'approved'):
+                return empty
+            upstream_ref = {'type': 'ref/resource', 'uri': original}
+        if up is None or up.conn is None or 'completions' not in (up.conn.capabilities or {}):
+            return empty
+        timeout = float(up.config.timeout_seconds or self.settings.default_timeout_seconds)
+        arg = {'name': str(argument.get('name') or ''), 'value': str(argument.get('value') or '')}
+        ctx_args = {str(k): str(v) for k, v in (context_arguments or {}).items()} or None
+        result = self._wait(up.conn.complete(upstream_ref, arg, ctx_args, timeout), timeout + 5.0)
+        data = result.model_dump(mode='json', by_alias=True, exclude_none=True).get('completion') or {}
+        values = []
+        for v in (data.get('values') or [])[:100]:
+            text, flagged = screen_text(str(v), _SCHEMA_TEXT_LIMIT)
+            if text and not flagged:
+                values.append(text)
+        out = {'values': values, 'hasMore': bool(data.get('hasMore'))}
+        if isinstance(data.get('total'), int):
+            out['total'] = data['total']
+        return {'completion': out}
+
+    # ── resources/subscribe ───────────────────────────────────────
+    def subscribe_problem(self, uri: str) -> Optional[str]:
+        """Why SAJHA cannot pass on a subscription to this federated URI, or None."""
+        up, original = self._split(uri)
+        if not self._readable(up, original):
+            return f'Resource not found: {uri}'
+        caps = (up.conn.capabilities if up.conn is not None else {}) or {}
+        if not (caps.get('resources') or {}).get('subscribe'):
+            return f'upstream {up.config.id} does not offer resource subscriptions'
+        return None
+
+    def watch(self, holder: str, uri: str) -> None:
+        """``holder`` (a 2025-11-25 session, a 2026-07-28 listen stream) subscribes to a federated URI;
+        the upstream is subscribed while anyone holds it."""
+        with self._lock:
+            self._holders.setdefault(holder, set()).add(uri)
+        self._push_watches(self._split(uri)[0])
+
+    def unwatch(self, holder: str, uri: str) -> None:
+        with self._lock:
+            held = self._holders.get(holder)
+            if held is not None:
+                held.discard(uri)
+                if not held:
+                    self._holders.pop(holder, None)
+        self._push_watches(self._split(uri)[0])
+
+    def release(self, holder: str) -> None:
+        with self._lock:
+            uris = self._holders.pop(holder, set())
+        for up in {id(u): u for u in (self._split(x)[0] for x in uris) if u is not None}.values():
+            self._push_watches(up)
+
+    def watched_uris(self) -> List[str]:
+        with self._lock:
+            return sorted({u for held in self._holders.values() for u in held})
+
+    def _watched_originals(self, upstream_id: str) -> set:
+        prefix = f'{RESOURCE_SCHEME}://{upstream_id}/'
+        with self._lock:
+            return {unquote(u[len(prefix):]) for held in self._holders.values() for u in held if u.startswith(prefix)}
+
+    def _push_watches(self, up: Optional[_Upstream]) -> None:
+        if up is None or up.conn is None or self._loop is None:
+            return
+        uris = self._watched_originals(up.config.id)
+        self._loop.call_soon_threadsafe(up.conn.set_watched, uris)
+
+    def _prune_holders(self) -> None:
+        """Forget the subscriptions of 2025-11-25 sessions that ended without unsubscribing."""
+        stale = [h for h in list(self._holders) if h.startswith('session:')]
+        if not stale:
+            return
+        try:
+            from sajha.core.mcp_sessions import get_session_store
+            store = get_session_store()
+            for h in stale:
+                if store.get(h[len('session:'):]) is None:
+                    self.release(h)
+        except Exception as e:
+            logger.debug(f'federation: pruning subscriptions: {e}')
+
+    def _resource_updated(self, upstream_id: str, uri: str) -> None:
+        """An upstream says one of its resources changed: tell SAJHA's subscribers, by SAJHA's URI."""
+        try:
+            from sajha.core.change_bus import RESOURCE_UPDATED, get_change_bus
+            get_change_bus().publish(RESOURCE_UPDATED, self.resource_uri(upstream_id, uri))
+        except Exception as e:
+            logger.debug(f'federation: resource update from {upstream_id}: {e}')
+
+    # ── MCP Apps views (ui://) ────────────────────────────────────
+    @staticmethod
+    def view_uri(upstream_id: str, uri: str) -> str:
+        return f'{VIEW_PREFIX}{upstream_id}/{quote(uri, safe="")}'
+
+    def owns_view(self, uri: Any) -> bool:
+        return isinstance(uri, str) and uri.startswith(VIEW_PREFIX)
+
+    def has_view(self, uri: Any) -> bool:
+        return isinstance(uri, str) and uri in self._views
+
+    def view_definitions(self, can_see_tool: Callable[[str], bool]) -> List[Dict[str, Any]]:
+        """The views of the served tools the caller may see, as resources/list entries."""
+        from sajha.core.mcp_apps import APP_MIME_TYPE
+        out = []
+        for uri, (uid, original, tools) in sorted(self._views.items()):
+            visible = [t for t in tools if can_see_tool(t)]
+            if not visible:
+                continue
+            up = self._upstreams.get(uid)
+            prefix = up.config.effective_prefix if up else uid
+            name = original[len('ui://'):] if original.startswith('ui://') else original
+            out.append({'uri': uri, 'name': f'{prefix}{SEPARATOR}{name}'[:_TITLE_LIMIT], 'mimeType': APP_MIME_TYPE,
+                        'description': f'MCP App view of {", ".join(visible)} (proxied from {uid})'})
+        return out
+
+    def read_view(self, uri: str, can_see_tool: Callable[[str], bool]) -> Dict[str, Any]:
+        """resources/read of a federated view: from its upstream, only as an MCP App document within
+        SAJHA's size limit, with the upstream's CSP domains and permissions removed (a view gets no
+        network access and no extra permissions, like SAJHA's own)."""
+        from sajha.core.mcp_2025_11_25 import MCPError
+        from sajha.core.mcp_apps import APP_MIME_TYPE, MAX_VIEW_BYTES
+        entry = self._views.get(uri)
+        if entry is None or not any(can_see_tool(t) for t in entry[2]):
+            raise MCPError(-32002, 'Resource not found', {'uri': uri})
+        uid, original, _tools = entry
+        up = self._upstreams.get(uid)
+        if up is None or up.conn is None:
+            raise MCPError(-32603, f'upstream {uid} is not connected')
+        timeout = float(up.config.timeout_seconds or self.settings.default_timeout_seconds)
+        result = self._wait(up.conn.read_resource(original, timeout), timeout + 5.0)
+        data = result.model_dump(mode='json', by_alias=True, exclude_none=True)
+        contents = []
+        for c in data.get('contents') or []:
+            if not isinstance(c, dict) or str(c.get('mimeType') or '').replace(' ', '') != APP_MIME_TYPE:
+                continue
+            body = c.get('text') if 'text' in c else c.get('blob')
+            if not isinstance(body, str) or len(body.encode('utf-8')) > MAX_VIEW_BYTES:
+                raise MCPError(-32603, f'view {original} from upstream {uid} is not a usable MCP App document '
+                                       f'(at most {MAX_VIEW_BYTES} bytes)')
+            item = {'uri': uri, 'mimeType': APP_MIME_TYPE, ('text' if 'text' in c else 'blob'): body}
+            ui = ((c.get('_meta') or {}).get('ui') or {}) if isinstance(c.get('_meta'), dict) else {}
+            item['_meta'] = {'ui': {'prefersBorder': bool(ui.get('prefersBorder', True))}}
+            contents.append(item)
+        if not contents:
+            raise MCPError(-32603, f'upstream {uid} returned no {APP_MIME_TYPE} document for {original}')
+        return {'contents': contents}
 
     # ══ administration ═════════════════════════════════════════════
     def set_item_status(self, upstream_id: str, kind: str, name: str, action: str) -> int:
@@ -1369,8 +1935,30 @@ class FederationManager:
             'calls': up.calls, 'failures': up.failures,
             'avg_ms': round(up.total_ms / up.calls, 1) if up.calls else None,
             'counts': counts, 'items': items, 'breaker': breaker,
+            **self._scale_status(up),
             'definition': _masked_definition(cfg.to_dict(), secrets),
         }
+
+    def _scale_status(self, up: _Upstream) -> Dict[str, Any]:
+        """Pool, replicas, admission and the cluster-wide view (sajha/federation/scale.py)."""
+        members = self._members(up)
+        replicas = []
+        for r, url in enumerate(up.config.replica_urls):
+            mine = [c for c in members if c.replica == r]
+            lat = [c.ewma_ms for c in mine if c.ewma_ms is not None]
+            replicas.append({'replica': r, 'url': url if up.config.transport != 'stdio' else '',
+                             'connections': len(mine), 'connected': sum(1 for c in mine if c.state == 'connected'),
+                             'primary': any(c is up.conn for c in mine),
+                             'in_flight': sum(c.in_flight for c in mine), 'fail_streak': max([c.fail_streak for c in mine] or [0]),
+                             'latency_ms': round(sum(lat) / len(lat), 1) if lat else None})
+        limit, queue = self._limits(up.config)
+        adm = up.admission.snapshot() if up.admission is not None else {
+            'limit': limit, 'queue': queue, 'queue_timeout_seconds': self.settings.queue_timeout_seconds,
+            'in_flight': 0, 'waiting': 0, 'admitted': 0, 'queued_total': 0, 'shed': 0, 'peak_in_flight': 0}
+        return {'pool': {'size': self._pool_size(up.config), 'connections': len(members),
+                         'connected': sum(1 for c in members if c.state == 'connected')},
+                'replicas': replicas, 'admission': adm,
+                'cluster': self.health.summary(up.config.id) if self.health.last_read else None}
 
     def summary(self) -> Dict[str, Any]:
         return {'enabled': self.settings.enabled, 'require_approval': self.settings.require_approval,
@@ -1416,6 +2004,12 @@ def shutdown_federation() -> None:
         m, _manager = _manager, None
     if m is not None:
         m.stop()
+
+
+def _template_regex(template: str):
+    """A URI template (RFC 6570) as a pattern its expansions match: each expression is any text."""
+    parts = _TEMPLATE_EXPR.split(template)
+    return re.compile(''.join('(?s:.*?)' if _TEMPLATE_EXPR.fullmatch(p) else re.escape(p) for p in parts))
 
 
 def _masked_definition(d: Dict[str, Any], secrets=None) -> Dict[str, Any]:

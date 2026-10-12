@@ -108,7 +108,7 @@ def _shown_once(raw: str, key) -> dict:
 
 @router.get('/admin/apikeys', name='apikeys_list')
 @router.get('/admin/apikeys/', include_in_schema=False)
-async def apikeys_list(request: Request, auth: AuthContext = Depends(require_admin), db: Session = Depends(get_db)):
+def apikeys_list(request: Request, auth: AuthContext = Depends(require_admin), db: Session = Depends(get_db)):
     from sajha.db.models import ApiKey, User
     keys = db.query(ApiKey).order_by(ApiKey.created_at.desc()).all()
     rows = [svc.public(k) for k in keys]
@@ -133,7 +133,7 @@ async def apikeys_list(request: Request, auth: AuthContext = Depends(require_adm
 
 
 @router.get('/admin/apikeys/create', name='apikey_create_page')
-async def apikey_create_page(request: Request, auth: AuthContext = Depends(require_admin), db: Session = Depends(get_db)):
+def apikey_create_page(request: Request, auth: AuthContext = Depends(require_admin), db: Session = Depends(get_db)):
     from sajha.db.models import User
     return render(request, 'admin/apikeys_create.html', {
         'user': _user_ctx(auth), 'is_admin': True, 'csrf': csrf_token(request, auth),
@@ -144,7 +144,7 @@ async def apikey_create_page(request: Request, auth: AuthContext = Depends(requi
 
 
 @router.get('/admin/apikeys/{key_id}/view', name='apikey_view')
-async def apikey_view(key_id: str, request: Request, auth: AuthContext = Depends(require_admin),
+def apikey_view(key_id: str, request: Request, auth: AuthContext = Depends(require_admin),
                       db: Session = Depends(get_db)):
     from sajha.db.models import User
     key = svc.get_key(db, key_id)
@@ -161,7 +161,7 @@ async def apikey_view(key_id: str, request: Request, auth: AuthContext = Depends
 # ── administrators: JSON ────────────────────────────────────────────
 
 @router.get('/api/admin/apikeys')
-async def api_admin_keys(request: Request, auth: AuthContext = Depends(require_admin), db: Session = Depends(get_db)):
+def api_admin_keys(request: Request, auth: AuthContext = Depends(require_admin), db: Session = Depends(get_db)):
     from sajha.db.models import ApiKey
     owner = request.query_params.get('owner')
     q = db.query(ApiKey).order_by(ApiKey.created_at.desc())
@@ -213,7 +213,7 @@ def _admin_key(db: Session, key_id: str):
 
 
 @router.post('/api/admin/apikeys/{key_id}/rotate')
-async def api_admin_rotate(key_id: str, request: Request, auth: AuthContext = Depends(require_admin),
+def api_admin_rotate(key_id: str, request: Request, auth: AuthContext = Depends(require_admin),
                            db: Session = Depends(get_db)):
     err = _refuse(request, auth)
     if err:
@@ -229,7 +229,7 @@ async def api_admin_rotate(key_id: str, request: Request, auth: AuthContext = De
 
 
 @router.post('/api/admin/apikeys/{key_id}/revoke')
-async def api_admin_revoke(key_id: str, request: Request, auth: AuthContext = Depends(require_admin),
+def api_admin_revoke(key_id: str, request: Request, auth: AuthContext = Depends(require_admin),
                            db: Session = Depends(get_db)):
     err = _refuse(request, auth)
     if err:
@@ -251,10 +251,10 @@ async def api_admin_enabled(key_id: str, request: Request, auth: AuthContext = D
     err = _refuse(request, auth)
     if err:
         return err
+    data = await _body(request)     # the body first: no connection held while it arrives
     key, nf = _admin_key(db, key_id)
     if nf:
         return nf
-    data = await _body(request)
     try:
         svc.set_enabled(db, key, bool(data.get('enabled')), auth.user_id)
     except svc.KeyError_ as e:
@@ -263,7 +263,7 @@ async def api_admin_enabled(key_id: str, request: Request, auth: AuthContext = D
 
 
 @router.post('/admin/apikeys/{key_id}/toggle')
-async def apikey_toggle(key_id: str, request: Request, auth: AuthContext = Depends(require_admin),
+def apikey_toggle(key_id: str, request: Request, auth: AuthContext = Depends(require_admin),
                         db: Session = Depends(get_db)):
     """The older enable/disable switch: flips ``enabled``."""
     err = _refuse(request, auth)
@@ -286,10 +286,10 @@ async def api_admin_owner(key_id: str, request: Request, auth: AuthContext = Dep
     err = _refuse(request, auth)
     if err:
         return err
+    data = await _body(request)     # the body first: no connection held while it arrives
     key, nf = _admin_key(db, key_id)
     if nf:
         return nf
-    data = await _body(request)
     user = _user_by_id(db, str(data.get('owner') or ''))
     if user is None:
         return JSONResponse({'error': 'owner must be an existing user ID'}, status_code=400)
@@ -307,10 +307,10 @@ async def api_admin_persistent(key_id: str, request: Request, auth: AuthContext 
     err = _refuse(request, auth)
     if err:
         return err
+    data = await _body(request)     # the body first: no connection held while it arrives
     key, nf = _admin_key(db, key_id)
     if nf:
         return nf
-    data = await _body(request)
     try:
         svc.set_persistent(db, key, bool(data.get('persistent')), auth.user_id)
     except svc.KeyError_ as e:
@@ -325,10 +325,10 @@ async def api_admin_access(key_id: str, request: Request, auth: AuthContext = De
     err = _refuse(request, auth)
     if err:
         return err
+    data = await _body(request)     # the body first: no connection held while it arrives
     key, nf = _admin_key(db, key_id)
     if nf:
         return nf
-    data = await _body(request)
     try:
         svc.set_access(db, key, str(data.get('tool_access_mode') or 'all'), _tool_list(data), auth.user_id)
     except svc.KeyError_ as e:
@@ -371,7 +371,7 @@ def _me(auth: AuthContext, db: Session):
 
 
 @router.get('/account/apikeys', name='account_apikeys_page')
-async def account_apikeys_page(request: Request, auth: AuthContext = Depends(require_auth),
+def account_apikeys_page(request: Request, auth: AuthContext = Depends(require_auth),
                                db: Session = Depends(get_db)):
     me = _me(auth, db)
     keys = []
@@ -391,7 +391,7 @@ async def account_apikeys_page(request: Request, auth: AuthContext = Depends(req
 
 
 @router.get('/api/account/apikeys')
-async def api_my_keys(request: Request, auth: AuthContext = Depends(require_auth), db: Session = Depends(get_db)):
+def api_my_keys(request: Request, auth: AuthContext = Depends(require_auth), db: Session = Depends(get_db)):
     me = _me(auth, db)
     if me is None:
         return JSONResponse({'error': 'Only a signed-in user has their own keys here.'}, status_code=403)
@@ -405,8 +405,8 @@ async def api_my_create(request: Request, auth: AuthContext = Depends(require_au
     err = _refuse(request, auth)
     if err:
         return err
+    data = await _body(request)     # the body first: no connection held while it arrives
     me = _me(auth, db)
-    data = await _body(request)
     try:
         key, raw = svc.create_key(db, name=str(data.get('name') or ''), description=str(data.get('description') or ''),
                                   created_by=me.user_id, owner=me,
@@ -425,7 +425,7 @@ def _my_key(db: Session, me, key_id: str):
 
 
 @router.post('/api/account/apikeys/{key_id}/rotate')
-async def api_my_rotate(key_id: str, request: Request, auth: AuthContext = Depends(require_auth),
+def api_my_rotate(key_id: str, request: Request, auth: AuthContext = Depends(require_auth),
                         db: Session = Depends(get_db)):
     err = _refuse(request, auth)
     if err:
@@ -442,7 +442,7 @@ async def api_my_rotate(key_id: str, request: Request, auth: AuthContext = Depen
 
 
 @router.post('/api/account/apikeys/{key_id}/revoke')
-async def api_my_revoke(key_id: str, request: Request, auth: AuthContext = Depends(require_auth),
+def api_my_revoke(key_id: str, request: Request, auth: AuthContext = Depends(require_auth),
                         db: Session = Depends(get_db)):
     err = _refuse(request, auth)
     if err:

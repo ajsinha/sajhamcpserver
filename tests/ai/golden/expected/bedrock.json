@@ -194,7 +194,7 @@
   },
   "reasoning": {
    "error": "unsupported_feature",
-   "message": "bedrock/bedrock-golden does not support reasoning_effort"
+   "message": "bedrock/bedrock-golden does not support reasoning_effort: on Bedrock it is sent for Anthropic Claude (output_config.effort) and Amazon Nova 2 (reasoningConfig) models only; for another model put its own field in additional_model_request_fields or extra_body"
   },
   "sampling": {
    "error": "unsupported_feature",

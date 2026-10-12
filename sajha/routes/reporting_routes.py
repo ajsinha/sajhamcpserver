@@ -36,7 +36,7 @@ def _parse_period(period: str) -> tuple[datetime, datetime]:
 # ── API Endpoints ────────────────────────────────────────────────
 
 @router.get('/api/reports/overview')
-async def api_report_overview(
+def api_report_overview(
     period: str = Query('24h'),
     auth: AuthContext = Depends(require_auth),
     db: Session = Depends(get_db),
@@ -49,7 +49,7 @@ async def api_report_overview(
 
 
 @router.get('/api/reports/tools/usage')
-async def api_report_tools_usage(
+def api_report_tools_usage(
     period: str = Query('7d'),
     auth: AuthContext = Depends(require_auth),
     db: Session = Depends(get_db),
@@ -61,7 +61,7 @@ async def api_report_tools_usage(
 
 
 @router.get('/api/reports/tools/{tool_name}/detail')
-async def api_report_tool_detail(
+def api_report_tool_detail(
     tool_name: str,
     period: str = Query('30d'),
     auth: AuthContext = Depends(require_auth),
@@ -75,7 +75,7 @@ async def api_report_tool_detail(
 
 
 @router.get('/api/reports/users/activity')
-async def api_report_users_activity(
+def api_report_users_activity(
     period: str = Query('30d'),
     auth: AuthContext = Depends(require_admin),     # per-user activity: admin only
     db: Session = Depends(get_db),
@@ -87,7 +87,7 @@ async def api_report_users_activity(
 
 
 @router.get('/api/reports/heatmap')
-async def api_report_heatmap(
+def api_report_heatmap(
     days: int = Query(30),
     tool: str = Query(None),
     auth: AuthContext = Depends(require_auth),
@@ -99,7 +99,7 @@ async def api_report_heatmap(
 
 
 @router.get('/api/reports/audit')
-async def api_report_audit(
+def api_report_audit(
     limit: int = Query(100),
     action: str = Query(None),
     auth: AuthContext = Depends(require_admin),
@@ -123,7 +123,7 @@ async def api_report_audit(
 # ── Web UI Endpoints ─────────────────────────────────────────────
 
 @router.get('/reports')
-async def reports_dashboard(
+def reports_dashboard(
     request: Request,
     auth: AuthContext = Depends(require_auth),
     db: Session = Depends(get_db),

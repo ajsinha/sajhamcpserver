@@ -93,6 +93,8 @@ class RunInfo:
     model_calls: int = 0                  # model calls of the LLM tool itself (answer mode: in the planner loop)
     sampled: str = ""                     # the client's model answered (MCP sampling): mrtr | session
     sampler: Any = field(default=None, repr=False)
+    confirmer: Any = field(default=None, repr=False)   # answer mode over MCP: asks the client's user (MRTR/elicitation)
+    context_trims: List[Dict[str, Any]] = field(default_factory=list)   # answer mode: turns dropped on ContextTooLong
 
     def to_sajha(self) -> Dict[str, Any]:
         """What the OpenAI-compatible endpoint returns in the response's ``sajha`` field."""
@@ -340,6 +342,10 @@ class LLMTool(BaseMCPTool):
         except Exception:
             pass
         model = model or self.spec.model or s.default_model
+        if self.spec.mode == "answer" and not chain and inner_calls.depth() == 0:
+            # destructive-tool confirmation through the MCP client (Intelligence Layer §6)
+            from sajha.ai.llm_tools.confirmation import client_confirmer
+            info.confirmer = client_confirmer(self.name)
         if self.spec.sampling != "never":          # §12: the client's model, when it offers one
             from sajha.ai.llm_tools.sampling import client_sampler
             info.sampler = client_sampler(self.name) if not chain and inner_calls.depth() == 0 else None
@@ -484,12 +490,13 @@ class LLMTool(BaseMCPTool):
                       instructions=self._system_prompt(args), memory_context=mc, tools=allowed,
                       limits={"max_steps": limits.max_steps, "max_tool_calls": limits.max_tool_calls,
                               "timeout_s": max(0.1, run.deadline - time.time())},
-                      should_stop=stop, token_stop="token_limit", audit=False)
+                      should_stop=stop, token_stop="token_limit", audit=False, confirmer=info.confirmer)
         info.usage = info.usage + res.usage
         info.steps, info.models, info.planner, info.error = list(res.steps), list(res.models), res.planner, res.error
         info.planner_version, info.planner_by = res.planner_version, res.planner_by
         info.planner_path, info.loops_exhausted = list(res.planner_path), list(res.loops_exhausted)
         info.stopped_by = res.stopped_by
+        info.context_trims = list(res.context_trims)
         out: Dict[str, Any] = {"answer": res.answer, "confidence": round(float(res.confidence), 4),
                                "stopped_by": res.stopped_by}
         if self.spec.citations:
@@ -932,6 +939,8 @@ class LLMTool(BaseMCPTool):
         if info.planner:                   # LLM Tools §9.9: the planner, its version and the stages taken
             entry.update(planner=info.planner, planner_version=info.planner_version, planner_by=info.planner_by,
                          planner_path=info.planner_path[:200], loops_exhausted=info.loops_exhausted)
+        if info.context_trims:             # answer mode: the oldest turns dropped on ContextTooLong
+            entry["context_trims"] = info.context_trims[:10]
         if not audit:
             return
         try:

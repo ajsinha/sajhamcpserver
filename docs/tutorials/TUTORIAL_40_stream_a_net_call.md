@@ -163,6 +163,12 @@ wrote events after you left that the home never read.
 
 ### 6. Answer a remote tool's question
 
+On `risk-eu`, where the units server is proxied, the shipped policy for proxied writes (`config/policies/20-proxied-writes.yaml`) holds it for approval before it
+reaches the upstream, because it declares no `readOnlyHint`
+([Policy and Audit §5.1](../architecture/Policy%20and%20Audit.md#51-the-shipped-rule-for-proxied-writes)). For this step
+set `enabled: false` in that file (the lab's servers share it; it is reloaded within seconds), and set
+it back to `true` when you put the lab back.
+
 `units__reset_counter` asks you to confirm before it resets. Call it as a 2026-07-28 client that can
 answer form elicitations, then answer with the `requestState` you were given:
 

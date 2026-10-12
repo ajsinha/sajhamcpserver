@@ -52,7 +52,7 @@ POLICY_KEYS = {'name', 'description', 'enabled', 'rules', 'version'}
 RULE_KEYS = {'id', 'description', 'match', 'effect', 'reason', 'approval', 'constraints', 'rate_limit',
              'quota', 'redact', 'screen_output', 'enabled'}
 MATCH_KEYS = {'tools', 'exclude_tools', 'groups', 'annotations', 'callers', 'sources', 'time', 'arguments',
-              'data_classes', 'flow', 'destination'}
+              'data_classes', 'flow', 'destination', 'proxied'}
 FLOWS = ('arguments', 'results')
 #: facts of a destination (SAJHA Net residency): net, instance, region, labels.<key>, here
 DESTINATION_FACTS = ('net', 'instance', 'region', 'labels', 'here')
@@ -292,7 +292,8 @@ class Match:
     tools: List[str] = field(default_factory=list)
     exclude_tools: List[str] = field(default_factory=list)
     groups: List[str] = field(default_factory=list)
-    annotations: Dict[str, Any] = field(default_factory=dict)
+    annotations: Dict[str, Any] = field(default_factory=dict)    # value, or a Condition (a mapping)
+    proxied: Optional[bool] = None                                  # a proxied MCP server's tool
     anonymous: Optional[bool] = None
     users: List[str] = field(default_factory=list)
     roles: List[str] = field(default_factory=list)
@@ -325,7 +326,12 @@ class Match:
         if ann is not None:
             if not isinstance(ann, dict):
                 raise PolicyParseError(f'{where}.annotations: expected a mapping')
-            m.annotations = dict(ann)
+            m.annotations = {k: (Condition.parse(str(k), v, f'{where}.annotations') if isinstance(v, dict) else v)
+                             for k, v in ann.items()}
+        if raw.get('proxied') is not None:
+            if not isinstance(raw['proxied'], bool):
+                raise PolicyParseError(f'{where}.proxied: true or false')
+            m.proxied = raw['proxied']
         callers = raw.get('callers')
         if callers is not None:
             if not isinstance(callers, dict):
@@ -373,8 +379,14 @@ class Match:
         if self.groups and call.group not in self.groups:
             return False
         for k, v in self.annotations.items():
-            if (call.annotations or {}).get(k) != v:
+            if isinstance(v, Condition):
+                # absent hints take the MCP default; {readOnlyHint: {ne: true}} matches an absent one
+                if v.failure(call.annotations or {}, absent_ok=False) is not None:
+                    return False
+            elif (call.annotations or {}).get(k) != v:
                 return False
+        if self.proxied is not None and bool(getattr(call, 'proxied', False)) != self.proxied:
+            return False
         c = call.caller
         anonymous = not c.user_id or c.user_id == 'anonymous'
         if self.anonymous is not None and anonymous != self.anonymous:

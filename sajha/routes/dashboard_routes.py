@@ -16,7 +16,7 @@ router = APIRouter(tags=['dashboard'])
 
 
 @router.get('/dashboard')
-async def dashboard(
+def dashboard(
     request: Request,
     auth: AuthContext = Depends(require_auth),
     db: Session = Depends(get_db),
