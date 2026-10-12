@@ -1,0 +1,250 @@
+{
+  "name": "statcan_table",
+  "implementation": "sajha.tools.impl.statcan_tools.StatcanTableTool",
+  "description": "One series of a Statistics Canada table by coordinate (member ids per dimension); without a coordinate, the table's dimensions and members.\nReturns: as statcan_vector, or dimensions (members with ids).\nInputs (* required): table*, coordinate, latest_n (default 12) or period, max_members (default 50).\nExample: {\"table\": \"18-10-0004-01\", \"coordinate\": \"2.2\", \"latest_n\": 6}",
+  "annotations": {
+    "readOnlyHint": true,
+    "idempotentHint": true,
+    "openWorldHint": true
+  },
+  "version": "1.0.0",
+  "enabled": true,
+  "cache_ttl": 21600,
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "table": {
+        "type": "string",
+        "description": "Table number, e.g. 18-10-0004-01",
+        "minLength": 8
+      },
+      "coordinate": {
+        "type": "string",
+        "description": "Member ids joined by dots, e.g. 2.2 (padded to 10)"
+      },
+      "latest_n": {
+        "type": "integer",
+        "description": "The newest N periods (default 12 when no period is given)",
+        "minimum": 1,
+        "maximum": 500
+      },
+      "period": {
+        "type": "string",
+        "description": "2025, 2025-Q3, 2025-07, 'last 2 years' or YYYY-MM-DD:YYYY-MM-DD (instead of latest_n)"
+      },
+      "max_members": {
+        "type": "integer",
+        "description": "Members listed per dimension without a coordinate",
+        "minimum": 1,
+        "maximum": 1000,
+        "default": 50
+      }
+    },
+    "required": [
+      "table"
+    ],
+    "additionalProperties": false,
+    "examples": [
+      {
+        "table": "18-10-0004-01",
+        "coordinate": "2.2",
+        "latest_n": 6
+      }
+    ]
+  },
+  "outputSchema": {
+    "type": "object",
+    "required": [
+      "source",
+      "table"
+    ],
+    "properties": {
+      "vector": {
+        "type": "string",
+        "description": "Vector id, v..."
+      },
+      "table": {
+        "type": "string",
+        "description": "Table number, e.g. 18-10-0004-01"
+      },
+      "table_title": {
+        "type": [
+          "string",
+          "null"
+        ],
+        "description": "Table title"
+      },
+      "coordinate": {
+        "type": [
+          "string",
+          "null"
+        ],
+        "description": "Member ids, one per dimension"
+      },
+      "title": {
+        "type": [
+          "string",
+          "null"
+        ],
+        "description": "Series title (members joined by ;)"
+      },
+      "members": {
+        "type": "object",
+        "description": "Member name per dimension",
+        "additionalProperties": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "unit": {
+        "type": [
+          "string",
+          "null"
+        ],
+        "description": "Unit of measure (e.g. Dollars, 2002=100, Percent)"
+      },
+      "unit_multiplier": {
+        "type": [
+          "string",
+          "null"
+        ],
+        "description": "thousands, millions ... or null"
+      },
+      "frequency": {
+        "type": [
+          "string",
+          "null"
+        ],
+        "description": "Monthly, Quarterly, Annual, ..."
+      },
+      "terminated": {
+        "type": "boolean",
+        "description": "The series is no longer updated"
+      },
+      "release_time": {
+        "type": [
+          "string",
+          "null"
+        ],
+        "description": "Newest release among the observations"
+      },
+      "source": {
+        "type": "string",
+        "description": "Source: Statistics Canada ... notice required by the Open Licence; quote it with the data"
+      },
+      "observation_count": {
+        "type": "integer",
+        "description": "Observations returned"
+      },
+      "note": {
+        "type": "string",
+        "description": "Why there is no data, or what to do next"
+      },
+      "observations": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "date": {
+              "type": "string",
+              "description": "YYYY-MM, YYYY-Qn, YYYY or YYYY-MM-DD"
+            },
+            "value": {
+              "type": [
+                "number",
+                "null"
+              ],
+              "description": "Value in the series unit and multiplier"
+            },
+            "symbol": {
+              "type": "string",
+              "description": "preliminary or revised"
+            }
+          }
+        }
+      },
+      "dimensions": {
+        "type": "array",
+        "description": "Without a coordinate: the dimensions in coordinate order",
+        "items": {
+          "type": "object",
+          "properties": {
+            "position": {
+              "type": "integer",
+              "description": "Position in the coordinate"
+            },
+            "name": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "description": "Dimension"
+            },
+            "member_count": {
+              "type": "integer",
+              "description": "Members"
+            },
+            "members": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "type": "integer",
+                    "description": "Member id"
+                  },
+                  "name": {
+                    "type": [
+                      "string",
+                      "null"
+                    ],
+                    "description": "Member"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "start": {
+        "type": [
+          "string",
+          "null"
+        ],
+        "description": "First reference date"
+      },
+      "end": {
+        "type": [
+          "string",
+          "null"
+        ],
+        "description": "Last reference date"
+      },
+      "series_count": {
+        "type": [
+          "integer",
+          "null"
+        ],
+        "description": "Series in the table"
+      },
+      "archived": {
+        "type": "boolean",
+        "description": "Archived table"
+      }
+    }
+  },
+  "metadata": {
+    "author": "Ashutosh Sinha",
+    "category": "Economic Data",
+    "tags": [
+      "statistics canada",
+      "canada",
+      "statistics",
+      "cpi",
+      "labour force",
+      "gdp"
+    ]
+  }
+}

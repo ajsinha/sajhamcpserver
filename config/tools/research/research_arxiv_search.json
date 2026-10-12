@@ -1,0 +1,172 @@
+{
+  "name": "research_arxiv_search",
+  "implementation": "sajha.tools.impl.research_tools.ResearchArxivSearchTool",
+  "title": "Search arXiv preprints",
+  "description": "Preprints on arXiv matching words and an optional category (e.g. q-fin.RM), with abstracts and links to the abstract pages; papers are not fetched.\nReturns: count, total, truncated, papers (arxiv_id, title, authors, published, updated, primary_category, categories, summary, doi, abs_url).\nInputs (query or category required): query (words, all must match); category (arXiv category such as q-fin.RM, q-fin.PR, stat.ML); sort (relevance, submitted, updated; default relevance); max_results (default 10).\nExample: {\"query\": \"credit valuation adjustment\", \"category\": \"q-fin.RM\", \"max_results\": 5}",
+  "annotations": {
+    "title": "Search arXiv preprints",
+    "readOnlyHint": true,
+    "destructiveHint": false,
+    "idempotentHint": true,
+    "openWorldHint": true
+  },
+  "version": "1.0.0",
+  "enabled": true,
+  "cache_ttl": 86400,
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "query": {
+        "type": "string",
+        "description": "Words that must all appear",
+        "maxLength": 300
+      },
+      "category": {
+        "type": "string",
+        "description": "arXiv category, e.g. q-fin.RM, q-fin.PR, q-fin.ST, stat.ML, cs.LG",
+        "pattern": "^[a-z\\-]+(\\.[A-Za-z\\-]+)?$"
+      },
+      "sort": {
+        "type": "string",
+        "enum": [
+          "relevance",
+          "submitted",
+          "updated"
+        ],
+        "description": "Order of results (submitted: newest first)",
+        "default": "relevance"
+      },
+      "max_results": {
+        "type": "integer",
+        "description": "Most papers to return",
+        "minimum": 1,
+        "maximum": 50,
+        "default": 10
+      }
+    },
+    "required": [],
+    "additionalProperties": false,
+    "examples": [
+      {
+        "query": "credit valuation adjustment",
+        "category": "q-fin.RM",
+        "max_results": 5
+      }
+    ]
+  },
+  "outputSchema": {
+    "type": "object",
+    "properties": {
+      "query": {
+        "type": [
+          "string",
+          "null"
+        ]
+      },
+      "category": {
+        "type": [
+          "string",
+          "null"
+        ]
+      },
+      "count": {
+        "type": "integer"
+      },
+      "total": {
+        "type": "integer"
+      },
+      "truncated": {
+        "type": "boolean"
+      },
+      "papers": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "arxiv_id": {
+              "type": "string"
+            },
+            "title": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "authors": {
+              "type": "array",
+              "items": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              }
+            },
+            "published": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "updated": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "primary_category": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "categories": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "summary": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "doi": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "abs_url": {
+              "type": [
+                "string",
+                "null"
+              ]
+            }
+          },
+          "required": [
+            "arxiv_id",
+            "title"
+          ]
+        }
+      },
+      "source": {
+        "type": "string",
+        "description": "Attribution"
+      }
+    },
+    "required": [
+      "papers",
+      "source"
+    ]
+  },
+  "metadata": {
+    "author": "Ashutosh Sinha",
+    "category": "Research",
+    "tags": [
+      "arxiv",
+      "preprints",
+      "quantitative finance"
+    ]
+  }
+}

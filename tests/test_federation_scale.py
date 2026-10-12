@@ -318,3 +318,75 @@ def test_following_peer_breakers_can_be_switched_off(upstream, make, shared):
     wb.health_tick()
     assert get_circuit_registry().get_breaker('nb__x').state.value == 'closed'
     assert wb.status('units')['cluster']['breaker_open'] == ['host:1:a']        # still visible
+
+
+# ── approvals shared between workers (Scaling and State §3) ─────────
+
+def test_approvals_are_shared_between_workers_and_never_overwritten(upstream, tmp_path, shared):
+    from tests.test_federation import Registry as _Reg
+    path = str(tmp_path / 'shared-fed.json')
+    managers = []
+    try:
+        for w in ('host:1:a', 'host:2:b'):
+            settings = FederationSettings(**{'enabled': True, 'allow_localhost': True, 'require_approval': True,
+                                             'startup_wait_seconds': 10, 'default_timeout_seconds': 10,
+                                             'health_publish_seconds': 3600,
+                                             'upstreams': [{'id': 'units', 'url': upstream.url, 'prefix': 'ap'}]})
+            reg = _Reg()
+            m = FederationManager(reg, settings, FederationStore(path, state=shared))
+            m.worker_id = m.health.worker_id = w
+            m.health._store = shared
+            m.start()
+            managers.append((m, reg))
+        (wa, ra), (wb, rb) = managers
+        assert 'ap__celsius_to_fahrenheit' not in ra.tools and 'ap__celsius_to_fahrenheit' not in rb.tools
+
+        wa.set_item_status('units', 'tool', 'celsius_to_fahrenheit', 'approve')     # approved on worker A
+        assert 'ap__celsius_to_fahrenheit' in ra.tools
+        # worker B serves it without a restart: the announcement (or, missing that, its next health tick)
+        assert wait_for(lambda: 'ap__celsius_to_fahrenheit' in rb.tools or (wb.health_tick() and False), 10)
+        assert wb.status('units')['items'] and [i['status'] for i in wb.status('units')['items']
+                                                if i['name'] == 'celsius_to_fahrenheit'] == ['approved']
+
+        # B decides something else on its own (possibly stale) view: A's approval survives it
+        wb.set_item_status('units', 'tool', 'kilometres_to_miles', 'approve')
+        wb.refresh('units')                                   # B's discovery writes the records again
+        recs = FederationStore(path, state=shared).items('units')
+        assert recs['tool:celsius_to_fahrenheit']['status'] == 'approved'
+        assert recs['tool:kilometres_to_miles']['status'] == 'approved'
+        assert wait_for(lambda: 'ap__kilometres_to_miles' in ra.tools or (wa.health_tick() and False), 10)
+
+        # a stale in-memory copy never overwrites: A disables while B still holds the old records
+        wb.store._data = {'upstreams': [], 'items': {'units': {}}}
+        wb.store._rev = wb.store.revision()                   # B believes its empty copy is current
+        wa.set_item_status('units', 'tool', 'celsius_to_fahrenheit', 'disable')
+        wb.set_item_status('units', 'tool', 'kilometres_to_miles', 'disable')
+        recs = FederationStore(path, state=shared).items('units')
+        assert recs['tool:celsius_to_fahrenheit']['status'] == 'disabled'
+        assert recs['tool:kilometres_to_miles']['status'] == 'disabled'
+    finally:
+        for m, _ in managers:
+            m.stop()
+
+
+# ── a down upstream fails fast (Federation.md section 8) ─────────────
+
+def test_a_down_upstream_fails_fast_and_opens_the_breaker(make):
+    # before: every pool member waited 5 s for a reconnect in backoff, per attempt (20 s a call here)
+    u = Upstream()
+    m, reg = make([{'id': 'units', 'url': u.url, 'prefix': 'ff', 'pool_size': 3, 'retries': 1,
+                    'breaker': {'failure_threshold': 3, 'recovery_timeout': 60}}])
+    up = m._upstreams['units']
+    assert wait_for(lambda: all(c.state == 'connected' for c in up.pool), 10)
+    tool = reg.tools['ff__celsius_to_fahrenheit']
+    assert tool.execute_with_tracking({'celsius': 100})['structuredContent']['result'] == 212.0
+    u.stop()
+    started = time.time()
+    for _ in range(3):
+        t0 = time.time()
+        with pytest.raises(Exception):
+            tool.execute_with_tracking({'celsius': 1})
+        assert time.time() - t0 < 3.0                     # each call fails within a few seconds
+    with pytest.raises(RuntimeError, match='circuit breaker open'):
+        tool.execute_with_tracking({'celsius': 1})       # and the breaker is open after the threshold
+    assert time.time() - started < 8.0

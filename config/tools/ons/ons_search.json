@@ -1,0 +1,123 @@
+{
+  "name": "ons_search",
+  "implementation": "sajha.tools.impl.ons_tools.OnsSearchTool",
+  "description": "Find UK Office for National Statistics time series by words or CDID.\nReturns: total, series (cdid, dataset, title, release_date, uri).\nInputs (* required): text*, limit (default 20).\nExample: {\"text\": \"CPI annual rate all items\"}",
+  "annotations": {
+    "readOnlyHint": true,
+    "idempotentHint": true,
+    "openWorldHint": true
+  },
+  "version": "1.0.0",
+  "enabled": true,
+  "cache_ttl": 86400,
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "text": {
+        "type": "string",
+        "description": "Words, or a CDID such as D7G7",
+        "minLength": 2
+      },
+      "limit": {
+        "type": "integer",
+        "description": "Most series returned",
+        "minimum": 1,
+        "maximum": 100,
+        "default": 20
+      }
+    },
+    "required": [
+      "text"
+    ],
+    "additionalProperties": false,
+    "examples": [
+      {
+        "text": "CPI annual rate all items"
+      }
+    ]
+  },
+  "outputSchema": {
+    "type": "object",
+    "required": [
+      "source",
+      "series"
+    ],
+    "properties": {
+      "text": {
+        "type": "string",
+        "description": "The search"
+      },
+      "total": {
+        "type": "integer",
+        "description": "Series matched in all"
+      },
+      "count": {
+        "type": "integer",
+        "description": "Series returned"
+      },
+      "source": {
+        "type": "string",
+        "description": "Source: Office for National Statistics ...; cite it with the data"
+      },
+      "note": {
+        "type": "string",
+        "description": "Why nothing matched"
+      },
+      "series": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "cdid": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "description": "Series id (CDID)"
+            },
+            "dataset": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "description": "Dataset id"
+            },
+            "title": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "description": "Series title"
+            },
+            "release_date": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "description": "Last release, YYYY-MM-DD"
+            },
+            "uri": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "description": "Page path on ons.gov.uk"
+            }
+          }
+        }
+      }
+    }
+  },
+  "metadata": {
+    "author": "Ashutosh Sinha",
+    "category": "Economic Data",
+    "tags": [
+      "ons",
+      "uk",
+      "statistics",
+      "inflation",
+      "gdp",
+      "labour market"
+    ]
+  }
+}

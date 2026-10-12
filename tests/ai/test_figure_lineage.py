@@ -112,6 +112,13 @@ def test_lint_checks_every_declaration():
     assert ("error", "unit", "properties/r") in got and ("error", "unit", "properties/e") in got
     assert ("error", "unit", "properties/n") in got and ("warning", "unit", "properties/o") in got
     assert unit_problem("USD/EUR", {"type": "number"}) == (None, None)
+    # the message says once that the unit is not known (it used to say it twice)
+    msgs = [f.message for f in lint_tool("t_tool", {
+        "description": "A test tool that returns numbers with units for the linter to check.",
+        "inputSchema": {"type": "object", "properties": {}, "examples": [{}]}}, output_schema=bad)
+        if f.rule == "unit" and f.where in ("properties/r", "properties/n")]
+    assert msgs and all(m.count("not one SAJHA knows") + m.count("is not a unit") <= 1 for m in msgs)
+    assert all(m.count("x-sajha-unit") == 1 for m in msgs)
 
 
 def test_the_shipped_declarations_are_units_and_cover_the_rate_tools():

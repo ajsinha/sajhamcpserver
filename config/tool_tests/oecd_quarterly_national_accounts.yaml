@@ -1,0 +1,16 @@
+# An HTTP tool with a recorded cassette (cassettes/oecd_quarterly_national_accounts/gdp_growth_us_germany_japan.json): replays offline.
+# Re-record against the live API with: python -m sajha.quality test --tool oecd_quarterly_national_accounts --record
+tool: oecd_quarterly_national_accounts
+cases:
+  - name: gdp growth us germany japan
+    tags: [http]
+    arguments: {"countries": ["USA", "DEU", "JPN"], "transaction": "gdp", "measure": "growth_qoq", "period": "2025-Q1/2026-Q2"}
+    expect:
+      - schema: output
+      - path: "$.series_count"
+        equals: 3
+      - path: "$.source"
+        regex: "^Source: OECD"
+probe:
+  case: gdp growth us germany japan
+  every: 86400

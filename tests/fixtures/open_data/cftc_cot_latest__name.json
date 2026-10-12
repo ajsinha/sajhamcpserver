@@ -1,0 +1,65 @@
+{
+ "tool": "cftc_cot_latest",
+ "arguments": {
+  "market": "gold",
+  "report": "disaggregated",
+  "kind": "futures_only"
+ },
+ "recorded": "2026-10-11",
+ "calls": [
+  {
+   "method": "GET",
+   "url": "https://publicreporting.cftc.gov/resource/72hh-3qpy.json",
+   "params": [
+    [
+     "$select",
+     "cftc_contract_market_code,market_and_exchange_names,commodity_name,max(report_date_as_yyyy_mm_dd) as latest_report"
+    ],
+    [
+     "$where",
+     "(upper(market_and_exchange_names) like '%GOLD%')"
+    ],
+    [
+     "$group",
+     "cftc_contract_market_code,market_and_exchange_names,commodity_name"
+    ],
+    [
+     "$order",
+     "latest_report DESC"
+    ],
+    [
+     "$limit",
+     "50"
+    ]
+   ],
+   "status": 200,
+   "content_type": "application/json;charset=utf-8",
+   "body": "[{\"cftc_contract_market_code\":\"088691\",\"market_and_exchange_names\":\"GOLD - COMMODITY EXCHANGE INC.\",\"commodity_name\":\"GOLD\",\"latest_report\":\"2026-10-06T00:00:00.000\"}\n,{\"cftc_contract_market_code\":\"088695\",\"market_and_exchange_names\":\"MICRO GOLD - COMMODITY EXCHANGE INC.\",\"commodity_name\":\"GOLD\",\"latest_report\":\"2026-10-06T00:00:00.000\"}\n,{\"cftc_contract_market_code\":\"088LM1\",\"market_and_exchange_names\":\"GOLD -1 TROY OUNCE  - COINBASE DERIVATIVES, LLC\",\"commodity_name\":\"GOLD\",\"latest_report\":\"2026-09-08T00:00:00.000\"}]\n"
+  },
+  {
+   "method": "GET",
+   "url": "https://publicreporting.cftc.gov/resource/72hh-3qpy.json",
+   "params": [
+    [
+     "$select",
+     "market_and_exchange_names,report_date_as_yyyy_mm_dd,cftc_contract_market_code,commodity_name,contract_units,open_interest_all,change_in_open_interest_all,traders_tot_all,prod_merc_positions_long,prod_merc_positions_short,change_in_prod_merc_long,change_in_prod_merc_short,pct_of_oi_prod_merc_long,pct_of_oi_prod_merc_short,traders_prod_merc_long_all,traders_prod_merc_short_all,swap_positions_long_all,swap__positions_short_all,swap__positions_spread_all,change_in_swap_long_all,change_in_swap_short_all,pct_of_oi_swap_long_all,pct_of_oi_swap_short_all,traders_swap_long_all,traders_swap_short_all,m_money_positions_long_all,m_money_positions_short_all,m_money_positions_spread,change_in_m_money_long_all,change_in_m_money_short_all,pct_of_oi_m_money_long_all,pct_of_oi_m_money_short_all,traders_m_money_long_all,traders_m_money_short_all,other_rept_positions_long,other_rept_positions_short,other_rept_positions_spread,change_in_other_rept_long,change_in_other_rept_short,pct_of_oi_other_rept_long,pct_of_oi_other_rept_short,traders_other_rept_long_all,traders_other_rept_short,nonrept_positions_long_all,nonrept_positions_short_all,change_in_nonrept_long_all,change_in_nonrept_short_all,pct_of_oi_nonrept_long_all,pct_of_oi_nonrept_short_all"
+    ],
+    [
+     "$where",
+     "cftc_contract_market_code='088691'"
+    ],
+    [
+     "$order",
+     "report_date_as_yyyy_mm_dd DESC"
+    ],
+    [
+     "$limit",
+     "1"
+    ]
+   ],
+   "status": 200,
+   "content_type": "application/json;charset=utf-8",
+   "body": "[{\"market_and_exchange_names\":\"GOLD - COMMODITY EXCHANGE INC.\",\"report_date_as_yyyy_mm_dd\":\"2026-10-06T00:00:00.000\",\"cftc_contract_market_code\":\"088691\",\"commodity_name\":\"GOLD\",\"contract_units\":\"(CONTRACTS OF 100 TROY OUNCES)\",\"open_interest_all\":\"396109\",\"change_in_open_interest_all\":\"-10347\",\"traders_tot_all\":\"285\",\"prod_merc_positions_long\":\"18860\",\"prod_merc_positions_short\":\"38361\",\"change_in_prod_merc_long\":\"660\",\"change_in_prod_merc_short\":\"-1102\",\"pct_of_oi_prod_merc_long\":\"4.8\",\"pct_of_oi_prod_merc_short\":\"9.7\",\"traders_prod_merc_long_all\":\"20\",\"traders_prod_merc_short_all\":\"14\",\"swap_positions_long_all\":\"14604\",\"swap__positions_short_all\":\"239630\",\"swap__positions_spread_all\":\"22338\",\"change_in_swap_long_all\":\"-231\",\"change_in_swap_short_all\":\"-4909\",\"pct_of_oi_swap_long_all\":\"3.7\",\"pct_of_oi_swap_short_all\":\"60.5\",\"traders_swap_long_all\":\"18\",\"traders_swap_short_all\":\"26\",\"m_money_positions_long_all\":\"127101\",\"m_money_positions_short_all\":\"16114\",\"m_money_positions_spread\":\"31396\",\"change_in_m_money_long_all\":\"-4610\",\"change_in_m_money_short_all\":\"4721\",\"pct_of_oi_m_money_long_all\":\"32.1\",\"pct_of_oi_m_money_short_all\":\"4.1\",\"traders_m_money_long_all\":\"75\",\"traders_m_money_short_all\":\"18\",\"other_rept_positions_long\":\"118302\",\"other_rept_positions_short\":\"18954\",\"other_rept_positions_spread\":\"13044\",\"change_in_other_rept_long\":\"277\",\"change_in_other_rept_short\":\"-757\",\"pct_of_oi_other_rept_long\":\"29.9\",\"pct_of_oi_other_rept_short\":\"4.8\",\"traders_other_rept_long_all\":\"82\",\"traders_other_rept_short\":\"33\",\"nonrept_positions_long_all\":\"50464\",\"nonrept_positions_short_all\":\"16272\",\"change_in_nonrept_long_all\":\"1680\",\"change_in_nonrept_short_all\":\"-177\",\"pct_of_oi_nonrept_long_all\":\"12.7\",\"pct_of_oi_nonrept_short_all\":\"4.1\"}]\n"
+  }
+ ]
+}

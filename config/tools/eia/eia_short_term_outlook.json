@@ -1,0 +1,193 @@
+{
+  "name": "eia_short_term_outlook",
+  "implementation": "sajha.tools.impl.eia_tools.EiaShortTermOutlookTool",
+  "description": "Short-Term Energy Outlook (STEO): EIA's monthly history and 18-month forecasts for oil, gas and power prices, production and consumption.\nReturns: source, route, series (series_id, name, label, unit, observations date/value), note_forecast.\nInputs (* required): series (named shortcuts; default brent, henry_hub), series_ids (raw STEO ids), period (default this month to the end of next year).\nExample: {\"series\": [\"brent\", \"henry_hub\"], \"period\": \"2026-01-01:2027-12-31\"}",
+  "annotations": {
+    "readOnlyHint": true,
+    "idempotentHint": true,
+    "openWorldHint": true
+  },
+  "version": "1.0.0",
+  "enabled": true,
+  "cache_ttl": 21600,
+  "api_key": "${EIA_API_KEY:}",
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "series": {
+        "type": "array",
+        "items": {
+          "type": "string",
+          "enum": [
+            "brent",
+            "wti",
+            "henry_hub",
+            "gasoline_retail",
+            "us_crude_production",
+            "us_dry_gas_production",
+            "us_petroleum_consumption",
+            "world_petroleum_production",
+            "residential_electricity_price"
+          ]
+        },
+        "minItems": 1,
+        "maxItems": 9,
+        "uniqueItems": true,
+        "default": [
+          "brent",
+          "henry_hub"
+        ],
+        "description": "Named STEO series"
+      },
+      "series_ids": {
+        "type": "array",
+        "items": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9_]{3,30}$"
+        },
+        "maxItems": 20,
+        "description": "Raw STEO series ids, e.g. PATCPUSX"
+      },
+      "period": {
+        "type": "string",
+        "description": "2026, 2026-07 or YYYY-MM-DD:YYYY-MM-DD (default this month to the end of next year)"
+      }
+    },
+    "required": [],
+    "additionalProperties": false,
+    "examples": [
+      {
+        "series": [
+          "brent",
+          "henry_hub"
+        ],
+        "period": "2026-01-01:2027-12-31"
+      }
+    ]
+  },
+  "outputSchema": {
+    "type": "object",
+    "required": [
+      "source",
+      "series"
+    ],
+    "properties": {
+      "source": {
+        "type": "string",
+        "description": "Source: U.S. Energy Information Administration ...; cite it with the data"
+      },
+      "note": {
+        "type": "string",
+        "description": "Why the DEMO_KEY was used"
+      },
+      "route": {
+        "type": "string",
+        "description": "EIA route read"
+      },
+      "frequency": {
+        "type": "string",
+        "description": "daily, weekly, monthly, quarterly or annual"
+      },
+      "period": {
+        "type": [
+          "string",
+          "null"
+        ],
+        "description": "The period asked for"
+      },
+      "truncated": {
+        "type": "boolean",
+        "description": "More rows matched than were returned"
+      },
+      "series_count": {
+        "type": "integer",
+        "description": "Series returned"
+      },
+      "series": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "required": [
+            "series_id",
+            "observations"
+          ],
+          "properties": {
+            "series_id": {
+              "type": "string",
+              "description": "EIA series id"
+            },
+            "name": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "description": "The name asked for"
+            },
+            "label": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "description": "EIA series description"
+            },
+            "unit": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "description": "Unit (e.g. $/BBL, MBBL thousand barrels, BCF)"
+            },
+            "observation_count": {
+              "type": "integer",
+              "description": "Observations returned"
+            },
+            "observations": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "required": [
+                  "date",
+                  "value"
+                ],
+                "properties": {
+                  "date": {
+                    "type": "string",
+                    "description": "Period: YYYY-MM-DD, YYYY-MM or YYYY"
+                  },
+                  "value": {
+                    "type": [
+                      "number",
+                      "null"
+                    ],
+                    "description": "Value in the series unit"
+                  },
+                  "change": {
+                    "type": [
+                      "number",
+                      "null"
+                    ],
+                    "description": "Change from the previous week (storage: injection + or withdrawal -)"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "note_forecast": {
+        "type": "string",
+        "description": "Which periods are forecasts"
+      }
+    }
+  },
+  "metadata": {
+    "author": "Ashutosh Sinha",
+    "category": "Economic Data",
+    "tags": [
+      "eia",
+      "steo",
+      "forecast",
+      "energy"
+    ]
+  }
+}

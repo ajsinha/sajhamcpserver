@@ -29,14 +29,11 @@ database ([Security Model](../security/Security%20Model.md#credential-storage-an
 | Tables or columns missing at start-up | created from `schema.sql` (missing columns of an existing table are reported) | SAJHA refuses to start (`db.schema_check: strict`) or warns (`warn`) |
 | Does SAJHA ever run DDL on it | yes | no |
 
-**Which one.** SQLite for one machine and light load: one file, one writer at a time (SAJHA opens it
-with `journal_mode=WAL`, so readers do not wait for the writer, `synchronous=NORMAL` and a 30 s
-`busy_timeout`). PostgreSQL for real concurrency: several workers, pods or hosts, sustained writes,
-hundreds of calls in flight. The switch is configuration only (`db.type`, or `DB_TYPE` /
-`SAJHA_DB_TYPE`, with the connection keys of section 2); the same code and the same pool settings
-(`db.pool.*`) serve both. How large the pool should be for a number of workers, and how SAJHA keeps a
-connection only while it reads or writes, is in [Scaling and State](../architecture/Scaling%20and%20State.md)
-§7; measured numbers for both databases are in its §9.
+**Which one.** SQLite for one machine and light load, PostgreSQL for several workers, pods or hosts
+and sustained writes. The switch is configuration only (`db.type`, or `DB_TYPE` / `SAJHA_DB_TYPE`,
+with the connection keys of section 2); the same code and the same pool settings (`db.pool.*`) serve
+both. Why, how large the pool should be for a number of workers, and measured numbers for both
+databases are in [Scaling and State](../architecture/Scaling%20and%20State.md) §7 and §9.
 
 ---
 
@@ -104,8 +101,7 @@ or give one URL, which replaces every other connection key:
 `SAJHA_DB_URL=postgresql+psycopg2://sajha:PASSWORD@db-host:5432/sajha` (put `?sslmode=require`
 on it for TLS; `db.ssl` is not read). The short names `DB_TYPE`, `DB_HOST`, `DB_PORT`, `DB_NAME`,
 `DB_USER`, `DB_PASSWORD` and `DB_URL` work too when neither the `SAJHA_DB_*` name nor the YAML sets
-the key. Always set the database name: the code default is `sajha_mcp`, not the `sajha` used on
-this page ([Configuration Reference](Configuration%20Reference.md)). To run the state store on
+the key. An unset database name means `sajha`, as on this page. To run the state store on
 PostgreSQL as well, add `SAJHA_STATE_BACKEND=database` (it uses this database unless
 `state.database.url` names another).
 

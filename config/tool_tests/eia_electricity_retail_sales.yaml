@@ -1,0 +1,18 @@
+# HTTP tool without a cassette yet: the api.data.gov DEMO_KEY allowance (10 requests, then about a day's
+# Retry-After) ran out while the routes were being verified on 2026-10-12, and no EIA_API_KEY was available,
+# so the case is skipped rather than replayed from an invented recording. With a key, record it (and remove
+# the skip) with: python -m sajha.quality test --tool eia_electricity_retail_sales --record   (the api_key parameter is redacted)
+tool: eia_electricity_retail_sales
+cases:
+  - name: us texas residential 2025
+    tags: [http]
+    skip: "needs EIA_API_KEY to record its cassette (the DEMO_KEY allowance ran out in wave 16)"
+    arguments: {"states": ["US", "TX"], "sectors": ["residential"], "measures": ["price", "sales"], "period": "2025"}
+    expect:
+      - schema: output
+      - path: "$.series_count"
+        equals: 4
+      - path: "$.series[0].observation_count"
+        equals: 12
+      - path: "$.series[*].unit"
+        regex: "cents per kilowatt-hour|million kilowatt hours"

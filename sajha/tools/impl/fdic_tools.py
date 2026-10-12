@@ -17,12 +17,12 @@ from __future__ import annotations
 
 import os
 import re
-import time
 from datetime import date
 from typing import Any, Dict, List, Optional, Tuple
 
 from sajha.core import outbound
 from sajha.tools.base_mcp_tool import BaseMCPTool
+from sajha.tools.impl.open_data_common import take_slot
 from sajha.tools.impl.us_treasury_tools import parse_date, parse_period
 
 BASE = 'https://api.fdic.gov/banks'
@@ -39,17 +39,7 @@ THOUSANDS = 'amounts in thousands of US dollars'
 
 def _take_slot() -> None:
     """Wait (briefly) for a slot in the shared FDIC request window."""
-    from sajha.core.state import get_state_store
-    store = get_state_store()
-    deadline = time.monotonic() + THROTTLE_WAIT
-    while True:
-        recorded, _ = store.window_add(THROTTLE_KEY, THROTTLE_WINDOW, THROTTLE_LIMIT)
-        if recorded:
-            return
-        if time.monotonic() >= deadline:
-            raise ValueError(f'FDIC request budget ({THROTTLE_LIMIT} a minute, shared by every worker) is '
-                             f'used up; try again in a minute')
-        time.sleep(0.5)
+    take_slot(THROTTLE_KEY, THROTTLE_LIMIT, THROTTLE_WINDOW, THROTTLE_WAIT, 'FDIC')
 
 
 def fdic(endpoint: str, params: Dict[str, Any]) -> Tuple[List[Dict[str, Any]], int]:

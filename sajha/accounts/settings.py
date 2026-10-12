@@ -61,13 +61,12 @@ def set_accounts_settings(settings: Optional[AccountsSettings]) -> None:
 
 
 def base_url(request=None) -> str:
-    """The externally visible origin: accounts.public_url, mcp.auth.public_url, the request, or the bind address."""
+    """The externally visible origin: accounts.public_url, mcp.auth.public_url, the request's base URL,
+    or (no request at hand: a link built inside a tool call) the address this server listens on."""
     s = get_accounts_settings()
     if s.public_url:
         return s.public_url
     if request is not None:
         return str(request.base_url).rstrip('/')
-    from sajha.core.config import get_settings
-    st = get_settings()
-    host = st.server_host if st.server_host not in ('0.0.0.0', '::', '') else 'localhost'
-    return f'http://{host}:{st.server_port}'
+    from sajha.core.transport import local_base_url
+    return local_base_url()

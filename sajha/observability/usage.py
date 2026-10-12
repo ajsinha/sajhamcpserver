@@ -167,8 +167,24 @@ def flush() -> int:
                 conn.execute(usage_events.insert(), rows)
             total += len(rows)
         except Exception as e:
-            logger.warning(f'usage ledger: write of {len(rows)} rows failed: {e}')
+            # keep the rows for the next flush (a busy pool or a brief outage must not lose usage);
+            # what does not fit back in the queue is counted as dropped
+            kept = _requeue(rows)
+            logger.warning(f'usage ledger: write of {len(rows)} rows failed ({kept} kept to retry): {e}')
             return total
+
+
+def _requeue(rows: List[Dict[str, Any]]) -> int:
+    """Put rows a failed write drained back on the queue; returns how many fit."""
+    q, kept = _q(), 0
+    for row in rows:
+        try:
+            q.put_nowait(row)
+            kept += 1
+        except queue.Full:
+            from sajha.observability.metrics import USAGE_DROPPED
+            USAGE_DROPPED.inc(())
+    return kept
 
 
 def _purge(engine) -> None:

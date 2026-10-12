@@ -1,0 +1,158 @@
+{
+  "name": "research_crossref_doi",
+  "implementation": "sajha.tools.impl.research_tools.ResearchCrossrefDoiTool",
+  "title": "Crossref DOI record",
+  "description": "The Crossref metadata of one DOI: title, authors, venue, publisher, dates, subjects, licences and citation count.\nReturns: work (doi, title, type, published, venue, publisher, authors, author_count, cited_by_count, url, abstract, subjects, references_count, issn, isbn, licenses).\nInputs: doi (10.xxxx/..., or a doi.org URL).\nExample: {\"doi\": \"10.1016/j.jbankfin.2006.07.013\"}",
+  "annotations": {
+    "title": "Crossref DOI record",
+    "readOnlyHint": true,
+    "destructiveHint": false,
+    "idempotentHint": true,
+    "openWorldHint": true
+  },
+  "version": "1.0.0",
+  "enabled": true,
+  "cache_ttl": 86400,
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "doi": {
+        "type": "string",
+        "description": "DOI, or a doi.org URL",
+        "minLength": 7,
+        "maxLength": 300
+      }
+    },
+    "required": [
+      "doi"
+    ],
+    "additionalProperties": false,
+    "examples": [
+      {
+        "doi": "10.1016/j.jbankfin.2006.07.013"
+      }
+    ]
+  },
+  "outputSchema": {
+    "type": "object",
+    "properties": {
+      "work": {
+        "type": "object",
+        "properties": {
+          "doi": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "title": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "type": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "published": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "venue": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "publisher": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "authors": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "author_count": {
+            "type": "integer"
+          },
+          "cited_by_count": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "url": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "abstract": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "subjects": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "references_count": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "issn": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "isbn": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "licenses": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": [
+          "doi"
+        ]
+      },
+      "source": {
+        "type": "string",
+        "description": "Attribution"
+      }
+    },
+    "required": [
+      "work",
+      "source"
+    ]
+  },
+  "metadata": {
+    "author": "Ashutosh Sinha",
+    "category": "Research",
+    "tags": [
+      "crossref",
+      "doi"
+    ]
+  }
+}

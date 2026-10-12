@@ -1,0 +1,240 @@
+{
+  "name": "eia_browse",
+  "implementation": "sajha.tools.impl.eia_tools.EiaBrowseTool",
+  "description": "Browse the EIA data tree: a route's child routes, or a leaf route's frequencies, facets, data columns and period range; with facet, that facet's values.\nReturns: source, route, routes (id, route, name), frequencies, facets, data_columns, start_period, end_period; or values (id, name).\nInputs (* required): route (default the top), facet (e.g. series, stateid).\nExample: {\"route\": \"petroleum/pri/spt\"}",
+  "annotations": {
+    "readOnlyHint": true,
+    "idempotentHint": true,
+    "openWorldHint": true
+  },
+  "version": "1.0.0",
+  "enabled": true,
+  "cache_ttl": 86400,
+  "api_key": "${EIA_API_KEY:}",
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "route": {
+        "type": "string",
+        "default": "",
+        "description": "Route such as petroleum or petroleum/pri/spt (empty: the top)"
+      },
+      "facet": {
+        "type": "string",
+        "description": "List this facet's values instead (series, stateid, sectorid ...)"
+      }
+    },
+    "required": [],
+    "additionalProperties": false,
+    "examples": [
+      {
+        "route": "petroleum/pri/spt"
+      }
+    ]
+  },
+  "outputSchema": {
+    "type": "object",
+    "required": [
+      "source",
+      "route"
+    ],
+    "properties": {
+      "source": {
+        "type": "string",
+        "description": "Source: U.S. Energy Information Administration ...; cite it with the data"
+      },
+      "note": {
+        "type": "string",
+        "description": "Why the DEMO_KEY was used"
+      },
+      "route": {
+        "type": "string",
+        "description": "Route browsed"
+      },
+      "name": {
+        "type": [
+          "string",
+          "null"
+        ],
+        "description": "Route name"
+      },
+      "description": {
+        "type": [
+          "string",
+          "null"
+        ],
+        "description": "Route description"
+      },
+      "facet": {
+        "type": "string",
+        "description": "Facet listed"
+      },
+      "value_count": {
+        "type": "integer",
+        "description": "Facet values"
+      },
+      "values": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "description": "Facet value"
+            },
+            "name": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "description": "Its name"
+            }
+          }
+        }
+      },
+      "routes": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "description": "Child id"
+            },
+            "route": {
+              "type": "string",
+              "description": "Full route"
+            },
+            "name": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "description": "Name"
+            },
+            "description": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "description": "Description"
+            }
+          }
+        }
+      },
+      "frequencies": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "description": "Frequency"
+            },
+            "description": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "description": "Description"
+            },
+            "format": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "description": "Period format"
+            }
+          }
+        }
+      },
+      "facets": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "description": "Facet"
+            },
+            "description": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "description": "Description"
+            }
+          }
+        }
+      },
+      "data_columns": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string",
+              "description": "Column"
+            },
+            "name": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "description": "Name"
+            },
+            "units": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "description": "Units"
+            }
+          }
+        }
+      },
+      "start_period": {
+        "type": [
+          "string",
+          "null"
+        ],
+        "description": "First period"
+      },
+      "end_period": {
+        "type": [
+          "string",
+          "null"
+        ],
+        "description": "Last period"
+      },
+      "default_frequency": {
+        "type": [
+          "string",
+          "null"
+        ],
+        "description": "Default frequency"
+      }
+    }
+  },
+  "metadata": {
+    "author": "Ashutosh Sinha",
+    "category": "Economic Data",
+    "tags": [
+      "eia",
+      "energy",
+      "catalogue"
+    ]
+  }
+}

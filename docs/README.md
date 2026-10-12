@@ -29,7 +29,7 @@ alone. Definitions live in the root [GLOSSARY](../GLOSSARY.md); release history 
 |---|---|
 | `getting-started/` | The map, quick start, configuration reference, database setup, storage, Kubernetes, the Python Playground |
 | `protocol/` | MCP protocol guide, the two compliance reports, API reference, OAuth, MCP Apps and headers, the SAJHA Net protocol |
-| `architecture/` | How the server is built, and one design or as-built guide per subsystem: composition, the intelligence layer and its extension, LLM tools, planners, federation, SAJHA Net, connected accounts, API import, tool generation, data connectors, policy and audit, system notices, sandbox, scaling, observability, workflows, tool quality, open data tools, business intelligence and reports (planned), per-user sign-in for proxied servers and the GitHub, Atlassian and Google integrations; the adversarial QA plan; the implementation plan and the roadmap |
+| `architecture/` | How the server is built, and one design or as-built guide per subsystem: composition, the intelligence layer and its extension, LLM tools, planners, federation, SAJHA Net, connected accounts, API import, tool generation, data connectors, policy and audit, system notices, sandbox, scaling, observability, workflows, tool quality, open data tools, business intelligence, reports, per-user sign-in for proxied servers and the GitHub, Atlassian and Google integrations; the adversarial QA plan; the implementation plan and the roadmap |
 | `studio/` | MCP Studio and its creators |
 | `tools/` | One reference guide per tool provider, by category; prompts |
 | `tutorials/` | Step-by-step walkthroughs, numbered |
@@ -37,6 +37,7 @@ alone. Definitions live in the root [GLOSSARY](../GLOSSARY.md); release history 
 | `security/` | The security model |
 | `archive/` | Point-in-time reports, not maintained |
 | `requirements/` | The original requirements document |
+| `publications/` | The presentation deck, generated from `tools/deck/` (see [the deck](../tools/deck/GUIDE.md)) |
 
 ## Getting started
 
@@ -62,13 +63,13 @@ alone. Definitions live in the root [GLOSSARY](../GLOSSARY.md); release history 
 
 - [Architecture](architecture/Architecture.md): the process, request paths, components and where their code lives; the console's pages (§10)
 - [Composition Framework](architecture/Composition%20Framework.md)
-- [Intelligence Layer](architecture/Intelligence%20Layer.md): LLM providers and models behind `sajha.ai.llm`, aliases, budgets and policy, Ask SAJHA, planners, conversation memory, document search, the OpenAI-compatible endpoint
+- [Intelligence Layer](architecture/Intelligence%20Layer.md): LLM providers and models behind `sajha.ai.llm`, aliases, budgets and policy, Ask SAJHA, planners, conversation memory, document search (including documents from connected accounts), the OpenAI-compatible endpoint
 - [Extending the Intelligence Layer](architecture/Extending%20the%20Intelligence%20Layer.md): writing a provider, a model and a planner
 - [Federation](architecture/Federation.md): proxied MCP servers: other MCP servers' tools behind SAJHA's governance, the mcpServers file, internal and external servers
 - [API Import](architecture/API%20Import.md): an OpenAPI, Swagger or GraphQL description to a reviewed set of tools
 - [Data Connectors](architecture/Data%20Connectors.md): databases, warehouses, vector stores and search clusters as governed, read-only tools: the statement guard, limits, masking, curated views, per-user credentials
 - [Tool Generation](architecture/Tool%20Generation.md): Describe a tool, from a sentence to a checked, tested tool an administrator approves
-- [Connected Accounts](architecture/Connected%20Accounts.md): users link GitHub, Slack, Google, Microsoft 365 and other accounts once; tools and federated servers act as them
+- [Connected Accounts](architecture/Connected%20Accounts.md): users link GitHub, Slack, Google, Microsoft 365 and other accounts once; tools and federated servers act as them; provider packs install a provider and its API's tools in one reviewed step
 - [Sandbox](architecture/Sandbox.md): where user code (Studio Python and script tools, the shell) runs, and what each backend guarantees
 - [Scaling and State](architecture/Scaling%20and%20State.md): several workers or hosts; the state store (memory, Redis, database), durable tasks, and what stays per process
 - [Observability](architecture/Observability.md): Prometheus `/metrics`, OpenTelemetry traces over OTLP, the usage and cost dashboard, alert rules
@@ -79,10 +80,10 @@ alone. Definitions live in the root [GLOSSARY](../GLOSSARY.md); release history 
 - [Google Integration](architecture/Google%20Integration.md): Google's Workspace MCP servers (Gmail, Drive, Calendar) proxied per user with OAuth sign-in (configurable, not verified against Google's live servers), and other public MCP servers worth the same
 - [Adversarial QA Plan](architecture/Adversarial%20QA%20Plan.md): how to attack SAJHA on purpose — every surface, what to try, the safe behaviour expected, priorities, automation and existing coverage
 - [Tool Quality](architecture/Tool%20Quality.md): test cases with recorded HTTP cassettes and JUnit output, the schema linter, health probes, evals for Ask SAJHA, tool versions with canary routing, rollback and sunset dates
-- [Quantitative Planners](architecture/Quantitative%20Planners.md) (wave 8): planners whose answers are computed figures: a shared workspace of quantities with units, as-of and source, a tested operation library and a numbers validator; `calc_graph`, `estimate_then_compute`, `scenario`, `data_analyst`, `code_act`, `optimize`, a numbers check for every planner, `research_writer` and `reconcile`
-- [Open Data Tools](architecture/Open%20Data%20Tools.md) (planned, wave 8): public data sources verified for use as tools (terms, keys, limits), the sources dropped and why, the tool folder and tools for each, by priority
-- [Business Intelligence](architecture/Business%20Intelligence.md) (partly built in 8.11.0): a metrics layer compiled to safe SQL through the sources' own guards; query, compare, top N, crosstab, explain a change, charts, blending tool results; anomalies, forecasts, data quality and dashboards planned
-- [Reports](architecture/Reports.md) (core built in 8.11.0; delivery and scheduling planned): report definitions published as tools, formats, history and compare, narration under a numbers check, governed delivery, scheduling, flagship reports
+- [Quantitative Planners](architecture/Quantitative%20Planners.md): planners whose answers are computed figures: a shared workspace of quantities with units, as-of and source, a tested operation library and a numbers validator; `calc_graph`, `estimate_then_compute`, `scenario`, `data_analyst`, `code_act`, `optimize`, a numbers check for every planner, `research_writer` and `reconcile`
+- [Open Data Tools](architecture/Open%20Data%20Tools.md): the public data sources built as tools and their terms (licence, keys, limits), the sources dropped or held back and why, the tool folder and tools for each
+- [Business Intelligence](architecture/Business%20Intelligence.md): a metrics layer compiled to safe SQL through the sources' own guards; query, compare, top N, crosstab, explain a change, charts, blending tool results; anomalies, forecasts, data quality and dashboards were descoped by the owner
+- [Reports](architecture/Reports.md): report definitions published as tools, formats, history and compare, narration under a numbers check; delivery, the Studio Report creator and more flagship reports were descoped by the owner
 - [Policy and Audit](architecture/Policy%20and%20Audit.md): declarative rules on every tool call (deny, approval, argument constraints, rate limits, quotas, redaction, injection screening); the hash-chained, signed audit and SIEM export
 - [LLM Tools](architecture/LLM%20Tools.md): tools whose work is done by a model, configured like any tool and governed the same way: modes, memory, resource safety, sampling, the OpenAI-compatible endpoint and configurable planners
 - [Planner Reference](architecture/Planner%20Reference.md): the reference for planner files (`config/planners`): keys, the stage library, transitions and bounded loops, the `when` expression language, verify checks, validation messages, a JSON Schema and every shipped strategy in full
@@ -124,19 +125,32 @@ These guides document each provider's tools, parameters and API keys.
   [European Central Bank](tools/central-banks/European%20Central%20Bank%20Tool%20Reference%20Guide.md) ·
   [Federal Reserve](tools/central-banks/Federal%20Reserve%20Tool%20Reference%20Guide.md) ·
   [People's Bank of China](tools/central-banks/Peoples%20Bank%20of%20China%20Tool%20Reference%20Guide.md)
-- **Public data:** [BIS](tools/public-data/BIS%20Tool%20Reference%20Guide.md) ·
+- **Public data:** [ABS](tools/public-data/ABS%20Tool%20Reference%20Guide.md) ·
+  [BEA](tools/public-data/BEA%20Tool%20Reference%20Guide.md) ·
+  [BIS](tools/public-data/BIS%20Tool%20Reference%20Guide.md) ·
+  [BLS](tools/public-data/BLS%20Tool%20Reference%20Guide.md) ·
+  [CFTC](tools/public-data/CFTC%20Tool%20Reference%20Guide.md) ·
+  [EIA](tools/public-data/EIA%20Tool%20Reference%20Guide.md) ·
+  [Eurostat](tools/public-data/Eurostat%20Tool%20Reference%20Guide.md) ·
   [FBI](tools/public-data/FBI%20Tool%20Reference%20Guide.md) ·
   [FDIC](tools/public-data/FDIC%20Tool%20Reference%20Guide.md) ·
   [GLEIF](tools/public-data/GLEIF%20Tool%20Reference%20Guide.md) ·
+  [Hazards](tools/public-data/Hazards%20Tool%20Reference%20Guide.md) ·
   [IMF](tools/public-data/IMF%20Tool%20Reference%20Guide.md) ·
+  [OECD](tools/public-data/OECD%20Tool%20Reference%20Guide.md) ·
+  [ONS](tools/public-data/ONS%20Tool%20Reference%20Guide.md) ·
   [Sanctions](tools/public-data/Sanctions%20Tool%20Reference%20Guide.md) ·
+  [Statistics Canada](tools/public-data/Statistics%20Canada%20Tool%20Reference%20Guide.md) ·
   [United Nations](tools/public-data/United%20Nations%20Tool%20Reference%20Guide.md) ·
+  [US Spending](tools/public-data/US%20Spending%20Tool%20Reference%20Guide.md) ·
   [US Treasury](tools/public-data/US%20Treasury%20Tool%20Reference%20Guide.md) ·
   [World Bank](tools/public-data/World%20Bank%20Tool%20Reference%20Guide.md)
 - **Filings:** [SEC EDGAR](tools/filings/SEC%20EDGAR%20Tool%20Reference%20Guide.md) ·
   [Investor Relations](tools/filings/Investor%20Relations%20Tool%20Reference%20Guide.md)
-- **Search:** [Google Search](tools/search/Google%20Search%20Tool%20Reference%20Guide.md) ·
+- **Search:** [GDELT](tools/search/GDELT%20Tool%20Reference%20Guide.md) ·
+  [Google Search](tools/search/Google%20Search%20Tool%20Reference%20Guide.md) ·
   [MSDOC Search](tools/search/MSDOC%20Search%20Tool%20Reference%20Guide.md) ·
+  [Research Literature](tools/search/Research%20Literature%20Tool%20Reference%20Guide.md) ·
   [Tavily Search](tools/search/Tavily%20Search%20Tool%20Reference%20Guide.md) ·
   [Web Crawler](tools/search/Web%20Crawler%20Tool%20Reference%20Guide.md) ·
   [Wikipedia Search](tools/search/Wikipedia%20Search%20Tool%20Reference%20Guide.md)
@@ -197,6 +211,15 @@ These guides document each provider's tools, parameters and API keys.
 43. [Tutorial 43: Connect and Configure LLM Providers](tutorials/TUTORIAL_43_llm_providers.md)
 44. [Tutorial 44: Tool Health and Domain Descriptions](tutorials/TUTORIAL_44_tool_health.md)
 45. [Tutorial 45: Quantitative Planners](tutorials/TUTORIAL_45_quantitative_planners.md)
+46. [Tutorial 46: PostgreSQL, Several Workers and the Load Harness](tutorials/TUTORIAL_46_scaling_postgresql.md)
+47. [Tutorial 47: Federation at Gateway Scale](tutorials/TUTORIAL_47_federation_gateway.md)
+48. [Tutorial 48: Sandbox Egress and Contained stdio Upstreams](tutorials/TUTORIAL_48_sandbox_egress.md)
+49. [Tutorial 49: Signed Plugins and the Plugin Catalog](tutorials/TUTORIAL_49_signed_plugins.md)
+50. [Tutorial 50: Provider Packs](tutorials/TUTORIAL_50_provider_packs.md)
+51. [Tutorial 51: Personal RAG over Connected Accounts](tutorials/TUTORIAL_51_personal_rag.md)
+52. [Tutorial 52: Planner Routing Learned from Results](tutorials/TUTORIAL_52_planner_routing_learning.md)
+53. [Tutorial 53: Change a SAJHA Net Safely](tutorials/TUTORIAL_53_sajha_net_console.md)
+54. [Tutorial 54: How a Figure Was Computed](tutorials/TUTORIAL_54_figure_lineage.md)
 
 ## Clients and security
 
@@ -207,7 +230,7 @@ These guides document each provider's tools, parameters and API keys.
 
 ## Elsewhere in the repository
 
-- [Deployment recipes](../deployment/README.md): AWS CDK, Hetzner, bare metal, Kubernetes
+- [Deployment recipes](../deployment/README.md): AWS CDK, Hetzner, bare metal, Kubernetes, observability files, the SAJHA Net demo and the local test lab
 - [Archive](archive/README.md): old audits and notes, not maintained
 - How SAJHA compares with other MCP products: the server's `/comparison` page (data in `sajha/web/competitive.py`)
 - [The deck](../tools/deck/GUIDE.md): `docs/publications/SAJHA-MCP-Server.pptx`, rebuilt from source with every number derived at build time

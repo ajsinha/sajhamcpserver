@@ -1,0 +1,36 @@
+{
+ "format": 1,
+ "interactions": [
+  {
+   "request": {
+    "method": "GET",
+    "url": "https://data.api.abs.gov.au/rest/data/ABS,CPI/3.10001.10.50+1.M?startPeriod=2026-01&endPeriod=2026-06",
+    "body_sha256": ""
+   },
+   "response": {
+    "status": 200,
+    "reason": "OK",
+    "headers": {
+     "content-type": "application/vnd.sdmx.data+csv; charset=utf-8",
+     "connection": "keep-alive",
+     "date": "Mon, 12 Oct 2026 04:08:25 GMT",
+     "strict-transport-security": "max-age=31536000; includeSubDomains",
+     "content-language": "en",
+     "vary": "Accept, Accept-Encoding",
+     "api-supported-versions": "1",
+     "x-varnish": "4196184",
+     "via": "1.1 varnish (Varnish/6.0), 1.1 1bfcfc3b1a70a56e04add5843a03f554.cloudfront.net (CloudFront)",
+     "accept-ranges": "bytes",
+     "cache-control": "no-cache",
+     "x-cache": "Miss from cloudfront",
+     "x-amz-cf-pop": "PHL51-P2",
+     "x-amz-cf-id": "On6VvGy8muWmMukUrWarfFjAp2y9BlrnOqJE0S_kI6MmajKmwQeWrA==",
+     "age": "0"
+    },
+    "body": {
+     "text": "DATAFLOW,MEASURE,INDEX,TSEST,REGION,FREQ,TIME_PERIOD,OBS_VALUE,UNIT_MEASURE,OBS_STATUS,DECIMALS,OBS_COMMENT,BASE_PERIOD\r\nABS:CPI(2.0.0),3,10001,10,1,M,2026-03,4.4,PCT,,,,25\r\nABS:CPI(2.0.0),3,10001,10,1,M,2026-02,3.8,PCT,,,,25\r\nABS:CPI(2.0.0),3,10001,10,1,M,2026-01,3.9,PCT,,,,25\r\nABS:CPI(2.0.0),3,10001,10,50,M,2026-06,3.8,PCT,,,,25\r\nABS:CPI(2.0.0),3,10001,10,50,M,2026-05,4,PCT,,,,25\r\nABS:CPI(2.0.0),3,10001,10,50,M,2026-04,4.2,PCT,,,,25\r\nABS:CPI(2.0.0),3,10001,10,50,M,2026-03,4.6,PCT,,,,25\r\nABS:CPI(2.0.0),3,10001,10,50,M,2026-02,3.7,PCT,,,,25\r\nABS:CPI(2.0.0),3,10001,10,50,M,2026-01,3.8,PCT,,,,25\r\nABS:CPI(2.0.0),3,10001,10,1,M,2026-06,4,PCT,,,,25\r\nABS:CPI(2.0.0),3,10001,10,1,M,2026-05,4.2,PCT,,,,25\r\nABS:CPI(2.0.0),3,10001,10,1,M,2026-04,4.2,PCT,,,,25\r\n"
+    }
+   }
+  }
+ ]
+}

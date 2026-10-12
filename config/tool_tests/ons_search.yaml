@@ -1,0 +1,16 @@
+# An HTTP tool with a recorded cassette (cassettes/ons_search/cpi_annual_rate.json): replays offline.
+# Re-record against the live API with: python -m sajha.quality test --tool ons_search --record
+tool: ons_search
+cases:
+  - name: cpi annual rate
+    tags: [http]
+    arguments: {"text": "CPI annual rate all items", "limit": 5}
+    expect:
+      - schema: output
+      - path: "$.series[0].cdid"
+        equals: "D7G7"
+      - path: "$.source"
+        regex: "Open Government Licence"
+probe:
+  case: cpi annual rate
+  every: 21600

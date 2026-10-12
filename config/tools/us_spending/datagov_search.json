@@ -1,0 +1,177 @@
+{
+  "name": "datagov_search",
+  "implementation": "sajha.tools.impl.us_spending_tools.DatagovSearchTool",
+  "title": "Search data.gov datasets",
+  "description": "Datasets in the data.gov catalogue of US federal, state and local open data, by text, publishing organization and keyword, most relevant first.\nReturns: query, count, after, truncated, datasets (id, title, organization, organization_slug, publisher, description, modified, access_level, keywords, has_download, landing_page, url).\nInputs (one of query, organization or keyword required): query; organization (catalogue slug such as cfpb, census, noaa-gov); keyword; limit (default 10); after (the cursor from the previous page).\nExample: {\"query\": \"consumer complaints\", \"organization\": \"cfpb\", \"limit\": 5}",
+  "annotations": {
+    "title": "Search data.gov datasets",
+    "readOnlyHint": true,
+    "destructiveHint": false,
+    "idempotentHint": true,
+    "openWorldHint": true
+  },
+  "version": "1.0.0",
+  "enabled": true,
+  "cache_ttl": 3600,
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "query": {
+        "type": "string",
+        "description": "Words to search for",
+        "maxLength": 300
+      },
+      "organization": {
+        "type": "string",
+        "description": "Organization slug (e.g. cfpb, census, sec-gov)",
+        "pattern": "^[a-z0-9][a-z0-9\\-_]*$",
+        "maxLength": 100
+      },
+      "keyword": {
+        "type": "string",
+        "description": "A dataset keyword tag",
+        "maxLength": 100
+      },
+      "limit": {
+        "type": "integer",
+        "description": "Most datasets to return",
+        "minimum": 1,
+        "maximum": 50,
+        "default": 10
+      },
+      "after": {
+        "type": "string",
+        "description": "Cursor for the next page (after from a previous result)",
+        "maxLength": 500
+      }
+    },
+    "required": [],
+    "additionalProperties": false,
+    "examples": [
+      {
+        "query": "consumer complaints",
+        "organization": "cfpb",
+        "limit": 5
+      }
+    ]
+  },
+  "outputSchema": {
+    "type": "object",
+    "properties": {
+      "query": {
+        "type": [
+          "string",
+          "null"
+        ]
+      },
+      "count": {
+        "type": "integer"
+      },
+      "after": {
+        "type": [
+          "string",
+          "null"
+        ]
+      },
+      "truncated": {
+        "type": "boolean"
+      },
+      "datasets": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "title": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "organization": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "organization_slug": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "publisher": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "description": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "modified": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "access_level": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "keywords": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "has_download": {
+              "type": "boolean"
+            },
+            "landing_page": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "url": {
+              "type": [
+                "string",
+                "null"
+              ]
+            }
+          },
+          "required": [
+            "title"
+          ]
+        }
+      },
+      "source": {
+        "type": "string",
+        "description": "Attribution"
+      }
+    },
+    "required": [
+      "datasets",
+      "source"
+    ]
+  },
+  "metadata": {
+    "author": "Ashutosh Sinha",
+    "category": "Public spending",
+    "tags": [
+      "data.gov",
+      "open data catalogue"
+    ]
+  }
+}

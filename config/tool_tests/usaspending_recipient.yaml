@@ -1,0 +1,16 @@
+# An HTTP tool with a recorded cassette (cassettes/usaspending_recipient/lockheed_martin.json): replays offline.
+# Re-record against the live API with: python -m sajha.quality test --tool usaspending_recipient --record
+tool: usaspending_recipient
+cases:
+  - name: lockheed martin
+    tags: [http]
+    arguments: {"name": "lockheed martin", "limit": 5}
+    expect:
+      - schema: output
+      - path: "$.count"
+        equals: 5
+      - path: "$.matches[*].name"
+        regex: "LOCKHEED"
+probe:
+  case: lockheed martin
+  every: 3600

@@ -604,3 +604,14 @@ def test_shipped_qlrisk_tools_are_skipped_without_qlrisk(store, monkeypatch):
     assert sorted(reg.skipped_tools) == shipped and not reg.tools and not reg.tool_errors
     n = _open_notices('tools.requires:')['tools.requires:qlrisk']
     assert n['severity'] == 'info' and n['title'] == f'qlrisk is not installed: {len(shipped)} qlrisk tools are skipped'
+
+
+def test_the_studio_folder_hint_states_the_folder_rule():
+    # the Folder field's hint must not allow what folder_problem refuses (it once offered "-")
+    from pathlib import Path
+    from sajha.tools.tool_files import folder_problem
+    hint = (Path(__file__).resolve().parent.parent / 'sajha/web/templates/admin/studio/_folder_field.html').read_text()
+    assert '<code>-</code>' not in hint and 'at least one letter' in hint
+    assert folder_problem('market-data', check_tools=False) is not None
+    assert folder_problem('Market_Data2', check_tools=False) is None
+    assert folder_problem('2024', check_tools=False) is not None

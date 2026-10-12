@@ -1,0 +1,32 @@
+{
+ "tool": "datagov_search",
+ "arguments": {
+  "query": "consumer complaints",
+  "organization": "cfpb",
+  "limit": 5
+ },
+ "recorded": "2026-10-12",
+ "calls": [
+  {
+   "method": "GET",
+   "url": "https://catalog.data.gov/search",
+   "params": [
+    [
+     "q",
+     "consumer complaints"
+    ],
+    [
+     "org_slug",
+     "cfpb"
+    ],
+    [
+     "per_page",
+     "5"
+    ]
+   ],
+   "status": 200,
+   "content_type": "application/json",
+   "body": "{\"results\":[{\"_score\":83.95947,\"_sort\":[83.95947,478,\"a0da15a9-179c-4851-98bf-55beeb30e014\"],\"access_level\":\"public\",\"dcat\":{\"@type\":\"dcat:Dataset\",\"accessLevel\":\"public\",\"accrualPeriodicity\":\"R/P1D\",\"bureauCode\":[\"581:00\"],\"contactPoint\":{\"@type\":\"vcard:Contact\",\"fn\":\"devops@cfpb.gov\",\"hasEmail\":\"mailto:devops@cfpb.gov\"},\"describedBy\":\"https://cfpb.github.io/api/ccdb/api.html\",\"description\":\"The Consumer Complaint Database is a collection of complaints about consumer financial products and services that we sent to companies for response. Complaints are published after the company responds, confirming a commercial relationship with the consumer, or after 15 days, whichever comes first. Complaints referred to other regulators, such as complaints about depository institutions with less than $10 billion in assets, are not published in the Consumer Complaint Database. The database generally updates daily.\",\"distribution\":[{\"@type\":\"dcat:Distribution\",\"accessURL\":\"https://www.consumerfinance.gov/data-research/consumer-complaints/\",\"description\":\"The Consumer Complaint Database is a collection of complaints about consumer financial products and services that we sent to companies for response. Complaints are published after the company responds, confirming a commercial relationship with the consumer, or after 15 days, whichever comes first. Complaints referred to other regulators, such as complaints about depository institutions with less than $10 billion in assets, are not published in the Consumer Complaint Database. The database generally updates daily.\",\"title\":\"Consumer Complaint Database\"}],\"identifier\":\"CCDB\",\"keyword\":[\"bank account\",\"bank service\",\"complaint\",\"consumer\",\"credit card\",\"credit report\",\"debt collection\",\"finance\",\"loan\",\"money transfer\",\"mortgage\",\"student loan\"],\"landingPage\":\"https://www.consumerfinance.gov/data-research/consumer-complaints/\",\"modified\":\"2020-06-29\",\"programCode\":[\"000:000\"],\"publisher\":{\"@type\":\"org:Organization\",\"name\":\"Consumer Financial Protection Bureau\"},\"spatial\":\"United States\",\"title\":\"Consumer Complaint Database\"},\"description\":\"The Consumer Complaint Database is a collection of complaints about consumer financial products and services that we sent to companies for response. Complaints are published after the company responds, confirming a commercial relationship with the consumer, or after 15 days, whichever comes first. Complaints referred to other regulators, such as complaints about depository institutions with less than $10 billion in assets, are not published in the Consumer Complaint Database. The database generally updates daily.\",\"distribution_titles\":[\"Consumer Complaint Database\"],\"harvest_record\":\"https://catalog.data.gov/harvest_record/6309f50b-715c-419c-abc9-2e0644e2d7e9\",\"harvest_record_raw\":\"https://catalog.data.gov/harvest_record/6309f50b-715c-419c-abc9-2e0644e2d7e9/raw\",\"has_download\":false,\"has_spatial\":true,\"identifier\":\"CCDB\",\"keyword\":[\"bank account\",\"bank service\",\"complaint\",\"consumer\",\"credit card\",\"credit report\",\"debt collection\",\"finance\",\"loan\",\"money transfer\",\"mortgage\",\"student loan\"],\"last_harvested_date\":\"2026-09-10T19:07:35.287540\",\"organization\":{\"aliases\":null,\"code_repo_exempt\":false,\"code_repo_url\":null,\"description\":null,\"id\":\"d0ddb350-dd27-46fd-9e81-234374bf0607\",\"logo\":\"https://raw.githubusercontent.com/GSA/logo/master/cfpb.png\",\"name\":\"Consumer Financial Protection Bureau\",\"organization_type\":\"Federal Government\",\"slug\":\"cfpb\"},\"parent_identifier\":null,\"popularity\":478,\"publisher\":\"Consumer Financial Protection Bureau\",\"slug\":\"consumer-complaint-database\",\"spatial_centroid\":{\"lat\":34.4819914,\"lon\":-101.6218762},\"spatial_shape\":{\"coordinates\":[[[[-124.733253,24.544245],[-124.733253,49.388611],[-66.954811,49.388611],[-66.954811,24.544245],[-124.733253,24.544245]]]],\"type\":\"MultiPolygon\"},\"theme\":[],\"title\":\"Consumer Complaint Database\",\"type\":\"dataset\"}],\"sort\":\"relevance\"}\n"
+  }
+ ]
+}

@@ -1,0 +1,18 @@
+# An HTTP tool with a recorded cassette (cassettes/gdelt_articles/interest_rates_and_inflation__first_week_of_october_2026.json): replays offline.
+# Re-record against the live API with: python -m sajha.quality test --tool gdelt_articles --record
+tool: gdelt_articles
+cases:
+  - name: interest rates and inflation, first week of october 2026
+    tags: [http]
+    arguments: {"query": "\"interest rates\" inflation", "from": "2026-10-01", "to": "2026-10-07", "max_records": 10}
+    expect:
+      - schema: output
+      - path: "$.count"
+        min: 1
+      - path: "$.articles[0].url"
+        regex: "^https?://"
+      - path: "$.source"
+        regex: "gdeltproject.org"
+probe:
+  case: interest rates and inflation, first week of october 2026
+  every: 21600

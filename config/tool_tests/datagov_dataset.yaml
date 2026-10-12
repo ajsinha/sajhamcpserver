@@ -1,0 +1,16 @@
+# An HTTP tool with a recorded cassette (cassettes/datagov_dataset/consumer_complaint_database.json): replays offline.
+# Re-record against the live API with: python -m sajha.quality test --tool datagov_dataset --record
+tool: datagov_dataset
+cases:
+  - name: consumer complaint database
+    tags: [http]
+    arguments: {"id": "consumer-complaint-database"}
+    expect:
+      - schema: output
+      - path: "$.dataset.id"
+        equals: "consumer-complaint-database"
+      - path: "$.dataset.title"
+        equals: "Consumer Complaint Database"
+probe:
+  case: consumer complaint database
+  every: 3600

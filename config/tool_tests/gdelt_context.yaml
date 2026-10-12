@@ -1,0 +1,16 @@
+# An HTTP tool with a recorded cassette (cassettes/gdelt_context/interest_rates_in_recent_news.json): replays offline.
+# Re-record against the live API with: python -m sajha.quality test --tool gdelt_context --record
+tool: gdelt_context
+cases:
+  - name: interest rates in recent news
+    tags: [http]
+    arguments: {"query": "\"interest rates\"", "max_records": 10}
+    expect:
+      - schema: output
+      - path: "$.count"
+        min: 1
+      - path: "$.articles[0].sentence"
+        regex: ".+"
+probe:
+  case: interest rates in recent news
+  every: 21600

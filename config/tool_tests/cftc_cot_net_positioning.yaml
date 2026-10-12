@@ -1,0 +1,18 @@
+# An HTTP tool with a recorded cassette (cassettes/cftc_cot_net_positioning/leveraged_funds_2025-Q3.json): replays offline.
+# Re-record against the live API with: python -m sajha.quality test --tool cftc_cot_net_positioning --record
+tool: cftc_cot_net_positioning
+cases:
+  - name: leveraged funds 2025-Q3
+    tags: [http]
+    arguments: {"market": "13874A", "report": "tff", "category": "leveraged_funds", "period": "2025-Q3"}
+    expect:
+      - schema: output
+      - path: "$.count"
+        equals: 14
+      - path: "$.latest.report_date"
+        equals: "2025-09-30"
+      - path: "$.source"
+        regex: "^Source: CFTC"
+probe:
+  case: leveraged funds 2025-Q3
+  every: 21600

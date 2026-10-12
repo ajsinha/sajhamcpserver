@@ -1,19 +1,23 @@
 # SAJHA MCP Server — Reports
 
-> **Status: core built in 8.11.0** (wave 8, phase 8.5 of the
-> [Implementation Plan](Implementation%20Plan.md#7b-wave-8-tool-health-open-data-business-intelligence-and-reports);
-> Roadmap L45 and L46): definitions, the loader, the run engine, report data and history, the tools
-> `report_list`, `report_describe`, `report_run`, `report_history`, `report_render`, `report_compare`
-> and the generated `report_<name>` tools, every format of §4, classification marking and the
-> provenance appendix (`sajha/reports/`). Not built yet: `report_deliver` and delivery (§6),
-> scheduling (§7), the Studio Report creator (§9) and most flagship reports (§10). It builds on
-> [Business Intelligence](Business%20Intelligence.md) (metrics, tiles, charts),
-> [Workflows](Workflows.md) (schedules), [Policy and Audit](Policy%20and%20Audit.md) (approval,
-> audit) and the intelligence layer ([LLM Tools](LLM%20Tools.md), `narrate` mode).
+> **Status: built in 8.11.0 as far as the owner wanted it; the rest is descoped** (wave 8, phase 8.5
+> of the [Implementation Plan](Implementation%20Plan.md#7b-wave-8-tool-health-open-data-business-intelligence-and-reports)).
+> Built (`sajha/reports/`): definitions, the loader, the run engine, report data and history, the
+> tools `report_list`, `report_describe`, `report_run`, `report_history`, `report_render`,
+> `report_compare`, `report_narrate` and the generated `report_<name>` tools, every format of §4
+> (charts as inline SVG; no PNG), narration under the numbers check (§5), classification marking and
+> the provenance appendix, the report library page (§9) and two flagship definitions (§10).
+> **Descoped by the owner (2026-10-11)**, because an MCP server gives models governed tools and is
+> not a reporting product: delivery and `report_deliver` (§6), scheduling from the definition (§7),
+> the Studio Report creator (§9), the other flagship reports (§10) and PNG charts. They are not
+> planned ([Roadmap §5](Roadmap.md#5-decisions-needed)). A [workflow](Workflows.md) can call
+> `report_run` on a schedule. It builds on [Business Intelligence](Business%20Intelligence.md)
+> (metrics, charts), [Policy and Audit](Policy%20and%20Audit.md) (audit) and the intelligence layer
+> ([LLM Tools](LLM%20Tools.md)).
 
 This document owns one topic: **reports**. A report is a governed, repeatable document built from
 tool calls and metric queries. It is rendered to a file format, can be narrated by a model under a
-numbers check, and is delivered to people. Terms are in the [Glossary](../../GLOSSARY.md).
+numbers check. Terms are in the [Glossary](../../GLOSSARY.md).
 
 Do not confuse this with the existing **Reports** console page (`/reports`). That page is a usage
 dashboard showing tool calls by tool and user over 24 hours, 7 days and 30 days
@@ -24,23 +28,20 @@ dashboard showing tool calls by tool and user over 24 hours, 7 days and 30 days
 ## 1. Shape
 
 ```
- config/reports/<name>.yaml (report definition: parameters, sections, formats, recipients, governance)
+ config/reports/<name>.yaml (report definition: parameters, sections, formats, governance)
         │ load + validate (hot reload, storage backend)
         ▼
  report_<name> tool (generated, tool folder "reports")      report_run(name, parameters)
         │                                                          │
         └───────────────────────────┬──────────────────────────────┘
                                     ▼
-   run (as the caller; as the owner when scheduled)  ── each section: tool call │ metric tile │ sub-report
+   run (as the caller)  ── each section: tool call │ metric tile │ sub-report
                                     │                   → table │ chart │ KPIs │ text
                                     ▼
    report data (JSON: every value, its source, tool version, as-of)  ──►  report_narrate (optional; numbers check)
                                     │
                                     ▼
    render: HTML │ PDF │ XLSX │ PPTX │ DOCX │ Markdown  (+ classification marking, provenance appendix)
-                                    │
-                                    ▼
-   deliver: email │ Teams / Slack webhook │ SharePoint │ folder   (external targets need approval)
                                     │
                                     ▼
    history (run record, files in the storage backend, audit events)
@@ -58,7 +59,7 @@ backend and hot-reloaded.
 name: daily_risk                     # the tool is report_daily_risk; never contains __
 title: Daily risk report
 description: VaR, expected shortfall, stress results and limit usage for the trading book.
-owner: risk-reporting                # a user; scheduled runs run as this user
+owner: risk-reporting                # who maintains it; shown, recorded with each run
 parameters:                          # JSON Schema properties: the report tool's inputSchema
   as_of: {type: string, format: date, description: "Business date (YYYY-MM-DD)"}
   book:  {type: string, default: TRADING}
@@ -87,11 +88,7 @@ sections:
     kind: text
     narrate: {sections: [headline, stress, limits], length: short}   # report_narrate (section 5)
 formats: [pdf, xlsx]
-recipients:
-  - {kind: email, to: [risk-committee@bank.example]}
-  - {kind: folder, path: reports/daily_risk/}
 classification: confidential         # public | internal | confidential | restricted
-schedule: {cron: "30 7 * * 1-5", timezone: America/Toronto}   # optional; becomes a workflow (section 7)
 ```
 
 The arguments shown for the qlrisk tools are illustrative. A definition uses whatever each tool's
@@ -130,6 +127,9 @@ local disk when the path is absolute) and rescans every `reports.reload_seconds`
 - **Names.** Lowercase letters, digits and `_`, starting with a letter, at most 48 characters, never
   `__`, never a reserved name (§3). The parameter names `formats` and `deliver` are reserved. A
   sub-report may not have sub-reports of its own (one level), nor be the report itself.
+- **`recipients` and `schedule` are refused.** These keys of the original design name features that
+  were descoped (§6, §7); a definition that has either is refused with a message saying so and to
+  use a workflow to run `report_run` on a schedule.
 - **Notices.** A refused file raises `reports.definition:<file>`; two files naming one report raise
   `reports.duplicate:<report>` and neither loads; a report calling tools the server lacks raises the
   info notice `reports.missing_tools:<report>` ([System Notices](System%20Notices.md)).
@@ -143,14 +143,13 @@ written as generated tool configs, in the same way data connectors write theirs.
 
 | Tool | Arguments | Returns / does | Annotations |
 |---|---|---|---|
-| `report_<name>` (one per definition) | the definition's parameters, `formats?`, `deliver?` (boolean, default false) | Runs the report as the caller; returns the report data, links to the rendered files, the run id | read-only unless `deliver` |
-| `report_list` | `search?`, `tag?` | Reports the caller may run: name, title, owner, parameters, schedule, last run | read-only |
-| `report_describe` | `report` | The definition, its sources (tools and metrics), schedule, recipients (redacted for non-owners), last runs | read-only |
-| `report_run` | `report`, `parameters`, `formats?` | The same as `report_<name>`, by name; never delivers | read-only |
+| `report_<name>` (one per definition) | the definition's parameters, `formats?` | Runs the report as the caller; returns the report data, links to the rendered files, the run id | read-only |
+| `report_list` | `search?`, `tag?` | Reports the caller may run: name, title, owner, parameters, last run | read-only |
+| `report_describe` | `report` | The definition, its sources (tools and metrics), last runs | read-only |
+| `report_run` | `report`, `parameters`, `formats?` | The same as `report_<name>`, by name | read-only |
 | `report_render` | `run_id`, `format` | Renders a past run's data to another format without calling any tool again | read-only |
 | `report_compare` | `report`, `run_a`, `run_b` (run ids, or dates for the runs on those dates) | Section-by-section differences: KPIs with their change, and table rows added, removed and changed | read-only |
-| `report_deliver` | `run_id`, `recipients?` (default: the definition's) | Delivers a run's files (section 6); external targets wait for approval | not read-only, not destructive |
-| `report_history` | `report`, `from?`, `to?`, `status?` | Runs: id, time, who ran it, parameters, status, formats, deliveries | read-only |
+| `report_history` | `report`, `from?`, `to?`, `status?` | Runs: id, time, who ran it, parameters, status, formats, warnings | read-only |
 | `report_narrate` | `run_id`, `sections?`, `length?`, `audience?` | Commentary that passes the numbers check (section 5): `commentary`, `label`, `model`, `revised`, `rejected`, `removed`, `caveats`, `stored_in`; stored in the run's waiting text section, if it has one | not read-only (writes the run record), not destructive |
 
 Some definition names are reserved because they would collide with the fixed tools: `list`,
@@ -160,7 +159,8 @@ Some definition names are reserved because they would collide with the fixed too
 A definition's `report_<name>` config is generated there by `sajha/reports/service.py` (marked by
 `"report": {"name", "definition_hash"}`), synced at start-up and whenever definitions change; only
 marked configs are ever rewritten or removed, and a name taken by another tool raises
-`reports.name_conflict:<tool>`. `deliver` is not in the schema until delivery is built (§6).
+`reports.name_conflict:<tool>`. `deliver` stays a reserved name and parameter name, but no tool takes
+it (delivery was descoped, §6).
 
 - **Who may run.** A caller runs a report when reports are enabled, the definition is enabled, the
   caller has one of its `roles` (if any) and may execute its `report_<name>` tool. `report_list`
@@ -254,40 +254,25 @@ and the run's computed comparisons as quantities:
 
 ## 6. Delivery
 
-| Kind | How | Notes |
-|---|---|---|
-| `email` | SMTP through the same sender the alert rules use (`observability.alerts_email.*`, `sajha/observability/alerts.py`); files are attached or linked | A domain allowlist (`reports.email_internal_domains`) separates internal from external addresses |
-| `webhook` (Teams, Slack) | An incoming-webhook URL from the secret store; posts a short summary card with the KPIs and a link. Files are linked, not posted | Outbound requests go through the outbound fetch guard and HTTP proxy settings (`sajha/core/outbound.py`), like every tool fetch |
-| `sharepoint` | The `sharepoint_documents` tool's `upload` operation, called as whoever runs the report | Graph's simple-upload size limit applies ([Roadmap L7](Roadmap.md)) |
-| `folder` | A path in the storage backend under `reports.output_dir` (local, S3, Azure Blob or GCS) | History keeps every run's files here in any case |
-
-**External delivery needs approval.** These targets count as external:
-
-- an email recipient outside the internal domains;
-- any webhook not on `reports.webhook_allowlist`;
-- any SharePoint site outside `reports.sharepoint_internal_sites`.
-
-Delivery to an external target creates an approval in the policy engine's approval store (shown on
-the Approvals page) and waits for it. The run's other deliveries proceed meanwhile. Policy rules can
-add their own conditions on `report_deliver` ([Policy and Audit](Policy%20and%20Audit.md)).
+Descoped by the owner (2026-10-11). There is no `report_deliver` and no delivery to email, webhooks,
+SharePoint or folders, and a definition may not have `recipients` (§2). A run's files stay under `reports.output_dir`, where the report library page
+(§9) and its download route serve them to the runner and administrators. A workflow can call
+`report_run` and then any tool that sends what it returns.
 
 ---
 
 ## 7. Scheduling
 
-A definition's `schedule` becomes a [workflow](Workflows.md) owned by the report's owner. The
-workflow has a cron trigger and one `tool` step that calls `report_<name>` with `deliver: true`.
-The workflow engine provides single-fire across workers, durable runs, retries and the run history,
-so reports add no scheduler of their own. Removing `schedule` from the definition disables that
-workflow.
+Descoped by the owner (2026-10-11): a definition may not have a `schedule` (§2). To run a report on a schedule, write a [workflow](Workflows.md) with a cron trigger and one
+`tool` step that calls `report_run` (or `report_<name>`); the workflow's identity is the runner.
 
 ---
 
 ## 8. Governance
 
 - **Identity.**
-  - An on-demand run runs as the caller. A scheduled run runs as the owner, using the workflow's
-    identity ([Workflows §5](Workflows.md#5-identity-and-security)).
+  - A run runs as the caller; a run started by a workflow runs as the workflow's identity
+    ([Workflows §5](Workflows.md#5-identity-and-security)).
   - Every section's tool call is an ordinary call through `execute_with_tracking`. RBAC, policy,
     per-user credentials and connected accounts therefore apply section by section.
   - A section the runner may not call renders "not permitted"; the report does not fail.
@@ -299,7 +284,7 @@ workflow.
   - As built: a section whose tool marks data classes on its results (residency marks,
     `sajha/net/integration/residency.py`) raises the effective classification to at least
     `confidential`; there is no per-class mapping yet.
-- **Audit.** `report.run`, `report.render`, `report.deliver`, `report.download` and `report.narrate.rejected` are
+- **Audit.** `report.run`, `report.render`, `report.download` and `report.narrate.rejected` are
   events in the hash-chained audit, recorded with the run id and the trace id.
 - **Provenance appendix.** Every rendered report ends with an appendix that records:
   - the run id, the runner, the time and the parameters;
@@ -315,11 +300,8 @@ workflow.
 
 ## 9. Console and Studio
 
-- **A Report creator in Studio (planned).**
-  - It lets an author pick tools and metrics, map parameters, choose a visual for each section,
-    preview with sample parameters, and save a definition.
-  - Studio's per-creator permissions and ownership apply, as for every creator
-    ([MCP Studio User Guide](../studio/MCP%20Studio%20User%20Guide.md)).
+- **No Report creator in Studio** (descoped by the owner, 2026-10-11): definitions are YAML files
+  under `reports.dir`.
 - **The report library page (as built).** `/reports/library` (`sajha/routes/report_library_routes.py`)
   lists the definitions the user may run: enabled, with a matching role when the definition names
   roles, and (for a non-administrator) access to its `report_<name>` tool.
@@ -329,35 +311,19 @@ workflow.
   - `/api/reports/library/runs/{run_id}/{format}` downloads a file as an attachment (the runner and
     administrators only).
   - Comparing two runs is not on the page; use `report_compare`.
-  - **Naming (owner decision, 2026-10-11).** The existing `/reports` page is a usage dashboard. In
-    this phase its menu entry is renamed "Usage", the new page takes the name "Reports" under a new
-    path, and `/reports` keeps working.
+  - **Naming (owner decision, 2026-10-11).** The existing `/reports` page is a usage dashboard; its
+    menu entry is "Usage", the library takes the name "Reports" at `/reports/library`, and `/reports`
+    keeps working.
 
 ---
 
 ## 10. Flagship reports
 
-These ship as definitions, off until enabled. Each one is also a test of the design.
-
-**Shipped (8.11.0)** in `config/reports/`: `desk_calendar` (enabled as the working example; offline:
+Two definitions ship in `config/reports/`: `desk_calendar` (enabled as the working example; offline:
 settlement dates from the business calendars, the market's holidays this year and a bond priced with
 `calc_bond_price`) and `central_bank_watch` (off until enabled: BIS policy rates and the US Treasury
-yield curve, with changes since the previous run and a narrated commentary section). The others
-below are still planned.
-
-| Report | Sections from | Notes |
-|---|---|---|
-| Daily risk report | qlrisk VaR, ES, stress, limits, P&L explain | Needs qlrisk installed |
-| Counterparty exposure | qlrisk SA-CCR and CCR exposure; GLEIF direct and ultimate parents; sanctions screening | Aggregates exposure up the LEI hierarchy |
-| Regulatory capital summary | qlrisk Basel and FRTB capital, SA-CCR | |
-| Morning market brief | FRED, ECB, the US Treasury yield curve, FX, equity indices, today's holidays | Narrated |
-| Company tearsheet | EDGAR facts and filings; FMP profile, ratios and prices | Parameter: ticker |
-| Country macro profile | World Bank, IMF, BIS, OECD or Eurostat | Parameter: country |
-| Central bank watch | BIS policy rates, ECB, Bank of Canada, Bank of Japan, FRED | Shows changes since the previous run |
-| BI metric pack | A set of `bi_compare`, `bi_explain_change` and `bi_anomalies` tiles | Parameter: tag |
-| Data quality report | `bi_check_quality` suites | |
-| SAJHA platform report | Usage and cost, tool health and probes, notices, an audit summary | Administrators only |
-| Access review | Users, roles, API keys and their owners, tool access, connected accounts | Administrators only; restricted |
+yield curve, with changes since the previous run and a narrated commentary section). More flagship
+reports were descoped by the owner (2026-10-11); a definition is a YAML file an operator writes (§2).
 
 ---
 
@@ -369,32 +335,17 @@ The built keys are in the
 `reports.max_run_seconds`, `reports.max_table_rows` and `reports.reload_seconds`.
 `reports.enabled` defaults to `true`, not `false` as first planned (owner decision, 2026-10-11): a
 report gives a caller nothing they could not already call, since every section runs with the
-caller's own access. `reports.narrate_model` belongs to narration (§5). Still planned, with
-delivery:
-
-- `reports.email_internal_domains`
-- `reports.webhook_allowlist`
-- `reports.sharepoint_internal_sites`
+caller's own access. `reports.narrate_model` belongs to narration (§5). The delivery keys of the
+original design were descoped with delivery.
 
 ---
 
-## 12. Build order and tests
+## 12. Tests
 
-1. **Core.** Definitions, the loader, the run engine, report data and history. The tools
-   `report_list`, `report_describe`, `report_run`, `report_history` and the generated
-   `report_<name>` tools. Markdown and HTML output.
-2. **Formats.** PDF, XLSX, PPTX and DOCX, each with its optional dependency. Classification
-   marking, the provenance appendix, `report_render` and `report_compare`.
-3. **Narration.** `report_narrate` and its validator. Tests must show that each of these is
-   rejected: an invented number, a rounded number, a percent of a value not in the data, and a
-   date not in the run.
-4. **Delivery.** Delivery with approval for external targets, scheduling through workflows, and
-   the audit events.
-5. **Authoring and docs.**
-   - The Studio Report creator.
-   - The report library page, with the mobile check in all four themes.
-   - The flagship definitions.
-   - This guide rewritten as-built, a tutorial, glossary terms and help cards.
+The narration validator's tests (`tests/test_report_narrate.py`) show that an invented number, a
+rounded number, a percent of a value not in the data and a date not in the run are each rejected.
+The definitions, runs, formats, comparison and the library page have their own `tests/test_report*.py`
+files.
 
 ---
 
@@ -404,8 +355,7 @@ delivery:
   stored.
 - The numbers check proves that every figure is in the data. It does not prove that the sentence
   around the figure is right, so narration stays labelled as model-written.
-- Delivery is only as private as the channel. External delivery is approved, but SAJHA does not
-  encrypt it end to end.
+- There is no delivery or scheduling of its own (§6, §7).
 
 ---
 

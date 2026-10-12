@@ -1,0 +1,202 @@
+{
+  "name": "abs_gdp",
+  "implementation": "sajha.tools.impl.abs_tools.AbsGdpTool",
+  "description": "Australian national accounts key aggregates, quarterly (ABS ANA_AGG): GDP growth in percent, chain volume or current prices in million AUD, and other aggregates.\nReturns: dataflow, key, source, series (region, measure, unit, adjustment, observations date/value).\nInputs (* required): measures (growth_qoq, volume, current_prices, current_prices_growth; default growth_qoq), item (default gdp), adjustment (default seasonally_adjusted), period.\nExample: {\"measures\": [\"growth_qoq\"], \"item\": \"gdp\", \"period\": \"last 3 years\"}",
+  "annotations": {
+    "readOnlyHint": true,
+    "idempotentHint": true,
+    "openWorldHint": true
+  },
+  "version": "1.0.0",
+  "enabled": true,
+  "cache_ttl": 21600,
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "measures": {
+        "type": "array",
+        "items": {
+          "type": "string",
+          "enum": [
+            "growth_qoq",
+            "volume",
+            "current_prices",
+            "current_prices_growth"
+          ]
+        },
+        "minItems": 1,
+        "default": [
+          "growth_qoq"
+        ],
+        "description": "growth_qoq (percent, chain volume), volume (chain volume), current_prices, current_prices_growth"
+      },
+      "item": {
+        "type": "string",
+        "enum": [
+          "gdp",
+          "gdp_per_capita",
+          "real_gross_domestic_income",
+          "terms_of_trade",
+          "household_saving_ratio",
+          "domestic_final_demand"
+        ],
+        "default": "gdp",
+        "description": "The aggregate"
+      },
+      "adjustment": {
+        "type": "string",
+        "enum": [
+          "original",
+          "seasonally_adjusted",
+          "trend"
+        ],
+        "description": "Time series adjustment",
+        "default": "seasonally_adjusted"
+      },
+      "period": {
+        "type": "string",
+        "description": "latest, 'last N months|quarters|years', 2025, 2025-Q3, 2025-07, or A/B",
+        "default": "last 3 years"
+      }
+    },
+    "additionalProperties": false,
+    "examples": [
+      {
+        "measures": [
+          "growth_qoq"
+        ],
+        "item": "gdp",
+        "period": "last 3 years"
+      }
+    ]
+  },
+  "outputSchema": {
+    "type": "object",
+    "required": [
+      "source",
+      "series"
+    ],
+    "properties": {
+      "dataflow": {
+        "type": "string",
+        "description": "ABS dataflow (ABS,ID)"
+      },
+      "key": {
+        "type": "string",
+        "description": "SDMX series key asked for"
+      },
+      "period": {
+        "type": [
+          "string",
+          "null"
+        ],
+        "description": "The period asked for"
+      },
+      "source": {
+        "type": "string",
+        "description": "Source: Australian Bureau of Statistics ...; cite it with the data"
+      },
+      "series_count": {
+        "type": "integer",
+        "description": "Series matched"
+      },
+      "truncated": {
+        "type": "boolean",
+        "description": "More series matched than were returned"
+      },
+      "note": {
+        "type": "string",
+        "description": "Why there is no data, or what was cut"
+      },
+      "series": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "key": {
+              "type": "string",
+              "description": "Series key"
+            },
+            "region": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "description": "Region (a name for the CPI capital cities, else the ABS code)"
+            },
+            "measure": {
+              "type": "string",
+              "description": "The measure asked for"
+            },
+            "unit": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "description": "Index, Percent, Number or Australian dollars"
+            },
+            "unit_multiplier": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "description": "thousands, millions or null"
+            },
+            "adjustment": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "description": "original, seasonally_adjusted or trend"
+            },
+            "frequency": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "description": "Monthly or Quarterly"
+            },
+            "dimensions": {
+              "type": "object",
+              "description": "The series key by dimension"
+            },
+            "observation_count": {
+              "type": "integer",
+              "description": "Observations returned"
+            },
+            "observations": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "date": {
+                    "type": "string",
+                    "description": "Period: YYYY-MM or YYYY-Qn"
+                  },
+                  "value": {
+                    "type": [
+                      "number",
+                      "null"
+                    ],
+                    "description": "Value in the series unit and multiplier"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "metadata": {
+    "author": "Ashutosh Sinha",
+    "category": "Economic Data",
+    "tags": [
+      "abs",
+      "australia",
+      "gdp",
+      "national accounts",
+      "growth"
+    ]
+  }
+}

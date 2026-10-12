@@ -62,7 +62,8 @@ and the MCP `implementation` (`websiteUrl` = `app.github.repo`). Readers are
 | `app.version` | the YAML value / a code fallback in `sajha/core/config.py` | `SAJHA_APP_VERSION` | **The version authority.** It is shown in the UI and API metadata. The code fallback is a copy that can rot; keep the key in YAML. |
 | `app.description` | `Model Context Protocol Server` | `SAJHA_APP_DESCRIPTION` | FastAPI description and A2A card. |
 | `app.author` | `Ashutosh Sinha` | `SAJHA_APP_AUTHOR` | Template context. |
-| `app.email` | `ajsinha@gmail.com` | `SAJHA_APP_EMAIL` | Template context. |
+| `app.email` | `ajsinha@gmail.com` | `SAJHA_APP_EMAIL` | Template context (the About page's contact link). |
+| `app.author_email` | `ajsinha@gmail.com` | `SAJHA_APP_AUTHOR_EMAIL` | Template context: the copyright line in the page footer, the landing page and the sign-in page. |
 | `app.copyright_years` | `2025-2030` | `SAJHA_APP_COPYRIGHT_YEARS` | Template context. |
 | `app.github.repo` | `https://github.com/ajsinha/sajhamcpserver` | `SAJHA_APP_GITHUB_REPO` | Templates, and the MCP `websiteUrl`. |
 | `app.github.repo_name` | `ajsinha/sajhamcpserver` | `SAJHA_APP_GITHUB_REPO_NAME` | Template context. |
@@ -75,7 +76,7 @@ both keys.
 | Key | Default | Env | Purpose / reader |
 |-----|---------|-----|------------------|
 | `server.host` | `0.0.0.0` (YAML `${SERVER_HOST:0.0.0.0}`) | `SERVER_HOST`, `SAJHA_SERVER_HOST` | Bind address (`run_sajha_web.py`). Also used in the startup log and the A2A card URL. |
-| `server.port` | `3002` (YAML `${SERVER_PORT:3002}`) | `SERVER_PORT`, `SAJHA_SERVER_PORT` | Listen port (`run_sajha_web.py`, `sajha/routes/a2a_routes.py`). |
+| `server.port` | `3002` (YAML `${SERVER_PORT:3002}`) | `SERVER_PORT`, `SAJHA_SERVER_PORT` | Listen port (`run_sajha_web.py`, `sajha/routes/a2a_routes.py`). `run_sajha_web.py --port` (and `--host`) set `SAJHA_SERVER_PORT` (`SAJHA_SERVER_HOST`) before the settings load, so the configuration names the port actually listened on. |
 | `server.debug` | `false` | `SAJHA_SERVER_DEBUG` | **Not used.** It is loaded into Settings, but nothing reads it. |
 | `server.max_request_bytes` | `10485760` (min 1024) | `SAJHA_SERVER_MAX_REQUEST_BYTES` | Request bodies above this get 413, by `Content-Length` or while a streamed body is read (`RequestSizeLimitMiddleware`, `sajha/security.py`; read at start-up). |
 | `server.trusted_proxies` | `""` | `SAJHA_SERVER_TRUSTED_PROXIES` | Proxies whose `X-Forwarded-For` / `X-Forwarded-Proto` uvicorn believes (its `forwarded_allow_ips`, comma-separated addresses or `*`; `sajha/core/transport.py`, `run_sajha_web.py`). Empty: uvicorn's default, `FORWARDED_ALLOW_IPS` or `127.0.0.1`. |
@@ -114,7 +115,7 @@ short `DB_*` names apply when neither sets the key (the procedure is in
 | `db.url` | not in YAML / empty | `SAJHA_DB_URL`, `DB_URL` | A full SQLAlchemy URL. When set, it replaces every other connection key. |
 | `db.host` | commented / `localhost` | `SAJHA_DB_HOST`, `DB_HOST` | PostgreSQL host. |
 | `db.port` | commented / `5432` | `SAJHA_DB_PORT`, `DB_PORT` | PostgreSQL port. |
-| `db.name` | commented `sajha` / code `sajha_mcp` | `SAJHA_DB_NAME`, `DB_NAME` | PostgreSQL database. **The defaults differ**: with the YAML block commented, an unset name connects to `sajha_mcp`, not the `sajha` of [Database Setup](Database%20Setup.md). Set it. |
+| `db.name` | `sajha` | `SAJHA_DB_NAME`, `DB_NAME` | PostgreSQL database ([Database Setup](Database%20Setup.md)). Before 8.15.0 an unset name meant `sajha_mcp`. |
 | `db.user` | commented / `sajha` | `SAJHA_DB_USER`, `DB_USER` | PostgreSQL user. |
 | `db.password` | commented / `sajha` | `SAJHA_DB_PASSWORD`, `DB_PASSWORD` | PostgreSQL password. Set it through the env var. |
 | `db.driver` | commented / `psycopg2` | `SAJHA_DB_DRIVER` | `psycopg2`. If psycopg2 is not installed, the engine falls back to `psycopg` (v3). |
@@ -445,7 +446,9 @@ that `Settings` does not define, so it always builds a local backend. The second
 
 These keys are not read by Python. Tool JSON configs reference them as `${key}`, and the
 tools registry resolves them through PropertiesConfigurator. Set the env var named in the
-YAML placeholder.
+YAML placeholder. A few configs name the environment variable directly (`${COMTRADE_API_KEY:}`,
+`${BLS_API_KEY:}`, `${BEA_API_KEY:}`, `${EIA_API_KEY:}`), and a few keys are read in Python; their rows
+say "not in YAML".
 
 | Key | YAML value | Env | Used by |
 |-----|-----------|-----|---------|
@@ -462,9 +465,24 @@ YAML placeholder.
 | `sharepoint.client.id` | `${SHAREPOINT_CLIENT_ID:}` | `SHAREPOINT_CLIENT_ID` | `config/tools/sharepoint/sharepoint_*.json` (the Entra ID app registration) |
 | `sharepoint.client.secret` | `${SHAREPOINT_CLIENT_SECRET:}` | `SHAREPOINT_CLIENT_SECRET` | `config/tools/sharepoint/sharepoint_*.json` |
 | `azure.tenant.id` | `${AZURE_TENANT_ID:}` | `AZURE_TENANT_ID` | `config/tools/sharepoint/sharepoint_*.json` (the app's tenant) |
+| not in YAML | not in YAML | `BLS_API_KEY` | `config/tools/bls/bls_*.json` (`"api_key": "${BLS_API_KEY:}"`): the BLS v2 registration key (500 queries a day, 20 years); without it the tools use the keyless v1 API (25 queries a day for the organisation, 10 years) |
+| not in YAML | not in YAML | `BEA_API_KEY` | `config/tools/bea/bea_*.json` (`"api_key": "${BEA_API_KEY:}"`): the BEA UserID; without it every `bea_*` tool reports that the key is not configured |
+| not in YAML | not in YAML | `EIA_API_KEY` | `config/tools/eia/eia_*.json` (`"api_key": "${EIA_API_KEY:}"`): the EIA Open Data key; without it a call uses the api.data.gov `DEMO_KEY` (about ten requests a day) and the live tool check reports `not_configured` |
+| not in YAML | not in YAML | `CFTC_APP_TOKEN` | Read in Python (`sajha/tools/impl/cftc_tools.py`): an optional Socrata app token for the `cftc_*` tools, sent as `X-App-Token`; without it they share Socrata's anonymous per-IP pool |
+| not in YAML | not in YAML | `FDIC_API_KEY` | Read in Python (`sajha/tools/impl/fdic_tools.py`): an optional BankFind key for the `fdic_*` tools (none is needed today) |
 
 `Settings` also defines `google_api_key`, `google_search_engine_id`, `fred_api_key` and
 `tavily_api_key` fields, but no code reads those fields.
+
+Some open data tools read their key from the environment directly, with no YAML key; without it they
+work keyless where the source allows, or report the key as missing:
+
+| Env | Used by |
+|-----|---------|
+| `FDIC_API_KEY` | `config/tools/fdic/fdic_*.json`: sent as `api_key` if BankFind ever requires one (keyless today) |
+| `FIRMS_MAP_KEY` | `config/tools/hazards/hazards_active_fires.json`: NASA FIRMS's free MAP_KEY; without it the tool makes no request and reports the key as missing ([Hazards guide](../tools/public-data/Hazards%20Tool%20Reference%20Guide.md)) |
+| `OPENALEX_API_KEY` | `config/tools/research/research_search_works.json`, `research_get_work.json`: a free OpenAlex key (US$1 a day of usage instead of about US$0.10 per IP) ([Research Literature guide](../tools/search/Research%20Literature%20Tool%20Reference%20Guide.md)) |
+| `CROSSREF_MAILTO` | `config/tools/research/research_crossref_*.json`: a contact address sent as `mailto` (Crossref's polite pool) |
 
 ## ai
 
@@ -1042,7 +1060,7 @@ The provider block is read from the YAML as nested data, or from `SAJHA_ACCOUNTS
 | Key | Default | Purpose |
 |-----|---------|---------|
 | `accounts.enabled` | `true` | Master switch. Off: no linking, and tools that need a connected account fail. |
-| `accounts.public_url` | `""` | Origin used in redirect URIs and connect URLs, including the one callback of proxied servers' OAuth sign-in (`<origin>/account/server-connections/oauth/callback`, the URI to register at a vendor for `auth.type: oauth_user`). Empty: `mcp.auth.public_url`, else the request's host (development only). |
+| `accounts.public_url` | `""` | Origin used in redirect URIs and connect URLs, including the one callback of proxied servers' OAuth sign-in (`<origin>/account/server-connections/oauth/callback`, the URI to register at a vendor for `auth.type: oauth_user`). Empty: `mcp.auth.public_url`, else the request's base URL (development only); a link built where no request is at hand (a connect link in a tool's result, the `python -m sajha.packs` plan) uses the address this server listens on (`server.host`, `localhost` for a wildcard bind, and the port the first request arrived on, else `server.port`; `sajha/core/transport.py::local_base_url`). |
 | `accounts.flow_ttl_seconds` | `600` | How long a started Connect may take before its state expires. |
 | `accounts.refresh_skew_seconds` | `120` | Refresh an access token this long before it expires (connected accounts and `oauth_user` proxied servers alike). |
 | `accounts.http_timeout_seconds` | `20` | Token endpoint, revocation, user-info and provider API calls. |

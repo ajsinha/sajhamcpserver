@@ -1,0 +1,37 @@
+{
+ "format": 1,
+ "interactions": [
+  {
+   "request": {
+    "method": "GET",
+    "url": "https://publicreporting.cftc.gov/resource/gpe5-46if.json?%24select=market_and_exchange_names%2Creport_date_as_yyyy_mm_dd%2Ccftc_contract_market_code%2Ccommodity_name%2Ccontract_units%2Copen_interest_all%2Cchange_in_open_interest_all%2Ctraders_tot_all%2Cdealer_positions_long_all%2Cdealer_positions_short_all%2Cdealer_positions_spread_all%2Cchange_in_dealer_long_all%2Cchange_in_dealer_short_all%2Cpct_of_oi_dealer_long_all%2Cpct_of_oi_dealer_short_all%2Ctraders_dealer_long_all%2Ctraders_dealer_short_all%2Casset_mgr_positions_long%2Casset_mgr_positions_short%2Casset_mgr_positions_spread%2Cchange_in_asset_mgr_long%2Cchange_in_asset_mgr_short%2Cpct_of_oi_asset_mgr_long%2Cpct_of_oi_asset_mgr_short%2Ctraders_asset_mgr_long_all%2Ctraders_asset_mgr_short_all%2Clev_money_positions_long%2Clev_money_positions_short%2Clev_money_positions_spread%2Cchange_in_lev_money_long%2Cchange_in_lev_money_short%2Cpct_of_oi_lev_money_long%2Cpct_of_oi_lev_money_short%2Ctraders_lev_money_long_all%2Ctraders_lev_money_short_all%2Cother_rept_positions_long%2Cother_rept_positions_short%2Cother_rept_positions_spread%2Cchange_in_other_rept_long%2Cchange_in_other_rept_short%2Cpct_of_oi_other_rept_long%2Cpct_of_oi_other_rept_short%2Ctraders_other_rept_long_all%2Ctraders_other_rept_short%2Cnonrept_positions_long_all%2Cnonrept_positions_short_all%2Cchange_in_nonrept_long_all%2Cchange_in_nonrept_short_all%2Cpct_of_oi_nonrept_long_all%2Cpct_of_oi_nonrept_short_all&%24where=cftc_contract_market_code%3D%2713874A%27&%24order=report_date_as_yyyy_mm_dd+DESC&%24limit=1",
+    "body_sha256": ""
+   },
+   "response": {
+    "status": 200,
+    "reason": "OK",
+    "headers": {
+     "server": "nginx",
+     "date": "Mon, 12 Oct 2026 04:03:34 GMT",
+     "content-type": "application/json;charset=utf-8",
+     "connection": "keep-alive",
+     "access-control-allow-origin": "*",
+     "etag": "\"aG90ZWwuNDkzNTZfM18zNTN3ZDhyLWVJbVAwVmpkeFBvNnRJbDZXb1M0RUk---gzirLVuXwjgLtaChIlio5VRSBOu8_2g--gzip--gzip\"",
+     "x-soda2-fields": "[\"market_and_exchange_names\",\"report_date_as_yyyy_mm_dd\",\"cftc_contract_market_code\",\"commodity_name\",\"contract_units\",\"open_interest_all\",\"change_in_open_interest_all\",\"traders_tot_all\",\"dealer_positions_long_all\",\"dealer_positions_short_all\",\"dealer_positions_spread_all\",\"change_in_dealer_long_all\",\"change_in_dealer_short_all\",\"pct_of_oi_dealer_long_all\",\"pct_of_oi_dealer_short_all\",\"traders_dealer_long_all\",\"traders_dealer_short_all\",\"asset_mgr_positions_long\",\"asset_mgr_positions_short\",\"asset_mgr_positions_spread\",\"change_in_asset_mgr_long\",\"change_in_asset_mgr_short\",\"pct_of_oi_asset_mgr_long\",\"pct_of_oi_asset_mgr_short\",\"traders_asset_mgr_long_all\",\"traders_asset_mgr_short_all\",\"lev_money_positions_long\",\"lev_money_positions_short\",\"lev_money_positions_spread\",\"change_in_lev_money_long\",\"change_in_lev_money_short\",\"pct_of_oi_lev_money_long\",\"pct_of_oi_lev_money_short\",\"traders_lev_money_long_all\",\"traders_lev_money_short_all\",\"other_rept_positions_long\",\"other_rept_positions_short\",\"other_rept_positions_spread\",\"change_in_other_rept_long\",\"change_in_other_rept_short\",\"pct_of_oi_other_rept_long\",\"pct_of_oi_other_rept_short\",\"traders_other_rept_long_all\",\"traders_other_rept_short\",\"nonrept_positions_long_all\",\"nonrept_positions_short_all\",\"change_in_nonrept_long_all\",\"change_in_nonrept_short_all\",\"pct_of_oi_nonrept_long_all\",\"pct_of_oi_nonrept_short_all\"]",
+     "x-soda2-types": "[\"text\",\"floating_timestamp\",\"text\",\"text\",\"text\",\"number\",\"number\",\"number\",\"number\",\"number\",\"number\",\"number\",\"number\",\"number\",\"number\",\"number\",\"number\",\"number\",\"number\",\"number\",\"number\",\"number\",\"number\",\"number\",\"number\",\"number\",\"number\",\"number\",\"number\",\"number\",\"number\",\"number\",\"number\",\"number\",\"number\",\"number\",\"number\",\"number\",\"number\",\"number\",\"number\",\"number\",\"number\",\"number\",\"number\",\"number\",\"number\",\"number\",\"number\",\"number\"]",
+     "x-soda2-data-out-of-date": "false",
+     "x-soda2-truth-last-modified": "Fri, 09 Oct 2026 19:30:06 GMT",
+     "x-soda2-secondary-last-modified": "Fri, 09 Oct 2026 19:30:06 GMT",
+     "last-modified": "Fri, 09 Oct 2026 19:30:06 GMT",
+     "vary": "Accept-Encoding",
+     "x-socrata-region": "aws-us-east-1-fedramp-prod",
+     "x-socrata-requestid": "1e404bfd336ea9aa97227da2b96ad21e",
+     "strict-transport-security": "max-age=31536000; includeSubDomains"
+    },
+    "body": {
+     "text": "[{\"market_and_exchange_names\":\"E-MINI S&P 500 - CHICAGO MERCANTILE EXCHANGE\",\"report_date_as_yyyy_mm_dd\":\"2026-10-06T00:00:00.000\",\"cftc_contract_market_code\":\"13874A\",\"commodity_name\":\"S&P BROAD BASED STOCK INDICES\",\"contract_units\":\"($50 X S&P 500 INDEX)\",\"open_interest_all\":\"1932227\",\"change_in_open_interest_all\":\"36305\",\"traders_tot_all\":\"441\",\"dealer_positions_long_all\":\"201165\",\"dealer_positions_short_all\":\"802006\",\"dealer_positions_spread_all\":\"42129\",\"change_in_dealer_long_all\":\"22574\",\"change_in_dealer_short_all\":\"16427\",\"pct_of_oi_dealer_long_all\":\"10.4\",\"pct_of_oi_dealer_short_all\":\"41.5\",\"traders_dealer_long_all\":\"36\",\"traders_dealer_short_all\":\"30\",\"asset_mgr_positions_long\":\"1106717\",\"asset_mgr_positions_short\":\"200102\",\"asset_mgr_positions_spread\":\"99323\",\"change_in_asset_mgr_long\":\"2283\",\"change_in_asset_mgr_short\":\"-329\",\"pct_of_oi_asset_mgr_long\":\"57.3\",\"pct_of_oi_asset_mgr_short\":\"10.4\",\"traders_asset_mgr_long_all\":\"165\",\"traders_asset_mgr_short_all\":\"43\",\"lev_money_positions_long\":\"113223\",\"lev_money_positions_short\":\"528310\",\"lev_money_positions_spread\":\"48436\",\"change_in_lev_money_long\":\"-12230\",\"change_in_lev_money_short\":\"30368\",\"pct_of_oi_lev_money_long\":\"5.9\",\"pct_of_oi_lev_money_short\":\"27.3\",\"traders_lev_money_long_all\":\"60\",\"traders_lev_money_short_all\":\"78\",\"other_rept_positions_long\":\"72787\",\"other_rept_positions_short\":\"74479\",\"other_rept_positions_spread\":\"330\",\"change_in_other_rept_long\":\"17314\",\"change_in_other_rept_short\":\"-12738\",\"pct_of_oi_other_rept_long\":\"3.8\",\"pct_of_oi_other_rept_short\":\"3.9\",\"traders_other_rept_long_all\":\"17\",\"traders_other_rept_short\":\"12\",\"nonrept_positions_long_all\":\"248117\",\"nonrept_positions_short_all\":\"137112\",\"change_in_nonrept_long_all\":\"1254\",\"change_in_nonrept_short_all\":\"-2533\",\"pct_of_oi_nonrept_long_all\":\"12.8\",\"pct_of_oi_nonrept_short_all\":\"7.1\"}]\n"
+    }
+   }
+  }
+ ]
+}

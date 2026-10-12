@@ -82,7 +82,7 @@ async def packs_plan(pack_id: str, request: Request, auth: AuthContext = Depends
     refused = _csrf(request, auth)
     if refused:
         return refused
-    return await _run(service.plan, pack_id, await _body(request), _registry(), auth)
+    return await _run(service.plan, pack_id, await _body(request), _registry(), auth, request=request)
 
 
 @router.post('/{pack_id}/install')

@@ -36,7 +36,8 @@ before the first start. There are no migrations. Each recipe's README shows the 
 ## SAJHA Net demo
 
 Three SAJHA instances in one net on one machine, with a smoke script: [`sajhanet-demo/`](sajhanet-demo/)
-(a lab: plain HTTP and the test admin key).
+(a lab: plain HTTP and the test admin key). Three instances as local processes, without Docker, on one
+laptop with a local Ollama as their LLM: [`local-lab/`](local-lab/) (also a lab).
 
 ## Monitoring
 

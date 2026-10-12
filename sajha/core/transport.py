@@ -45,6 +45,37 @@ def uvicorn_kwargs() -> Dict[str, Any]:
     return out
 
 
+# (port) of the socket this process serves HTTP on, learnt from the first request (note_listening)
+_listening_port: Optional[int] = None
+
+
+def note_listening(scope) -> None:
+    """Record the port this process actually listens on, from an HTTP request's ASGI ``server``
+    (the local socket; not the Host header). Called for every request; only the first one counts.
+    Starlette's TestClient reports a made-up ``testserver``, which is ignored."""
+    global _listening_port
+    if _listening_port is not None:
+        return
+    server = scope.get('server') if isinstance(scope, dict) else None
+    if server and len(server) > 1 and server[1] and server[0] != 'testserver':
+        _listening_port = int(server[1])
+
+
+def local_base_url() -> str:
+    """This server's own origin where no request is at hand (a link built inside a tool call, a CLI):
+    ``http(s)://<server.host, or localhost for a wildcard bind>:<the listening port>``. The port is the
+    one requests arrive on once one has; before that ``server.port``, which ``run_sajha_web.py --port``
+    sets to the port it listens on. https when ``server.tls.certfile`` is set."""
+    from sajha.core.config import _get, get_settings
+    st = get_settings()
+    host = st.server_host if st.server_host not in ('0.0.0.0', '::', '') else 'localhost'
+    if ':' in host and not host.startswith('['):
+        host = f'[{host}]'
+    port = _listening_port or st.server_port
+    scheme = 'https' if str(_get('server.tls.certfile', '') or '').strip() else 'http'
+    return f'{scheme}://{host}:{port}'
+
+
 def harden_ssl_context(ctx: Optional[ssl.SSLContext]) -> None:
     """Raise a server context's floor to ``server.tls.min_version`` (never below TLS 1.2)."""
     if ctx is None:

@@ -40,7 +40,7 @@ the same thing, merge them and leave a link.
 | Database schema (SQLite and PostgreSQL schema files, manual setup) | `docs/getting-started/Database Setup.md` |
 | System notices (banner, status panel, badge, sources and ids, notices API) | `docs/architecture/System Notices.md` |
 | Policy engine, approvals, tamper-evident audit, SIEM export | `docs/architecture/Policy and Audit.md` |
-| Web console (pages, navigation, page help, small screens) | `docs/architecture/Architecture.md` §10 |
+| Web console (pages, navigation, page help, small screens, console languages) | `docs/architecture/Architecture.md` §10 |
 | Describe a tool (generated tools, review and deploy gate) | `docs/architecture/Tool Generation.md` |
 | Data connectors (governed read access to databases and vector stores) | `docs/architecture/Data Connectors.md` |
 | Tool testing, lint, probes, evals, tool versions and canary | `docs/architecture/Tool Quality.md` |
@@ -55,7 +55,7 @@ the same thing, merge them and leave a link.
 | GitHub, Atlassian, Google integrations (proxied per user) | `docs/architecture/GitHub Integration.md`, `Atlassian Integration.md`, `Google Integration.md` |
 | SAJHA Net (as built), its wire protocol, the agent | `docs/architecture/SAJHA Net.md`, `docs/protocol/SAJHA Net Protocol.md`, `docs/clients/SAJHA Net Agent.md` |
 | LLM tools; planner files | `docs/architecture/LLM Tools.md`; `docs/architecture/Planner Reference.md` |
-| Several workers, the state store | `docs/architecture/Scaling and State.md` |
+| Several workers, the state store, database pools, benchmarks | `docs/architecture/Scaling and State.md` |
 | Tool folders (`config/tools/<folder>/`) and tool domains (`/tools/domains`) | `docs/architecture/Architecture.md` §5 "Tool config files and folders" and §10 |
 | qlrisk risk tools | `docs/tools/qlrisk/QLRisk Tool Reference Guide.md` |
 | Outbound fetch guard (`tools.outbound.*`) | `docs/security/Security Model.md` ("Other features that need care") |
@@ -64,7 +64,7 @@ the same thing, merge them and leave a link.
 | Metrics, tracing, usage and cost, alerts | `docs/architecture/Observability.md` |
 | Intelligence layer (LLM providers, models, Ask SAJHA) | `docs/architecture/Intelligence Layer.md` |
 | Extending the intelligence layer | `docs/architecture/Extending the Intelligence Layer.md` |
-| Connected accounts (per-user OAuth, token vault) | `docs/architecture/Connected Accounts.md` |
+| Connected accounts (per-user OAuth, token vault, provider packs §11) | `docs/architecture/Connected Accounts.md` |
 | OpenAPI / GraphQL import | `docs/architecture/API Import.md` |
 | Command line and stdio for desktop clients | `docs/clients/Command Line.md` |
 | Kubernetes and Helm | `docs/getting-started/Kubernetes Deployment.md` |
@@ -76,6 +76,7 @@ the same thing, merge them and leave a link.
 | HTTP endpoints | `docs/protocol/API Reference.md` |
 | Configuration keys | `docs/getting-started/Configuration Reference.md` |
 | Storage backends | `docs/getting-started/Storage Guide.md` |
+| Plugins (publisher signatures, trusted keys, the plugin catalog) | `docs/security/Security Model.md` §5 "Plugins" |
 | Security | `docs/security/Security Model.md` |
 | Internal structure | `docs/architecture/Architecture.md` |
 | Composition theory | `docs/architecture/Composition Framework.md` |
@@ -101,6 +102,7 @@ docs/tutorials/      TUTORIAL_NN_<slug>.md, numbered in reading order
 docs/clients/        Client SDK Guide, Command Line
 docs/security/       Security Model
 docs/archive/        point-in-time reports, not maintained
+docs/publications/   the slide deck (built by tools/deck/)
 docs/requirements/   original requirements (binary, unchanged)
 deployment/          deployment recipes (each with its README)
 clientsdk/README.md  short pointer + install + quick start; the guide is in docs/clients/

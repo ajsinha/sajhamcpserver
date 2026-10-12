@@ -1,0 +1,181 @@
+{
+  "name": "usaspending_by_category",
+  "implementation": "sajha.tools.impl.us_spending_tools.UsaspendingByCategoryTool",
+  "title": "Federal spending by category",
+  "description": "US federal obligations in a period totalled by a category (awarding agency, recipient, industry code, product code, state, country and others), largest first.\nReturns: category, from, to, units, count, truncated, results (name, code, id, amount).\nInputs (none required): category (default awarding_agency; also awarding_subagency, funding_agency, recipient, cfda, naics, psc, country, state_territory, county, district, federal_account); keywords; agency; recipient; award_types; from, to; limit (default 10).\nExample: {\"category\": \"recipient\", \"keywords\": [\"cybersecurity\"], \"from\": \"2025-10-01\", \"to\": \"2026-09-30\", \"limit\": 5}",
+  "annotations": {
+    "title": "Federal spending by category",
+    "readOnlyHint": true,
+    "destructiveHint": false,
+    "idempotentHint": true,
+    "openWorldHint": true
+  },
+  "version": "1.0.0",
+  "enabled": true,
+  "cache_ttl": 3600,
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "keywords": {
+        "type": "array",
+        "description": "Words that must appear in the award",
+        "items": {
+          "type": "string",
+          "minLength": 3
+        },
+        "maxItems": 10
+      },
+      "agency": {
+        "type": "string",
+        "description": "Awarding top-tier agency name, e.g. Department of Defense",
+        "maxLength": 200
+      },
+      "recipient": {
+        "type": "string",
+        "description": "Recipient name, UEI or DUNS",
+        "maxLength": 200
+      },
+      "from": {
+        "type": "string",
+        "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+        "description": "First action date (YYYY-MM-DD; default the start of the current fiscal year; not before 2007-10-01)"
+      },
+      "to": {
+        "type": "string",
+        "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+        "description": "Last action date (YYYY-MM-DD; default today)"
+      },
+      "award_types": {
+        "type": "array",
+        "description": "Award groups",
+        "items": {
+          "type": "string",
+          "enum": [
+            "contracts",
+            "idvs",
+            "grants",
+            "direct_payments",
+            "loans",
+            "other"
+          ]
+        },
+        "minItems": 1,
+        "maxItems": 6
+      },
+      "category": {
+        "type": "string",
+        "enum": [
+          "awarding_agency",
+          "awarding_subagency",
+          "funding_agency",
+          "recipient",
+          "cfda",
+          "naics",
+          "psc",
+          "country",
+          "state_territory",
+          "county",
+          "district",
+          "federal_account"
+        ],
+        "description": "What to total by",
+        "default": "awarding_agency"
+      },
+      "limit": {
+        "type": "integer",
+        "description": "Most rows to return",
+        "minimum": 1,
+        "maximum": 100,
+        "default": 10
+      }
+    },
+    "required": [],
+    "additionalProperties": false,
+    "examples": [
+      {
+        "category": "recipient",
+        "keywords": [
+          "cybersecurity"
+        ],
+        "from": "2025-10-01",
+        "to": "2026-09-30",
+        "limit": 5
+      }
+    ]
+  },
+  "outputSchema": {
+    "type": "object",
+    "properties": {
+      "category": {
+        "type": "string"
+      },
+      "from": {
+        "type": "string"
+      },
+      "to": {
+        "type": "string"
+      },
+      "units": {
+        "type": "string"
+      },
+      "count": {
+        "type": "integer"
+      },
+      "truncated": {
+        "type": "boolean"
+      },
+      "results": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "name": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "code": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "id": {
+              "type": [
+                "integer",
+                "string",
+                "null"
+              ]
+            },
+            "amount": {
+              "type": [
+                "number",
+                "null"
+              ]
+            }
+          },
+          "required": [
+            "name"
+          ]
+        }
+      },
+      "source": {
+        "type": "string",
+        "description": "Attribution"
+      }
+    },
+    "required": [
+      "results",
+      "source"
+    ]
+  },
+  "metadata": {
+    "author": "Ashutosh Sinha",
+    "category": "Public spending",
+    "tags": [
+      "usaspending",
+      "federal spending"
+    ]
+  }
+}

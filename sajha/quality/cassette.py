@@ -39,7 +39,8 @@ from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
 
 MODES = ('record', 'replay', 'live')
 SECRET_PARAMS = {'apikey', 'api_key', 'api-key', 'token', 'key', 'access_token', 'client_secret', 'password',
-                 'secret', 'sig', 'signature', 'auth', 'apitoken', 'api_token', 'subscription-key'}
+                 'secret', 'sig', 'signature', 'auth', 'apitoken', 'api_token', 'subscription-key',
+                 'userid', 'registrationkey'}
 _DROP_RESPONSE_HEADERS = {'set-cookie', 'set-cookie2'}
 _FORMAT = 1
 _patch_lock = threading.RLock()

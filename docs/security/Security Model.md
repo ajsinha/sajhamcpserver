@@ -426,6 +426,8 @@ Each fix below is present in the code:
 | An API key with an expiry date failed on SQLite (naive and aware datetimes compared) | Naive expiry times are read as UTC. | `sajha/db/dao/__init__.py` |
 | `sajha://data/*` resources (the server's data files) were listed and readable by anonymous callers | Anonymous callers see and read only URIs matching `mcp.anonymous.resources` (default none) in `resources/list` and `resources/read` (both eras); a hidden file is "Resource not found". `/api/resources/*` use the same reader and policy. | `sajha/auth/access.py` (`can_read_resource`), `sajha/core/data_resources.py` |
 | An API key limited to a few tools could still list and read every prompt and data file, and signed-in callers saw every federated resource | Roles limit prompts and data resources through `prompt` / `resource` permission rows; API keys through `prompt:` / `resource:` entries, and a key in mode `allowlist` or `regex` without them reaches none; federated prompts and resources follow the same rule by name and URI. See [Tool access](#tool-access). | `sajha/auth/access.py` (`catalog_rules_for`), `sajha/core/mcp_handler.py`, `sajha/routes/prompts_routes.py` |
+| An imported API operation bound to a connected account sent the caller's token to whatever base URL the import named | The preview warns, test calls and deploys are refused naming the provider's `api_hosts`, and the executor checks every request's URL again before it adds the token, so a hand-written config is refused too ([API Import](../architecture/API%20Import.md)). | `sajha/api_import/service.py`, `sajha/api_import/executor.py` |
+| Credentials followed a redirect to another origin | A redirect (followed only for GET and HEAD) to another scheme, host or port no longer carries `Authorization`, `Cookie` or `Proxy-Authorization`; API Import calls and the tools behind the outbound fetch guard share this client. | `sajha/api_import/fetch.py` |
 
 ---
 
@@ -726,7 +728,7 @@ These describe the code as it stands. They are listed so you can compensate for 
 **Process-local state**
 
 - **Rate limits and OAuth state are per process with `state.backend: memory`** (the default); use `redis` or `database` to share them.
-- **MCP sessions** record the user but are not re-checked against the caller on later requests. The session ID (a random UUID) acts as a bearer capability.
+- **MCP sessions** record the user who initialized them. Every use of the session ID (`POST /mcp`, `DELETE /mcp` and the `GET /mcp` stream) is checked against the caller, and another caller gets 404 as for an unknown session (`_owned_by` in `sajha/routes/mcp_routes.py`). A session initialized anonymously belongs to the anonymous caller, so where anonymous access is on, any anonymous caller holding its ID can use it.
 
 **Sandboxing**
 

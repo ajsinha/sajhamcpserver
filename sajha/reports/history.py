@@ -132,7 +132,7 @@ def summary(run: Dict[str, Any]) -> Dict[str, Any]:
             'started_at': run.get('started_at'), 'finished_at': run.get('finished_at'),
             'runner': (run.get('runner') or {}).get('user_id'), 'parameters': run.get('parameters'),
             'classification': run.get('classification'), 'formats': sorted((run.get('files') or {}).keys()),
-            'deliveries': run.get('deliveries') or [], 'warnings': len(run.get('warnings') or [])}
+            'warnings': len(run.get('warnings') or [])}
 
 
 def runs(report: str, caller=None, since: Optional[str] = None, until: Optional[str] = None,

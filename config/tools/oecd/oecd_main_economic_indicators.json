@@ -1,0 +1,220 @@
+{
+  "name": "oecd_main_economic_indicators",
+  "implementation": "sajha.tools.impl.oecd_tools.OecdMainEconomicIndicatorsTool",
+  "description": "OECD key short-term indicators (DF_KEI): CPI inflation, unemployment, long and short rates (percent), industrial production growth, CLI.\nReturns: dataflow, key, source, series (country, indicator, unit, frequency, observations date/value).\nInputs (* required): countries*, indicators (default cpi_inflation, unemployment_rate), frequency (monthly, quarterly), period (default last 12 months).\nExample: {\"countries\": [\"USA\", \"JPN\", \"GBR\"], \"indicators\": [\"cpi_inflation\", \"unemployment_rate\", \"long_term_rate\"], \"period\": \"last 12 months\"}",
+  "annotations": {
+    "readOnlyHint": true,
+    "idempotentHint": true,
+    "openWorldHint": true
+  },
+  "version": "1.0.0",
+  "enabled": true,
+  "cache_ttl": 43200,
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "countries": {
+        "type": "array",
+        "items": {
+          "type": "string",
+          "minLength": 1
+        },
+        "minItems": 1,
+        "maxItems": 40,
+        "description": "ISO 3166 alpha-3 or alpha-2 codes, names, or OECD, G20, G7, EA20"
+      },
+      "indicators": {
+        "type": "array",
+        "items": {
+          "type": "string",
+          "enum": [
+            "cpi_inflation",
+            "unemployment_rate",
+            "long_term_rate",
+            "short_term_rate",
+            "industrial_production_growth",
+            "leading_indicator"
+          ]
+        },
+        "minItems": 1,
+        "default": [
+          "cpi_inflation",
+          "unemployment_rate"
+        ],
+        "description": "cpi_inflation (y/y %), unemployment_rate (% of labour force), long_term_rate, short_term_rate (% a year), industrial_production_growth (y/y %), leading_indicator"
+      },
+      "frequency": {
+        "type": "string",
+        "enum": [
+          "monthly",
+          "quarterly"
+        ],
+        "default": "monthly",
+        "description": "monthly or quarterly"
+      },
+      "period": {
+        "type": "string",
+        "description": "latest, 'last N months|quarters|years', 2025, 2025-Q3, 2025-07, or A/B",
+        "default": "last 12 months"
+      }
+    },
+    "required": [
+      "countries"
+    ],
+    "additionalProperties": false,
+    "examples": [
+      {
+        "countries": [
+          "USA",
+          "JPN",
+          "GBR"
+        ],
+        "indicators": [
+          "cpi_inflation",
+          "unemployment_rate",
+          "long_term_rate"
+        ],
+        "period": "last 12 months"
+      }
+    ]
+  },
+  "outputSchema": {
+    "type": "object",
+    "required": [
+      "source",
+      "series"
+    ],
+    "properties": {
+      "dataflow": {
+        "type": "string",
+        "description": "OECD dataflow (AGENCY,ID)"
+      },
+      "key": {
+        "type": "string",
+        "description": "SDMX series key asked for"
+      },
+      "period": {
+        "type": [
+          "string",
+          "null"
+        ],
+        "description": "The period asked for"
+      },
+      "source": {
+        "type": "string",
+        "description": "Source: OECD ...; cite it with the data"
+      },
+      "series_count": {
+        "type": "integer",
+        "description": "Series matched"
+      },
+      "truncated": {
+        "type": "boolean",
+        "description": "More series matched than were returned"
+      },
+      "note": {
+        "type": "string",
+        "description": "Why there is no data, what was cut, or what is projected"
+      },
+      "series": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "key": {
+              "type": "string",
+              "description": "Series key"
+            },
+            "country": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "description": "OECD area code (alpha-3 or aggregate)"
+            },
+            "unit": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "description": "Unit (e.g. Percent per year, Index)"
+            },
+            "unit_code": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "description": "OECD unit code"
+            },
+            "unit_multiplier": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "description": "thousands, millions, billions or null"
+            },
+            "base_period": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "description": "Index base or reference year, when any"
+            },
+            "frequency": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "description": "Monthly, Quarterly, Annual"
+            },
+            "dimensions": {
+              "type": "object",
+              "description": "The series key by dimension"
+            },
+            "observation_count": {
+              "type": "integer",
+              "description": "Observations returned"
+            },
+            "observations": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "date": {
+                    "type": "string",
+                    "description": "Period: YYYY-MM, YYYY-Qn or YYYY"
+                  },
+                  "value": {
+                    "type": [
+                      "number",
+                      "null"
+                    ],
+                    "description": "Value in the series unit"
+                  }
+                }
+              }
+            },
+            "indicator": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "description": "The indicator name asked for"
+            }
+          }
+        }
+      }
+    }
+  },
+  "metadata": {
+    "author": "Ashutosh Sinha",
+    "category": "Economic Data",
+    "tags": [
+      "oecd",
+      "inflation",
+      "unemployment",
+      "interest rates",
+      "key indicators"
+    ]
+  }
+}

@@ -1,0 +1,65 @@
+{
+ "tool": "eia_series",
+ "arguments": {
+  "route": "petroleum/pri/spt",
+  "facets": {
+   "series": [
+    "RWTC"
+   ]
+  },
+  "frequency": "monthly",
+  "period": "2025"
+ },
+ "recorded": "hand-written: field names and shapes as EIA returned them live on 2026-10-12, values illustrative (the DEMO_KEY allowance ran out before the recording; no EIA key was available)",
+ "calls": [
+  {
+   "method": "GET",
+   "url": "https://api.eia.gov/v2/petroleum/pri/spt/data/",
+   "params": [
+    [
+     "frequency",
+     "monthly"
+    ],
+    [
+     "data[0]",
+     "value"
+    ],
+    [
+     "facets[series][]",
+     "RWTC"
+    ],
+    [
+     "start",
+     "2025-01"
+    ],
+    [
+     "end",
+     "2025-12"
+    ],
+    [
+     "sort[0][column]",
+     "period"
+    ],
+    [
+     "sort[0][direction]",
+     "desc"
+    ],
+    [
+     "offset",
+     "0"
+    ],
+    [
+     "length",
+     "500"
+    ],
+    [
+     "api_key",
+     "REDACTED"
+    ]
+   ],
+   "status": 200,
+   "content_type": "application/json",
+   "body": "{\"response\": {\"total\": \"12\", \"dateFormat\": \"YYYY-MM\", \"frequency\": \"monthly\", \"data\": [{\"period\": \"2025-12\", \"duoarea\": \"YCUOK\", \"area-name\": \"NA\", \"product\": \"EPCWTI\", \"product-name\": \"WTI Crude Oil\", \"process\": \"PF4\", \"process-name\": \"Spot Price FOB\", \"series\": \"RWTC\", \"series-description\": \"Cushing, OK WTI Spot Price FOB (Dollars per Barrel)\", \"value\": \"65.48\", \"units\": \"$/BBL\"}, {\"period\": \"2025-11\", \"duoarea\": \"YCUOK\", \"area-name\": \"NA\", \"product\": \"EPCWTI\", \"product-name\": \"WTI Crude Oil\", \"process\": \"PF4\", \"process-name\": \"Spot Price FOB\", \"series\": \"RWTC\", \"series-description\": \"Cushing, OK WTI Spot Price FOB (Dollars per Barrel)\", \"value\": \"65.11\", \"units\": \"$/BBL\"}, {\"period\": \"2025-10\", \"duoarea\": \"YCUOK\", \"area-name\": \"NA\", \"product\": \"EPCWTI\", \"product-name\": \"WTI Crude Oil\", \"process\": \"PF4\", \"process-name\": \"Spot Price FOB\", \"series\": \"RWTC\", \"series-description\": \"Cushing, OK WTI Spot Price FOB (Dollars per Barrel)\", \"value\": \"64.74\", \"units\": \"$/BBL\"}, {\"period\": \"2025-09\", \"duoarea\": \"YCUOK\", \"area-name\": \"NA\", \"product\": \"EPCWTI\", \"product-name\": \"WTI Crude Oil\", \"process\": \"PF4\", \"process-name\": \"Spot Price FOB\", \"series\": \"RWTC\", \"series-description\": \"Cushing, OK WTI Spot Price FOB (Dollars per Barrel)\", \"value\": \"64.37\", \"units\": \"$/BBL\"}, {\"period\": \"2025-08\", \"duoarea\": \"YCUOK\", \"area-name\": \"NA\", \"product\": \"EPCWTI\", \"product-name\": \"WTI Crude Oil\", \"process\": \"PF4\", \"process-name\": \"Spot Price FOB\", \"series\": \"RWTC\", \"series-description\": \"Cushing, OK WTI Spot Price FOB (Dollars per Barrel)\", \"value\": \"64.00\", \"units\": \"$/BBL\"}, {\"period\": \"2025-07\", \"duoarea\": \"YCUOK\", \"area-name\": \"NA\", \"product\": \"EPCWTI\", \"product-name\": \"WTI Crude Oil\", \"process\": \"PF4\", \"process-name\": \"Spot Price FOB\", \"series\": \"RWTC\", \"series-description\": \"Cushing, OK WTI Spot Price FOB (Dollars per Barrel)\", \"value\": \"66.22\", \"units\": \"$/BBL\"}, {\"period\": \"2025-06\", \"duoarea\": \"YCUOK\", \"area-name\": \"NA\", \"product\": \"EPCWTI\", \"product-name\": \"WTI Crude Oil\", \"process\": \"PF4\", \"process-name\": \"Spot Price FOB\", \"series\": \"RWTC\", \"series-description\": \"Cushing, OK WTI Spot Price FOB (Dollars per Barrel)\", \"value\": \"65.85\", \"units\": \"$/BBL\"}, {\"period\": \"2025-05\", \"duoarea\": \"YCUOK\", \"area-name\": \"NA\", \"product\": \"EPCWTI\", \"product-name\": \"WTI Crude Oil\", \"process\": \"PF4\", \"process-name\": \"Spot Price FOB\", \"series\": \"RWTC\", \"series-description\": \"Cushing, OK WTI Spot Price FOB (Dollars per Barrel)\", \"value\": \"65.48\", \"units\": \"$/BBL\"}, {\"period\": \"2025-04\", \"duoarea\": \"YCUOK\", \"area-name\": \"NA\", \"product\": \"EPCWTI\", \"product-name\": \"WTI Crude Oil\", \"process\": \"PF4\", \"process-name\": \"Spot Price FOB\", \"series\": \"RWTC\", \"series-description\": \"Cushing, OK WTI Spot Price FOB (Dollars per Barrel)\", \"value\": \"65.11\", \"units\": \"$/BBL\"}, {\"period\": \"2025-03\", \"duoarea\": \"YCUOK\", \"area-name\": \"NA\", \"product\": \"EPCWTI\", \"product-name\": \"WTI Crude Oil\", \"process\": \"PF4\", \"process-name\": \"Spot Price FOB\", \"series\": \"RWTC\", \"series-description\": \"Cushing, OK WTI Spot Price FOB (Dollars per Barrel)\", \"value\": \"64.74\", \"units\": \"$/BBL\"}, {\"period\": \"2025-02\", \"duoarea\": \"YCUOK\", \"area-name\": \"NA\", \"product\": \"EPCWTI\", \"product-name\": \"WTI Crude Oil\", \"process\": \"PF4\", \"process-name\": \"Spot Price FOB\", \"series\": \"RWTC\", \"series-description\": \"Cushing, OK WTI Spot Price FOB (Dollars per Barrel)\", \"value\": \"64.37\", \"units\": \"$/BBL\"}, {\"period\": \"2025-01\", \"duoarea\": \"YCUOK\", \"area-name\": \"NA\", \"product\": \"EPCWTI\", \"product-name\": \"WTI Crude Oil\", \"process\": \"PF4\", \"process-name\": \"Spot Price FOB\", \"series\": \"RWTC\", \"series-description\": \"Cushing, OK WTI Spot Price FOB (Dollars per Barrel)\", \"value\": \"64.00\", \"units\": \"$/BBL\"}]}, \"request\": {\"command\": \"/v2/petroleum/pri/spt/data/\"}, \"apiVersion\": \"2.1.14\"}"
+  }
+ ]
+}

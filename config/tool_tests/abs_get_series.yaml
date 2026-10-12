@@ -1,0 +1,16 @@
+# An HTTP tool with a recorded cassette (cassettes/abs_get_series/wage_price_index_2025_2026.json): replays offline.
+# Re-record against the live API with: python -m sajha.quality test --tool abs_get_series --record
+tool: abs_get_series
+cases:
+  - name: wage price index 2025 2026
+    tags: [http]
+    arguments: {"dataflow": "WPI", "key": "3.THRPEB.7.TOT.20.AUS.Q", "period": "2025-Q1/2026-Q2", "max_series": 20}
+    expect:
+      - schema: output
+      - path: "$.series_count"
+        equals: 1
+      - path: "$.source"
+        regex: "^Source: Australian Bureau of Statistics"
+probe:
+  case: wage price index 2025 2026
+  every: 21600

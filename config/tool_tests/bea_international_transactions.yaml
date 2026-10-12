@@ -1,0 +1,16 @@
+# HTTP tool without a cassette yet: the BEA API needs a UserID (BEA_API_KEY) and none was available when
+# this tool was built (wave 16), so the case is skipped rather than replayed from an invented recording.
+# With a key, record it (and remove the skip) with: python -m sajha.quality test --tool bea_international_transactions --record
+# The cassette redacts the UserID query parameter (sajha/quality/cassette.py SECRET_PARAMS: userid).
+tool: bea_international_transactions
+cases:
+  - name: goods balance with china
+    tags: [http]
+    skip: "needs BEA_API_KEY to record its cassette (none available in wave 16)"
+    arguments: {"indicator": "BalGds", "area_or_country": "China", "frequency": "annual", "years": [2023, 2024, 2025]}
+    expect:
+      - schema: output
+      - path: "$.series[0].observation_count"
+        equals: 3
+      - path: "$.source"
+        regex: "not endorsed or certified by BEA"

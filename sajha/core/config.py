@@ -216,7 +216,7 @@ class Settings(BaseSettings):
 
     # Application
     app_name: str = Field(default_factory=lambda: _get('app.name', 'SAJHA MCP Server'))
-    app_version: str = Field(default_factory=lambda: _get('app.version', '8.14.0'))
+    app_version: str = Field(default_factory=lambda: _get('app.version', '8.15.0'))
     app_description: str = Field(default_factory=lambda: _get('app.description', 'Model Context Protocol Server'))
     app_author: str = Field(default_factory=lambda: _get('app.author', 'Ashutosh Sinha'))
     app_email: str = Field(default_factory=lambda: _get('app.email', 'ajsinha@gmail.com'))
@@ -240,7 +240,7 @@ class Settings(BaseSettings):
     db_path: str = Field(default_factory=lambda: _get('db.path', 'data/sajha.db'))
     db_host: str = Field(default_factory=lambda: _get('db.host', os.environ.get('DB_HOST') or 'localhost'))
     db_port: int = Field(default_factory=lambda: _int('db.port', int(os.environ.get('DB_PORT') or 5432)))
-    db_name: str = Field(default_factory=lambda: _get('db.name', os.environ.get('DB_NAME') or 'sajha_mcp'))
+    db_name: str = Field(default_factory=lambda: _get('db.name', os.environ.get('DB_NAME') or 'sajha'))
     db_user: str = Field(default_factory=lambda: _get('db.user', os.environ.get('DB_USER') or 'sajha'))
     db_password: str = Field(default_factory=lambda: _get('db.password', os.environ.get('DB_PASSWORD') or 'sajha'))
     db_driver: str = Field(default_factory=lambda: _get('db.driver', 'psycopg2'))

@@ -1,0 +1,219 @@
+{
+  "name": "bea_nipa_table",
+  "implementation": "sajha.tools.impl.bea_tools.BeaNipaTableTool",
+  "description": "One National Income and Product Accounts table (e.g. T10101 percent change in real GDP, T10105 GDP, T20600 personal income), every line as a series.\nReturns: source, table, title, series (line, series_code, description, metric, unit, unit_multiplier, observations date/value).\nInputs (* required): table*, frequency (annual, quarterly, monthly; default quarterly), years (default last three), max_series (default 100).\nExample: {\"table\": \"T10101\", \"frequency\": \"quarterly\", \"years\": [2024, 2025]}",
+  "annotations": {
+    "readOnlyHint": true,
+    "idempotentHint": true,
+    "openWorldHint": true
+  },
+  "version": "1.0.0",
+  "enabled": true,
+  "cache_ttl": 86400,
+  "api_key": "${BEA_API_KEY:}",
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "table": {
+        "type": "string",
+        "pattern": "^[A-Za-z0-9]{3,12}$",
+        "description": "NIPA table name, e.g. T10101"
+      },
+      "frequency": {
+        "type": "string",
+        "enum": [
+          "annual",
+          "quarterly",
+          "monthly"
+        ],
+        "default": "quarterly",
+        "description": "Frequency (not every table has all three)"
+      },
+      "years": {
+        "type": "array",
+        "items": {
+          "type": "integer",
+          "minimum": 1929,
+          "maximum": 2100
+        },
+        "minItems": 1,
+        "maxItems": 20,
+        "description": "Years (default the last three)"
+      },
+      "max_series": {
+        "type": "integer",
+        "minimum": 1,
+        "maximum": 500,
+        "default": 100,
+        "description": "Series cap"
+      }
+    },
+    "required": [
+      "table"
+    ],
+    "additionalProperties": false,
+    "examples": [
+      {
+        "table": "T10101",
+        "frequency": "quarterly",
+        "years": [
+          2024,
+          2025
+        ]
+      }
+    ]
+  },
+  "outputSchema": {
+    "type": "object",
+    "required": [
+      "source",
+      "series"
+    ],
+    "properties": {
+      "source": {
+        "type": "string",
+        "description": "Source: BEA ... not endorsed or certified by BEA; cite it with the data"
+      },
+      "dataset": {
+        "type": "string",
+        "description": "BEA dataset"
+      },
+      "title": {
+        "type": [
+          "string",
+          "null"
+        ],
+        "description": "Table title"
+      },
+      "series_count": {
+        "type": "integer",
+        "description": "Series matched"
+      },
+      "truncated": {
+        "type": "boolean",
+        "description": "More series matched than were returned"
+      },
+      "note": {
+        "type": "string",
+        "description": "What was cut"
+      },
+      "notes": {
+        "type": "array",
+        "items": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "description": "BEA table notes"
+      },
+      "years": {
+        "type": "array",
+        "items": {
+          "type": "integer"
+        },
+        "description": "Years asked for"
+      },
+      "series": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "required": [
+            "key",
+            "observations"
+          ],
+          "properties": {
+            "key": {
+              "type": "string",
+              "description": "Series key"
+            },
+            "unit": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "description": "Unit (CL_UNIT), e.g. Level, Percent change, USD"
+            },
+            "unit_multiplier": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "description": "thousands, millions, billions or null"
+            },
+            "observation_count": {
+              "type": "integer",
+              "description": "Observations"
+            },
+            "observations": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "required": [
+                  "date",
+                  "value"
+                ],
+                "properties": {
+                  "date": {
+                    "type": "string",
+                    "description": "Period: YYYY, YYYY-Qn or YYYY-MM"
+                  },
+                  "value": {
+                    "type": [
+                      "number",
+                      "null"
+                    ],
+                    "description": "Value in unit times unit_multiplier"
+                  }
+                }
+              }
+            },
+            "line": {
+              "type": "integer",
+              "description": "Line number in the table"
+            },
+            "series_code": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "description": "BEA series code"
+            },
+            "description": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "description": "Line description"
+            },
+            "metric": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "description": "Metric (Current Dollars, Fisher Quantity Index ...)"
+            }
+          }
+        }
+      },
+      "table": {
+        "type": "string",
+        "description": "Table asked for"
+      },
+      "frequency": {
+        "type": "string",
+        "description": "Frequency asked for"
+      }
+    }
+  },
+  "metadata": {
+    "author": "Ashutosh Sinha",
+    "category": "Economic Data",
+    "tags": [
+      "bea",
+      "nipa",
+      "gdp",
+      "national accounts"
+    ]
+  }
+}

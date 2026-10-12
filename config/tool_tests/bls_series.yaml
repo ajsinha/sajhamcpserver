@@ -1,0 +1,21 @@
+# An HTTP tool with a recorded cassette (cassettes/bls_series/cpi_and_unemployment_2025.json): replays offline.
+# Re-record against the live API with: python -m sajha.quality test --tool bls_series --record
+# (record without BLS_API_KEY/EIA_API_KEY set so the cassette matches a keyless replay)
+tool: bls_series
+cases:
+  - name: cpi and unemployment 2025
+    tags: [http]
+    arguments: {"series": ["CUUR0000SA0", "LNS14000000"], "from_year": 2025, "to_year": 2025}
+    expect:
+      - schema: output
+      - path: "$.series_count"
+        equals: 2
+      - path: "$.series[0].observation_count"
+        equals: 12
+      - path: "$.source"
+        regex: "^Source: U.S. Bureau of Labor Statistics"
+      - path: "$.disclaimer"
+        regex: "cannot vouch"
+probe:
+  case: cpi and unemployment 2025
+  every: 86400

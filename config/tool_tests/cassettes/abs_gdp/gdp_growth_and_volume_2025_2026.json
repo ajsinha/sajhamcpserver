@@ -1,0 +1,36 @@
+{
+ "format": 1,
+ "interactions": [
+  {
+   "request": {
+    "method": "GET",
+    "url": "https://data.api.abs.gov.au/rest/data/ABS,ANA_AGG/M2+M1.GPM.20.AUS.Q?startPeriod=2025-Q1&endPeriod=2026-Q2",
+    "body_sha256": ""
+   },
+   "response": {
+    "status": 200,
+    "reason": "OK",
+    "headers": {
+     "content-type": "application/vnd.sdmx.data+csv; charset=utf-8",
+     "connection": "keep-alive",
+     "date": "Mon, 12 Oct 2026 04:08:32 GMT",
+     "strict-transport-security": "max-age=31536000; includeSubDomains",
+     "content-language": "en",
+     "vary": "Accept, Accept-Encoding",
+     "api-supported-versions": "1",
+     "x-varnish": "330878 4064988",
+     "via": "1.1 varnish (Varnish/6.0), 1.1 cc35f8ad6c62cb7f99be88c3e88fd548.cloudfront.net (CloudFront)",
+     "accept-ranges": "bytes",
+     "cache-control": "no-cache",
+     "x-cache": "Miss from cloudfront",
+     "x-amz-cf-pop": "PHL51-P2",
+     "x-amz-cf-id": "GK4CgtHqPz2q18rAU7JjwoIeMYtrIgXk3nY34T3A3qYmdPUdWRnrqw==",
+     "age": "54"
+    },
+    "body": {
+     "text": "DATAFLOW,MEASURE,DATA_ITEM,TSEST,REGION,FREQ,TIME_PERIOD,OBS_VALUE,UNIT_MEASURE,UNIT_MULT,OBS_STATUS,OBS_COMMENT\r\nABS:ANA_AGG(1.0.0),M2,GPM,20,AUS,Q,2025-Q1,0.4,PCT,0,,\r\nABS:ANA_AGG(1.0.0),M2,GPM,20,AUS,Q,2026-Q2,0.4,PCT,0,,\r\nABS:ANA_AGG(1.0.0),M2,GPM,20,AUS,Q,2026-Q1,0.3,PCT,0,,\r\nABS:ANA_AGG(1.0.0),M2,GPM,20,AUS,Q,2025-Q4,0.9,PCT,0,,\r\nABS:ANA_AGG(1.0.0),M2,GPM,20,AUS,Q,2025-Q3,0.5,PCT,0,,\r\nABS:ANA_AGG(1.0.0),M1,GPM,20,AUS,Q,2025-Q1,679519,AUD,6,,\r\nABS:ANA_AGG(1.0.0),M1,GPM,20,AUS,Q,2026-Q2,699461,AUD,6,,\r\nABS:ANA_AGG(1.0.0),M1,GPM,20,AUS,Q,2026-Q1,696539,AUD,6,,\r\nABS:ANA_AGG(1.0.0),M1,GPM,20,AUS,Q,2025-Q4,694551,AUD,6,,\r\nABS:ANA_AGG(1.0.0),M1,GPM,20,AUS,Q,2025-Q3,688271,AUD,6,,\r\nABS:ANA_AGG(1.0.0),M2,GPM,20,AUS,Q,2025-Q2,0.8,PCT,0,,\r\nABS:ANA_AGG(1.0.0),M1,GPM,20,AUS,Q,2025-Q2,684822,AUD,6,,\r\n"
+    }
+   }
+  }
+ ]
+}

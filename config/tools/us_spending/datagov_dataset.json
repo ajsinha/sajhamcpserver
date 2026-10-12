@@ -1,0 +1,226 @@
+{
+  "name": "datagov_dataset",
+  "implementation": "sajha.tools.impl.us_spending_tools.DatagovDatasetTool",
+  "title": "data.gov dataset",
+  "description": "One dataset from the data.gov catalogue with its full description, licence, contact, update frequency and distributions (download and access links).\nReturns: dataset (id, title, organization, publisher, description, modified, access_level, keywords, landing_page, url, identifier, license, rights, update_frequency, temporal, spatial, contact, contact_email, described_by, distributions (title, format, download_url, access_url, description)).\nInputs: id (the dataset slug from datagov_search, e.g. consumer-complaint-database, or its UUID).\nExample: {\"id\": \"consumer-complaint-database\"}",
+  "annotations": {
+    "title": "data.gov dataset",
+    "readOnlyHint": true,
+    "destructiveHint": false,
+    "idempotentHint": true,
+    "openWorldHint": true
+  },
+  "version": "1.0.0",
+  "enabled": true,
+  "cache_ttl": 3600,
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "id": {
+        "type": "string",
+        "description": "Dataset slug or UUID",
+        "pattern": "^[A-Za-z0-9][A-Za-z0-9_\\-]{0,199}$"
+      }
+    },
+    "required": [
+      "id"
+    ],
+    "additionalProperties": false,
+    "examples": [
+      {
+        "id": "consumer-complaint-database"
+      }
+    ]
+  },
+  "outputSchema": {
+    "type": "object",
+    "properties": {
+      "dataset": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "title": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "organization": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "organization_slug": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "publisher": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "description": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "modified": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "access_level": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "keywords": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "has_download": {
+            "type": "boolean"
+          },
+          "landing_page": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "url": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "identifier": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "license": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "rights": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "update_frequency": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "temporal": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "spatial": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "contact": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "contact_email": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "described_by": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "distributions": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "title": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "format": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "download_url": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "access_url": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "description": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                }
+              },
+              "required": []
+            }
+          }
+        },
+        "required": [
+          "title"
+        ]
+      },
+      "source": {
+        "type": "string",
+        "description": "Attribution"
+      }
+    },
+    "required": [
+      "dataset",
+      "source"
+    ]
+  },
+  "metadata": {
+    "author": "Ashutosh Sinha",
+    "category": "Public spending",
+    "tags": [
+      "data.gov",
+      "dataset"
+    ]
+  }
+}

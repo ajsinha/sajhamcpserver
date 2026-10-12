@@ -689,7 +689,7 @@ Files under `ai.planners.learning.dir` (default `data/planner_routing`):
 
 | File | Holds |
 |---|---|
-| `proposals/<id>.json` | `id`, `status` (`proposed`, `approved` with its `version`, `rejected`), `created_at`, `created_by`, `source` (`cli`, `console`, `tool`), `settings` used, `evidence` counts, `rules`, `hash` (SHA-256 of the canonical rules JSON), `diff` against the active rules |
+| `proposals/<id>.json` | `id`, `status` (`proposed`, `approved` with its `version`, `rejected`), `created_at`, `created_by`, `source` (`cli`, `console`, `api` for the HTTP API with an API key or bearer token, `tool`), `settings` used, `evidence` counts, `rules`, `hash` (SHA-256 of the canonical rules JSON), `diff` against the active rules |
 | `versions/<n>.json` | an approved version: `version`, `rules`, `hash`, `proposal`, `approved_by`, `approved_at`, `note`; written once, never changed |
 | `active.json` | `version` in effect (`0`: none) and `history` (approve, rollback, off: who, when, why) |
 

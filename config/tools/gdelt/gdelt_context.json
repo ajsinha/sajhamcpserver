@@ -1,0 +1,162 @@
+{
+  "name": "gdelt_context",
+  "implementation": "sajha.tools.impl.gdelt_tools.GdeltContextTool",
+  "title": "News sentences in context (GDELT)",
+  "description": "Sentences from recent news (about the last 72 hours) that mention a query, each with its surrounding text, so a reader sees how the topic is discussed.\nReturns: query, count, truncated, articles (url, title, seen_at, domain, language, source_country, sentence, context, is_quote).\nInputs: query; max_records (default 25); from, to (optional, within the recent window); source_country, language, domain.\nExample: {\"query\": \"\\\"interest rates\\\"\", \"max_records\": 10}",
+  "annotations": {
+    "title": "News sentences in context (GDELT)",
+    "readOnlyHint": true,
+    "destructiveHint": false,
+    "idempotentHint": true,
+    "openWorldHint": true
+  },
+  "version": "1.0.0",
+  "enabled": true,
+  "cache_ttl": 1800,
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "query": {
+        "type": "string",
+        "description": "GDELT query: words, \"exact phrases\", OR in parentheses, -excluded",
+        "minLength": 2,
+        "maxLength": 300
+      },
+      "max_records": {
+        "type": "integer",
+        "description": "Most sentences to return",
+        "minimum": 1,
+        "maximum": 200,
+        "default": 25
+      },
+      "from": {
+        "type": "string",
+        "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+        "description": "First day (YYYY-MM-DD, UTC)"
+      },
+      "to": {
+        "type": "string",
+        "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+        "description": "Last day (YYYY-MM-DD, UTC)"
+      },
+      "source_country": {
+        "type": "string",
+        "description": "Only outlets in this country (GDELT country name or FIPS code, e.g. UK, japan)",
+        "maxLength": 40
+      },
+      "language": {
+        "type": "string",
+        "description": "Only articles in this language (e.g. english, french)",
+        "maxLength": 30
+      },
+      "domain": {
+        "type": "string",
+        "description": "Only this outlet domain (e.g. reuters.com)",
+        "maxLength": 100
+      }
+    },
+    "required": [
+      "query"
+    ],
+    "additionalProperties": false,
+    "examples": [
+      {
+        "query": "\"interest rates\"",
+        "max_records": 10
+      }
+    ]
+  },
+  "outputSchema": {
+    "type": "object",
+    "properties": {
+      "query": {
+        "type": "string"
+      },
+      "count": {
+        "type": "integer"
+      },
+      "truncated": {
+        "type": "boolean"
+      },
+      "articles": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "url": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "title": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "seen_at": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "domain": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "language": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "source_country": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "sentence": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "context": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "is_quote": {
+              "type": "boolean"
+            }
+          },
+          "required": [
+            "url"
+          ]
+        }
+      },
+      "source": {
+        "type": "string",
+        "description": "Attribution"
+      }
+    },
+    "required": [
+      "articles",
+      "source"
+    ]
+  },
+  "metadata": {
+    "author": "Ashutosh Sinha",
+    "category": "News and events",
+    "tags": [
+      "gdelt",
+      "news",
+      "context"
+    ]
+  }
+}

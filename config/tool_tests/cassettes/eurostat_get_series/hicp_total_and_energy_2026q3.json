@@ -1,0 +1,53 @@
+{
+ "format": 1,
+ "interactions": [
+  {
+   "request": {
+    "method": "GET",
+    "url": "https://ec.europa.eu/eurostat/api/dissemination/sdmx/2.1/datastructure/ESTAT/PRC_HICP_MINR/latest",
+    "body_sha256": ""
+   },
+   "response": {
+    "status": 200,
+    "reason": "OK",
+    "headers": {
+     "date": "Mon, 12 Oct 2026 04:08:15 GMT",
+     "content-type": "application/vnd.sdmx.structure+xml;version=2.1",
+     "content-disposition": "attachment; filename=\"ESTAT_PRC_HICP_MINR_24.0.xml\"",
+     "x-oracle-dms-ecid": "fd2f297a-6804-4f3d-8c7d-54348c7cad28-0091152c",
+     "access-control-allow-headers": "Content-Type, Accept, X-Requested-With",
+     "access-control-allow-methods": "GET",
+     "x-oracle-dms-rid": "0",
+     "access-control-allow-origin": "*",
+     "connection": "keep-alive"
+    },
+    "body": {
+     "text": "<?xml version='1.0' encoding='UTF-8'?><m:Structure xmlns:m=\"http://www.sdmx.org/resources/sdmxml/schemas/v2_1/message\" xmlns:s=\"http://www.sdmx.org/resources/sdmxml/schemas/v2_1/structure\" xmlns:c=\"http://www.sdmx.org/resources/sdmxml/schemas/v2_1/common\"><m:Header><m:ID>DS-PRC_HICP_MINR1790921864598</m:ID><m:Test>false</m:Test><m:Prepared>2026-10-02T06:17:44.598Z</m:Prepared><m:Sender id=\"ESTAT\"><c:Name xml:lang=\"de\">Statistische Amt der Europäischen Union (Eurostat)</c:Name><c:Name xml:lang=\"en\">Statistical Office of the European Union (Eurostat)</c:Name><c:Name xml:lang=\"fr\">Office de statistique de l'Union européenne (Eurostat)</c:Name></m:Sender><m:Receiver id=\"unknown\"/></m:Header><m:Structures><s:DataStructures><s:DataStructure agencyID=\"ESTAT\" id=\"PRC_HICP_MINR\" isFinal=\"true\" urn=\"urn:sdmx:org.sdmx.infomodel.datastructure.DataStructure=ESTAT:PRC_HICP_MINR(24.0)\" version=\"24.0\"><c:Annotations><c:Annotation><c:AnnotationTitle>OBS_FLAG</c:AnnotationTitle><c:AnnotationType>DISSEMINATION_FLAG_SETTINGS</c:AnnotationType><c:AnnotationURL/></c:Annotation><c:Annotation><c:AnnotationTitle>time</c:AnnotationTitle><c:AnnotationType>DISSEMINATION_TIME_DIMENSION_CODE</c:AnnotationType><c:AnnotationURL/></c:Annotation></c:Annotations><c:Name xml:lang=\"en\">PRC_HICP_MINR data structure</c:Name><s:DataStructureComponents><s:DimensionList id=\"DimensionDescriptor\" urn=\"urn:sdmx:org.sdmx.infomodel.datastructure.DimensionDescriptor=ESTAT:PRC_HICP_MINR(24.0).DimensionDescriptor\"><s:Dimension id=\"freq\" position=\"1\" urn=\"urn:sdmx:org.sdmx.infomodel.datastructure.Dimension=ESTAT:PRC_HICP_MINR(24.0).freq\"><s:ConceptIdentity><Ref agencyID=\"ESTAT\" class=\"Concept\" id=\"freq\" maintainableParentID=\"PRC_HICP_MINR\" maintainableParentVersion=\"10.0\" package=\"conceptscheme\"/></s:ConceptIdentity><s:LocalRepresentation><s:Enumeration><Ref agencyID=\"ESTAT\" class=\"Codelist\" id=\"FREQ\" package=\"codelist\" version=\"3.9\"/></s:Enumeration></s:LocalRepresentation></s:Dimension><s:Dimension id=\"unit\" position=\"2\" urn=\"urn:sdmx:org.sdmx.infomodel.datastructure.Dimension=ESTAT:PRC_HICP_MINR(24.0).unit\"><s:ConceptIdentity><Ref agencyID=\"ESTAT\" class=\"Concept\" id=\"unit\" maintainableParentID=\"PRC_HICP_MINR\" maintainableParentVersion=\"10.0\" package=\"conceptscheme\"/></s:ConceptIdentity><s:LocalRepresentation><s:Enumeration><Ref agencyID=\"ESTAT\" class=\"Codelist\" id=\"UNIT\" package=\"codelist\" version=\"82.0\"/></s:Enumeration></s:LocalRepresentation></s:Dimension><s:Dimension id=\"coicop18\" position=\"3\" urn=\"urn:sdmx:org.sdmx.infomodel.datastructure.Dimension=ESTAT:PRC_HICP_MINR(24.0).coicop18\"><s:ConceptIdentity><Ref agencyID=\"ESTAT\" class=\"Concept\" id=\"coicop18\" maintainableParentID=\"PRC_HICP_MINR\" maintainableParentVersion=\"10.0\" package=\"conceptscheme\"/></s:ConceptIdentity><s:LocalRepresentation><s:Enumeration><Ref agencyID=\"ESTAT\" class=\"Codelist\" id=\"COICOP18\" package=\"codelist\" version=\"3.2\"/></s:Enumeration></s:LocalRepresentation></s:Dimension><s:Dimension id=\"geo\" position=\"4\" urn=\"urn:sdmx:org.sdmx.infomodel.datastructure.Dimension=ESTAT:PRC_HICP_MINR(24.0).geo\"><s:ConceptIdentity><Ref agencyID=\"ESTAT\" class=\"Concept\" id=\"geo\" maintainableParentID=\"PRC_HICP_MINR\" maintainableParentVersion=\"10.0\" package=\"conceptscheme\"/></s:ConceptIdentity><s:LocalRepresentation><s:Enumeration><Ref agencyID=\"ESTAT\" class=\"Codelist\" id=\"GEO\" package=\"codelist\" version=\"28.0\"/></s:Enumeration></s:LocalRepresentation></s:Dimension><s:TimeDimension id=\"TIME_PERIOD\" position=\"5\" urn=\"urn:sdmx:org.sdmx.infomodel.datastructure.TimeDimension=ESTAT:PRC_HICP_MINR(24.0).TIME_PERIOD\"><s:ConceptIdentity><Ref agencyID=\"ESTAT\" class=\"Concept\" id=\"TIME_PERIOD\" maintainableParentID=\"PRC_HICP_MINR\" maintainableParentVersion=\"10.0\" package=\"conceptscheme\"/></s:ConceptIdentity><s:LocalRepresentation><s:TextFormat textType=\"ObservationalTimePeriod\"/></s:LocalRepresentation></s:TimeDimension></s:DimensionList><s:AttributeList id=\"AttributeDescriptor\" urn=\"urn:sdmx:org.sdmx.infomodel.datastructure.AttributeDescriptor=ESTAT:PRC_HICP_MINR(24.0).AttributeDescriptor\"><s:Attribute assignmentStatus=\"Conditional\" id=\"OBS_FLAG\" urn=\"urn:sdmx:org.sdmx.infomodel.datastructure.DataAttribute=ESTAT:PRC_HICP_MINR(24.0).OBS_FLAG\"><s:ConceptIdentity><Ref agencyID=\"ESTAT\" class=\"Concept\" id=\"OBS_FLAG\" maintainableParentID=\"PRC_HICP_MINR\" maintainableParentVersion=\"10.0\" package=\"conceptscheme\"/></s:ConceptIdentity><s:LocalRepresentation><s:Enumeration><Ref agencyID=\"ESTAT\" class=\"Codelist\" id=\"OBS_FLAG\" package=\"codelist\" version=\"1.39\"/></s:Enumeration></s:LocalRepresentation><s:AttributeRelationship><s:PrimaryMeasure><Ref id=\"OBS_VALUE\"/></s:PrimaryMeasure></s:AttributeRelationship></s:Attribute><s:Attribute assignmentStatus=\"Conditional\" id=\"CONF_STATUS\" urn=\"urn:sdmx:org.sdmx.infomodel.datastructure.DataAttribute=ESTAT:PRC_HICP_MINR(24.0).CONF_STATUS\"><s:ConceptIdentity><Ref agencyID=\"ESTAT\" class=\"Concept\" id=\"CONF_STATUS\" maintainableParentID=\"PRC_HICP_MINR\" maintainableParentVersion=\"10.0\" package=\"conceptscheme\"/></s:ConceptIdentity><s:LocalRepresentation><s:Enumeration><Ref agencyID=\"ESTAT\" class=\"Codelist\" id=\"CONF_STATUS\" package=\"codelist\" version=\"1.2\"/></s:Enumeration></s:LocalRepresentation><s:AttributeRelationship><s:PrimaryMeasure><Ref id=\"OBS_VALUE\"/></s:PrimaryMeasure></s:AttributeRelationship></s:Attribute></s:AttributeList><s:MeasureList id=\"MeasureDescriptor\" urn=\"urn:sdmx:org.sdmx.infomodel.datastructure.MeasureDescriptor=ESTAT:PRC_HICP_MINR(24.0).MeasureDescriptor\"><s:PrimaryMeasure id=\"OBS_VALUE\" urn=\"urn:sdmx:org.sdmx.infomodel.datastructure.PrimaryMeasure=ESTAT:PRC_HICP_MINR(24.0).OBS_VALUE\"><s:ConceptIdentity><Ref agencyID=\"ESTAT\" class=\"Concept\" id=\"OBS_VALUE\" maintainableParentID=\"PRC_HICP_MINR\" maintainableParentVersion=\"10.0\" package=\"conceptscheme\"/></s:ConceptIdentity><s:LocalRepresentation><s:TextFormat textType=\"Double\"/></s:LocalRepresentation></s:PrimaryMeasure></s:MeasureList></s:DataStructureComponents></s:DataStructure></s:DataStructures></m:Structures></m:Structure>"
+    }
+   }
+  },
+  {
+   "request": {
+    "method": "GET",
+    "url": "https://ec.europa.eu/eurostat/api/dissemination/sdmx/2.1/data/prc_hicp_minr/M.RCH_A.TOTAL+NRG.DE+FR?startPeriod=2026-07&endPeriod=2026-09&format=SDMX-CSV",
+    "body_sha256": ""
+   },
+   "response": {
+    "status": 200,
+    "reason": "OK",
+    "headers": {
+     "date": "Mon, 12 Oct 2026 04:08:15 GMT",
+     "content-type": "application/vnd.sdmx.data+csv;version=1.0.0",
+     "content-disposition": "attachment; filename=\"estat_prc_hicp_minr_filtered_en.csv\"",
+     "access-control-allow-headers": "Content-Type, Accept, X-Requested-With",
+     "access-control-allow-methods": "GET",
+     "access-control-allow-origin": "*",
+     "connection": "keep-alive"
+    },
+    "body": {
+     "text": "DATAFLOW,LAST UPDATE,freq,unit,coicop18,geo,TIME_PERIOD,OBS_VALUE,OBS_FLAG,CONF_STATUS\r\nESTAT:PRC_HICP_MINR(1.0),02/10/26 11:00:00,M,RCH_A,NRG,DE,2026-07,7.3,,\r\nESTAT:PRC_HICP_MINR(1.0),02/10/26 11:00:00,M,RCH_A,NRG,DE,2026-08,9.4,,\r\nESTAT:PRC_HICP_MINR(1.0),02/10/26 11:00:00,M,RCH_A,NRG,DE,2026-09,13.4,e,\r\nESTAT:PRC_HICP_MINR(1.0),02/10/26 11:00:00,M,RCH_A,NRG,FR,2026-07,12.5,,\r\nESTAT:PRC_HICP_MINR(1.0),02/10/26 11:00:00,M,RCH_A,NRG,FR,2026-08,16.5,,\r\nESTAT:PRC_HICP_MINR(1.0),02/10/26 11:00:00,M,RCH_A,NRG,FR,2026-09,20.9,e,\r\nESTAT:PRC_HICP_MINR(1.0),02/10/26 11:00:00,M,RCH_A,TOTAL,DE,2026-07,2.8,,\r\nESTAT:PRC_HICP_MINR(1.0),02/10/26 11:00:00,M,RCH_A,TOTAL,DE,2026-08,2.9,,\r\nESTAT:PRC_HICP_MINR(1.0),02/10/26 11:00:00,M,RCH_A,TOTAL,DE,2026-09,3.3,e,\r\nESTAT:PRC_HICP_MINR(1.0),02/10/26 11:00:00,M,RCH_A,TOTAL,FR,2026-07,2.4,,\r\nESTAT:PRC_HICP_MINR(1.0),02/10/26 11:00:00,M,RCH_A,TOTAL,FR,2026-08,2.6,,\r\nESTAT:PRC_HICP_MINR(1.0),02/10/26 11:00:00,M,RCH_A,TOTAL,FR,2026-09,3.4,e,\r\n"
+    }
+   }
+  }
+ ]
+}

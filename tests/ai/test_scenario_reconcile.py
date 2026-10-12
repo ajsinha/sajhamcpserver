@@ -363,3 +363,20 @@ def test_dry_run_endpoint_completes_for_both(monkeypatch):
         body = c.post("/api/ai/planners/dry-run", json={"planner": name, "question": PCT}).json()
         assert body["planner"] == name and body["stopped_by"] in ("answer", "failed"), body
         assert body["path"][0] in ("grid", "gather")
+
+
+def test_quantity_names_keep_tool_names_whole():
+    # a source is usually a tool name: it was cut to 16 characters ("calc_compound_in")
+    from sajha.ai.planners_engine.reconcile_stage import NAME_MAX, ident, name_budget
+    from sajha.ai.quant.quantity import NAME
+    fig, src = name_budget("compare", "future_value", ["calc_compound_interest", "calc_future_value"])
+    used: set = set()
+    names = [f"compare.{ident('future_value', used, fig)}.{ident(s, set(), src)}.fx.aligned"
+             for s in ("calc_compound_interest", "calc_future_value")]
+    assert names[0] == "compare.future_value.calc_compound_interest.fx.aligned"
+    assert all(NAME.match(n) for n in names)
+    # only a name that would pass the limit is shortened, and it still fits
+    long_src = "a_really_long_tool_name_from_some_vendor_catalog_v2"
+    fig, src = name_budget("compare", "consumer_price_index_change", [long_src])
+    n = f"compare.{ident('consumer_price_index_change', set(), fig)}.{ident(long_src, set(), src)}.fx.aligned"
+    assert len(n) <= NAME_MAX and NAME.match(n) and src >= 8

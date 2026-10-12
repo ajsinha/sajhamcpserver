@@ -1,0 +1,270 @@
+{
+  "name": "cftc_cot_net_positioning",
+  "implementation": "sajha.tools.impl.cftc_tools.CftcCotNetPositioningTool",
+  "description": "One trader category's net long as a percent of open interest, week by week, with its range over the period.\nReturns: category, latest, summary (min, max, average, percentile_of_latest), observations.\nInputs (* required): market*, report, kind, category (default per report), period (default last 12 months).\nExample: {\"market\": \"13874A\", \"report\": \"tff\", \"category\": \"leveraged_funds\", \"period\": \"2025-Q3\"}",
+  "annotations": {
+    "readOnlyHint": true,
+    "idempotentHint": true,
+    "openWorldHint": true
+  },
+  "version": "1.0.0",
+  "enabled": true,
+  "cache_ttl": 21600,
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "market": {
+        "type": "string",
+        "description": "CFTC contract market code (e.g. 13874A) or a market name",
+        "minLength": 2
+      },
+      "report": {
+        "type": "string",
+        "description": "legacy, disaggregated (commodities) or tff (financial futures)",
+        "enum": [
+          "legacy",
+          "disaggregated",
+          "tff"
+        ],
+        "default": "legacy"
+      },
+      "kind": {
+        "type": "string",
+        "description": "futures_only or combined (futures and options)",
+        "enum": [
+          "futures_only",
+          "combined"
+        ],
+        "default": "futures_only"
+      },
+      "category": {
+        "type": "string",
+        "description": "legacy: noncommercial, commercial, nonreportable; disaggregated: producer_merchant, swap_dealers, managed_money, other_reportables; tff: dealers, asset_managers, leveraged_funds, other_reportables"
+      },
+      "period": {
+        "type": "string",
+        "description": "2025, 2025-Q3, 2025-07, 'last 12 months' or YYYY-MM-DD:YYYY-MM-DD",
+        "default": "last 12 months"
+      }
+    },
+    "required": [
+      "market"
+    ],
+    "additionalProperties": false,
+    "examples": [
+      {
+        "market": "13874A",
+        "report": "tff",
+        "category": "leveraged_funds",
+        "period": "2025-Q3"
+      }
+    ]
+  },
+  "outputSchema": {
+    "type": "object",
+    "required": [
+      "source",
+      "observations"
+    ],
+    "properties": {
+      "report": {
+        "type": "string",
+        "description": "legacy, disaggregated or tff"
+      },
+      "report_name": {
+        "type": "string",
+        "description": "Report name"
+      },
+      "kind": {
+        "type": "string",
+        "description": "futures_only or combined"
+      },
+      "dataset": {
+        "type": "string",
+        "description": "Socrata dataset id"
+      },
+      "source": {
+        "type": "string",
+        "description": "Source: CFTC ...; cite it with the data"
+      },
+      "units": {
+        "type": "string",
+        "description": "Units of the numbers"
+      },
+      "note": {
+        "type": "string",
+        "description": "Why there is no data"
+      },
+      "code": {
+        "type": "string",
+        "description": "CFTC contract market code"
+      },
+      "market": {
+        "type": [
+          "string",
+          "null"
+        ],
+        "description": "Market and exchange"
+      },
+      "category": {
+        "type": "string",
+        "description": "Trader category"
+      },
+      "period": {
+        "type": "string",
+        "description": "Period asked for"
+      },
+      "from": {
+        "type": "string",
+        "description": "First day"
+      },
+      "to": {
+        "type": "string",
+        "description": "Last day"
+      },
+      "count": {
+        "type": "integer",
+        "description": "Weeks"
+      },
+      "latest": {
+        "type": [
+          "object",
+          "null"
+        ],
+        "properties": {
+          "report_date": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Report date, YYYY-MM-DD"
+          },
+          "open_interest": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "description": "Open interest, contracts"
+          },
+          "long": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "description": "Long"
+          },
+          "short": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "description": "Short"
+          },
+          "net": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "description": "Long minus short"
+          },
+          "net_pct_of_open_interest": {
+            "type": [
+              "number",
+              "null"
+            ],
+            "description": "Net long, percent of open interest",
+            "x-sajha-unit": "percent"
+          }
+        },
+        "description": "Newest week"
+      },
+      "summary": {
+        "type": [
+          "object",
+          "null"
+        ],
+        "description": "Net percent of open interest over the period",
+        "properties": {
+          "min": {
+            "type": "number",
+            "description": "Lowest"
+          },
+          "max": {
+            "type": "number",
+            "description": "Highest"
+          },
+          "average": {
+            "type": "number",
+            "description": "Mean"
+          },
+          "percentile_of_latest": {
+            "type": "number",
+            "description": "Share of weeks at or below the latest, percent"
+          }
+        }
+      },
+      "observations": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "report_date": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "description": "Report date, YYYY-MM-DD"
+            },
+            "open_interest": {
+              "type": [
+                "integer",
+                "null"
+              ],
+              "description": "Open interest, contracts"
+            },
+            "long": {
+              "type": [
+                "integer",
+                "null"
+              ],
+              "description": "Long"
+            },
+            "short": {
+              "type": [
+                "integer",
+                "null"
+              ],
+              "description": "Short"
+            },
+            "net": {
+              "type": [
+                "integer",
+                "null"
+              ],
+              "description": "Long minus short"
+            },
+            "net_pct_of_open_interest": {
+              "type": [
+                "number",
+                "null"
+              ],
+              "description": "Net long, percent of open interest",
+              "x-sajha-unit": "percent"
+            }
+          }
+        }
+      }
+    }
+  },
+  "metadata": {
+    "author": "Ashutosh Sinha",
+    "category": "Economic Data",
+    "tags": [
+      "cftc",
+      "commitments of traders",
+      "cot",
+      "futures",
+      "positioning"
+    ]
+  }
+}

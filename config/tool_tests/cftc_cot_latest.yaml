@@ -1,0 +1,18 @@
+# An HTTP tool with a recorded cassette (cassettes/cftc_cot_latest/e-mini_s_p_500_tff.json): replays offline.
+# Re-record against the live API with: python -m sajha.quality test --tool cftc_cot_latest --record
+tool: cftc_cot_latest
+cases:
+  - name: e-mini s&p 500 tff
+    tags: [http]
+    arguments: {"market": "13874A", "report": "tff"}
+    expect:
+      - schema: output
+      - path: "$.code"
+        equals: "13874A"
+      - path: "$.categories.leveraged_funds.long"
+        type: integer
+      - path: "$.source"
+        regex: "^Source: CFTC"
+probe:
+  case: e-mini s&p 500 tff
+  every: 21600

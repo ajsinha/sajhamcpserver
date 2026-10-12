@@ -1,0 +1,17 @@
+# An HTTP tool with a recorded cassette (cassettes/statcan_search_tables/consumer_price_index.json): replays offline.
+# The live table list is about 5 MB; the cassette keeps only the matching tables and a few others.
+# Re-record with: python -m sajha.quality test --tool statcan_search_tables --record (then trim the body)
+tool: statcan_search_tables
+cases:
+  - name: consumer price index
+    tags: [http]
+    arguments: {"text": "consumer price index monthly"}
+    expect:
+      - schema: output
+      - path: "$.tables[0].table"
+        equals: "18-10-0004-01"
+      - path: "$.source"
+        regex: "^Source: Statistics Canada"
+probe:
+  case: consumer price index
+  every: 86400

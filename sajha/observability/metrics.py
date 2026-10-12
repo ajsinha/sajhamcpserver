@@ -473,7 +473,8 @@ def db_pool_workers() -> List[Dict[str, Any]]:
             for f in snap.get('families') or []:
                 if f[0] in fields and f[3]:
                     sample = f[3][0]
-                    row[fields[f[0]]] = float(sample[2])
+                    v = float(sample[2])          # every pool field is a count: shown as ints, as this worker's
+                    row[fields[f[0]]] = int(v) if v == v and abs(v) != float('inf') else None
                     row.setdefault('db_type', (sample[1] or {}).get('db_type'))
             if len(row) > 3:
                 out.append(row)

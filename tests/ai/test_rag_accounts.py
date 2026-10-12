@@ -554,6 +554,12 @@ def test_the_tool_searches_as_the_caller(world):
                 tool.execute({"query": "zebra"})
         finally:
             reset(t)
+        t = set_caller(Caller("alice", auth_type="apikey"))      # a key bound to alice: still nothing
+        try:
+            with pytest.raises(PermissionError):
+                tool.execute({"query": "zebra"})
+        finally:
+            reset(t)
     finally:
         personal.set_personal_index(None)
 
@@ -621,5 +627,43 @@ def test_my_docs_routes(world):
         assert all(h["document"] != "a1" for h in c.post("/api/ai/docs/mine/search", json={"query": "zebra"}).json()["results"])
         who["u"] = AuthContext(authenticated=True, user_id="apikey:ci", roles=["api_consumer"], is_admin=False)
         assert c.get("/api/ai/docs/mine").status_code == 403
+        # a key bound to a real user gets nothing either (Intelligence Layer: keys have no connected accounts)
+        who["u"] = AuthContext(authenticated=True, user_id="alice", roles=["user"], is_admin=False, auth_type="apikey")
+        assert c.get("/api/ai/docs/mine").status_code == 403
+        assert c.post("/api/ai/docs/mine/search", json={"query": "zebra"}).status_code == 403
+    finally:
+        personal.set_personal_index(None)
+
+
+def test_my_docs_post_routes_need_the_csrf_token_with_a_session_cookie(world):
+    from fastapi import FastAPI
+    from fastapi.testclient import TestClient
+    from sajha.auth import AuthContext, require_auth
+    from sajha.routes.ai_routes import router
+    from sajha.routes.accounts_routes import csrf_token
+    app = FastAPI()
+    app.include_router(router)
+    who = {"u": AuthContext(authenticated=True, user_id="alice", roles=["user"], is_admin=False, auth_type="session")}
+    app.dependency_overrides[require_auth] = lambda: who["u"]
+    c = TestClient(app)
+    world.linked = {"alice"}
+    world.files["alice"] = {"a1": ("plan.md", "v1", "# Plan\n\nThe zebra migration finishes in March.")}
+    idx = make_index(world)
+    personal.set_personal_index(idx)
+    try:
+        c.cookies.set("sajha_token", "cookie-value")
+        for path, body in (("/api/ai/docs/mine/sync", {}), ("/api/ai/docs/mine/search", {"query": "zebra"})):
+            assert c.post(path, json=body).status_code == 403
+            assert c.post(path, json=body, headers={"X-CSRF-Token": "wrong"}).status_code == 403
+
+        class _Req:
+            cookies = {"sajha_token": "cookie-value"}
+        token = csrf_token(_Req(), who["u"])
+        assert c.post("/api/ai/docs/mine/sync", json={}, headers={"X-CSRF-Token": token}).status_code == 202
+        idx._pool.shutdown(wait=True)
+        assert c.post("/api/ai/docs/mine/search", json={"query": "zebra"},
+                      headers={"X-CSRF-Token": token}).status_code == 200
+        who["u"] = AuthContext(authenticated=True, user_id="alice", roles=["user"], is_admin=False, auth_type="jwt")
+        assert c.post("/api/ai/docs/mine/search", json={"query": "zebra"}).status_code == 200   # a bearer JWT
     finally:
         personal.set_personal_index(None)

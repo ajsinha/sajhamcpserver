@@ -1,0 +1,39 @@
+{
+ "format": 1,
+ "interactions": [
+  {
+   "request": {
+    "method": "POST",
+    "url": "https://api.bls.gov/publicAPI/v1/timeseries/data/",
+    "body_sha256": "380c0f80730061e208960f9e1eb138f6cbd0d897a75114df37b13efcef12146e"
+   },
+   "response": {
+    "status": 200,
+    "reason": "OK",
+    "headers": {
+     "content-type": "application/json",
+     "vary": "Origin, Accept-Encoding",
+     "apc-route-id": "_01_05v",
+     "access-control-allow-headers": "origin,x-requested-with,access-control-request-headers,content-type,access-control-request-method,accept",
+     "access-control-allow-origin": "*",
+     "route-id": "_t8_07v;",
+     "pool-info": "AP01",
+     "x-frame-options": "ALLOW-FROM https://www.bls.gov",
+     "content-security-policy": "frame-ancestors https://*.bls.gov",
+     "cross-origin-opener-policy": "same-origin",
+     "expires": "Mon, 12 Oct 2026 04:03:32 GMT",
+     "cache-control": "max-age=0, no-cache, no-store",
+     "pragma": "no-cache",
+     "date": "Mon, 12 Oct 2026 04:03:32 GMT",
+     "connection": "keep-alive",
+     "server-timing": "cdn-cache; desc=MISS, edge; dur=16, origin; dur=97, ak_p; desc=\"1791777811871_388049307_275360907_11270_10475_13_28_-\";dur=1",
+     "alt-svc": "h3=\":443\"; ma=93600",
+     "strict-transport-security": "max-age=31536000 ; includeSubDomains ; preload"
+    },
+    "body": {
+     "text": "{\"status\":\"REQUEST_SUCCEEDED\",\"responseTime\":81,\"message\":[],\"Results\":{\n\"series\":\n[{\"seriesID\":\"CIU1010000000000A\",\"data\":[{\"year\":\"2025\",\"period\":\"Q04\",\"periodName\":\"4th Quarter\",\"value\":\"3.4\",\"footnotes\":[{}]},{\"year\":\"2025\",\"period\":\"Q03\",\"periodName\":\"3rd Quarter\",\"value\":\"3.5\",\"footnotes\":[{}]},{\"year\":\"2025\",\"period\":\"Q02\",\"periodName\":\"2nd Quarter\",\"value\":\"3.6\",\"footnotes\":[{}]},{\"year\":\"2025\",\"period\":\"Q01\",\"periodName\":\"1st Quarter\",\"value\":\"3.6\",\"footnotes\":[{}]},{\"year\":\"2024\",\"period\":\"Q04\",\"periodName\":\"4th Quarter\",\"value\":\"3.8\",\"footnotes\":[{}]},{\"year\":\"2024\",\"period\":\"Q03\",\"periodName\":\"3rd Quarter\",\"value\":\"3.9\",\"footnotes\":[{}]},{\"year\":\"2024\",\"period\":\"Q02\",\"periodName\":\"2nd Quarter\",\"value\":\"4.1\",\"footnotes\":[{}]},{\"year\":\"2024\",\"period\":\"Q01\",\"periodName\":\"1st Quarter\",\"value\":\"4.2\",\"footnotes\":[{}]}]},\n{\"seriesID\":\"CIU1020000000000A\",\"data\":[{\"year\":\"2025\",\"period\":\"Q04\",\"periodName\":\"4th Quarter\",\"value\":\"3.3\",\"footnotes\":[{}]},{\"year\":\"2025\",\"period\":\"Q03\",\"periodName\":\"3rd Quarter\",\"value\":\"3.5\",\"footnotes\":[{}]},{\"year\":\"2025\",\"period\":\"Q02\",\"periodName\":\"2nd Quarter\",\"value\":\"3.6\",\"footnotes\":[{}]},{\"year\":\"2025\",\"period\":\"Q01\",\"periodName\":\"1st Quarter\",\"value\":\"3.5\",\"footnotes\":[{}]},{\"year\":\"2024\",\"period\":\"Q04\",\"periodName\":\"4th Quarter\",\"value\":\"3.8\",\"footnotes\":[{}]},{\"year\":\"2024\",\"period\":\"Q03\",\"periodName\":\"3rd Quarter\",\"value\":\"3.9\",\"footnotes\":[{}]},{\"year\":\"2024\",\"period\":\"Q02\",\"periodName\":\"2nd Quarter\",\"value\":\"4.2\",\"footnotes\":[{}]},{\"year\":\"2024\",\"period\":\"Q01\",\"periodName\":\"1st Quarter\",\"value\":\"4.4\",\"footnotes\":[{}]}]},\n{\"seriesID\":\"CIU1030000000000A\",\"data\":[{\"year\":\"2025\",\"period\":\"Q04\",\"periodName\":\"4th Quarter\",\"value\":\"3.4\",\"footnotes\":[{}]},{\"year\":\"2025\",\"period\":\"Q03\",\"periodName\":\"3rd Quarter\",\"value\":\"3.5\",\"footnotes\":[{}]},{\"year\":\"2025\",\"period\":\"Q02\",\"periodName\":\"2nd Quarter\",\"value\":\"3.5\",\"footnotes\":[{}]},{\"year\":\"2025\",\"period\":\"Q01\",\"periodName\":\"1st Quarter\",\"value\":\"3.8\",\"footnotes\":[{}]},{\"year\":\"2024\",\"period\":\"Q04\",\"periodName\":\"4th Quarter\",\"value\":\"3.6\",\"footnotes\":[{}]},{\"year\":\"2024\",\"period\":\"Q03\",\"periodName\":\"3rd Quarter\",\"value\":\"3.7\",\"footnotes\":[{}]},{\"year\":\"2024\",\"period\":\"Q02\",\"periodName\":\"2nd Quarter\",\"value\":\"3.8\",\"footnotes\":[{}]},{\"year\":\"2024\",\"period\":\"Q01\",\"periodName\":\"1st Quarter\",\"value\":\"3.7\",\"footnotes\":[{}]}]}]\n}}"
+    }
+   }
+  }
+ ]
+}

@@ -1,0 +1,30 @@
+{
+ "format": 1,
+ "interactions": [
+  {
+   "request": {
+    "method": "GET",
+    "url": "https://api.beta.ons.gov.uk/v1/search?q=CPI+annual+rate+all+items&content_type=timeseries&limit=5",
+    "body_sha256": ""
+   },
+   "response": {
+    "status": 200,
+    "reason": "OK",
+    "headers": {
+     "date": "Mon, 12 Oct 2026 04:03:37 GMT",
+     "content-type": "application/json;charset=utf-8",
+     "connection": "keep-alive",
+     "allow": "DELETE, GET, HEAD, POST, PUT, OPTIONS, PATCH",
+     "strict-transport-security": "max-age=31536000; includeSubDomains",
+     "x-xss-protection": "1",
+     "cf-cache-status": "DYNAMIC",
+     "server": "cloudflare",
+     "cf-ray": "a493373cbd7475e1-EWR"
+    },
+    "body": {
+     "text": "{\"count\":51,\"took\":117,\"distinct_items_count\":51,\"topics\":[{\"type\":\"1245\",\"label\":\"\",\"count\":51},{\"type\":\"4972\",\"label\":\"\",\"count\":51}],\"content_types\":[{\"type\":\"timeseries\",\"label\":\"\",\"count\":51},{\"type\":\"dataset_landing_page\",\"label\":\"\",\"count\":1}],\"items\":[{\"type\":\"timeseries\",\"cdid\":\"D7G7\",\"dataset_id\":\"MM23\",\"edition\":\"\",\"keywords\":[],\"meta_description\":\"\",\"release_date\":\"2026-09-15T23:00:00.000Z\",\"summary\":\"\",\"title\":\"CPI ANNUAL RATE 00: ALL ITEMS 2015=100\",\"topics\":[\"1245\",\"4972\"],\"uri\":\"/economy/inflationandpriceindices/timeseries/d7g7/mm23\",\"highlight\":{\"title\":\"\\u003cem class=\\\"ons-highlight\\\"\\u003eCPI\\u003c/em\\u003e \\u003cem class=\\\"ons-highlight\\\"\\u003eANNUAL\\u003c/em\\u003e \\u003cem class=\\\"ons-highlight\\\"\\u003eRATE\\u003c/em\\u003e 00: \\u003cem class=\\\"ons-highlight\\\"\\u003eALL\\u003c/em\\u003e \\u003cem class=\\\"ons-highlight\\\"\\u003eITEMS\\u003c/em\\u003e 2015=100\"},\"canonical_topic\":\"\"},{\"type\":\"timeseries\",\"cdid\":\"WUND\",\"dataset_id\":\"MM23\",\"edition\":\"\",\"keywords\":[],\"meta_description\":\"\",\"release_date\":\"2026-09-15T23:00:00.000Z\",\"summary\":\"\",\"title\":\"CPI: Contribution to all items annual rate: Education\",\"topics\":[\"1245\",\"4972\"],\"uri\":\"/economy/inflationandpriceindices/timeseries/wund/mm23\",\"highlight\":{\"title\":\"\\u003cem class=\\\"ons-highlight\\\"\\u003eCPI\\u003c/em\\u003e: Contribution to \\u003cem class=\\\"ons-highlight\\\"\\u003eall\\u003c/em\\u003e \\u003cem class=\\\"ons-highlight\\\"\\u003eitems\\u003c/em\\u003e \\u003cem class=\\\"ons-highlight\\\"\\u003eannual\\u003c/em\\u003e \\u003cem class=\\\"ons-highlight\\\"\\u003erate\\u003c/em\\u003e: Education\"},\"canonical_topic\":\"\"},{\"type\":\"timeseries\",\"cdid\":\"JFDZ\",\"dataset_id\":\"MM23\",\"edition\":\"\",\"keywords\":[],\"meta_description\":\"\",\"release_date\":\"2026-09-15T23:00:00.000Z\",\"summary\":\"\",\"title\":\"CPI HISTORICAL MODELLED ANNUAL RATE 00: ALL ITEMS\",\"topics\":[\"1245\",\"4972\"],\"uri\":\"/economy/inflationandpriceindices/timeseries/jfdz/mm23\",\"highlight\":{\"title\":\"\\u003cem class=\\\"ons-highlight\\\"\\u003eCPI\\u003c/em\\u003e HISTORICAL MODELLED \\u003cem class=\\\"ons-highlight\\\"\\u003eANNUAL\\u003c/em\\u003e \\u003cem class=\\\"ons-highlight\\\"\\u003eRATE\\u003c/em\\u003e 00: \\u003cem class=\\\"ons-highlight\\\"\\u003eALL\\u003c/em\\u003e \\u003cem class=\\\"ons-highlight\\\"\\u003eITEMS\\u003c/em\\u003e\"},\"canonical_topic\":\"\"},{\"type\":\"timeseries\",\"cdid\":\"WUMX\",\"dataset_id\":\"MM23\",\"edition\":\"\",\"keywords\":[],\"meta_description\":\"\",\"release_date\":\"2026-09-15T23:00:00.000Z\",\"summary\":\"\",\"title\":\"CPI: Contribution to all items annual rate: Communication\",\"topics\":[\"1245\",\"4972\"],\"uri\":\"/economy/inflationandpriceindices/timeseries/wumx/mm23\",\"highlight\":{\"title\":\"\\u003cem class=\\\"ons-highlight\\\"\\u003eCPI\\u003c/em\\u003e: Contribution to \\u003cem class=\\\"ons-highlight\\\"\\u003eall\\u003c/em\\u003e \\u003cem class=\\\"ons-highlight\\\"\\u003eitems\\u003c/em\\u003e \\u003cem class=\\\"ons-highlight\\\"\\u003eannual\\u003c/em\\u003e \\u003cem class=\\\"ons-highlight\\\"\\u003erate\\u003c/em\\u003e: Communication\"},\"canonical_topic\":\"\"},{\"type\":\"timeseries\",\"cdid\":\"WUMW\",\"dataset_id\":\"MM23\",\"edition\":\"\",\"keywords\":[],\"meta_description\":\"\",\"release_date\":\"2026-09-15T23:00:00.000Z\",\"summary\":\"\",\"title\":\"CPI: Contribution to all items annual rate: Transport\",\"topics\":[\"1245\",\"4972\"],\"uri\":\"/economy/inflationandpriceindices/timeseries/wumw/mm23\",\"highlight\":{\"title\":\"\\u003cem class=\\\"ons-highlight\\\"\\u003eCPI\\u003c/em\\u003e: Contribution to \\u003cem class=\\\"ons-highlight\\\"\\u003eall\\u003c/em\\u003e \\u003cem class=\\\"ons-highlight\\\"\\u003eitems\\u003c/em\\u003e \\u003cem class=\\\"ons-highlight\\\"\\u003eannual\\u003c/em\\u003e \\u003cem class=\\\"ons-highlight\\\"\\u003erate\\u003c/em\\u003e: Transport\"},\"canonical_topic\":\"\"}],\"additional_suggestions\":[\"CPI\",\"annual\",\"rate\",\"all\",\"items\"]}"
+    }
+   }
+  }
+ ]
+}

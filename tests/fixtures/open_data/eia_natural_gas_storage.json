@@ -1,0 +1,66 @@
+{
+ "tool": "eia_natural_gas_storage",
+ "arguments": {
+  "regions": [
+   "lower_48",
+   "east"
+  ],
+  "period": "2026-09"
+ },
+ "recorded": "hand-written: field names and shapes as EIA returned them live on 2026-10-12, values illustrative (the DEMO_KEY allowance ran out before the recording; no EIA key was available)",
+ "calls": [
+  {
+   "method": "GET",
+   "url": "https://api.eia.gov/v2/natural-gas/stor/wkly/data/",
+   "params": [
+    [
+     "frequency",
+     "weekly"
+    ],
+    [
+     "data[0]",
+     "value"
+    ],
+    [
+     "facets[series][]",
+     "NW2_EPG0_SWO_R48_BCF"
+    ],
+    [
+     "facets[series][]",
+     "NW2_EPG0_SWO_R31_BCF"
+    ],
+    [
+     "start",
+     "2026-09-01"
+    ],
+    [
+     "end",
+     "2026-09-30"
+    ],
+    [
+     "sort[0][column]",
+     "period"
+    ],
+    [
+     "sort[0][direction]",
+     "desc"
+    ],
+    [
+     "offset",
+     "0"
+    ],
+    [
+     "length",
+     "2000"
+    ],
+    [
+     "api_key",
+     "REDACTED"
+    ]
+   ],
+   "status": 200,
+   "content_type": "application/json",
+   "body": "{\"response\": {\"total\": \"8\", \"dateFormat\": \"YYYY-MM\", \"frequency\": \"weekly\", \"data\": [{\"period\": \"2026-09-25\", \"duoarea\": \"R48\", \"area-name\": \"NA\", \"product\": \"EPG0\", \"product-name\": \"Natural Gas\", \"process\": \"SWO\", \"process-name\": \"Underground Storage - Working Gas\", \"series\": \"NW2_EPG0_SWO_R48_BCF\", \"series-description\": \"Weekly Lower 48 States Natural Gas Working Underground Storage (Billion Cubic Feet)\", \"value\": \"3415\", \"units\": \"BCF\"}, {\"period\": \"2026-09-25\", \"duoarea\": \"R31\", \"area-name\": \"NA\", \"product\": \"EPG0\", \"product-name\": \"Natural Gas\", \"process\": \"SWO\", \"process-name\": \"Underground Storage - Working Gas\", \"series\": \"NW2_EPG0_SWO_R31_BCF\", \"series-description\": \"Weekly East Region Natural Gas Working Underground Storage (Billion Cubic Feet)\", \"value\": \"945\", \"units\": \"BCF\"}, {\"period\": \"2026-09-18\", \"duoarea\": \"R48\", \"area-name\": \"NA\", \"product\": \"EPG0\", \"product-name\": \"Natural Gas\", \"process\": \"SWO\", \"process-name\": \"Underground Storage - Working Gas\", \"series\": \"NW2_EPG0_SWO_R48_BCF\", \"series-description\": \"Weekly Lower 48 States Natural Gas Working Underground Storage (Billion Cubic Feet)\", \"value\": \"3360\", \"units\": \"BCF\"}, {\"period\": \"2026-09-18\", \"duoarea\": \"R31\", \"area-name\": \"NA\", \"product\": \"EPG0\", \"product-name\": \"Natural Gas\", \"process\": \"SWO\", \"process-name\": \"Underground Storage - Working Gas\", \"series\": \"NW2_EPG0_SWO_R31_BCF\", \"series-description\": \"Weekly East Region Natural Gas Working Underground Storage (Billion Cubic Feet)\", \"value\": \"890\", \"units\": \"BCF\"}, {\"period\": \"2026-09-11\", \"duoarea\": \"R48\", \"area-name\": \"NA\", \"product\": \"EPG0\", \"product-name\": \"Natural Gas\", \"process\": \"SWO\", \"process-name\": \"Underground Storage - Working Gas\", \"series\": \"NW2_EPG0_SWO_R48_BCF\", \"series-description\": \"Weekly Lower 48 States Natural Gas Working Underground Storage (Billion Cubic Feet)\", \"value\": \"3305\", \"units\": \"BCF\"}, {\"period\": \"2026-09-11\", \"duoarea\": \"R31\", \"area-name\": \"NA\", \"product\": \"EPG0\", \"product-name\": \"Natural Gas\", \"process\": \"SWO\", \"process-name\": \"Underground Storage - Working Gas\", \"series\": \"NW2_EPG0_SWO_R31_BCF\", \"series-description\": \"Weekly East Region Natural Gas Working Underground Storage (Billion Cubic Feet)\", \"value\": \"835\", \"units\": \"BCF\"}, {\"period\": \"2026-09-04\", \"duoarea\": \"R48\", \"area-name\": \"NA\", \"product\": \"EPG0\", \"product-name\": \"Natural Gas\", \"process\": \"SWO\", \"process-name\": \"Underground Storage - Working Gas\", \"series\": \"NW2_EPG0_SWO_R48_BCF\", \"series-description\": \"Weekly Lower 48 States Natural Gas Working Underground Storage (Billion Cubic Feet)\", \"value\": \"3250\", \"units\": \"BCF\"}, {\"period\": \"2026-09-04\", \"duoarea\": \"R31\", \"area-name\": \"NA\", \"product\": \"EPG0\", \"product-name\": \"Natural Gas\", \"process\": \"SWO\", \"process-name\": \"Underground Storage - Working Gas\", \"series\": \"NW2_EPG0_SWO_R31_BCF\", \"series-description\": \"Weekly East Region Natural Gas Working Underground Storage (Billion Cubic Feet)\", \"value\": \"780\", \"units\": \"BCF\"}]}, \"request\": {\"command\": \"/v2/natural-gas/stor/wkly/data/\"}, \"apiVersion\": \"2.1.14\"}"
+  }
+ ]
+}

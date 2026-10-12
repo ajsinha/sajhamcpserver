@@ -57,6 +57,8 @@ PHASES = {
 
 
 def start_upstream(port: int, log: Path) -> subprocess.Popen:
+    if not bench.port_free(port):            # another process there would pass for the upstream below
+        raise RuntimeError(f"port {port} is in use")
     out = open(log, "wb")
     proc = subprocess.Popen([sys.executable, "-m", "sajha.examples.federation.units_server", "--port", str(port)],
                             cwd=str(bench.ROOT), stdout=out, stderr=subprocess.STDOUT)
@@ -202,8 +204,9 @@ def main(argv=None) -> int:
     ap.add_argument("--concurrency", type=int, default=32)
     ap.add_argument("--clients", type=int, default=4)
     ap.add_argument("--shed-limit", type=int, default=4, help="max_in_flight of the bounded upstream (shed phase)")
-    ap.add_argument("--port", type=int, default=3171, help="SAJHA's first port; the upstream takes --upstream-port")
-    ap.add_argument("--upstream-port", type=int, default=3170)
+    ap.add_argument("--port", type=int, default=3171,
+                    help="SAJHA's first port (each scenario takes the next free port from here)")
+    ap.add_argument("--upstream-port", type=int, default=3170, help="the upstream's port, or the next free one")
     ap.add_argument("--redis-url", default=os.environ.get("SAJHA_TEST_REDIS_URL", "redis://127.0.0.1:6379/15"))
     ap.add_argument("--out", default=str(Path(tempfile.gettempdir()) / "sajha-bench"))
     ap.add_argument("--scratch", default=None)
@@ -220,8 +223,9 @@ def main(argv=None) -> int:
                        "clients": a.clients, "shed_limit": a.shed_limit},
         "scenarios": []}
     up_scratch = Path(tempfile.mkdtemp(prefix="sajha-bench-upstream-", dir=a.scratch))
-    upstream = start_upstream(a.upstream_port, up_scratch / "upstream.log")
-    upstream_url = f"http://127.0.0.1:{a.upstream_port}/mcp"
+    up_port = bench.free_port(a.upstream_port)      # free ports, never one another process holds
+    upstream = start_upstream(up_port, up_scratch / "upstream.log")
+    upstream_url = f"http://127.0.0.1:{up_port}/mcp"
     port = a.port
     try:
         for backend, workers, pool in parse_configs(a.configs):
@@ -236,6 +240,7 @@ def main(argv=None) -> int:
             scratch = Path(tempfile.mkdtemp(prefix=f"sajha-bench-fed-{backend}{workers}p{pool}-", dir=a.scratch))
             env = federation_env(bench.server_env(scratch, backend, a.redis_url), scratch, upstream_url, pool,
                                  a.shed_limit)
+            port = bench.free_port(port, avoid=(up_port,))
             print(f"[bench-federation] {backend}:{workers} pool {pool}: starting on port {port}", flush=True)
             srv = bench.Server(port, workers, env, scratch / "server.log")
             try:

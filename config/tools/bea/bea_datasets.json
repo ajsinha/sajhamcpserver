@@ -1,0 +1,70 @@
+{
+  "name": "bea_datasets",
+  "implementation": "sajha.tools.impl.bea_tools.BeaDatasetsTool",
+  "description": "The datasets the BEA Data API offers (NIPA, GDPbyIndustry, ITA, Regional, ...), with descriptions.\nReturns: source, dataset_count, datasets (name, description).\nInputs (* required): none.\nExample: {}",
+  "annotations": {
+    "readOnlyHint": true,
+    "idempotentHint": true,
+    "openWorldHint": true
+  },
+  "version": "1.0.0",
+  "enabled": true,
+  "cache_ttl": 86400,
+  "api_key": "${BEA_API_KEY:}",
+  "inputSchema": {
+    "type": "object",
+    "properties": {},
+    "required": [],
+    "additionalProperties": false,
+    "examples": [
+      {}
+    ]
+  },
+  "outputSchema": {
+    "type": "object",
+    "required": [
+      "source",
+      "datasets"
+    ],
+    "properties": {
+      "source": {
+        "type": "string",
+        "description": "Source: BEA ...; cite it with the data"
+      },
+      "dataset_count": {
+        "type": "integer",
+        "description": "Datasets"
+      },
+      "datasets": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "name": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "description": "Dataset name"
+            },
+            "description": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "description": "Description"
+            }
+          }
+        }
+      }
+    }
+  },
+  "metadata": {
+    "author": "Ashutosh Sinha",
+    "category": "Economic Data",
+    "tags": [
+      "bea",
+      "catalogue"
+    ]
+  }
+}

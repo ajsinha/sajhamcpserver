@@ -150,6 +150,8 @@ class FederationManager:
         self._health_stop = threading.Event()
         self._health_thread: Optional[threading.Thread] = None
         self._peer_tripped: Dict[str, float] = {}     # upstream -> when a peer's open breaker opened ours
+        self._store_unsub = None                      # the store's change announcements (other workers)
+        self._store_rev: Optional[int] = None         # the store revision this worker last applied
 
     # ══ lifecycle ══════════════════════════════════════════════════
     def start(self) -> None:
@@ -165,6 +167,7 @@ class FederationManager:
         self._watch_file()
         self._ensure_loop()
         self._watch_health()
+        self._watch_store()
         for up in list(self._upstreams.values()):
             if up.config.enabled:
                 self._connect(up)
@@ -188,6 +191,12 @@ class FederationManager:
     def stop(self) -> None:
         self._file_stop.set()
         self._health_stop.set()
+        if self._store_unsub is not None:
+            try:
+                self._store_unsub()
+            except Exception:
+                pass
+            self._store_unsub = None
         for uid in list(self._upstreams):
             self.health.forget(uid)
         loop = self._loop
@@ -566,6 +575,41 @@ class FederationManager:
         self._health_thread = threading.Thread(target=loop, name='federation-health', daemon=True)
         self._health_thread.start()
 
+    def _watch_store(self) -> None:
+        """Approvals are shared (sajha/federation/store.py): another worker's change is announced on the
+        state store and applied here at once; the health tick compares the revision too, in case an
+        announcement was missed."""
+        if self._store_unsub is not None:
+            return
+        self._store_rev = self.store.revision()
+        self._store_unsub = self.store.subscribe(lambda msg: self.store_changed(msg.get('upstreams') or None))
+
+    def store_changed(self, upstream_ids: Optional[List[str]] = None) -> List[str]:
+        """Re-read the approval records another worker changed and make the registry match them;
+        returns the upstreams whose records changed here."""
+        rev = self.store.revision()
+        if rev is not None:
+            self._store_rev = rev
+        changed = []
+        for uid, up in list(self._upstreams.items()):
+            if (upstream_ids and uid not in upstream_ids) or up.records is None:
+                continue                          # not discovered yet: its discovery reads the store
+            try:
+                records = self.store.items(uid)
+            except Exception as e:
+                logger.debug(f'federation: re-reading the approvals of {uid}: {e}')
+                continue
+            with self._lock:
+                if records == up.records:
+                    continue
+                up.records = records
+            changed.append(uid)
+        for uid in changed:
+            self._sync_registry(uid)
+        if changed:
+            logger.info(f'Federation: approvals changed on another worker: {", ".join(changed)}')
+        return changed
+
     def health_snapshot(self, up: _Upstream) -> Dict[str, Any]:
         """This worker's view of one upstream, as published to the state store."""
         members = self._members(up)
@@ -607,6 +651,9 @@ class FederationManager:
         primary connection is down. Runs every federation.health.publish_seconds."""
         if not self.settings.enabled:
             return
+        rev = self.store.revision()
+        if rev is not None and rev != self._store_rev:
+            self.store_changed()                  # an approval made on another worker, announcement missed
         ups = list(self._upstreams.values())
         for up in ups:
             if up.conn is None:
@@ -827,68 +874,77 @@ class FederationManager:
         set of exposed definitions changed."""
         cfg = up.config
         auto = (not self.settings.require_approval) or cfg.auto_approve
-        records = self.store.items(cfg.id)
         now = self.store.now()
         before = {k: {n: (i['hash'], i['exposed']) for n, i in up.items[k].items()} for k in KINDS}
-        before_status = {k: v.get('status') for k, v in records.items()}
+        before_status: Dict[str, Any] = {}
         discovered: Dict[str, Dict[str, Dict[str, Any]]] = {k: {} for k in KINDS}
-        sources = (('tool', tools, 'name', self._screen_tool), ('prompt', prompts, 'name', self._screen_prompt),
-                   ('resource', resources, 'uri', self._screen_resource),
-                   ('template', templates, 'uriTemplate', self._screen_template))
-        for kind, raws, key, screen in sources:
-            for raw in raws:
-                ident = raw.get(key)
-                if not isinstance(ident, str) or not ident:
-                    continue
-                if kind == 'tool' and not self._included(cfg, ident):
-                    continue
-                definition, flagged = screen(cfg, raw)
-                h = _hash(raw)
-                rk = f'{kind}:{ident}'
-                rec = records.get(rk)
-                problem = self._tool_problem(raw) if kind == 'tool' else None
-                if problem:
-                    # refused, whatever was decided before: an invalid schema is never served
-                    rec = dict(rec or {'first_seen': now})
-                    if rec.get('status') != 'invalid' or rec.get('current_hash') != h:
-                        rec['updated_at'] = now
-                    if rec.get('status') in ('approved', 'changed') and rec.get('approved_definition'):
-                        rec['status'] = 'changed'        # a held approved version keeps serving
-                    elif rec.get('status') not in ('rejected', 'disabled'):
-                        rec['status'] = 'invalid'
-                    rec['reason'] = problem
-                elif rec is None or rec.get('status') == 'invalid':
-                    rec = {'status': 'approved' if (auto and not flagged) else 'pending', 'hash': h,
-                           'first_seen': (rec or {}).get('first_seen', now), 'updated_at': now}
-                elif rec.get('hash') != h:
-                    if rec.get('status') in ('approved', 'changed'):
-                        rec['status'] = 'approved' if (auto and not flagged) else 'changed'
-                        if rec['status'] == 'approved':
+
+        def decide(records: Dict[str, Dict[str, Any]]) -> Dict[str, Dict[str, Any]]:
+            # run on the records as stored now (read again under the store's change lease), so a
+            # decision another worker just made is kept, never overwritten with this worker's copy
+            before_status.clear()
+            before_status.update({k: v.get('status') for k, v in records.items()})
+            for k in KINDS:
+                discovered[k].clear()
+            sources = (('tool', tools, 'name', self._screen_tool), ('prompt', prompts, 'name', self._screen_prompt),
+                       ('resource', resources, 'uri', self._screen_resource),
+                       ('template', templates, 'uriTemplate', self._screen_template))
+            for kind, raws, key, screen in sources:
+                for raw in raws:
+                    ident = raw.get(key)
+                    if not isinstance(ident, str) or not ident:
+                        continue
+                    if kind == 'tool' and not self._included(cfg, ident):
+                        continue
+                    definition, flagged = screen(cfg, raw)
+                    h = _hash(raw)
+                    rk = f'{kind}:{ident}'
+                    rec = records.get(rk)
+                    problem = self._tool_problem(raw) if kind == 'tool' else None
+                    if problem:
+                        # refused, whatever was decided before: an invalid schema is never served
+                        rec = dict(rec or {'first_seen': now})
+                        if rec.get('status') != 'invalid' or rec.get('current_hash') != h:
+                            rec['updated_at'] = now
+                        if rec.get('status') in ('approved', 'changed') and rec.get('approved_definition'):
+                            rec['status'] = 'changed'        # a held approved version keeps serving
+                        elif rec.get('status') not in ('rejected', 'disabled'):
+                            rec['status'] = 'invalid'
+                        rec['reason'] = problem
+                    elif rec is None or rec.get('status') == 'invalid':
+                        rec = {'status': 'approved' if (auto and not flagged) else 'pending', 'hash': h,
+                               'first_seen': (rec or {}).get('first_seen', now), 'updated_at': now}
+                    elif rec.get('hash') != h:
+                        if rec.get('status') in ('approved', 'changed'):
+                            rec['status'] = 'approved' if (auto and not flagged) else 'changed'
+                            if rec['status'] == 'approved':
+                                rec['hash'] = h
+                        elif rec.get('status') == 'pending':
                             rec['hash'] = h
-                    elif rec.get('status') == 'pending':
-                        rec['hash'] = h
-                    rec['updated_at'] = now
-                elif rec.get('status') == 'changed':
-                    rec['status'] = 'approved'          # the upstream went back to the approved definition
-                if not problem:
-                    rec.pop('reason', None)
-                    if rec.get('status') == 'approved' and rec.get('hash') == h:
-                        rec['approved_definition'] = definition     # what a held version serves
-                rec['flagged'] = bool(flagged)
-                rec['current_hash'] = h
-                records[rk] = rec
-                exposed = {'resource': definition.get('uri'), 'template': definition.get('uriTemplate')}.get(
-                    kind, definition.get('name'))
-                discovered[kind][ident] = {'exposed': exposed, 'definition': definition, 'hash': h,
-                                           'flagged': flagged, 'raw': raw}
-        # forget pending records of items that vanished; keep decisions (approved/rejected/disabled)
-        live = {f'{k}:{n}' for k in KINDS for n in discovered[k]}
-        for rk in [rk for rk, r in records.items() if rk not in live and r.get('status') == 'pending']:
-            records.pop(rk, None)
+                        rec['updated_at'] = now
+                    elif rec.get('status') == 'changed':
+                        rec['status'] = 'approved'          # the upstream went back to the approved definition
+                    if not problem:
+                        rec.pop('reason', None)
+                        if rec.get('status') == 'approved' and rec.get('hash') == h:
+                            rec['approved_definition'] = definition     # what a held version serves
+                    rec['flagged'] = bool(flagged)
+                    rec['current_hash'] = h
+                    records[rk] = rec
+                    exposed = {'resource': definition.get('uri'), 'template': definition.get('uriTemplate')}.get(
+                        kind, definition.get('name'))
+                    discovered[kind][ident] = {'exposed': exposed, 'definition': definition, 'hash': h,
+                                               'flagged': flagged, 'raw': raw}
+            # forget pending records of items that vanished; keep decisions (approved/rejected/disabled)
+            live = {f'{k}:{n}' for k in KINDS for n in discovered[k]}
+            for rk in [rk for rk, r in records.items() if rk not in live and r.get('status') == 'pending']:
+                records.pop(rk, None)
+            return records
+
         try:
-            self.store.set_items(cfg.id, records)
+            records = self.store.update_items(cfg.id, decide)
         except Exception:
-            pass                                  # logged by the store; state stays in memory
+            records = decide(self.store.items(cfg.id))   # logged by the store; state stays in memory
         with self._lock:
             up.items = discovered
             up.records = records
@@ -1787,35 +1843,40 @@ class FederationManager:
         if to is None:
             raise ValueError('action must be approve, reject, disable, enable, reset or approve_all')
         with self._lock:
-            records = dict(getattr(up, 'records', None) or self.store.items(upstream_id))
             names = list(up.items[kind]) if action == 'approve_all' else [name]
-            n = 0
-            for ident in names:
-                item = up.items[kind].get(ident)
-                if item is None:
-                    if action == 'approve_all':
+            count = [0]
+
+            def decide(records: Dict[str, Dict[str, Any]]) -> Dict[str, Dict[str, Any]]:
+                # the records as stored now (another worker's decisions included), changed under the lease
+                count[0] = 0
+                for ident in names:
+                    item = up.items[kind].get(ident)
+                    if item is None:
+                        if action == 'approve_all':
+                            continue
+                        raise KeyError(f'{kind} {ident}')
+                    rk = f'{kind}:{ident}'
+                    rec = dict(records.get(rk) or {'first_seen': self.store.now()})
+                    if action == 'approve_all' and rec.get('status') in ('approved', 'rejected', 'disabled'):
                         continue
-                    raise KeyError(f'{kind} {ident}')
-                rk = f'{kind}:{ident}'
-                rec = dict(records.get(rk) or {'first_seen': self.store.now()})
-                if action == 'approve_all' and rec.get('status') in ('approved', 'rejected', 'disabled'):
-                    continue
-                if action == 'enable' and rec.get('status') != 'disabled':
-                    continue
-                if to == 'approved' and rec.get('reason') and rec.get('current_hash') == item['hash']:
-                    if action == 'approve_all':
+                    if action == 'enable' and rec.get('status') != 'disabled':
                         continue
-                    raise ValueError(f'{kind} {ident} cannot be approved: {rec["reason"]}')
-                rec['status'] = to
-                rec['hash'] = item['hash']
-                rec['updated_at'] = self.store.now()
-                if to == 'approved':
-                    rec['approved_definition'] = item['definition']
-                    rec.pop('reason', None)
-                records[rk] = rec
-                n += 1
-            self.store.set_items(upstream_id, records)
-            up.records = records
+                    if to == 'approved' and rec.get('reason') and rec.get('current_hash') == item['hash']:
+                        if action == 'approve_all':
+                            continue
+                        raise ValueError(f'{kind} {ident} cannot be approved: {rec["reason"]}')
+                    rec['status'] = to
+                    rec['hash'] = item['hash']
+                    rec['updated_at'] = self.store.now()
+                    if to == 'approved':
+                        rec['approved_definition'] = item['definition']
+                        rec.pop('reason', None)
+                    records[rk] = rec
+                    count[0] += 1
+                return records
+
+            up.records = self.store.update_items(upstream_id, decide)
+            n = count[0]
         self._sync_registry(upstream_id)
         return n
 

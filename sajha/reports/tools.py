@@ -142,7 +142,7 @@ class ReportListTool(_ReportBase):
             out.append({'name': d.name, 'tool': d.tool_name, 'title': d.title, 'description': d.description,
                         'owner': d.owner, 'tags': d.tags, 'parameters': d.input_schema()['properties'],
                         'required': d.required, 'formats': d.formats, 'classification': d.classification,
-                        'schedule': d.schedule, 'last_run': _last_run(d.name, caller)})
+                        'last_run': _last_run(d.name, caller)})
         for r in out:
             r['parameters'].pop('formats', None)
         return {'reports': out, 'count': len(out)}
@@ -153,15 +153,14 @@ class ReportDescribeTool(_ReportBase):
         from sajha.reports import history, render, store
         d = _runnable(arguments.get('report'))
         caller = _caller()
-        privileged = bool(getattr(caller, 'is_admin', False)) or (d.owner and d.owner == caller.user_id)
         return {'name': d.name, 'tool': d.tool_name, 'title': d.title, 'description': d.description,
                 'owner': d.owner, 'tags': d.tags, 'classification': d.classification,
-                'definition': d.public(redact_recipients=not privileged), 'definition_hash': d.digest,
+                'definition': d.public(), 'definition_hash': d.digest,
                 'sources': d.calls(), 'sub_reports': d.sub_reports(),
                 'missing_tools': store.missing().get(d.name, []),
                 'formats': d.formats,
                 'formats_unavailable': {f: render.unavailable(f) for f in d.formats if render.unavailable(f)},
-                'schedule': d.schedule, 'last_runs': history.runs(d.name, caller, limit=5)}
+                'last_runs': history.runs(d.name, caller, limit=5)}
 
 
 class ReportHistoryTool(_ReportBase):

@@ -1,0 +1,19 @@
+# An HTTP tool with a recorded cassette (cassettes/bls_payrolls/nonfarm_and_earnings_2025.json): replays offline.
+# Re-record against the live API with: python -m sajha.quality test --tool bls_payrolls --record
+# (record without BLS_API_KEY/EIA_API_KEY set so the cassette matches a keyless replay)
+tool: bls_payrolls
+cases:
+  - name: nonfarm and earnings 2025
+    tags: [http]
+    arguments: {"measures": ["total_nonfarm", "average_hourly_earnings"], "period": "2025-01-01:2025-12-31"}
+    expect:
+      - schema: output
+      - path: "$.series_count"
+        equals: 2
+      - path: "$.series[0].unit"
+        equals: "thousands of jobs"
+      - path: "$.series[0].observation_count"
+        equals: 12
+probe:
+  case: nonfarm and earnings 2025
+  every: 86400

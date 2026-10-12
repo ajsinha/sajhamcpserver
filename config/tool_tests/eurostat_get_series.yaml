@@ -1,0 +1,16 @@
+# An HTTP tool with a recorded cassette (cassettes/eurostat_get_series/hicp_total_and_energy_2026q3.json): replays offline.
+# Re-record against the live API with: python -m sajha.quality test --tool eurostat_get_series --record
+tool: eurostat_get_series
+cases:
+  - name: hicp total and energy 2026q3
+    tags: [http]
+    arguments: {"dataset": "prc_hicp_minr", "filters": {"freq": "M", "unit": "RCH_A", "coicop18": ["TOTAL", "NRG"], "geo": ["DE", "FR"]}, "period": "2026-07/2026-09", "max_series": 20}
+    expect:
+      - schema: output
+      - path: "$.series_count"
+        equals: 4
+      - path: "$.source"
+        regex: "^Source: Eurostat"
+probe:
+  case: hicp total and energy 2026q3
+  every: 21600

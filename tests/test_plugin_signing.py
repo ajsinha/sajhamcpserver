@@ -195,7 +195,9 @@ def test_command_line(tmp_path, capsys):
     p = make_plugin(tmp_path / 'demo')
     assert S.main(['sign', str(p), '--key', str(out / 'acme.key'), '--publisher', 'acme']) == 0
     assert S.main(['verify', str(p), '--trusted', str(out / 'acme.pub')]) == 0
-    assert 'trusted' in capsys.readouterr().out
+    said = capsys.readouterr().out
+    # the key came from the --trusted file, not from the plugins.trusted_keys setting
+    assert '\ntrusted: ' in said and f'--trusted {out / "acme.pub"}' in said and 'plugins.trusted_keys' not in said
     zipped = tmp_path / 'dist'
     assert S.main(['pack', str(p), '--out', str(zipped)]) == 0
     import zipfile

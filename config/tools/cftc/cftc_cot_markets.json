@@ -1,0 +1,156 @@
+{
+  "name": "cftc_cot_markets",
+  "implementation": "sajha.tools.impl.cftc_tools.CftcCotMarketsTool",
+  "description": "Find Commitments of Traders markets by part of the name (all words must match) or by code.\nReturns: count, markets (code, name, commodity, latest_report).\nInputs (* required): search*, report, kind, active_only (default true: reported in the last 5 weeks), limit (default 25).\nExample: {\"search\": \"GOLD\", \"active_only\": false}",
+  "annotations": {
+    "readOnlyHint": true,
+    "idempotentHint": true,
+    "openWorldHint": true
+  },
+  "version": "1.0.0",
+  "enabled": true,
+  "cache_ttl": 21600,
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "search": {
+        "type": "string",
+        "description": "Words of the market name, or a CFTC code",
+        "minLength": 2
+      },
+      "report": {
+        "type": "string",
+        "description": "legacy, disaggregated (commodities) or tff (financial futures)",
+        "enum": [
+          "legacy",
+          "disaggregated",
+          "tff"
+        ],
+        "default": "legacy"
+      },
+      "kind": {
+        "type": "string",
+        "description": "futures_only or combined (futures and options)",
+        "enum": [
+          "futures_only",
+          "combined"
+        ],
+        "default": "futures_only"
+      },
+      "active_only": {
+        "type": "boolean",
+        "description": "Only markets reported in the last 5 weeks",
+        "default": true
+      },
+      "limit": {
+        "type": "integer",
+        "description": "Most markets returned",
+        "minimum": 1,
+        "maximum": 200,
+        "default": 25
+      }
+    },
+    "required": [
+      "search"
+    ],
+    "additionalProperties": false,
+    "examples": [
+      {
+        "search": "GOLD",
+        "active_only": false
+      }
+    ]
+  },
+  "outputSchema": {
+    "type": "object",
+    "required": [
+      "source",
+      "markets"
+    ],
+    "properties": {
+      "report": {
+        "type": "string",
+        "description": "legacy, disaggregated or tff"
+      },
+      "report_name": {
+        "type": "string",
+        "description": "Report name"
+      },
+      "kind": {
+        "type": "string",
+        "description": "futures_only or combined"
+      },
+      "dataset": {
+        "type": "string",
+        "description": "Socrata dataset id"
+      },
+      "source": {
+        "type": "string",
+        "description": "Source: CFTC ...; cite it with the data"
+      },
+      "units": {
+        "type": "string",
+        "description": "Units of the numbers"
+      },
+      "note": {
+        "type": "string",
+        "description": "Why there is no data"
+      },
+      "search": {
+        "type": [
+          "string",
+          "null"
+        ],
+        "description": "The search"
+      },
+      "count": {
+        "type": "integer",
+        "description": "Markets returned"
+      },
+      "markets": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "code": {
+              "type": "string",
+              "description": "CFTC contract market code"
+            },
+            "name": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "description": "Market and exchange"
+            },
+            "commodity": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "description": "Commodity"
+            },
+            "latest_report": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "description": "Latest report date, YYYY-MM-DD"
+            }
+          }
+        }
+      }
+    }
+  },
+  "metadata": {
+    "author": "Ashutosh Sinha",
+    "category": "Economic Data",
+    "tags": [
+      "cftc",
+      "commitments of traders",
+      "cot",
+      "futures",
+      "positioning"
+    ]
+  }
+}

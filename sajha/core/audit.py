@@ -8,11 +8,26 @@ apikey_create, apikey_revoke, tool_enable, tool_disable,
 permission_change, config_change.
 """
 import logging
+import threading
 import uuid
+from collections import deque
 from datetime import datetime, timezone
 from typing import Optional
 
 logger = logging.getLogger(__name__)
+
+# audit_log rows whose write failed (a busy pool, a brief database outage): kept, bounded, and written
+# before the next row, so a failure delays a record instead of losing it (the hash chain does the same)
+_PENDING: deque = deque(maxlen=10000)
+_PENDING_LOCK = threading.Lock()
+
+
+def _detached(row):
+    """A fresh, unattached copy of an AuditLog row, so a rolled-back session cannot taint the retry."""
+    from sajha.db.models import AuditLog
+    return AuditLog(id=row.id, action=row.action, user_id=row.user_id, resource_type=row.resource_type,
+                    resource_id=row.resource_id, details=row.details, ip_address=row.ip_address,
+                    created_at=row.created_at)
 
 
 class AuditLogger:
@@ -42,12 +57,23 @@ class AuditLogger:
                 ip_address=ip_address,
                 created_at=datetime.now(timezone.utc),
             )
-            with session_scope(commit=True) as db:     # closed (and rolled back on error) always
-                db.add(entry)
+            with _PENDING_LOCK:
+                waiting = list(_PENDING)
+                _PENDING.clear()
+            try:
+                with session_scope(commit=True) as db:     # closed (and rolled back on error) always
+                    for row in waiting:
+                        db.add(row)
+                    db.add(entry)
+            except Exception:
+                with _PENDING_LOCK:
+                    for row in reversed([*waiting, entry]):   # keep the order: oldest first
+                        _PENDING.appendleft(_detached(row))
+                raise
             logger.info(f"Audit: {action} by {user_id or 'system'} on {resource_type}:{resource_id}")
         except Exception as e:
-            # Audit logging must never crash the application
-            logger.error(f"Audit log write failed: {e}", exc_info=True)
+            # Audit logging must never crash the application; the row is kept and retried
+            logger.error(f"Audit log write failed (kept {len(_PENDING)} row(s) to retry): {e}")
 
     # Convenience methods
     def login_success(self, user_id: str, ip: str = None):

@@ -1,0 +1,170 @@
+{
+  "name": "statcan_vector",
+  "implementation": "sajha.tools.impl.statcan_tools.StatcanVectorTool",
+  "description": "One Statistics Canada series by vector id: the latest N periods or a period, with unit, multiplier and members.\nReturns: vector, table, table_title, title, members, unit, unit_multiplier, frequency, observations (date, value).\nInputs (* required): vector*, latest_n (default 12) or period.\nExample: {\"vector\": \"v41690973\", \"period\": \"2025\"}",
+  "annotations": {
+    "readOnlyHint": true,
+    "idempotentHint": true,
+    "openWorldHint": true
+  },
+  "version": "1.0.0",
+  "enabled": true,
+  "cache_ttl": 21600,
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "vector": {
+        "type": "string",
+        "description": "Vector id, e.g. v41690973",
+        "minLength": 2
+      },
+      "latest_n": {
+        "type": "integer",
+        "description": "The newest N periods (default 12 when no period is given)",
+        "minimum": 1,
+        "maximum": 500
+      },
+      "period": {
+        "type": "string",
+        "description": "2025, 2025-Q3, 2025-07, 'last 2 years' or YYYY-MM-DD:YYYY-MM-DD (instead of latest_n)"
+      }
+    },
+    "required": [
+      "vector"
+    ],
+    "additionalProperties": false,
+    "examples": [
+      {
+        "vector": "v41690973",
+        "period": "2025"
+      }
+    ]
+  },
+  "outputSchema": {
+    "type": "object",
+    "required": [
+      "source",
+      "observations"
+    ],
+    "properties": {
+      "vector": {
+        "type": "string",
+        "description": "Vector id, v..."
+      },
+      "table": {
+        "type": "string",
+        "description": "Table number, e.g. 18-10-0004-01"
+      },
+      "table_title": {
+        "type": [
+          "string",
+          "null"
+        ],
+        "description": "Table title"
+      },
+      "coordinate": {
+        "type": [
+          "string",
+          "null"
+        ],
+        "description": "Member ids, one per dimension"
+      },
+      "title": {
+        "type": [
+          "string",
+          "null"
+        ],
+        "description": "Series title (members joined by ;)"
+      },
+      "members": {
+        "type": "object",
+        "description": "Member name per dimension",
+        "additionalProperties": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "unit": {
+        "type": [
+          "string",
+          "null"
+        ],
+        "description": "Unit of measure (e.g. Dollars, 2002=100, Percent)"
+      },
+      "unit_multiplier": {
+        "type": [
+          "string",
+          "null"
+        ],
+        "description": "thousands, millions ... or null"
+      },
+      "frequency": {
+        "type": [
+          "string",
+          "null"
+        ],
+        "description": "Monthly, Quarterly, Annual, ..."
+      },
+      "terminated": {
+        "type": "boolean",
+        "description": "The series is no longer updated"
+      },
+      "release_time": {
+        "type": [
+          "string",
+          "null"
+        ],
+        "description": "Newest release among the observations"
+      },
+      "source": {
+        "type": "string",
+        "description": "Source: Statistics Canada ... notice required by the Open Licence; quote it with the data"
+      },
+      "observation_count": {
+        "type": "integer",
+        "description": "Observations returned"
+      },
+      "note": {
+        "type": "string",
+        "description": "Why there is no data, or what to do next"
+      },
+      "observations": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "date": {
+              "type": "string",
+              "description": "YYYY-MM, YYYY-Qn, YYYY or YYYY-MM-DD"
+            },
+            "value": {
+              "type": [
+                "number",
+                "null"
+              ],
+              "description": "Value in the series unit and multiplier"
+            },
+            "symbol": {
+              "type": "string",
+              "description": "preliminary or revised"
+            }
+          }
+        }
+      }
+    }
+  },
+  "metadata": {
+    "author": "Ashutosh Sinha",
+    "category": "Economic Data",
+    "tags": [
+      "statistics canada",
+      "canada",
+      "statistics",
+      "cpi",
+      "labour force",
+      "gdp"
+    ]
+  }
+}

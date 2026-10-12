@@ -1,0 +1,196 @@
+{
+  "name": "bls_series",
+  "implementation": "sajha.tools.impl.bls_tools.BlsSeriesTool",
+  "description": "Any BLS time series by id (CPI, CES, CPS, JOLTS, PPI, ECI and every other BLS survey), for a span of years.\nReturns: source, disclaimer, retrieved, api_version, series (series_id, label, frequency, observations date/value/preliminary).\nInputs (* required): series* (1 to 50 ids; 25 keyless), from_year (default two years before to_year), to_year (default this year).\nExample: {\"series\": [\"CUUR0000SA0\", \"LNS14000000\"], \"from_year\": 2024, \"to_year\": 2025}",
+  "annotations": {
+    "readOnlyHint": true,
+    "idempotentHint": true,
+    "openWorldHint": true
+  },
+  "version": "1.0.0",
+  "enabled": true,
+  "cache_ttl": 21600,
+  "api_key": "${BLS_API_KEY:}",
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "series": {
+        "type": "array",
+        "items": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9]{5,30}$"
+        },
+        "minItems": 1,
+        "maxItems": 50,
+        "description": "BLS series ids, e.g. CUUR0000SA0 (CPI-U), CES0000000001 (payrolls)"
+      },
+      "from_year": {
+        "type": "integer",
+        "minimum": 1913,
+        "maximum": 2100,
+        "description": "First year (default: two years before to_year)"
+      },
+      "to_year": {
+        "type": "integer",
+        "minimum": 1913,
+        "maximum": 2100,
+        "description": "Last year (default: this year)"
+      }
+    },
+    "required": [
+      "series"
+    ],
+    "additionalProperties": false,
+    "examples": [
+      {
+        "series": [
+          "CUUR0000SA0",
+          "LNS14000000"
+        ],
+        "from_year": 2024,
+        "to_year": 2025
+      }
+    ]
+  },
+  "outputSchema": {
+    "type": "object",
+    "required": [
+      "source",
+      "disclaimer",
+      "retrieved",
+      "series"
+    ],
+    "properties": {
+      "source": {
+        "type": "string",
+        "description": "Source: U.S. Bureau of Labor Statistics ...; cite it with the data"
+      },
+      "disclaimer": {
+        "type": "string",
+        "description": "The statement the BLS terms require with the data"
+      },
+      "retrieved": {
+        "type": "string",
+        "description": "Date the data were retrieved (YYYY-MM-DD), which the BLS terms require"
+      },
+      "api_version": {
+        "type": "string",
+        "description": "v2 (with BLS_API_KEY) or v1 (keyless)"
+      },
+      "note": {
+        "type": "string",
+        "description": "Why the keyless tier was used, or what was cut"
+      },
+      "series_count": {
+        "type": "integer",
+        "description": "Series returned"
+      },
+      "messages": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Messages from BLS (unknown series, ...)"
+      },
+      "from_year": {
+        "type": "integer",
+        "description": "First year asked for"
+      },
+      "to_year": {
+        "type": "integer",
+        "description": "Last year asked for"
+      },
+      "series": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "required": [
+            "series_id",
+            "observations"
+          ],
+          "properties": {
+            "series_id": {
+              "type": "string",
+              "description": "BLS series id"
+            },
+            "label": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "description": "Series title"
+            },
+            "frequency": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "description": "Monthly, Quarterly, ..."
+            },
+            "observation_count": {
+              "type": "integer",
+              "description": "Observations returned"
+            },
+            "observations": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "required": [
+                  "date",
+                  "value"
+                ],
+                "properties": {
+                  "date": {
+                    "type": "string",
+                    "description": "Period: YYYY-MM, YYYY-Qn, YYYY-Sn or YYYY"
+                  },
+                  "value": {
+                    "type": [
+                      "number",
+                      "null"
+                    ],
+                    "description": "Value in the series unit"
+                  },
+                  "preliminary": {
+                    "type": "boolean",
+                    "description": "BLS marks the value preliminary (P)"
+                  },
+                  "footnotes": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    },
+                    "description": "BLS footnotes"
+                  },
+                  "change_12m_percent": {
+                    "type": [
+                      "number",
+                      "null"
+                    ],
+                    "description": "Percent change from the same period a year earlier"
+                  },
+                  "change": {
+                    "type": [
+                      "number",
+                      "null"
+                    ],
+                    "description": "Change from the previous period, in the series unit"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "metadata": {
+    "author": "Ashutosh Sinha",
+    "category": "Economic Data",
+    "tags": [
+      "bls",
+      "labor statistics",
+      "time series"
+    ]
+  }
+}

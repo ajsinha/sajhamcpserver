@@ -1,0 +1,18 @@
+# An HTTP tool with a recorded cassette (cassettes/statcan_vector/cpi_all_items_2025.json): replays offline.
+# Re-record against the live API with: python -m sajha.quality test --tool statcan_vector --record
+tool: statcan_vector
+cases:
+  - name: cpi all items 2025
+    tags: [http]
+    arguments: {"vector": "v41690973", "period": "2025"}
+    expect:
+      - schema: output
+      - path: "$.observation_count"
+        equals: 12
+      - path: "$.unit"
+        equals: "2002=100"
+      - path: "$.source"
+        regex: "as is"
+probe:
+  case: cpi all items 2025
+  every: 21600

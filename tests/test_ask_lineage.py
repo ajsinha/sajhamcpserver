@@ -160,6 +160,17 @@ def test_the_keyboard_opens_the_lineage_down_to_the_tool_call_and_escape_closes_
     assert page.locator('.ask-fig').get_attribute('aria-expanded') == 'false'
 
 
+def test_escape_on_the_open_figure_button_closes_the_lineage(page):
+    page.locator('.ask-fig').focus()
+    page.keyboard.press('Enter')
+    assert page.locator('#t1-lineage').is_visible()
+    assert page.evaluate('document.activeElement.className') == 'ask-fig is-open'
+    page.keyboard.press('Escape')                 # focus still on the figure, not in the panel
+    assert page.locator('#t1-lineage').is_hidden()
+    assert page.evaluate('document.activeElement.className') == 'ask-fig'
+    assert page.locator('.ask-fig').get_attribute('aria-expanded') == 'false'
+
+
 def test_offsets_are_code_points_and_bad_figures_are_ignored(page):
     segs = page.evaluate("""() => SajhaLineage.segments('📈 up 4.5% and 45 bp', [
         {start: 5, end: 9, text: '4.5%', quantity: 'a'}, {start: 14, end: 19, text: '45 bp', quantity: 'b'},

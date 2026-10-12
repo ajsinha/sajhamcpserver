@@ -1,0 +1,159 @@
+{
+  "name": "gdelt_coverage_timeline",
+  "implementation": "sajha.tools.impl.gdelt_tools.GdeltCoverageTimelineTool",
+  "title": "News coverage timeline (GDELT)",
+  "description": "How much of the world's news covers a query over time (share of all monitored articles, or article counts), or the average tone of that coverage.\nReturns: query, measure, from, to, units, count, timeline (series, points (date, value, total)).\nInputs: query; measure (volume, article_count or tone; default volume); from, to (default the last 30 days; at most 92 days); source_country, language, domain.\nExample: {\"query\": \"\\\"bank failure\\\"\", \"measure\": \"volume\", \"from\": \"2026-09-01\", \"to\": \"2026-09-30\"}",
+  "annotations": {
+    "title": "News coverage timeline (GDELT)",
+    "readOnlyHint": true,
+    "destructiveHint": false,
+    "idempotentHint": true,
+    "openWorldHint": true
+  },
+  "version": "1.0.0",
+  "enabled": true,
+  "cache_ttl": 3600,
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "query": {
+        "type": "string",
+        "description": "GDELT query: words, \"exact phrases\", OR in parentheses, -excluded",
+        "minLength": 2,
+        "maxLength": 300
+      },
+      "measure": {
+        "type": "string",
+        "enum": [
+          "volume",
+          "article_count",
+          "tone"
+        ],
+        "description": "What to measure",
+        "default": "volume"
+      },
+      "from": {
+        "type": "string",
+        "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+        "description": "First day (YYYY-MM-DD, UTC)"
+      },
+      "to": {
+        "type": "string",
+        "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+        "description": "Last day (YYYY-MM-DD, UTC)"
+      },
+      "source_country": {
+        "type": "string",
+        "description": "Only outlets in this country (GDELT country name or FIPS code, e.g. UK, japan)",
+        "maxLength": 40
+      },
+      "language": {
+        "type": "string",
+        "description": "Only articles in this language (e.g. english, french)",
+        "maxLength": 30
+      },
+      "domain": {
+        "type": "string",
+        "description": "Only this outlet domain (e.g. reuters.com)",
+        "maxLength": 100
+      }
+    },
+    "required": [
+      "query"
+    ],
+    "additionalProperties": false,
+    "examples": [
+      {
+        "query": "\"bank failure\"",
+        "measure": "volume",
+        "from": "2026-09-01",
+        "to": "2026-09-30"
+      }
+    ]
+  },
+  "outputSchema": {
+    "type": "object",
+    "properties": {
+      "query": {
+        "type": "string"
+      },
+      "measure": {
+        "type": "string"
+      },
+      "from": {
+        "type": "string"
+      },
+      "to": {
+        "type": "string"
+      },
+      "units": {
+        "type": "string"
+      },
+      "count": {
+        "type": "integer"
+      },
+      "timeline": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "series": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "points": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "date": {
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  },
+                  "value": {
+                    "type": [
+                      "number",
+                      "null"
+                    ]
+                  },
+                  "total": {
+                    "type": [
+                      "number",
+                      "null"
+                    ]
+                  }
+                },
+                "required": [
+                  "date"
+                ]
+              }
+            }
+          },
+          "required": []
+        }
+      },
+      "source": {
+        "type": "string",
+        "description": "Attribution"
+      }
+    },
+    "required": [
+      "timeline",
+      "source"
+    ]
+  },
+  "metadata": {
+    "author": "Ashutosh Sinha",
+    "category": "News and events",
+    "tags": [
+      "gdelt",
+      "news volume",
+      "tone",
+      "sentiment"
+    ]
+  }
+}

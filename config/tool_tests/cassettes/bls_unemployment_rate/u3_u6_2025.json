@@ -1,0 +1,39 @@
+{
+ "format": 1,
+ "interactions": [
+  {
+   "request": {
+    "method": "POST",
+    "url": "https://api.bls.gov/publicAPI/v1/timeseries/data/",
+    "body_sha256": "6c1d81b8cd471af43f6a3ccfe95332980045ad1905235090c7f9a19b964f5332"
+   },
+   "response": {
+    "status": 200,
+    "reason": "OK",
+    "headers": {
+     "content-type": "application/json",
+     "vary": "Origin, Accept-Encoding",
+     "apc-route-id": "_01_05v",
+     "access-control-allow-headers": "origin,x-requested-with,access-control-request-headers,content-type,access-control-request-method,accept",
+     "access-control-allow-origin": "*",
+     "route-id": "_t8_07v;",
+     "pool-info": "AP01",
+     "x-frame-options": "ALLOW-FROM https://www.bls.gov",
+     "content-security-policy": "frame-ancestors https://*.bls.gov",
+     "cross-origin-opener-policy": "same-origin",
+     "expires": "Mon, 12 Oct 2026 04:03:33 GMT",
+     "cache-control": "max-age=0, no-cache, no-store",
+     "pragma": "no-cache",
+     "date": "Mon, 12 Oct 2026 04:03:33 GMT",
+     "connection": "keep-alive",
+     "server-timing": "cdn-cache; desc=MISS, edge; dur=30, origin; dur=89, ak_p; desc=\"1791777813179_388049307_275362293_11899_8513_16_32_-\";dur=1",
+     "alt-svc": "h3=\":443\"; ma=93600",
+     "strict-transport-security": "max-age=31536000 ; includeSubDomains ; preload"
+    },
+    "body": {
+     "text": "{\"status\":\"REQUEST_SUCCEEDED\",\"responseTime\":74,\"message\":[],\"Results\":{\n\"series\":\n[{\"seriesID\":\"LNS14000000\",\"data\":[{\"year\":\"2025\",\"period\":\"M12\",\"periodName\":\"December\",\"value\":\"4.4\",\"footnotes\":[{}]},{\"year\":\"2025\",\"period\":\"M11\",\"periodName\":\"November\",\"value\":\"4.5\",\"footnotes\":[{}]},{\"year\":\"2025\",\"period\":\"M10\",\"periodName\":\"October\",\"value\":\"-\",\"footnotes\":[{\"code\":\"9\",\"text\":\"Data unavailable due to the 2025 lapse in appropriations.\"}]},{\"year\":\"2025\",\"period\":\"M09\",\"periodName\":\"September\",\"value\":\"4.4\",\"footnotes\":[{}]},{\"year\":\"2025\",\"period\":\"M08\",\"periodName\":\"August\",\"value\":\"4.3\",\"footnotes\":[{}]},{\"year\":\"2025\",\"period\":\"M07\",\"periodName\":\"July\",\"value\":\"4.3\",\"footnotes\":[{}]},{\"year\":\"2025\",\"period\":\"M06\",\"periodName\":\"June\",\"value\":\"4.1\",\"footnotes\":[{}]},{\"year\":\"2025\",\"period\":\"M05\",\"periodName\":\"May\",\"value\":\"4.3\",\"footnotes\":[{}]},{\"year\":\"2025\",\"period\":\"M04\",\"periodName\":\"April\",\"value\":\"4.2\",\"footnotes\":[{}]},{\"year\":\"2025\",\"period\":\"M03\",\"periodName\":\"March\",\"value\":\"4.2\",\"footnotes\":[{}]},{\"year\":\"2025\",\"period\":\"M02\",\"periodName\":\"February\",\"value\":\"4.2\",\"footnotes\":[{}]},{\"year\":\"2025\",\"period\":\"M01\",\"periodName\":\"January\",\"value\":\"4.0\",\"footnotes\":[{}]}]},\n{\"seriesID\":\"LNS13327709\",\"data\":[{\"year\":\"2025\",\"period\":\"M12\",\"periodName\":\"December\",\"value\":\"8.4\",\"footnotes\":[{}]},{\"year\":\"2025\",\"period\":\"M11\",\"periodName\":\"November\",\"value\":\"8.7\",\"footnotes\":[{}]},{\"year\":\"2025\",\"period\":\"M10\",\"periodName\":\"October\",\"value\":\"-\",\"footnotes\":[{\"code\":\"9\",\"text\":\"Data unavailable due to the 2025 lapse in appropriations.\"}]},{\"year\":\"2025\",\"period\":\"M09\",\"periodName\":\"September\",\"value\":\"8.1\",\"footnotes\":[{}]},{\"year\":\"2025\",\"period\":\"M08\",\"periodName\":\"August\",\"value\":\"8.1\",\"footnotes\":[{}]},{\"year\":\"2025\",\"period\":\"M07\",\"periodName\":\"July\",\"value\":\"7.9\",\"footnotes\":[{}]},{\"year\":\"2025\",\"period\":\"M06\",\"periodName\":\"June\",\"value\":\"7.7\",\"footnotes\":[{}]},{\"year\":\"2025\",\"period\":\"M05\",\"periodName\":\"May\",\"value\":\"7.8\",\"footnotes\":[{}]},{\"year\":\"2025\",\"period\":\"M04\",\"periodName\":\"April\",\"value\":\"7.8\",\"footnotes\":[{}]},{\"year\":\"2025\",\"period\":\"M03\",\"periodName\":\"March\",\"value\":\"7.9\",\"footnotes\":[{}]},{\"year\":\"2025\",\"period\":\"M02\",\"periodName\":\"February\",\"value\":\"8.0\",\"footnotes\":[{}]},{\"year\":\"2025\",\"period\":\"M01\",\"periodName\":\"January\",\"value\":\"7.5\",\"footnotes\":[{}]}]}]\n}}"
+    }
+   }
+  }
+ ]
+}

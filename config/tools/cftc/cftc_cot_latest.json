@@ -1,0 +1,246 @@
+{
+  "name": "cftc_cot_latest",
+  "implementation": "sajha.tools.impl.cftc_tools.CftcCotLatestTool",
+  "description": "Newest weekly Commitments of Traders positions for one futures market, by trader category (contracts and percent of open interest).\nReturns: report_date, market, open_interest, categories (long, short, spread, net, changes, pct).\nInputs (* required): market*, report (default legacy), kind (default futures_only).\nExample: {\"market\": \"13874A\", \"report\": \"tff\"}",
+  "annotations": {
+    "readOnlyHint": true,
+    "idempotentHint": true,
+    "openWorldHint": true
+  },
+  "version": "1.0.0",
+  "enabled": true,
+  "cache_ttl": 21600,
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "market": {
+        "type": "string",
+        "description": "CFTC contract market code (e.g. 13874A) or a market name",
+        "minLength": 2
+      },
+      "report": {
+        "type": "string",
+        "description": "legacy, disaggregated (commodities) or tff (financial futures)",
+        "enum": [
+          "legacy",
+          "disaggregated",
+          "tff"
+        ],
+        "default": "legacy"
+      },
+      "kind": {
+        "type": "string",
+        "description": "futures_only or combined (futures and options)",
+        "enum": [
+          "futures_only",
+          "combined"
+        ],
+        "default": "futures_only"
+      }
+    },
+    "required": [
+      "market"
+    ],
+    "additionalProperties": false,
+    "examples": [
+      {
+        "market": "13874A",
+        "report": "tff"
+      }
+    ]
+  },
+  "outputSchema": {
+    "type": "object",
+    "required": [
+      "source",
+      "report"
+    ],
+    "properties": {
+      "report": {
+        "type": "string",
+        "description": "legacy, disaggregated or tff"
+      },
+      "report_name": {
+        "type": "string",
+        "description": "Report name"
+      },
+      "kind": {
+        "type": "string",
+        "description": "futures_only or combined"
+      },
+      "dataset": {
+        "type": "string",
+        "description": "Socrata dataset id"
+      },
+      "source": {
+        "type": "string",
+        "description": "Source: CFTC ...; cite it with the data"
+      },
+      "units": {
+        "type": "string",
+        "description": "Units of the numbers"
+      },
+      "note": {
+        "type": "string",
+        "description": "Why there is no data"
+      },
+      "report_date": {
+        "type": [
+          "string",
+          "null"
+        ],
+        "description": "Report date (Tuesday), YYYY-MM-DD"
+      },
+      "market": {
+        "type": [
+          "string",
+          "null"
+        ],
+        "description": "Market and exchange"
+      },
+      "code": {
+        "type": [
+          "string",
+          "null"
+        ],
+        "description": "CFTC contract market code"
+      },
+      "commodity": {
+        "type": [
+          "string",
+          "null"
+        ],
+        "description": "Commodity"
+      },
+      "contract_units": {
+        "type": [
+          "string",
+          "null"
+        ],
+        "description": "Contract size"
+      },
+      "open_interest": {
+        "type": [
+          "integer",
+          "null"
+        ],
+        "description": "Open interest, contracts"
+      },
+      "change_in_open_interest": {
+        "type": [
+          "integer",
+          "null"
+        ],
+        "description": "Weekly change in open interest"
+      },
+      "traders_total": {
+        "type": [
+          "integer",
+          "null"
+        ],
+        "description": "Reportable traders"
+      },
+      "categories": {
+        "type": "object",
+        "description": "Trader categories of the report",
+        "additionalProperties": {
+          "type": "object",
+          "description": "One trader category (contracts; pct_* in percent of open interest)",
+          "properties": {
+            "long": {
+              "type": [
+                "integer",
+                "null"
+              ],
+              "description": "Long positions"
+            },
+            "short": {
+              "type": [
+                "integer",
+                "null"
+              ],
+              "description": "Short positions"
+            },
+            "spread": {
+              "type": [
+                "integer",
+                "null"
+              ],
+              "description": "Spreading positions"
+            },
+            "net": {
+              "type": [
+                "integer",
+                "null"
+              ],
+              "description": "Long minus short"
+            },
+            "change_long": {
+              "type": [
+                "integer",
+                "null"
+              ],
+              "description": "Weekly change in long"
+            },
+            "change_short": {
+              "type": [
+                "integer",
+                "null"
+              ],
+              "description": "Weekly change in short"
+            },
+            "traders_long": {
+              "type": [
+                "integer",
+                "null"
+              ],
+              "description": "Traders long"
+            },
+            "traders_short": {
+              "type": [
+                "integer",
+                "null"
+              ],
+              "description": "Traders short"
+            },
+            "pct_long": {
+              "type": [
+                "number",
+                "null"
+              ],
+              "description": "Long, percent of open interest",
+              "x-sajha-unit": "percent"
+            },
+            "pct_short": {
+              "type": [
+                "number",
+                "null"
+              ],
+              "description": "Short, percent of open interest",
+              "x-sajha-unit": "percent"
+            },
+            "net_pct_of_open_interest": {
+              "type": [
+                "number",
+                "null"
+              ],
+              "description": "Net long, percent of open interest",
+              "x-sajha-unit": "percent"
+            }
+          }
+        }
+      }
+    }
+  },
+  "metadata": {
+    "author": "Ashutosh Sinha",
+    "category": "Economic Data",
+    "tags": [
+      "cftc",
+      "commitments of traders",
+      "cot",
+      "futures",
+      "positioning"
+    ]
+  }
+}

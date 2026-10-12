@@ -1,0 +1,61 @@
+{
+ "tool": "hazards_earthquakes",
+ "arguments": {
+  "from": "2026-09-01",
+  "to": "2026-09-30",
+  "latitude": 35.68,
+  "longitude": 139.69,
+  "radius_km": 300,
+  "min_magnitude": 4,
+  "order": "magnitude",
+  "limit": 5
+ },
+ "recorded": "2026-10-12",
+ "calls": [
+  {
+   "method": "GET",
+   "url": "https://earthquake.usgs.gov/fdsnws/event/1/query",
+   "params": [
+    [
+     "format",
+     "geojson"
+    ],
+    [
+     "starttime",
+     "2026-09-01"
+    ],
+    [
+     "endtime",
+     "2026-10-01"
+    ],
+    [
+     "minmagnitude",
+     "4"
+    ],
+    [
+     "limit",
+     "5"
+    ],
+    [
+     "orderby",
+     "magnitude"
+    ],
+    [
+     "latitude",
+     "35.68"
+    ],
+    [
+     "longitude",
+     "139.69"
+    ],
+    [
+     "maxradiuskm",
+     "300"
+    ]
+   ],
+   "status": 200,
+   "content_type": "application/json; charset=utf-8",
+   "body": "{\"type\":\"FeatureCollection\",\"metadata\":{\"generated\":1791777766000,\"url\":\"https://earthquake.usgs.gov/fdsnws/event/1/query?format=geojson&starttime=2026-09-01&endtime=2026-10-01&minmagnitude=4&limit=5&orderby=magnitude&latitude=35.68&longitude=139.69&maxradiuskm=300\",\"title\":\"USGS Earthquakes\",\"status\":200,\"api\":\"2.8.1\",\"limit\":5,\"offset\":1},\"features\":[{\"type\":\"Feature\",\"properties\":{\"mag\":4.9,\"place\":\"2 km SW of Sakai, Japan\",\"time\":1790624707515,\"updated\":1790700916626,\"tz\":null,\"url\":\"https://earthquake.usgs.gov/earthquakes/eventpage/us6000ty7u\",\"detail\":\"https://earthquake.usgs.gov/fdsnws/event/1/query?eventid=us6000ty7u&format=geojson\",\"felt\":69,\"cdi\":4.3,\"mmi\":null,\"alert\":null,\"status\":\"reviewed\",\"tsunami\":0,\"sig\":399,\"net\":\"us\",\"code\":\"6000ty7u\",\"ids\":\",us6000ty7u,\",\"sources\":\",us,\",\"types\":\",dyfi,moment-tensor,origin,phase-data,\",\"nst\":89,\"dmin\":1.348,\"rms\":0.66,\"gap\":119,\"magType\":\"mww\",\"type\":\"earthquake\",\"title\":\"M 4.9 - 2 km SW of Sakai, Japan\"},\"geometry\":{\"type\":\"Point\",\"coordinates\":[139.7782,36.0809,70.972]},\"id\":\"us6000ty7u\"},\n{\"type\":\"Feature\",\"properties\":{\"mag\":4.8,\"place\":\"1 km SE of Ishige, Japan\",\"time\":1789571258656,\"updated\":1790711190620,\"tz\":null,\"url\":\"https://earthquake.usgs.gov/earthquakes/eventpage/us7000thv6\",\"detail\":\"https://earthquake.usgs.gov/fdsnws/event/1/query?eventid=us7000thv6&format=geojson\",\"felt\":73,\"cdi\":3.6,\"mmi\":null,\"alert\":null,\"status\":\"reviewed\",\"tsunami\":0,\"sig\":381,\"net\":\"us\",\"code\":\"7000thv6\",\"ids\":\",us7000thv6,\",\"sources\":\",us,\",\"types\":\",dyfi,moment-tensor,origin,phase-data,\",\"nst\":165,\"dmin\":0.845,\"rms\":0.67,\"gap\":97,\"magType\":\"mww\",\"type\":\"earthquake\",\"title\":\"M 4.8 - 1 km SE of Ishige, Japan\"},\"geometry\":{\"type\":\"Point\",\"coordinates\":[139.9782,36.1092,79.922]},\"id\":\"us7000thv6\"},\n{\"type\":\"Feature\",\"properties\":{\"mag\":4.7,\"place\":\"58 km SE of Shima, Japan\",\"time\":1789912496985,\"updated\":1790369516040,\"tz\":null,\"url\":\"https://earthquake.usgs.gov/earthquakes/eventpage/us7000tirt\",\"detail\":\"https://earthquake.usgs.gov/fdsnws/event/1/query?eventid=us7000tirt&format=geojson\",\"felt\":null,\"cdi\":null,\"mmi\":null,\"alert\":null,\"status\":\"reviewed\",\"tsunami\":0,\"sig\":340,\"net\":\"us\",\"code\":\"7000tirt\",\"ids\":\",us7000tirt,\",\"sources\":\",us,\",\"types\":\",origin,phase-data,\",\"nst\":77,\"dmin\":1.379,\"rms\":1.04,\"gap\":118,\"magType\":\"mb\",\"type\":\"earthquake\",\"title\":\"M 4.7 - 58 km SE of Shima, Japan\"},\"geometry\":{\"type\":\"Point\",\"coordinates\":[137.3197,33.9889,357.877]},\"id\":\"us7000tirt\"},\n{\"type\":\"Feature\",\"properties\":{\"mag\":4.6,\"place\":\"54 km E of Namie, Japan\",\"time\":1789383594632,\"updated\":1791378222040,\"tz\":null,\"url\":\"https://earthquake.usgs.gov/earthquakes/eventpage/us7000thct\",\"detail\":\"https://earthquake.usgs.gov/fdsnws/event/1/query?eventid=us7000thct&format=geojson\",\"felt\":null,\"cdi\":null,\"mmi\":null,\"alert\":null,\"status\":\"reviewed\",\"tsunami\":0,\"sig\":326,\"net\":\"us\",\"code\":\"7000thct\",\"ids\":\",us7000thct,\",\"sources\":\",us,\",\"types\":\",origin,phase-data,\",\"nst\":48,\"dmin\":2.898,\"rms\":0.63,\"gap\":98,\"magType\":\"mb\",\"type\":\"earthquake\",\"title\":\"M 4.6 - 54 km E of Namie, Japan\"},\"geometry\":{\"type\":\"Point\",\"coordinates\":[141.613,37.5333,55.352]},\"id\":\"us7000thct\"},\n{\"type\":\"Feature\",\"properties\":{\"mag\":4.5,\"place\":\"27 km E of Ōarai, Japan\",\"time\":1789766113483,\"updated\":1791512122040,\"tz\":null,\"url\":\"https://earthquake.usgs.gov/earthquakes/eventpage/us7000tifm\",\"detail\":\"https://earthquake.usgs.gov/fdsnws/event/1/query?eventid=us7000tifm&format=geojson\",\"felt\":null,\"cdi\":null,\"mmi\":null,\"alert\":null,\"status\":\"reviewed\",\"tsunami\":0,\"sig\":312,\"net\":\"us\",\"code\":\"7000tifm\",\"ids\":\",us7000tifm,\",\"sources\":\",us,\",\"types\":\",origin,phase-data,\",\"nst\":41,\"dmin\":2.174,\"rms\":0.73,\"gap\":150,\"magType\":\"mb\",\"type\":\"earthquake\",\"title\":\"M 4.5 - 27 km E of Ōarai, Japan\"},\"geometry\":{\"type\":\"Point\",\"coordinates\":[140.8887,36.3065,45.445]},\"id\":\"us7000tifm\"}],\"bbox\":[137.3197,33.9889,45.445,141.613,37.5333,357.877]}"
+  }
+ ]
+}

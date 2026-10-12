@@ -407,8 +407,8 @@ curl -X POST http://localhost:3002/api/composite-tools \
 | POST | `/api/ai/docs/reindex` | admin | Re-sync the index now; `{"force": true}` re-embeds everything. |
 | POST | `/api/ai/docs/uploads` | admin | Add a document: `{"filename", "content"}` (UTF-8 `.md`, `.markdown`, `.txt`, `.rst`, `.html`, `.htm`), or `{"filename", "content_base64"}` for `.pdf` (needs `pypdf`) and `.docx` (needs `python-docx`); 201. A missing reader answers 400 naming the package. |
 | DELETE | `/api/ai/docs/uploads/{filename}` | admin | Remove an uploaded document from storage and the index. |
-| GET | `/api/ai/docs/mine` | user (signed in) | The caller's connected-account document sources (`ai.rag.accounts.sources`): linked or not, documents indexed, last sync; the OCR engine. 503 when no sources are configured; 403 for API keys. |
-| POST | `/api/ai/docs/mine/sync` | user (signed in) | Sync the caller's sources in the background: `sources` (some names), `force` (re-read every file); 202 with `syncing`. |
+| GET | `/api/ai/docs/mine` | user (signed in) | The caller's connected-account document sources (`ai.rag.accounts.sources`): linked or not, documents indexed, last sync; the OCR engine. 503 when no sources are configured; 403 for API keys (a key bound to a user too). |
+| POST | `/api/ai/docs/mine/sync` | user (signed in) | Sync the caller's sources in the background: `sources` (some names), `force` (re-read every file); 202 with `syncing`. With the session cookie, `X-CSRF-Token` is required (both `POST` routes). |
 | POST | `/api/ai/docs/mine/search` | user (signed in) | Search the caller's own documents: `query` (required), `top_k`, `source`. Passages with citations, and `syncing` (stale sources whose sync it started). |
 
 ```bash

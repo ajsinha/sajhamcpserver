@@ -1,0 +1,16 @@
+# An HTTP tool with a recorded cassette (cassettes/eurostat_gdp/germany_italy_euro_area_2025_2026.json): replays offline.
+# Re-record against the live API with: python -m sajha.quality test --tool eurostat_gdp --record
+tool: eurostat_gdp
+cases:
+  - name: germany italy euro area 2025 2026
+    tags: [http]
+    arguments: {"countries": ["DE", "IT", "EA"], "measure": "growth_qoq", "period": "2025-Q1/2026-Q2"}
+    expect:
+      - schema: output
+      - path: "$.series_count"
+        equals: 3
+      - path: "$.source"
+        regex: "^Source: Eurostat"
+probe:
+  case: germany italy euro area 2025 2026
+  every: 21600

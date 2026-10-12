@@ -1,0 +1,16 @@
+# An HTTP tool with a recorded cassette (cassettes/research_get_work/one_work_by_doi.json): replays offline.
+# Re-record against the live API with: python -m sajha.quality test --tool research_get_work --record
+tool: research_get_work
+cases:
+  - name: one work by doi
+    tags: [http]
+    arguments: {"id": "10.1016/j.jbankfin.2006.07.013"}
+    expect:
+      - schema: output
+      - path: "$.work.doi"
+        equals: "10.1016/j.jbankfin.2006.07.013"
+      - path: "$.work.title"
+        regex: "Ownership structure"
+probe:
+  case: one work by doi
+  every: 86400

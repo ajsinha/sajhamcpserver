@@ -104,8 +104,12 @@ def source_key(user_id: str, name: str) -> str:
     return f"{PREFIX}{owner_hash(user_id)}:{name}"
 
 
-def is_user(user_id: Optional[str]) -> bool:
-    """Signed-in users only: API keys and anonymous callers have no connected accounts."""
+def is_user(user_id: Optional[str], auth_type: Optional[str] = None) -> bool:
+    """Signed-in users only: API keys and anonymous callers have no connected accounts. A key bound to a
+    user calls as that user (``user_id`` is the owner), so the entry points pass ``auth_type`` too and a
+    key (``apikey``) gets nothing, as on Connected accounts (sajha/routes/accounts_routes.py)."""
+    if auth_type == "apikey":
+        return False
     return bool(user_id) and user_id != "anonymous" and not str(user_id).startswith("apikey:")
 
 

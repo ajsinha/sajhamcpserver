@@ -1,0 +1,42 @@
+{
+ "tool": "cftc_cot_markets",
+ "arguments": {
+  "search": "GOLD",
+  "active_only": false,
+  "report": "legacy",
+  "kind": "futures_only",
+  "limit": 25
+ },
+ "recorded": "2026-10-11",
+ "calls": [
+  {
+   "method": "GET",
+   "url": "https://publicreporting.cftc.gov/resource/6dca-aqww.json",
+   "params": [
+    [
+     "$select",
+     "cftc_contract_market_code,market_and_exchange_names,commodity_name,max(report_date_as_yyyy_mm_dd) as latest_report"
+    ],
+    [
+     "$where",
+     "(upper(market_and_exchange_names) like '%GOLD%')"
+    ],
+    [
+     "$group",
+     "cftc_contract_market_code,market_and_exchange_names,commodity_name"
+    ],
+    [
+     "$order",
+     "latest_report DESC"
+    ],
+    [
+     "$limit",
+     "25"
+    ]
+   ],
+   "status": 200,
+   "content_type": "application/json;charset=utf-8",
+   "body": "[{\"cftc_contract_market_code\":\"180LM9\",\"market_and_exchange_names\":\"PAX GOLD PERP STYLE - COINBASE DERIVATIVES, LLC\",\"commodity_name\":\"OTHER CRYPTO/DIGITAL ASSET (NON-MAJOR)\",\"latest_report\":\"2026-10-06T00:00:00.000\"}\n,{\"cftc_contract_market_code\":\"088691\",\"market_and_exchange_names\":\"GOLD - COMMODITY EXCHANGE INC.\",\"commodity_name\":\"GOLD\",\"latest_report\":\"2026-10-06T00:00:00.000\"}\n,{\"cftc_contract_market_code\":\"088695\",\"market_and_exchange_names\":\"MICRO GOLD - COMMODITY EXCHANGE INC.\",\"commodity_name\":\"GOLD\",\"latest_report\":\"2026-10-06T00:00:00.000\"}\n,{\"cftc_contract_market_code\":\"088LM1\",\"market_and_exchange_names\":\"GOLD -1 TROY OUNCE - COINBASE DERIVATIVES, LLC\",\"commodity_name\":\"GOLD\",\"latest_report\":\"2026-09-08T00:00:00.000\"}\n,{\"cftc_contract_market_code\":\"088606\",\"market_and_exchange_names\":\"GOLD, 100 TROY OZ - CHICAGO BOARD OF TRADE\",\"commodity_name\":\"GOLD\",\"latest_report\":\"2008-07-22T00:00:00.000\"}\n,{\"cftc_contract_market_code\":\"256741\",\"market_and_exchange_names\":\"GOLDMAN-SACHS COMMODITY INDEX - CHICAGO MERCANTILE EXCHANGE\",\"commodity_name\":\"GOLDMAN-SACHS COMMODITY INDEX\",\"latest_report\":\"2007-05-01T00:00:00.000\"}\n,{\"cftc_contract_market_code\":\"256741\",\"market_and_exchange_names\":\"GOLDMAN-SACHS COMMODITY INDEX - INTERNATIONAL MONETARY MARKET\",\"commodity_name\":\"GOLDMAN-SACHS COMMODITY INDEX\",\"latest_report\":\"2000-06-13T00:00:00.000\"}\n,{\"cftc_contract_market_code\":\"256741\",\"market_and_exchange_names\":\"COMMODITY INDEX, GOLDMAN-SACHS - INTERNATIONAL MONETARY MARKET\",\"commodity_name\":\"GOLDMAN-SACHS COMMODITY INDEX\",\"latest_report\":\"1993-02-02T00:00:00.000\"}\n,{\"cftc_contract_market_code\":\"088604\",\"market_and_exchange_names\":\"GOLD, 100 TROY OZ - CHICAGO BOARD OF TRADE\",\"commodity_name\":\"GOLD\",\"latest_report\":\"1989-02-28T00:00:00.000\"}\n,{\"cftc_contract_market_code\":\"088741\",\"market_and_exchange_names\":\"GOLD - INTERNATIONAL MONETARY MARKET\",\"commodity_name\":\"GOLD\",\"latest_report\":\"1987-11-13T00:00:00.000\"}]\n"
+  }
+ ]
+}

@@ -1,0 +1,18 @@
+# An HTTP tool with a recorded cassette (cassettes/cftc_cot_history/gold_september_2025.json): replays offline.
+# Re-record against the live API with: python -m sajha.quality test --tool cftc_cot_history --record
+tool: cftc_cot_history
+cases:
+  - name: gold september 2025
+    tags: [http]
+    arguments: {"market": "088691", "report": "disaggregated", "from": "2025-09-01", "to": "2025-09-30"}
+    expect:
+      - schema: output
+      - path: "$.count"
+        equals: 5
+      - path: "$.reports[0].report_date"
+        equals: "2025-09-30"
+      - path: "$.source"
+        regex: "^Source: CFTC"
+probe:
+  case: gold september 2025
+  every: 21600

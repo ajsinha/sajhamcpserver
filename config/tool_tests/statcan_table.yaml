@@ -1,0 +1,18 @@
+# An HTTP tool with a recorded cassette (cassettes/statcan_table/cpi_canada_all_items_2025.json): replays offline.
+# Re-record against the live API with: python -m sajha.quality test --tool statcan_table --record
+tool: statcan_table
+cases:
+  - name: cpi canada all items 2025
+    tags: [http]
+    arguments: {"table": "18-10-0004-01", "coordinate": "2.2", "period": "2025-Q1"}
+    expect:
+      - schema: output
+      - path: "$.vector"
+        equals: "v41690973"
+      - path: "$.observation_count"
+        equals: 3
+      - path: "$.source"
+        regex: "^Source: Statistics Canada, Table 18-10-0004-01"
+probe:
+  case: cpi canada all items 2025
+  every: 21600

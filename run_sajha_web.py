@@ -106,6 +106,14 @@ def main():
     for d in ['logs', 'config', 'config/tools', 'config/prompts', 'data', 'temp']:
         os.makedirs(d, exist_ok=True)
 
+    # --host / --port are what the server listens on: make server.host / server.port say so before the
+    # settings load, so links built without a request (connect-your-account URLs, SAJHA Net) use them
+    # (workers inherit the environment)
+    if args.host:
+        os.environ['SAJHA_SERVER_HOST'] = args.host
+    if args.port:
+        os.environ['SAJHA_SERVER_PORT'] = str(args.port)
+
     # Load settings
     from sajha.core.config import get_settings
     settings = get_settings()

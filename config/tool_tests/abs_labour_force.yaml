@@ -1,0 +1,16 @@
+# An HTTP tool with a recorded cassette (cassettes/abs_labour_force/unemployment_and_employed_2026h1.json): replays offline.
+# Re-record against the live API with: python -m sajha.quality test --tool abs_labour_force --record
+tool: abs_labour_force
+cases:
+  - name: unemployment and employed 2026h1
+    tags: [http]
+    arguments: {"measures": ["unemployment_rate", "employed"], "period": "2026-01/2026-06", "sex": "persons", "region": "australia", "adjustment": "seasonally_adjusted"}
+    expect:
+      - schema: output
+      - path: "$.series_count"
+        equals: 2
+      - path: "$.source"
+        regex: "^Source: Australian Bureau of Statistics"
+probe:
+  case: unemployment and employed 2026h1
+  every: 21600

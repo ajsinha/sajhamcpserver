@@ -33,7 +33,6 @@ RESERVED = frozenset({'list', 'describe', 'run', 'render', 'compare', 'deliver',
 KINDS = ('kpis', 'table', 'chart', 'text', 'metric', 'report')
 CALL_KINDS = ('kpis', 'table', 'chart', 'metric')
 FORMATS = ('markdown', 'html', 'pdf', 'xlsx', 'pptx', 'docx')
-RECIPIENT_KINDS = ('email', 'webhook', 'sharepoint', 'folder')
 CLASSIFICATIONS = ('public', 'internal', 'confidential', 'restricted')
 VALUE_FORMATS = ('number', 'integer', 'percent', 'ratio', 'currency', 'date', 'text', 'bps')
 CHART_TYPES = ('bar', 'line')
@@ -42,7 +41,13 @@ TOOL_ARGUMENTS = frozenset({'formats', 'deliver'})
 _REF_RE = re.compile(r'^\$(params|sections|run)\.(.+)$')
 _RUN_REFS = ('date', 'year', 'time')
 _TOP_KEYS = {'name', 'title', 'description', 'owner', 'enabled', 'tags', 'roles', 'parameters', 'required',
-             'sections', 'formats', 'recipients', 'classification', 'schedule'}
+             'sections', 'formats', 'classification'}
+#: keys of the original design whose features were descoped (docs/architecture/Reports.md §6, §7): refused
+DESCOPED_KEYS = {
+    'recipients': 'report delivery was descoped',
+    'schedule': 'report scheduling was descoped',
+}
+DESCOPED_HINT = 'use a workflow to run report_run on a schedule (and a tool step to send its files)'
 
 
 class ReportDefinitionError(ValueError):
@@ -92,9 +97,7 @@ class ReportDefinition:
     required: List[str]
     sections: List[Dict[str, Any]]
     formats: List[str]
-    recipients: List[Dict[str, Any]]
     classification: str
-    schedule: Optional[Dict[str, Any]]
     raw: Dict[str, Any] = field(default_factory=dict)
     source: str = ''
 
@@ -140,15 +143,9 @@ class ReportDefinition:
             schema['examples'] = [example]
         return schema
 
-    def public(self, redact_recipients: bool = True) -> Dict[str, Any]:
-        """The definition as ``report_describe`` shows it (recipients redacted for non-owners)."""
-        d = copy.deepcopy(self.raw)
-        if redact_recipients and d.get('recipients'):
-            kinds: Dict[str, int] = {}
-            for r in d['recipients']:
-                kinds[r.get('kind', '?')] = kinds.get(r.get('kind', '?'), 0) + 1
-            d['recipients'] = [{'kind': k, 'count': n, 'redacted': True} for k, n in sorted(kinds.items())]
-        return d
+    def public(self) -> Dict[str, Any]:
+        """The definition as ``report_describe`` shows it."""
+        return copy.deepcopy(self.raw)
 
 
 def section_call(s: Dict[str, Any]) -> Optional[Dict[str, Any]]:
@@ -261,7 +258,9 @@ def parse(doc: Any, source: str = '', max_sections: int = 50) -> ReportDefinitio
     if not isinstance(doc, dict):
         raise ReportDefinitionError(['a report definition must be a mapping'], source)
     p: List[str] = []
-    unknown = sorted(set(doc) - _TOP_KEYS)
+    for key in sorted(set(doc) & set(DESCOPED_KEYS)):
+        p.append(f'{key} is not supported: {DESCOPED_KEYS[key]}; {DESCOPED_HINT}')
+    unknown = sorted(set(doc) - _TOP_KEYS - set(DESCOPED_KEYS))
     if unknown:
         p.append(f'unknown keys: {", ".join(unknown)}')
     name = doc.get('name')
@@ -302,19 +301,9 @@ def parse(doc: Any, source: str = '', max_sections: int = 50) -> ReportDefinitio
     for f in formats:
         if f not in FORMATS:
             p.append(f'unknown format {f!r} (known: {", ".join(FORMATS)})')
-    recipients = doc.get('recipients') or []
-    if not isinstance(recipients, list):
-        p.append('recipients must be a list')
-        recipients = []
-    for i, r in enumerate(recipients):
-        if not isinstance(r, dict) or r.get('kind') not in RECIPIENT_KINDS:
-            p.append(f'recipients[{i}].kind must be one of {", ".join(RECIPIENT_KINDS)}')
     classification = doc.get('classification') or 'internal'
     if classification not in CLASSIFICATIONS:
         p.append(f'classification must be one of {", ".join(CLASSIFICATIONS)}')
-    schedule = doc.get('schedule')
-    if schedule is not None and (not isinstance(schedule, dict) or not isinstance(schedule.get('cron'), str)):
-        p.append('schedule must be {cron, timezone?}')
     for key in ('tags', 'roles'):
         if doc.get(key) is not None and not _str_list(doc.get(key)):
             p.append(f'{key} must be a list of strings')
@@ -395,7 +384,7 @@ def parse(doc: Any, source: str = '', max_sections: int = 50) -> ReportDefinitio
         enabled=bool(doc.get('enabled', True)), tags=list(doc.get('tags') or []), roles=list(doc.get('roles') or []),
         parameters={k: dict(v) for k, v in params.items()}, required=list(required),
         sections=[dict(s) for s in sections], formats=list(dict.fromkeys(['markdown'] + list(formats))),
-        recipients=list(recipients), classification=classification, schedule=schedule,
+        classification=classification,
         raw=json.loads(json.dumps(doc, default=str)), source=source)
 
 

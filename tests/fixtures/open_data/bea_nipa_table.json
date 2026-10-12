@@ -1,0 +1,50 @@
+{
+ "tool": "bea_nipa_table",
+ "arguments": {
+  "table": "T10101",
+  "frequency": "quarterly",
+  "years": [
+   2025
+  ]
+ },
+ "recorded": "hand-written from the BEA API user guide (April 2026; no key available), response shape only: the values are illustrative, not BEA data",
+ "calls": [
+  {
+   "method": "GET",
+   "url": "https://apps.bea.gov/api/data",
+   "params": [
+    [
+     "UserID",
+     "REDACTED"
+    ],
+    [
+     "method",
+     "GetData"
+    ],
+    [
+     "DataSetName",
+     "NIPA"
+    ],
+    [
+     "TableName",
+     "T10101"
+    ],
+    [
+     "Frequency",
+     "Q"
+    ],
+    [
+     "Year",
+     "2025"
+    ],
+    [
+     "ResultFormat",
+     "JSON"
+    ]
+   ],
+   "status": 200,
+   "content_type": "application/json",
+   "body": "{\"BEAAPI\": {\"Request\": {\"RequestParam\": [{\"ParameterName\": \"USERID\", \"ParameterValue\": \"REDACTED\"}, {\"ParameterName\": \"METHOD\", \"ParameterValue\": \"GetData\"}, {\"ParameterName\": \"DATASETNAME\", \"ParameterValue\": \"NIPA\"}, {\"ParameterName\": \"TABLENAME\", \"ParameterValue\": \"T10101\"}, {\"ParameterName\": \"FREQUENCY\", \"ParameterValue\": \"Q\"}, {\"ParameterName\": \"YEAR\", \"ParameterValue\": \"2025\"}, {\"ParameterName\": \"RESULTFORMAT\", \"ParameterValue\": \"JSON\"}]}, \"Results\": {\"Statistic\": \"NIPA Table\", \"UnitOfMeasure\": \"Level\", \"PublicTable\": \"Table 1.1.1. Percent Change From Preceding Period in Real Gross Domestic Product\", \"UTCProductionTime\": \"2026-09-25T12:30:00.000\", \"NoteRef\": \"T10101\", \"Dimensions\": [{\"Name\": \"TableName\", \"DataType\": \"string\", \"IsValue\": \"0\"}, {\"Name\": \"SeriesCode\", \"DataType\": \"string\", \"IsValue\": \"0\"}, {\"Name\": \"LineNumber\", \"DataType\": \"string\", \"IsValue\": \"0\"}, {\"Name\": \"LineDescription\", \"DataType\": \"string\", \"IsValue\": \"0\"}, {\"Name\": \"TimePeriod\", \"DataType\": \"string\", \"IsValue\": \"0\"}, {\"Name\": \"METRIC_NAME\", \"DataType\": \"string\", \"IsValue\": \"0\"}, {\"Name\": \"CL_UNIT\", \"DataType\": \"string\", \"IsValue\": \"0\"}, {\"Name\": \"UNIT_MULT\", \"DataType\": \"string\", \"IsValue\": \"0\"}, {\"Name\": \"DataValue\", \"DataType\": \"numeric\", \"IsValue\": \"1\"}], \"Data\": [{\"TableName\": \"T10101\", \"SeriesCode\": \"A191RL\", \"LineNumber\": \"1\", \"LineDescription\": \"Gross domestic product\", \"TimePeriod\": \"2025Q1\", \"METRIC_NAME\": \"Fisher Quantity Index\", \"CL_UNIT\": \"Percent change, annual rate\", \"UNIT_MULT\": \"0\", \"DataValue\": \"-0.5\", \"NoteRef\": \"T10101\"}, {\"TableName\": \"T10101\", \"SeriesCode\": \"A191RL\", \"LineNumber\": \"1\", \"LineDescription\": \"Gross domestic product\", \"TimePeriod\": \"2025Q2\", \"METRIC_NAME\": \"Fisher Quantity Index\", \"CL_UNIT\": \"Percent change, annual rate\", \"UNIT_MULT\": \"0\", \"DataValue\": \"3.8\", \"NoteRef\": \"T10101\"}, {\"TableName\": \"T10101\", \"SeriesCode\": \"DPCERL\", \"LineNumber\": \"2\", \"LineDescription\": \"Personal consumption expenditures\", \"TimePeriod\": \"2025Q1\", \"METRIC_NAME\": \"Fisher Quantity Index\", \"CL_UNIT\": \"Percent change, annual rate\", \"UNIT_MULT\": \"0\", \"DataValue\": \"-0.5\", \"NoteRef\": \"T10101\"}, {\"TableName\": \"T10101\", \"SeriesCode\": \"DPCERL\", \"LineNumber\": \"2\", \"LineDescription\": \"Personal consumption expenditures\", \"TimePeriod\": \"2025Q2\", \"METRIC_NAME\": \"Fisher Quantity Index\", \"CL_UNIT\": \"Percent change, annual rate\", \"UNIT_MULT\": \"0\", \"DataValue\": \"3.8\", \"NoteRef\": \"T10101\"}], \"Notes\": [{\"NoteRef\": \"T10101\", \"NoteText\": \"Table 1.1.1. Percent Change From Preceding Period in Real Gross Domestic Product - LastRevised: September 25, 2026\"}]}}}"
+  }
+ ]
+}

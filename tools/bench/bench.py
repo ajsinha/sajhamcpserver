@@ -144,6 +144,16 @@ def redis_reachable(url: str) -> bool:
         return False
 
 
+def free_port(start: int, avoid=()) -> int:
+    """The first free port from ``start`` on (not one of ``avoid``), else one the OS picks."""
+    for port in range(max(1024, start), max(1024, start) + 200):
+        if port not in avoid and port_free(port):
+            return port
+    with socket.socket() as s:
+        s.bind(("127.0.0.1", 0))
+        return s.getsockname()[1]
+
+
 def port_free(port: int) -> bool:
     with socket.socket() as s:
         s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)     # uvicorn does the same; TIME_WAIT is fine

@@ -66,7 +66,7 @@ The report data (``run.json``, ``schema: sajha.report.run/1``)::
         numbers check compares at that precision (Reports.md §5).
     previous_run_id
     narration: null                        report_narrate records {model, sections, ...} here
-    files: {fmt: path}, files_unavailable: {fmt: reason}, deliveries: [], warnings: [str]
+    files: {fmt: path}, files_unavailable: {fmt: reason}, warnings: [str]
 
 To store commentary: set the text section's ``text`` and ``status`` ("text"), set ``narration``,
 ``history.save(run)``, then ``engine.render_and_store(run, list(run["files"]))`` and save again.

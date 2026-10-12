@@ -1,0 +1,193 @@
+{
+  "name": "hazards_active_fires",
+  "implementation": "sajha.tools.impl.hazards_tools.HazardsActiveFiresTool",
+  "title": "Active fires",
+  "description": "Active fire detections from NASA FIRMS satellites (VIIRS, MODIS, Landsat) in a bounding box over 1 to 5 days. Needs FIRMS_MAP_KEY.\nReturns: units, count, total, truncated, fires (latitude, longitude, acquired, satellite, instrument, confidence, frp_mw, brightness_k, day_night).\nInputs (none required): bbox [west, south, east, north] (default world); days 1 to 5 (default 1); date (the last day; default today); source (default VIIRS_NOAA20_NRT); min_confidence (low, nominal, high); limit (default 500).\nExample: {\"bbox\": [-125, 32, -114, 42], \"days\": 2}",
+  "annotations": {
+    "title": "Active fires",
+    "readOnlyHint": true,
+    "destructiveHint": false,
+    "idempotentHint": true,
+    "openWorldHint": true
+  },
+  "version": "1.0.0",
+  "enabled": true,
+  "cache_ttl": 1800,
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "bbox": {
+        "type": "array",
+        "description": "Bounding box [west, south, east, north] in degrees",
+        "items": {
+          "type": "number"
+        },
+        "minItems": 4,
+        "maxItems": 4
+      },
+      "days": {
+        "type": "integer",
+        "description": "Days of detections, ending on date",
+        "minimum": 1,
+        "maximum": 5,
+        "default": 1
+      },
+      "date": {
+        "type": "string",
+        "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+        "description": "Last day of the range (YYYY-MM-DD, UTC)"
+      },
+      "source": {
+        "type": "string",
+        "enum": [
+          "VIIRS_NOAA20_NRT",
+          "VIIRS_NOAA21_NRT",
+          "VIIRS_SNPP_NRT",
+          "MODIS_NRT",
+          "LANDSAT_NRT"
+        ],
+        "description": "Satellite product (near real time); LANDSAT_NRT covers the US and Canada only",
+        "default": "VIIRS_NOAA20_NRT"
+      },
+      "min_confidence": {
+        "type": "string",
+        "enum": [
+          "low",
+          "nominal",
+          "high"
+        ],
+        "description": "Lowest detection confidence to keep"
+      },
+      "limit": {
+        "type": "integer",
+        "description": "Most detections to return",
+        "minimum": 1,
+        "maximum": 5000,
+        "default": 500
+      }
+    },
+    "required": [],
+    "additionalProperties": false,
+    "examples": [
+      {
+        "bbox": [
+          -125,
+          32,
+          -114,
+          42
+        ],
+        "days": 2
+      }
+    ]
+  },
+  "outputSchema": {
+    "type": "object",
+    "properties": {
+      "source_product": {
+        "type": "string"
+      },
+      "area": {
+        "type": "string"
+      },
+      "days": {
+        "type": "integer"
+      },
+      "units": {
+        "type": "string"
+      },
+      "count": {
+        "type": "integer"
+      },
+      "total": {
+        "type": "integer"
+      },
+      "truncated": {
+        "type": "boolean"
+      },
+      "fires": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "latitude": {
+              "type": [
+                "number",
+                "null"
+              ]
+            },
+            "longitude": {
+              "type": [
+                "number",
+                "null"
+              ]
+            },
+            "acquired": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "satellite": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "instrument": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "confidence": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "frp_mw": {
+              "type": [
+                "number",
+                "null"
+              ]
+            },
+            "brightness_k": {
+              "type": [
+                "number",
+                "null"
+              ]
+            },
+            "day_night": {
+              "type": [
+                "string",
+                "null"
+              ]
+            }
+          },
+          "required": [
+            "latitude",
+            "longitude"
+          ]
+        }
+      },
+      "source": {
+        "type": "string",
+        "description": "Attribution"
+      }
+    },
+    "required": [
+      "fires",
+      "source"
+    ]
+  },
+  "metadata": {
+    "author": "Ashutosh Sinha",
+    "category": "Natural hazards",
+    "tags": [
+      "wildfires",
+      "nasa firms",
+      "hazards",
+      "physical climate risk"
+    ]
+  }
+}

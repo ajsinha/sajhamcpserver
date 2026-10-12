@@ -71,8 +71,9 @@ class SajhaSearchMyDocsTool(BaseMCPTool):
         query = str(arguments.get("query") or "").strip()
         if not query:
             raise ValueError("query is required")
-        user = current().user_id
-        if not is_user(user):
+        caller = current()
+        user = caller.user_id
+        if not is_user(user, caller.auth_type):
             raise PermissionError("documents from connected accounts belong to signed-in users; this caller is not one")
         source = str(arguments.get("source") or "").strip()
         if source and index.source(source) is None:

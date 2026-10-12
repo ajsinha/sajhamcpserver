@@ -210,8 +210,10 @@ def allow_unsigned() -> bool:
         return True
 
 
-def trusted_keys(entries: Optional[List[str]] = None, keys_dir: Optional[str] = None) -> Dict[str, TrustedKey]:
-    """The configured trusted publisher keys, by key id. A bad entry is logged and skipped."""
+def trusted_keys(entries: Optional[List[str]] = None, keys_dir: Optional[str] = None,
+                 origin: str = 'plugins.trusted_keys') -> Dict[str, TrustedKey]:
+    """The configured trusted publisher keys, by key id. A bad entry is logged and skipped. ``origin``:
+    where ``entries`` came from, as reported with a trusted verdict (the setting, or a --trusted file)."""
     out: Dict[str, TrustedKey] = {}
     if not crypto_available():
         return out
@@ -221,9 +223,9 @@ def trusted_keys(entries: Optional[List[str]] = None, keys_dir: Optional[str] = 
     for e in entries:
         name, sep, text = e.partition('=')
         if not sep:
-            logger.warning('plugins.trusted_keys: an entry is not <publisher>=<key>; skipped')
+            logger.warning(f'{origin}: an entry is not <publisher>=<key>; skipped')
             continue
-        pairs.append((name.strip(), text.strip(), 'plugins.trusted_keys'))
+        pairs.append((name.strip(), text.strip(), origin))
     if keys_dir and os.path.isdir(keys_dir):
         for fname in sorted(os.listdir(keys_dir)):
             if fname.endswith('.pub'):
@@ -454,8 +456,11 @@ def main(argv=None) -> int:
         elif a.cmd == 'verify':
             keys = None
             if a.trusted:
-                keys = trusted_keys([f'{Path(t).name[:-4] if t.endswith(".pub") else Path(t).name}='
-                                     f'{Path(t).read_text(encoding="ascii")}' for t in a.trusted], keys_dir='')
+                keys = {}
+                for t in a.trusted:              # each key reports the file it came from, not the setting
+                    keys.update(trusted_keys([f'{Path(t).name[:-4] if t.endswith(".pub") else Path(t).name}='
+                                              f'{Path(t).read_text(encoding="ascii")}'], keys_dir='',
+                                             origin=f'--trusted {t}'))
             r = verify(a.plugin_dir, keys)
             print(f'{r.status}: {r.detail}')
             return 0 if r.trusted else 1

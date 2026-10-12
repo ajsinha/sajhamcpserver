@@ -236,6 +236,24 @@ class TestLegacySessionStream:
         assert r.status_code == 404
         get_session_store().delete(s.session_id)
 
+    def test_other_users_session_is_404_on_post_and_delete(self, client):
+        # every use of a session is bound to its owner, not only the GET stream (Security Model)
+        from sajha.core.mcp_sessions import get_session_store
+        s = get_session_store().create(protocol_version='2025-11-25', user_id='someone-else')
+        hdrs = {'Mcp-Session-Id': s.session_id, 'MCP-Protocol-Version': '2025-11-25',
+                'Accept': 'application/json, text/event-stream'}
+        ping = {'jsonrpc': '2.0', 'id': 7, 'method': 'ping'}
+        assert client.post('/mcp', json=ping, headers=hdrs).status_code == 404
+        assert client.post('/mcp', json={'jsonrpc': '2.0', 'method': 'notifications/initialized'},
+                           headers=hdrs).status_code == 404
+        assert client.delete('/mcp', headers=hdrs).status_code == 404
+        assert get_session_store().get(s.session_id) is not None       # not deleted by the stranger
+        get_session_store().delete(s.session_id)
+        _, sid = _session(client)                                      # the caller's own session still works
+        own = {**hdrs, 'Mcp-Session-Id': sid}
+        assert client.post('/mcp', json=ping, headers=own).status_code == 200
+        assert client.delete('/mcp', headers=own).status_code == 204
+
 
 # ── 3. RFC 7662 introspection ───────────────────────────────────────────
 

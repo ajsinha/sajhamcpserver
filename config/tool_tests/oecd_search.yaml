@@ -1,0 +1,17 @@
+# An HTTP tool with a recorded cassette (cassettes/oecd_search/consumer_price.json): replays offline.
+# Re-record against the live API with: python -m sajha.quality test --tool oecd_search --record
+# The recorded dataflow list is trimmed to consumer and producer price dataflows (the full list is 9 MB).
+tool: oecd_search
+cases:
+  - name: consumer price
+    tags: [http]
+    arguments: {"text": "consumer price", "limit": 20}
+    expect:
+      - schema: output
+      - path: "$.dataflows"
+        min_length: 3
+      - path: "$.source"
+        regex: "^Source: OECD"
+probe:
+  case: consumer price
+  every: 86400

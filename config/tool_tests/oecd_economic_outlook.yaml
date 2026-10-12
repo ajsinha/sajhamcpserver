@@ -1,0 +1,16 @@
+# An HTTP tool with a recorded cassette (cassettes/oecd_economic_outlook/growth_and_inflation_2023_to_2027.json): replays offline.
+# Re-record against the live API with: python -m sajha.quality test --tool oecd_economic_outlook --record
+tool: oecd_economic_outlook
+cases:
+  - name: growth and inflation 2023 to 2027
+    tags: [http]
+    arguments: {"countries": ["USA", "DEU", "OECD"], "indicators": ["gdp_growth", "inflation"], "period": "2023/2027"}
+    expect:
+      - schema: output
+      - path: "$.series_count"
+        min: 5
+      - path: "$.source"
+        regex: "^Source: OECD"
+probe:
+  case: growth and inflation 2023 to 2027
+  every: 86400

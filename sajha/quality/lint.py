@@ -194,7 +194,9 @@ def _lint_units(schema: Dict[str, Any], add) -> None:
     for where, value, sub in schema_unit_marks(schema):
         error, warning = unit_problem(value, sub)
         if error:
-            add('error', 'unit', f'output {where}: {KEYWORD} {value!r} is not a unit SAJHA knows: {error}', where)
+            # the error already names the value and says it is not a known unit: say it once
+            add('error', 'unit', f'output {where}: ' + (error if error.startswith(KEYWORD) else f'{KEYWORD}: {error}'),
+                where)
         elif warning:
             add('warning', 'unit', f'output {where}: {warning}', where)
 

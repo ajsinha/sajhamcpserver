@@ -1318,8 +1318,9 @@ silently.
 over every tool, a dropped temperature, the `error` finish reason, and the document input
 type used for query embeddings). As-built notes: the provider-independent refusals raise
 `InvalidRequest` before any candidate is tried (`check_request`); `user` and `metadata` reach
-the gateway's audit record (not yet the usage ledger); `reasoning_effort` is refused on
-Bedrock; a model always ends its stream with the usage chunk, and the gateway passes it on
+the gateway's audit record (not yet the usage ledger); on Bedrock `reasoning_effort` is sent
+for the Anthropic Claude and Amazon Nova 2 families and refused for the others
+([Intelligence Layer §9](Intelligence%20Layer.md#9-not-built-yet)); a model always ends its stream with the usage chunk, and the gateway passes it on
 only when `stream_options.include_usage` is set; text a vendor streamed before a safety stop
 stays in `content` next to the `refusal`.*
 

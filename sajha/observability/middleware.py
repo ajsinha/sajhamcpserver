@@ -14,6 +14,7 @@ from __future__ import annotations
 
 import time
 
+from sajha.core.transport import note_listening
 from sajha.observability import metrics, tracing
 
 
@@ -32,6 +33,7 @@ class ObservabilityMiddleware:
             await self.app(scope, receive, send)
             return
         start = time.perf_counter()
+        note_listening(scope)          # the port links are built on when no request is at hand
         method = scope.get('method', 'GET')
         state = {'status': 500, 'ttfb': None}
 

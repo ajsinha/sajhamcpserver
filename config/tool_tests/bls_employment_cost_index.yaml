@@ -1,0 +1,19 @@
+# An HTTP tool with a recorded cassette (cassettes/bls_employment_cost_index/twelve_month_change_2024_2025.json): replays offline.
+# Re-record against the live API with: python -m sajha.quality test --tool bls_employment_cost_index --record
+# (record without BLS_API_KEY/EIA_API_KEY set so the cassette matches a keyless replay)
+tool: bls_employment_cost_index
+cases:
+  - name: twelve month change 2024 2025
+    tags: [http]
+    arguments: {"measures": ["total_compensation", "wages_and_salaries", "benefits"], "series_type": "12_month_change", "period": "2024-01-01:2025-12-31"}
+    expect:
+      - schema: output
+      - path: "$.series_count"
+        equals: 3
+      - path: "$.series[0].observation_count"
+        equals: 8
+      - path: "$.series[0].frequency"
+        equals: "Quarterly"
+probe:
+  case: twelve month change 2024 2025
+  every: 86400

@@ -1,0 +1,36 @@
+{
+ "tool": "usaspending_over_time",
+ "arguments": {
+  "group": "fiscal_year",
+  "keywords": [
+   "cybersecurity"
+  ],
+  "from": "2022-10-01",
+  "to": "2026-09-30"
+ },
+ "recorded": "2026-10-12",
+ "calls": [
+  {
+   "method": "POST",
+   "url": "https://api.usaspending.gov/api/v2/search/spending_over_time/",
+   "params": [],
+   "status": 200,
+   "content_type": "application/json",
+   "body": "{\"group\":\"fiscal_year\",\"results\":[{\"aggregated_amount\":2580198129.5499997,\"time_period\":{\"fiscal_year\":\"2023\"},\"Contract_Obligations\":1777587952.08,\"Direct_Obligations\":661135.36,\"Grant_Obligations\":763870508.17,\"Idv_Obligations\":37213533.94,\"Loan_Obligations\":0,\"Other_Obligations\":865000.0,\"total_outlays\":null,\"Contract_Outlays\":null,\"Direct_Outlays\":null,\"Grant_Outlays\":null,\"Idv_Outlays\":null,\"Loan_Outlays\":null,\"Other_Outlays\":null},{\"aggregated_amount\":2887012707.79,\"time_period\":{\"fiscal_year\":\"2024\"},\"Contract_Obligations\":1912983336.35,\"Direct_Obligations\":569161.5,\"Grant_Obligations\":886433515.44,\"Idv_Obligations\":68984540.5,\"Loan_Obligations\":0.0,\"Other_Obligations\":18042154.0,\"total_outlays\":null,\"Contract_Outlays\":null,\"Direct_Outlays\":null,\"Grant_Outlays\":null,\"Idv_Outlays\":null,\"Loan_Outlays\":null,\"Other_Outlays\":null},{\"aggregated_amount\":3109974828.5899997,\"time_period\":{\"fiscal_year\":\"2025\"},\"Contract_Obligations\":1990346118.33,\"Direct_Obligations\":-568.83,\"Grant_Obligations\":1039859824.78,\"Idv_Obligations\":76369454.31,\"Loan_Obligations\":0,\"Other_Obligations\":3400000.0,\"total_outlays\":null,\"Contract_Outlays\":null,\"Direct_Outlays\":null,\"Grant_Outlays\":null,\"Idv_Outlays\":null,\"Loan_Outlays\":null,\"Other_Outlays\":null},{\"aggregated_amount\":4903717877.469999,\"time_period\":{\"fiscal_year\":\"2026\"},\"Contract_Obligations\":1637346542.11,\"Direct_Obligations\":1085357.11,\"Grant_Obligations\":3095177263.06,\"Idv_Obligations\":65608715.19,\"Loan_Obligations\":0.0,\"Other_Obligations\":104500000.0,\"total_outlays\":null,\"Contract_Outlays\":null,\"Direct_Outlays\":null,\"Grant_Outlays\":null,\"Idv_Outlays\":null,\"Loan_Outlays\":null,\"Other_Outlays\":null}],\"spending_level\":\"transactions\",\"messages\":[\"For searches, time period start and end dates are currently limited to an earliest date of 2007-10-01.  For data going back to 2000-10-01, use either the Custom Award Download feature on the website or one of our download or bulk_download API endpoints as listed on https://api.usaspending.gov/docs/endpoints. \",\"The 'subawards' field will be deprecated in the future. Set 'spending_level' to 'subawards' instead. See documentation for more information.\",\"You may see additional month, quarter and year results when searching for Awards or Subawards. This is due to Awards or Subawards overlapping with the time period specified but having an 'action date' outside of that time period.\"]}",
+   "json": {
+    "group": "fiscal_year",
+    "filters": {
+     "time_period": [
+      {
+       "start_date": "2022-10-01",
+       "end_date": "2026-09-30"
+      }
+     ],
+     "keywords": [
+      "cybersecurity"
+     ]
+    }
+   }
+  }
+ ]
+}

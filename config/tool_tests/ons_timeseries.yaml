@@ -1,0 +1,18 @@
+# An HTTP tool with a recorded cassette (cassettes/ons_timeseries/cpi_annual_rate_2025.json): replays offline.
+# Re-record against the live API with: python -m sajha.quality test --tool ons_timeseries --record
+tool: ons_timeseries
+cases:
+  - name: cpi annual rate 2025
+    tags: [http]
+    arguments: {"cdid": "D7G7", "dataset": "MM23", "frequency": "monthly", "period": "2025"}
+    expect:
+      - schema: output
+      - path: "$.observation_count"
+        equals: 12
+      - path: "$.unit"
+        equals: "%"
+      - path: "$.source"
+        regex: "Open Government Licence"
+probe:
+  case: cpi annual rate 2025
+  every: 21600

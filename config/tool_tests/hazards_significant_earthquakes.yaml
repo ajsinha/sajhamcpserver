@@ -1,0 +1,18 @@
+# An HTTP tool with a recorded cassette (cassettes/hazards_significant_earthquakes/the_last_month.json): replays offline.
+# Re-record against the live API with: python -m sajha.quality test --tool hazards_significant_earthquakes --record
+tool: hazards_significant_earthquakes
+cases:
+  - name: the last month
+    tags: [http]
+    arguments: {"window": "month"}
+    expect:
+      - schema: output
+      - path: "$.window"
+        equals: "month"
+      - path: "$.earthquakes[0].id"
+        regex: ".+"
+      - path: "$.source"
+        regex: "^U.S. Geological Survey"
+probe:
+  case: the last month
+  every: 3600

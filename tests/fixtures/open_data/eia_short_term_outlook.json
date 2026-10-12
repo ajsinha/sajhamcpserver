@@ -1,0 +1,66 @@
+{
+ "tool": "eia_short_term_outlook",
+ "arguments": {
+  "series": [
+   "brent",
+   "henry_hub"
+  ],
+  "period": "2026-01-01:2027-12-31"
+ },
+ "recorded": "hand-written: field names and shapes as EIA returned them live on 2026-10-12, values illustrative (the DEMO_KEY allowance ran out before the recording; no EIA key was available)",
+ "calls": [
+  {
+   "method": "GET",
+   "url": "https://api.eia.gov/v2/steo/data/",
+   "params": [
+    [
+     "frequency",
+     "monthly"
+    ],
+    [
+     "data[0]",
+     "value"
+    ],
+    [
+     "facets[seriesId][]",
+     "BREPUUS"
+    ],
+    [
+     "facets[seriesId][]",
+     "NGHHUUS"
+    ],
+    [
+     "start",
+     "2026-01"
+    ],
+    [
+     "end",
+     "2027-12"
+    ],
+    [
+     "sort[0][column]",
+     "period"
+    ],
+    [
+     "sort[0][direction]",
+     "desc"
+    ],
+    [
+     "offset",
+     "0"
+    ],
+    [
+     "length",
+     "2000"
+    ],
+    [
+     "api_key",
+     "REDACTED"
+    ]
+   ],
+   "status": 200,
+   "content_type": "application/json",
+   "body": "{\"response\": {\"total\": \"48\", \"dateFormat\": \"YYYY-MM\", \"frequency\": \"monthly\", \"data\": [{\"period\": \"2027-12\", \"seriesId\": \"BREPUUS\", \"seriesDescription\": \"Brent crude oil spot price\", \"value\": \"75.75\", \"unit\": \"dollars per barrel\"}, {\"period\": \"2027-12\", \"seriesId\": \"NGHHUUS\", \"seriesDescription\": \"Natural Gas Henry Hub Spot Price ($/mmBtu)\", \"value\": \"9.15\", \"unit\": \"dollars per million Btu\"}, {\"period\": \"2027-11\", \"seriesId\": \"BREPUUS\", \"seriesDescription\": \"Brent crude oil spot price\", \"value\": \"75.5\", \"unit\": \"dollars per barrel\"}, {\"period\": \"2027-11\", \"seriesId\": \"NGHHUUS\", \"seriesDescription\": \"Natural Gas Henry Hub Spot Price ($/mmBtu)\", \"value\": \"8.9\", \"unit\": \"dollars per million Btu\"}, {\"period\": \"2027-10\", \"seriesId\": \"BREPUUS\", \"seriesDescription\": \"Brent crude oil spot price\", \"value\": \"75.25\", \"unit\": \"dollars per barrel\"}, {\"period\": \"2027-10\", \"seriesId\": \"NGHHUUS\", \"seriesDescription\": \"Natural Gas Henry Hub Spot Price ($/mmBtu)\", \"value\": \"8.65\", \"unit\": \"dollars per million Btu\"}, {\"period\": \"2027-09\", \"seriesId\": \"BREPUUS\", \"seriesDescription\": \"Brent crude oil spot price\", \"value\": \"75\", \"unit\": \"dollars per barrel\"}, {\"period\": \"2027-09\", \"seriesId\": \"NGHHUUS\", \"seriesDescription\": \"Natural Gas Henry Hub Spot Price ($/mmBtu)\", \"value\": \"8.4\", \"unit\": \"dollars per million Btu\"}, {\"period\": \"2027-08\", \"seriesId\": \"BREPUUS\", \"seriesDescription\": \"Brent crude oil spot price\", \"value\": \"74.75\", \"unit\": \"dollars per barrel\"}, {\"period\": \"2027-08\", \"seriesId\": \"NGHHUUS\", \"seriesDescription\": \"Natural Gas Henry Hub Spot Price ($/mmBtu)\", \"value\": \"8.15\", \"unit\": \"dollars per million Btu\"}, {\"period\": \"2027-07\", \"seriesId\": \"BREPUUS\", \"seriesDescription\": \"Brent crude oil spot price\", \"value\": \"74.5\", \"unit\": \"dollars per barrel\"}, {\"period\": \"2027-07\", \"seriesId\": \"NGHHUUS\", \"seriesDescription\": \"Natural Gas Henry Hub Spot Price ($/mmBtu)\", \"value\": \"7.9\", \"unit\": \"dollars per million Btu\"}, {\"period\": \"2027-06\", \"seriesId\": \"BREPUUS\", \"seriesDescription\": \"Brent crude oil spot price\", \"value\": \"74.25\", \"unit\": \"dollars per barrel\"}, {\"period\": \"2027-06\", \"seriesId\": \"NGHHUUS\", \"seriesDescription\": \"Natural Gas Henry Hub Spot Price ($/mmBtu)\", \"value\": \"7.65\", \"unit\": \"dollars per million Btu\"}, {\"period\": \"2027-05\", \"seriesId\": \"BREPUUS\", \"seriesDescription\": \"Brent crude oil spot price\", \"value\": \"74\", \"unit\": \"dollars per barrel\"}, {\"period\": \"2027-05\", \"seriesId\": \"NGHHUUS\", \"seriesDescription\": \"Natural Gas Henry Hub Spot Price ($/mmBtu)\", \"value\": \"7.4\", \"unit\": \"dollars per million Btu\"}, {\"period\": \"2027-04\", \"seriesId\": \"BREPUUS\", \"seriesDescription\": \"Brent crude oil spot price\", \"value\": \"73.75\", \"unit\": \"dollars per barrel\"}, {\"period\": \"2027-04\", \"seriesId\": \"NGHHUUS\", \"seriesDescription\": \"Natural Gas Henry Hub Spot Price ($/mmBtu)\", \"value\": \"7.15\", \"unit\": \"dollars per million Btu\"}, {\"period\": \"2027-03\", \"seriesId\": \"BREPUUS\", \"seriesDescription\": \"Brent crude oil spot price\", \"value\": \"73.5\", \"unit\": \"dollars per barrel\"}, {\"period\": \"2027-03\", \"seriesId\": \"NGHHUUS\", \"seriesDescription\": \"Natural Gas Henry Hub Spot Price ($/mmBtu)\", \"value\": \"6.9\", \"unit\": \"dollars per million Btu\"}, {\"period\": \"2027-02\", \"seriesId\": \"BREPUUS\", \"seriesDescription\": \"Brent crude oil spot price\", \"value\": \"73.25\", \"unit\": \"dollars per barrel\"}, {\"period\": \"2027-02\", \"seriesId\": \"NGHHUUS\", \"seriesDescription\": \"Natural Gas Henry Hub Spot Price ($/mmBtu)\", \"value\": \"6.65\", \"unit\": \"dollars per million Btu\"}, {\"period\": \"2027-01\", \"seriesId\": \"BREPUUS\", \"seriesDescription\": \"Brent crude oil spot price\", \"value\": \"73\", \"unit\": \"dollars per barrel\"}, {\"period\": \"2027-01\", \"seriesId\": \"NGHHUUS\", \"seriesDescription\": \"Natural Gas Henry Hub Spot Price ($/mmBtu)\", \"value\": \"6.4\", \"unit\": \"dollars per million Btu\"}, {\"period\": \"2026-12\", \"seriesId\": \"BREPUUS\", \"seriesDescription\": \"Brent crude oil spot price\", \"value\": \"72.75\", \"unit\": \"dollars per barrel\"}, {\"period\": \"2026-12\", \"seriesId\": \"NGHHUUS\", \"seriesDescription\": \"Natural Gas Henry Hub Spot Price ($/mmBtu)\", \"value\": \"6.15\", \"unit\": \"dollars per million Btu\"}, {\"period\": \"2026-11\", \"seriesId\": \"BREPUUS\", \"seriesDescription\": \"Brent crude oil spot price\", \"value\": \"72.5\", \"unit\": \"dollars per barrel\"}, {\"period\": \"2026-11\", \"seriesId\": \"NGHHUUS\", \"seriesDescription\": \"Natural Gas Henry Hub Spot Price ($/mmBtu)\", \"value\": \"5.9\", \"unit\": \"dollars per million Btu\"}, {\"period\": \"2026-10\", \"seriesId\": \"BREPUUS\", \"seriesDescription\": \"Brent crude oil spot price\", \"value\": \"72.25\", \"unit\": \"dollars per barrel\"}, {\"period\": \"2026-10\", \"seriesId\": \"NGHHUUS\", \"seriesDescription\": \"Natural Gas Henry Hub Spot Price ($/mmBtu)\", \"value\": \"5.65\", \"unit\": \"dollars per million Btu\"}, {\"period\": \"2026-09\", \"seriesId\": \"BREPUUS\", \"seriesDescription\": \"Brent crude oil spot price\", \"value\": \"72\", \"unit\": \"dollars per barrel\"}, {\"period\": \"2026-09\", \"seriesId\": \"NGHHUUS\", \"seriesDescription\": \"Natural Gas Henry Hub Spot Price ($/mmBtu)\", \"value\": \"5.4\", \"unit\": \"dollars per million Btu\"}, {\"period\": \"2026-08\", \"seriesId\": \"BREPUUS\", \"seriesDescription\": \"Brent crude oil spot price\", \"value\": \"71.75\", \"unit\": \"dollars per barrel\"}, {\"period\": \"2026-08\", \"seriesId\": \"NGHHUUS\", \"seriesDescription\": \"Natural Gas Henry Hub Spot Price ($/mmBtu)\", \"value\": \"5.15\", \"unit\": \"dollars per million Btu\"}, {\"period\": \"2026-07\", \"seriesId\": \"BREPUUS\", \"seriesDescription\": \"Brent crude oil spot price\", \"value\": \"71.5\", \"unit\": \"dollars per barrel\"}, {\"period\": \"2026-07\", \"seriesId\": \"NGHHUUS\", \"seriesDescription\": \"Natural Gas Henry Hub Spot Price ($/mmBtu)\", \"value\": \"4.9\", \"unit\": \"dollars per million Btu\"}, {\"period\": \"2026-06\", \"seriesId\": \"BREPUUS\", \"seriesDescription\": \"Brent crude oil spot price\", \"value\": \"71.25\", \"unit\": \"dollars per barrel\"}, {\"period\": \"2026-06\", \"seriesId\": \"NGHHUUS\", \"seriesDescription\": \"Natural Gas Henry Hub Spot Price ($/mmBtu)\", \"value\": \"4.65\", \"unit\": \"dollars per million Btu\"}, {\"period\": \"2026-05\", \"seriesId\": \"BREPUUS\", \"seriesDescription\": \"Brent crude oil spot price\", \"value\": \"71\", \"unit\": \"dollars per barrel\"}, {\"period\": \"2026-05\", \"seriesId\": \"NGHHUUS\", \"seriesDescription\": \"Natural Gas Henry Hub Spot Price ($/mmBtu)\", \"value\": \"4.4\", \"unit\": \"dollars per million Btu\"}, {\"period\": \"2026-04\", \"seriesId\": \"BREPUUS\", \"seriesDescription\": \"Brent crude oil spot price\", \"value\": \"70.75\", \"unit\": \"dollars per barrel\"}, {\"period\": \"2026-04\", \"seriesId\": \"NGHHUUS\", \"seriesDescription\": \"Natural Gas Henry Hub Spot Price ($/mmBtu)\", \"value\": \"4.15\", \"unit\": \"dollars per million Btu\"}, {\"period\": \"2026-03\", \"seriesId\": \"BREPUUS\", \"seriesDescription\": \"Brent crude oil spot price\", \"value\": \"70.5\", \"unit\": \"dollars per barrel\"}, {\"period\": \"2026-03\", \"seriesId\": \"NGHHUUS\", \"seriesDescription\": \"Natural Gas Henry Hub Spot Price ($/mmBtu)\", \"value\": \"3.9\", \"unit\": \"dollars per million Btu\"}, {\"period\": \"2026-02\", \"seriesId\": \"BREPUUS\", \"seriesDescription\": \"Brent crude oil spot price\", \"value\": \"70.25\", \"unit\": \"dollars per barrel\"}, {\"period\": \"2026-02\", \"seriesId\": \"NGHHUUS\", \"seriesDescription\": \"Natural Gas Henry Hub Spot Price ($/mmBtu)\", \"value\": \"3.65\", \"unit\": \"dollars per million Btu\"}, {\"period\": \"2026-01\", \"seriesId\": \"BREPUUS\", \"seriesDescription\": \"Brent crude oil spot price\", \"value\": \"70\", \"unit\": \"dollars per barrel\"}, {\"period\": \"2026-01\", \"seriesId\": \"NGHHUUS\", \"seriesDescription\": \"Natural Gas Henry Hub Spot Price ($/mmBtu)\", \"value\": \"3.4\", \"unit\": \"dollars per million Btu\"}]}, \"request\": {\"command\": \"/v2/steo/data/\"}, \"apiVersion\": \"2.1.14\"}"
+  }
+ ]
+}

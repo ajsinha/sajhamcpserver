@@ -2,7 +2,7 @@
   "name": "report_list",
   "implementation": "sajha.reports.tools.ReportListTool",
   "title": "List the reports you may run",
-  "description": "Lists the report definitions the caller may run, with what each needs.\nReturns: reports (name, tool, title, description, owner, tags, parameters, required, formats, classification, schedule, last_run) and count.\nInputs (none required): search (words in the name, title or description); tag.\nRun one with its report_<name> tool or report_run; report_describe shows its sources.\nExample: {\"search\": \"calendar\"}",
+  "description": "Lists the report definitions the caller may run, with what each needs.\nReturns: reports (name, tool, title, description, owner, tags, parameters, required, formats, classification, last_run) and count.\nInputs (none required): search (words in the name, title or description); tag.\nRun one with its report_<name> tool or report_run; report_describe shows its sources.\nExample: {\"search\": \"calendar\"}",
   "version": "1.0.0",
   "enabled": true,
   "inputSchema": {

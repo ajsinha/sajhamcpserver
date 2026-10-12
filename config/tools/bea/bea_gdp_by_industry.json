@@ -1,0 +1,221 @@
+{
+  "name": "bea_gdp_by_industry",
+  "implementation": "sajha.tools.impl.bea_tools.BeaGdpByIndustryTool",
+  "description": "GDP by industry (value added and the other GDP-by-industry tables), annual or quarterly, one series per industry.\nReturns: source, table_id, title, series (industry, description, unit, observations date/value).\nInputs (* required): industries (BEA codes such as 52, FIRE; default ALL), table_id (default 1, value added), frequency (default annual), years (default last three), max_series.\nExample: {\"industries\": [\"52\", \"51\"], \"frequency\": \"quarterly\", \"years\": [2025]}",
+  "annotations": {
+    "readOnlyHint": true,
+    "idempotentHint": true,
+    "openWorldHint": true
+  },
+  "version": "1.0.0",
+  "enabled": true,
+  "cache_ttl": 86400,
+  "api_key": "${BEA_API_KEY:}",
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "industries": {
+        "type": "array",
+        "items": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9]{1,12}$"
+        },
+        "minItems": 1,
+        "maxItems": 50,
+        "default": [
+          "ALL"
+        ],
+        "description": "BEA industry codes (ALL for every industry)"
+      },
+      "table_id": {
+        "type": "integer",
+        "minimum": 1,
+        "maximum": 500,
+        "default": 1,
+        "description": "GDP-by-industry table (1 value added by industry)"
+      },
+      "frequency": {
+        "type": "string",
+        "enum": [
+          "annual",
+          "quarterly"
+        ],
+        "default": "annual",
+        "description": "Frequency"
+      },
+      "years": {
+        "type": "array",
+        "items": {
+          "type": "integer",
+          "minimum": 1929,
+          "maximum": 2100
+        },
+        "minItems": 1,
+        "maxItems": 20,
+        "description": "Years (default the last three)"
+      },
+      "max_series": {
+        "type": "integer",
+        "minimum": 1,
+        "maximum": 500,
+        "default": 100,
+        "description": "Series cap"
+      }
+    },
+    "required": [],
+    "additionalProperties": false,
+    "examples": [
+      {
+        "industries": [
+          "52",
+          "51"
+        ],
+        "frequency": "quarterly",
+        "years": [
+          2025
+        ]
+      }
+    ]
+  },
+  "outputSchema": {
+    "type": "object",
+    "required": [
+      "source",
+      "series"
+    ],
+    "properties": {
+      "source": {
+        "type": "string",
+        "description": "Source: BEA ... not endorsed or certified by BEA; cite it with the data"
+      },
+      "dataset": {
+        "type": "string",
+        "description": "BEA dataset"
+      },
+      "title": {
+        "type": [
+          "string",
+          "null"
+        ],
+        "description": "Table title"
+      },
+      "series_count": {
+        "type": "integer",
+        "description": "Series matched"
+      },
+      "truncated": {
+        "type": "boolean",
+        "description": "More series matched than were returned"
+      },
+      "note": {
+        "type": "string",
+        "description": "What was cut"
+      },
+      "notes": {
+        "type": "array",
+        "items": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "description": "BEA table notes"
+      },
+      "years": {
+        "type": "array",
+        "items": {
+          "type": "integer"
+        },
+        "description": "Years asked for"
+      },
+      "series": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "required": [
+            "key",
+            "observations"
+          ],
+          "properties": {
+            "key": {
+              "type": "string",
+              "description": "Series key"
+            },
+            "unit": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "description": "Unit (CL_UNIT), e.g. Level, Percent change, USD"
+            },
+            "unit_multiplier": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "description": "thousands, millions, billions or null"
+            },
+            "observation_count": {
+              "type": "integer",
+              "description": "Observations"
+            },
+            "observations": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "required": [
+                  "date",
+                  "value"
+                ],
+                "properties": {
+                  "date": {
+                    "type": "string",
+                    "description": "Period: YYYY, YYYY-Qn or YYYY-MM"
+                  },
+                  "value": {
+                    "type": [
+                      "number",
+                      "null"
+                    ],
+                    "description": "Value in unit times unit_multiplier"
+                  }
+                }
+              }
+            },
+            "industry": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "description": "Industry code"
+            },
+            "description": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "description": "Industry"
+            }
+          }
+        }
+      },
+      "table_id": {
+        "type": "integer",
+        "description": "Table asked for"
+      },
+      "frequency": {
+        "type": "string",
+        "description": "Frequency asked for"
+      }
+    }
+  },
+  "metadata": {
+    "author": "Ashutosh Sinha",
+    "category": "Economic Data",
+    "tags": [
+      "bea",
+      "gdp",
+      "industry"
+    ]
+  }
+}

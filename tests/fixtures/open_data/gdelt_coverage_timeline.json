@@ -1,0 +1,70 @@
+{
+ "tool": "gdelt_coverage_timeline",
+ "arguments": {
+  "query": "\"bank failure\"",
+  "measure": "volume",
+  "from": "2026-09-01",
+  "to": "2026-09-30"
+ },
+ "recorded": "2026-10-12",
+ "calls": [
+  {
+   "method": "GET",
+   "url": "https://api.gdeltproject.org/api/v2/doc/doc",
+   "params": [
+    [
+     "query",
+     "\"bank failure\""
+    ],
+    [
+     "mode",
+     "timelinevol"
+    ],
+    [
+     "startdatetime",
+     "20260901000000"
+    ],
+    [
+     "enddatetime",
+     "20260930235959"
+    ],
+    [
+     "format",
+     "json"
+    ]
+   ],
+   "status": 429,
+   "content_type": null,
+   "body": "Please limit requests to one every 5 seconds or contact kalev.leetaru5@gmail.com for larger queries. All high-traffic users should switch to our ngrams dataset: https://blog.gdeltproject.org/using-the-new-web-ngrams-dataset-to-find-relevant-coverage/. For trend analysis, please see our daily newsletter briefings: https://blog.gdeltproject.org/announcing-our-new-daily-todays-trends-on-capitol-hill-todays-media-trends-newsletter-briefings/.\n\n"
+  },
+  {
+   "method": "GET",
+   "url": "https://api.gdeltproject.org/api/v2/doc/doc",
+   "params": [
+    [
+     "query",
+     "\"bank failure\""
+    ],
+    [
+     "mode",
+     "timelinevol"
+    ],
+    [
+     "startdatetime",
+     "20260901000000"
+    ],
+    [
+     "enddatetime",
+     "20260930235959"
+    ],
+    [
+     "format",
+     "json"
+    ]
+   ],
+   "status": 200,
+   "content_type": "application/json; charset=utf-8",
+   "body": "{\"query_details\": {\"title\": \"\\\"bank failure\\\"\", \"date_resolution\": \"day\"}, \"timeline\": [ { \"series\": \"Volume Intensity\", \"data\": [ { \"date\": \"20260901T000000Z\", \"value\": 0 },{ \"date\": \"20260902T000000Z\", \"value\": 0 },{ \"date\": \"20260903T000000Z\", \"value\": 0.0008 },{ \"date\": \"20260904T000000Z\", \"value\": 0.0019 },{ \"date\": \"20260905T000000Z\", \"value\": 0.001 },{ \"date\": \"20260906T000000Z\", \"value\": 0.001 },{ \"date\": \"20260907T000000Z\", \"value\": 0 },{ \"date\": \"20260908T000000Z\", \"value\": 0 },{ \"date\": \"20260909T000000Z\", \"value\": 0.0013 },{ \"date\": \"20260910T000000Z\", \"value\": 0.0019 },{ \"date\": \"20260911T000000Z\", \"value\": 0 },{ \"date\": \"20260912T000000Z\", \"value\": 0.0008 },{ \"date\": \"20260913T000000Z\", \"value\": 0 },{ \"date\": \"20260920T000000Z\", \"value\": 0.0028 },{ \"date\": \"20260921T000000Z\", \"value\": 0 },{ \"date\": \"20260922T000000Z\", \"value\": 0 },{ \"date\": \"20260923T000000Z\", \"value\": 0.0027 },{ \"date\": \"20260924T000000Z\", \"value\": 0.0019 },{ \"date\": \"20260925T000000Z\", \"value\": 0.0034 },{ \"date\": \"20260927T000000Z\", \"value\": 0.0026 },{ \"date\": \"20260928T000000Z\", \"value\": 0.0033 },{ \"date\": \"20260929T000000Z\", \"value\": 0.0007 },{ \"date\": \"20260930T000000Z\", \"value\": 0.0027 }] }] }"
+  }
+ ]
+}

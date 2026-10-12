@@ -110,8 +110,11 @@ Open the tool config Studio wrote (`peek.json` in `config/tools/`). It has `"san
 ```
 
 The registry reloads the config. The tool may now open HTTPS connections to
-`api.github.com` and nothing else (the kernel enforces the port; the runner enforces the
-host name for Python code). Numbers above the administrator's `sandbox.max` are capped.
+`api.github.com` and nothing else. With `sandbox.egress.mode: proxy` (the default) the sandbox
+has no network of its own and reaches the internet only through a per-run egress proxy that
+admits listed `host:port` pairs and audits every connection
+([Sandbox §4](../architecture/Sandbox.md#network-allowlist);
+[Tutorial 48](TUTORIAL_48_sandbox_egress.md) runs it). Numbers above the administrator's `sandbox.max` are capped.
 
 For a secret, the administrator lists its name in `sandbox.secrets_allowlist` in
 `config/application.yml`, and the tool asks for it with `"secrets": ["GITHUB_TOKEN"]`; the

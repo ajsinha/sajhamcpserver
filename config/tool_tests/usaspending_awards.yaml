@@ -1,0 +1,16 @@
+# An HTTP tool with a recorded cassette (cassettes/usaspending_awards/dod_cybersecurity_contracts_fy2026.json): replays offline.
+# Re-record against the live API with: python -m sajha.quality test --tool usaspending_awards --record
+tool: usaspending_awards
+cases:
+  - name: dod cybersecurity contracts fy2026
+    tags: [http]
+    arguments: {"keywords": ["cybersecurity"], "agency": "Department of Defense", "from": "2025-10-01", "to": "2026-09-30", "limit": 10}
+    expect:
+      - schema: output
+      - path: "$.count"
+        equals: 10
+      - path: "$.awards[0].awarding_agency"
+        equals: "Department of Defense"
+probe:
+  case: dod cybersecurity contracts fy2026
+  every: 3600

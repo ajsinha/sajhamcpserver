@@ -1,0 +1,30 @@
+{
+ "format": 1,
+ "interactions": [
+  {
+   "request": {
+    "method": "GET",
+    "url": "https://ec.europa.eu/eurostat/api/dissemination/sdmx/2.1/data/prc_hpi_q/Q.TOTAL.RCH_A.NL+DE+EA21?startPeriod=2025-Q1&endPeriod=2026-Q2&format=SDMX-CSV",
+    "body_sha256": ""
+   },
+   "response": {
+    "status": 200,
+    "reason": "OK",
+    "headers": {
+     "date": "Mon, 12 Oct 2026 04:08:12 GMT",
+     "content-type": "application/vnd.sdmx.data+csv;version=1.0.0",
+     "content-disposition": "attachment; filename=\"estat_prc_hpi_q_filtered_en.csv\"",
+     "x-oracle-dms-ecid": "128588e4-64a9-435b-9e8f-a14622e41301-00766932",
+     "access-control-allow-headers": "Content-Type, Accept, X-Requested-With",
+     "access-control-allow-methods": "GET",
+     "x-oracle-dms-rid": "0",
+     "access-control-allow-origin": "*",
+     "connection": "keep-alive"
+    },
+    "body": {
+     "text": "DATAFLOW,LAST UPDATE,freq,purchase,unit,geo,TIME_PERIOD,OBS_VALUE,OBS_FLAG,CONF_STATUS\r\nESTAT:PRC_HPI_Q(1.0),01/10/26 11:00:00,Q,TOTAL,RCH_A,DE,2025-Q1,3.8,,\r\nESTAT:PRC_HPI_Q(1.0),01/10/26 11:00:00,Q,TOTAL,RCH_A,DE,2025-Q2,3.3,,\r\nESTAT:PRC_HPI_Q(1.0),01/10/26 11:00:00,Q,TOTAL,RCH_A,DE,2025-Q3,3.2,,\r\nESTAT:PRC_HPI_Q(1.0),01/10/26 11:00:00,Q,TOTAL,RCH_A,DE,2025-Q4,2.6,,\r\nESTAT:PRC_HPI_Q(1.0),01/10/26 11:00:00,Q,TOTAL,RCH_A,DE,2026-Q1,1.2,p,\r\nESTAT:PRC_HPI_Q(1.0),01/10/26 11:00:00,Q,TOTAL,RCH_A,DE,2026-Q2,0.6,p,\r\nESTAT:PRC_HPI_Q(1.0),01/10/26 11:00:00,Q,TOTAL,RCH_A,EA21,2025-Q1,5.5,,\r\nESTAT:PRC_HPI_Q(1.0),01/10/26 11:00:00,Q,TOTAL,RCH_A,EA21,2025-Q2,5.3,,\r\nESTAT:PRC_HPI_Q(1.0),01/10/26 11:00:00,Q,TOTAL,RCH_A,EA21,2025-Q3,5.2,,\r\nESTAT:PRC_HPI_Q(1.0),01/10/26 11:00:00,Q,TOTAL,RCH_A,EA21,2025-Q4,5.1,,\r\nESTAT:PRC_HPI_Q(1.0),01/10/26 11:00:00,Q,TOTAL,RCH_A,EA21,2026-Q1,4.6,,\r\nESTAT:PRC_HPI_Q(1.0),01/10/26 11:00:00,Q,TOTAL,RCH_A,EA21,2026-Q2,4.0,,\r\nESTAT:PRC_HPI_Q(1.0),01/10/26 11:00:00,Q,TOTAL,RCH_A,NL,2025-Q1,10.7,,\r\nESTAT:PRC_HPI_Q(1.0),01/10/26 11:00:00,Q,TOTAL,RCH_A,NL,2025-Q2,9.5,,\r\nESTAT:PRC_HPI_Q(1.0),01/10/26 11:00:00,Q,TOTAL,RCH_A,NL,2025-Q3,7.9,,\r\nESTAT:PRC_HPI_Q(1.0),01/10/26 11:00:00,Q,TOTAL,RCH_A,NL,2025-Q4,6.2,,\r\nESTAT:PRC_HPI_Q(1.0),01/10/26 11:00:00,Q,TOTAL,RCH_A,NL,2026-Q1,5.3,,\r\nESTAT:PRC_HPI_Q(1.0),01/10/26 11:00:00,Q,TOTAL,RCH_A,NL,2026-Q2,4.3,p,\r\n"
+    }
+   }
+  }
+ ]
+}

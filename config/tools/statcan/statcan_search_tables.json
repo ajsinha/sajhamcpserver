@@ -1,0 +1,133 @@
+{
+  "name": "statcan_search_tables",
+  "implementation": "sajha.tools.impl.statcan_tools.StatcanSearchTablesTool",
+  "description": "Find Statistics Canada tables whose title contains all the words (current tables first).\nReturns: total, tables (table number, title, frequency, start, end, released, archived).\nInputs (* required): text*, include_archived (default false), limit (default 20).\nExample: {\"text\": \"consumer price index monthly\"}",
+  "annotations": {
+    "readOnlyHint": true,
+    "idempotentHint": true,
+    "openWorldHint": true
+  },
+  "version": "1.0.0",
+  "enabled": true,
+  "cache_ttl": 86400,
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "text": {
+        "type": "string",
+        "description": "Words of the table title",
+        "minLength": 2
+      },
+      "include_archived": {
+        "type": "boolean",
+        "description": "Also archived tables",
+        "default": false
+      },
+      "limit": {
+        "type": "integer",
+        "description": "Most tables returned",
+        "minimum": 1,
+        "maximum": 200,
+        "default": 20
+      }
+    },
+    "required": [
+      "text"
+    ],
+    "additionalProperties": false,
+    "examples": [
+      {
+        "text": "consumer price index monthly"
+      }
+    ]
+  },
+  "outputSchema": {
+    "type": "object",
+    "required": [
+      "source",
+      "tables"
+    ],
+    "properties": {
+      "text": {
+        "type": "string",
+        "description": "The search"
+      },
+      "total": {
+        "type": "integer",
+        "description": "Tables matched"
+      },
+      "count": {
+        "type": "integer",
+        "description": "Tables returned"
+      },
+      "source": {
+        "type": "string",
+        "description": "Source: Statistics Canada ... notice required by the Open Licence; quote it with the data"
+      },
+      "note": {
+        "type": "string",
+        "description": "Why nothing matched"
+      },
+      "tables": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "table": {
+              "type": "string",
+              "description": "Table number"
+            },
+            "title": {
+              "type": "string",
+              "description": "Title"
+            },
+            "frequency": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "description": "Frequency"
+            },
+            "start": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "description": "First reference date"
+            },
+            "end": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "description": "Last reference date"
+            },
+            "released": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "description": "Last release date"
+            },
+            "archived": {
+              "type": "boolean",
+              "description": "Archived table"
+            }
+          }
+        }
+      }
+    }
+  },
+  "metadata": {
+    "author": "Ashutosh Sinha",
+    "category": "Economic Data",
+    "tags": [
+      "statistics canada",
+      "canada",
+      "statistics",
+      "cpi",
+      "labour force",
+      "gdp"
+    ]
+  }
+}

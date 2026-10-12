@@ -70,3 +70,14 @@ def test_learn_approve_rollback_and_kill_switch(web, routing):
     assert 'notice=' in r.headers['location'] and L.get_bandit().killed()['reason']
     c.post('/admin/planner-routing/bandit', cookies=admin, data={'csrf': tok, 'action': 'resume'})
     assert L.get_bandit().killed() is None
+
+
+def test_the_proposal_records_where_the_request_came_from(routing, monkeypatch):
+    # the console (session cookie) is "console"; the HTTP API with an API key or a JWT is "api"
+    from sajha.auth import AuthContext
+    from sajha.routes.planner_routing_routes import _do
+    seen = []
+    monkeypatch.setattr(L, 'learn', lambda **kw: seen.append(kw['source']) or {'id': 'p1', 'diff': []})
+    for auth_type in ('session', 'apikey', 'jwt'):
+        _do('learn', AuthContext(authenticated=True, user_id='admin', is_admin=True, auth_type=auth_type), {})
+    assert seen == ['console', 'api', 'api']

@@ -1,0 +1,28 @@
+{
+ "format": 1,
+ "interactions": [
+  {
+   "request": {
+    "method": "GET",
+    "url": "https://ec.europa.eu/eurostat/api/dissemination/sdmx/2.1/data/une_rt_m/M.SA.TOTAL.PC_ACT.T.ES+EA21+US?startPeriod=2026-01&endPeriod=2026-06&format=SDMX-CSV",
+    "body_sha256": ""
+   },
+   "response": {
+    "status": 200,
+    "reason": "OK",
+    "headers": {
+     "date": "Mon, 12 Oct 2026 04:08:06 GMT",
+     "content-type": "application/vnd.sdmx.data+csv;version=1.0.0",
+     "content-disposition": "attachment; filename=\"estat_une_rt_m_filtered_en.csv\"",
+     "access-control-allow-headers": "Content-Type, Accept, X-Requested-With",
+     "access-control-allow-methods": "GET",
+     "access-control-allow-origin": "*",
+     "connection": "keep-alive"
+    },
+    "body": {
+     "text": "DATAFLOW,LAST UPDATE,freq,s_adj,age,unit,sex,geo,TIME_PERIOD,OBS_VALUE,OBS_FLAG,CONF_STATUS\r\nESTAT:UNE_RT_M(1.0),08/10/26 11:00:00,M,SA,TOTAL,PC_ACT,T,EA21,2026-01,6.3,,\r\nESTAT:UNE_RT_M(1.0),08/10/26 11:00:00,M,SA,TOTAL,PC_ACT,T,EA21,2026-02,6.4,,\r\nESTAT:UNE_RT_M(1.0),08/10/26 11:00:00,M,SA,TOTAL,PC_ACT,T,EA21,2026-03,6.4,,\r\nESTAT:UNE_RT_M(1.0),08/10/26 11:00:00,M,SA,TOTAL,PC_ACT,T,EA21,2026-04,6.4,,\r\nESTAT:UNE_RT_M(1.0),08/10/26 11:00:00,M,SA,TOTAL,PC_ACT,T,EA21,2026-05,6.4,,\r\nESTAT:UNE_RT_M(1.0),08/10/26 11:00:00,M,SA,TOTAL,PC_ACT,T,EA21,2026-06,6.4,,\r\nESTAT:UNE_RT_M(1.0),08/10/26 11:00:00,M,SA,TOTAL,PC_ACT,T,ES,2026-01,10.3,,\r\nESTAT:UNE_RT_M(1.0),08/10/26 11:00:00,M,SA,TOTAL,PC_ACT,T,ES,2026-02,10.3,,\r\nESTAT:UNE_RT_M(1.0),08/10/26 11:00:00,M,SA,TOTAL,PC_ACT,T,ES,2026-03,10.3,,\r\nESTAT:UNE_RT_M(1.0),08/10/26 11:00:00,M,SA,TOTAL,PC_ACT,T,ES,2026-04,10.2,,\r\nESTAT:UNE_RT_M(1.0),08/10/26 11:00:00,M,SA,TOTAL,PC_ACT,T,ES,2026-05,10.2,,\r\nESTAT:UNE_RT_M(1.0),08/10/26 11:00:00,M,SA,TOTAL,PC_ACT,T,ES,2026-06,10.1,,\r\nESTAT:UNE_RT_M(1.0),08/10/26 11:00:00,M,SA,TOTAL,PC_ACT,T,US,2026-01,4.3,,\r\nESTAT:UNE_RT_M(1.0),08/10/26 11:00:00,M,SA,TOTAL,PC_ACT,T,US,2026-02,4.4,,\r\nESTAT:UNE_RT_M(1.0),08/10/26 11:00:00,M,SA,TOTAL,PC_ACT,T,US,2026-03,4.3,,\r\nESTAT:UNE_RT_M(1.0),08/10/26 11:00:00,M,SA,TOTAL,PC_ACT,T,US,2026-04,4.3,,\r\nESTAT:UNE_RT_M(1.0),08/10/26 11:00:00,M,SA,TOTAL,PC_ACT,T,US,2026-05,4.3,,\r\nESTAT:UNE_RT_M(1.0),08/10/26 11:00:00,M,SA,TOTAL,PC_ACT,T,US,2026-06,4.2,,\r\n"
+    }
+   }
+  }
+ ]
+}

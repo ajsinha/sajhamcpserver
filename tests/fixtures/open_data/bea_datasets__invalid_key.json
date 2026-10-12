@@ -1,0 +1,28 @@
+{
+ "tool": "bea_datasets",
+ "arguments": {},
+ "recorded": "live, 2026-10-12 (an unknown UserID; the key is redacted)",
+ "calls": [
+  {
+   "method": "GET",
+   "url": "https://apps.bea.gov/api/data",
+   "params": [
+    [
+     "UserID",
+     "REDACTED"
+    ],
+    [
+     "method",
+     "GETDATASETLIST"
+    ],
+    [
+     "ResultFormat",
+     "JSON"
+    ]
+   ],
+   "status": 200,
+   "content_type": "application/json",
+   "body": "{\"BEAAPI\": {\"Request\": {\"RequestParam\": [{\"ParameterName\": \"USERID\", \"ParameterValue\": \"REDACTED\"}, {\"ParameterName\": \"METHOD\", \"ParameterValue\": \"GETDATASETLIST\"}, {\"ParameterName\": \"RESULTFORMAT\", \"ParameterValue\": \"JSON\"}]}, \"Results\": {\"Error\": {\"APIErrorCode\": \"1\", \"APIErrorDescription\": \"Invalid Request - Invalid API UserId.\"}}}}"
+  }
+ ]
+}

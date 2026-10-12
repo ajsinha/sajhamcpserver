@@ -165,6 +165,8 @@ def test_proposal_approval_effect_and_rollback(env):
         L.approve(doc["id"], doc["hash"], "admin")                           # only once
     chosen, events = ask()
     assert (chosen[1]["planner"], chosen[1]["by"]) == ("react", "learned")
+    # the stream's reason is the audit's planner_choice.reason, not a repeat of "learned"
+    assert chosen[1]["reason"] == "approved routing rules (compare)"
     assert ask(tool="other_tool")[0][1]["by"].startswith("label")            # rules are per tool
     L.activate(0, "admin", "test")                                           # rollback: no rules
     assert ask()[0][1]["by"].startswith("label")

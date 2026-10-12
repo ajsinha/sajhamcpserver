@@ -1,0 +1,28 @@
+{
+ "format": 1,
+ "interactions": [
+  {
+   "request": {
+    "method": "GET",
+    "url": "https://ec.europa.eu/eurostat/api/dissemination/sdmx/2.1/data/gov_10q_ggdebt/Q.GD.S13.PC_GDP.IT+FR+EA21?startPeriod=2025-Q1&endPeriod=2026-Q1&format=SDMX-CSV",
+    "body_sha256": ""
+   },
+   "response": {
+    "status": 200,
+    "reason": "OK",
+    "headers": {
+     "date": "Mon, 12 Oct 2026 04:08:09 GMT",
+     "content-type": "application/vnd.sdmx.data+csv;version=1.0.0",
+     "content-disposition": "attachment; filename=\"estat_gov_10q_ggdebt_filtered_en.csv\"",
+     "access-control-allow-headers": "Content-Type, Accept, X-Requested-With",
+     "access-control-allow-methods": "GET",
+     "access-control-allow-origin": "*",
+     "connection": "keep-alive"
+    },
+    "body": {
+     "text": "DATAFLOW,LAST UPDATE,freq,na_item,sector,unit,geo,TIME_PERIOD,OBS_VALUE,OBS_FLAG,CONF_STATUS\r\nESTAT:GOV_10Q_GGDEBT(1.0),21/07/26 11:00:00,Q,GD,S13,PC_GDP,EA21,2025-Q1,87.2,p,\r\nESTAT:GOV_10Q_GGDEBT(1.0),21/07/26 11:00:00,Q,GD,S13,PC_GDP,EA21,2025-Q2,87.8,p,\r\nESTAT:GOV_10Q_GGDEBT(1.0),21/07/26 11:00:00,Q,GD,S13,PC_GDP,EA21,2025-Q3,88.2,p,\r\nESTAT:GOV_10Q_GGDEBT(1.0),21/07/26 11:00:00,Q,GD,S13,PC_GDP,EA21,2025-Q4,87.7,p,\r\nESTAT:GOV_10Q_GGDEBT(1.0),21/07/26 11:00:00,Q,GD,S13,PC_GDP,EA21,2026-Q1,88.9,p,\r\nESTAT:GOV_10Q_GGDEBT(1.0),21/07/26 11:00:00,Q,GD,S13,PC_GDP,FR,2025-Q1,113.6,,\r\nESTAT:GOV_10Q_GGDEBT(1.0),21/07/26 11:00:00,Q,GD,S13,PC_GDP,FR,2025-Q2,115.4,,\r\nESTAT:GOV_10Q_GGDEBT(1.0),21/07/26 11:00:00,Q,GD,S13,PC_GDP,FR,2025-Q3,117.3,,\r\nESTAT:GOV_10Q_GGDEBT(1.0),21/07/26 11:00:00,Q,GD,S13,PC_GDP,FR,2025-Q4,115.7,,\r\nESTAT:GOV_10Q_GGDEBT(1.0),21/07/26 11:00:00,Q,GD,S13,PC_GDP,FR,2026-Q1,117.6,p,\r\nESTAT:GOV_10Q_GGDEBT(1.0),21/07/26 11:00:00,Q,GD,S13,PC_GDP,IT,2025-Q1,137.3,,\r\nESTAT:GOV_10Q_GGDEBT(1.0),21/07/26 11:00:00,Q,GD,S13,PC_GDP,IT,2025-Q2,138.1,,\r\nESTAT:GOV_10Q_GGDEBT(1.0),21/07/26 11:00:00,Q,GD,S13,PC_GDP,IT,2025-Q3,137.5,,\r\nESTAT:GOV_10Q_GGDEBT(1.0),21/07/26 11:00:00,Q,GD,S13,PC_GDP,IT,2025-Q4,137.1,,\r\nESTAT:GOV_10Q_GGDEBT(1.0),21/07/26 11:00:00,Q,GD,S13,PC_GDP,IT,2026-Q1,138.9,p,\r\n"
+    }
+   }
+  }
+ ]
+}

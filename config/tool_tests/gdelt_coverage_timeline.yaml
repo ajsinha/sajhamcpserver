@@ -1,0 +1,16 @@
+# An HTTP tool with a recorded cassette (cassettes/gdelt_coverage_timeline/bank_failure_coverage__september_2026.json): replays offline.
+# Re-record against the live API with: python -m sajha.quality test --tool gdelt_coverage_timeline --record
+tool: gdelt_coverage_timeline
+cases:
+  - name: bank failure coverage, september 2026
+    tags: [http]
+    arguments: {"query": "\"bank failure\"", "measure": "volume", "from": "2026-09-01", "to": "2026-09-30"}
+    expect:
+      - schema: output
+      - path: "$.count"
+        min: 1
+      - path: "$.measure"
+        equals: "volume"
+probe:
+  case: bank failure coverage, september 2026
+  every: 21600

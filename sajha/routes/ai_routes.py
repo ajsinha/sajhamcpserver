@@ -406,12 +406,26 @@ def _tool_blurbs(limit: int = 120, visible=None) -> dict:
 
 
 def _local_server_name() -> str:
-    """The name the Ask page shows for this server in its calls log: the SAJHA Net instance name
-    when one is configured, otherwise the host name."""
+    """The name the Ask page shows for this server in its calls log: its SAJHA Net instance name
+    (a per-net field, ``sajhanet.nets[].instance_name``: the running nets' resolved names, else the
+    configured ones; several distinct names are joined), otherwise the host name."""
     import socket
-    from sajha.core.config import _get
-    name = _get('sajhanet.instance_name', '') or ''
-    return str(name) or socket.gethostname()
+    names = []
+    try:
+        from sajha.net.integration import get_service
+        svc = get_service()
+        if svc is not None:
+            names = [str(rt.cfg.instance_name) for rt in svc.runtimes.values() if rt.cfg.instance_name]
+    except Exception:
+        names = []
+    if not names:
+        try:
+            from sajha.core.net_extension import configured_nets
+            names = [str(n.get('instance_name')) for n in (configured_nets() or [])
+                     if isinstance(n, dict) and n.get('instance_name')]
+        except Exception:
+            names = []
+    return ', '.join(dict.fromkeys(names)) or socket.gethostname()
 
 
 @router.get('/ask')
@@ -830,14 +844,21 @@ async def api_docs_delete_upload(filename: str, auth: AuthContext = Depends(requ
 
 # ── My documents: sources read through the caller's connected accounts (ai.rag.accounts) ──
 
-def _personal_or_error(auth: AuthContext):
+def _personal_or_error(auth: AuthContext, request: Optional[Request] = None):
+    """The personal index for a signed-in user. ``request`` (the POST routes): a console session cookie must
+    carry the console's CSRF token in X-CSRF-Token; SAJHA JWTs and bearer tokens are not ambient, and API keys
+    are refused anyway (they have no connected accounts)."""
     from sajha.ai.rag.personal import get_personal_index, is_user, personal_error
     idx = get_personal_index()
     if idx is None:
         why = personal_error() or 'ai.rag.accounts.sources is empty'
         return None, JSONResponse({'error': f'documents from connected accounts are not set up ({why})'},
                                   status_code=503)
-    if not is_user(auth.user_id):
+    if request is not None and auth.auth_type == 'session':
+        from sajha.routes.accounts_routes import _csrf_ok
+        if not _csrf_ok(request, auth, request.headers.get('X-CSRF-Token')):
+            return None, JSONResponse({'error': 'X-CSRF-Token missing or invalid'}, status_code=403)
+    if not is_user(auth.user_id, auth.auth_type):
         return None, JSONResponse({'error': 'documents from connected accounts belong to signed-in users'},
                                   status_code=403)
     return idx, None
@@ -857,7 +878,7 @@ async def api_my_docs_status(auth: AuthContext = Depends(require_auth)):
 async def api_my_docs_sync(request: Request, auth: AuthContext = Depends(require_auth)):
     """Sync the caller's sources in the background ({"sources": [...]} for some; {"force": true}
     re-reads every file); 202 with the sources started."""
-    idx, err = _personal_or_error(auth)
+    idx, err = _personal_or_error(auth, request)
     if err:
         return err
     try:
@@ -879,7 +900,7 @@ async def api_my_docs_sync(request: Request, auth: AuthContext = Depends(require
 async def api_my_docs_search(request: Request, auth: AuthContext = Depends(require_auth)):
     """Search the caller's own documents: {query, top_k?, source?} -> cited passages."""
     from starlette.concurrency import run_in_threadpool
-    idx, err = _personal_or_error(auth)
+    idx, err = _personal_or_error(auth, request)
     if err:
         return err
     try:

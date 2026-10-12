@@ -1,0 +1,22 @@
+{
+ "tool": "eia_browse",
+ "arguments": {
+  "route": "petroleum/pri/spt"
+ },
+ "recorded": "hand-written: field names and shapes as EIA returned them live on 2026-10-12, values illustrative (the DEMO_KEY allowance ran out before the recording; no EIA key was available)",
+ "calls": [
+  {
+   "method": "GET",
+   "url": "https://api.eia.gov/v2/petroleum/pri/spt/",
+   "params": [
+    [
+     "api_key",
+     "REDACTED"
+    ]
+   ],
+   "status": 200,
+   "content_type": "application/json",
+   "body": "{\"response\": {\"id\": \"spt\", \"name\": \"Spot Prices\", \"description\": \"Spot prices for crude oil and petroleum products\", \"frequency\": [{\"id\": \"daily\", \"description\": \"One data point for each day.\", \"query\": \"D\", \"format\": \"YYYY-MM-DD\"}, {\"id\": \"weekly\", \"description\": \"One data point for each week.\", \"query\": \"W\", \"format\": \"YYYY-MM-DD\"}, {\"id\": \"monthly\", \"description\": \"One data point for each month.\", \"query\": \"M\", \"format\": \"YYYY-MM\"}, {\"id\": \"annual\", \"description\": \"One data point for each year.\", \"query\": \"A\", \"format\": \"YYYY\"}], \"facets\": [{\"id\": \"duoarea\", \"description\": \"Area\"}, {\"id\": \"product\", \"description\": \"Product\"}, {\"id\": \"process\", \"description\": \"Process\"}, {\"id\": \"series\", \"description\": \"Series\"}], \"data\": {\"value\": {\"aggregation-method\": \"AVG\", \"alias\": \"Value\", \"units\": null}}, \"startPeriod\": \"1986-01-02\", \"endPeriod\": \"2026-10-06\", \"defaultDateFormat\": \"YYYY-MM-DD\", \"defaultFrequency\": \"daily\"}, \"request\": {\"command\": \"/v2/petroleum/pri/spt/\"}, \"apiVersion\": \"2.1.14\"}"
+  }
+ ]
+}

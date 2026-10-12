@@ -1,0 +1,57 @@
+{
+ "tool": "bea_gdp_by_industry",
+ "arguments": {
+  "industries": [
+   "52",
+   "51"
+  ],
+  "frequency": "quarterly",
+  "years": [
+   2025
+  ]
+ },
+ "recorded": "hand-written from the BEA API user guide (April 2026; no key available), response shape only: the values are illustrative, not BEA data",
+ "calls": [
+  {
+   "method": "GET",
+   "url": "https://apps.bea.gov/api/data",
+   "params": [
+    [
+     "UserID",
+     "REDACTED"
+    ],
+    [
+     "method",
+     "GetData"
+    ],
+    [
+     "DataSetName",
+     "GDPbyIndustry"
+    ],
+    [
+     "TableID",
+     "1"
+    ],
+    [
+     "Frequency",
+     "Q"
+    ],
+    [
+     "Year",
+     "2025"
+    ],
+    [
+     "Industry",
+     "52,51"
+    ],
+    [
+     "ResultFormat",
+     "JSON"
+    ]
+   ],
+   "status": 200,
+   "content_type": "application/json",
+   "body": "{\"BEAAPI\": {\"Request\": {\"RequestParam\": [{\"ParameterName\": \"USERID\", \"ParameterValue\": \"REDACTED\"}, {\"ParameterName\": \"METHOD\", \"ParameterValue\": \"GetData\"}, {\"ParameterName\": \"DATASETNAME\", \"ParameterValue\": \"GDPbyIndustry\"}, {\"ParameterName\": \"TABLEID\", \"ParameterValue\": \"1\"}, {\"ParameterName\": \"FREQUENCY\", \"ParameterValue\": \"Q\"}, {\"ParameterName\": \"YEAR\", \"ParameterValue\": \"2025\"}, {\"ParameterName\": \"INDUSTRY\", \"ParameterValue\": \"52,51\"}, {\"ParameterName\": \"RESULTFORMAT\", \"ParameterValue\": \"JSON\"}]}, \"Results\": [{\"Statistic\": \"Value Added by Industry\", \"UTCProductionTime\": \"2026-09-25T12:30:00.000\", \"Dimensions\": [{\"Name\": \"TableID\", \"DataType\": \"string\", \"IsValue\": \"0\"}, {\"Name\": \"Frequency\", \"DataType\": \"string\", \"IsValue\": \"0\"}, {\"Name\": \"Year\", \"DataType\": \"string\", \"IsValue\": \"0\"}, {\"Name\": \"Quarter\", \"DataType\": \"string\", \"IsValue\": \"0\"}, {\"Name\": \"Industry\", \"DataType\": \"string\", \"IsValue\": \"0\"}, {\"Name\": \"IndustrYDescription\", \"DataType\": \"string\", \"IsValue\": \"0\"}, {\"Name\": \"DataValue\", \"DataType\": \"numeric\", \"IsValue\": \"1\"}], \"Data\": [{\"TableID\": \"1\", \"Frequency\": \"Q\", \"Year\": \"2025\", \"Quarter\": \"I\", \"Industry\": \"52\", \"IndustrYDescription\": \"Finance and insurance\", \"DataValue\": \"2,450.1\", \"NoteRef\": \"1\"}, {\"TableID\": \"1\", \"Frequency\": \"Q\", \"Year\": \"2025\", \"Quarter\": \"II\", \"Industry\": \"52\", \"IndustrYDescription\": \"Finance and insurance\", \"DataValue\": \"2,488.7\", \"NoteRef\": \"1\"}, {\"TableID\": \"1\", \"Frequency\": \"Q\", \"Year\": \"2025\", \"Quarter\": \"I\", \"Industry\": \"51\", \"IndustrYDescription\": \"Information\", \"DataValue\": \"1,650.3\", \"NoteRef\": \"1\"}, {\"TableID\": \"1\", \"Frequency\": \"Q\", \"Year\": \"2025\", \"Quarter\": \"II\", \"Industry\": \"51\", \"IndustrYDescription\": \"Information\", \"DataValue\": \"1,671.9\", \"NoteRef\": \"1\"}], \"Notes\": [{\"NoteRef\": \"1\", \"NoteText\": \"Value added by industry [Billions of dollars]\"}]}]}}"
+  }
+ ]
+}

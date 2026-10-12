@@ -176,7 +176,12 @@ def test_definition_checks():
     assert 'earlier section' in _bad(base.replace('call: {tool: t}', 'call: {tool: t, arguments: {x: $sections.later.y}}'))
     assert 'path' in _bad(base.replace('$.x', '"$.x[?(@.a)]"'))
     assert 'unknown format' in _bad(base + 'formats: [rtf]\n')
-    assert 'recipients' in _bad(base + 'recipients: [{kind: fax}]\n')
+    # delivery and scheduling were descoped: their keys are refused, naming the descoping and the workflow way
+    for extra in ('recipients: [{kind: email, to: a@b.c}]\n', 'schedule: {cron: "0 7 * * 1-5"}\n'):
+        why = _bad(base + extra)
+        assert 'descoped' in why and 'use a workflow to run report_run on a schedule' in why
+        assert 'unknown keys' not in why
+    assert not hasattr(model.parse(base), 'schedule') and not hasattr(model.parse(base), 'recipients')
     assert 'reserved' in _bad(base + 'parameters: {formats: {type: string}}\n')
     assert 'kind' in _bad(base.replace('kind: kpis', 'kind: pie'))
     assert 'classification' in _bad(base + 'classification: secret\n')
@@ -380,6 +385,7 @@ def test_report_tools_end_to_end(env):
         run2 = rtools.ReportRunTool({'name': 'report_run'}).execute({'report': 'rates_pack', 'parameters': {}})
         hist = rtools.ReportHistoryTool({'name': 'report_history'}).execute({'report': 'rates_pack'})
         assert [r['run_id'] for r in hist['runs']] == [run2['run_id'], out['run_id']]
+        assert all('deliveries' not in r for r in hist['runs']) and 'deliveries' not in out   # descoped
         r = rtools.ReportRenderTool({'name': 'report_render'}).execute({'run_id': out['run_id'], 'format': 'html'})
         assert r['path'].endswith('report.html') and r['bytes'] > 500
         assert 'html' in history.load(out['run_id'])['files']

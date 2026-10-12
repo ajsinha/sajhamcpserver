@@ -1,0 +1,16 @@
+# An HTTP tool with a recorded cassette (cassettes/abs_cpi/australia_and_sydney_2026h1.json): replays offline.
+# Re-record against the live API with: python -m sajha.quality test --tool abs_cpi --record
+tool: abs_cpi
+cases:
+  - name: australia and sydney 2026h1
+    tags: [http]
+    arguments: {"measure": "annual_change", "regions": ["australia", "sydney"], "period": "2026-01/2026-06", "item": "10001", "adjustment": "original", "frequency": "monthly"}
+    expect:
+      - schema: output
+      - path: "$.series_count"
+        equals: 2
+      - path: "$.source"
+        regex: "^Source: Australian Bureau of Statistics"
+probe:
+  case: australia and sydney 2026h1
+  every: 21600

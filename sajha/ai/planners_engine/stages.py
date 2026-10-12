@@ -1234,9 +1234,11 @@ class PlannerStage(StageType):
         old_q = frame.slots.get("question")
         f = sub_frame(rc, frame, sub, question=q, rebind_role=cfg.get("model"), limits=cfg.get("limits"))
         rc.chain = list(f.chain)
+        # the choice's own reason for a choice that carries one (the model's label, the learner's rules or
+        # bandit): the same text the run's audit record has in planner_choice.reason
+        own = str((frame.slots.get("choice") or {}).get("reason") or "")[:300]
         rc.emit("planner_chosen", planner=sub.name, version=sub.version, by=by,
-                reason=str((frame.slots.get("choice") or {}).get("reason") or "")[:300] if by.startswith("label")
-                else by)
+                reason=(own or by) if by.startswith("label") or by in ("learned", "bandit", "explore") else by)
         metrics.chosen(rc.tool or "ask", sub.name, by.split(" ")[0])
         stopped_by = None
         reason = None

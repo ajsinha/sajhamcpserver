@@ -1,0 +1,16 @@
+# An HTTP tool with a recorded cassette (cassettes/eurostat_unemployment/spain_euro_area_us_2026h1.json): replays offline.
+# Re-record against the live API with: python -m sajha.quality test --tool eurostat_unemployment --record
+tool: eurostat_unemployment
+cases:
+  - name: spain euro area us 2026h1
+    tags: [http]
+    arguments: {"countries": ["ES", "EA", "US"], "period": "2026-01/2026-06", "sex": "total", "age": "total"}
+    expect:
+      - schema: output
+      - path: "$.series_count"
+        equals: 3
+      - path: "$.source"
+        regex: "^Source: Eurostat"
+probe:
+  case: spain euro area us 2026h1
+  every: 21600

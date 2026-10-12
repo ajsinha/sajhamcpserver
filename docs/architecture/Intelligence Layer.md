@@ -661,7 +661,7 @@ is on.
   `sajha_search_docs` never sees them. Each passage's source is `acct:<owner>:<source>`, where
   `<owner>` is a hash of the user id; every search filters the store by the caller's own keys
   and checks each hit again. A document two users can read is indexed once for each. API keys
-  and anonymous callers have no connected accounts and get nothing.
+  (a key bound to a user too) and anonymous callers have no connected accounts and get nothing.
 - **Access.** A search covers only sources whose link is active now. When the link is removed,
   or the provider answers 403 or 404 for the source itself, the next sync removes that user's
   passages from it; a file the user can no longer open goes with it.
@@ -682,7 +682,9 @@ is on.
 sources are configured) searches the caller's own passages; its result also names the sources
 whose sync it started (`syncing`) and those whose service the caller has not linked
 (`not_linked`). For the signed-in user over HTTP: `GET /api/ai/docs/mine` (each source: linked,
-documents, last sync), `POST /api/ai/docs/mine/sync` and `POST /api/ai/docs/mine/search`.
+documents, last sync), `POST /api/ai/docs/mine/sync` and `POST /api/ai/docs/mine/search`. With the
+console's session cookie the two `POST` routes need the console's CSRF token in `X-CSRF-Token`; a
+SAJHA JWT or OAuth bearer token needs none.
 
 #### OCR for scanned PDFs and images
 

@@ -1,0 +1,100 @@
+{
+  "name": "statcan_changed_series",
+  "implementation": "sajha.tools.impl.statcan_tools.StatcanChangedSeriesTool",
+  "description": "The Statistics Canada tables (and so their series) released on a date.\nReturns: date, count, tables (table number, release_time, title with with_titles).\nInputs (* required): date* (YYYY-MM-DD), with_titles (default false; loads the table list).\nExample: {\"date\": \"2026-10-09\"}",
+  "annotations": {
+    "readOnlyHint": true,
+    "idempotentHint": true,
+    "openWorldHint": true
+  },
+  "version": "1.0.0",
+  "enabled": true,
+  "cache_ttl": 3600,
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "date": {
+        "type": "string",
+        "description": "Release date, YYYY-MM-DD",
+        "format": "date"
+      },
+      "with_titles": {
+        "type": "boolean",
+        "description": "Add table titles",
+        "default": false
+      }
+    },
+    "required": [
+      "date"
+    ],
+    "additionalProperties": false,
+    "examples": [
+      {
+        "date": "2026-10-09"
+      }
+    ]
+  },
+  "outputSchema": {
+    "type": "object",
+    "required": [
+      "source",
+      "tables"
+    ],
+    "properties": {
+      "date": {
+        "type": "string",
+        "description": "The date"
+      },
+      "count": {
+        "type": "integer",
+        "description": "Tables released"
+      },
+      "source": {
+        "type": "string",
+        "description": "Source: Statistics Canada ... notice required by the Open Licence; quote it with the data"
+      },
+      "note": {
+        "type": "string",
+        "description": "Why there is nothing"
+      },
+      "tables": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "table": {
+              "type": "string",
+              "description": "Table number"
+            },
+            "release_time": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "description": "Release time (Eastern)"
+            },
+            "title": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "description": "Title"
+            }
+          }
+        }
+      }
+    }
+  },
+  "metadata": {
+    "author": "Ashutosh Sinha",
+    "category": "Economic Data",
+    "tags": [
+      "statistics canada",
+      "canada",
+      "statistics",
+      "cpi",
+      "labour force",
+      "gdp"
+    ]
+  }
+}

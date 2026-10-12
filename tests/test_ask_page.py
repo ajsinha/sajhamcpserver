@@ -129,3 +129,25 @@ def test_landing_sky_names_only_tools_anonymous_callers_may_see(web, monkeypatch
     names = {n for g in _landing_groups(c) for n in g[2]}
     assert 'calc_percentage_change' in names
     assert names and all(n.startswith('calc_') for n in names)
+
+
+def test_server_name_is_the_per_net_instance_name(monkeypatch):
+    # sajhanet.instance_name is not a key: the instance name is per net (sajhanet.nets[].instance_name)
+    import socket
+    import sajha.net.integration as net
+    from sajha.routes.ai_routes import _local_server_name
+    monkeypatch.setattr(net, 'get_service', lambda: None)
+    monkeypatch.setenv('SAJHA_SAJHANET_NETS', json.dumps([{'name': 'acme', 'instance_name': 'risk-eu'}]))
+    assert _local_server_name() == 'risk-eu'
+    monkeypatch.setenv('SAJHA_SAJHANET_NETS', json.dumps([{'name': 'a', 'instance_name': 'risk-eu'},
+                                                          {'name': 'b', 'instance_name': 'risk-eu'},
+                                                          {'name': 'c', 'instance_name': 'risk-us'}]))
+    assert _local_server_name() == 'risk-eu, risk-us'
+    monkeypatch.setenv('SAJHA_SAJHANET_NETS', '[]')
+    assert _local_server_name() == socket.gethostname()
+
+    class Rt:
+        def __init__(self, n):
+            self.cfg = type('C', (), {'instance_name': n})()
+    monkeypatch.setattr(net, 'get_service', lambda: type('S', (), {'runtimes': {'acme': Rt('10.0.0.5:3002')}})())
+    assert _local_server_name() == '10.0.0.5:3002'          # the running net's resolved name

@@ -1,0 +1,18 @@
+# An HTTP tool with a recorded cassette (cassettes/research_search_works/counterparty_credit_risk_since_2020_by_citations.json): replays offline.
+# Re-record against the live API with: python -m sajha.quality test --tool research_search_works --record
+tool: research_search_works
+cases:
+  - name: counterparty credit risk since 2020 by citations
+    tags: [http]
+    arguments: {"query": "counterparty credit risk", "from_year": 2020, "sort": "cited_by_count", "limit": 5}
+    expect:
+      - schema: output
+      - path: "$.count"
+        equals: 5
+      - path: "$.mode"
+        equals: "filter"
+      - path: "$.works[*].publication_year"
+        min: 2020
+probe:
+  case: counterparty credit risk since 2020 by citations
+  every: 86400

@@ -1,0 +1,217 @@
+{
+  "name": "bls_employment_cost_index",
+  "implementation": "sajha.tools.impl.bls_tools.BlsEmploymentCostIndexTool",
+  "description": "Employment Cost Index for civilian workers, quarterly: index Dec 2005=100 (seasonally adjusted), 12-month percent change, or 3-month percent change.\nReturns: source, disclaimer, retrieved, series (measure, series_id, unit, observations date/value).\nInputs (* required): measures (total_compensation, wages_and_salaries, benefits; default total_compensation), series_type (index, 12_month_change, 3_month_change; default 12_month_change), period (default last 3 years).\nExample: {\"measures\": [\"total_compensation\", \"wages_and_salaries\"], \"series_type\": \"12_month_change\", \"period\": \"last 2 years\"}",
+  "annotations": {
+    "readOnlyHint": true,
+    "idempotentHint": true,
+    "openWorldHint": true
+  },
+  "version": "1.0.0",
+  "enabled": true,
+  "cache_ttl": 21600,
+  "api_key": "${BLS_API_KEY:}",
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "measures": {
+        "type": "array",
+        "items": {
+          "type": "string",
+          "enum": [
+            "total_compensation",
+            "wages_and_salaries",
+            "benefits"
+          ]
+        },
+        "minItems": 1,
+        "maxItems": 3,
+        "uniqueItems": true,
+        "default": [
+          "total_compensation"
+        ],
+        "description": "Compensation component"
+      },
+      "series_type": {
+        "type": "string",
+        "enum": [
+          "index",
+          "12_month_change",
+          "3_month_change"
+        ],
+        "default": "12_month_change",
+        "description": "index (SA), 12_month_change (not SA) or 3_month_change (SA)"
+      },
+      "period": {
+        "type": "string",
+        "default": "last 3 years",
+        "description": "2025, 2025-Q3, 2025-07, 'last N months|quarters|years' or YYYY-MM-DD:YYYY-MM-DD"
+      }
+    },
+    "required": [],
+    "additionalProperties": false,
+    "examples": [
+      {
+        "measures": [
+          "total_compensation",
+          "wages_and_salaries"
+        ],
+        "series_type": "12_month_change",
+        "period": "last 2 years"
+      }
+    ]
+  },
+  "outputSchema": {
+    "type": "object",
+    "required": [
+      "source",
+      "disclaimer",
+      "retrieved",
+      "series"
+    ],
+    "properties": {
+      "source": {
+        "type": "string",
+        "description": "Source: U.S. Bureau of Labor Statistics ...; cite it with the data"
+      },
+      "disclaimer": {
+        "type": "string",
+        "description": "The statement the BLS terms require with the data"
+      },
+      "retrieved": {
+        "type": "string",
+        "description": "Date the data were retrieved (YYYY-MM-DD), which the BLS terms require"
+      },
+      "api_version": {
+        "type": "string",
+        "description": "v2 (with BLS_API_KEY) or v1 (keyless)"
+      },
+      "note": {
+        "type": "string",
+        "description": "Why the keyless tier was used, or what was cut"
+      },
+      "series_count": {
+        "type": "integer",
+        "description": "Series returned"
+      },
+      "messages": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Messages from BLS (unknown series, ...)"
+      },
+      "period": {
+        "type": "string",
+        "description": "The period asked for"
+      },
+      "series": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "required": [
+            "series_id",
+            "observations"
+          ],
+          "properties": {
+            "series_id": {
+              "type": "string",
+              "description": "BLS series id"
+            },
+            "label": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "description": "Series title"
+            },
+            "frequency": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "description": "Monthly, Quarterly, ..."
+            },
+            "observation_count": {
+              "type": "integer",
+              "description": "Observations returned"
+            },
+            "observations": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "required": [
+                  "date",
+                  "value"
+                ],
+                "properties": {
+                  "date": {
+                    "type": "string",
+                    "description": "Period: YYYY-MM, YYYY-Qn, YYYY-Sn or YYYY"
+                  },
+                  "value": {
+                    "type": [
+                      "number",
+                      "null"
+                    ],
+                    "description": "Value in the series unit"
+                  },
+                  "preliminary": {
+                    "type": "boolean",
+                    "description": "BLS marks the value preliminary (P)"
+                  },
+                  "footnotes": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    },
+                    "description": "BLS footnotes"
+                  },
+                  "change_12m_percent": {
+                    "type": [
+                      "number",
+                      "null"
+                    ],
+                    "description": "Percent change from the same period a year earlier"
+                  },
+                  "change": {
+                    "type": [
+                      "number",
+                      "null"
+                    ],
+                    "description": "Change from the previous period, in the series unit"
+                  }
+                }
+              }
+            },
+            "measure": {
+              "type": "string",
+              "description": "The measure asked for"
+            },
+            "unit": {
+              "type": "string",
+              "description": "Unit (index base, percent, thousands ...)"
+            },
+            "seasonally_adjusted": {
+              "type": [
+                "boolean",
+                "null"
+              ],
+              "description": "Seasonally adjusted series"
+            }
+          }
+        }
+      }
+    }
+  },
+  "metadata": {
+    "author": "Ashutosh Sinha",
+    "category": "Economic Data",
+    "tags": [
+      "bls",
+      "eci",
+      "wages",
+      "labor costs"
+    ]
+  }
+}

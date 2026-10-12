@@ -1,0 +1,1 @@
+GDELT Project news monitoring (api.gdeltproject.org), keyless; free for any use with a citation and link to https://www.gdeltproject.org/, which each result carries in source. Coverage worldwide, machine-translated; dates YYYY-MM-DD (UTC), at most three months per call. GDELT allows one request every 5 seconds: calls queue on one shared throttle and are cached, so expect waits.

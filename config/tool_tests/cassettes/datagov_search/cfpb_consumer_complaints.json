@@ -1,0 +1,37 @@
+{
+ "format": 1,
+ "interactions": [
+  {
+   "request": {
+    "method": "GET",
+    "url": "https://catalog.data.gov/search?q=consumer+complaints&org_slug=cfpb&per_page=5",
+    "body_sha256": ""
+   },
+   "response": {
+    "status": 200,
+    "reason": "OK",
+    "headers": {
+     "content-type": "application/json",
+     "connection": "keep-alive",
+     "date": "Mon, 12 Oct 2026 04:02:08 GMT",
+     "x-vcap-request-id": "bfd6e8a8-ed57-4acc-6ee9-7d7db6a0f2f3",
+     "x-frame-options": "SAMEORIGIN",
+     "content-security-policy": "default-src 'self'; script-src 'self' https://*.googletagmanager.com https://buttons.github.io https://unpkg.com 'unsafe-hashes' 'sha256-osjxnKEPL/pQJbFk1dKsF7PYFmTyMWGmVSiL9inhxJY=' 'sha256-A1KDZ6CTgI16YJ4cUNyyCFExM5+Sv4ApvahuZIQRXPA=' https://static.zdassets.com https://ekr.zdassets.com 'sha256-Ff1SFMp5PHyy62W49sHzg1RI9yL6Y9xoqXeGrJP8TUI=' https://gsa-solutionshelp.zendesk.com 'nonce-PSoWSWg7F-SdtKP5lWzOWDHD7jQkt6Ix'; font-src 'self' https://cdnjs.cloudflare.com; img-src 'self' https://s3-us-gov-west-1.amazonaws.com https://raw.githubusercontent.com data: https://*.google-analytics.com https://*.googletagmanager.com; connect-src 'self' https://api.github.com https://*.google-analytics.com https://*.analytics.google.com https://*.googletagmanager.com https://static.zdassets.com https://ekr.zdassets.com https://gsa-solutionshelp.zendesk.com https://gov-bam.nr-data.net https://*.ingest.de.sentry.io; frame-src https://www.googletagmanager.com; style-src-attr 'self' 'unsafe-hashes' 'sha256-kELgoK46JmGjLd8UHfzN0qJToDgIB+yMtRHG8PtGL7s='; style-src 'self' https://cdnjs.cloudflare.com; style-src-elem 'self' https://cdnjs.cloudflare.com https://unpkg.com 'unsafe-inline'",
+     "permissions-policy": "browsing-topics=()",
+     "referrer-policy": "strict-origin-when-cross-origin",
+     "strict-transport-security": "max-age=31536000; includeSubDomains; preload",
+     "x-content-type-options": "nosniff",
+     "vary": "Accept-Encoding",
+     "x-cache": "Hit from cloudfront",
+     "via": "1.1 043cf9310ff19c0e58a0b6e76877f570.cloudfront.net (CloudFront)",
+     "x-amz-cf-pop": "JFK50-P1",
+     "x-amz-cf-id": "OGorVISm5MP-ctDjNwzKph7s90WOlCaae9lzzAoi38zlg4mvwZq0wg==",
+     "age": "200"
+    },
+    "body": {
+     "text": "{\"results\":[{\"_score\":83.95947,\"_sort\":[83.95947,478,\"a0da15a9-179c-4851-98bf-55beeb30e014\"],\"access_level\":\"public\",\"dcat\":{\"@type\":\"dcat:Dataset\",\"accessLevel\":\"public\",\"accrualPeriodicity\":\"R/P1D\",\"bureauCode\":[\"581:00\"],\"contactPoint\":{\"@type\":\"vcard:Contact\",\"fn\":\"devops@cfpb.gov\",\"hasEmail\":\"mailto:devops@cfpb.gov\"},\"describedBy\":\"https://cfpb.github.io/api/ccdb/api.html\",\"description\":\"The Consumer Complaint Database is a collection of complaints about consumer financial products and services that we sent to companies for response. Complaints are published after the company responds, confirming a commercial relationship with the consumer, or after 15 days, whichever comes first. Complaints referred to other regulators, such as complaints about depository institutions with less than $10 billion in assets, are not published in the Consumer Complaint Database. The database generally updates daily.\",\"distribution\":[{\"@type\":\"dcat:Distribution\",\"accessURL\":\"https://www.consumerfinance.gov/data-research/consumer-complaints/\",\"description\":\"The Consumer Complaint Database is a collection of complaints about consumer financial products and services that we sent to companies for response. Complaints are published after the company responds, confirming a commercial relationship with the consumer, or after 15 days, whichever comes first. Complaints referred to other regulators, such as complaints about depository institutions with less than $10 billion in assets, are not published in the Consumer Complaint Database. The database generally updates daily.\",\"title\":\"Consumer Complaint Database\"}],\"identifier\":\"CCDB\",\"keyword\":[\"bank account\",\"bank service\",\"complaint\",\"consumer\",\"credit card\",\"credit report\",\"debt collection\",\"finance\",\"loan\",\"money transfer\",\"mortgage\",\"student loan\"],\"landingPage\":\"https://www.consumerfinance.gov/data-research/consumer-complaints/\",\"modified\":\"2020-06-29\",\"programCode\":[\"000:000\"],\"publisher\":{\"@type\":\"org:Organization\",\"name\":\"Consumer Financial Protection Bureau\"},\"spatial\":\"United States\",\"title\":\"Consumer Complaint Database\"},\"description\":\"The Consumer Complaint Database is a collection of complaints about consumer financial products and services that we sent to companies for response. Complaints are published after the company responds, confirming a commercial relationship with the consumer, or after 15 days, whichever comes first. Complaints referred to other regulators, such as complaints about depository institutions with less than $10 billion in assets, are not published in the Consumer Complaint Database. The database generally updates daily.\",\"distribution_titles\":[\"Consumer Complaint Database\"],\"harvest_record\":\"https://catalog.data.gov/harvest_record/6309f50b-715c-419c-abc9-2e0644e2d7e9\",\"harvest_record_raw\":\"https://catalog.data.gov/harvest_record/6309f50b-715c-419c-abc9-2e0644e2d7e9/raw\",\"has_download\":false,\"has_spatial\":true,\"identifier\":\"CCDB\",\"keyword\":[\"bank account\",\"bank service\",\"complaint\",\"consumer\",\"credit card\",\"credit report\",\"debt collection\",\"finance\",\"loan\",\"money transfer\",\"mortgage\",\"student loan\"],\"last_harvested_date\":\"2026-09-10T19:07:35.287540\",\"organization\":{\"aliases\":null,\"code_repo_exempt\":false,\"code_repo_url\":null,\"description\":null,\"id\":\"d0ddb350-dd27-46fd-9e81-234374bf0607\",\"logo\":\"https://raw.githubusercontent.com/GSA/logo/master/cfpb.png\",\"name\":\"Consumer Financial Protection Bureau\",\"organization_type\":\"Federal Government\",\"slug\":\"cfpb\"},\"parent_identifier\":null,\"popularity\":478,\"publisher\":\"Consumer Financial Protection Bureau\",\"slug\":\"consumer-complaint-database\",\"spatial_centroid\":{\"lat\":34.4819914,\"lon\":-101.6218762},\"spatial_shape\":{\"coordinates\":[[[[-124.733253,24.544245],[-124.733253,49.388611],[-66.954811,49.388611],[-66.954811,24.544245],[-124.733253,24.544245]]]],\"type\":\"MultiPolygon\"},\"theme\":[],\"title\":\"Consumer Complaint Database\",\"type\":\"dataset\"}],\"sort\":\"relevance\"}\n"
+    }
+   }
+  }
+ ]
+}

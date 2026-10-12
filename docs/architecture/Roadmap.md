@@ -40,14 +40,13 @@ judgement. They are collected in [section 5](#5-decisions-needed).
 
 ## 2. Now
 
-Every wave of the [Implementation Plan](Implementation%20Plan.md) through wave 7 has shipped, and so
-have phases 8.1 of wave 8 (tool health, L21 to L25) and 8.2 (quantitative planners, L51 to L60: the
-quantitative workspace, the numbers check, the computed-answer planners, their choice by `router` and
-`auto`, the quantitative eval sets, figure lineage on the Ask page and the `x-sajha-unit` keyword; the
-CHANGELOG has them). Phases 8.3 to 8.5 shipped
-their core in 8.10.0 (open data P1) and 8.11.0 (business intelligence and reports together); the CHANGELOG
-has them. What is left of wave 8 is in [section 4.3](#43-wave-8-placed): open data P2 and P3 (L32 to
-L39); the rest of BI and reports was descoped (see Decisions).
+Every wave of the [Implementation Plan](Implementation%20Plan.md) is done or dropped: waves 1 to 14
+and 16 shipped (the last in 8.15.0, open data P2 and P3), and wave 15 (business intelligence
+finished) was dropped by the owner; the CHANGELOG has each release. Nothing is needed before the next
+release is cut. What is still open is below: L1, L6, L7, L11 to L14, and GDACS
+(L36, waiting for legal) in [section 4.3](#43-wave-8-placed). GDELT's TV tool is not a row: its
+upstream API has held no data since October 2024 ([Open Data Tools](Open%20Data%20Tools.md)). The
+rest of BI and reports was descoped (see [section 5](#5-decisions-needed)).
 
 ---
 
@@ -55,13 +54,11 @@ L39); the rest of BI and reports was descoped (see Decisions).
 
 ### 3.1 Unfinished work
 
-| ID | Item | Why it matters | Current state | Proposed approach | Size | Depends on |
-|---|---|---|---|---|---|---|
+None open.
 
 ### 3.2 Enhancements
 
-| ID | Item | Why it matters | Current state | Proposed approach | Size | Depends on |
-|---|---|---|---|---|---|---|
+None open.
 
 ---
 
@@ -94,20 +91,13 @@ the roadmap and build at the first opportunity") and placed them in wave 8 of th
 |---|---|---|
 | 8.1 | L21–L25 (shipped; rows removed) | 8.8.0 |
 | 8.2 | L51–L60 (quantitative planners; built, rows removed; L60 in 8.14.0) | 8.9.0 |
-| 8.3 | L26–L39 (P1 L26–L31 and Wikidata shipped, rows removed; P2 and P3 open) | 8.10.0 |
+| 8.3 | L26–L39 (P1 L26–L31 and Wikidata shipped, rows removed; P2 L32–L35, and P3 L37–L39 and L36 but GDACS, shipped in 8.15.0, rows removed) | 8.10.0, 8.15.0 |
 | 8.4 | L40–L44 (L40, L42 shipped; L41 in part; the rest descoped; rows removed) | 8.11.0 |
 | 8.5 | L45–L50 (L45 to L47 and the library page shipped; the rest descoped; rows removed) | 8.11.0 |
 
 | ID | Item | Why it matters | Current state | Proposed approach | Size | Depends on |
 |---|---|---|---|---|---|---|
-| L32 | CFTC Commitments of Traders (`cftc`) (wave 8) | Positioning by trader category | Not built ([Open Data Tools](Open%20Data%20Tools.md)) | Latest, history, markets and net positioning over the Socrata datasets, with an app token | S | none |
-| L33 | Eurostat and OECD (`eurostat`, `oecd`) (wave 8) | Monthly and quarterly European and OECD statistics | Not built ([Open Data Tools](Open%20Data%20Tools.md)) | Host profiles on the shared SDMX client; OECD under one shared hourly budget | M | none (the shared SDMX client shipped in 8.8.0) |
-| L34 | Statistics offices (`ons`, `statcan`, `abs`) (wave 8) | First-hand national statistics for the UK, Canada and Australia | Not built ([Open Data Tools](Open%20Data%20Tools.md)) | One folder per office; ABS on the SDMX client | M | none (the shared SDMX client shipped in 8.8.0) |
-| L35 | US BLS, BEA and EIA (`bls`, `bea`, `eia`) (wave 8) | First-hand US labour, national accounts and energy data | Not built; BEA answered 503 on the day it was checked ([Open Data Tools](Open%20Data%20Tools.md)) | Keys from the environment; BLS v2; curated and generic tools | M | none |
-| L36 | Hazards (`hazards`) (wave 8) | Operational and physical-climate risk questions | Not built; Open-Meteo dropped for its non-commercial free tier ([Open Data Tools](Open%20Data%20Tools.md)) | USGS earthquakes, NASA FIRMS fires, and GDACS alerts with their disclaimer once legal approves (off until then) | S | none |
-| L37 | Research and Wikidata (`research`, `wikipedia`) (wave 8) | Literature and entity facts behind an answer | Wikidata built in 8.10.0 (in the [Wikipedia guide](../tools/search/Wikipedia%20Search%20Tool%20Reference%20Guide.md#wikidata)); research not built ([Open Data Tools](Open%20Data%20Tools.md)) | OpenAlex (key and budget), Crossref, arXiv (global throttle); Wikidata in the existing `wikipedia` folder | M | none |
-| L38 | News events (`gdelt`) (wave 8) | Coverage and tone of events over time | Not built; GEO 2.0 dropped ([Open Data Tools](Open%20Data%20Tools.md)) | DOC, TV and Context APIs, serialised at one call per 5 seconds, cached | S | none |
-| L39 | Public spending and catalogue (`us_spending`) (wave 8) | US federal awards and the data.gov catalogue | Not built; the CKAN API is gone ([Open Data Tools](Open%20Data%20Tools.md)) | USAspending search and recipients; the new data.gov catalogue API pinned by a contract test | S | none |
+| L36 | GDACS disaster alerts (`hazards`) (wave 8) | Disaster alerts beside the earthquake and fire tools | Not built: GDACS's terms grant no licence; USGS earthquakes and NASA FIRMS fires shipped in 8.15.0 ([Hazards guide](../tools/public-data/Hazards%20Tool%20Reference%20Guide.md)) | `hazards_disaster_alerts` with GDACS's disclaimer in every result, once legal approves (**Decision**) | S | legal approval |
 
 ---
 

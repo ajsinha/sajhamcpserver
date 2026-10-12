@@ -1,0 +1,21 @@
+# An HTTP tool with a recorded cassette (cassettes/bls_cpi/all_items_and_core_2025.json): replays offline.
+# Re-record against the live API with: python -m sajha.quality test --tool bls_cpi --record
+# (record without BLS_API_KEY/EIA_API_KEY set so the cassette matches a keyless replay)
+tool: bls_cpi
+cases:
+  - name: all items and core 2025
+    tags: [http]
+    arguments: {"measures": ["all_items", "core"], "period": "2025-01-01:2025-12-31"}
+    expect:
+      - schema: output
+      - path: "$.series_count"
+        equals: 2
+      - path: "$.series[0].observation_count"
+        equals: 12
+      - path: "$.series[0].unit"
+        regex: "1982-84=100"
+      - path: "$.disclaimer"
+        regex: "cannot vouch"
+probe:
+  case: all items and core 2025
+  every: 86400

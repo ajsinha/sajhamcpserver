@@ -59,14 +59,25 @@ def _check_protocol_header(request: Request):
     return None
 
 
-def _lookup_session(request: Request):
-    """Return (session, error_response). Unknown session id -> 404."""
+def _owned_by(session, caller) -> bool:
+    """A session minted for a signed-in user belongs to that user alone; one minted anonymously has no
+    owner. The one identity rule for every use of an Mcp-Session-Id (POST, DELETE, the GET stream)."""
+    return not session.user_id or session.user_id == caller
+
+
+def _caller_id(auth) -> str | None:
+    return (auth.to_legacy_session() or {}).get('user_id') if auth is not None else None
+
+
+def _lookup_session(request: Request, auth=None, check_owner: bool = True):
+    """Return (session, error_response). An unknown session id, or another caller's session, -> 404
+    (the two are indistinguishable to the caller)."""
     from sajha.core.mcp_sessions import get_session_store
     sid = request.headers.get(_SESSION_HEADER)
     if not sid:
         return None, None
     session = get_session_store().get(sid)
-    if session is None:
+    if session is None or (check_owner and not _owned_by(session, _caller_id(auth))):
         return None, _rpc_error(-32001, 'Session not found', 404)
     return session, None
 
@@ -177,7 +188,7 @@ async def mcp_post(request: Request, db: Session = Depends(get_db)):
     err = _check_protocol_header(request)
     if err is not None:
         return err
-    mcp_session, err = _lookup_session(request)
+    mcp_session, err = _lookup_session(request, auth)
     if err is not None:
         return err
 
@@ -549,12 +560,15 @@ async def mcp_delete(request: Request, db: Session = Depends(get_db)):
         return err
     if is_modern_header(request.headers):
         return _modern_405()
-    _, err = await authorize_mcp(request, db, None)
+    auth, err = await authorize_mcp(request, db, None)
     if err is not None:
         return err
     sid = request.headers.get(_SESSION_HEADER)
     if not sid:
         return _rpc_error(-32600, 'Mcp-Session-Id header required', 400)
+    _, err = _lookup_session(request, auth)     # another caller's session is "not found" too
+    if err is not None:
+        return err
     if not get_session_store().delete(sid):
         return _rpc_error(-32001, 'Session not found', 404)
     stream = _open_session_streams.get(sid)
@@ -596,7 +610,7 @@ async def mcp_sse(request: Request, db: Session = Depends(get_db)):
         err = _check_protocol_header(request)
         if err is not None:
             return err
-        session, err = _lookup_session(request)
+        session, err = _lookup_session(request, check_owner=False)    # the owner is checked by _session_stream
         if err is not None:
             return err
         if session is None:
@@ -694,7 +708,7 @@ async def _session_stream(request: Request, db, session):
         return _rpc_error(-32600, 'GET /mcp opens an SSE stream: Accept must include text/event-stream', 406)
     caller = (auth.to_legacy_session() or {}).get('user_id')
     release_session(db)     # the stream stays open for the session's life: it holds no pool connection
-    if session.user_id and session.user_id != caller:
+    if not _owned_by(session, caller):
         return _rpc_error(-32001, 'Session not found', 404)     # never attach to another user's session
     sid = session.session_id
     if sid in _open_session_streams:

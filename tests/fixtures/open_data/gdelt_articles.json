@@ -1,0 +1,50 @@
+{
+ "tool": "gdelt_articles",
+ "arguments": {
+  "query": "\"interest rates\" inflation",
+  "from": "2026-10-01",
+  "to": "2026-10-07",
+  "max_records": 10,
+  "sort": "date"
+ },
+ "recorded": "2026-10-12",
+ "calls": [
+  {
+   "method": "GET",
+   "url": "https://api.gdeltproject.org/api/v2/doc/doc",
+   "params": [
+    [
+     "query",
+     "\"interest rates\" inflation"
+    ],
+    [
+     "mode",
+     "artlist"
+    ],
+    [
+     "maxrecords",
+     "10"
+    ],
+    [
+     "sort",
+     "datedesc"
+    ],
+    [
+     "startdatetime",
+     "20261001000000"
+    ],
+    [
+     "enddatetime",
+     "20261007235959"
+    ],
+    [
+     "format",
+     "json"
+    ]
+   ],
+   "status": 200,
+   "content_type": "application/json; charset=utf-8",
+   "body": "{\"articles\": [ { \"url\": \"http://mp.cnfol.com/29237/article/1791259762-142755964.html\", \"url_mobile\": \"\", \"title\": \" 【 南篱 / 黄金 】 数据弱金价跌 ， 黄金不准备涨了 ？_ 中金在线财经号\", \"seendate\": \"20261006T083000Z\", \"socialimage\": \"\", \"domain\": \"mp.cnfol.com\", \"language\": \"Chinese\", \"sourcecountry\": \"China\" },{ \"url\": \"https://www.inewsgr.com/93/poso-kindynevei-pali-to-elliniko-dimosio-chreos-apo-tin-krisi-pou-chtypaei-tora-proti-tin-gallia.htm\", \"url_mobile\": \"https://www.inewsgr.com/93/poso-kindynevei-pali-to-elliniko-dimosio-chreos-apo-tin-krisi-pou-chtypaei-tora-proti-tin-gallia.htm.amp\", \"title\": \"Πόσο κινδυνεύει ( πάλι ) το ελληνικό δημόσιο χρέος , από την κρίση που χτυπάει τώρα « πρώτη » την Γαλλία\", \"seendate\": \"20261006T083000Z\", \"socialimage\": \"https://images32.inewsgr.com/6050/60502257/1.jpg\", \"domain\": \"inewsgr.com\", \"language\": \"Greek\", \"sourcecountry\": \"Greece\" },{ \"url\": \"https://www.cityam.com/old-fault-lines-are-threatening-to-rock-the-eurozone/\", \"url_mobile\": \"\", \"title\": \"Old fault lines are threatening to rock the Eurozone\", \"seendate\": \"20261006T083000Z\", \"socialimage\": \"https://www.cityam.com/wp-content/uploads/2026/10/Eurozone-e1791217412850.jpg\", \"domain\": \"cityam.com\", \"language\": \"English\", \"sourcecountry\": \"United Kingdom\" },{ \"url\": \"https://diena.lv/raksts/uznemeja-diena/zinas-42/igaunijas-ekonomika-uznem-atrumu\", \"url_mobile\": \"\", \"title\": \"Igaunijas ekonomika uzņem ātrumu\", \"seendate\": \"20261006T083000Z\", \"socialimage\": \"https://diena.lv/imgproxy/OeOBul-GRiDibUw5w8aUgYCGJkRpuqic6wGEdGreH2g/rt:fill/s:1200:750/plain/s3://diena-1/media/ekon_5_roboti_scanpix.jpg\", \"domain\": \"diena.lv\", \"language\": \"Latvian\", \"sourcecountry\": \"Latvia\" },{ \"url\": \"https://www.naftemporiki.gr/finance/markets/2171215/to-galliko-chreos-pnigei-to-eyro-vythizetai-to-nomisma-fygi-sto-dolario/\", \"url_mobile\": \"\", \"title\": \"Το γαλλικό χρέος « πνίγει » το ευρώ : Βυθίζεται το νόμισμα , φυγή στο δολάριο\", \"seendate\": \"20261006T083000Z\", \"socialimage\": \"https://www.naftemporiki.gr/wp-content/uploads/2026/10/euro-vithizetai.jpg\", \"domain\": \"naftemporiki.gr\", \"language\": \"Greek\", \"sourcecountry\": \"Greece\" },{ \"url\": \"https://www.ibtimes.com.au/japan-nikkei-closes-above-70000-1876319\", \"url_mobile\": \"\", \"title\": \"Nikkei Tops 70 , 000 at Close , Hits Three - Month High as Wall Street Rally and Cheaper Oil Lift Tokyo Stocks\", \"seendate\": \"20261006T083000Z\", \"socialimage\": \"https://d.ibtimes.com.au/en/full/1895331/10-nikkei-225-stocks-analysts-are-watching-2026.jpg\", \"domain\": \"ibtimes.com.au\", \"language\": \"English\", \"sourcecountry\": \"Australia\" },{ \"url\": \"https://www.ecb.europa.eu/press/inter/date/2026/html/ecb.in261006~bc94400297.en.html\", \"url_mobile\": \"\", \"title\": \"Interview with Ansa\", \"seendate\": \"20261006T083000Z\", \"socialimage\": \"\", \"domain\": \"ecb.europa.eu\", \"language\": \"English\", \"sourcecountry\": \"Greece\" },{ \"url\": \"https://www.skai.gr/news/finance/giati-to-xreos-ginetai-ksana-ponokefalos-gia-tin-eyropi\", \"url_mobile\": \"https://www.skai.gr/news/finance/giati-to-xreos-ginetai-ksana-ponokefalos-gia-tin-eyropi/amp\", \"title\": \"Γιατί οι αγορές ανησυχούν ξανά για το ευρωπαϊκό χρέος\", \"seendate\": \"20261006T083000Z\", \"socialimage\": \"https://cdn.skai.gr/sites/default/files/styles/article_16_9/public/2026-10/bond_markets_shutterstock.jpg?itok=1Rn_H0dN\", \"domain\": \"skai.gr\", \"language\": \"Greek\", \"sourcecountry\": \"Greece\" },{ \"url\": \"https://www.bankier.pl/wiadomosc/RPP-poczeka-do-listopada-Wtedy-moze-podniesc-stopy-procentowe-9207916.html\", \"url_mobile\": \"\", \"title\": \"RPP poczeka do listopada . Wtedy może podnieść stopy procentowe\", \"seendate\": \"20261006T083000Z\", \"socialimage\": \"https://galeria.bankier.pl/p/e/e/27171e779f1542-948-568-0-133-2047-1228.jpg\", \"domain\": \"bankier.pl\", \"language\": \"Polish\", \"sourcecountry\": \"Poland\" },{ \"url\": \"https://www.bankier.pl/wiadomosc/Hossa-na-jednym-silniku-Gielde-ratuje-tylko-sztuczna-inteligencja-9207879.html\", \"url_mobile\": \"\", \"title\": \"Hossa na jednym silniku . Giełdę ratuje tylko sztuczna inteligencja ? \", \"seendate\": \"20261006T083000Z\", \"socialimage\": \"https://galeria.bankier.pl/p/9/3/2efeb0d36aa97f-948-568-10-10-3990-2393.jpg\", \"domain\": \"bankier.pl\", \"language\": \"Polish\", \"sourcecountry\": \"Poland\" }] }"
+  }
+ ]
+}

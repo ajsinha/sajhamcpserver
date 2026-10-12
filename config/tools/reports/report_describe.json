@@ -2,7 +2,7 @@
   "name": "report_describe",
   "implementation": "sajha.reports.tools.ReportDescribeTool",
   "title": "Describe a report",
-  "description": "One report definition: its sections, the tools and metrics it calls, parameters, formats, schedule, recipients (redacted unless you own it) and your last runs of it.\nReturns: name, tool, title, definition, definition_hash, sources (section, tool, arguments), sub_reports, missing_tools, formats, formats_unavailable, schedule, last_runs.\nInputs (* required): report*.\nExample: {\"report\": \"desk_calendar\"}",
+  "description": "One report definition: its sections, the tools and metrics it calls, parameters, formats and your last runs of it.\nReturns: name, tool, title, definition, definition_hash, sources (section, tool, arguments), sub_reports, missing_tools, formats, formats_unavailable, last_runs.\nInputs (* required): report*.\nExample: {\"report\": \"desk_calendar\"}",
   "version": "1.0.0",
   "enabled": true,
   "inputSchema": {

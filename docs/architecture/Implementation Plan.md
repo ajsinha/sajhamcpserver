@@ -1,6 +1,6 @@
 # Implementation Plan
 
-> **Status: waves 1 to 7 done (between waves, 8.3.0 shipped qlrisk and tool domains, and 8.5.0 the outbound fetch guard); wave 8 done in its wrap-up scope (8.8.0 to 8.11.0); waves 9 to 16 planned (section 7c)** (the Status column of
+> **Status: every wave is done or dropped. Waves 1 to 7 done (between waves, 8.3.0 shipped qlrisk and tool domains, and 8.5.0 the outbound fetch guard); wave 8 done in its wrap-up scope (8.8.0 to 8.11.0); waves 9 to 14 and 16 done (8.12.0 to 8.15.0, section 7c); wave 15 dropped by the owner. What is still open is on the [Roadmap](Roadmap.md)** (the Status column of
 > section 2 is the per-wave record). This is the build order for the two features,
 > [LLM Tools](LLM%20Tools.md) (with the [Planner Reference](Planner%20Reference.md)) and
 > [SAJHA Net](SAJHA%20Net.md) (with the [SAJHA Net Protocol](../protocol/SAJHA%20Net%20Protocol.md)),
@@ -67,7 +67,7 @@ streams, what each phase waits for, and its status.
 | 5 | 8.1.0 | Sovereignty, console, other MCP servers | Residency, locality-aware planners, re-export, the full SAJHA Net console, sponsored servers, the agent and library, the extension's conformance suite | 4 | done (8.1.0) |
 | 6 | 8.2.0 | Protocol uniformity between servers, and its security | Server to server on the same streaming MCP as client to server: progress, partial results, cancellation and input requests relayed to the client on its own transport, tasks at the home wrapping forwarded calls (Roadmap L17a; host-side tasks are L19), with security per event: signing, replay protection, residency on partial results (L17b) | 5 | done (8.2.0) |
 | 7 | 8.4.0 | Per-user sign-in, access to prompts and resources, a hardened test suite | Roadmap X3 (prompts and data resources under the same allow/deny rules as tools), the Adversarial QA Plan's first automation (suite integrity and P0 attacks), Roadmap L18 (proxied MCP servers acting as each user: personal tokens, then OAuth; per-user sessions; the SAJHA Net connect relay), with GitHub and Atlassian as the first integrations | 6 | done (8.4.0) |
-| 8 | 8.8.0–8.11.0 | Tool health, quantitative planners, open data, business intelligence and reports | Schema defaults applied, broken tools fixed or removed, a live tool check, domain descriptions, generated guide tables (8.8.0); a quantitative workspace and planners that compute figures with units and lineage (8.9.0); verified open data sources in their tool folders (8.10.0); a metrics layer and BI tools (8.11.0); report definitions, formats and narration under a numbers check (8.11.0, with BI). Roadmap L21–L59 | 7 | done, in its wrap-up scope: 8.1 (8.8.0), 8.2 (8.9.0), 8.3 P1 (8.10.0), 8.4 and 8.5 cores (8.11.0); the slipped parts are Roadmap rows |
+| 8 | 8.8.0–8.11.0 | Tool health, quantitative planners, open data, business intelligence and reports | Schema defaults applied, broken tools fixed or removed, a live tool check, domain descriptions, generated guide tables (8.8.0); a quantitative workspace and planners that compute figures with units and lineage (8.9.0); verified open data sources in their tool folders (8.10.0); a metrics layer and BI tools (8.11.0); report definitions, formats and narration under a numbers check (8.11.0, with BI). Roadmap L21–L59 | 7 | done, in its wrap-up scope: 8.1 (8.8.0), 8.2 (8.9.0), 8.3 P1 (8.10.0), 8.4 and 8.5 cores (8.11.0); P2 and P3 in wave 16 (8.15.0); the rest of BI and reports descoped by the owner |
 | 9 | 8.12.0 | Platform depth | Ask SAJHA over MCP finished (X7), protocol gaps (X12), async provider paths (X9), federation carrying every MCP feature (L2), `service_with_user` and an approval rule for proxied writes (L20), workflow engine limits (L3), API Import multipart and pagination (L4) | 8 | done (8.12.0) |
 | 10 | 8.12.0 | Operations and scale | A benchmark suite with published numbers (X13), SLOs and failure tests (X14), federation at gateway scale (L10), push-based reload (X11), storage finished (L1) | 9 | done (8.12.0) |
 | 11 | 8.13.0 | Security and ecosystem | Sandbox egress proxy and warm pool (L6), a container per federated stdio server (L9), signed plugins and a catalog (L12), SaaS provider packs (L11), RAG sources through connected accounts with OCR (X8), Weaviate and Chroma (X10), tool quality reach (L5), provider tool gaps (L7) | 10 | done (8.13.0) |
@@ -75,7 +75,7 @@ streams, what each phase waits for, and its status.
 | 13 | 8.14.0 | Cleanup and hardening | Runtime files untracked, the legacy `test/` folder archived, the `tools.apply_schema_defaults` switch removed, every tool fetch through the outbound guard, known broken tools fixed, cassettes for the wave 8 tools, a tighter numbers check, policy-denied tools not offered to Ask SAJHA, domain text in Studio, a faster test suite | 12 | done (8.14.0) |
 | 14 | 8.14.0 | Quantitative planners finished | Figure lineage on the Ask page and the `x-sajha-unit` output-schema keyword (L60); report delivery, the Studio Report creator, more flagships and PNG charts were descoped by the owner (2026-10-11) | 13 | done (8.14.0) |
 | 15 | — | Business intelligence finished | Descoped by the owner (2026-10-11): an MCP server is not a BI product; the shipped metric tools stay | — | dropped |
-| 16 | 8.15.0 | Open data P2 and P3 | CFTC, Eurostat and OECD, the statistics offices, BLS, BEA and EIA (L32–L35); hazards, research, news events, public spending (L36–L39), each source's terms checked again first | 15 | planned |
+| 16 | 8.15.0 | Open data P2 and P3 | CFTC, Eurostat and OECD, the statistics offices, BLS, BEA and EIA (L32–L35); hazards, research, news events, public spending (L36–L39), each source's terms checked again first | 15 | done (8.15.0): P2 built (cftc, eurostat, oecd, ons, statcan, abs, bls, bea, eia); P3 built (hazards without GDACS, research, gdelt without TV, us_spending) |
 Wave 4 is a major version because it adds a new table (`sajhanet_api_keys`), new columns on
 `api_keys` and a new signed protocol surface; operators must apply schema changes on PostgreSQL by
 hand, as for every schema change.
@@ -280,9 +280,9 @@ The Roadmap rows are L21–L59.
 |---|---|---|---|---|
 | 8.1 | A schema defaults applied on every call path, with the per-tool decisions and their compatibility list (L21) ‖ B broken tools fixed or removed, with the shared SDMX client (L22) ‖ C the live tool check, its notice source and the `missing-example` lint, with structured examples added to every shipped tool (L23) ‖ D domain descriptions (L24) and the generator for Tool Reference Guide tables with `--check` (L25) | 8.6.0 | 8.8.0 | done (8.8.0) |
 | 8.2 | Quantitative planners: A the quantitative workspace (quantities with units, as-of and source), the operation library, the numbers validator and the `numbers_check` setting (L51, L57) ‖ then, on A: B `calc_graph` and `estimate_then_compute` (L52) ‖ C `scenario`, and `data_analyst` with the tool-result loader (L53, L54) ‖ D `code_act` and `optimize` (L55, L56). Then `research_writer` and `reconcile` (L58), router and `auto` candidates and the quantitative eval sets (L59) | 8.1 | 8.9.0 | done (8.9.0) |
-| 8.3 | P1 sources: A calendars and GLEIF (L26, L27) ‖ B BIS and US Treasury (L28, L29) ‖ C sanctions (L30) ‖ D FDIC (L31). Then P2: CFTC, Eurostat and OECD, the three statistics offices, BLS, BEA and EIA (L32–L35). Then P3: hazards, research, GDELT, spending (L36–L39). P2 and P3 may slip to a later release by the owner's decision; P1 may not | 8.1 (shared SDMX client, defaults, live check) | 8.10.0 | P1 done (8.10.0), with the Wikidata tools; P2 and P3 slipped (owner: wrap up soon) |
-| 8.4 | A metrics layer and `bi_query_metric` (L40) ‖ B analysis tools on the OLAP engines (L41), started once A's compiler is merged ‖ C charts, and `bi_load_tool_result` over the loader built in 8.2 (L42) ‖ D catalogue, profiling and data-quality suites, then dashboards (L43, L44) | 8.3 (open data tools to blend and chart), 8.2 (the tool-result loader) | 8.11.0 | A and C done (8.11.0), B in part (compare, top N, crosstab, explain change); cohort, anomalies, forecast and D (catalogue, quality, dashboards) slipped |
-| 8.5 | A report definitions, engine, tools and history (L45) ‖ B formats (L46) ‖ C narration with the numbers check (L47) ‖ D delivery, approval, scheduling and audit (L48). Then the Studio Report creator and the library page (L49) and the flagship reports (L50) | 8.4 (metric tiles and charts), 8.2 (the numbers validator) | 8.11.0 | A, B and C done (8.11.0, shipped together with 8.4); D (delivery, scheduling) and the Studio creator slipped |
+| 8.3 | P1 sources: A calendars and GLEIF (L26, L27) ‖ B BIS and US Treasury (L28, L29) ‖ C sanctions (L30) ‖ D FDIC (L31). Then P2: CFTC, Eurostat and OECD, the three statistics offices, BLS, BEA and EIA (L32–L35). Then P3: hazards, research, GDELT, spending (L36–L39). P2 and P3 may slip to a later release by the owner's decision; P1 may not | 8.1 (shared SDMX client, defaults, live check) | 8.10.0 | P1 done (8.10.0), with the Wikidata tools; P2 done (8.15.0); P3 done (8.15.0) except GDACS (legal) and GDELT TV (no data upstream) |
+| 8.4 | A metrics layer and `bi_query_metric` (L40) ‖ B analysis tools on the OLAP engines (L41), started once A's compiler is merged ‖ C charts, and `bi_load_tool_result` over the loader built in 8.2 (L42) ‖ D catalogue, profiling and data-quality suites, then dashboards (L43, L44) | 8.3 (open data tools to blend and chart), 8.2 (the tool-result loader) | 8.11.0 | A and C done (8.11.0), B in part (compare, top N, crosstab, explain change); cohort, anomalies, forecast and D (catalogue, quality, dashboards) descoped by the owner (2026-10-11) |
+| 8.5 | A report definitions, engine, tools and history (L45) ‖ B formats (L46) ‖ C narration with the numbers check (L47) ‖ D delivery, approval, scheduling and audit (L48). Then the Studio Report creator and the library page (L49) and the flagship reports (L50) | 8.4 (metric tiles and charts), 8.2 (the numbers validator) | 8.11.0 | A, B and C done (8.11.0, shipped together with 8.4); D (delivery, scheduling), the Studio creator and more flagships descoped by the owner (2026-10-11) |
 
 Each phase ends the way every phase does. It turns its guide sections from planned to as-built and
 adds a tutorial, glossary terms and help cards. Then the combined gate runs (section 9), and the
@@ -328,12 +328,12 @@ parallel streams, and passes the gates of section 9.
 |---|---|---|---|
 | 9.1 | A Ask SAJHA over MCP finished (X7) ‖ B protocol gaps (X12) ‖ C async Bedrock and embeddings (X9), `service_with_user` and the proxied-write approval rule (L20) ‖ D API Import multipart and pagination (L4) | 8.12.0 | done |
 | 9.2 | A federation: resource templates, completions, subscriptions, upstream tasks, `ui://` views, 2025-11-25 upstream requests (L2) ‖ B workflow sub-graph bodies, trigger relay through the state store, opt-in replay of missed slots (L3) | 8.12.0 | done |
-
 | 10 | A benchmark suite and SLOs with failure tests (X13, X14) ‖ B push-based reload and storage finished (X11, L1, the remainder stays on the Roadmap) ‖ C federation at gateway scale (L10) | 8.12.0 | done |
 
 Owner decision, 2026-10-11: releases pair the waves, one gate and drill per pair (9 and 10 in 8.12.0,
-11 and 12 in 8.13.0, 13 and 14 in 8.14.0, 15 and 16 in 8.15.0). Waves 11 to 16 are cut into phases when
-each starts; their content is in section 2 and the Roadmap.
+11 and 12 in 8.13.0, 13 and 14 in 8.14.0; wave 15 was dropped, so 8.15.0 is wave 16 alone). Waves 11
+to 16 were cut into phases as each started; what each shipped is in section 2 and the CHANGELOG. The
+parts of L1, L6, L7 and L11 to L14 that were not built stay on the [Roadmap](Roadmap.md).
 
 ## 8. After wave 5
 
@@ -350,19 +350,9 @@ over whatever transport the client chose (L17a); and the security that goes with
 | 6.2 | A progress and cancellation on every client transport ‖ B residency on streamed events, audit of streams | 6.1 | done |
 | 6.3 | A input requests (MRTR) across the net, a task at the home wrapping the streamed call ‖ B guides, configuration, glossary, tutorial | 6.2 | done |
 
-Other open Roadmap items not placed in a wave, in suggested order. Each keeps its Roadmap entry as
-the owner of its detail.
-
-| Item | Why not earlier |
-|---|---|
-| X13 benchmark suite with published numbers, then X14 SLOs and failure tests | Most useful once LLM tools and SAJHA Net exist to measure; CI (wave 1) is its prerequisite |
-| X10 Weaviate and Chroma connectors, X11 push-based reload, X12 protocol gaps | Independent, small to medium |
-| L1–L7: storage, federation, workflows, API import, tool quality, sandbox, provider tools | Finishing work on existing features |
-| L9–L12: container per stdio server, gateway scale, SaaS packs, signed plugins | Larger enhancements; L12 pairs naturally with SAJHA Net's plug-ins |
-| L13 one-click deployment templates, L14 console in other languages | Packaging and reach |
-| L16's remaining items, L19 host-side tasks across a net (deferred by the owner), L20 the rest of per-user sign-in | Remainders of features built in waves 5 to 7 |
-| L15 planners chosen by learning from results | Needs traffic and eval history from waves 3–5 |
-| X16 TypeScript client | Dropped by the owner (2026-10-11) |
+The Roadmap items that were left unplaced after wave 6 (X10 to X14, L1 to L7, L9 to L16, L19 and
+L20) were placed in waves 9 to 12 (section 7c); X16, the TypeScript client, was dropped by the owner
+(2026-10-11). What of them is still open (L1, L6, L7, L11 to L14) is on the [Roadmap](Roadmap.md).
 
 ---
 
@@ -416,8 +406,8 @@ the System Notices design, and every open Roadmap item appears exactly once in t
 | SAJHA Net phases 1–9 | 1, 2, 3: wave 4 (with wave 1's identity groundwork; named nets, seeds and restarts, offline removal, resolution and preferences, one name one contract and waterfall fallback are in phases 1 and 2); 4, 5, 6, 7, 8, 9: wave 5 (Instances page and badge from phase 7 come early, in wave 4) |
 | SAJHA Net new-code items 1–13 ([SAJHA Net design note, "new code this design needs"](../archive/SAJHA%20Net%20Design%20Note.md)) | 1, 3, 4, 7, 10, 11: wave 1; 2, 5, 6, 9, 12, 13: wave 4; 8: wave 5 |
 | Roadmap Now (N2–N5) | wave 1 |
-| Roadmap Next (X2–X17) | X4, X17: wave 1; X7 (closed), X8, X9: wave 2; X2, X15: wave 3; X5, X6: wave 5; X3: wave 7; X10–X14, X16: section 8 |
-| Roadmap Later (L1–L50) | L16 (SAJHA Net): waves 4–5; L17: wave 6; L18: wave 7; L21–L50: wave 8; L19 and L20 (added after waves 6 and 7) and all others: section 8 |
+| Roadmap Next (X2–X17) | X4, X17: wave 1; X7 (closed), X8, X9: wave 2; X2, X15: wave 3; X5, X6: wave 5; X3: wave 7; the rest of X7 and X9, and X12: wave 9; X11, X13, X14: wave 10; X8, X10: wave 11; X16: dropped |
+| Roadmap Later (L1–L60) | L16 (SAJHA Net): waves 4–5, finished in wave 12; L17: wave 6; L18: wave 7; L21–L59: wave 8 (L32–L39: wave 16); L60: wave 14; L2–L4, L20: wave 9; L1, L10: wave 10; L5–L7, L9, L11, L12: wave 11; L14, L15, L19: wave 12; L13: not placed |
 | System Notices | wave 1 (service, console, first sources); its later sources with the waves that add them (LLM tools: 2; SAJHA Net: 4) |
 
 ---

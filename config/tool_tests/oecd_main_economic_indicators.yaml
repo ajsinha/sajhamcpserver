@@ -1,0 +1,16 @@
+# An HTTP tool with a recorded cassette (cassettes/oecd_main_economic_indicators/us_japan_uk_2026q2.json): replays offline.
+# Re-record against the live API with: python -m sajha.quality test --tool oecd_main_economic_indicators --record
+tool: oecd_main_economic_indicators
+cases:
+  - name: us japan uk 2026q2
+    tags: [http]
+    arguments: {"countries": ["USA", "JPN", "GB"], "indicators": ["cpi_inflation", "unemployment_rate", "long_term_rate"], "period": "2026-04/2026-06", "frequency": "monthly"}
+    expect:
+      - schema: output
+      - path: "$.series_count"
+        min: 8
+      - path: "$.source"
+        regex: "^Source: OECD"
+probe:
+  case: us japan uk 2026q2
+  every: 86400

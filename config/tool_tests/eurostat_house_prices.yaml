@@ -1,0 +1,16 @@
+# An HTTP tool with a recorded cassette (cassettes/eurostat_house_prices/netherlands_germany_euro_area_2025_2026.json): replays offline.
+# Re-record against the live API with: python -m sajha.quality test --tool eurostat_house_prices --record
+tool: eurostat_house_prices
+cases:
+  - name: netherlands germany euro area 2025 2026
+    tags: [http]
+    arguments: {"countries": ["NL", "DE", "EA"], "measure": "annual_rate", "period": "2025-Q1/2026-Q2", "dwellings": "total"}
+    expect:
+      - schema: output
+      - path: "$.series_count"
+        equals: 3
+      - path: "$.source"
+        regex: "^Source: Eurostat"
+probe:
+  case: netherlands germany euro area 2025 2026
+  every: 21600

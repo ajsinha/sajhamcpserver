@@ -1,0 +1,182 @@
+{
+  "name": "usaspending_over_time",
+  "implementation": "sajha.tools.impl.us_spending_tools.UsaspendingOverTimeTool",
+  "title": "Federal spending over time",
+  "description": "US federal obligations by fiscal year, quarter or month, split into contracts, IDVs, grants, direct payments, loans and other, for any keyword, agency or recipient filter.\nReturns: group, from, to, units, count, points (period, total, contracts, idvs, grants, direct_payments, loans, other).\nInputs (none required): group (fiscal_year, quarter or month; default fiscal_year); keywords; agency; recipient; award_types; from, to.\nExample: {\"group\": \"fiscal_year\", \"keywords\": [\"cybersecurity\"], \"from\": \"2022-10-01\", \"to\": \"2026-09-30\"}",
+  "annotations": {
+    "title": "Federal spending over time",
+    "readOnlyHint": true,
+    "destructiveHint": false,
+    "idempotentHint": true,
+    "openWorldHint": true
+  },
+  "version": "1.0.0",
+  "enabled": true,
+  "cache_ttl": 3600,
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "keywords": {
+        "type": "array",
+        "description": "Words that must appear in the award",
+        "items": {
+          "type": "string",
+          "minLength": 3
+        },
+        "maxItems": 10
+      },
+      "agency": {
+        "type": "string",
+        "description": "Awarding top-tier agency name, e.g. Department of Defense",
+        "maxLength": 200
+      },
+      "recipient": {
+        "type": "string",
+        "description": "Recipient name, UEI or DUNS",
+        "maxLength": 200
+      },
+      "from": {
+        "type": "string",
+        "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+        "description": "First action date (YYYY-MM-DD; default the start of the current fiscal year; not before 2007-10-01)"
+      },
+      "to": {
+        "type": "string",
+        "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+        "description": "Last action date (YYYY-MM-DD; default today)"
+      },
+      "award_types": {
+        "type": "array",
+        "description": "Award groups",
+        "items": {
+          "type": "string",
+          "enum": [
+            "contracts",
+            "idvs",
+            "grants",
+            "direct_payments",
+            "loans",
+            "other"
+          ]
+        },
+        "minItems": 1,
+        "maxItems": 6
+      },
+      "group": {
+        "type": "string",
+        "enum": [
+          "fiscal_year",
+          "quarter",
+          "month"
+        ],
+        "description": "Period size",
+        "default": "fiscal_year"
+      }
+    },
+    "required": [],
+    "additionalProperties": false,
+    "examples": [
+      {
+        "group": "fiscal_year",
+        "keywords": [
+          "cybersecurity"
+        ],
+        "from": "2022-10-01",
+        "to": "2026-09-30"
+      }
+    ]
+  },
+  "outputSchema": {
+    "type": "object",
+    "properties": {
+      "group": {
+        "type": "string"
+      },
+      "from": {
+        "type": "string"
+      },
+      "to": {
+        "type": "string"
+      },
+      "units": {
+        "type": "string"
+      },
+      "count": {
+        "type": "integer"
+      },
+      "points": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "period": {
+              "type": "string"
+            },
+            "total": {
+              "type": [
+                "number",
+                "null"
+              ]
+            },
+            "contracts": {
+              "type": [
+                "number",
+                "null"
+              ]
+            },
+            "idvs": {
+              "type": [
+                "number",
+                "null"
+              ]
+            },
+            "grants": {
+              "type": [
+                "number",
+                "null"
+              ]
+            },
+            "direct_payments": {
+              "type": [
+                "number",
+                "null"
+              ]
+            },
+            "loans": {
+              "type": [
+                "number",
+                "null"
+              ]
+            },
+            "other": {
+              "type": [
+                "number",
+                "null"
+              ]
+            }
+          },
+          "required": [
+            "period"
+          ]
+        }
+      },
+      "source": {
+        "type": "string",
+        "description": "Attribution"
+      }
+    },
+    "required": [
+      "points",
+      "source"
+    ]
+  },
+  "metadata": {
+    "author": "Ashutosh Sinha",
+    "category": "Public spending",
+    "tags": [
+      "usaspending",
+      "federal spending",
+      "time series"
+    ]
+  }
+}

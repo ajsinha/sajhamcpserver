@@ -1,0 +1,18 @@
+# HTTP tool without a cassette yet: the api.data.gov DEMO_KEY allowance (10 requests, then about a day's
+# Retry-After) ran out while the routes were being verified on 2026-10-12, and no EIA_API_KEY was available,
+# so the case is skipped rather than replayed from an invented recording. With a key, record it (and remove
+# the skip) with: python -m sajha.quality test --tool eia_browse --record   (the api_key parameter is redacted)
+tool: eia_browse
+cases:
+  - name: petroleum spot prices route
+    tags: [http]
+    skip: "needs EIA_API_KEY to record its cassette (the DEMO_KEY allowance ran out in wave 16)"
+    arguments: {"route": "petroleum/pri/spt"}
+    expect:
+      - schema: output
+      - path: "$.route"
+        equals: "petroleum/pri/spt"
+      - path: "$.facets[*].id"
+        contains: "series"
+      - path: "$.frequencies[*].id"
+        contains: "daily"

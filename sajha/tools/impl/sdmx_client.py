@@ -2,7 +2,7 @@
 SAJHA MCP Server — one client for SDMX 2.1 REST data services (Tool Quality §12.3).
 Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.com
 
-The ECB, the IMF (and, from phase 8.2, the BIS, Eurostat, the OECD and the ABS) all answer
+The ECB, the IMF, the BIS, Eurostat, the OECD and the ABS all answer
 the same SDMX 2.1 REST pattern:
 
     {base}/data/{flow}/{key}?startPeriod=..&endPeriod=..&lastNObservations=N
@@ -203,8 +203,11 @@ def parse_sdmx_csv(text: str) -> List[Dict[str, Any]]:
                 'attributes': {a: row.get(a) for a in attrs if row.get(a) not in (None, '')},
                 'observations': [],
             }
-        s['observations'].append({'period': normalise_period(row.get('TIME_PERIOD') or ''),
-                                  'value': _value(row.get('OBS_VALUE'))})
+        obs = {'period': normalise_period(row.get('TIME_PERIOD') or ''), 'value': _value(row.get('OBS_VALUE'))}
+        status = (row.get('OBS_FLAG') or row.get('OBS_STATUS') or '').strip()
+        if status:
+            obs['status'] = status      # Eurostat OBS_FLAG (p provisional, e estimated) or SDMX OBS_STATUS
+        s['observations'].append(obs)
     out = list(series.values())
     for s in out:
         s['observations'].sort(key=lambda o: o['period'])

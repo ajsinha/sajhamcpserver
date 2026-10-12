@@ -1,0 +1,16 @@
+# An HTTP tool with a recorded cassette (cassettes/oecd_get_series/us_cli_2026q1.json): replays offline.
+# Re-record against the live API with: python -m sajha.quality test --tool oecd_get_series --record
+tool: oecd_get_series
+cases:
+  - name: us cli 2026q1
+    tags: [http]
+    arguments: {"dataflow": "OECD.SDD.STES,DSD_STES@DF_CLI", "key": "USA.M.LI.IX._Z.AA.IX._Z.H", "period": "2026-01/2026-03", "max_series": 20}
+    expect:
+      - schema: output
+      - path: "$.series_count"
+        equals: 1
+      - path: "$.source"
+        regex: "^Source: OECD"
+probe:
+  case: us cli 2026q1
+  every: 86400

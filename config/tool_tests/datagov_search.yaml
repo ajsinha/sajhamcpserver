@@ -1,0 +1,16 @@
+# An HTTP tool with a recorded cassette (cassettes/datagov_search/cfpb_consumer_complaints.json): replays offline.
+# Re-record against the live API with: python -m sajha.quality test --tool datagov_search --record
+tool: datagov_search
+cases:
+  - name: cfpb consumer complaints
+    tags: [http]
+    arguments: {"query": "consumer complaints", "organization": "cfpb", "limit": 5}
+    expect:
+      - schema: output
+      - path: "$.count"
+        min: 1
+      - path: "$.datasets[0].organization_slug"
+        equals: "cfpb"
+probe:
+  case: cfpb consumer complaints
+  every: 3600

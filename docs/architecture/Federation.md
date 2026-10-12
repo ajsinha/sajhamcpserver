@@ -514,6 +514,13 @@ stores with every approval; a tool approved before SAJHA stored it is withdrawn 
 SAJHA Net's `review` trust level behaves the same for tools imported from other members
 ([SAJHA Net](SAJHA%20Net.md#73-approval-of-imported-tools) §7.3).
 
+**Several workers.** Approvals are shared: the store's revision is a counter in the state store,
+and a decision made on one worker is announced on the state store (channel `fed:store`), so every
+other worker re-reads the records and exposes or withdraws the item at once (its health tick
+compares the revision too, in case an announcement was missed). Each change re-reads the document
+under a short state-store lease before writing it, so a worker never saves a stale copy over
+another worker's decision. With the `memory` state backend this holds within one process only.
+
 An upstream with `auto_approve: true`, or `federation.require_approval: false`, approves
 new and changed items automatically, **except** items whose text tripped the injection
 screen (section 9), which always wait for a person.
@@ -636,8 +643,10 @@ never breaks `tools/list`:
 * start-up waits a bounded time and continues;
 * a failed connection is retried in the background with backoff (1 s doubling to 60 s);
 * tools of an upstream that went away **stay listed** (the catalog does not churn) and
-  their calls fail fast with a tool error naming the upstream; the circuit breaker opens
-  after repeated failures;
+  their calls fail fast with a tool error naming the upstream: while a connection waits for
+  its next retry a call fails at once, on every pool member and replica, and while an attempt
+  is in progress it waits for that attempt (at most 5 s); the circuit breaker opens after
+  repeated failures;
 * a slow call is bounded by `timeout_seconds`, and the caller's thread is released then.
 
 The admin page and `GET /api/federation/upstreams` report, per upstream: state
@@ -852,8 +861,10 @@ is in the [API Reference](../protocol/API%20Reference.md#416-federation-federati
 * Connections, the event loop, the circuit breaker, the admission bound and the queue are per
   process; each worker publishes its view of every upstream to the state store, follows peers' open
   breakers and reads the cluster-wide view ([Gateway scale](#gateway-scale)). The store (upstreams and
-  approvals) is shared by every process that shares the storage backend, and `max_calls_per_minute`
-  counts in the state store ([Scaling and State](Scaling%20and%20State.md)).
+  approvals) is shared by every process that shares the storage backend; approvals reach every worker
+  at once ([Approval](#6-approval)), but an upstream added, edited or removed on the console is
+  connected by the worker that took the request, and the others pick it up when they restart.
+  `max_calls_per_minute` counts in the state store ([Scaling and State](Scaling%20and%20State.md)).
 * `max_in_flight` is a bound per worker, not per cluster. Replicas must serve the same tools: discovery
   runs on the primary only, and a replica whose tools differ is not detected. Per-user credential modes
   go to the primary's replica (failing over when the primary moves) and do not use the pool.

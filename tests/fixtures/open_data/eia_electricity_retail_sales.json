@@ -1,0 +1,81 @@
+{
+ "tool": "eia_electricity_retail_sales",
+ "arguments": {
+  "states": [
+   "US",
+   "TX"
+  ],
+  "sectors": [
+   "residential"
+  ],
+  "measures": [
+   "price",
+   "sales"
+  ],
+  "period": "2025"
+ },
+ "recorded": "hand-written: field names and shapes as EIA returned them live on 2026-10-12, values illustrative (the DEMO_KEY allowance ran out before the recording; no EIA key was available)",
+ "calls": [
+  {
+   "method": "GET",
+   "url": "https://api.eia.gov/v2/electricity/retail-sales/data/",
+   "params": [
+    [
+     "frequency",
+     "monthly"
+    ],
+    [
+     "data[0]",
+     "price"
+    ],
+    [
+     "data[1]",
+     "sales"
+    ],
+    [
+     "facets[sectorid][]",
+     "RES"
+    ],
+    [
+     "facets[stateid][]",
+     "US"
+    ],
+    [
+     "facets[stateid][]",
+     "TX"
+    ],
+    [
+     "start",
+     "2025-01"
+    ],
+    [
+     "end",
+     "2025-12"
+    ],
+    [
+     "sort[0][column]",
+     "period"
+    ],
+    [
+     "sort[0][direction]",
+     "desc"
+    ],
+    [
+     "offset",
+     "0"
+    ],
+    [
+     "length",
+     "2000"
+    ],
+    [
+     "api_key",
+     "REDACTED"
+    ]
+   ],
+   "status": 200,
+   "content_type": "application/json",
+   "body": "{\"response\": {\"total\": \"24\", \"dateFormat\": \"YYYY-MM\", \"frequency\": \"monthly\", \"data\": [{\"period\": \"2025-12\", \"stateid\": \"US\", \"stateDescription\": \"U.S. Total\", \"sectorid\": \"RES\", \"sectorName\": \"residential\", \"price\": \"17.60\", \"sales\": \"129900.50000\", \"price-units\": \"cents per kilowatt-hour\", \"sales-units\": \"million kilowatt hours\"}, {\"period\": \"2025-12\", \"stateid\": \"TX\", \"stateDescription\": \"Texas\", \"sectorid\": \"RES\", \"sectorName\": \"residential\", \"price\": \"17.60\", \"sales\": \"129900.50000\", \"price-units\": \"cents per kilowatt-hour\", \"sales-units\": \"million kilowatt hours\"}, {\"period\": \"2025-11\", \"stateid\": \"US\", \"stateDescription\": \"U.S. Total\", \"sectorid\": \"RES\", \"sectorName\": \"residential\", \"price\": \"17.50\", \"sales\": \"129000.50000\", \"price-units\": \"cents per kilowatt-hour\", \"sales-units\": \"million kilowatt hours\"}, {\"period\": \"2025-11\", \"stateid\": \"TX\", \"stateDescription\": \"Texas\", \"sectorid\": \"RES\", \"sectorName\": \"residential\", \"price\": \"17.50\", \"sales\": \"129000.50000\", \"price-units\": \"cents per kilowatt-hour\", \"sales-units\": \"million kilowatt hours\"}, {\"period\": \"2025-10\", \"stateid\": \"US\", \"stateDescription\": \"U.S. Total\", \"sectorid\": \"RES\", \"sectorName\": \"residential\", \"price\": \"17.40\", \"sales\": \"128100.50000\", \"price-units\": \"cents per kilowatt-hour\", \"sales-units\": \"million kilowatt hours\"}, {\"period\": \"2025-10\", \"stateid\": \"TX\", \"stateDescription\": \"Texas\", \"sectorid\": \"RES\", \"sectorName\": \"residential\", \"price\": \"17.40\", \"sales\": \"128100.50000\", \"price-units\": \"cents per kilowatt-hour\", \"sales-units\": \"million kilowatt hours\"}, {\"period\": \"2025-09\", \"stateid\": \"US\", \"stateDescription\": \"U.S. Total\", \"sectorid\": \"RES\", \"sectorName\": \"residential\", \"price\": \"17.30\", \"sales\": \"127200.50000\", \"price-units\": \"cents per kilowatt-hour\", \"sales-units\": \"million kilowatt hours\"}, {\"period\": \"2025-09\", \"stateid\": \"TX\", \"stateDescription\": \"Texas\", \"sectorid\": \"RES\", \"sectorName\": \"residential\", \"price\": \"17.30\", \"sales\": \"127200.50000\", \"price-units\": \"cents per kilowatt-hour\", \"sales-units\": \"million kilowatt hours\"}, {\"period\": \"2025-08\", \"stateid\": \"US\", \"stateDescription\": \"U.S. Total\", \"sectorid\": \"RES\", \"sectorName\": \"residential\", \"price\": \"17.20\", \"sales\": \"126300.50000\", \"price-units\": \"cents per kilowatt-hour\", \"sales-units\": \"million kilowatt hours\"}, {\"period\": \"2025-08\", \"stateid\": \"TX\", \"stateDescription\": \"Texas\", \"sectorid\": \"RES\", \"sectorName\": \"residential\", \"price\": \"17.20\", \"sales\": \"126300.50000\", \"price-units\": \"cents per kilowatt-hour\", \"sales-units\": \"million kilowatt hours\"}, {\"period\": \"2025-07\", \"stateid\": \"US\", \"stateDescription\": \"U.S. Total\", \"sectorid\": \"RES\", \"sectorName\": \"residential\", \"price\": \"17.10\", \"sales\": \"125400.50000\", \"price-units\": \"cents per kilowatt-hour\", \"sales-units\": \"million kilowatt hours\"}, {\"period\": \"2025-07\", \"stateid\": \"TX\", \"stateDescription\": \"Texas\", \"sectorid\": \"RES\", \"sectorName\": \"residential\", \"price\": \"17.10\", \"sales\": \"125400.50000\", \"price-units\": \"cents per kilowatt-hour\", \"sales-units\": \"million kilowatt hours\"}, {\"period\": \"2025-06\", \"stateid\": \"US\", \"stateDescription\": \"U.S. Total\", \"sectorid\": \"RES\", \"sectorName\": \"residential\", \"price\": \"17.00\", \"sales\": \"124500.50000\", \"price-units\": \"cents per kilowatt-hour\", \"sales-units\": \"million kilowatt hours\"}, {\"period\": \"2025-06\", \"stateid\": \"TX\", \"stateDescription\": \"Texas\", \"sectorid\": \"RES\", \"sectorName\": \"residential\", \"price\": \"17.00\", \"sales\": \"124500.50000\", \"price-units\": \"cents per kilowatt-hour\", \"sales-units\": \"million kilowatt hours\"}, {\"period\": \"2025-05\", \"stateid\": \"US\", \"stateDescription\": \"U.S. Total\", \"sectorid\": \"RES\", \"sectorName\": \"residential\", \"price\": \"16.90\", \"sales\": \"123600.50000\", \"price-units\": \"cents per kilowatt-hour\", \"sales-units\": \"million kilowatt hours\"}, {\"period\": \"2025-05\", \"stateid\": \"TX\", \"stateDescription\": \"Texas\", \"sectorid\": \"RES\", \"sectorName\": \"residential\", \"price\": \"16.90\", \"sales\": \"123600.50000\", \"price-units\": \"cents per kilowatt-hour\", \"sales-units\": \"million kilowatt hours\"}, {\"period\": \"2025-04\", \"stateid\": \"US\", \"stateDescription\": \"U.S. Total\", \"sectorid\": \"RES\", \"sectorName\": \"residential\", \"price\": \"16.80\", \"sales\": \"122700.50000\", \"price-units\": \"cents per kilowatt-hour\", \"sales-units\": \"million kilowatt hours\"}, {\"period\": \"2025-04\", \"stateid\": \"TX\", \"stateDescription\": \"Texas\", \"sectorid\": \"RES\", \"sectorName\": \"residential\", \"price\": \"16.80\", \"sales\": \"122700.50000\", \"price-units\": \"cents per kilowatt-hour\", \"sales-units\": \"million kilowatt hours\"}, {\"period\": \"2025-03\", \"stateid\": \"US\", \"stateDescription\": \"U.S. Total\", \"sectorid\": \"RES\", \"sectorName\": \"residential\", \"price\": \"16.70\", \"sales\": \"121800.50000\", \"price-units\": \"cents per kilowatt-hour\", \"sales-units\": \"million kilowatt hours\"}, {\"period\": \"2025-03\", \"stateid\": \"TX\", \"stateDescription\": \"Texas\", \"sectorid\": \"RES\", \"sectorName\": \"residential\", \"price\": \"16.70\", \"sales\": \"121800.50000\", \"price-units\": \"cents per kilowatt-hour\", \"sales-units\": \"million kilowatt hours\"}, {\"period\": \"2025-02\", \"stateid\": \"US\", \"stateDescription\": \"U.S. Total\", \"sectorid\": \"RES\", \"sectorName\": \"residential\", \"price\": \"16.60\", \"sales\": \"120900.50000\", \"price-units\": \"cents per kilowatt-hour\", \"sales-units\": \"million kilowatt hours\"}, {\"period\": \"2025-02\", \"stateid\": \"TX\", \"stateDescription\": \"Texas\", \"sectorid\": \"RES\", \"sectorName\": \"residential\", \"price\": \"16.60\", \"sales\": \"120900.50000\", \"price-units\": \"cents per kilowatt-hour\", \"sales-units\": \"million kilowatt hours\"}, {\"period\": \"2025-01\", \"stateid\": \"US\", \"stateDescription\": \"U.S. Total\", \"sectorid\": \"RES\", \"sectorName\": \"residential\", \"price\": \"16.50\", \"sales\": \"120000.50000\", \"price-units\": \"cents per kilowatt-hour\", \"sales-units\": \"million kilowatt hours\"}, {\"period\": \"2025-01\", \"stateid\": \"TX\", \"stateDescription\": \"Texas\", \"sectorid\": \"RES\", \"sectorName\": \"residential\", \"price\": \"16.50\", \"sales\": \"120000.50000\", \"price-units\": \"cents per kilowatt-hour\", \"sales-units\": \"million kilowatt hours\"}]}, \"request\": {\"command\": \"/v2/electricity/retail-sales/data/\"}, \"apiVersion\": \"2.1.14\"}"
+  }
+ ]
+}

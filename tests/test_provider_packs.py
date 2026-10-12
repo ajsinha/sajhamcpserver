@@ -244,6 +244,46 @@ def test_bundled_packs_plan_without_errors(store_dir, pack_id, count):
     assert len(p['hash']) == 64
 
 
+def test_the_plans_redirect_uri_uses_the_same_base_as_the_connect_flow(store_dir, monkeypatch):
+    # accounts.public_url unset: the request's base URL over HTTP, else the port this server listens on
+    from sajha.accounts.settings import AccountsSettings, set_accounts_settings
+    from sajha.core import transport
+    from sajha.packs import service
+    set_accounts_settings(AccountsSettings(public_url=''))
+    try:
+        class Req:
+            base_url = 'http://sajha.internal:5555/'
+        inputs = {'client_id': 'cid', 'client_secret_ref': 'env:X'}
+        p = service.plan('github', inputs, FakeRegistry(), Admin(), request=Req())
+        assert p['provider']['redirect_uri'] == 'http://sajha.internal:5555/account/connections/github/callback'
+        monkeypatch.setattr(transport, '_listening_port', 4317)
+        p2 = service.plan('github', inputs, FakeRegistry(), Admin())
+        assert p2['provider']['redirect_uri'].endswith(':4317/account/connections/github/callback')
+        assert p2['hash'] == p['hash']                   # the redirect URI is not part of the review
+    finally:
+        set_accounts_settings(None)
+
+
+def test_links_without_a_request_use_the_listening_port(monkeypatch):
+    from sajha.accounts.service import ConnectedAccountsService
+    from sajha.accounts.settings import AccountsSettings, base_url, set_accounts_settings
+    from sajha.core import transport
+    set_accounts_settings(AccountsSettings(public_url=''))
+    try:
+        monkeypatch.setattr(transport, '_listening_port', None)
+        transport.note_listening({'type': 'http', 'server': ('testserver', 80)})     # TestClient: ignored
+        assert transport._listening_port is None
+        transport.note_listening({'type': 'http', 'server': ('127.0.0.1', 3197)})
+        transport.note_listening({'type': 'http', 'server': ('127.0.0.1', 9999)})    # the first one counts
+        assert transport._listening_port == 3197
+        assert base_url().endswith(':3197')
+        assert ConnectedAccountsService().connect_url('github').endswith(':3197/account/connections?connect=github')
+        set_accounts_settings(AccountsSettings(public_url='https://sajha.example'))
+        assert base_url() == 'https://sajha.example'      # a configured origin still wins
+    finally:
+        set_accounts_settings(None)
+
+
 def test_plan_without_a_client_id_is_an_error_and_secrets_must_be_references(store_dir):
     from sajha.packs import service
     from sajha.packs.manifest import PackError

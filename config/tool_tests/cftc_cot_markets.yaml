@@ -1,0 +1,17 @@
+# An HTTP tool with a recorded cassette (cassettes/cftc_cot_markets/gold_markets.json): replays offline.
+# active_only false keeps the request the same every day, so the cassette replays.
+# Re-record against the live API with: python -m sajha.quality test --tool cftc_cot_markets --record
+tool: cftc_cot_markets
+cases:
+  - name: gold markets
+    tags: [http]
+    arguments: {"search": "GOLD", "active_only": false}
+    expect:
+      - schema: output
+      - path: "$.markets[*].code"
+        contains: "088691"
+      - path: "$.source"
+        regex: "^Source: CFTC"
+probe:
+  case: gold markets
+  every: 21600

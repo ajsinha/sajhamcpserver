@@ -1,0 +1,28 @@
+{
+ "tool": "bea_datasets",
+ "arguments": {},
+ "recorded": "hand-written from the BEA API user guide (April 2026; no key available), response shape only: the values are illustrative, not BEA data",
+ "calls": [
+  {
+   "method": "GET",
+   "url": "https://apps.bea.gov/api/data",
+   "params": [
+    [
+     "UserID",
+     "REDACTED"
+    ],
+    [
+     "method",
+     "GETDATASETLIST"
+    ],
+    [
+     "ResultFormat",
+     "JSON"
+    ]
+   ],
+   "status": 200,
+   "content_type": "application/json",
+   "body": "{\"BEAAPI\": {\"Request\": {\"RequestParam\": [{\"ParameterName\": \"USERID\", \"ParameterValue\": \"REDACTED\"}, {\"ParameterName\": \"METHOD\", \"ParameterValue\": \"GETDATASETLIST\"}, {\"ParameterName\": \"RESULTFORMAT\", \"ParameterValue\": \"JSON\"}]}, \"Results\": {\"Dataset\": [{\"DatasetName\": \"NIPA\", \"DatasetDescription\": \"Standard NIPA tables\"}, {\"DatasetName\": \"ITA\", \"DatasetDescription\": \"International Transactions Accounts\"}, {\"DatasetName\": \"GDPbyIndustry\", \"DatasetDescription\": \"GDP by Industry\"}, {\"DatasetName\": \"Regional\", \"DatasetDescription\": \"Regional data sets\"}]}}}"
+  }
+ ]
+}

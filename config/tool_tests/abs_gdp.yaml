@@ -1,0 +1,16 @@
+# An HTTP tool with a recorded cassette (cassettes/abs_gdp/gdp_growth_and_volume_2025_2026.json): replays offline.
+# Re-record against the live API with: python -m sajha.quality test --tool abs_gdp --record
+tool: abs_gdp
+cases:
+  - name: gdp growth and volume 2025 2026
+    tags: [http]
+    arguments: {"measures": ["growth_qoq", "volume"], "item": "gdp", "period": "2025-Q1/2026-Q2", "adjustment": "seasonally_adjusted"}
+    expect:
+      - schema: output
+      - path: "$.series_count"
+        equals: 2
+      - path: "$.source"
+        regex: "^Source: Australian Bureau of Statistics"
+probe:
+  case: gdp growth and volume 2025 2026
+  every: 21600

@@ -85,6 +85,25 @@ class ReadError(ValueError):
     pass
 
 
+#: a quantity name is at most 64 characters (sajha.ai.quant.quantity.NAME); the longest suffix this stage
+#: adds after ``<stage>.<figure>.<source>`` is ".fx.aligned"
+NAME_MAX = 64
+LONGEST_SUFFIX = len(".fx.aligned")
+
+
+def name_budget(stage: str, figure: str, sources: List[str]) -> Tuple[int, int]:
+    """(figure limit, source limit) for ``<stage>.<figure>.<source><suffix>``: names are kept whole (a
+    source is usually a tool name) and shortened only when the whole name would pass NAME_MAX, the source
+    keeping as much as it can."""
+    room = NAME_MAX - len(stage) - 2 - LONGEST_SUFFIX
+    fig_len = len(ident(figure, limit=NAME_MAX))
+    src_len = max([len(ident(s, limit=NAME_MAX)) for s in sources] or [1])
+    if fig_len + src_len + 6 <= room:          # whole, with room for a "_2" that tells two equal names apart
+        return fig_len + 3, src_len + 3
+    src_limit = max(8, min(src_len, room - min(fig_len, 12)))
+    return max(4, room - src_limit), src_limit
+
+
 def ident(text: str, used: Optional[set] = None, limit: int = 20) -> str:
     """``text`` as a short quantity-name part (letters, digits, ``_``), unique within ``used``."""
     s = re.sub(r"[^A-Za-z0-9_]+", "_", str(text or "")).strip("_").lower()[:limit] or "x"
@@ -316,7 +335,8 @@ class Reconcile(StageType):
     def _figure(self, ws, pre, f, results, raw, align, tol, tol_abs, used) -> Dict[str, Any]:
         from sajha.ai.quant import QuantError, Quantity, UnitError, parse_unit
         fa = f.get("align") or align
-        fname = ident(f["name"], used)
+        fig_limit, src_limit = name_budget(pre, f["name"], [rd["source"] for rd in f["readings"]])
+        fname = ident(f["name"], used, fig_limit)
         out: Dict[str, Any] = {"name": f["name"], "quantity_prefix": f"{pre}.{fname}", "align": fa, "status": "compared",
                                "reason": "", "unit": "", "reference": "", "sources": [], "rows": [],
                                "unmatched_dates": {}, "_breaks": []}
@@ -326,7 +346,7 @@ class Reconcile(StageType):
             r = results[rd["call_id"]]
             data = raw.get(rd["call_id"], r.get("data"))
             readings.append({"rd": rd, "r": r, "values": read(data, rd, fa), "unit": parse_unit(rd["unit"]),
-                             "key": ident(rd["source"], src_used, 16)})
+                             "key": ident(rd["source"], src_used, src_limit)})
         target = parse_unit(f.get("unit") or readings[0]["rd"]["unit"])
         out["unit"], out["reference"] = str(target), readings[0]["rd"]["source"]
         out["sources"] = [{"source": x["rd"]["source"], "call_id": x["rd"]["call_id"], "tool": x["r"].get("tool"),

@@ -1,0 +1,36 @@
+{
+ "format": 1,
+ "interactions": [
+  {
+   "request": {
+    "method": "GET",
+    "url": "https://data.api.abs.gov.au/rest/data/ABS,LF/M13+M3.3.1599.20.AUS.M?startPeriod=2026-01&endPeriod=2026-06",
+    "body_sha256": ""
+   },
+   "response": {
+    "status": 200,
+    "reason": "OK",
+    "headers": {
+     "content-type": "application/vnd.sdmx.data+csv; charset=utf-8",
+     "connection": "keep-alive",
+     "date": "Mon, 12 Oct 2026 04:08:29 GMT",
+     "cache-control": "no-cache",
+     "strict-transport-security": "max-age=31536000; includeSubDomains",
+     "content-language": "en",
+     "vary": "Accept, Accept-Encoding",
+     "api-supported-versions": "1",
+     "x-varnish": "4326116",
+     "via": "1.1 varnish (Varnish/6.0), 1.1 4cb444f5c543690e65d6af239141ca12.cloudfront.net (CloudFront)",
+     "accept-ranges": "bytes",
+     "x-cache": "Miss from cloudfront",
+     "x-amz-cf-pop": "PHL51-P2",
+     "x-amz-cf-id": "I_caYSwI29jxgswqGUiTIJpPeQ89GevXX5HYOmJBs_9X5hcTjUdhkA==",
+     "age": "0"
+    },
+    "body": {
+     "text": "DATAFLOW,MEASURE,SEX,AGE,TSEST,REGION,FREQ,TIME_PERIOD,OBS_VALUE,UNIT_MEASURE,UNIT_MULT,OBS_STATUS,OBS_COMMENT,DECIMALS\r\nABS:LF(1.0.0),M13,3,1599,20,AUS,M,2026-01,4.08312439,PCT,0,,,1\r\nABS:LF(1.0.0),M13,3,1599,20,AUS,M,2026-02,4.30735473,PCT,0,,,1\r\nABS:LF(1.0.0),M13,3,1599,20,AUS,M,2026-03,4.29072641,PCT,0,,,1\r\nABS:LF(1.0.0),M13,3,1599,20,AUS,M,2026-04,4.5001238,PCT,0,,,1\r\nABS:LF(1.0.0),M13,3,1599,20,AUS,M,2026-05,4.39240934,PCT,0,,,1\r\nABS:LF(1.0.0),M13,3,1599,20,AUS,M,2026-06,4.44997236,PCT,0,,,1\r\nABS:LF(1.0.0),M3,3,1599,20,AUS,M,2026-01,14693.94105678,NUM,3,,,1\r\nABS:LF(1.0.0),M3,3,1599,20,AUS,M,2026-02,14715.55875676,NUM,3,,,1\r\nABS:LF(1.0.0),M3,3,1599,20,AUS,M,2026-03,14736.48843385,NUM,3,,,1\r\nABS:LF(1.0.0),M3,3,1599,20,AUS,M,2026-04,14698.87739381,NUM,3,,,1\r\nABS:LF(1.0.0),M3,3,1599,20,AUS,M,2026-05,14734.60890885,NUM,3,,,1\r\nABS:LF(1.0.0),M3,3,1599,20,AUS,M,2026-06,14812.94821992,NUM,3,,,1\r\n"
+    }
+   }
+  }
+ ]
+}

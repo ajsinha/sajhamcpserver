@@ -1,0 +1,236 @@
+{
+  "name": "research_search_works",
+  "implementation": "sajha.tools.impl.research_tools.ResearchSearchWorksTool",
+  "title": "Search scholarly works (OpenAlex)",
+  "description": "Scholarly works from OpenAlex matching words in the title or abstract, with citation counts and open access links.\nReturns: count, total, truncated, works (id, doi, title, publication_year, type, venue, authors, cited_by_count, open_access, open_access_url, ...), budget (cost_usd, remaining_usd).\nInputs: query; from_year, to_year; type; open_access; sort (relevance, cited_by_count, publication_date); limit (default 10); full_text_search (default false).\nExample: {\"query\": \"counterparty credit risk\", \"from_year\": 2020, \"sort\": \"cited_by_count\", \"limit\": 5}",
+  "annotations": {
+    "title": "Search scholarly works (OpenAlex)",
+    "readOnlyHint": true,
+    "destructiveHint": false,
+    "idempotentHint": true,
+    "openWorldHint": true
+  },
+  "version": "1.0.0",
+  "enabled": true,
+  "cache_ttl": 86400,
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "query": {
+        "type": "string",
+        "description": "Words to find in the title or abstract",
+        "minLength": 2,
+        "maxLength": 300
+      },
+      "from_year": {
+        "type": "integer",
+        "description": "First publication year",
+        "minimum": 1500,
+        "maximum": 2100
+      },
+      "to_year": {
+        "type": "integer",
+        "description": "Last publication year",
+        "minimum": 1500,
+        "maximum": 2100
+      },
+      "type": {
+        "type": "string",
+        "description": "OpenAlex work type",
+        "enum": [
+          "article",
+          "review",
+          "book",
+          "book-chapter",
+          "preprint",
+          "dataset",
+          "dissertation",
+          "report",
+          "editorial",
+          "letter",
+          "other"
+        ]
+      },
+      "open_access": {
+        "type": "boolean",
+        "description": "Only open access works (true) or only closed ones (false)"
+      },
+      "sort": {
+        "type": "string",
+        "enum": [
+          "relevance",
+          "cited_by_count",
+          "publication_date"
+        ],
+        "description": "Order of results",
+        "default": "relevance"
+      },
+      "limit": {
+        "type": "integer",
+        "description": "Most works to return",
+        "minimum": 1,
+        "maximum": 50,
+        "default": 10
+      },
+      "full_text_search": {
+        "type": "boolean",
+        "description": "Use OpenAlex full search (titles, abstracts and full text) instead of the title-and-abstract filter",
+        "default": false
+      }
+    },
+    "required": [
+      "query"
+    ],
+    "additionalProperties": false,
+    "examples": [
+      {
+        "query": "counterparty credit risk",
+        "from_year": 2020,
+        "sort": "cited_by_count",
+        "limit": 5
+      }
+    ]
+  },
+  "outputSchema": {
+    "type": "object",
+    "properties": {
+      "query": {
+        "type": "string"
+      },
+      "mode": {
+        "type": "string"
+      },
+      "count": {
+        "type": "integer"
+      },
+      "total": {
+        "type": "integer"
+      },
+      "truncated": {
+        "type": "boolean"
+      },
+      "works": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "doi": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "title": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "publication_year": {
+              "type": [
+                "integer",
+                "null"
+              ]
+            },
+            "publication_date": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "type": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "venue": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "authors": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "author_count": {
+              "type": "integer"
+            },
+            "cited_by_count": {
+              "type": [
+                "integer",
+                "null"
+              ]
+            },
+            "open_access": {
+              "type": "boolean"
+            },
+            "open_access_url": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "landing_page": {
+              "type": [
+                "string",
+                "null"
+              ]
+            }
+          },
+          "required": [
+            "title"
+          ]
+        }
+      },
+      "budget": {
+        "type": "object",
+        "properties": {
+          "cost_usd": {
+            "type": [
+              "number",
+              "null"
+            ]
+          },
+          "remaining_usd": {
+            "type": [
+              "number",
+              "null"
+            ]
+          },
+          "keyed": {
+            "type": "boolean"
+          }
+        },
+        "required": []
+      },
+      "source": {
+        "type": "string",
+        "description": "Attribution"
+      }
+    },
+    "required": [
+      "works",
+      "source"
+    ]
+  },
+  "metadata": {
+    "author": "Ashutosh Sinha",
+    "category": "Research",
+    "tags": [
+      "openalex",
+      "scholarly works",
+      "citations",
+      "literature"
+    ]
+  }
+}

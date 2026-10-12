@@ -1,0 +1,18 @@
+# An HTTP tool with a recorded cassette (cassettes/statcan_changed_series/released_2026-10-09.json): replays offline.
+# Re-record against the live API with: python -m sajha.quality test --tool statcan_changed_series --record
+tool: statcan_changed_series
+cases:
+  - name: released 2026-10-09
+    tags: [http]
+    arguments: {"date": "2026-10-09"}
+    expect:
+      - schema: output
+      - path: "$.date"
+        equals: "2026-10-09"
+      - path: "$.tables[*].table"
+        regex: "^\\d{2}-\\d{2}-\\d{4}-01$"
+      - path: "$.source"
+        regex: "^Source: Statistics Canada"
+probe:
+  case: released 2026-10-09
+  every: 86400

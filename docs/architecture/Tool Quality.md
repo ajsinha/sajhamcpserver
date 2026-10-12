@@ -125,7 +125,8 @@ back, so a test runs offline, fast and deterministically in CI.
   urllib3) is recorded once, by the outer client. A tool on any other client is not
   intercepted; in `--replay` such a call is not caught.
 * **Matching:** method and URL, with secret-looking query parameters (`apikey`, `api_key`,
-  `token`, `key`, `access_token`, `client_secret`, `password`, `sig`, `signature`) replaced
+  `token`, `key`, `access_token`, `client_secret`, `password`, `sig`, `signature`, `userid`,
+  `registrationkey`) replaced
   by `REDACTED` before matching and before writing. Repeated identical requests are played in
   order. Request bodies are matched by SHA-256 when present.
 * **What is stored:** `quality.cassettes_dir/<tool>/<case>.json`: request method, redacted URL,
@@ -483,7 +484,8 @@ curl_cffi), `tests/test_quality_lint.py`, `tests/test_quality_probes.py`,
 > [Implementation Plan](Implementation%20Plan.md#7b-wave-8-tool-health-open-data-business-intelligence-and-reports):
 > schema defaults (12.1), the broken-tool fixes and removals (12.2), the shared SDMX client (12.3),
 > the live tool check (12.4), the generated guide tables (12.5) and the lint rules of 12.6 except
-> `openbb-command`, which is still planned. Domain descriptions, the other part of phase 8.1, belong
+> `openbb-command`, which is not built (the OpenBB tool checks its command path at run time instead,
+> section 12.6). Domain descriptions, the other part of phase 8.1, belong
 > to tool folders; they are described in [Architecture §5](Architecture.md#domain-descriptions).
 > [Tutorial 44](../tutorials/TUTORIAL_44_tool_health.md) walks through all of it.
 
@@ -725,8 +727,8 @@ The tool tables of the guides under `docs/tools/` are generated from the tool co
 - `description-length` (warning): the tool's description plus its folder's domain description is
   longer than SAJHA Net's catalog limit (`limits.max_description_chars`, 1024 by default,
   `sajha/net/catalog.py`): built in 8.8.0
-- `openbb-command` (error): planned. Today the OpenBB tool itself refuses a command path the
-  installed OpenBB does not have, with the info notice `tools.openbb_command:<tool>`
+- `openbb-command` (error): not built. The OpenBB tool itself refuses a command path the installed
+  OpenBB does not have, with the info notice `tools.openbb_command:<tool>`
 
 ---
 

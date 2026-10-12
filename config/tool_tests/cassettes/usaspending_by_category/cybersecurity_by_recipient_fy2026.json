@@ -1,0 +1,33 @@
+{
+ "format": 1,
+ "interactions": [
+  {
+   "request": {
+    "method": "POST",
+    "url": "https://api.usaspending.gov/api/v2/search/spending_by_category/recipient/",
+    "body_sha256": "d021e321d9ac4884460fcf2b58c4785df319e5e237b7d573ca6500c6c4fbb491"
+   },
+   "response": {
+    "status": 200,
+    "reason": "OK",
+    "headers": {
+     "date": "Mon, 12 Oct 2026 04:05:30 GMT",
+     "content-type": "application/json",
+     "connection": "keep-alive",
+     "vary": "Accept, Cookie, origin",
+     "allow": "POST, OPTIONS",
+     "cache-trace": "hit-cache",
+     "key": "b7f1443336a6205ecdcbc34a480dccb8",
+     "x-frame-options": "DENY",
+     "x-content-type-options": "nosniff",
+     "referrer-policy": "same-origin",
+     "cross-origin-opener-policy": "same-origin",
+     "strict-transport-security": "max-age=31536000; includeSubDomains"
+    },
+    "body": {
+     "text": "{\"category\":\"recipient\",\"spending_level\":\"transactions\",\"limit\":5,\"page_metadata\":{\"page\":1,\"next\":2,\"previous\":null,\"hasNext\":true,\"hasPrevious\":false},\"results\":[{\"amount\":272174855.72,\"recipient_id\":\"da787dd9-e8ac-c70e-7520-73e79c96154a-C\",\"name\":\"STATE OF ALASKA DEPARTMENT OF HEALTH\",\"code\":\"809386543\",\"uei\":\"LNQNF7PKBV13\",\"total_outlays\":null},{\"amount\":261642586.0,\"recipient_id\":\"7f43999d-c0f7-8d6a-5413-78804c5662a6-C\",\"name\":\"THE MENTAL HEALTH ASSOCIATION OF NEW YORK CITY, INC.\",\"code\":\"039374830\",\"uei\":\"UKCPHXSY7MB8\",\"total_outlays\":null},{\"amount\":233639308.47,\"recipient_id\":\"4b800cd9-749b-2617-9f99-7d974e2ffecb-C\",\"name\":\"CALIFORNIA DEPARTMENT OF HEALTH CARE ACCESS AND INFORMATION\",\"code\":\"106882207\",\"uei\":\"M87NLKNWNYR7\",\"total_outlays\":null},{\"amount\":218862169.63,\"recipient_id\":\"77537a91-a69e-5409-f811-2cde4d3dfa32-C\",\"name\":\"GEORGIA DEPARTMENT OF COMMUNITY HEALTH\",\"code\":\"142661680\",\"uei\":\"UKB5A1E2CLK3\",\"total_outlays\":null},{\"amount\":212058207.8,\"recipient_id\":\"78e2168c-91dc-4ee3-f4cb-fb8e0cff6ea8-C\",\"name\":\"NYS DEPARTMENT OF HEALTH\",\"code\":\"806781340\",\"uei\":\"F863WQVMZSK7\",\"total_outlays\":null}],\"messages\":[\"For searches, time period start and end dates are currently limited to an earliest date of 2007-10-01.  For data going back to 2000-10-01, use either the Custom Award Download feature on the website or one of our download or bulk_download API endpoints as listed on https://api.usaspending.gov/docs/endpoints. \",\"'subawards' will be deprecated in the future. Set ‘spending_level’ to ‘subawards’ instead. See documentation for more information. \"]}"
+    }
+   }
+  }
+ ]
+}

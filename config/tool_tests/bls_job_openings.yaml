@@ -1,0 +1,17 @@
+# An HTTP tool with a recorded cassette (cassettes/bls_job_openings/jolts_2025.json): replays offline.
+# Re-record against the live API with: python -m sajha.quality test --tool bls_job_openings --record
+# (record without BLS_API_KEY/EIA_API_KEY set so the cassette matches a keyless replay)
+tool: bls_job_openings
+cases:
+  - name: jolts 2025
+    tags: [http]
+    arguments: {"measures": ["openings", "hires", "quits", "layoffs", "openings_rate"], "period": "2025-01-01:2025-12-31"}
+    expect:
+      - schema: output
+      - path: "$.series_count"
+        equals: 5
+      - path: "$.series[0].observation_count"
+        equals: 12
+probe:
+  case: jolts 2025
+  every: 86400

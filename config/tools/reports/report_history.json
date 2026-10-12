@@ -2,7 +2,7 @@
   "name": "report_history",
   "implementation": "sajha.reports.tools.ReportHistoryTool",
   "title": "Past runs of a report",
-  "description": "Past runs of a report that you may see (your own runs; administrators see every run), newest first.\nReturns: report, count and runs (run_id, status, started_at, finished_at, runner, parameters, classification, formats, deliveries, warnings).\nInputs (* required): report*; from and to (YYYY-MM-DD); status (succeeded, partial, failed); limit (default 50).\nExample: {\"report\": \"desk_calendar\", \"limit\": 10}",
+  "description": "Past runs of a report that you may see (your own runs; administrators see every run), newest first.\nReturns: report, count and runs (run_id, status, started_at, finished_at, runner, parameters, classification, formats, warnings).\nInputs (* required): report*; from and to (YYYY-MM-DD); status (succeeded, partial, failed); limit (default 50).\nExample: {\"report\": \"desk_calendar\", \"limit\": 10}",
   "version": "1.0.0",
   "enabled": true,
   "inputSchema": {

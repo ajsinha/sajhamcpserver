@@ -1,0 +1,177 @@
+{
+  "name": "ons_timeseries",
+  "implementation": "sajha.tools.impl.ons_tools.OnsTimeseriesTool",
+  "description": "One UK ONS time series by CDID: monthly, quarterly or annual observations with unit and release dates.\nReturns: cdid, dataset, title, unit, frequency, release_date, next_release, observations (date, value).\nInputs (* required): cdid*, dataset (default the latest release), frequency (default auto), period, latest_n.\nExample: {\"cdid\": \"D7G7\", \"dataset\": \"MM23\", \"frequency\": \"monthly\", \"period\": \"2025\"}",
+  "annotations": {
+    "readOnlyHint": true,
+    "idempotentHint": true,
+    "openWorldHint": true
+  },
+  "version": "1.0.0",
+  "enabled": true,
+  "cache_ttl": 21600,
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "cdid": {
+        "type": "string",
+        "description": "Four-character series id, e.g. D7G7",
+        "minLength": 4,
+        "maxLength": 4
+      },
+      "dataset": {
+        "type": "string",
+        "description": "Dataset id, e.g. MM23 (a CDID can be in several)"
+      },
+      "frequency": {
+        "type": "string",
+        "description": "auto (monthly, else quarterly, else annual), monthly, quarterly or annual",
+        "enum": [
+          "auto",
+          "monthly",
+          "quarterly",
+          "annual"
+        ],
+        "default": "auto"
+      },
+      "period": {
+        "type": "string",
+        "description": "2025, 2025-Q3, 2025-07, 'last 5 years' or YYYY-MM-DD:YYYY-MM-DD"
+      },
+      "latest_n": {
+        "type": "integer",
+        "description": "Only the newest N observations",
+        "minimum": 1,
+        "maximum": 1000
+      }
+    },
+    "required": [
+      "cdid"
+    ],
+    "additionalProperties": false,
+    "examples": [
+      {
+        "cdid": "D7G7",
+        "dataset": "MM23",
+        "frequency": "monthly",
+        "period": "2025"
+      }
+    ]
+  },
+  "outputSchema": {
+    "type": "object",
+    "required": [
+      "source",
+      "observations"
+    ],
+    "properties": {
+      "cdid": {
+        "type": "string",
+        "description": "Series id"
+      },
+      "dataset": {
+        "type": [
+          "string",
+          "null"
+        ],
+        "description": "Dataset id"
+      },
+      "title": {
+        "type": [
+          "string",
+          "null"
+        ],
+        "description": "Series title"
+      },
+      "unit": {
+        "type": [
+          "string",
+          "null"
+        ],
+        "description": "Unit (%, £m, index ...)"
+      },
+      "frequency": {
+        "type": "string",
+        "description": "monthly, quarterly or annual"
+      },
+      "release_date": {
+        "type": [
+          "string",
+          "null"
+        ],
+        "description": "Last release, YYYY-MM-DD"
+      },
+      "next_release": {
+        "type": [
+          "string",
+          "null"
+        ],
+        "description": "Next release, as ONS states it"
+      },
+      "note_text": {
+        "type": [
+          "string",
+          "null"
+        ],
+        "description": "ONS key note (e.g. change over 12 months)"
+      },
+      "other_datasets": {
+        "type": "array",
+        "items": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "description": "Other datasets carrying this CDID"
+      },
+      "uri": {
+        "type": "string",
+        "description": "Page path on ons.gov.uk"
+      },
+      "source": {
+        "type": "string",
+        "description": "Source: Office for National Statistics ...; cite it with the data"
+      },
+      "observation_count": {
+        "type": "integer",
+        "description": "Observations returned"
+      },
+      "note": {
+        "type": "string",
+        "description": "Why there is no data"
+      },
+      "observations": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "date": {
+              "type": "string",
+              "description": "YYYY-MM, YYYY-Qn or YYYY"
+            },
+            "value": {
+              "type": [
+                "number",
+                "null"
+              ],
+              "description": "Value in the series unit"
+            }
+          }
+        }
+      }
+    }
+  },
+  "metadata": {
+    "author": "Ashutosh Sinha",
+    "category": "Economic Data",
+    "tags": [
+      "ons",
+      "uk",
+      "statistics",
+      "inflation",
+      "gdp",
+      "labour market"
+    ]
+  }
+}

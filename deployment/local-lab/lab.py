@@ -395,6 +395,31 @@ def kill(selected: list[dict]) -> int:
     return 0
 
 
+def llm_line(resolved: dict | None) -> str:
+    """What the instances' models are: the aliases as a running instance resolves them (``/api/ai/config``),
+    so a local.yml or lab_env that points them at the mock provider, or an Ollama that is not enabled, is
+    reported as such; ``None`` (no instance answered): what the lab configures."""
+    configured = f'Ollama at {OLLAMA}: {CHAT_MODEL} (default), {FAST_MODEL} (fast), {EMBED_MODEL} (embedding)'
+    if not resolved:
+        return f'LLM: {configured} (as configured; no instance reported its models)'
+    aliases = resolved.get('resolved_aliases') or {}
+    if resolved.get('mock_active'):
+        return ('LLM: the mock provider (canned answers, no real model): no real provider serves the aliases; '
+                f'the lab configures {configured}')
+    shown = ', '.join(f'{v} ({k})' for k, v in aliases.items() if k in ('default', 'fast', 'embedding'))
+    return f'LLM: {shown or configured}'
+
+
+def _resolved_llm(selected: list[dict]) -> dict | None:
+    for i in selected:
+        if _pid(i) and _healthy(i):
+            try:
+                return _get(f'{url(i)}/api/ai/config', TEST_ADMIN_KEY)
+            except Exception:
+                continue
+    return None
+
+
 def status(selected: list[dict]) -> int:
     say('')
     for i in selected:
@@ -418,7 +443,7 @@ def status(selected: list[dict]) -> int:
     say(f'Sign in at any URL as {TEST_ADMIN_USER} / {TEST_ADMIN_PASSWORD} (while the test admin key is on) '
         f'or admin / admin123.')
     say(f'API key on all three: {TEST_ADMIN_KEY}   (header X-API-Key; the test admin key)')
-    say(f'LLM: Ollama at {OLLAMA}: {CHAT_MODEL} (default), {FAST_MODEL} (fast), {EMBED_MODEL} (embedding)')
+    say(llm_line(_resolved_llm(selected)))
     say(f'Files: {RUN}')
     return 0
 

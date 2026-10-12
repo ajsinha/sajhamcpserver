@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: SAJHA MCP Server console VERSION\n"
 "Report-Msgid-Bugs-To: ajsinha@gmail.com\n"
-"POT-Creation-Date: 2026-10-11 23:53-0400\n"
+"POT-Creation-Date: 2026-10-12 02:01-0400\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -1303,7 +1303,7 @@ msgid "Prompt Preview (JSON)"
 msgstr ""
 
 #. page script
-#: sajha/web/static/js/ask_lineage.js:181 sajha/web/static/js/main.js:123
+#: sajha/web/static/js/ask_lineage.js:184 sajha/web/static/js/main.js:123
 #: sajha/web/static/js/workflows.js:23 sajha/web/templates/admin/async_tasks.html:95
 #: sajha/web/templates/common/user_config.html:729 sajha/web/templates/prompts/prompt_create.html:237
 #: sajha/web/templates/tools/tool_config.html:578
@@ -6023,10 +6023,6 @@ msgid "· owner %(owner)s"
 msgstr ""
 
 #: sajha/web/templates/reporting/report_library.html:52
-msgid "scheduled"
-msgstr ""
-
-#: sajha/web/templates/reporting/report_library.html:53
 #, python-format
 msgid "last run %(value)s (%(status)s)"
 msgstr ""
@@ -6034,22 +6030,22 @@ msgstr ""
 #. page script
 #: sajha/web/static/js/ask.js:497 sajha/web/templates/admin/evals.html:66
 #: sajha/web/templates/admin/studio/studio_llm.html:387 sajha/web/templates/admin/tool_health.html:49
-#: sajha/web/templates/admin/tool_health.html:141 sajha/web/templates/reporting/report_library.html:57
+#: sajha/web/templates/admin/tool_health.html:141 sajha/web/templates/reporting/report_library.html:56
 #: sajha/web/templates/reporting/report_library_detail.html:28
 #: sajha/web/templates/tools/tools_list.html:265
 msgid "Run"
 msgstr ""
 
-#: sajha/web/templates/reporting/report_library.html:58
+#: sajha/web/templates/reporting/report_library.html:57
 msgid "History and files"
 msgstr ""
 
-#: sajha/web/templates/reporting/report_library.html:65
+#: sajha/web/templates/reporting/report_library.html:64
 #, python-format
 msgid "No report you may run matches \"%(q)s\"."
 msgstr ""
 
-#: sajha/web/templates/reporting/report_library.html:65
+#: sajha/web/templates/reporting/report_library.html:64
 msgid "There are no reports you may run yet. Report definitions are files in <code>reports.dir</code>."
 msgstr ""
 
@@ -11200,9 +11196,9 @@ msgstr ""
 #: sajha/web/templates/admin/studio/_folder_field.html:18
 #, python-format
 msgid ""
-"Unfiled (the root of <code>%(value)s</code>), an existing folder, or a new name (lowercase "
-"letters, digits, <code>_</code> or <code>-</code>), which is created on save. It files the tool; "
-"it does not change its name."
+"Unfiled (the root of <code>%(value)s</code>), an existing folder, or a new name (letters, digits "
+"and <code>_</code>, with at least one letter), which is created on save. It files the tool; it "
+"does not change its name."
 msgstr ""
 
 #: sajha/web/templates/admin/studio/_folder_field.html:23
@@ -15982,6 +15978,30 @@ msgstr ""
 
 #. help catalog: tools
 #: sajha/web/help_catalog.py
+msgid "Hazards"
+msgstr ""
+
+#. help catalog: tools
+#: sajha/web/help_catalog.py
+msgid ""
+"Earthquakes from the USGS and satellite fire detections from NASA FIRMS (needs a MAP_KEY), for "
+"operational and physical-climate risk."
+msgstr ""
+
+#. help catalog: tools
+#: sajha/web/help_catalog.py
+msgid "US Spending"
+msgstr ""
+
+#. help catalog: tools
+#: sajha/web/help_catalog.py
+msgid ""
+"US federal awards, spending by category and over time, and recipients (USAspending.gov), and the "
+"data.gov dataset catalogue."
+msgstr ""
+
+#. help catalog: tools
+#: sajha/web/help_catalog.py
 msgid "US Treasury"
 msgstr ""
 
@@ -15990,6 +16010,108 @@ msgstr ""
 msgid ""
 "The Treasury par yield curve, debt to the penny, average rates, auctions, the Daily Treasury "
 "Statement and reporting exchange rates."
+msgstr ""
+
+#. help catalog: tools
+#: sajha/web/help_catalog.py
+msgid "CFTC"
+msgstr ""
+
+#. help catalog: tools
+#: sajha/web/help_catalog.py
+msgid ""
+"Commitments of Traders: futures positioning by trader category, latest, history and net "
+"positioning."
+msgstr ""
+
+#. help catalog: tools
+#: sajha/web/help_catalog.py
+msgid "Eurostat"
+msgstr ""
+
+#. help catalog: tools
+#: sajha/web/help_catalog.py
+msgid ""
+"EU statistics: HICP inflation, quarterly GDP, unemployment, government debt, house prices and any"
+" Eurostat dataset."
+msgstr ""
+
+#. help catalog: tools
+#: sajha/web/help_catalog.py
+msgid "OECD"
+msgstr ""
+
+#. help catalog: tools
+#: sajha/web/help_catalog.py
+msgid ""
+"OECD Data Explorer: leading indicators, key short-term indicators, quarterly national accounts "
+"and Economic Outlook projections."
+msgstr ""
+
+#. help catalog: tools
+#: sajha/web/help_catalog.py
+msgid "ONS"
+msgstr ""
+
+#. help catalog: tools
+#: sajha/web/help_catalog.py
+msgid "UK Office for National Statistics time series by CDID."
+msgstr ""
+
+#. help catalog: tools
+#: sajha/web/help_catalog.py
+msgid "Statistics Canada"
+msgstr ""
+
+#. help catalog: tools
+#: sajha/web/help_catalog.py
+msgid "Statistics Canada tables and vectors, and the tables released on a date."
+msgstr ""
+
+#. help catalog: tools
+#: sajha/web/help_catalog.py
+msgid "ABS"
+msgstr ""
+
+#. help catalog: tools
+#: sajha/web/help_catalog.py
+msgid "Australian Bureau of Statistics: CPI, Labour Force, national accounts and any ABS dataflow."
+msgstr ""
+
+#. help catalog: tools
+#: sajha/web/help_catalog.py
+msgid "BLS"
+msgstr ""
+
+#. help catalog: tools
+#: sajha/web/help_catalog.py
+msgid ""
+"US Bureau of Labor Statistics: CPI, PPI, payrolls, unemployment, employment cost index, job "
+"openings and any BLS series."
+msgstr ""
+
+#. help catalog: tools
+#: sajha/web/help_catalog.py
+msgid "BEA"
+msgstr ""
+
+#. help catalog: tools
+#: sajha/web/help_catalog.py
+msgid ""
+"US Bureau of Economic Analysis: NIPA tables, GDP by industry, international transactions, "
+"regional data (needs a key)."
+msgstr ""
+
+#. help catalog: tools
+#: sajha/web/help_catalog.py
+msgid "EIA"
+msgstr ""
+
+#. help catalog: tools
+#: sajha/web/help_catalog.py
+msgid ""
+"US Energy Information Administration: petroleum prices and stocks, natural gas storage, "
+"electricity sales, the short-term outlook and any EIA route."
 msgstr ""
 
 #. help catalog: tools
@@ -16060,6 +16182,30 @@ msgstr ""
 #. help catalog: tools
 #: sajha/web/help_catalog.py
 msgid "Search and read Wikipedia; Wikidata facts, company identifiers and SPARQL."
+msgstr ""
+
+#. help catalog: tools
+#: sajha/web/help_catalog.py
+msgid "GDELT"
+msgstr ""
+
+#. help catalog: tools
+#: sajha/web/help_catalog.py
+msgid ""
+"News articles worldwide, coverage volume and tone over time, and sentences in context, from the "
+"GDELT Project."
+msgstr ""
+
+#. help catalog: tools
+#: sajha/web/help_catalog.py
+msgid "Research Literature"
+msgstr ""
+
+#. help catalog: tools
+#: sajha/web/help_catalog.py
+msgid ""
+"Scholarly works and citations (OpenAlex), DOI records (Crossref) and preprints (arXiv), links "
+"only."
 msgstr ""
 
 #. help catalog: tools
@@ -16704,6 +16850,114 @@ msgid ""
 "how router and auto choose them."
 msgstr ""
 
+#. help catalog: tutorials
+#: sajha/web/help_catalog.py
+msgid "46. PostgreSQL, several workers and the load harness"
+msgstr ""
+
+#. help catalog: tutorials
+#: sajha/web/help_catalog.py
+msgid ""
+"Switch to PostgreSQL by environment, run the schema files, run two workers on the database state "
+"store, read the pool status in System monitor, and run the load harness."
+msgstr ""
+
+#. help catalog: tutorials
+#: sajha/web/help_catalog.py
+msgid "47. Federation at gateway scale"
+msgstr ""
+
+#. help catalog: tutorials
+#: sajha/web/help_catalog.py
+msgid ""
+"Connection pools, replicas, load shedding with max_in_flight and max_queue, proxied prompts and "
+"resources, cluster health, peer breakers and the federation benchmark."
+msgstr ""
+
+#. help catalog: tutorials
+#: sajha/web/help_catalog.py
+msgid "48. Sandbox egress and contained stdio upstreams"
+msgstr ""
+
+#. help catalog: tutorials
+#: sajha/web/help_catalog.py
+msgid ""
+"Allowlisted egress through the per-run proxy with refusals and audit records, a stdio upstream in"
+" its own confined container, and the egress sidecar."
+msgstr ""
+
+#. help catalog: tutorials
+#: sajha/web/help_catalog.py
+msgid "49. Signed plugins and the plugin catalog"
+msgstr ""
+
+#. help catalog: tutorials
+#: sajha/web/help_catalog.py
+msgid ""
+"Sign, verify and pack a plugin, read the catalog verdicts, review then approve and install it by "
+"hash, and refuse unsigned plugins at start-up."
+msgstr ""
+
+#. help catalog: tutorials
+#: sajha/web/help_catalog.py
+msgid "50. Provider packs"
+msgstr ""
+
+#. help catalog: tutorials
+#: sajha/web/help_catalog.py
+msgid ""
+"List, show and plan a provider pack, install it with approval bound to its hash, see the connect-"
+"your-account answer, and uninstall it."
+msgstr ""
+
+#. help catalog: tutorials
+#: sajha/web/help_catalog.py
+msgid "51. Personal RAG over connected accounts"
+msgstr ""
+
+#. help catalog: tutorials
+#: sajha/web/help_catalog.py
+msgid ""
+"Configure a personal document source, search and sync your own documents, use "
+"sajha_search_my_docs, and see who can read which passages."
+msgstr ""
+
+#. help catalog: tutorials
+#: sajha/web/help_catalog.py
+msgid "52. Planner routing learned from results"
+msgstr ""
+
+#. help catalog: tutorials
+#: sajha/web/help_catalog.py
+msgid ""
+"Record evidence, dry-run and propose routing rules, approve them by hash, see learned choices, "
+"roll back, and stop the bandit."
+msgstr ""
+
+#. help catalog: tutorials
+#: sajha/web/help_catalog.py
+msgid "53. Change a SAJHA Net safely"
+msgstr ""
+
+#. help catalog: tutorials
+#: sajha/web/help_catalog.py
+msgid ""
+"Blast radius before a change, a block with a reason, the change history and undo, timed blocks, "
+"the access matrix and live activity."
+msgstr ""
+
+#. help catalog: tutorials
+#: sajha/web/help_catalog.py
+msgid "54. How a figure was computed"
+msgstr ""
+
+#. help catalog: tutorials
+#: sajha/web/help_catalog.py
+msgid ""
+"The workspace and lineage of a computed figure down to its tool calls, x-sajha-unit on a tool "
+"result, the lint unit rule, and the Ask page lineage panel."
+msgstr ""
+
 #. help catalog: connect
 #: sajha/web/help_catalog.py
 msgid "Clients and security"
@@ -17282,18 +17536,18 @@ msgid "%(figure)s: show how it was computed"
 msgstr ""
 
 #. page script
-#: sajha/web/static/js/ask_lineage.js:172
+#: sajha/web/static/js/ask_lineage.js:175
 msgid "Underlined figures were computed by SAJHA: select one to see how it was done."
 msgstr ""
 
 #. page script
-#: sajha/web/static/js/ask_lineage.js:178 sajha/web/static/js/ask_lineage.js:180
+#: sajha/web/static/js/ask_lineage.js:181 sajha/web/static/js/ask_lineage.js:183
 #, python-format
 msgid "How %(figure)s was computed"
 msgstr ""
 
 #. page script
-#: sajha/web/static/js/ask_lineage.js:183
+#: sajha/web/static/js/ask_lineage.js:186
 #, python-format
 msgid "Close the lineage of %(figure)s"
 msgstr ""

@@ -1,0 +1,1 @@
+US federal spending from USAspending.gov (keyless, a US government work): awards, totals by category and over time, recipients. Amounts in US dollars; fiscal years run October to September; searches start 2007-10-01. Also the data.gov catalogue of open datasets (each dataset has its own licence). Each result names its source.

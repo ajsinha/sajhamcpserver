@@ -1,0 +1,225 @@
+{
+  "name": "hazards_earthquakes",
+  "implementation": "sajha.tools.impl.hazards_tools.HazardsEarthquakesTool",
+  "title": "Earthquakes",
+  "description": "Earthquakes worldwide from the USGS catalogue in a date range, in a bounding box or around a point, newest or largest first.\nReturns: from, to, units, count, truncated, earthquakes (id, time, magnitude, place, latitude, longitude, depth_km, alert, tsunami_flag, significance, url, ...).\nInputs (none required): from, to (default the last 7 days); min_magnitude (default 4.5); bbox [west, south, east, north], or latitude, longitude and radius_km (default 500); order (time or magnitude); limit (default 100).\nExample: {\"from\": \"2026-10-01\", \"to\": \"2026-10-07\", \"min_magnitude\": 5}",
+  "annotations": {
+    "title": "Earthquakes",
+    "readOnlyHint": true,
+    "destructiveHint": false,
+    "idempotentHint": true,
+    "openWorldHint": true
+  },
+  "version": "1.0.0",
+  "enabled": true,
+  "cache_ttl": 900,
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "from": {
+        "type": "string",
+        "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+        "description": "First day (YYYY-MM-DD, UTC)"
+      },
+      "to": {
+        "type": "string",
+        "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+        "description": "Last day (YYYY-MM-DD, UTC)"
+      },
+      "min_magnitude": {
+        "type": "number",
+        "description": "Smallest magnitude",
+        "minimum": -1,
+        "maximum": 10,
+        "default": 4.5
+      },
+      "bbox": {
+        "type": "array",
+        "description": "Bounding box [west, south, east, north] in degrees",
+        "items": {
+          "type": "number"
+        },
+        "minItems": 4,
+        "maxItems": 4
+      },
+      "latitude": {
+        "type": "number",
+        "description": "Centre latitude in degrees",
+        "minimum": -90,
+        "maximum": 90
+      },
+      "longitude": {
+        "type": "number",
+        "description": "Centre longitude in degrees",
+        "minimum": -180,
+        "maximum": 180
+      },
+      "radius_km": {
+        "type": "number",
+        "description": "Radius around the centre in kilometres",
+        "minimum": 1,
+        "maximum": 20001.6
+      },
+      "order": {
+        "type": "string",
+        "enum": [
+          "time",
+          "magnitude"
+        ],
+        "description": "Newest first or largest first",
+        "default": "time"
+      },
+      "limit": {
+        "type": "integer",
+        "description": "Most earthquakes to return",
+        "minimum": 1,
+        "maximum": 2000,
+        "default": 100
+      }
+    },
+    "required": [],
+    "additionalProperties": false,
+    "examples": [
+      {
+        "from": "2026-10-01",
+        "to": "2026-10-07",
+        "min_magnitude": 5
+      }
+    ]
+  },
+  "outputSchema": {
+    "type": "object",
+    "properties": {
+      "from": {
+        "type": "string"
+      },
+      "to": {
+        "type": "string"
+      },
+      "min_magnitude": {
+        "type": "number"
+      },
+      "units": {
+        "type": "string"
+      },
+      "count": {
+        "type": "integer"
+      },
+      "truncated": {
+        "type": "boolean"
+      },
+      "earthquakes": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "time": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "magnitude": {
+              "type": [
+                "number",
+                "null"
+              ]
+            },
+            "magnitude_type": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "place": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "latitude": {
+              "type": [
+                "number",
+                "null"
+              ]
+            },
+            "longitude": {
+              "type": [
+                "number",
+                "null"
+              ]
+            },
+            "depth_km": {
+              "type": [
+                "number",
+                "null"
+              ]
+            },
+            "alert": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "tsunami_flag": {
+              "type": "boolean"
+            },
+            "significance": {
+              "type": [
+                "integer",
+                "null"
+              ]
+            },
+            "felt_reports": {
+              "type": [
+                "integer",
+                "null"
+              ]
+            },
+            "status": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "url": {
+              "type": [
+                "string",
+                "null"
+              ]
+            }
+          },
+          "required": [
+            "id",
+            "time",
+            "magnitude"
+          ]
+        }
+      },
+      "source": {
+        "type": "string",
+        "description": "Attribution"
+      }
+    },
+    "required": [
+      "earthquakes",
+      "source"
+    ]
+  },
+  "metadata": {
+    "author": "Ashutosh Sinha",
+    "category": "Natural hazards",
+    "tags": [
+      "earthquakes",
+      "usgs",
+      "hazards",
+      "operational risk"
+    ]
+  }
+}

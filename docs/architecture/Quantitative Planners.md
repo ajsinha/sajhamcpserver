@@ -1,6 +1,6 @@
 # SAJHA MCP Server — Quantitative Planners
 
-> **Status: built (8.9.0).** Wave 8, phase 8.2 of the
+> **Status: built (8.9.0; figure lineage and `x-sajha-unit` in 8.14.0, wave 14).** Wave 8, phase 8.2 of the
 > [Implementation Plan](Implementation%20Plan.md#7b-wave-8-tool-health-open-data-business-intelligence-and-reports).
 > Every section describes the code, including a figure's lineage on the Ask SAJHA page (2.1) and the
 > `x-sajha-unit` keyword (2.2), which finished the phase (Roadmap L60).
@@ -482,7 +482,8 @@ loop of at most `settings.max_gather` rounds, then `compare`, `draft`, `verify` 
   cannot read (an unknown call, a path with no number, an unknown unit) goes back to the model with
   the errors (two replies in all).
 - **Read and aligned by SAJHA.** Each value is read from the tool's whole result into the workspace
-  as a quantity with its lineage (`<stage>.<figure>.<source>`). Readings are aligned on as-of date by
+  as a quantity with its lineage (`<stage>.<figure>.<source>`, the figure and source names kept whole
+  unless the whole name would pass the 64-character quantity name limit). Readings are aligned on as-of date by
   `settings.align` (`exact`, `day`, `month`, `quarter` or `year`; default `day`): only the periods
   every source has are compared and the rest are listed per source; a missing observation (FRED's
   `.`) is skipped, not zero; two values of one source in one period, or a dated reading against an

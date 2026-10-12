@@ -1,0 +1,18 @@
+# HTTP tool without a cassette yet: the api.data.gov DEMO_KEY allowance (10 requests, then about a day's
+# Retry-After) ran out while the routes were being verified on 2026-10-12, and no EIA_API_KEY was available,
+# so the case is skipped rather than replayed from an invented recording. With a key, record it (and remove
+# the skip) with: python -m sajha.quality test --tool eia_series --record   (the api_key parameter is redacted)
+tool: eia_series
+cases:
+  - name: wti monthly 2025
+    tags: [http]
+    skip: "needs EIA_API_KEY to record its cassette (the DEMO_KEY allowance ran out in wave 16)"
+    arguments: {"route": "petroleum/pri/spt", "facets": {"series": ["RWTC"]}, "frequency": "monthly", "period": "2025"}
+    expect:
+      - schema: output
+      - path: "$.returned"
+        equals: 12
+      - path: "$.rows[0].period"
+        equals: "2025-01"
+      - path: "$.rows[*].value"
+        type: number

@@ -16,7 +16,7 @@
             {% for f in (tool_folders if tool_folders is defined else []) %}<option value="{{ f }}">{% endfor %}
         </datalist>
         <small id="studioToolFolderHelp" class="text-muted">{% trans value=tools_dir() %}Unfiled (the root of <code>{{ value }}</code>), an existing
-            folder, or a new name (lowercase letters, digits, <code>_</code> or <code>-</code>), which is created on save.
+            folder, or a new name (letters, digits and <code>_</code>, with at least one letter), which is created on save.
             It files the tool; it does not change its name.{% endtrans %}</small>
         <div id="studioDomainText" class="w-100 border-start border-3 border-info ps-2 small" role="note"
              aria-live="polite" hidden>

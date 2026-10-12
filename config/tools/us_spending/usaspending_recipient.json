@@ -1,0 +1,237 @@
+{
+  "name": "usaspending_recipient",
+  "implementation": "sajha.tools.impl.us_spending_tools.UsaspendingRecipientTool",
+  "title": "Federal award recipient",
+  "description": "Find US federal award recipients by name (largest first), or read one recipient's profile: identifiers (UEI, DUNS), parent, location, business types and award totals.\nReturns: with name: name, units, count, total, truncated, matches (id, name, uei, duns, level, amount); with id: year, units, recipient (id, name, uei, duns, level, parent_id, parent_name, alternate_names, business_types, city, state, country, total_amount, total_transactions, url).\nInputs (name or id required): name; id (from a name search or usaspending_awards); year (latest, all or a fiscal year; default latest); limit (default 10).\nExample: {\"name\": \"lockheed martin\", \"limit\": 5}",
+  "annotations": {
+    "title": "Federal award recipient",
+    "readOnlyHint": true,
+    "destructiveHint": false,
+    "idempotentHint": true,
+    "openWorldHint": true
+  },
+  "version": "1.0.0",
+  "enabled": true,
+  "cache_ttl": 3600,
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "name": {
+        "type": "string",
+        "description": "Recipient name, UEI or DUNS to search",
+        "minLength": 2,
+        "maxLength": 200
+      },
+      "id": {
+        "type": "string",
+        "description": "USAspending recipient id (UUID with -P, -C or -R)",
+        "maxLength": 60
+      },
+      "year": {
+        "type": "string",
+        "description": "latest (last 12 months), all, or a fiscal year such as 2025",
+        "pattern": "^(latest|all|\\d{4})$",
+        "default": "latest"
+      },
+      "limit": {
+        "type": "integer",
+        "description": "Most matches to return",
+        "minimum": 1,
+        "maximum": 50,
+        "default": 10
+      }
+    },
+    "required": [],
+    "additionalProperties": false,
+    "examples": [
+      {
+        "name": "lockheed martin",
+        "limit": 5
+      }
+    ]
+  },
+  "outputSchema": {
+    "type": "object",
+    "properties": {
+      "name": {
+        "type": "string"
+      },
+      "year": {
+        "type": "string"
+      },
+      "units": {
+        "type": "string"
+      },
+      "count": {
+        "type": "integer"
+      },
+      "total": {
+        "type": "integer"
+      },
+      "truncated": {
+        "type": "boolean"
+      },
+      "matches": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "name": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "uei": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "duns": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "level": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "amount": {
+              "type": [
+                "number",
+                "null"
+              ]
+            }
+          },
+          "required": [
+            "id"
+          ]
+        }
+      },
+      "recipient": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "name": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "uei": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "duns": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "level": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "parent_id": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "parent_name": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "alternate_names": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "business_types": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "city": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "state": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "country": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "total_amount": {
+            "type": [
+              "number",
+              "null"
+            ]
+          },
+          "total_transactions": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "url": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "name"
+        ]
+      },
+      "source": {
+        "type": "string",
+        "description": "Attribution"
+      }
+    },
+    "required": [
+      "source"
+    ]
+  },
+  "metadata": {
+    "author": "Ashutosh Sinha",
+    "category": "Public spending",
+    "tags": [
+      "usaspending",
+      "recipients",
+      "uei"
+    ]
+  }
+}

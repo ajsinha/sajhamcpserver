@@ -1,0 +1,16 @@
+# An HTTP tool with a recorded cassette (cassettes/research_crossref_works/expected_shortfall_backtesting_since_2018.json): replays offline.
+# Re-record against the live API with: python -m sajha.quality test --tool research_crossref_works --record
+tool: research_crossref_works
+cases:
+  - name: expected shortfall backtesting since 2018
+    tags: [http]
+    arguments: {"query": "expected shortfall backtesting", "from": "2018", "limit": 5}
+    expect:
+      - schema: output
+      - path: "$.count"
+        equals: 5
+      - path: "$.works[0].doi"
+        regex: "^10\\."
+probe:
+  case: expected shortfall backtesting since 2018
+  every: 21600

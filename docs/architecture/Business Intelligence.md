@@ -1,21 +1,23 @@
 # SAJHA MCP Server — Business Intelligence
 
-> **Status: partly built (8.11.0).** Wave 8, phase 8.4 of the
-> [Implementation Plan](Implementation%20Plan.md#7b-wave-8-tool-health-open-data-business-intelligence-and-reports);
-> Roadmap items L40 to L44. Built: the metrics layer (section 3), the tools `bi_list_metrics`,
-> `bi_describe_metric`, `bi_query_metric`, `bi_compare`, `bi_top_n`, `bi_crosstab` and
-> `bi_explain_change` (section 4), `bi_chart` and `bi_load_tool_result` (sections 5 and 6), and the
-> tool-result loader (built in phase 8.2 for the `data_analyst` planner). Planned: `bi_cohort_retention`,
-> `bi_anomalies`, `bi_forecast`, dashboards (section 7) and the catalogue, profiling and data quality
-> (section 8). The tools are listed in the
+> **Status: built in 8.11.0 as far as the owner wanted it; the rest is descoped.** Wave 8, phase 8.4
+> of the [Implementation Plan](Implementation%20Plan.md#7b-wave-8-tool-health-open-data-business-intelligence-and-reports).
+> Built: the metrics layer (section 3), the tools `bi_list_metrics`, `bi_describe_metric`,
+> `bi_query_metric`, `bi_compare`, `bi_top_n`, `bi_crosstab` and `bi_explain_change` (section 4),
+> `bi_chart` and `bi_load_tool_result` (sections 5 and 6), and the tool-result loader (built in
+> phase 8.2 for the `data_analyst` planner). **Descoped by the owner (2026-10-11)**, because an MCP
+> server gives models governed tools and is not a BI product: `bi_cohort_retention`, `bi_anomalies`,
+> `bi_forecast`, dashboards and a BI page (section 7), the dataset catalogue, profiling and data
+> quality suites (section 8), PNG charts and loaded-table metrics. They are not planned
+> ([Roadmap §5](Roadmap.md#5-decisions-needed)); the sections that described them now say only that.
+> The tools are listed in the
 > [Business Intelligence Tool Reference Guide](../tools/analytics/Business%20Intelligence%20Tool%20Reference%20Guide.md); the parts it builds on (DuckDB, the OLAP semantic layer, SQL select, data
 > connectors, workflows, MCP Apps) do, and their own guides describe them.
 
 This document owns one topic: **business intelligence as governed tools**. A *metrics layer*
 (metric definitions an owner writes once), analysis tools that answer the questions people
 actually ask of those metrics (how much, compared with when, why did it change, what next),
-charts, blending a tool's output with internal data, profiling and data-quality checks, saved
-dashboards and a catalogue of datasets. Terms are in the [Glossary](../../GLOSSARY.md).
+charts, and blending a tool's output with internal data. Terms are in the [Glossary](../../GLOSSARY.md).
 
 ---
 
@@ -67,7 +69,7 @@ configs.
 name: net_revenue                  # lower case, letters, digits, _; unique; never contains __
 title: Net revenue
 description: Invoiced revenue net of refunds and discounts, in the reporting currency.
-owner: finance-analytics           # a user or role; shown in bi_describe_metric and the catalogue
+owner: finance-analytics           # a user or role; shown in bi_describe_metric
 source:                            # exactly one of:
   connector: shop                  #   a data connector id (its guard, allowlist and masking apply)
   table: public.invoice_lines      #   ... and a table the connector allows
@@ -113,7 +115,7 @@ expressions without subqueries; a ratio names two metrics on the same source and
   both declare alike.
 - `fiscal_year_start` shapes `FY<year>` (the fiscal year that ends in that year), `YTD` and `QTD`;
   grains are calendar grains.
-- `source: {loaded: true}` is refused as not built yet.
+- `source: {loaded: true}` is refused (descoped: metrics over loaded tables are not built).
 - Three sample metrics ship over the DuckDB sample data: `net_sales`, `order_count` and the ratio
   `average_order_value`.
 
@@ -150,8 +152,8 @@ administrator. Rows are capped by `bi.max_rows` (and the connection's own cap).
   `metric`, `by` or `period` ([Policy and Audit](Policy%20and%20Audit.md)).
 - **Audit:** the tool call is audited as every call is; the compiled SQL is recorded in the
   connector's query record when the source is a connector.
-- **Residency:** the result carries the source's data classes ([SAJHA Net](SAJHA%20Net.md))
-  (not built).
+- **Residency:** a metric result does not carry the source's data classes (not built; descoped
+  with the rest of BI). `bi_load_tool_result` does record the loaded tool's data classes (section 6).
 - **As built:** an administrator passes the role check; for a connector source the caller also needs
   access to the connection's `<id>__list_tables`; a hidden metric answers "unknown metric" everywhere.
   The owner (the `owner` user or role, or an administrator) sees fixed filters and roles in
@@ -169,32 +171,24 @@ percent where a share is asked for) and return `structuredContent` with an `outp
 | Tool | Arguments | Returns |
 |---|---|---|
 | `bi_list_metrics` | `tag?`, `search?` | Metrics the caller may query: name, title, owner, unit, grains, dimensions |
-| `bi_describe_metric` | `metric` | The definition (without fixed-filter SQL for non-owners), source, freshness, data-quality status, dashboards and reports that use it |
+| `bi_describe_metric` | `metric` | The definition (without fixed-filter SQL for non-owners), source, freshness (`as_of`) and `status` |
 | `bi_query_metric` | `metric`, `by?`, `filters?`, `grain?`, `period?`, `cumulative?` (`ytd`, `qtd`, `mtd`), `rolling?` (`{window, fn}`), `limit?` | A table of values per grain and dimension members |
 | `bi_compare` | `metric`, `period`, `against` (`previous_period`, `same_period_last_year`, or a period), `by?` | Value, comparison value, change and percent change per member |
 | `bi_top_n` | `metric`, `dimension`, `n`, `period`, `pareto?` | The top members with share and cumulative share; with `pareto`, the members that make up a given share (default 80 percent) |
 | `bi_crosstab` | `metric`, `rows`, `columns`, `period`, `totals?`, `normalize?` (`row`, `column`, `total`) | A real two-way table (row and column headers, cells, margins) |
-| `bi_cohort_retention` | `metric` (a count or count-distinct metric), `cohort_by` (first activity grain), `periods`, `period?` | A cohort triangle of retained counts and percent retained (OLAP `cohort_engine`) |
 | `bi_explain_change` | `metric`, `period`, `against`, `dimensions` (one to three), `top?` | Contribution analysis: each member's share of the change, ranked; for ratio metrics, a rate effect and a mix effect per member; the members that explain most of the change |
-| `bi_anomalies` | `metric`, `grain`, `period`, `by?`, `sensitivity?` | Points flagged against a seasonal baseline (robust z-score on the residual), with the expected value and band |
-| `bi_forecast` | `metric`, `grain`, `horizon`, `by?`, `method?` (`seasonal_naive`, `holt_winters`, `auto`) | Forecast with an interval from residuals; `auto` chooses by back-test error, which it reports |
 | `bi_chart` | `data` (rows; `{tool, arguments, rows_path?}` for a `bi_*` tool, called as the caller; or `{sql}`: one read-only SELECT over the caller's loaded tables), `kind` (`line`, `bar`, `area`, `scatter`, `heatmap`, `waterfall`, `pareto`), `x`, `y`, `series?`, `value?` (heatmap: the column that colours each cell), `title?` | A chart spec (a small Vega-Lite subset) in `structuredContent`, an SVG, and an MCP Apps view (section 5) |
 | `bi_load_tool_result` | `tool`, `arguments?`, `rows_path?` (JSONPath or dotted path to the rows), `table?` (default: the tool name), `ttl_minutes?` | Calls the tool as the caller and loads the rows into a private DuckDB table (section 6); the provenance and the first rows |
-| `bi_profile` | `dataset` (catalogue name) or `table`, `columns?` | Per column: type, nulls, distinct count, min, max, mean, percentiles, top values, pattern classes |
-| `bi_check_quality` | `suite` (a check suite name) | Each check's pass or fail, the observed value and the threshold |
-| `bi_list_datasets` | `search?`, `source?` | The dataset catalogue (section 8) |
-| `bi_describe_dataset` | `dataset` | Columns, owner, source, freshness, quality status, metrics and dashboards that use it |
-| `bi_dashboard_list` / `bi_dashboard_run` | `dashboard`, `parameters?` | Saved dashboards (section 7); a run returns every tile's data and chart |
 
 The analysis tools are thin: each compiles a few metric queries (section 3.2) and does the
 arithmetic in Python on the bounded result (row limits apply). As built, the arithmetic is in
 `sajha/bi/analysis.py`, not the OLAP engines (`window_engine.py` and `stats_engine.py` build SQL over
-OLAP datasets only, so they do not fit connector sources); `cohort_engine.py` remains the plan for
-`bi_cohort_retention`. Every metric tool also takes `filters`; `bi_describe_metric` returns `as_of` and
-a `status`, with no data-quality status or dashboards until sections 7 and 8 are built. Shares and
-Pareto sets are given for additive metrics only; a ratio's mix effect is centred on the old overall
-ratio, `(w1 - w0)(r0 - R0)`, so rate and mix effects add up exactly to the change. Forecasting and anomaly detection use numpy (already
-installed with yfinance and OpenBB) and no new required dependency.
+OLAP datasets only, so they do not fit connector sources). Every metric tool also takes `filters`;
+`bi_describe_metric` returns `as_of` and a `status`, with no data-quality status or dashboards (both
+descoped). Shares and Pareto sets are given for additive metrics only; a ratio's mix effect is centred
+on the old overall ratio, `(w1 - w0)(r0 - R0)`, so rate and mix effects add up exactly to the change.
+The cohort, anomaly and forecast tools, the profiling and quality tools and the dashboard tools of the
+original design were descoped by the owner (2026-10-11).
 
 ---
 
@@ -233,9 +227,8 @@ As built:
 - **Escaping.** Every text from the data or the title is XML-escaped (characters XML forbids are
   dropped) and placed as element text; attributes hold only numbers, fixed class names and computed
   colours.
-- **PNG** (for PPTX and XLSX in [Reports](Reports.md)) is not built in this phase: it is to be
-  rasterised by headless Chromium when it is installed; otherwise those formats embed nothing and
-  say so.
+- **No PNG.** Charts are not rasterised (descoped by the owner, 2026-10-11): XLSX, PPTX and DOCX
+  reports show each chart's data table and say so ([Reports](Reports.md)).
 
 ---
 
@@ -255,7 +248,7 @@ named and typed and how a query is guarded); **the tool is built in 8.11.0** (`B
   `sanctions_*` results; in `data_analyst` the calls are the ask's own);
 - a caller with no user (anonymous) is refused: scratch databases are per user (built);
 - rows are taken at `rows_path` (built, as is finding them without one); columns are typed from the
-  tool's `outputSchema` when it has one (planned), else inferred from the values (built);
+  values (typing from the tool's `outputSchema` is not built);
 - the table lives in a **per-user scratch database** (one DuckDB file per user under
   `bi.scratch_dir`), never shared, dropped after `ttl_minutes` (default 60, capped by
   `bi.scratch_max_minutes`), bounded by `bi.scratch_max_rows` (a larger result is refused) and
@@ -265,49 +258,27 @@ named and typed and how a query is guarded); **the tool is built in 8.11.0** (`B
   [Reports](Reports.md)' provenance appendix, and the source tool's data classes (built: the loader
   stores what it is given; the planner and the tool pass call id, tool and
   arguments; the tool also passes the tool's version and its result data classes);
-- a metric with `source: {loaded: true}` and `bi_query_metric` with a `table` override can then
-  query it (planned); `duckdb_query` cannot see scratch tables (they are not in the shared DuckDB).
-  Today the way in is `bi_chart` with `data: {sql}` (the loader's own query: one read-only `SELECT`,
-  the caller's file only).
+- a loaded table is read with `bi_chart` and `data: {sql}` (the loader's own query: one read-only
+  `SELECT`, the caller's file only) or by the `data_analyst` planner; metrics over loaded tables
+  (`source: {loaded: true}`, a `table` override) were descoped; `duckdb_query` cannot see scratch
+  tables (they are not in the shared DuckDB).
 
 ---
 
 ## 7. Dashboards
 
-A dashboard is a YAML file in `config/bi/dashboards/<name>.yaml`: a title, parameters (period,
-filters) and **tiles**. A tile is one `bi_*` call (usually `bi_query_metric`, `bi_compare` or
-`bi_top_n`) plus a visual (`table`, `kpi`, or a `bi_chart` kind). The **tile is the shared unit**:
-a [report](Reports.md) section of type `metric` is a tile, so one definition renders live on a
-dashboard and in a delivered report.
-
-- `bi_dashboard_run` runs every tile as the caller (tiles are independent and run in parallel,
-  bounded by `bi.dashboard_concurrency`) and returns data and charts.
-- A console page (a BI page under the Tools menu, planned) renders dashboards, the metrics list and
-  the dataset catalogue, with the page help that every console page has
-  ([Architecture §10](Architecture.md#10-web-ui)).
+Descoped by the owner (2026-10-11), with the BI page: an MCP server is not a BI product. There are
+no dashboard files, dashboard tools or BI console page. A client that wants a dashboard calls the
+`bi_*` tools and draws the results (or renders `bi_chart`'s view); a [workflow](Workflows.md) can run
+the same calls, or `report_run` ([Reports](Reports.md)), on a schedule.
 
 ---
 
 ## 8. Dataset catalogue, profiling and data quality
 
-**Catalogue.** One list of everything a metric can stand on: OLAP datasets, DuckDB tables and
-views, each data connector's allowed tables and curated views (from its schema catalog), and the
-caller's loaded tool results. Each entry shows owner (from the metric or connector record),
-freshness (the latest value of a declared time column, measured by a cheap `max()` query, cached),
-quality status (the last check suite run) and the metrics and dashboards that use it. Visibility
-follows the source: a connector's tables appear only to callers who may call its tools.
-
-**Check suites.** A YAML file in `config/bi/checks/<suite>.yaml` lists checks on a dataset:
-`not_null`, `unique`, `accepted_values`, `range`, `freshness` (max age), `row_count` (min, or
-change versus the last run in percent), `referential` (values exist in another dataset), and
-`metric_bounds` (a metric's value within a band). `bi_check_quality` runs a suite and records the
-result.
-
-**Scheduling and alerts.** Suites are scheduled as [Workflows](Workflows.md): a workflow with a
-cron trigger and one `tool` step calling `bi_check_quality`; a failing suite raises a system
-notice (source `bi`, id `bi.quality:<suite>`, [System Notices](System%20Notices.md)) and, when the
-workflow says so, an alert through the existing alert channels (log, webhook, email,
-[Observability](Observability.md)). No second scheduler is built.
+Descoped by the owner (2026-10-11): there is no dataset catalogue, profiling tool or check suite.
+What a metric can read is what its source exposes (`duckdb_*`, `olap_*`, a data connector's
+`<id>__list_tables`), and `bi_describe_metric` reports the metric's freshness (`as_of`).
 
 ---
 
@@ -316,29 +287,20 @@ workflow says so, an alert through the existing alert channels (log, webhook, em
 Built: `bi.metrics_dir` and `bi.max_rows` (cap on any compiled query, below the connector's own), in
 the [Configuration Reference](../getting-started/Configuration%20Reference.md#bi). There is **no
 `bi.enabled` switch** (decided for 8.11.0): the `bi_*` tools ship enabled, each by its own config's
-`enabled`, so the sample metrics work out of the box; disable a tool as any other. Planned:
-`bi.dashboards_dir`, `bi.checks_dir`, `bi.dashboard_concurrency`. The loader's
+`enabled`, so the sample metrics work out of the box; disable a tool as any other. The loader's
 keys (`bi.scratch_dir`, `bi.scratch_max_minutes`, `bi.scratch_max_rows`, `bi.scratch_max_mb`) are
 built and are there already.
 
 ---
 
-## 10. Build order and tests
+## 10. Tests
 
-1. Metric definitions, loader and checks; the compiler; `bi_list_metrics`, `bi_describe_metric`,
-   `bi_query_metric` on DuckDB and OLAP sources, then connector sources. Tests: compilation
-   never interpolates a caller value; a metric cannot read a table its connector denies; masking
-   applies; `roles` hide a metric.
-2. Analysis tools (`bi_compare`, `bi_top_n`, `bi_crosstab`, `bi_cohort_retention`), then
-   `bi_explain_change`, `bi_anomalies`, `bi_forecast`, each with golden results on the OLAP sample
-   data. Steps 1 and 2 are built in 8.11.0 except `bi_cohort_retention`, `bi_anomalies` and
-   `bi_forecast` (tests: `tests/test_bi_metrics.py`, golden results on the DuckDB sample data).
-3. `bi_chart` (spec, SVG, view) and `bi_load_tool_result` (scratch isolation per user, TTL,
-   provenance) (built in 8.11.0).
-4. Catalogue, profiling, check suites and their workflow template; dashboards and the BI page
-   (mobile check in all four themes).
-5. This guide becomes as-built; a tutorial ("define a metric and ask why it changed"); glossary and
-   help cards.
+- Metrics, the compiler and the analysis tools: `tests/test_bi_metrics.py` (compilation never
+  interpolates a caller value, a metric cannot read a table its connector denies, masking applies,
+  `roles` hide a metric; golden results on the DuckDB sample data).
+- `bi_chart`: `tests/test_bi_chart.py` (golden spec and SVG per kind, escaping).
+- `bi_load_tool_result`: `tests/test_bi_load_tool_result.py` (scratch isolation per user, TTL,
+  provenance).
 
 ---
 
@@ -350,7 +312,6 @@ built and are there already.
   caller's scratch database.
 - Contribution analysis is exact for additive metrics (sum, count) and a decomposition (rate and mix
   effects that add up to the change of the overall ratio) for ratios; distinct counts are not additive and are explained by member, not summed.
-- Forecasts are statistical baselines for planning, not models of causes.
 - A ratio's numerator and denominator share their fixed filters.
 - Rolling windows count rows, not calendar periods: a period with no data is not a row.
 

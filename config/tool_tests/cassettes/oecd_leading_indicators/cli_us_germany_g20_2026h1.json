@@ -1,0 +1,38 @@
+{
+ "format": 1,
+ "interactions": [
+  {
+   "request": {
+    "method": "GET",
+    "url": "https://sdmx.oecd.org/public/rest/data/OECD.SDD.STES,DSD_STES@DF_CLI/USA+DEU+G20.M.LI.IX._Z.AA.IX._Z.H?startPeriod=2026-01&endPeriod=2026-06&format=csvfile",
+    "body_sha256": ""
+   },
+   "response": {
+    "status": 200,
+    "reason": "OK",
+    "headers": {
+     "date": "Mon, 12 Oct 2026 04:08:39 GMT",
+     "content-type": "application/vnd.sdmx.data+csv; charset=utf-8",
+     "connection": "keep-alive",
+     "cache-control": "public,max-age=7200",
+     "content-language": "en,en-US",
+     "last-modified": "2024-03-07",
+     "accept-ranges": "values",
+     "vary": "X-Range, Accept, Accept-Language, Accept-Encoding, Accept-Charset,Accept,Accept-Encoding,Accept-Encoding",
+     "strict-transport-security": "max-age=2592000",
+     "content-disposition": "attachment; filename=\"OECD.SDD.STES,DSD_STES@DF_CLI,filtered,2026-10-12 06-05-58.csv\"",
+     "api-supported-versions": "1",
+     "x-server-node": "Server 3",
+     "age": "160",
+     "cf-cache-status": "HIT",
+     "server": "cloudflare",
+     "cf-ray": "a4933ea13b2b5f74-EWR",
+     "alt-svc": "h3=\":443\"; ma=86400"
+    },
+    "body": {
+     "text": "DATAFLOW,REF_AREA,FREQ,MEASURE,UNIT_MEASURE,ACTIVITY,ADJUSTMENT,TRANSFORMATION,TIME_HORIZ,METHODOLOGY,TIME_PERIOD,OBS_VALUE,OBS_STATUS,UNIT_MULT,DECIMALS,BASE_PER\r\nOECD.SDD.STES:DSD_STES@DF_CLI(4.1),DEU,M,LI,IX,_Z,AA,IX,_Z,H,2026-04,100.6041,A,0,2,\r\nOECD.SDD.STES:DSD_STES@DF_CLI(4.1),USA,M,LI,IX,_Z,AA,IX,_Z,H,2026-04,100.5444,A,0,2,\r\nOECD.SDD.STES:DSD_STES@DF_CLI(4.1),G20,M,LI,IX,_Z,AA,IX,_Z,H,2026-06,100.204,A,0,2,\r\nOECD.SDD.STES:DSD_STES@DF_CLI(4.1),DEU,M,LI,IX,_Z,AA,IX,_Z,H,2026-03,100.6254,A,0,2,\r\nOECD.SDD.STES:DSD_STES@DF_CLI(4.1),USA,M,LI,IX,_Z,AA,IX,_Z,H,2026-03,100.4315,A,0,2,\r\nOECD.SDD.STES:DSD_STES@DF_CLI(4.1),DEU,M,LI,IX,_Z,AA,IX,_Z,H,2026-06,100.6908,A,0,2,\r\nOECD.SDD.STES:DSD_STES@DF_CLI(4.1),G20,M,LI,IX,_Z,AA,IX,_Z,H,2026-05,100.2367,A,0,2,\r\nOECD.SDD.STES:DSD_STES@DF_CLI(4.1),USA,M,LI,IX,_Z,AA,IX,_Z,H,2026-05,100.65,A,0,2,\r\nOECD.SDD.STES:DSD_STES@DF_CLI(4.1),G20,M,LI,IX,_Z,AA,IX,_Z,H,2026-01,100.3182,A,0,2,\r\nOECD.SDD.STES:DSD_STES@DF_CLI(4.1),G20,M,LI,IX,_Z,AA,IX,_Z,H,2026-02,100.3317,A,0,2,\r\nOECD.SDD.STES:DSD_STES@DF_CLI(4.1),G20,M,LI,IX,_Z,AA,IX,_Z,H,2026-03,100.3147,A,0,2,\r\nOECD.SDD.STES:DSD_STES@DF_CLI(4.1),G20,M,LI,IX,_Z,AA,IX,_Z,H,2026-04,100.278,A,0,2,\r\nOECD.SDD.STES:DSD_STES@DF_CLI(4.1),USA,M,LI,IX,_Z,AA,IX,_Z,H,2026-06,100.763,A,0,2,\r\nOECD.SDD.STES:DSD_STES@DF_CLI(4.1),USA,M,LI,IX,_Z,AA,IX,_Z,H,2026-01,100.1517,A,0,2,\r\nOECD.SDD.STES:DSD_STES@DF_CLI(4.1),USA,M,LI,IX,_Z,AA,IX,_Z,H,2026-02,100.3057,A,0,2,\r\nOECD.SDD.STES:DSD_STES@DF_CLI(4.1),DEU,M,LI,IX,_Z,AA,IX,_Z,H,2026-02,100.6528,A,0,2,\r\nOECD.SDD.STES:DSD_STES@DF_CLI(4.1),DEU,M,LI,IX,_Z,AA,IX,_Z,H,2026-05,100.6222,A,0,2,\r\nOECD.SDD.STES:DSD_STES@DF_CLI(4.1),DEU,M,LI,IX,_Z,AA,IX,_Z,H,2026-01,100.6686,A,0,2,\r\n"
+    }
+   }
+  }
+ ]
+}

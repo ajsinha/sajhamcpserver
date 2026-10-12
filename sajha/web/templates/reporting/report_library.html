@@ -49,7 +49,6 @@
                 <div class="rep-meta">
                     <span><i class="bi bi-shield-lock" aria-hidden="true"></i> {{ r.classification }}</span>
                     {% if r.formats %}<span><i class="bi bi-file-earmark" aria-hidden="true"></i> {{ r.formats|join(', ') }}</span>{% endif %}
-                    {% if r.schedule %}<span><i class="bi bi-clock" aria-hidden="true"></i> {{ _('scheduled') }}</span>{% endif %}
                     {% if r.last_run %}<span><i class="bi bi-clock-history" aria-hidden="true"></i> {% trans value=(r.last_run.started_at or '')[:16]|replace('T', ' '), status=r.last_run.status %}last run {{ value }} ({{ status }}){% endtrans %}</span>{% endif %}
                     {% for t in r.tags %}<span class="badge rep-tag">{{ t }}</span>{% endfor %}
                 </div>

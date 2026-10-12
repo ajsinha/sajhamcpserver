@@ -141,6 +141,7 @@ class UpstreamConnection:
         self._task: Optional[asyncio.Task] = None
         self._fatal = asyncio.Event()       # user sessions: the vendor refused the token
         self._wake = asyncio.Event()        # kick(): try again now instead of after the backoff
+        self._down = asyncio.Event()        # the last connection attempt (or session) ended: waiting for the backoff
         # resources/subscribe carried through (Federation.md section 4): the upstream URIs SAJHA's
         # clients watch, and what to call when the upstream says one changed
         self.watched: set = set()
@@ -197,6 +198,7 @@ class UpstreamConnection:
         backoff = 1.0
         while not self._stop.is_set():
             self.state = 'connecting'
+            self._down.clear()
             self._last_status = None
             try:
                 # The connect deadline is a cancel scope around the whole session (the SDK's task
@@ -279,6 +281,7 @@ class UpstreamConnection:
                 break
             self.state = ('needs_sign_in' if self.needs_sign_in
                           else 'waiting_for_user' if self.waiting_for_user else 'error')
+            self._down.set()                 # callers waiting for this attempt fail now, not after their wait
             try:
                 await asyncio.wait_for(_first(self._stop.wait(), self._wake.wait()), timeout=backoff)
             except asyncio.TimeoutError:
@@ -598,14 +601,22 @@ class UpstreamConnection:
 
     # ── operations (called on the loop from other tasks) ───────────
     async def ready_client(self, wait: float):
+        """The connected client. While a connection attempt is in progress, wait for it (at most ``wait``
+        seconds); when the last attempt failed and the next one waits for its backoff, fail at once: a
+        call to an upstream that is down fails fast (Federation.md section 8), and enough of them open
+        the breaker promptly."""
         if self._client is not None and self._ready.is_set():
             return self._client
         if self.refused is not None:
             raise self.refused
         if self._stop.is_set():
             raise UpstreamUnavailable(f'upstream {self.config.id} is stopped')
+        if self._down.is_set():
+            raise UpstreamNotConnected(f'upstream {self.config.id} is not connected'
+                                       + (f' ({self.last_error})' if self.last_error else ''))
         try:
-            await asyncio.wait_for(_first(self._ready.wait(), self._fatal.wait()), timeout=max(0.0, wait))
+            await asyncio.wait_for(_first(self._ready.wait(), self._fatal.wait(), self._down.wait()),
+                                   timeout=max(0.0, wait))
             if self.refused is not None:
                 raise self.refused
             if not self._ready.is_set():

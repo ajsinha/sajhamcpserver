@@ -95,7 +95,7 @@ def _card(defn: Any, auth: AuthContext) -> Dict[str, Any]:
     tool = defn.tool_name
     return {'name': defn.name, 'title': defn.title or defn.name, 'description': defn.description,
             'owner': defn.owner, 'tags': list(defn.tags or []), 'classification': defn.classification,
-            'formats': list(defn.formats or []), 'schedule': defn.schedule, 'tool': tool,
+            'formats': list(defn.formats or []), 'tool': tool,
             'run_href': f'/tools/{tool}/execute' if _tool_registered(tool) else None,
             'detail_href': f'/reports/library/{defn.name}', 'last_run': last[0] if last else None}
 

@@ -1,0 +1,171 @@
+{
+  "name": "hazards_significant_earthquakes",
+  "implementation": "sajha.tools.impl.hazards_tools.HazardsSignificantEarthquakesTool",
+  "title": "Significant earthquakes",
+  "description": "The USGS list of significant earthquakes (by magnitude, felt reports and PAGER impact) in the last hour, day, week or month, newest first.\nReturns: window, generated, units, count, earthquakes (id, time, magnitude, magnitude_type, place, latitude, longitude, depth_km, alert, tsunami_flag, significance, felt_reports, status, url).\nInputs (none required): window (hour, day, week or month; default week).\nExample: {\"window\": \"month\"}",
+  "annotations": {
+    "title": "Significant earthquakes",
+    "readOnlyHint": true,
+    "destructiveHint": false,
+    "idempotentHint": true,
+    "openWorldHint": true
+  },
+  "version": "1.0.0",
+  "enabled": true,
+  "cache_ttl": 600,
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "window": {
+        "type": "string",
+        "enum": [
+          "hour",
+          "day",
+          "week",
+          "month"
+        ],
+        "description": "How far back",
+        "default": "week"
+      }
+    },
+    "required": [],
+    "additionalProperties": false,
+    "examples": [
+      {
+        "window": "month"
+      }
+    ]
+  },
+  "outputSchema": {
+    "type": "object",
+    "properties": {
+      "window": {
+        "type": "string"
+      },
+      "generated": {
+        "type": [
+          "string",
+          "null"
+        ]
+      },
+      "units": {
+        "type": "string"
+      },
+      "count": {
+        "type": "integer"
+      },
+      "earthquakes": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "time": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "magnitude": {
+              "type": [
+                "number",
+                "null"
+              ]
+            },
+            "magnitude_type": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "place": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "latitude": {
+              "type": [
+                "number",
+                "null"
+              ]
+            },
+            "longitude": {
+              "type": [
+                "number",
+                "null"
+              ]
+            },
+            "depth_km": {
+              "type": [
+                "number",
+                "null"
+              ]
+            },
+            "alert": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "tsunami_flag": {
+              "type": "boolean"
+            },
+            "significance": {
+              "type": [
+                "integer",
+                "null"
+              ]
+            },
+            "felt_reports": {
+              "type": [
+                "integer",
+                "null"
+              ]
+            },
+            "status": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "url": {
+              "type": [
+                "string",
+                "null"
+              ]
+            }
+          },
+          "required": [
+            "id",
+            "time",
+            "magnitude"
+          ]
+        },
+        "description": "Newest first"
+      },
+      "source": {
+        "type": "string",
+        "description": "Attribution"
+      }
+    },
+    "required": [
+      "earthquakes",
+      "source"
+    ]
+  },
+  "metadata": {
+    "author": "Ashutosh Sinha",
+    "category": "Natural hazards",
+    "tags": [
+      "earthquakes",
+      "usgs",
+      "hazards"
+    ]
+  }
+}

@@ -1,0 +1,232 @@
+{
+  "name": "bea_international_transactions",
+  "implementation": "sajha.tools.impl.bea_tools.BeaInternationalTransactionsTool",
+  "description": "US international transactions (balance of payments): trade in goods and services, income, financial flows, by indicator and partner.\nReturns: source, series (series_id, description, unit, observations date/value).\nInputs (* required): indicator (e.g. BalGds, BalServ, BalCurrAcct; default BalGds), area_or_country (default AllCountries), frequency (annual, quarterly_sa, quarterly_nsa; default quarterly_sa), years.\nExample: {\"indicator\": \"BalGds\", \"area_or_country\": \"China\", \"frequency\": \"annual\", \"years\": [2023, 2024, 2025]}",
+  "annotations": {
+    "readOnlyHint": true,
+    "idempotentHint": true,
+    "openWorldHint": true
+  },
+  "version": "1.0.0",
+  "enabled": true,
+  "cache_ttl": 86400,
+  "api_key": "${BEA_API_KEY:}",
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "indicator": {
+        "type": "string",
+        "pattern": "^[A-Za-z0-9_]{2,40}$",
+        "default": "BalGds",
+        "description": "ITA indicator code"
+      },
+      "area_or_country": {
+        "type": "string",
+        "pattern": "^[A-Za-z0-9_ ]{2,60}$",
+        "default": "AllCountries",
+        "description": "Partner area or country (AllCountries is the total)"
+      },
+      "frequency": {
+        "type": "string",
+        "enum": [
+          "annual",
+          "quarterly_sa",
+          "quarterly_nsa"
+        ],
+        "default": "quarterly_sa",
+        "description": "Frequency"
+      },
+      "years": {
+        "type": "array",
+        "items": {
+          "type": "integer",
+          "minimum": 1929,
+          "maximum": 2100
+        },
+        "minItems": 1,
+        "maxItems": 20,
+        "description": "Years (default the last three)"
+      },
+      "max_series": {
+        "type": "integer",
+        "minimum": 1,
+        "maximum": 500,
+        "default": 50,
+        "description": "Series cap"
+      }
+    },
+    "required": [],
+    "additionalProperties": false,
+    "examples": [
+      {
+        "indicator": "BalGds",
+        "area_or_country": "China",
+        "frequency": "annual",
+        "years": [
+          2023,
+          2024,
+          2025
+        ]
+      }
+    ]
+  },
+  "outputSchema": {
+    "type": "object",
+    "required": [
+      "source",
+      "series"
+    ],
+    "properties": {
+      "source": {
+        "type": "string",
+        "description": "Source: BEA ... not endorsed or certified by BEA; cite it with the data"
+      },
+      "dataset": {
+        "type": "string",
+        "description": "BEA dataset"
+      },
+      "title": {
+        "type": [
+          "string",
+          "null"
+        ],
+        "description": "Table title"
+      },
+      "series_count": {
+        "type": "integer",
+        "description": "Series matched"
+      },
+      "truncated": {
+        "type": "boolean",
+        "description": "More series matched than were returned"
+      },
+      "note": {
+        "type": "string",
+        "description": "What was cut"
+      },
+      "notes": {
+        "type": "array",
+        "items": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "description": "BEA table notes"
+      },
+      "years": {
+        "type": "array",
+        "items": {
+          "type": "integer"
+        },
+        "description": "Years asked for"
+      },
+      "series": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "required": [
+            "key",
+            "observations"
+          ],
+          "properties": {
+            "key": {
+              "type": "string",
+              "description": "Series key"
+            },
+            "unit": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "description": "Unit (CL_UNIT), e.g. Level, Percent change, USD"
+            },
+            "unit_multiplier": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "description": "thousands, millions, billions or null"
+            },
+            "observation_count": {
+              "type": "integer",
+              "description": "Observations"
+            },
+            "observations": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "required": [
+                  "date",
+                  "value"
+                ],
+                "properties": {
+                  "date": {
+                    "type": "string",
+                    "description": "Period: YYYY, YYYY-Qn or YYYY-MM"
+                  },
+                  "value": {
+                    "type": [
+                      "number",
+                      "null"
+                    ],
+                    "description": "Value in unit times unit_multiplier"
+                  }
+                }
+              }
+            },
+            "series_id": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "description": "BEA time series id"
+            },
+            "indicator": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "description": "Indicator"
+            },
+            "area_or_country": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "description": "Partner"
+            },
+            "description": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "description": "Series description"
+            }
+          }
+        }
+      },
+      "indicator": {
+        "type": "string",
+        "description": "Indicator asked for"
+      },
+      "area_or_country": {
+        "type": "string",
+        "description": "Partner asked for"
+      },
+      "frequency": {
+        "type": "string",
+        "description": "Frequency asked for"
+      }
+    }
+  },
+  "metadata": {
+    "author": "Ashutosh Sinha",
+    "category": "Economic Data",
+    "tags": [
+      "bea",
+      "balance of payments",
+      "trade"
+    ]
+  }
+}

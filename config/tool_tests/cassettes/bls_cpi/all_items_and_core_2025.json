@@ -1,0 +1,39 @@
+{
+ "format": 1,
+ "interactions": [
+  {
+   "request": {
+    "method": "POST",
+    "url": "https://api.bls.gov/publicAPI/v1/timeseries/data/",
+    "body_sha256": "d626a34af4d9498b7c66f647077fd52c0110fde947a758d6d934a9f5375cfd84"
+   },
+   "response": {
+    "status": 200,
+    "reason": "OK",
+    "headers": {
+     "content-type": "application/json",
+     "vary": "Origin, Accept-Encoding",
+     "apc-route-id": "_01_05v",
+     "access-control-allow-headers": "origin,x-requested-with,access-control-request-headers,content-type,access-control-request-method,accept",
+     "access-control-allow-origin": "*",
+     "route-id": "_t8_06v;",
+     "pool-info": "AP01",
+     "x-frame-options": "ALLOW-FROM https://www.bls.gov",
+     "content-security-policy": "frame-ancestors https://*.bls.gov",
+     "cross-origin-opener-policy": "same-origin",
+     "expires": "Mon, 12 Oct 2026 04:03:31 GMT",
+     "cache-control": "max-age=0, no-cache, no-store",
+     "pragma": "no-cache",
+     "date": "Mon, 12 Oct 2026 04:03:31 GMT",
+     "connection": "keep-alive",
+     "server-timing": "cdn-cache; desc=MISS, edge; dur=54, origin; dur=108, ak_p; desc=\"1791777811620_388049307_275360631_16202_9160_14_32_-\";dur=1",
+     "alt-svc": "h3=\":443\"; ma=93600",
+     "strict-transport-security": "max-age=31536000 ; includeSubDomains ; preload"
+    },
+    "body": {
+     "text": "{\"status\":\"REQUEST_SUCCEEDED\",\"responseTime\":92,\"message\":[],\"Results\":{\n\"series\":\n[{\"seriesID\":\"CUSR0000SA0\",\"data\":[{\"year\":\"2025\",\"period\":\"M12\",\"periodName\":\"December\",\"value\":\"326.031\",\"footnotes\":[{}]},{\"year\":\"2025\",\"period\":\"M11\",\"periodName\":\"November\",\"value\":\"325.063\",\"footnotes\":[{}]},{\"year\":\"2025\",\"period\":\"M10\",\"periodName\":\"October\",\"value\":\"-\",\"footnotes\":[{\"code\":\"X\",\"text\":\"Data unavailable due to the 2025 lapse in appropriations\"}]},{\"year\":\"2025\",\"period\":\"M09\",\"periodName\":\"September\",\"value\":\"324.245\",\"footnotes\":[{}]},{\"year\":\"2025\",\"period\":\"M08\",\"periodName\":\"August\",\"value\":\"323.291\",\"footnotes\":[{}]},{\"year\":\"2025\",\"period\":\"M07\",\"periodName\":\"July\",\"value\":\"322.169\",\"footnotes\":[{}]},{\"year\":\"2025\",\"period\":\"M06\",\"periodName\":\"June\",\"value\":\"321.435\",\"footnotes\":[{}]},{\"year\":\"2025\",\"period\":\"M05\",\"periodName\":\"May\",\"value\":\"320.620\",\"footnotes\":[{}]},{\"year\":\"2025\",\"period\":\"M04\",\"periodName\":\"April\",\"value\":\"320.302\",\"footnotes\":[{}]},{\"year\":\"2025\",\"period\":\"M03\",\"periodName\":\"March\",\"value\":\"319.785\",\"footnotes\":[{}]},{\"year\":\"2025\",\"period\":\"M02\",\"periodName\":\"February\",\"value\":\"319.679\",\"footnotes\":[{}]},{\"year\":\"2025\",\"period\":\"M01\",\"periodName\":\"January\",\"value\":\"318.961\",\"footnotes\":[{}]},{\"year\":\"2024\",\"period\":\"M12\",\"periodName\":\"December\",\"value\":\"317.604\",\"footnotes\":[{}]},{\"year\":\"2024\",\"period\":\"M11\",\"periodName\":\"November\",\"value\":\"316.528\",\"footnotes\":[{}]},{\"year\":\"2024\",\"period\":\"M10\",\"periodName\":\"October\",\"value\":\"315.631\",\"footnotes\":[{}]},{\"year\":\"2024\",\"period\":\"M09\",\"periodName\":\"September\",\"value\":\"314.732\",\"footnotes\":[{}]},{\"year\":\"2024\",\"period\":\"M08\",\"periodName\":\"August\",\"value\":\"314.062\",\"footnotes\":[{}]},{\"year\":\"2024\",\"period\":\"M07\",\"periodName\":\"July\",\"value\":\"313.569\",\"footnotes\":[{}]},{\"year\":\"2024\",\"period\":\"M06\",\"periodName\":\"June\",\"value\":\"313.044\",\"footnotes\":[{}]},{\"year\":\"2024\",\"period\":\"M05\",\"periodName\":\"May\",\"value\":\"313.175\",\"footnotes\":[{}]},{\"year\":\"2024\",\"period\":\"M04\",\"periodName\":\"April\",\"value\":\"313.023\",\"footnotes\":[{}]},{\"year\":\"2024\",\"period\":\"M03\",\"periodName\":\"March\",\"value\":\"312.345\",\"footnotes\":[{}]},{\"year\":\"2024\",\"period\":\"M02\",\"periodName\":\"February\",\"value\":\"310.967\",\"footnotes\":[{}]},{\"year\":\"2024\",\"period\":\"M01\",\"periodName\":\"January\",\"value\":\"309.698\",\"footnotes\":[{}]}]},\n{\"seriesID\":\"CUSR0000SA0L1E\",\"data\":[{\"year\":\"2025\",\"period\":\"M12\",\"periodName\":\"December\",\"value\":\"331.814\",\"footnotes\":[{}]},{\"year\":\"2025\",\"period\":\"M11\",\"periodName\":\"November\",\"value\":\"331.043\",\"footnotes\":[{}]},{\"year\":\"2025\",\"period\":\"M10\",\"periodName\":\"October\",\"value\":\"-\",\"footnotes\":[{\"code\":\"X\",\"text\":\"Data unavailable due to the 2025 lapse in appropriations\"}]},{\"year\":\"2025\",\"period\":\"M09\",\"periodName\":\"September\",\"value\":\"330.418\",\"footnotes\":[{}]},{\"year\":\"2025\",\"period\":\"M08\",\"periodName\":\"August\",\"value\":\"329.700\",\"footnotes\":[{}]},{\"year\":\"2025\",\"period\":\"M07\",\"periodName\":\"July\",\"value\":\"328.682\",\"footnotes\":[{}]},{\"year\":\"2025\",\"period\":\"M06\",\"periodName\":\"June\",\"value\":\"327.658\",\"footnotes\":[{}]},{\"year\":\"2025\",\"period\":\"M05\",\"periodName\":\"May\",\"value\":\"326.893\",\"footnotes\":[{}]},{\"year\":\"2025\",\"period\":\"M04\",\"periodName\":\"April\",\"value\":\"326.467\",\"footnotes\":[{}]},{\"year\":\"2025\",\"period\":\"M03\",\"periodName\":\"March\",\"value\":\"325.690\",\"footnotes\":[{}]},{\"year\":\"2025\",\"period\":\"M02\",\"periodName\":\"February\",\"value\":\"325.465\",\"footnotes\":[{}]},{\"year\":\"2025\",\"period\":\"M01\",\"periodName\":\"January\",\"value\":\"324.638\",\"footnotes\":[{}]},{\"year\":\"2024\",\"period\":\"M12\",\"periodName\":\"December\",\"value\":\"323.259\",\"footnotes\":[{}]},{\"year\":\"2024\",\"period\":\"M11\",\"periodName\":\"November\",\"value\":\"322.657\",\"footnotes\":[{}]},{\"year\":\"2024\",\"period\":\"M10\",\"periodName\":\"October\",\"value\":\"321.731\",\"footnotes\":[{}]},{\"year\":\"2024\",\"period\":\"M09\",\"periodName\":\"September\",\"value\":\"320.732\",\"footnotes\":[{}]},{\"year\":\"2024\",\"period\":\"M08\",\"periodName\":\"August\",\"value\":\"319.750\",\"footnotes\":[{}]},{\"year\":\"2024\",\"period\":\"M07\",\"periodName\":\"July\",\"value\":\"318.940\",\"footnotes\":[{}]},{\"year\":\"2024\",\"period\":\"M06\",\"periodName\":\"June\",\"value\":\"318.390\",\"footnotes\":[{}]},{\"year\":\"2024\",\"period\":\"M05\",\"periodName\":\"May\",\"value\":\"318.095\",\"footnotes\":[{}]},{\"year\":\"2024\",\"period\":\"M04\",\"periodName\":\"April\",\"value\":\"317.649\",\"footnotes\":[{}]},{\"year\":\"2024\",\"period\":\"M03\",\"periodName\":\"March\",\"value\":\"316.792\",\"footnotes\":[{}]},{\"year\":\"2024\",\"period\":\"M02\",\"periodName\":\"February\",\"value\":\"315.564\",\"footnotes\":[{}]},{\"year\":\"2024\",\"period\":\"M01\",\"periodName\":\"January\",\"value\":\"314.319\",\"footnotes\":[{}]}]}]\n}}"
+    }
+   }
+  }
+ ]
+}

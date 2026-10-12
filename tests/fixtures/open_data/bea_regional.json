@@ -1,0 +1,57 @@
+{
+ "tool": "bea_regional",
+ "arguments": {
+  "table": "SAINC1",
+  "line_code": 3,
+  "geography": [
+   "STATE"
+  ],
+  "years": [
+   2024
+  ]
+ },
+ "recorded": "hand-written from the BEA API user guide (April 2026; no key available), response shape only: the values are illustrative, not BEA data",
+ "calls": [
+  {
+   "method": "GET",
+   "url": "https://apps.bea.gov/api/data",
+   "params": [
+    [
+     "UserID",
+     "REDACTED"
+    ],
+    [
+     "method",
+     "GetData"
+    ],
+    [
+     "DataSetName",
+     "Regional"
+    ],
+    [
+     "TableName",
+     "SAINC1"
+    ],
+    [
+     "LineCode",
+     "3"
+    ],
+    [
+     "GeoFips",
+     "STATE"
+    ],
+    [
+     "Year",
+     "2024"
+    ],
+    [
+     "ResultFormat",
+     "JSON"
+    ]
+   ],
+   "status": 200,
+   "content_type": "application/json",
+   "body": "{\"BEAAPI\": {\"Request\": {\"RequestParam\": [{\"ParameterName\": \"USERID\", \"ParameterValue\": \"REDACTED\"}, {\"ParameterName\": \"METHOD\", \"ParameterValue\": \"GetData\"}, {\"ParameterName\": \"DATASETNAME\", \"ParameterValue\": \"Regional\"}, {\"ParameterName\": \"TABLENAME\", \"ParameterValue\": \"SAINC1\"}, {\"ParameterName\": \"LINECODE\", \"ParameterValue\": \"3\"}, {\"ParameterName\": \"GEOFIPS\", \"ParameterValue\": \"STATE\"}, {\"ParameterName\": \"YEAR\", \"ParameterValue\": \"2024\"}, {\"ParameterName\": \"RESULTFORMAT\", \"ParameterValue\": \"JSON\"}]}, \"Results\": {\"Statistic\": \"Per capita personal income\", \"UnitOfMeasure\": \"Dollars\", \"PublicTable\": \"SAINC1 State annual personal income summary: personal income, population, per capita personal income\", \"UTCProductionTime\": \"2026-09-25T12:30:00.000\", \"Dimensions\": [{\"Name\": \"Code\", \"DataType\": \"string\", \"IsValue\": \"0\"}, {\"Name\": \"GeoFips\", \"DataType\": \"string\", \"IsValue\": \"0\"}, {\"Name\": \"GeoName\", \"DataType\": \"string\", \"IsValue\": \"0\"}, {\"Name\": \"TimePeriod\", \"DataType\": \"string\", \"IsValue\": \"0\"}, {\"Name\": \"CL_UNIT\", \"DataType\": \"string\", \"IsValue\": \"0\"}, {\"Name\": \"UNIT_MULT\", \"DataType\": \"string\", \"IsValue\": \"0\"}, {\"Name\": \"DataValue\", \"DataType\": \"numeric\", \"IsValue\": \"1\"}], \"Data\": [{\"Code\": \"SAINC1-3\", \"GeoFips\": \"00000\", \"GeoName\": \"United States\", \"TimePeriod\": \"2024\", \"CL_UNIT\": \"Dollars\", \"UNIT_MULT\": \"0\", \"DataValue\": \"72,425\", \"NoteRef\": \"\"}, {\"Code\": \"SAINC1-3\", \"GeoFips\": \"01000\", \"GeoName\": \"Alabama\", \"TimePeriod\": \"2024\", \"CL_UNIT\": \"Dollars\", \"UNIT_MULT\": \"0\", \"DataValue\": \"56,111\", \"NoteRef\": \"\"}, {\"Code\": \"SAINC1-3\", \"GeoFips\": \"02000\", \"GeoName\": \"Alaska\", \"TimePeriod\": \"2024\", \"CL_UNIT\": \"Dollars\", \"UNIT_MULT\": \"0\", \"DataValue\": \"75,012\", \"NoteRef\": \"\"}], \"Notes\": [{\"NoteRef\": \"1\", \"NoteText\": \"Per capita personal income is total personal income divided by population.\"}]}}}"
+  }
+ ]
+}

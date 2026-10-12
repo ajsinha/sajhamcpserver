@@ -1,0 +1,212 @@
+{
+  "name": "bls_ppi",
+  "implementation": "sajha.tools.impl.bls_tools.BlsPpiTool",
+  "description": "Producer Price Index for final demand, index Nov 2009=100, monthly, with the 12-month percent change.\nReturns: source, disclaimer, retrieved, series (measure, series_id, unit, observations date/value, change_12m_percent).\nInputs (* required): measures (final_demand, core, goods, services; default final_demand), seasonally_adjusted (default true), period (default last 24 months).\nExample: {\"measures\": [\"final_demand\", \"core\"], \"period\": \"last 12 months\"}",
+  "annotations": {
+    "readOnlyHint": true,
+    "idempotentHint": true,
+    "openWorldHint": true
+  },
+  "version": "1.0.0",
+  "enabled": true,
+  "cache_ttl": 21600,
+  "api_key": "${BLS_API_KEY:}",
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "measures": {
+        "type": "array",
+        "items": {
+          "type": "string",
+          "enum": [
+            "final_demand",
+            "core",
+            "goods",
+            "services"
+          ]
+        },
+        "minItems": 1,
+        "maxItems": 4,
+        "uniqueItems": true,
+        "default": [
+          "final_demand"
+        ],
+        "description": "core is final demand less foods, energy and trade services"
+      },
+      "seasonally_adjusted": {
+        "type": "boolean",
+        "default": true,
+        "description": "Seasonally adjusted (WPS) or not (WPU)"
+      },
+      "period": {
+        "type": "string",
+        "default": "last 24 months",
+        "description": "2025, 2025-Q3, 2025-07, 'last N months|quarters|years' or YYYY-MM-DD:YYYY-MM-DD"
+      }
+    },
+    "required": [],
+    "additionalProperties": false,
+    "examples": [
+      {
+        "measures": [
+          "final_demand",
+          "core"
+        ],
+        "period": "last 12 months"
+      }
+    ]
+  },
+  "outputSchema": {
+    "type": "object",
+    "required": [
+      "source",
+      "disclaimer",
+      "retrieved",
+      "series"
+    ],
+    "properties": {
+      "source": {
+        "type": "string",
+        "description": "Source: U.S. Bureau of Labor Statistics ...; cite it with the data"
+      },
+      "disclaimer": {
+        "type": "string",
+        "description": "The statement the BLS terms require with the data"
+      },
+      "retrieved": {
+        "type": "string",
+        "description": "Date the data were retrieved (YYYY-MM-DD), which the BLS terms require"
+      },
+      "api_version": {
+        "type": "string",
+        "description": "v2 (with BLS_API_KEY) or v1 (keyless)"
+      },
+      "note": {
+        "type": "string",
+        "description": "Why the keyless tier was used, or what was cut"
+      },
+      "series_count": {
+        "type": "integer",
+        "description": "Series returned"
+      },
+      "messages": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Messages from BLS (unknown series, ...)"
+      },
+      "period": {
+        "type": "string",
+        "description": "The period asked for"
+      },
+      "series": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "required": [
+            "series_id",
+            "observations"
+          ],
+          "properties": {
+            "series_id": {
+              "type": "string",
+              "description": "BLS series id"
+            },
+            "label": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "description": "Series title"
+            },
+            "frequency": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "description": "Monthly, Quarterly, ..."
+            },
+            "observation_count": {
+              "type": "integer",
+              "description": "Observations returned"
+            },
+            "observations": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "required": [
+                  "date",
+                  "value"
+                ],
+                "properties": {
+                  "date": {
+                    "type": "string",
+                    "description": "Period: YYYY-MM, YYYY-Qn, YYYY-Sn or YYYY"
+                  },
+                  "value": {
+                    "type": [
+                      "number",
+                      "null"
+                    ],
+                    "description": "Value in the series unit"
+                  },
+                  "preliminary": {
+                    "type": "boolean",
+                    "description": "BLS marks the value preliminary (P)"
+                  },
+                  "footnotes": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    },
+                    "description": "BLS footnotes"
+                  },
+                  "change_12m_percent": {
+                    "type": [
+                      "number",
+                      "null"
+                    ],
+                    "description": "Percent change from the same period a year earlier"
+                  },
+                  "change": {
+                    "type": [
+                      "number",
+                      "null"
+                    ],
+                    "description": "Change from the previous period, in the series unit"
+                  }
+                }
+              }
+            },
+            "measure": {
+              "type": "string",
+              "description": "The measure asked for"
+            },
+            "unit": {
+              "type": "string",
+              "description": "Unit (index base, percent, thousands ...)"
+            },
+            "seasonally_adjusted": {
+              "type": [
+                "boolean",
+                "null"
+              ],
+              "description": "Seasonally adjusted series"
+            }
+          }
+        }
+      }
+    }
+  },
+  "metadata": {
+    "author": "Ashutosh Sinha",
+    "category": "Economic Data",
+    "tags": [
+      "bls",
+      "ppi",
+      "inflation",
+      "producer prices"
+    ]
+  }
+}

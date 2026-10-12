@@ -1,0 +1,16 @@
+# An HTTP tool with a recorded cassette (cassettes/research_crossref_doi/one_doi.json): replays offline.
+# Re-record against the live API with: python -m sajha.quality test --tool research_crossref_doi --record
+tool: research_crossref_doi
+cases:
+  - name: one doi
+    tags: [http]
+    arguments: {"doi": "10.1016/j.jbankfin.2006.07.013"}
+    expect:
+      - schema: output
+      - path: "$.work.venue"
+        equals: "Journal of Banking & Finance"
+      - path: "$.work.issn"
+        contains: "0378-4266"
+probe:
+  case: one doi
+  every: 21600

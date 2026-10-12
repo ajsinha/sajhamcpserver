@@ -1,0 +1,30 @@
+{
+ "format": 1,
+ "interactions": [
+  {
+   "request": {
+    "method": "GET",
+    "url": "https://ec.europa.eu/eurostat/api/dissemination/sdmx/2.1/data/prc_hicp_minr/M.RCH_A.TOTAL.DE+FR+EA21?startPeriod=2026-01&endPeriod=2026-06&format=SDMX-CSV",
+    "body_sha256": ""
+   },
+   "response": {
+    "status": 200,
+    "reason": "OK",
+    "headers": {
+     "date": "Mon, 12 Oct 2026 04:08:01 GMT",
+     "content-type": "application/vnd.sdmx.data+csv;version=1.0.0",
+     "content-disposition": "attachment; filename=\"estat_prc_hicp_minr_filtered_en.csv\"",
+     "x-oracle-dms-ecid": "fd2f297a-6804-4f3d-8c7d-54348c7cad28-00911360",
+     "access-control-allow-headers": "Content-Type, Accept, X-Requested-With",
+     "access-control-allow-methods": "GET",
+     "x-oracle-dms-rid": "0",
+     "access-control-allow-origin": "*",
+     "connection": "keep-alive"
+    },
+    "body": {
+     "text": "DATAFLOW,LAST UPDATE,freq,unit,coicop18,geo,TIME_PERIOD,OBS_VALUE,OBS_FLAG,CONF_STATUS\r\nESTAT:PRC_HICP_MINR(1.0),02/10/26 11:00:00,M,RCH_A,TOTAL,DE,2026-01,2.1,,\r\nESTAT:PRC_HICP_MINR(1.0),02/10/26 11:00:00,M,RCH_A,TOTAL,DE,2026-02,2.0,,\r\nESTAT:PRC_HICP_MINR(1.0),02/10/26 11:00:00,M,RCH_A,TOTAL,DE,2026-03,2.8,,\r\nESTAT:PRC_HICP_MINR(1.0),02/10/26 11:00:00,M,RCH_A,TOTAL,DE,2026-04,2.9,,\r\nESTAT:PRC_HICP_MINR(1.0),02/10/26 11:00:00,M,RCH_A,TOTAL,DE,2026-05,2.7,,\r\nESTAT:PRC_HICP_MINR(1.0),02/10/26 11:00:00,M,RCH_A,TOTAL,DE,2026-06,2.4,,\r\nESTAT:PRC_HICP_MINR(1.0),02/10/26 11:00:00,M,RCH_A,TOTAL,EA21,2026-01,1.7,,\r\nESTAT:PRC_HICP_MINR(1.0),02/10/26 11:00:00,M,RCH_A,TOTAL,EA21,2026-02,1.9,,\r\nESTAT:PRC_HICP_MINR(1.0),02/10/26 11:00:00,M,RCH_A,TOTAL,EA21,2026-03,2.6,,\r\nESTAT:PRC_HICP_MINR(1.0),02/10/26 11:00:00,M,RCH_A,TOTAL,EA21,2026-04,3.0,,\r\nESTAT:PRC_HICP_MINR(1.0),02/10/26 11:00:00,M,RCH_A,TOTAL,EA21,2026-05,3.2,,\r\nESTAT:PRC_HICP_MINR(1.0),02/10/26 11:00:00,M,RCH_A,TOTAL,EA21,2026-06,2.8,,\r\nESTAT:PRC_HICP_MINR(1.0),02/10/26 11:00:00,M,RCH_A,TOTAL,FR,2026-01,0.4,,\r\nESTAT:PRC_HICP_MINR(1.0),02/10/26 11:00:00,M,RCH_A,TOTAL,FR,2026-02,1.1,,\r\nESTAT:PRC_HICP_MINR(1.0),02/10/26 11:00:00,M,RCH_A,TOTAL,FR,2026-03,2.0,,\r\nESTAT:PRC_HICP_MINR(1.0),02/10/26 11:00:00,M,RCH_A,TOTAL,FR,2026-04,2.5,,\r\nESTAT:PRC_HICP_MINR(1.0),02/10/26 11:00:00,M,RCH_A,TOTAL,FR,2026-05,2.8,,\r\nESTAT:PRC_HICP_MINR(1.0),02/10/26 11:00:00,M,RCH_A,TOTAL,FR,2026-06,2.0,,\r\n"
+    }
+   }
+  }
+ ]
+}

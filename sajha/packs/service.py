@@ -189,10 +189,12 @@ def _canonical_hash(obj: Any) -> str:
     return hashlib.sha256(json.dumps(obj, sort_keys=True, separators=(',', ':'), default=str).encode()).hexdigest()
 
 
-def _redirect_uri(provider) -> str:
+def _redirect_uri(provider, request=None) -> str:
+    """The callback the connect flow will send: the same base URL as the flow itself (the request's when
+    the plan is asked for over HTTP, else this server's listening address; accounts.public_url first)."""
     try:
         from sajha.accounts.service import get_service
-        return get_service().redirect_uri(provider)
+        return get_service().redirect_uri(provider, request)
     except Exception:
         return f'<public origin>/account/connections/{provider.id}/callback'
 
@@ -210,7 +212,7 @@ def _policy_preview(pack: Pack, user) -> Dict[str, Any]:
 
 
 def plan(pack_id: str, data: Optional[Dict[str, Any]] = None, registry=None, user=None,
-         dirs: Optional[List[str]] = None) -> Dict[str, Any]:
+         dirs: Optional[List[str]] = None, request=None) -> Dict[str, Any]:
     """Everything installing ``pack_id`` with these inputs would do, and the review hash."""
     from sajha.api_import import service as api_import
     data = dict(data or {})
@@ -229,7 +231,7 @@ def plan(pack_id: str, data: Optional[Dict[str, Any]] = None, registry=None, use
         prov_view.update({'title': provider.title, 'configured': provider.configured,
                           'api_hosts': list(provider.api_hosts), 'scopes': list(provider.scopes),
                           'pkce': provider.pkce, 'authorize_url': provider.url('authorize_url'),
-                          'token_url': provider.url('token_url'), 'redirect_uri': _redirect_uri(provider)})
+                          'token_url': provider.url('token_url'), 'redirect_uri': _redirect_uri(provider, request)})
         if not provider.configured:
             errors.append(f'provider {pack.provider_id} has no client id: give client_id (the OAuth app you '
                           f'registered with {provider.title}), or configure accounts.providers.{pack.provider_id}')

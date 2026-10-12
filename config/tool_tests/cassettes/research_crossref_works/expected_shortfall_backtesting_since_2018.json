@@ -1,0 +1,35 @@
+{
+ "format": 1,
+ "interactions": [
+  {
+   "request": {
+    "method": "GET",
+    "url": "https://api.crossref.org/works?query=expected+shortfall+backtesting&filter=from-pub-date%3A2018&rows=5&sort=relevance&order=desc&select=DOI%2Ctitle%2Ctype%2Cpublished%2Cpublished-print%2Cpublished-online%2Cissued%2Ccontainer-title%2Cpublisher%2Cauthor%2Cis-referenced-by-count%2CURL",
+    "body_sha256": ""
+   },
+   "response": {
+    "status": 200,
+    "reason": "OK",
+    "headers": {
+     "date": "Mon, 12 Oct 2026 04:05:29 GMT",
+     "content-type": "application/json",
+     "connection": "keep-alive",
+     "access-control-expose-headers": "Link",
+     "access-control-allow-headers": "X-Requested-With, Accept, Accept-Encoding, Accept-Charset, Accept-Language, Accept-Ranges, Cache-Control",
+     "access-control-allow-origin": "*",
+     "vary": "Accept-Encoding",
+     "server": "Jetty(9.4.40.v20210413)",
+     "x-rate-limit-limit": "1",
+     "x-rate-limit-interval": "1s",
+     "x-concurrency-limit": "1",
+     "x-api-pool": "public-array",
+     "permissions-policy": "interest-cohort=()",
+     "strict-transport-security": "max-age=86400;"
+    },
+    "body": {
+     "text": "{\"status\":\"ok\",\"message-type\":\"work-list\",\"message-version\":\"1.0.0\",\"message\":{\"facets\":{},\"total-results\":15072,\"items\":[{\"publisher\":\"Elsevier BV\",\"DOI\":\"10.2139\\/ssrn.5296678\",\"type\":\"posted-content\",\"is-referenced-by-count\":1,\"title\":[\"Backtesting Expected Shortfall: an Application in Cryptocurrencies\"],\"author\":[{\"given\":\"Valentin\",\"family\":\"Piparo\",\"sequence\":\"first\",\"affiliation\":[],\"role\":[{\"role\":\"author\",\"vocabulary\":\"crossref\"}]}],\"issued\":{\"date-parts\":[[2025]]},\"URL\":\"https:\\/\\/doi.org\\/10.2139\\/ssrn.5296678\",\"published\":{\"date-parts\":[[2025]]}},{\"publisher\":\"Elsevier BV\",\"DOI\":\"10.2139\\/ssrn.5566918\",\"type\":\"posted-content\",\"is-referenced-by-count\":0,\"title\":[\"Backtesting Expected Shortfall and Beyond\"],\"author\":[{\"given\":\"Kaihua\",\"family\":\"Deng\",\"sequence\":\"first\",\"affiliation\":[],\"role\":[{\"vocabulary\":\"crossref\",\"role\":\"author\"}]},{\"given\":\"Jie\",\"family\":\"Qiu\",\"sequence\":\"additional\",\"affiliation\":[],\"role\":[{\"vocabulary\":\"crossref\",\"role\":\"author\"}]}],\"issued\":{\"date-parts\":[[2025]]},\"URL\":\"https:\\/\\/doi.org\\/10.2139\\/ssrn.5566918\",\"published\":{\"date-parts\":[[2025]]}},{\"publisher\":\"Elsevier BV\",\"DOI\":\"10.2139\\/ssrn.5862862\",\"type\":\"posted-content\",\"is-referenced-by-count\":0,\"title\":[\"Backtesting Expected Shortfall via Multi-Quantile Regression\"],\"author\":[{\"given\":\"Oph\\u00e9lie\",\"family\":\"Couperier\",\"sequence\":\"first\",\"affiliation\":[],\"role\":[{\"role\":\"author\",\"vocabulary\":\"crossref\"}]},{\"given\":\"J\\u00e9r\\u00e9my\",\"family\":\"Leymarie\",\"sequence\":\"additional\",\"affiliation\":[],\"role\":[{\"role\":\"author\",\"vocabulary\":\"crossref\"}]}],\"issued\":{\"date-parts\":[[2026]]},\"URL\":\"https:\\/\\/doi.org\\/10.2139\\/ssrn.5862862\",\"published\":{\"date-parts\":[[2026]]}},{\"publisher\":\"Elsevier BV\",\"DOI\":\"10.2139\\/ssrn.4762076\",\"type\":\"posted-content\",\"is-referenced-by-count\":0,\"title\":[\"Implicit\\u00a0Multivariate Backtesting Expected Shortfall\"],\"author\":[{\"given\":\"Tingnan\",\"family\":\"Gong\",\"sequence\":\"first\",\"affiliation\":[],\"role\":[{\"role\":\"author\",\"vocabulary\":\"crossref\"}]},{\"given\":\"Yu\",\"family\":\"Chen\",\"sequence\":\"additional\",\"affiliation\":[],\"role\":[{\"role\":\"author\",\"vocabulary\":\"crossref\"}]}],\"issued\":{\"date-parts\":[[2024]]},\"URL\":\"https:\\/\\/doi.org\\/10.2139\\/ssrn.4762076\",\"published\":{\"date-parts\":[[2024]]}},{\"publisher\":\"Elsevier BV\",\"DOI\":\"10.2139\\/ssrn.7545622\",\"type\":\"posted-content\",\"is-referenced-by-count\":0,\"title\":[\"Backtesting Robust VaR and Expected Shortfall under Distributional Ambiguity\"],\"author\":[{\"ORCID\":\"https:\\/\\/orcid.org\\/0000-0002-7308-428X\",\"authenticated-orcid\":true,\"given\":\"Jules\",\"family\":\"Sadefo Kamdem\",\"sequence\":\"first\",\"affiliation\":[],\"role\":[{\"vocabulary\":\"crossref\",\"role\":\"author\"}]}],\"issued\":{\"date-parts\":[[2026]]},\"URL\":\"https:\\/\\/doi.org\\/10.2139\\/ssrn.7545622\",\"published\":{\"date-parts\":[[2026]]}}],\"items-per-page\":5,\"query\":{\"start-index\":0,\"search-terms\":\"expected shortfall backtesting\"}}}"
+    }
+   }
+  }
+ ]
+}

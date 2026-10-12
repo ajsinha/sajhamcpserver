@@ -501,6 +501,6 @@ away.
 
 - The design, every setting and the limits: [Quantitative Planners](../architecture/Quantitative%20Planners.md)
 - Writing a planner of your own: [Tutorial 27: Write a Planner](TUTORIAL_27_write_a_planner.md)
-- This is the last tutorial; the [documentation index](../README.md) lists every guide
+- [Tutorial 46: PostgreSQL, Several Workers and the Load Harness](TUTORIAL_46_scaling_postgresql.md)
 
 Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.com

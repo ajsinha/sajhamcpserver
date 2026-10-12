@@ -1,0 +1,17 @@
+# An HTTP tool with a recorded cassette (cassettes/eurostat_search/house_price_index.json): replays offline.
+# Re-record against the live API with: python -m sajha.quality test --tool eurostat_search --record
+# The recorded table of contents is trimmed to the lines that mention "price" (the full list is 2 MB).
+tool: eurostat_search
+cases:
+  - name: house price index
+    tags: [http]
+    arguments: {"text": "house price index", "limit": 20}
+    expect:
+      - schema: output
+      - path: "$.datasets"
+        min_length: 3
+      - path: "$.source"
+        regex: "^Source: Eurostat"
+probe:
+  case: house price index
+  every: 21600

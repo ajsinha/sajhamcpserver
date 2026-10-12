@@ -1,0 +1,210 @@
+{
+  "name": "usaspending_awards",
+  "implementation": "sajha.tools.impl.us_spending_tools.UsaspendingAwardsTool",
+  "title": "Federal awards",
+  "description": "The largest US federal awards (contracts, grants, loans, other) matching keywords, awarding agency and recipient (USAspending.gov).\nReturns: units, count, truncated, awards (award_id, recipient, recipient_id, amount, description, awarding_agency, awarding_sub_agency, start_date, end_date, url).\nInputs (none required): keywords; agency; recipient; award_types (contracts, idvs, loans, or grants/direct_payments/other; one group per call; default contracts); from, to (default the current fiscal year); sort (amount or start_date); limit (default 25).\nExample: {\"keywords\": [\"cybersecurity\"], \"agency\": \"Department of Defense\", \"from\": \"2025-10-01\", \"to\": \"2026-09-30\", \"limit\": 10}",
+  "annotations": {
+    "title": "Federal awards",
+    "readOnlyHint": true,
+    "destructiveHint": false,
+    "idempotentHint": true,
+    "openWorldHint": true
+  },
+  "version": "1.0.0",
+  "enabled": true,
+  "cache_ttl": 3600,
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "keywords": {
+        "type": "array",
+        "description": "Words that must appear in the award",
+        "items": {
+          "type": "string",
+          "minLength": 3
+        },
+        "maxItems": 10
+      },
+      "agency": {
+        "type": "string",
+        "description": "Awarding top-tier agency name, e.g. Department of Defense",
+        "maxLength": 200
+      },
+      "recipient": {
+        "type": "string",
+        "description": "Recipient name, UEI or DUNS",
+        "maxLength": 200
+      },
+      "from": {
+        "type": "string",
+        "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+        "description": "First action date (YYYY-MM-DD; default the start of the current fiscal year; not before 2007-10-01)"
+      },
+      "to": {
+        "type": "string",
+        "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+        "description": "Last action date (YYYY-MM-DD; default today)"
+      },
+      "award_types": {
+        "type": "array",
+        "description": "Award groups",
+        "items": {
+          "type": "string",
+          "enum": [
+            "contracts",
+            "idvs",
+            "grants",
+            "direct_payments",
+            "loans",
+            "other"
+          ]
+        },
+        "minItems": 1,
+        "maxItems": 6
+      },
+      "sort": {
+        "type": "string",
+        "enum": [
+          "amount",
+          "start_date"
+        ],
+        "description": "Largest first, or newest first",
+        "default": "amount"
+      },
+      "limit": {
+        "type": "integer",
+        "description": "Most awards to return",
+        "minimum": 1,
+        "maximum": 100,
+        "default": 25
+      }
+    },
+    "required": [],
+    "additionalProperties": false,
+    "examples": [
+      {
+        "keywords": [
+          "cybersecurity"
+        ],
+        "agency": "Department of Defense",
+        "from": "2025-10-01",
+        "to": "2026-09-30",
+        "limit": 10
+      }
+    ]
+  },
+  "outputSchema": {
+    "type": "object",
+    "properties": {
+      "award_types": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        }
+      },
+      "from": {
+        "type": "string"
+      },
+      "to": {
+        "type": "string"
+      },
+      "units": {
+        "type": "string"
+      },
+      "count": {
+        "type": "integer"
+      },
+      "truncated": {
+        "type": "boolean"
+      },
+      "awards": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "award_id": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "recipient": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "recipient_id": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "amount": {
+              "type": [
+                "number",
+                "null"
+              ]
+            },
+            "description": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "awarding_agency": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "awarding_sub_agency": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "start_date": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "end_date": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "url": {
+              "type": [
+                "string",
+                "null"
+              ]
+            }
+          },
+          "required": [
+            "award_id"
+          ]
+        }
+      },
+      "source": {
+        "type": "string",
+        "description": "Attribution"
+      }
+    },
+    "required": [
+      "awards",
+      "source"
+    ]
+  },
+  "metadata": {
+    "author": "Ashutosh Sinha",
+    "category": "Public spending",
+    "tags": [
+      "usaspending",
+      "federal contracts",
+      "grants"
+    ]
+  }
+}

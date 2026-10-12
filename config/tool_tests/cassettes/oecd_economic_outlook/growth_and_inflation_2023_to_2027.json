@@ -1,0 +1,38 @@
+{
+ "format": 1,
+ "interactions": [
+  {
+   "request": {
+    "method": "GET",
+    "url": "https://sdmx.oecd.org/public/rest/data/OECD.ECO.MAD,DSD_EO@DF_EO/USA+DEU+OECD.GDPV_ANNPCT+CPI_YTYPCT.A?startPeriod=2023&endPeriod=2027&format=csvfile",
+    "body_sha256": ""
+   },
+   "response": {
+    "status": 200,
+    "reason": "OK",
+    "headers": {
+     "date": "Mon, 12 Oct 2026 04:08:48 GMT",
+     "content-type": "application/vnd.sdmx.data+csv; charset=utf-8",
+     "connection": "keep-alive",
+     "cache-control": "public,max-age=7200",
+     "content-language": "en,en-US",
+     "last-modified": "2023-11-14",
+     "accept-ranges": "values",
+     "vary": "X-Range, Accept, Accept-Language, Accept-Encoding, Accept-Charset,Accept,Accept-Encoding,Accept-Encoding",
+     "strict-transport-security": "max-age=2592000",
+     "content-disposition": "attachment; filename=\"OECD.ECO.MAD,DSD_EO@DF_EO,filtered,2026-10-12 06-06-03.csv\"",
+     "api-supported-versions": "1",
+     "x-server-node": "Server 3",
+     "age": "164",
+     "cf-cache-status": "HIT",
+     "server": "cloudflare",
+     "cf-ray": "a4933ed91e7fa31a-EWR",
+     "alt-svc": "h3=\":443\"; ma=86400"
+    },
+    "body": {
+     "text": "DATAFLOW,REF_AREA,MEASURE,FREQ,TIME_PERIOD,OBS_VALUE,OBS_STATUS,UNIT_MEASURE,UNIT_MULT,CURRENCY,BASE_PER,METHODOLOGY,DECIMALS,PRICE_BASE,ADJUSTMENT\r\nOECD.ECO.MAD:DSD_EO@DF_EO(1.5),USA,CPI_YTYPCT,A,2023,4.12696279129511,,GR,0,,,,2,,\r\nOECD.ECO.MAD:DSD_EO@DF_EO(1.5),USA,CPI_YTYPCT,A,2024,2.95210964994254,,GR,0,,,,2,,\r\nOECD.ECO.MAD:DSD_EO@DF_EO(1.5),USA,CPI_YTYPCT,A,2025,2.70581222183351,,GR,0,,,,2,,\r\nOECD.ECO.MAD:DSD_EO@DF_EO(1.5),USA,CPI_YTYPCT,A,2026,3.48339316199507,,GR,0,,,,2,,\r\nOECD.ECO.MAD:DSD_EO@DF_EO(1.5),USA,CPI_YTYPCT,A,2027,2.32800569545607,,GR,0,,,,2,,\r\nOECD.ECO.MAD:DSD_EO@DF_EO(1.5),USA,GDPV_ANNPCT,A,2023,2.93436092305279,,PA,0,,2017,,2,,\r\nOECD.ECO.MAD:DSD_EO@DF_EO(1.5),USA,GDPV_ANNPCT,A,2024,2.793187184646,,PA,0,,2017,,2,,\r\nOECD.ECO.MAD:DSD_EO@DF_EO(1.5),USA,GDPV_ANNPCT,A,2025,2.10633762606889,,PA,0,,2017,,2,,\r\nOECD.ECO.MAD:DSD_EO@DF_EO(1.5),USA,GDPV_ANNPCT,A,2026,1.95006403656728,,PA,0,,2017,,2,,\r\nOECD.ECO.MAD:DSD_EO@DF_EO(1.5),USA,GDPV_ANNPCT,A,2027,1.79896206247722,,PA,0,,2017,,2,,\r\nOECD.ECO.MAD:DSD_EO@DF_EO(1.5),OECD,GDPV_ANNPCT,A,2023,1.75722353930983,,PA,0,,2021,,2,,\r\nOECD.ECO.MAD:DSD_EO@DF_EO(1.5),OECD,GDPV_ANNPCT,A,2024,1.75338162601241,,PA,0,,2021,,2,,\r\nOECD.ECO.MAD:DSD_EO@DF_EO(1.5),OECD,GDPV_ANNPCT,A,2025,1.79829027180338,,PA,0,,2021,,2,,\r\nOECD.ECO.MAD:DSD_EO@DF_EO(1.5),OECD,GDPV_ANNPCT,A,2026,1.54418983201363,,PA,0,,2021,,2,,\r\nOECD.ECO.MAD:DSD_EO@DF_EO(1.5),OECD,GDPV_ANNPCT,A,2027,1.67717849272553,,PA,0,,2021,,2,,\r\nOECD.ECO.MAD:DSD_EO@DF_EO(1.5),OECD,CPI_YTYPCT,A,2023,6.82526904260753,,GR,0,,,,2,,\r\nOECD.ECO.MAD:DSD_EO@DF_EO(1.5),OECD,CPI_YTYPCT,A,2024,4.97135092637293,,GR,0,,,,2,,\r\nOECD.ECO.MAD:DSD_EO@DF_EO(1.5),OECD,CPI_YTYPCT,A,2025,3.98557188217282,,GR,0,,,,2,,\r\nOECD.ECO.MAD:DSD_EO@DF_EO(1.5),OECD,CPI_YTYPCT,A,2026,4.33213913988774,,GR,0,,,,2,,\r\nOECD.ECO.MAD:DSD_EO@DF_EO(1.5),OECD,CPI_YTYPCT,A,2027,3.02175467384117,,GR,0,,,,2,,\r\nOECD.ECO.MAD:DSD_EO@DF_EO(1.5),DEU,GDPV_ANNPCT,A,2023,-0.674637423574836,,PA,0,,2020,,2,,\r\nOECD.ECO.MAD:DSD_EO@DF_EO(1.5),DEU,GDPV_ANNPCT,A,2024,-0.471876493752674,,PA,0,,2020,,2,,\r\nOECD.ECO.MAD:DSD_EO@DF_EO(1.5),DEU,GDPV_ANNPCT,A,2025,0.3448104612348,,PA,0,,2020,,2,,\r\nOECD.ECO.MAD:DSD_EO@DF_EO(1.5),DEU,GDPV_ANNPCT,A,2026,0.655989095017631,,PA,0,,2020,,2,,\r\nOECD.ECO.MAD:DSD_EO@DF_EO(1.5),DEU,GDPV_ANNPCT,A,2027,1.11975165649274,,PA,0,,2020,,2,,\r\n"
+    }
+   }
+  }
+ ]
+}

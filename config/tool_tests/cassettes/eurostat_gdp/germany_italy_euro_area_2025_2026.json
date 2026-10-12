@@ -1,0 +1,28 @@
+{
+ "format": 1,
+ "interactions": [
+  {
+   "request": {
+    "method": "GET",
+    "url": "https://ec.europa.eu/eurostat/api/dissemination/sdmx/2.1/data/namq_10_gdp/Q.CLV_PCH_PRE.SCA.B1GQ.DE+IT+EA21?startPeriod=2025-Q1&endPeriod=2026-Q2&format=SDMX-CSV",
+    "body_sha256": ""
+   },
+   "response": {
+    "status": 200,
+    "reason": "OK",
+    "headers": {
+     "date": "Mon, 12 Oct 2026 04:08:03 GMT",
+     "content-type": "application/vnd.sdmx.data+csv;version=1.0.0",
+     "content-disposition": "attachment; filename=\"estat_namq_10_gdp_filtered_en.csv\"",
+     "access-control-allow-headers": "Content-Type, Accept, X-Requested-With",
+     "access-control-allow-methods": "GET",
+     "access-control-allow-origin": "*",
+     "connection": "keep-alive"
+    },
+    "body": {
+     "text": "DATAFLOW,LAST UPDATE,freq,unit,s_adj,na_item,geo,TIME_PERIOD,OBS_VALUE,OBS_FLAG,CONF_STATUS\r\nESTAT:NAMQ_10_GDP(1.0),09/10/26 23:00:00,Q,CLV_PCH_PRE,SCA,B1GQ,DE,2025-Q1,0.1,p,\r\nESTAT:NAMQ_10_GDP(1.0),09/10/26 23:00:00,Q,CLV_PCH_PRE,SCA,B1GQ,DE,2025-Q2,0.0,p,\r\nESTAT:NAMQ_10_GDP(1.0),09/10/26 23:00:00,Q,CLV_PCH_PRE,SCA,B1GQ,DE,2025-Q3,0.0,p,\r\nESTAT:NAMQ_10_GDP(1.0),09/10/26 23:00:00,Q,CLV_PCH_PRE,SCA,B1GQ,DE,2025-Q4,0.3,p,\r\nESTAT:NAMQ_10_GDP(1.0),09/10/26 23:00:00,Q,CLV_PCH_PRE,SCA,B1GQ,DE,2026-Q1,0.4,p,\r\nESTAT:NAMQ_10_GDP(1.0),09/10/26 23:00:00,Q,CLV_PCH_PRE,SCA,B1GQ,DE,2026-Q2,0.3,p,\r\nESTAT:NAMQ_10_GDP(1.0),09/10/26 23:00:00,Q,CLV_PCH_PRE,SCA,B1GQ,EA21,2025-Q1,0.5,,\r\nESTAT:NAMQ_10_GDP(1.0),09/10/26 23:00:00,Q,CLV_PCH_PRE,SCA,B1GQ,EA21,2025-Q2,0.0,,\r\nESTAT:NAMQ_10_GDP(1.0),09/10/26 23:00:00,Q,CLV_PCH_PRE,SCA,B1GQ,EA21,2025-Q3,0.3,,\r\nESTAT:NAMQ_10_GDP(1.0),09/10/26 23:00:00,Q,CLV_PCH_PRE,SCA,B1GQ,EA21,2025-Q4,0.2,,\r\nESTAT:NAMQ_10_GDP(1.0),09/10/26 23:00:00,Q,CLV_PCH_PRE,SCA,B1GQ,EA21,2026-Q1,0.0,,\r\nESTAT:NAMQ_10_GDP(1.0),09/10/26 23:00:00,Q,CLV_PCH_PRE,SCA,B1GQ,EA21,2026-Q2,0.6,,\r\nESTAT:NAMQ_10_GDP(1.0),09/10/26 23:00:00,Q,CLV_PCH_PRE,SCA,B1GQ,IT,2025-Q1,0.4,,\r\nESTAT:NAMQ_10_GDP(1.0),09/10/26 23:00:00,Q,CLV_PCH_PRE,SCA,B1GQ,IT,2025-Q2,0.0,,\r\nESTAT:NAMQ_10_GDP(1.0),09/10/26 23:00:00,Q,CLV_PCH_PRE,SCA,B1GQ,IT,2025-Q3,0.2,,\r\nESTAT:NAMQ_10_GDP(1.0),09/10/26 23:00:00,Q,CLV_PCH_PRE,SCA,B1GQ,IT,2025-Q4,0.3,,\r\nESTAT:NAMQ_10_GDP(1.0),09/10/26 23:00:00,Q,CLV_PCH_PRE,SCA,B1GQ,IT,2026-Q1,0.3,,\r\nESTAT:NAMQ_10_GDP(1.0),09/10/26 23:00:00,Q,CLV_PCH_PRE,SCA,B1GQ,IT,2026-Q2,0.2,,\r\n"
+    }
+   }
+  }
+ ]
+}

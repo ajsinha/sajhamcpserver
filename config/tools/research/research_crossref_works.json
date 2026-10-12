@@ -1,0 +1,183 @@
+{
+  "name": "research_crossref_works",
+  "implementation": "sajha.tools.impl.research_tools.ResearchCrossrefWorksTool",
+  "title": "Search Crossref works",
+  "description": "Works registered with Crossref (journal articles, books, reports, conference papers) matching a bibliographic query, with DOI, venue and citation count.\nReturns: query, count, total, truncated, works (doi, title, type, published, venue, publisher, authors, author_count, cited_by_count, url).\nInputs: query; from, to (publication dates, YYYY-MM-DD or YYYY); type (journal-article, book, report...); sort (relevance, published, cited_by_count; default relevance); limit (default 10).\nExample: {\"query\": \"expected shortfall backtesting\", \"from\": \"2018\", \"limit\": 5}",
+  "annotations": {
+    "title": "Search Crossref works",
+    "readOnlyHint": true,
+    "destructiveHint": false,
+    "idempotentHint": true,
+    "openWorldHint": true
+  },
+  "version": "1.0.0",
+  "enabled": true,
+  "cache_ttl": 86400,
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "query": {
+        "type": "string",
+        "description": "Bibliographic query: title words, authors, venue",
+        "minLength": 2,
+        "maxLength": 300
+      },
+      "from": {
+        "type": "string",
+        "description": "Earliest publication date (YYYY, YYYY-MM or YYYY-MM-DD)",
+        "pattern": "^\\d{4}(-\\d{2}){0,2}$"
+      },
+      "to": {
+        "type": "string",
+        "description": "Latest publication date (YYYY, YYYY-MM or YYYY-MM-DD)",
+        "pattern": "^\\d{4}(-\\d{2}){0,2}$"
+      },
+      "type": {
+        "type": "string",
+        "description": "Crossref work type",
+        "enum": [
+          "journal-article",
+          "book",
+          "book-chapter",
+          "monograph",
+          "report",
+          "proceedings-article",
+          "posted-content",
+          "dissertation",
+          "dataset",
+          "standard"
+        ]
+      },
+      "sort": {
+        "type": "string",
+        "enum": [
+          "relevance",
+          "published",
+          "cited_by_count"
+        ],
+        "description": "Order of results",
+        "default": "relevance"
+      },
+      "limit": {
+        "type": "integer",
+        "description": "Most works to return",
+        "minimum": 1,
+        "maximum": 50,
+        "default": 10
+      }
+    },
+    "required": [
+      "query"
+    ],
+    "additionalProperties": false,
+    "examples": [
+      {
+        "query": "expected shortfall backtesting",
+        "from": "2018",
+        "limit": 5
+      }
+    ]
+  },
+  "outputSchema": {
+    "type": "object",
+    "properties": {
+      "query": {
+        "type": "string"
+      },
+      "count": {
+        "type": "integer"
+      },
+      "total": {
+        "type": "integer"
+      },
+      "truncated": {
+        "type": "boolean"
+      },
+      "works": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "doi": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "title": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "type": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "published": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "venue": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "publisher": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "authors": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "author_count": {
+              "type": "integer"
+            },
+            "cited_by_count": {
+              "type": [
+                "integer",
+                "null"
+              ]
+            },
+            "url": {
+              "type": [
+                "string",
+                "null"
+              ]
+            }
+          },
+          "required": [
+            "doi"
+          ]
+        }
+      },
+      "source": {
+        "type": "string",
+        "description": "Attribution"
+      }
+    },
+    "required": [
+      "works",
+      "source"
+    ]
+  },
+  "metadata": {
+    "author": "Ashutosh Sinha",
+    "category": "Research",
+    "tags": [
+      "crossref",
+      "doi",
+      "scholarly works"
+    ]
+  }
+}

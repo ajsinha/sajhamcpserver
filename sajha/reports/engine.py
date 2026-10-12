@@ -584,7 +584,7 @@ def run_report(defn: ReportDefinition, parameters: Optional[Dict[str, Any]] = No
         'declared_classification': defn.classification, 'classification': classification,
         'status': _status(sections), 'sections': sections, 'quantities': qs,
         'previous_run_id': (prev or {}).get('run_id'), 'narration': None, 'files': {}, 'files_unavailable': {},
-        'deliveries': [], 'warnings': [f'{s["id"]}: {s.get("error")}' for s in sections
+        'warnings': [f'{s["id"]}: {s.get("error")}' for s in sections
                                        if s['status'] not in OK_STATES],
     }
     wanted = list(dict.fromkeys(['markdown'] + list(formats if formats is not None else defn.formats)))

@@ -1,0 +1,37 @@
+{
+ "tool": "eurostat_unemployment",
+ "arguments": {
+  "countries": [
+   "ES",
+   "EA",
+   "US"
+  ],
+  "period": "2026-01/2026-06",
+  "sex": "total",
+  "age": "total"
+ },
+ "recorded": "2026-10-12",
+ "calls": [
+  {
+   "method": "GET",
+   "url": "https://ec.europa.eu/eurostat/api/dissemination/sdmx/2.1/data/une_rt_m/M.SA.TOTAL.PC_ACT.T.ES+EA21+US",
+   "params": [
+    [
+     "startPeriod",
+     "2026-01"
+    ],
+    [
+     "endPeriod",
+     "2026-06"
+    ],
+    [
+     "format",
+     "SDMX-CSV"
+    ]
+   ],
+   "status": 200,
+   "content_type": "application/vnd.sdmx.data+csv;version=1.0.0",
+   "body": "DATAFLOW,LAST UPDATE,freq,s_adj,age,unit,sex,geo,TIME_PERIOD,OBS_VALUE,OBS_FLAG,CONF_STATUS\r\nESTAT:UNE_RT_M(1.0),08/10/26 11:00:00,M,SA,TOTAL,PC_ACT,T,EA21,2026-01,6.3,,\r\nESTAT:UNE_RT_M(1.0),08/10/26 11:00:00,M,SA,TOTAL,PC_ACT,T,EA21,2026-02,6.4,,\r\nESTAT:UNE_RT_M(1.0),08/10/26 11:00:00,M,SA,TOTAL,PC_ACT,T,EA21,2026-03,6.4,,\r\nESTAT:UNE_RT_M(1.0),08/10/26 11:00:00,M,SA,TOTAL,PC_ACT,T,EA21,2026-04,6.4,,\r\nESTAT:UNE_RT_M(1.0),08/10/26 11:00:00,M,SA,TOTAL,PC_ACT,T,EA21,2026-05,6.4,,\r\nESTAT:UNE_RT_M(1.0),08/10/26 11:00:00,M,SA,TOTAL,PC_ACT,T,EA21,2026-06,6.4,,\r\nESTAT:UNE_RT_M(1.0),08/10/26 11:00:00,M,SA,TOTAL,PC_ACT,T,ES,2026-01,10.3,,\r\nESTAT:UNE_RT_M(1.0),08/10/26 11:00:00,M,SA,TOTAL,PC_ACT,T,ES,2026-02,10.3,,\r\nESTAT:UNE_RT_M(1.0),08/10/26 11:00:00,M,SA,TOTAL,PC_ACT,T,ES,2026-03,10.3,,\r\nESTAT:UNE_RT_M(1.0),08/10/26 11:00:00,M,SA,TOTAL,PC_ACT,T,ES,2026-04,10.2,,\r\nESTAT:UNE_RT_M(1.0),08/10/26 11:00:00,M,SA,TOTAL,PC_ACT,T,ES,2026-05,10.2,,\r\nESTAT:UNE_RT_M(1.0),08/10/26 11:00:00,M,SA,TOTAL,PC_ACT,T,ES,2026-06,10.1,,\r\nESTAT:UNE_RT_M(1.0),08/10/26 11:00:00,M,SA,TOTAL,PC_ACT,T,US,2026-01,4.3,,\r\nESTAT:UNE_RT_M(1.0),08/10/26 11:00:00,M,SA,TOTAL,PC_ACT,T,US,2026-02,4.4,,\r\nESTAT:UNE_RT_M(1.0),08/10/26 11:00:00,M,SA,TOTAL,PC_ACT,T,US,2026-03,4.3,,\r\nESTAT:UNE_RT_M(1.0),08/10/26 11:00:00,M,SA,TOTAL,PC_ACT,T,US,2026-04,4.3,,\r\nESTAT:UNE_RT_M(1.0),08/10/26 11:00:00,M,SA,TOTAL,PC_ACT,T,US,2026-05,4.3,,\r\nESTAT:UNE_RT_M(1.0),08/10/26 11:00:00,M,SA,TOTAL,PC_ACT,T,US,2026-06,4.2,,\r\n"
+  }
+ ]
+}

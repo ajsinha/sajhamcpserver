@@ -1,0 +1,17 @@
+# An HTTP tool with a recorded cassette (cassettes/bls_unemployment_rate/u3_u6_2025.json): replays offline.
+# Re-record against the live API with: python -m sajha.quality test --tool bls_unemployment_rate --record
+# (record without BLS_API_KEY/EIA_API_KEY set so the cassette matches a keyless replay)
+tool: bls_unemployment_rate
+cases:
+  - name: u3 u6 2025
+    tags: [http]
+    arguments: {"measures": ["u3", "u6"], "period": "2025-01-01:2025-12-31"}
+    expect:
+      - schema: output
+      - path: "$.series_count"
+        equals: 2
+      - path: "$.series[*].unit"
+        regex: "^percent$"
+probe:
+  case: u3 u6 2025
+  every: 86400

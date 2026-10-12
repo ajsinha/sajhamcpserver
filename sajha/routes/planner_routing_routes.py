@@ -76,8 +76,10 @@ async def admin_planner_routing_page(request: Request, auth: AuthContext = Depen
 def _do(action: str, auth: AuthContext, data: Dict[str, Any]) -> Dict[str, Any]:
     from sajha.ai.planners_engine import learning as L
     uid = auth.user_id or ''
+    # where the request came from: the console (its session cookie) or the HTTP API (an API key, a JWT)
+    source = 'console' if auth.auth_type == 'session' else 'api'
     if action == 'learn':
-        doc = L.learn(created_by=uid, source='console')
+        doc = L.learn(created_by=uid, source=source)
         return {'notice': f"Proposal {doc['id']} written: {len(doc['diff'])} change(s) to review.",
                 'proposal': doc['id'], 'doc': doc}
     if action == 'approve':
@@ -93,7 +95,7 @@ def _do(action: str, auth: AuthContext, data: Dict[str, Any]) -> Dict[str, Any]:
             n = int(data.get('version') or 0)
         except (TypeError, ValueError):
             raise L.RoutingError('version must be a number')
-        doc = L.activate(n, uid, str(data.get('reason') or 'console'))
+        doc = L.activate(n, uid, str(data.get('reason') or source))
         return {'notice': f"Version {n} is active." if n else 'Routing rules are off (no version active).',
                 'doc': doc}
     if action == 'bandit':

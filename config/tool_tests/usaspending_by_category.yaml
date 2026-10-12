@@ -1,0 +1,16 @@
+# An HTTP tool with a recorded cassette (cassettes/usaspending_by_category/cybersecurity_by_recipient_fy2026.json): replays offline.
+# Re-record against the live API with: python -m sajha.quality test --tool usaspending_by_category --record
+tool: usaspending_by_category
+cases:
+  - name: cybersecurity by recipient fy2026
+    tags: [http]
+    arguments: {"category": "recipient", "keywords": ["cybersecurity"], "from": "2025-10-01", "to": "2026-09-30", "limit": 5}
+    expect:
+      - schema: output
+      - path: "$.count"
+        equals: 5
+      - path: "$.results[0].amount"
+        min: 1
+probe:
+  case: cybersecurity by recipient fy2026
+  every: 3600

@@ -1,0 +1,16 @@
+# An HTTP tool with a recorded cassette (cassettes/research_arxiv_search/cva_in_risk_management.json): replays offline.
+# Re-record against the live API with: python -m sajha.quality test --tool research_arxiv_search --record
+tool: research_arxiv_search
+cases:
+  - name: cva in risk management
+    tags: [http]
+    arguments: {"query": "credit valuation adjustment", "category": "q-fin.RM", "max_results": 5}
+    expect:
+      - schema: output
+      - path: "$.count"
+        min: 1
+      - path: "$.papers[*].abs_url"
+        regex: "^https://arxiv.org/abs/"
+probe:
+  case: cva in risk management
+  every: 21600

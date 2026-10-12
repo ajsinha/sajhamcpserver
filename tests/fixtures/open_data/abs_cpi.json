@@ -1,0 +1,34 @@
+{
+ "tool": "abs_cpi",
+ "arguments": {
+  "measure": "annual_change",
+  "regions": [
+   "australia",
+   "sydney"
+  ],
+  "period": "2026-01/2026-06",
+  "item": "10001",
+  "adjustment": "original",
+  "frequency": "monthly"
+ },
+ "recorded": "2026-10-12",
+ "calls": [
+  {
+   "method": "GET",
+   "url": "https://data.api.abs.gov.au/rest/data/ABS,CPI/3.10001.10.50+1.M",
+   "params": [
+    [
+     "startPeriod",
+     "2026-01"
+    ],
+    [
+     "endPeriod",
+     "2026-06"
+    ]
+   ],
+   "status": 200,
+   "content_type": "application/vnd.sdmx.data+csv; charset=utf-8",
+   "body": "DATAFLOW,MEASURE,INDEX,TSEST,REGION,FREQ,TIME_PERIOD,OBS_VALUE,UNIT_MEASURE,OBS_STATUS,DECIMALS,OBS_COMMENT,BASE_PERIOD\r\nABS:CPI(2.0.0),3,10001,10,1,M,2026-03,4.4,PCT,,,,25\r\nABS:CPI(2.0.0),3,10001,10,1,M,2026-02,3.8,PCT,,,,25\r\nABS:CPI(2.0.0),3,10001,10,1,M,2026-01,3.9,PCT,,,,25\r\nABS:CPI(2.0.0),3,10001,10,50,M,2026-06,3.8,PCT,,,,25\r\nABS:CPI(2.0.0),3,10001,10,50,M,2026-05,4,PCT,,,,25\r\nABS:CPI(2.0.0),3,10001,10,50,M,2026-04,4.2,PCT,,,,25\r\nABS:CPI(2.0.0),3,10001,10,50,M,2026-03,4.6,PCT,,,,25\r\nABS:CPI(2.0.0),3,10001,10,50,M,2026-02,3.7,PCT,,,,25\r\nABS:CPI(2.0.0),3,10001,10,50,M,2026-01,3.8,PCT,,,,25\r\nABS:CPI(2.0.0),3,10001,10,1,M,2026-06,4,PCT,,,,25\r\nABS:CPI(2.0.0),3,10001,10,1,M,2026-05,4.2,PCT,,,,25\r\nABS:CPI(2.0.0),3,10001,10,1,M,2026-04,4.2,PCT,,,,25\r\n"
+  }
+ ]
+}

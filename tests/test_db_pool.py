@@ -281,3 +281,58 @@ def test_provider_health_is_derived_from_the_registry(web):
     assert {k: p["registered_tools"] for k, p in by_key.items()} == counts
     for p in providers:
         assert p["provider"] == D.domain_label(p["prefix"]) and p["status"] in ("healthy", "degraded", "down")
+
+
+# ── no audit or usage record is lost when the pool is busy ────────────────
+
+def test_audit_log_row_is_kept_and_written_after_a_failed_write(monkeypatch):
+    """A busy pool delays an audit_log row; it is written with the next one, never dropped."""
+    import contextlib
+    from sajha.core import audit as A
+    written, fail = [], {'on': True}
+
+    @contextlib.contextmanager
+    def fake_scope(commit=False):
+        class S:
+            def add(self, row):
+                written_now.append(row)
+        written_now = []
+        if fail['on']:
+            raise RuntimeError('QueuePool limit reached')
+        yield S()
+        written.extend(written_now)
+
+    monkeypatch.setattr('sajha.db.engine.session_scope', fake_scope)
+    monkeypatch.setattr('sajha.audit.record', lambda *a, **k: None)
+    A._PENDING.clear()
+    A.AuditLogger().log('zz_first', user_id='u1')
+    assert len(A._PENDING) == 1 and not written
+    fail['on'] = False
+    A.AuditLogger().log('zz_second', user_id='u1')
+    assert [r.action for r in written] == ['zz_first', 'zz_second'] and not A._PENDING
+
+
+def test_usage_rows_go_back_on_the_queue_when_a_write_fails(monkeypatch):
+    from sajha.observability import usage as U
+    q = U._q()
+    while not q.empty():
+        q.get_nowait()
+    rows = [{'n': 1}, {'n': 2}]
+    assert U._requeue(rows) == 2 and q.qsize() == 2
+    assert U._drain(10) == rows
+
+
+def test_other_workers_pool_numbers_are_ints(monkeypatch):
+    # another worker's pool comes from its metrics snapshot (floats there); shown as counts, like this one's
+    from sajha.observability import metrics as M
+
+    class Store:
+        def scan(self, prefix):
+            fam = lambda name, v: [name, 'gauge', '', [[name, {'db_type': 'postgresql'}, v]]]   # noqa: E731
+            yield M._SNAP_PREFIX + 'host:2:b', {'at': 1.0, 'families': [
+                fam('sajha_db_pool_size', 10.0), fam('sajha_db_pool_checked_out', 3.0),
+                fam('sajha_db_pool_exhausted_total', 0.0)]}
+    monkeypatch.setattr(M, '_shared_store', lambda: Store())
+    other = [w for w in M.db_pool_workers() if not w['this_worker']][0]
+    assert other['size'] == 10 and other['checked_out'] == 3 and other['exhausted_total'] == 0
+    assert all(type(other[k]) is int for k in ('size', 'checked_out', 'exhausted_total'))

@@ -1,0 +1,177 @@
+{
+  "name": "eia_petroleum_stocks",
+  "implementation": "sajha.tools.impl.eia_tools.EiaPetroleumStocksTool",
+  "description": "Weekly US petroleum ending stocks (crude oil excluding and in the SPR, gasoline, distillate, jet fuel, propane), in thousand barrels.\nReturns: source, route, frequency, series (series_id, name, label, unit, observations date/value).\nInputs (* required): products (default crude_oil_excluding_spr), period (default last 3 months).\nExample: {\"products\": [\"crude_oil_excluding_spr\", \"gasoline\"], \"period\": \"last 3 months\"}",
+  "annotations": {
+    "readOnlyHint": true,
+    "idempotentHint": true,
+    "openWorldHint": true
+  },
+  "version": "1.0.0",
+  "enabled": true,
+  "cache_ttl": 3600,
+  "api_key": "${EIA_API_KEY:}",
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "products": {
+        "type": "array",
+        "items": {
+          "type": "string",
+          "enum": [
+            "crude_oil_excluding_spr",
+            "crude_oil_spr",
+            "gasoline",
+            "distillate",
+            "jet_fuel",
+            "propane"
+          ]
+        },
+        "minItems": 1,
+        "maxItems": 6,
+        "uniqueItems": true,
+        "default": [
+          "crude_oil_excluding_spr"
+        ],
+        "description": "Stocks to return"
+      },
+      "period": {
+        "type": "string",
+        "default": "last 3 months",
+        "description": "2025, 2025-Q3, 2025-07, 'last N months|quarters|years' or YYYY-MM-DD:YYYY-MM-DD"
+      }
+    },
+    "required": [],
+    "additionalProperties": false,
+    "examples": [
+      {
+        "products": [
+          "crude_oil_excluding_spr",
+          "gasoline"
+        ],
+        "period": "last 3 months"
+      }
+    ]
+  },
+  "outputSchema": {
+    "type": "object",
+    "required": [
+      "source",
+      "series"
+    ],
+    "properties": {
+      "source": {
+        "type": "string",
+        "description": "Source: U.S. Energy Information Administration ...; cite it with the data"
+      },
+      "note": {
+        "type": "string",
+        "description": "Why the DEMO_KEY was used"
+      },
+      "route": {
+        "type": "string",
+        "description": "EIA route read"
+      },
+      "frequency": {
+        "type": "string",
+        "description": "daily, weekly, monthly, quarterly or annual"
+      },
+      "period": {
+        "type": [
+          "string",
+          "null"
+        ],
+        "description": "The period asked for"
+      },
+      "truncated": {
+        "type": "boolean",
+        "description": "More rows matched than were returned"
+      },
+      "series_count": {
+        "type": "integer",
+        "description": "Series returned"
+      },
+      "series": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "required": [
+            "series_id",
+            "observations"
+          ],
+          "properties": {
+            "series_id": {
+              "type": "string",
+              "description": "EIA series id"
+            },
+            "name": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "description": "The name asked for"
+            },
+            "label": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "description": "EIA series description"
+            },
+            "unit": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "description": "Unit (e.g. $/BBL, MBBL thousand barrels, BCF)"
+            },
+            "observation_count": {
+              "type": "integer",
+              "description": "Observations returned"
+            },
+            "observations": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "required": [
+                  "date",
+                  "value"
+                ],
+                "properties": {
+                  "date": {
+                    "type": "string",
+                    "description": "Period: YYYY-MM-DD, YYYY-MM or YYYY"
+                  },
+                  "value": {
+                    "type": [
+                      "number",
+                      "null"
+                    ],
+                    "description": "Value in the series unit"
+                  },
+                  "change": {
+                    "type": [
+                      "number",
+                      "null"
+                    ],
+                    "description": "Change from the previous week (storage: injection + or withdrawal -)"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "metadata": {
+    "author": "Ashutosh Sinha",
+    "category": "Economic Data",
+    "tags": [
+      "eia",
+      "oil",
+      "inventories",
+      "energy"
+    ]
+  }
+}

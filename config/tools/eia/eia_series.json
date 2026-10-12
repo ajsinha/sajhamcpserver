@@ -1,0 +1,152 @@
+{
+  "name": "eia_series",
+  "implementation": "sajha.tools.impl.eia_tools.EiaSeriesTool",
+  "description": "Rows of any EIA leaf route, filtered by facets, frequency and period; follows EIA's 5,000-row pages up to max_rows.\nReturns: source, route, frequency, total, returned, truncated, rows (period, facet fields, data columns as numbers, units).\nInputs (* required): route*, facets (facet -> values), data (columns, default [value]), frequency (default monthly), period, max_rows (default 500).\nExample: {\"route\": \"petroleum/pri/spt\", \"facets\": {\"series\": [\"RWTC\"]}, \"frequency\": \"monthly\", \"period\": \"2025\"}",
+  "annotations": {
+    "readOnlyHint": true,
+    "idempotentHint": true,
+    "openWorldHint": true
+  },
+  "version": "1.0.0",
+  "enabled": true,
+  "cache_ttl": 3600,
+  "api_key": "${EIA_API_KEY:}",
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "route": {
+        "type": "string",
+        "minLength": 1,
+        "description": "Leaf route, e.g. petroleum/pri/spt (eia_browse finds them)"
+      },
+      "facets": {
+        "type": "object",
+        "additionalProperties": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "description": "Facet filters, e.g. {\"series\": [\"RWTC\"]}"
+      },
+      "data": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "minItems": 1,
+        "default": [
+          "value"
+        ],
+        "description": "Data columns (value, price, sales ...)"
+      },
+      "frequency": {
+        "type": "string",
+        "enum": [
+          "daily",
+          "weekly",
+          "monthly",
+          "quarterly",
+          "annual"
+        ],
+        "default": "monthly",
+        "description": "Frequency the route offers"
+      },
+      "period": {
+        "type": "string",
+        "description": "2025, 2025-07, 'last N days|months|years' or YYYY-MM-DD:YYYY-MM-DD (default all)"
+      },
+      "max_rows": {
+        "type": "integer",
+        "minimum": 1,
+        "maximum": 20000,
+        "default": 500,
+        "description": "Row cap (newest rows kept)"
+      }
+    },
+    "required": [
+      "route"
+    ],
+    "additionalProperties": false,
+    "examples": [
+      {
+        "route": "petroleum/pri/spt",
+        "facets": {
+          "series": [
+            "RWTC"
+          ]
+        },
+        "frequency": "monthly",
+        "period": "2025"
+      }
+    ]
+  },
+  "outputSchema": {
+    "type": "object",
+    "required": [
+      "source",
+      "rows"
+    ],
+    "properties": {
+      "source": {
+        "type": "string",
+        "description": "Source: U.S. Energy Information Administration ...; cite it with the data"
+      },
+      "note": {
+        "type": "string",
+        "description": "Why the DEMO_KEY was used"
+      },
+      "route": {
+        "type": "string",
+        "description": "EIA route read"
+      },
+      "frequency": {
+        "type": "string",
+        "description": "daily, weekly, monthly, quarterly or annual"
+      },
+      "period": {
+        "type": [
+          "string",
+          "null"
+        ],
+        "description": "The period asked for"
+      },
+      "truncated": {
+        "type": "boolean",
+        "description": "More rows matched than were returned"
+      },
+      "total": {
+        "type": "integer",
+        "description": "Rows matching"
+      },
+      "returned": {
+        "type": "integer",
+        "description": "Rows returned"
+      },
+      "rows": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "required": [
+            "period"
+          ],
+          "properties": {
+            "period": {
+              "type": "string",
+              "description": "Period"
+            }
+          }
+        }
+      }
+    }
+  },
+  "metadata": {
+    "author": "Ashutosh Sinha",
+    "category": "Economic Data",
+    "tags": [
+      "eia",
+      "energy",
+      "time series"
+    ]
+  }
+}

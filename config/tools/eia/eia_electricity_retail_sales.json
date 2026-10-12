@@ -1,0 +1,241 @@
+{
+  "name": "eia_electricity_retail_sales",
+  "implementation": "sajha.tools.impl.eia_tools.EiaElectricityRetailSalesTool",
+  "description": "Monthly retail electricity by state and sector: average price (cents per kWh), sales (million kWh), revenue (million dollars), customers.\nReturns: source, series (state, sector, measure, unit, observations date/value).\nInputs (* required): states (default US, the total), sectors (default all), measures (price, sales, revenue, customers; default price, sales), period (default last 12 months).\nExample: {\"states\": [\"US\", \"TX\"], \"sectors\": [\"residential\"], \"measures\": [\"price\"], \"period\": \"last 12 months\"}",
+  "annotations": {
+    "readOnlyHint": true,
+    "idempotentHint": true,
+    "openWorldHint": true
+  },
+  "version": "1.0.0",
+  "enabled": true,
+  "cache_ttl": 21600,
+  "api_key": "${EIA_API_KEY:}",
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "states": {
+        "type": "array",
+        "items": {
+          "type": "string",
+          "pattern": "^[A-Za-z]{2}$"
+        },
+        "minItems": 1,
+        "maxItems": 60,
+        "default": [
+          "US"
+        ],
+        "description": "Two-letter state codes; US is the national total"
+      },
+      "sectors": {
+        "type": "array",
+        "items": {
+          "type": "string",
+          "enum": [
+            "residential",
+            "commercial",
+            "industrial",
+            "transportation",
+            "other",
+            "all"
+          ]
+        },
+        "minItems": 1,
+        "maxItems": 6,
+        "uniqueItems": true,
+        "default": [
+          "all"
+        ],
+        "description": "Customer sectors"
+      },
+      "measures": {
+        "type": "array",
+        "items": {
+          "type": "string",
+          "enum": [
+            "price",
+            "sales",
+            "revenue",
+            "customers"
+          ]
+        },
+        "minItems": 1,
+        "maxItems": 4,
+        "uniqueItems": true,
+        "default": [
+          "price",
+          "sales"
+        ],
+        "description": "Data columns"
+      },
+      "period": {
+        "type": "string",
+        "default": "last 12 months",
+        "description": "2025, 2025-Q3, 2025-07, 'last N months|quarters|years' or YYYY-MM-DD:YYYY-MM-DD"
+      }
+    },
+    "required": [],
+    "additionalProperties": false,
+    "examples": [
+      {
+        "states": [
+          "US",
+          "TX"
+        ],
+        "sectors": [
+          "residential"
+        ],
+        "measures": [
+          "price"
+        ],
+        "period": "last 12 months"
+      }
+    ]
+  },
+  "outputSchema": {
+    "type": "object",
+    "required": [
+      "source",
+      "series"
+    ],
+    "properties": {
+      "source": {
+        "type": "string",
+        "description": "Source: U.S. Energy Information Administration ...; cite it with the data"
+      },
+      "note": {
+        "type": "string",
+        "description": "Why the DEMO_KEY was used"
+      },
+      "route": {
+        "type": "string",
+        "description": "EIA route read"
+      },
+      "frequency": {
+        "type": "string",
+        "description": "daily, weekly, monthly, quarterly or annual"
+      },
+      "period": {
+        "type": [
+          "string",
+          "null"
+        ],
+        "description": "The period asked for"
+      },
+      "truncated": {
+        "type": "boolean",
+        "description": "More rows matched than were returned"
+      },
+      "series_count": {
+        "type": "integer",
+        "description": "Series returned"
+      },
+      "series": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "required": [
+            "series_id",
+            "observations"
+          ],
+          "properties": {
+            "series_id": {
+              "type": "string",
+              "description": "EIA series id"
+            },
+            "name": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "description": "The name asked for"
+            },
+            "label": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "description": "EIA series description"
+            },
+            "unit": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "description": "Unit (e.g. $/BBL, MBBL thousand barrels, BCF)"
+            },
+            "observation_count": {
+              "type": "integer",
+              "description": "Observations returned"
+            },
+            "observations": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "required": [
+                  "date",
+                  "value"
+                ],
+                "properties": {
+                  "date": {
+                    "type": "string",
+                    "description": "Period: YYYY-MM-DD, YYYY-MM or YYYY"
+                  },
+                  "value": {
+                    "type": [
+                      "number",
+                      "null"
+                    ],
+                    "description": "Value in the series unit"
+                  },
+                  "change": {
+                    "type": [
+                      "number",
+                      "null"
+                    ],
+                    "description": "Change from the previous week (storage: injection + or withdrawal -)"
+                  }
+                }
+              }
+            },
+            "state": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "description": "State code"
+            },
+            "state_name": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "description": "State name"
+            },
+            "sector": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "description": "Sector name"
+            },
+            "measure": {
+              "type": "string",
+              "description": "price, sales, revenue or customers"
+            }
+          }
+        }
+      }
+    }
+  },
+  "metadata": {
+    "author": "Ashutosh Sinha",
+    "category": "Economic Data",
+    "tags": [
+      "eia",
+      "electricity",
+      "power prices",
+      "energy"
+    ]
+  }
+}

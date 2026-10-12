@@ -1,0 +1,33 @@
+{
+ "tool": "oecd_get_series",
+ "arguments": {
+  "dataflow": "OECD.SDD.STES,DSD_STES@DF_CLI",
+  "key": "USA.M.LI.IX._Z.AA.IX._Z.H",
+  "period": "2026-01/2026-03",
+  "max_series": 20
+ },
+ "recorded": "2026-10-12",
+ "calls": [
+  {
+   "method": "GET",
+   "url": "https://sdmx.oecd.org/public/rest/data/OECD.SDD.STES,DSD_STES@DF_CLI/USA.M.LI.IX._Z.AA.IX._Z.H",
+   "params": [
+    [
+     "startPeriod",
+     "2026-01"
+    ],
+    [
+     "endPeriod",
+     "2026-03"
+    ],
+    [
+     "format",
+     "csvfile"
+    ]
+   ],
+   "status": 200,
+   "content_type": "application/vnd.sdmx.data+csv; charset=utf-8",
+   "body": "DATAFLOW,REF_AREA,FREQ,MEASURE,UNIT_MEASURE,ACTIVITY,ADJUSTMENT,TRANSFORMATION,TIME_HORIZ,METHODOLOGY,TIME_PERIOD,OBS_VALUE,OBS_STATUS,UNIT_MULT,DECIMALS,BASE_PER\r\nOECD.SDD.STES:DSD_STES@DF_CLI(4.1),USA,M,LI,IX,_Z,AA,IX,_Z,H,2026-01,100.1517,A,0,2,\r\nOECD.SDD.STES:DSD_STES@DF_CLI(4.1),USA,M,LI,IX,_Z,AA,IX,_Z,H,2026-02,100.3057,A,0,2,\r\nOECD.SDD.STES:DSD_STES@DF_CLI(4.1),USA,M,LI,IX,_Z,AA,IX,_Z,H,2026-03,100.4315,A,0,2,\r\n"
+  }
+ ]
+}

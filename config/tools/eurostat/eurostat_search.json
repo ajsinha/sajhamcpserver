@@ -1,0 +1,119 @@
+{
+  "name": "eurostat_search",
+  "implementation": "sajha.tools.impl.eurostat_tools.EurostatSearchTool",
+  "description": "Find Eurostat datasets by words in their title or code (the Eurostat table of contents, cached for a day).\nReturns: text, source, count, datasets (code, title, type, last_update, data_start, data_end).\nInputs (* required): text*, limit (default 20).\nExample: {\"text\": \"house price index\"}",
+  "annotations": {
+    "readOnlyHint": true,
+    "idempotentHint": true,
+    "openWorldHint": true
+  },
+  "version": "1.0.0",
+  "enabled": true,
+  "cache_ttl": 86400,
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "text": {
+        "type": "string",
+        "minLength": 2,
+        "maxLength": 200,
+        "description": "Words that must all appear in the title or code"
+      },
+      "limit": {
+        "type": "integer",
+        "minimum": 1,
+        "maximum": 100,
+        "default": 20,
+        "description": "Most datasets returned"
+      }
+    },
+    "required": [
+      "text"
+    ],
+    "additionalProperties": false,
+    "examples": [
+      {
+        "text": "house price index"
+      }
+    ]
+  },
+  "outputSchema": {
+    "type": "object",
+    "required": [
+      "source",
+      "datasets"
+    ],
+    "properties": {
+      "text": {
+        "type": "string",
+        "description": "The words searched for"
+      },
+      "source": {
+        "type": "string",
+        "description": "Source: Eurostat ..."
+      },
+      "count": {
+        "type": "integer",
+        "description": "Datasets matched"
+      },
+      "truncated": {
+        "type": "boolean",
+        "description": "More matched than were returned"
+      },
+      "note": {
+        "type": "string",
+        "description": "Why nothing matched"
+      },
+      "datasets": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "code": {
+              "type": "string",
+              "description": "Dataset code for eurostat_get_series"
+            },
+            "title": {
+              "type": "string",
+              "description": "Dataset title"
+            },
+            "type": {
+              "type": "string",
+              "description": "dataset or table"
+            },
+            "last_update": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "description": "Last data update (YYYY-MM-DD)"
+            },
+            "data_start": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "description": "First period"
+            },
+            "data_end": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "description": "Last period"
+            }
+          }
+        }
+      }
+    }
+  },
+  "metadata": {
+    "author": "Ashutosh Sinha",
+    "category": "Economic Data",
+    "tags": [
+      "eurostat",
+      "search",
+      "catalogue"
+    ]
+  }
+}

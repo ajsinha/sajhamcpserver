@@ -1,0 +1,57 @@
+{
+ "tool": "bea_international_transactions",
+ "arguments": {
+  "indicator": "BalGds",
+  "area_or_country": "China",
+  "frequency": "annual",
+  "years": [
+   2023,
+   2024,
+   2025
+  ]
+ },
+ "recorded": "hand-written from the BEA API user guide (April 2026; no key available), response shape only: the values are illustrative, not BEA data",
+ "calls": [
+  {
+   "method": "GET",
+   "url": "https://apps.bea.gov/api/data",
+   "params": [
+    [
+     "UserID",
+     "REDACTED"
+    ],
+    [
+     "method",
+     "GetData"
+    ],
+    [
+     "DataSetName",
+     "ITA"
+    ],
+    [
+     "Indicator",
+     "BalGds"
+    ],
+    [
+     "AreaOrCountry",
+     "China"
+    ],
+    [
+     "Frequency",
+     "A"
+    ],
+    [
+     "Year",
+     "2023,2024,2025"
+    ],
+    [
+     "ResultFormat",
+     "JSON"
+    ]
+   ],
+   "status": 200,
+   "content_type": "application/json",
+   "body": "{\"BEAAPI\": {\"Request\": {\"RequestParam\": [{\"ParameterName\": \"USERID\", \"ParameterValue\": \"REDACTED\"}, {\"ParameterName\": \"METHOD\", \"ParameterValue\": \"GetData\"}, {\"ParameterName\": \"DATASETNAME\", \"ParameterValue\": \"ITA\"}, {\"ParameterName\": \"INDICATOR\", \"ParameterValue\": \"BalGds\"}, {\"ParameterName\": \"AREAORCOUNTRY\", \"ParameterValue\": \"China\"}, {\"ParameterName\": \"FREQUENCY\", \"ParameterValue\": \"A\"}, {\"ParameterName\": \"YEAR\", \"ParameterValue\": \"2023,2024,2025\"}, {\"ParameterName\": \"RESULTFORMAT\", \"ParameterValue\": \"JSON\"}]}, \"Results\": {\"Dimensions\": [{\"Name\": \"Indicator\", \"DataType\": \"string\", \"IsValue\": \"0\"}, {\"Name\": \"AreaOrCountry\", \"DataType\": \"string\", \"IsValue\": \"0\"}, {\"Name\": \"Frequency\", \"DataType\": \"string\", \"IsValue\": \"0\"}, {\"Name\": \"Year\", \"DataType\": \"string\", \"IsValue\": \"0\"}, {\"Name\": \"TimeSeriesId\", \"DataType\": \"string\", \"IsValue\": \"0\"}, {\"Name\": \"TimeSeriesDescription\", \"DataType\": \"string\", \"IsValue\": \"0\"}, {\"Name\": \"TimePeriod\", \"DataType\": \"string\", \"IsValue\": \"0\"}, {\"Name\": \"CL_UNIT\", \"DataType\": \"string\", \"IsValue\": \"0\"}, {\"Name\": \"UNIT_MULT\", \"DataType\": \"string\", \"IsValue\": \"0\"}, {\"Name\": \"DataValue\", \"DataType\": \"numeric\", \"IsValue\": \"1\"}], \"Data\": [{\"Indicator\": \"BalGds\", \"AreaOrCountry\": \"China\", \"Frequency\": \"A\", \"Year\": \"2023\", \"TimeSeriesId\": \"TSI_ItaBalGds_China_A\", \"TimeSeriesDescription\": \"Balance on goods; U.S. trade with China\", \"TimePeriod\": \"2023\", \"CL_UNIT\": \"USD\", \"UNIT_MULT\": \"6\", \"DataValue\": \"-279,108\", \"NoteRef\": \"\"}, {\"Indicator\": \"BalGds\", \"AreaOrCountry\": \"China\", \"Frequency\": \"A\", \"Year\": \"2024\", \"TimeSeriesId\": \"TSI_ItaBalGds_China_A\", \"TimeSeriesDescription\": \"Balance on goods; U.S. trade with China\", \"TimePeriod\": \"2024\", \"CL_UNIT\": \"USD\", \"UNIT_MULT\": \"6\", \"DataValue\": \"-295,402\", \"NoteRef\": \"\"}, {\"Indicator\": \"BalGds\", \"AreaOrCountry\": \"China\", \"Frequency\": \"A\", \"Year\": \"2025\", \"TimeSeriesId\": \"TSI_ItaBalGds_China_A\", \"TimeSeriesDescription\": \"Balance on goods; U.S. trade with China\", \"TimePeriod\": \"2025\", \"CL_UNIT\": \"USD\", \"UNIT_MULT\": \"6\", \"DataValue\": \"-202,000\", \"NoteRef\": \"\"}], \"Notes\": []}}}"
+  }
+ ]
+}

@@ -1,0 +1,18 @@
+# An HTTP tool with a recorded cassette (cassettes/hazards_earthquakes/magnitude_5_and_over__first_week_of_october_2026.json): replays offline.
+# Re-record against the live API with: python -m sajha.quality test --tool hazards_earthquakes --record
+tool: hazards_earthquakes
+cases:
+  - name: magnitude 5 and over, first week of october 2026
+    tags: [http]
+    arguments: {"from": "2026-10-01", "to": "2026-10-07", "min_magnitude": 5}
+    expect:
+      - schema: output
+      - path: "$.count"
+        min: 5
+      - path: "$.earthquakes[*].time"
+        regex: "^2026-10-0[1-7]T"
+      - path: "$.source"
+        regex: "^U.S. Geological Survey"
+probe:
+  case: magnitude 5 and over, first week of october 2026
+  every: 3600

@@ -12,7 +12,7 @@
  *
  * Built with createElement and textContent only: no markup is ever parsed from data. Each figure is a
  * <button type="button"> with an accessible name, aria-expanded and aria-controls; Escape in the
- * panel closes it and returns focus to the figure.
+ * panel, or on the open figure's own button, closes it and returns focus to the figure.
  *
  *   SajhaLineage.segments(text, figures)            -> [{text}, {text, fig, index}] (pure)
  *   SajhaLineage.render(container, text, figures, quantities, state, onToggle) -> the <p> it built
@@ -164,6 +164,9 @@
       b.setAttribute('aria-expanded', String(state.open === sg.index));
       if (state.open === sg.index) b.classList.add('is-open');
       b.addEventListener('click', function () { onToggle(state.open === sg.index ? null : sg.index, sg.index); });
+      b.addEventListener('keydown', function (e) {     // Escape on the open figure's button closes its panel too
+        if (e.key === 'Escape' && state.open === sg.index) { e.stopPropagation(); onToggle(null, sg.index); }
+      });
       buttons.push(b);
       p.appendChild(b);
     });

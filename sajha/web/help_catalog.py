@@ -305,9 +305,11 @@ CATALOG: List[dict] = [
             ('Central banks', ['Bank of Canada', 'Bank of Japan', 'Banque de France',
                                'European Central Bank', 'Federal Reserve',
                                'Peoples Bank of China']),
-            ('Public data', ['BIS', 'FBI', 'FDIC', 'GLEIF', 'IMF', 'Sanctions', 'United Nations', 'US Treasury', 'World Bank']),
+            ('Public data', ['ABS', 'BEA', 'BIS', 'BLS', 'CFTC', 'EIA', 'Eurostat', 'FBI', 'FDIC', 'GLEIF', 'Hazards', 'IMF',
+                             'OECD', 'ONS', 'Sanctions', 'Statistics Canada', 'United Nations', 'US Spending',
+                             'US Treasury', 'World Bank']),
             ('Filings', ['SEC EDGAR', 'Investor Relations']),
-            ('Search', ['Google Search', 'MSDOC Search', 'Tavily Search', 'Web Crawler',
+            ('Search', ['GDELT', 'Google Search', 'MSDOC Search', 'Research Literature', 'Tavily Search', 'Web Crawler',
                         'Wikipedia Search']),
             ('Analytics', ['Business Intelligence (tools)', 'Calendars', 'DuckDB', 'Financial Calculators', 'OLAP Analytics', 'SQL Select']),
             ('Risk analytics', ['QLRisk']),
@@ -342,8 +344,27 @@ CATALOG: List[dict] = [
             _tool('Sanctions', 'bi-shield-exclamation', 'Screening against the official OFAC, EU and UK sanctions '
                   'lists in a local index; a screening aid, not a determination.'),
             _tool('FDIC', 'bi-bank', 'FDIC BankFind: insured banks, Call Report financials, offices, history, deposits and failures.'),
+            _tool('Hazards', 'bi-exclamation-triangle', 'Earthquakes from the USGS and satellite fire detections from NASA FIRMS '
+                  '(needs a MAP_KEY), for operational and physical-climate risk.'),
+            _tool('US Spending', 'bi-cash-coin', 'US federal awards, spending by category and over time, and recipients '
+                  '(USAspending.gov), and the data.gov dataset catalogue.'),
             _tool('US Treasury', 'bi-cash-stack', 'The Treasury par yield curve, debt to the penny, average rates, auctions, the Daily '
                   'Treasury Statement and reporting exchange rates.'),
+            _tool('CFTC', 'bi-bar-chart-steps', 'Commitments of Traders: futures positioning by trader category, latest, history '
+                  'and net positioning.'),
+            _tool('Eurostat', 'bi-globe-europe-africa', 'EU statistics: HICP inflation, quarterly GDP, unemployment, government debt, '
+                  'house prices and any Eurostat dataset.'),
+            _tool('OECD', 'bi-globe', 'OECD Data Explorer: leading indicators, key short-term indicators, quarterly national '
+                  'accounts and Economic Outlook projections.'),
+            _tool('ONS', 'bi-bar-chart-line', 'UK Office for National Statistics time series by CDID.'),
+            _tool('Statistics Canada', 'bi-bar-chart-line', 'Statistics Canada tables and vectors, and the tables released on a date.'),
+            _tool('ABS', 'bi-bar-chart-line', 'Australian Bureau of Statistics: CPI, Labour Force, national accounts and any ABS dataflow.'),
+            _tool('BLS', 'bi-people', 'US Bureau of Labor Statistics: CPI, PPI, payrolls, unemployment, employment cost index, '
+                  'job openings and any BLS series.'),
+            _tool('BEA', 'bi-building', 'US Bureau of Economic Analysis: NIPA tables, GDP by industry, international transactions, '
+                  'regional data (needs a key).'),
+            _tool('EIA', 'bi-lightning-charge', 'US Energy Information Administration: petroleum prices and stocks, natural gas '
+                  'storage, electricity sales, the short-term outlook and any EIA route.'),
             _tool('SEC EDGAR', 'bi-file-earmark-text', 'Filings and company facts from the public SEC APIs.'),
             _tool('Investor Relations', 'bi-briefcase', 'Annual reports, presentations and releases from company IR sites.'),
             _tool('Google Search', 'bi-google', 'Web search through the Google Custom Search API.'),
@@ -351,6 +372,10 @@ CATALOG: List[dict] = [
             _tool('Tavily Search', 'bi-search', 'Web search built for agents.'),
             _tool('Web Crawler', 'bi-globe', 'Fetch and extract web pages.'),
             _tool('Wikipedia Search', 'bi-wikipedia', 'Search and read Wikipedia; Wikidata facts, company identifiers and SPARQL.'),
+            _tool('GDELT', 'bi-newspaper', 'News articles worldwide, coverage volume and tone over time, and '
+                  'sentences in context, from the GDELT Project.'),
+            _tool('Research Literature', 'bi-journal-text', 'Scholarly works and citations (OpenAlex), DOI records (Crossref) '
+                  'and preprints (arXiv), links only.'),
             _g('Business Intelligence (tools)', 'Business Intelligence Tool Reference Guide.md', 'bi-bar-chart',
                'Governed metrics without SQL: list, describe and query them, compare periods, top N and Pareto, '
                'two-way tables, why a metric changed, charts and tool results loaded as tables.'),
@@ -501,6 +526,33 @@ CATALOG: List[dict] = [
                'Computed answers with units and lineage: the numbers check, calc_graph, a sensitivity table over '
                'qlrisk, SQL over tool results, a solver, sandboxed code by role, reconcile, research_writer, and '
                'how router and auto choose them.'),
+            _g('46. PostgreSQL, several workers and the load harness', 'TUTORIAL_46_scaling_postgresql.md', 'bi-database-gear',
+               'Switch to PostgreSQL by environment, run the schema files, run two workers on the database '
+               'state store, read the pool status in System monitor, and run the load harness.'),
+            _g('47. Federation at gateway scale', 'TUTORIAL_47_federation_gateway.md', 'bi-diagram-2',
+               'Connection pools, replicas, load shedding with max_in_flight and max_queue, proxied prompts and '
+               'resources, cluster health, peer breakers and the federation benchmark.'),
+            _g('48. Sandbox egress and contained stdio upstreams', 'TUTORIAL_48_sandbox_egress.md', 'bi-shield-lock',
+               'Allowlisted egress through the per-run proxy with refusals and audit records, a stdio upstream '
+               'in its own confined container, and the egress sidecar.'),
+            _g('49. Signed plugins and the plugin catalog', 'TUTORIAL_49_signed_plugins.md', 'bi-patch-check',
+               'Sign, verify and pack a plugin, read the catalog verdicts, review then approve and install it '
+               'by hash, and refuse unsigned plugins at start-up.'),
+            _g('50. Provider packs', 'TUTORIAL_50_provider_packs.md', 'bi-box-seam',
+               'List, show and plan a provider pack, install it with approval bound to its hash, see the '
+               'connect-your-account answer, and uninstall it.'),
+            _g('51. Personal RAG over connected accounts', 'TUTORIAL_51_personal_rag.md', 'bi-person-lines-fill',
+               'Configure a personal document source, search and sync your own documents, use '
+               'sajha_search_my_docs, and see who can read which passages.'),
+            _g('52. Planner routing learned from results', 'TUTORIAL_52_planner_routing_learning.md', 'bi-signpost-split',
+               'Record evidence, dry-run and propose routing rules, approve them by hash, see learned choices, '
+               'roll back, and stop the bandit.'),
+            _g('53. Change a SAJHA Net safely', 'TUTORIAL_53_sajha_net_console.md', 'bi-arrow-counterclockwise',
+               'Blast radius before a change, a block with a reason, the change history and undo, timed blocks, '
+               'the access matrix and live activity.'),
+            _g('54. How a figure was computed', 'TUTORIAL_54_figure_lineage.md', 'bi-diagram-3',
+               'The workspace and lineage of a computed figure down to its tool calls, x-sajha-unit on a tool '
+               'result, the lint unit rule, and the Ask page lineage panel.'),
         ],
     },
     {

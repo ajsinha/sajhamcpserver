@@ -2,6 +2,146 @@
 
 Newest first. The current version is `app.version` in `config/application.yml`.
 
+## v8.15.0 (October 2026) — open data P2 and P3, the final documentation pass and tutorials, security fixes
+
+### Upgrading
+
+- **`db.name` now defaults to `sajha`**, as every recipe, chart, guide and the seed already assumed (it was
+  `sajha_mcp` in code). A PostgreSQL install that left the name unset and used `sajha_mcp` must set
+  `SAJHA_DB_NAME=sajha_mcp` (or `DB_NAME`) before upgrading.
+
+- **Report definitions may no longer have `recipients` or `schedule`.** Delivery and scheduling were
+  descoped in 8.11.0, and the loader accepted both keys while nothing acted on them. A definition that
+  has either is now refused with a message saying so: remove the key, and use a workflow to run
+  `report_run` on a schedule (a cron trigger and a `tool` step; [Reports](docs/architecture/Reports.md) §7).
+  `report_list` and `report_describe` no longer return `schedule` (or recipients), and run summaries
+  (`report_history`) no longer carry the always-empty `deliveries`.
+- **API keys get nothing from personal document sources**, including a key bound to a user (it used to
+  get that user's connected-account passages). Use the user's sign-in (a SAJHA JWT or OAuth token).
+- **`run_sajha_web.py --port` / `--host` set `SAJHA_SERVER_PORT` / `SAJHA_SERVER_HOST`** before the
+  settings load, so `server.port` and `server.host` are what the server listens on.
+
+### Added
+
+- **Open data P2: nine new tool folders, 46 read-only tools** (Open Data Tools §4, Roadmap L32 to L35), each
+  source's terms checked again live on 2026-10-11 and 2026-10-12 (all nine pass). Every result names its
+  source, with any credit line the licence asks for, in `source`; every fetch goes through the outbound fetch
+  guard; keys come from the environment only; each source's rate limit is one sliding window in the state
+  store shared by every worker (`sajha/tools/impl/open_data_common.py`), and results are cached by
+  `cache_ttl`. Every tool has a probe case and a recorded cassette except BEA and EIA (below), and a
+  provider guide under `docs/tools/public-data/` with generated tables.
+  - `cftc` (4): `cftc_cot_latest`, `cftc_cot_history`, `cftc_cot_markets`, `cftc_cot_net_positioning` over
+    the CFTC's Socrata datasets (legacy, disaggregated and TFF; futures only or combined). Keyless; optional
+    `CFTC_APP_TOKEN`.
+  - `eurostat` (7): `eurostat_search`, `eurostat_get_series` and curated `eurostat_hicp`, `eurostat_gdp`,
+    `eurostat_unemployment`, `eurostat_government_debt`, `eurostat_house_prices`, a host profile on the
+    shared SDMX client. Figures Eurostat may not license for commercial reuse (countries outside the EU,
+    EFTA and the candidates) carry `reuse_note`.
+  - `oecd` (6): `oecd_search`, `oecd_get_series` and curated `oecd_leading_indicators`,
+    `oecd_main_economic_indicators`, `oecd_quarterly_national_accounts`, `oecd_economic_outlook`
+    (projections marked); one window of 50 requests an hour for all workers.
+  - `ons` (2), `statcan` (4), `abs` (4): `ons_search`, `ons_timeseries`; `statcan_search_tables`,
+    `statcan_vector`, `statcan_table`, `statcan_changed_series` (each result carries the Open Licence
+    notice); `abs_cpi`, `abs_labour_force`, `abs_gdp`, `abs_get_series` (on the shared SDMX client).
+  - `bls` (7), `bea` (5), `eia` (7): `bls_series` and curated CPI, PPI, payrolls, unemployment rate,
+    employment cost index and job openings (`BLS_API_KEY` for v2, else the keyless v1 API; every result
+    carries the retrieval date and BLS's disclaimer); `bea_datasets`, `bea_nipa_table`,
+    `bea_gdp_by_industry`, `bea_international_transactions`, `bea_regional` (`BEA_API_KEY`; no keyless
+    tier); `eia_browse`, `eia_series` (follows the 5,000-row pages) and curated petroleum spot prices and
+    stocks, natural gas storage, electricity retail sales and the short-term outlook (`EIA_API_KEY`).
+- **Open data P3** (Open Data Tools §4, Roadmap L36 to L39), each source's terms checked again live on
+  2026-10-12. Every result carries a `source` attribution; every fetch goes through the outbound fetch
+  guard; every tool config sets `cache_ttl`; the rate-limited sources share throttles in the state store
+  (`sajha/tools/impl/open_data_common.py`); probe cases and cassettes in `config/tool_tests/`.
+  - **Hazards** (`config/tools/hazards/`, `sajha/tools/impl/hazards_tools.py`;
+    [Hazards Tool Reference Guide](docs/tools/public-data/Hazards%20Tool%20Reference%20Guide.md)):
+    `hazards_earthquakes` and `hazards_significant_earthquakes` (USGS, keyless) and
+    `hazards_active_fires` (NASA FIRMS; needs `FIRMS_MAP_KEY`). GDACS alerts are not shipped: its terms
+    grant no licence and the owner keeps it off until legal approves.
+  - **Research literature** (`config/tools/research/`, `sajha/tools/impl/research_tools.py`;
+    [Research Literature Tool Reference Guide](docs/tools/search/Research%20Literature%20Tool%20Reference%20Guide.md)):
+    `research_search_works` and `research_get_work` (OpenAlex; optional `OPENALEX_API_KEY`; results report
+    the day's budget left), `research_crossref_works` and `research_crossref_doi` (Crossref; optional
+    `CROSSREF_MAILTO`), `research_arxiv_search` (arXiv, one request every 3 seconds across workers; links
+    only).
+  - **GDELT** (`config/tools/gdelt/`, `sajha/tools/impl/gdelt_tools.py`;
+    [GDELT Tool Reference Guide](docs/tools/search/GDELT%20Tool%20Reference%20Guide.md)): `gdelt_articles`,
+    `gdelt_coverage_timeline` (volume, article count or tone) and `gdelt_context`, serialised at one request
+    every 5 seconds across workers, a 429 retried once. `gdelt_tv_mentions` is not shipped: GDELT's TV 2.0
+    API has held no data since October 2024.
+  - **US spending** (`config/tools/us_spending/`, `sajha/tools/impl/us_spending_tools.py`;
+    [US Spending Tool Reference Guide](docs/tools/public-data/US%20Spending%20Tool%20Reference%20Guide.md)):
+    `usaspending_awards`, `usaspending_by_category`, `usaspending_over_time`, `usaspending_recipient`
+    (USAspending.gov), and `datagov_search` and `datagov_dataset` on the new data.gov catalogue API
+    (the CKAN API is gone), its shape pinned by `tests/test_open_data_p3.py`.
+
+### Changed
+
+- **Documentation pass for waves 9 to 16.** Every live guide was checked against the code: stale
+  "planned" wording removed for what is built; the Implementation Plan and Roadmap say every wave is done
+  or dropped; Business Intelligence and Reports state what was built and what the owner descoped; Open
+  Data Tools says P1, P2 and P3 are built except GDACS and GDELT TV, with the reasons; missing notice ids,
+  configuration keys and security fixes added; duplicated explanations replaced by links to their owning
+  guide. New tutorials, each run against a scratch server: PostgreSQL, several workers and the load
+  harness ([Tutorial 46](docs/tutorials/TUTORIAL_46_scaling_postgresql.md)), federation at gateway scale
+  (47), sandbox egress and contained stdio upstreams (48), signed plugins and the plugin catalog (49),
+  provider packs (50), personal RAG over connected accounts (51), planner routing learned from results
+  (52), changing a SAJHA Net safely (53) and how a figure was computed (54).
+- **One open data helper module.** The P3 helpers (`open_data_http.py`) are merged into
+  `sajha/tools/impl/open_data_common.py`, so every open data tool and FDIC take their shared request window
+  through one `take_slot`.
+
+- **The shared SDMX client keeps each observation's flag** (`OBS_FLAG`, `OBS_STATUS`) as `status`; the
+  Eurostat tools return it as `flag` and list the flags present.
+
+### Fixed
+
+- **Security:**
+  - **An MCP session is its owner's on every request.** `POST /mcp` and `DELETE /mcp` with an
+    `Mcp-Session-Id` did not check that the session belonged to the caller (only the `GET /mcp` stream
+    did), so another caller holding the ID could use or end it. Every use is now checked with the GET
+    stream's rule, and another caller's session answers 404 as an unknown one (`sajha/routes/mcp_routes.py`).
+  - **Personal document routes need the console's CSRF token.** `POST /api/ai/docs/mine/sync` and
+    `/search` accepted the session cookie without it; they now need `X-CSRF-Token` with the cookie (SAJHA
+    JWTs and bearer tokens unaffected). An API key bound to a user is refused there and by
+    `sajha_search_my_docs`, as the Intelligence Layer guide says (`sajha/ai/rag/personal.py`).
+- **Federation approvals are shared across workers.** An approval made on one worker stayed pending on the
+  others until a restart, and a stale worker's save could overwrite it. The federation store's revision is
+  in the state store: a change re-reads the document under a short lease before writing, is announced on
+  the state store, and every manager re-applies the approvals at once (`sajha/federation/store.py`). Tutorial
+  47 no longer restarts the workers.
+- **A down upstream fails fast.** A call waited 5 s for a reconnect in backoff on every pool member and
+  attempt (20 s or more a call with a pool, so the breaker took minutes to open). While a connection waits
+  for its next retry a call now fails at once, and the breaker opens after its threshold in about a
+  second (`sajha/federation/connection.py`).
+- **Links built without a request use the listening port.** "Connect your account" links in tool results
+  used `server.port` from the configuration, not the port the server listens on, and a provider pack plan's
+  redirect URI was not built from the request it was asked on; both now use the request's base URL where
+  there is one and the listening address otherwise (`sajha/core/transport.py::local_base_url`).
+- **The Ask page names this server by its SAJHA Net instance name** (`sajhanet.nets[].instance_name`); it
+  read a top-level key that does not exist and always showed the host name.
+- **Smaller:** the Studio Folder hint no longer allows `-`; a learned planner choice streams the same reason
+  as its audit record ("approved routing rules (<class>)"); a planner-routing proposal made through the
+  HTTP API records `source: api`, not `console`; Escape on an open figure's button closes the Ask lineage
+  panel; `reconcile` keeps tool names whole in quantity names; the lint `unit` message says once that a
+  unit is unknown; the local lab's status names the models the instances resolve (the mock provider as
+  such); the System page shows other workers' pool numbers as integers; `plugin_signing verify --trusted`
+  says the key came from the `--trusted` file; `tools/bench/bench_federation.py` picks free ports.
+
+- **No audit or usage record is lost when the database pool is busy.** An `audit_log` row whose write
+  fails is kept (bounded) and written before the next one, as the hash chain already did; usage-ledger rows
+  whose write fails go back on the queue instead of being dropped (`sajha/core/audit.py`,
+  `sajha/observability/usage.py`).
+
+- **Cassettes redact `UserID` and `registrationkey`** query parameters too (BEA sends its key as `UserID`).
+
+### Known gaps
+
+- The `bea_*` and `eia_*` test cases are skipped and have no cassettes yet: there was no BEA key, and EIA's
+  `DEMO_KEY` allowance ran out during the build. Record them with a key
+  (`python -m sajha.quality test --tool 'bea_*,eia_*' --record`). The BEA fixtures follow the BEA API user
+  guide's documented shapes, and say so.
+
 ## v8.14.0 (October 2026) — cleanup and hardening: every tool fetch guarded, broken tools fixed, accessibility, figure lineage on the Ask page, x-sajha-unit
 
 ### Upgrading
