@@ -11,7 +11,7 @@ os.chdir(str(Path(__file__).parent.parent))
 # <data.duckdb.dir>/duckdb_analytics.db (DuckDB rewrites it and drops its .wal on
 # checkpoint), so point them at a per-session temp copy of data/duckdb.
 import atexit, shutil, tempfile
-_DUCKDB_TMP = Path(tempfile.mkdtemp(prefix='sajha-test-duckdb-'))
+_DUCKDB_TMP = Path(tempfile.mkdtemp(prefix=f'sajha-test-p{os.getpid()}-'))    # -p<pid>-: a server's temp sweep keeps it
 shutil.copytree(Path('data/duckdb'), _DUCKDB_TMP / 'duckdb', dirs_exist_ok=True)
 os.environ['data.duckdb.dir'] = str(_DUCKDB_TMP / 'duckdb')       # tool-config ${data.duckdb.dir}
 os.environ['SAJHA_DATA_DUCKDB_DIR'] = str(_DUCKDB_TMP / 'duckdb')  # sajha.core.config
@@ -35,6 +35,9 @@ os.environ.setdefault('SAJHA_SAJHANET_CA_AUTO_INIT', 'false')
 os.environ.setdefault('SAJHA_SAJHANET_PLUGINS_ADMISSION', 'builtin_ca')
 # The tool result cache (cache.dir, default data/cache) goes to the session's temp directory too.
 os.environ.setdefault('SAJHA_CACHE_DIR', str(_DUCKDB_TMP / 'cache'))
+# SAJHA's temp folder (app.tmp_dir): every SAJHA temp file of the suite, and of the servers it starts, stays in
+# the session's folder and goes with it, so the suite leaves no sajha-* entries in the system temp directory.
+os.environ.setdefault('SAJHA_APP_TMP_DIR', str(_DUCKDB_TMP / 'tmp'))
 
 # Suite integrity (docs/architecture/Adversarial QA Plan.md §3.13): required modules never skipped for a
 # missing import, data/ and config/ untouched, the optional shifted clock. The hooks are imported here.

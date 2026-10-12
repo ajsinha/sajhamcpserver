@@ -54,7 +54,8 @@ name wins:
 
 Reader: Settings. These values feed the FastAPI metadata, page templates, the A2A agent card
 and the MCP `implementation` (`websiteUrl` = `app.github.repo`). Readers are
-`sajha/app.py`, `sajha/routes/a2a_routes.py` and `sajha/core/mcp_handler.py`.
+`sajha/app.py`, `sajha/routes/a2a_routes.py` and `sajha/core/mcp_handler.py`. The two
+`app.tmp_*` keys are read through `_get` by `sajha/core/paths.py`.
 
 | Key | Default (YAML / code) | Env | Purpose |
 |-----|-----------------------|-----|---------|
@@ -67,6 +68,8 @@ and the MCP `implementation` (`websiteUrl` = `app.github.repo`). Readers are
 | `app.copyright_years` | `2025-2030` | `SAJHA_APP_COPYRIGHT_YEARS` | Template context. |
 | `app.github.repo` | `https://github.com/ajsinha/sajhamcpserver` | `SAJHA_APP_GITHUB_REPO` | Templates, and the MCP `websiteUrl`. |
 | `app.github.repo_name` | `ajsinha/sajhamcpserver` | `SAJHA_APP_GITHUB_REPO_NAME` | Template context. |
+| `app.tmp_dir` | `""`: the system temp directory (`TMPDIR`, else `/tmp` on Linux) | `SAJHA_APP_TMP_DIR` | SAJHA's temporary folder (`sajha/core/paths.py`). At start-up (the server, `--stdio` and every `python -m sajha.*` command) it is created if missing (mode `0700`), checked (a file, or a folder SAJHA cannot write, stops start-up with an error naming the key), and made the process's temp folder: `tempfile.tempdir` (every `tempfile` call, SAJHA's and libraries') and `TMPDIR`/`TEMP`/`TMP` for the processes SAJHA starts (sandbox launchers, `isolation: none` stdio upstreams, Playwright's Chromium). DuckDB connections spill under it, and it holds the object-storage cache when `storage.*.cache_dir` is empty. A relative value is relative to the working directory. Keep it short when the sandbox egress proxy is on: its Unix socket path is at most 107 bytes. What goes there: [Storage Guide](Storage%20Guide.md#temporary-files). |
+| `app.tmp_max_age_hours` | `24` | `SAJHA_APP_TMP_MAX_AGE_HOURS` | At server start-up, entries in `app.tmp_dir` named `sajha-*` whose newest file is older than this, that no live process owns, are removed (crash leftovers). Nothing else in the folder is touched, and `sajha-cache` is kept. `0` turns the sweep off. |
 
 ## server
 
@@ -387,7 +390,7 @@ Reader: `sajha/core/config.py::_get` (`Limits.from_config` in `sajha/tools/impl/
 |-----|---------|-----|------------------|
 | `data.dir` | `./data` | `SAJHA_DATA_DIR` | Base of the default OAuth signing-key path (`sajha/auth/oauth/settings.py`). |
 | `data.duckdb.dir` | `./data/duckdb` | YAML only | Not read by Python. Tool JSON configs (DuckDB tools) and `config/olap/datasets.json` reference it as `${data.duckdb.dir}`, and the tools registry resolves those references through PropertiesConfigurator. |
-| `data.duckdb.stage_dir` | `""` (the system temp directory) | `SAJHA_DATA_DUCKDB_STAGE_DIR` | Where a `storage://<prefix>` DuckDB data folder is staged during a load; each load uses a temporary subdirectory and deletes it (`sajha/tools/impl/duckdb_olap_tools_refactored.py`, [Storage Guide](Storage%20Guide.md#duckdb-data-on-the-storage-backend)). |
+| `data.duckdb.stage_dir` | `""` (SAJHA's temporary folder, `app.tmp_dir`) | `SAJHA_DATA_DUCKDB_STAGE_DIR` | Where a `storage://<prefix>` DuckDB data folder is staged during a load; each load uses a temporary subdirectory and deletes it (`sajha/tools/impl/duckdb_olap_tools_refactored.py`, [Storage Guide](Storage%20Guide.md#duckdb-data-on-the-storage-backend)). |
 | `data.duckdb.stage_max_file_mb` | `256` | `SAJHA_DATA_DUCKDB_STAGE_MAX_FILE_MB` | A `storage://` data file larger than this is skipped (logged). |
 | `data.duckdb.stage_max_total_mb` | `1024` | `SAJHA_DATA_DUCKDB_STAGE_MAX_TOTAL_MB` | The most one load stages; files past it are skipped (logged). |
 | `data.sqlselect.dir` | `./data/sqlselect` | YAML only | Referenced as `${data.sqlselect.dir}` by the sqlselect tool configs. |
@@ -414,17 +417,17 @@ string is ignored. See the [Storage Guide](Storage%20Guide.md).
 | `storage.s3.prefix` | `sajha/` / code `""` | `SAJHA_S3_PREFIX` | Key prefix. **The defaults differ.** |
 | `storage.s3.region` | `us-east-1` | `AWS_DEFAULT_REGION` | Region. |
 | `storage.s3.endpoint_url` | `""` | `SAJHA_S3_ENDPOINT_URL` | S3-compatible endpoint (MinIO, R2, Wasabi). |
-| `storage.s3.cache_dir` | `/tmp/sajha-cache` | `SAJHA_S3_CACHE_DIR` | Local read-through cache. |
+| `storage.s3.cache_dir` | `""`: `<app.tmp_dir>/sajha-cache` | `SAJHA_S3_CACHE_DIR` | Local read-through cache. |
 | `storage.s3.sync_interval` | `60` | — | Poll interval of the object-store sync manager, for any cloud backend (`sajha/app.py`). |
 | `storage.azure.container` | `""` | `SAJHA_AZURE_CONTAINER` | Blob container. |
 | `storage.azure.account_url` | `""` | `SAJHA_AZURE_ACCOUNT_URL` | Account URL, used with managed identity. |
 | `storage.azure.connection_string` | `""` | `AZURE_STORAGE_CONNECTION_STRING` | Connection-string authentication. Keep it out of the YAML. |
 | `storage.azure.prefix` | `sajha/` / code `""` | `SAJHA_AZURE_PREFIX` | Blob prefix. **The defaults differ.** |
-| `storage.azure.cache_dir` | `/tmp/sajha-cache` | `SAJHA_AZURE_CACHE_DIR` | Local cache. |
+| `storage.azure.cache_dir` | `""`: `<app.tmp_dir>/sajha-cache` | `SAJHA_AZURE_CACHE_DIR` | Local cache. |
 | `storage.gcs.bucket` | `""` | `SAJHA_GCS_BUCKET` | GCS bucket. |
 | `storage.gcs.project` | `""` | `GOOGLE_CLOUD_PROJECT` | GCP project. |
 | `storage.gcs.prefix` | `sajha/` / code `""` | `SAJHA_GCS_PREFIX` | Object prefix. **The defaults differ.** |
-| `storage.gcs.cache_dir` | `/tmp/sajha-cache` | `SAJHA_GCS_CACHE_DIR` | Local cache. |
+| `storage.gcs.cache_dir` | `""`: `<app.tmp_dir>/sajha-cache` | `SAJHA_GCS_CACHE_DIR` | Local cache. |
 | `storage.events.provider` | `none` | `SAJHA_STORAGE_EVENTS_PROVIDER` | Push-based reload from bucket event notifications: `none`, `auto` (by backend: `s3` → `sqs`, `azure` → `azure_queue`, `gcs` → `pubsub`), `sqs`, `azure_queue` or `pubsub` (`sajha/core/storage_events.py`, [Storage Guide](Storage%20Guide.md#push-based-reload)). Ignored on the local backend. |
 | `storage.events.wait_seconds` | `20` | `SAJHA_STORAGE_EVENTS_WAIT_SECONDS` | Long-poll wait of one receive (SQS at most 20; Pub/Sub); the pause after an empty read of an Azure queue. |
 | `storage.events.max_messages` | `10` | `SAJHA_STORAGE_EVENTS_MAX_MESSAGES` | Messages per receive (SQS at most 10, Azure at most 32). |
@@ -750,7 +753,7 @@ tool's own `sandbox` block is described there too.
 | `sandbox.default_backend` | `subprocess` | `subprocess`, `bwrap`, `nsjail`, `docker`, or `auto` (the first available of bwrap, nsjail, subprocess). An unavailable backend falls back to `subprocess` with a warning. |
 | `sandbox.enforce_for_generated_tools` | `true` | Studio Python code and script tools always run in the sandbox. `false`: they load in-process unless their config says `"sandbox": {"enabled": true}`, and only an administrator may deploy them (a developer with Studio access gets 403). |
 | `sandbox.strict` | `false` | `true`: refuse to run when the chosen backend, or a confinement step the runner tries (namespaces, Landlock, seccomp), is unavailable, instead of falling back. |
-| `sandbox.work_dir` | `''` | Parent of the per-call temp directories (`''` = the system temp directory). |
+| `sandbox.work_dir` | `''` | Parent of the per-call temp directories (`''` = SAJHA's temporary folder, `app.tmp_dir`). |
 | `sandbox.python` | `''` | Interpreter for the subprocess, bwrap and nsjail backends (`''` = the server's own). |
 | `sandbox.extra_read_paths` | `[]` | Extra read-only paths a sandbox may read (for example a shared data directory). |
 | `sandbox.secrets_allowlist` | `[]` | Environment variable names a tool may request with `sandbox.secrets`. `SAJHA_*` names are always refused. |

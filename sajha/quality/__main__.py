@@ -301,4 +301,6 @@ def main(argv: Optional[List[str]] = None) -> int:
 
 
 if __name__ == '__main__':
+    from sajha.core.paths import apply_tmp_dir_or_exit
+    apply_tmp_dir_or_exit()                  # app.tmp_dir for this command's temp files
     sys.exit(main())

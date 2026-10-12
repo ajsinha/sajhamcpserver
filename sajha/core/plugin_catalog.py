@@ -50,6 +50,7 @@ from typing import Any, Dict, List, Optional, Tuple
 from urllib.parse import urljoin, urlparse
 
 from sajha.core import plugin_signing as S
+from sajha.core.paths import tmp_dir, tmp_prefix
 
 logger = logging.getLogger(__name__)
 
@@ -281,7 +282,7 @@ class _Staged:
         self.path: Optional[Path] = None
 
     def __enter__(self) -> Path:
-        self.path = Path(tempfile.mkdtemp(prefix='sajha-plugin-'))
+        self.path = Path(tempfile.mkdtemp(prefix=tmp_prefix('plugin'), dir=tmp_dir()))
         try:
             fetch(self.src, self.ref, self.path)
         except Exception:
@@ -506,7 +507,7 @@ def install(draft_id: str, reviewed_hash: str, approve: bool, replace: bool = Fa
         grant = _policy_gate(name, user)
         backup = None
         if _exists(name):
-            backup = Path(tempfile.mkdtemp(prefix='sajha-plugin-old-'))
+            backup = Path(tempfile.mkdtemp(prefix=tmp_prefix('plugin-old'), dir=tmp_dir()))
             old_dir = _local_copy(name, backup)
             pm.unload_plugin(name)
             _remove_plugin(name)

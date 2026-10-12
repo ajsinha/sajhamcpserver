@@ -211,7 +211,10 @@ class Sandbox:
         raise NotImplementedError
 
     def launch_env(self) -> Dict[str, str]:
-        return {'PATH': '/usr/local/bin:/usr/bin:/bin', 'LANG': 'C.UTF-8'}
+        # the launcher (bwrap, nsjail, docker, the runner before it clears its environment) keeps
+        # its temp files in app.tmp_dir; the code inside gets TMPDIR=its work dir (sandbox_env)
+        from sajha.core.paths import child_tmp_env
+        return {'PATH': '/usr/local/bin:/usr/bin:/bin', 'LANG': 'C.UTF-8', **child_tmp_env()}
 
     def popen_cwd(self, workdir: str) -> str:
         return workdir

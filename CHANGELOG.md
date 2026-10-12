@@ -2,6 +2,26 @@
 
 Newest first. The current version is `app.version` in `config/application.yml`.
 
+## v8.15.1 (October 2026) — SAJHA's own temporary folder (app.tmp_dir) and a sweep of its leftovers
+
+### Added
+
+- **SAJHA's own temporary folder, `app.tmp_dir`** (env `SAJHA_APP_TMP_DIR`; empty, the default, is the system
+  temp directory: `/tmp` on Linux). At start-up the server, `--stdio` and every `python -m sajha.*` command
+  create it if missing (mode 0700) and refuse an unusable one with an error naming the key; then
+  `tempfile.tempdir` and `TMPDIR`/`TEMP`/`TMP` point at it, so every temp file of the process, its libraries
+  and the processes it starts (sandbox launchers, `isolation: none` stdio upstreams, Playwright's Chromium)
+  goes there. DuckDB connections spill to a folder of their own under it (they used to spill to `.tmp` in
+  the working directory), and the object-storage cache (`storage.*.cache_dir`, now empty by default) is
+  `<app.tmp_dir>/sajha-cache`. SAJHA's own temp entries are named `sajha-<kind>-p<pid>-...`, and a start-up
+  sweep removes `sajha-*` leftovers older than `app.tmp_max_age_hours` (24; 0: off) whose process is gone,
+  never anything else. `sajha/core/paths.py`;
+  [Storage Guide](docs/getting-started/Storage%20Guide.md#temporary-files),
+  [Configuration Reference](docs/getting-started/Configuration%20Reference.md#app),
+  [Kubernetes Deployment](docs/getting-started/Kubernetes%20Deployment.md#temporary-folder).
+- The test suite keeps SAJHA's temp files (and those of the servers it starts) in its session folder, and
+  leaves no `sajha-*` entries in the system temp directory.
+
 ## v8.15.0 (October 2026) — open data P2 and P3, the final documentation pass and tutorials, security fixes
 
 ### Upgrading

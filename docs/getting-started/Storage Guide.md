@@ -89,6 +89,36 @@ filesystem (local disk, EBS, EFS) or a managed service, and never on S3, Azure B
 | OAuth signing key | `mcp.auth.builtin.signing_key_path`, default `<data.dir>/oauth/signing_key.pem` | real filesystem, and shared (EFS) when several instances must sign with the same key |
 | MCP sessions, MCP tasks, OAuth codes, rate limits | the state store (`state.backend`, [Scaling and State](../architecture/Scaling%20and%20State.md)) | `memory` (default): lost on restart, not shared between workers. `redis` or `database`: shared; task records durable in the database |
 
+### Temporary files
+
+Everything SAJHA writes for a moment goes to one folder, `app.tmp_dir` (env `SAJHA_APP_TMP_DIR`;
+empty, the default: the system temp directory, `/tmp` on Linux). The keys and their checks are in
+the [Configuration Reference](Configuration%20Reference.md#app). At start-up SAJHA makes it the
+process's temp folder, so it holds:
+
+| What | Name | Gone |
+|------|------|------|
+| Anything that uses Python's `tempfile` (SAJHA's code and its libraries) | the caller's | when the caller removes it |
+| Throw-away document indexes (`ai.rag.persist: false` with the sqlite_vec store) | `sajha-rag-p<pid>-*.db` | when the index closes, or at exit |
+| DuckDB spill files (every DuckDB connection SAJHA opens) | `sajha-duckdb-p<pid>-<n>/` | DuckDB removes the folder when the connection closes |
+| DuckDB files staged from a storage backend (when `data.duckdb.stage_dir` is empty) | `sajha-duckdb-stage-p<pid>-*/` | after each load |
+| Sandbox runs (when `sandbox.work_dir` is empty) and their egress proxy sockets | `sajha-sbx-*/`, `sajha-sbx-*.egress/` | after the run |
+| Warm sandbox containers' egress proxy sockets | `sajha-pool-p<pid>-*.egress/` | when the container is removed |
+| Plugin packages being fetched or replaced | `sajha-plugin-p<pid>-*/`, `sajha-plugin-old-p<pid>-*/` | after the install |
+| SAJHA Net mutual-TLS key material, for an instant | `sajha-net-mtls-p<pid>-*.pem` | at once |
+| The object-storage read-through cache (when `storage.*.cache_dir` is empty) | `sajha-cache/` | never (it is a cache) |
+| The temp files of processes SAJHA starts (sandbox launchers, `isolation: none` stdio upstreams, Playwright's Chromium) | theirs | theirs (they get `TMPDIR`, `TEMP` and `TMP`) |
+
+Code inside a sandbox does not see this folder: its `TMPDIR` is its own work directory.
+
+A crash can leave entries behind. At server start-up SAJHA removes entries named `sajha-*` whose
+newest file is older than `app.tmp_max_age_hours` (24) and whose owning process (the `-p<pid>-` in
+the name) no longer runs. It never touches anything else in the folder, nor `sajha-cache`.
+
+On Kubernetes the chart mounts an `emptyDir` at `/tmp`, so the default works with a read-only root
+file system; to use another volume, mount it and point the key at it
+([Kubernetes Deployment](Kubernetes%20Deployment.md#temporary-folder)).
+
 ---
 
 ## Configuration
@@ -104,19 +134,19 @@ storage:
     prefix: "sajha/"             # key prefix inside the bucket
     region: us-east-1
     endpoint_url: ""             # MinIO / Cloudflare R2 / Wasabi
-    cache_dir: /tmp/sajha-cache
+    cache_dir: ""                 # empty: <app.tmp_dir>/sajha-cache
     sync_interval: 60            # cloud hot-reload poll seconds (all cloud backends)
   azure:
     container: ""
     account_url: ""              # https://<acct>.blob.core.windows.net (managed identity)
     connection_string: ""        # alternative auth
     prefix: "sajha/"
-    cache_dir: /tmp/sajha-cache
+    cache_dir: ""                 # empty: <app.tmp_dir>/sajha-cache
   gcs:
     bucket: ""
     project: ""
     prefix: "sajha/"
-    cache_dir: /tmp/sajha-cache
+    cache_dir: ""                 # empty: <app.tmp_dir>/sajha-cache
 ```
 
 The backend is chosen **once, at startup** (`init_storage` runs before tools and prompts
@@ -175,7 +205,7 @@ storage:
     prefix: sajha/
     region: us-east-1
     endpoint_url: ""          # e.g. http://minio:9000 for MinIO
-    cache_dir: /tmp/sajha-cache
+    cache_dir: ""                 # empty: <app.tmp_dir>/sajha-cache
     sync_interval: 60
 ```
 
@@ -196,7 +226,7 @@ storage:
     account_url: https://<account>.blob.core.windows.net
     connection_string: ${AZURE_STORAGE_CONNECTION_STRING:}
     prefix: sajha/
-    cache_dir: /tmp/sajha-cache
+    cache_dir: ""                 # empty: <app.tmp_dir>/sajha-cache
 ```
 
 - **Auth precedence:** a non-empty `connection_string` wins. Otherwise SAJHA uses
@@ -216,7 +246,7 @@ storage:
     bucket: my-sajha-config
     project: my-gcp-project      # optional; empty lets the SDK resolve it
     prefix: sajha/
-    cache_dir: /tmp/sajha-cache
+    cache_dir: ""                 # empty: <app.tmp_dir>/sajha-cache
 ```
 
 - **Auth:** Application Default Credentials, meaning the attached service account or
@@ -245,7 +275,8 @@ same on all three.
 - **`cache_dir` is a local mirror, not a serving cache.** `get_local_path()` returns the
   cached file and fetches it only if no cached copy exists. It does not check freshness. In
   the server today the mirror is refreshed by reads, writes, and the sync manager.
-  `cache_dir` is never evicted, and every backend defaults to `/tmp/sajha-cache`.
+  `cache_dir` is never evicted, and every backend defaults to `sajha-cache` in SAJHA's temporary
+  folder ([Temporary files](#temporary-files)).
 - **Modified time** comes from object metadata (`LastModified` / `last_modified` /
   `updated`). If it cannot be read, it is `0.0`.
 
@@ -360,8 +391,8 @@ Write the DuckDB data directory as `storage://<prefix>` (for example
 and the data files are read through the storage backend, whichever it is. The DuckDB sandbox
 copies each file into an in-memory table and then switches off all file and URL access, so the
 files are not queried in place: at each load every supported file directly under the prefix is
-staged into a temporary directory under `data.duckdb.stage_dir` (the system temp directory when
-empty), loaded into its table, and the staged copy deleted at once. A file larger than
+staged into a temporary directory under `data.duckdb.stage_dir` (SAJHA's temporary folder,
+`app.tmp_dir`, when empty), loaded into its table, and the staged copy deleted at once. A file larger than
 `data.duckdb.stage_max_file_mb` (256), or one that would pass `data.duckdb.stage_max_total_mb`
 (1024) for that load, is skipped and logged. Change detection (the tools' auto refresh) compares
 the objects' modified times; a bucket event under the prefix reloads at once. A prefix that is

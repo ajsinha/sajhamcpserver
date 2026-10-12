@@ -17,6 +17,7 @@ import time
 from typing import Any, Dict, List, Optional
 from urllib.parse import quote as urlquote
 
+from sajha.core.paths import duckdb_connect
 from sajha.connectors.drivers.base import ConnectorError, SQLDriver, info_schema_describe
 from sajha.connectors.model import Connection
 
@@ -110,11 +111,11 @@ class DuckDBDriver(SQLDriver):
         config = {'enable_external_access': False, 'autoinstall_known_extensions': False,
                   'autoload_known_extensions': False, 'lock_configuration': True}
         try:
-            return duckdb.connect(path, read_only=True, config=config)
+            return duckdb_connect(path, read_only=True, config=config)
         except duckdb.Error as e:
             if 'unrecognized configuration' not in str(e).lower() and 'invalid' not in str(e).lower():
                 raise
-            return duckdb.connect(path, read_only=True, config={'enable_external_access': False})
+            return duckdb_connect(path, read_only=True, config={'enable_external_access': False})
 
     def end(self, dbc: Any) -> None:
         pass                                    # autocommit; the database is read-only

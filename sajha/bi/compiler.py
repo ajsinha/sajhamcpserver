@@ -34,6 +34,7 @@ from datetime import date
 from decimal import Decimal
 from typing import Any, Dict, List, Optional, Tuple
 
+from sajha.core.paths import duckdb_connect
 from sajha.bi import periods as P
 from sajha.bi.metrics import Metric, MetricError
 
@@ -139,7 +140,7 @@ class OlapDatasetSource(Source):
         if ds is None:
             raise MetricError(f'OLAP dataset {name!r} is not defined (config/olap/datasets.json)')
         self._from = f'({sq.from_clause(ds)}) AS _bi_src'
-        self.conn = duckdb.connect(':memory:')
+        self.conn = duckdb_connect(':memory:')
         desc = self.conn.execute(f'DESCRIBE SELECT * FROM {self._from}').fetchall()
         self._cols = {r[0].lower(): r[0] for r in desc}
 

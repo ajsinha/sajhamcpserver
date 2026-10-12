@@ -74,7 +74,7 @@ curl -s -X POST localhost:3002/mcp -H "Authorization: Bearer $TOKEN" \
 
 On Linux the result says `"content": "BLOCKED: PermissionError"`, `"jwt_in_env": false`,
 an environment of a dozen harmless variables (`PATH`, `HOME`, `LANG`, ...), and a `cwd`
-under the system temp directory: a fresh work directory created for this call and deleted
+under SAJHA's temporary folder (`app.tmp_dir`): a fresh work directory created for this call and deleted
 after it. Try `/etc/passwd` or a file in your home directory: also blocked.
 
 The tool never ran inside the server. The registry parsed `studio_peek.py` for its schema

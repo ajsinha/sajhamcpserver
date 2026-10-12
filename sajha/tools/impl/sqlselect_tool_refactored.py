@@ -15,6 +15,7 @@ import re
 import duckdb
 from typing import Dict, Any, List, Optional
 from datetime import datetime
+from sajha.core.paths import duckdb_connect
 from sajha.tools.base_mcp_tool import BaseMCPTool
 from sajha.olap import sql_safety as sq
 
@@ -53,7 +54,7 @@ class SqlSelectBaseTool(BaseMCPTool):
         """Initialize DuckDB connection and load data sources"""
         try:
             # Create in-memory DuckDB connection
-            self.connection = duckdb.connect(':memory:')
+            self.connection = duckdb_connect(':memory:')
             
             # Ensure data directory exists
             os.makedirs(self.data_directory, exist_ok=True)

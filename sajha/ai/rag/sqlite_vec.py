@@ -95,7 +95,7 @@ def _cleanup(readers: List[sqlite3.Connection], writer: sqlite3.Connection, temp
             pass
     readers.clear()
     if temp_path:
-        for suffix in ("", "-wal", "-shm"):
+        for suffix in ("", "-wal", "-shm", "-journal"):
             try:
                 os.remove(temp_path + suffix)
             except OSError:
@@ -153,7 +153,8 @@ class SqliteVecStore(VectorStore):
         if reason:
             raise StoreUnavailable(reason)
         if settings is not None and not settings.persist:
-            fd, path = tempfile.mkstemp(prefix="sajha-rag-", suffix=".db")
+            from sajha.core.paths import tmp_dir, tmp_prefix
+            fd, path = tempfile.mkstemp(prefix=tmp_prefix("rag"), suffix=".db", dir=tmp_dir())
             os.close(fd)
             return cls(path, temporary=True)
         return cls(str(options.get("path") or cls.defaults["path"]))

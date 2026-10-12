@@ -12,6 +12,8 @@ from datetime import datetime, timedelta
 from typing import Dict, Any, List, Optional
 import duckdb
 
+from sajha.core.paths import duckdb_connect
+
 logger = logging.getLogger(__name__)
 
 
@@ -111,7 +113,7 @@ class SampleDataGenerator:
         Args:
             connection: Optional DuckDB connection
         """
-        self.conn = connection or duckdb.connect(":memory:")
+        self.conn = connection or duckdb_connect(":memory:")
     
     def generate_all_sample_data(self, 
                                   num_customers: int = 500,

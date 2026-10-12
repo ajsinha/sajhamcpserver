@@ -35,6 +35,8 @@ import types
 from dataclasses import dataclass
 from typing import Any, Dict, List, Optional, Tuple
 
+from sajha.core.paths import duckdb_connect
+
 logger = logging.getLogger(__name__)
 
 KINDS = ('python', 'rest', 'dbquery', 'composite', 'openapi', 'llm')
@@ -262,7 +264,7 @@ def database_context() -> List[Dict[str, Any]]:
     conn = None
     try:
         # read-only: the shipped catalog file never changes at runtime (no checkpoint, no .wal)
-        conn = duckdb.connect(str(path), read_only=True)
+        conn = duckdb_connect(str(path), read_only=True)
         rows = conn.execute("SELECT table_name, column_name, data_type FROM information_schema.columns "
                             "WHERE table_schema = 'main' ORDER BY table_name, ordinal_position").fetchall()
         for t, c, ty in rows:

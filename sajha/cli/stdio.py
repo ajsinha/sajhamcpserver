@@ -571,6 +571,12 @@ def run(args) -> int:
         os.environ['SAJHA_CONFIG_FILE'] = args.config
     for d in ('logs', 'data', 'temp'):
         os.makedirs(d, exist_ok=True)
+    from sajha.core.paths import apply_tmp_dir, TmpDirError     # app.tmp_dir (sajha/core/paths.py)
+    try:
+        apply_tmp_dir()
+    except TmpDirError as e:
+        print(f'sajha stdio: {e}', file=sys.stderr)
+        return 2
 
     try:
         handler = bootstrap(with_ai=args.with_ai)

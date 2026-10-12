@@ -22,6 +22,14 @@ STORES = ["memory", pytest.param("sqlite_vec", marks=pytest.mark.skipif(not HAS_
           pytest.param("pgvector", marks=pytest.mark.skipif(not PG_URL, reason="SAJHA_TEST_POSTGRES_URL not set"))]
 
 
+@pytest.fixture(autouse=True)
+def _temp_stores_in_tmp_path(tmp_path, monkeypatch):
+    """Throw-away stores (persist off) go to SAJHA's temp folder: here the test's own tmp_path."""
+    from sajha.core import paths
+    monkeypatch.setattr(paths, "_applied", None)
+    monkeypatch.setenv("SAJHA_APP_TMP_DIR", str(tmp_path / "sajha-tmp"))
+
+
 @pytest.fixture(params=STORES)
 def store(request, tmp_path):
     s = make_store(request.param, tmp_path)
@@ -191,6 +199,8 @@ def test_sqlite_vec_throw_away_store_when_persist_is_off(tmp_path):
     s = SqliteVecStore.create({"path": str(tmp_path / "kept.db")}, RagSettings(persist=False))
     path = s.path
     assert s.temporary and os.path.exists(path) and not (tmp_path / "kept.db").exists()
+    assert os.path.dirname(path) == str(tmp_path / "sajha-tmp")              # app.tmp_dir
+    assert os.path.basename(path).startswith(f"sajha-rag-p{os.getpid()}-")  # the sweep keeps it while we run
     s.close()
     assert not os.path.exists(path)
 

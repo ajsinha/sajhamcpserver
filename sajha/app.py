@@ -172,6 +172,15 @@ class SajhaMCPServerWebApp:
 
     def __init__(self):
         self.settings = get_settings()
+        # app.tmp_dir first: every temp file of this process (and its children) goes there
+        # (sajha/core/paths.py); an unusable folder stops start-up
+        from sajha.core.paths import apply_tmp_dir, TmpDirError
+        try:
+            _tmp = apply_tmp_dir(sweep=True)
+        except TmpDirError as e:
+            logger.critical('Refusing to start: ' + str(e))
+            raise
+        logger.info(f'  Temp:    {_tmp}')
         self.app = self._create_app()
 
     # ── App Factory ──────────────────────────────────────────────
@@ -651,7 +660,7 @@ class SajhaMCPServerWebApp:
             'storage.s3.bucket': getattr(s, 'storage_s3_bucket', ''),
             'storage.s3.prefix': getattr(s, 'storage_s3_prefix', ''),
             'storage.s3.region': getattr(s, 'storage_s3_region', 'us-east-1'),
-            'storage.s3.cache_dir': getattr(s, 'storage_s3_cache_dir', '/tmp/sajha-cache'),
+            'storage.s3.cache_dir': getattr(s, 'storage_s3_cache_dir', None),   # None: <app.tmp_dir>/sajha-cache
         }
         init_storage(storage_config)
 

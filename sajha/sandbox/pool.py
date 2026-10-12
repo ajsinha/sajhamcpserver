@@ -270,7 +270,7 @@ class WarmPool:
                 'python3', '-I', '-B', '-c', runner_source]
 
     def _start_one(self) -> Optional[Lease]:
-        name = f'sajha-pool-{uuid.uuid4().hex[:12]}'
+        name = f'sajha-pool-p{os.getpid()}-{uuid.uuid4().hex[:12]}'      # -p<pid>-: the temp sweep keeps its egress dir
         egress_dir = os.path.join(self.egress_base, f'{name}.egress')
         try:
             os.mkdir(egress_dir, 0o700)

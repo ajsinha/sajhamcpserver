@@ -33,6 +33,8 @@ import time
 from dataclasses import dataclass
 from typing import Any, Dict, Iterable, List, Optional, Sequence, Set, Tuple
 
+from sajha.core.paths import duckdb_connect
+
 logger = logging.getLogger(__name__)
 
 META = "_sajha_loaded"                 # the provenance table in every scratch database
@@ -373,7 +375,7 @@ def _connect(path: str, read_only: bool = False, tries: int = 20):
     last: Optional[Exception] = None
     for i in range(tries):
         try:
-            return duckdb.connect(path, read_only=read_only, config=cfg)
+            return duckdb_connect(path, read_only=read_only, config=cfg)
         except duckdb.IOException as e:      # another process holds the file lock
             last = e
             time.sleep(min(0.05 * (i + 1), 0.25))

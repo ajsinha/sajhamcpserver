@@ -193,7 +193,9 @@ def test_explicit_none_runs_unconfined_with_a_warning(monkeypatch, _fresh):
     conn = SimpleNamespace(config=cfg(isolation='none', command='/usr/bin/env', args=['true']),
                            isolation=None, container_name=None)
     params = C.stdio_target(conn, {'A': '1'})
-    assert params.command == '/usr/bin/env' and params.args == ['true'] and params.env == {'A': '1'}
+    assert params.command == '/usr/bin/env' and params.args == ['true']
+    from sajha.core.paths import child_tmp_env
+    assert params.env == {**child_tmp_env(), 'A': '1'}        # app.tmp_dir reaches the upstream
     assert conn.isolation == 'none' and conn.container_name is None
     assert ('federation.stdio_unconfined:mini' in [n for n, _ in _fresh.raised])
 

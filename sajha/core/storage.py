@@ -220,9 +220,9 @@ class _ObjectStorageBackend(StorageBackend):
     filename-pattern matching, JSON helpers, and prefix sync.
     """
 
-    def __init__(self, prefix: str = '', cache_dir: str = '/tmp/sajha-cache'):
+    def __init__(self, prefix: str = '', cache_dir: Optional[str] = None):
         self.prefix = prefix.strip('/')
-        self.cache_dir = Path(cache_dir)
+        self.cache_dir = Path(cache_dir or default_cache_dir())
         self.cache_dir.mkdir(parents=True, exist_ok=True)
         self._lock = threading.Lock()
 
@@ -327,7 +327,7 @@ class S3StorageBackend(_ObjectStorageBackend):
     """
 
     def __init__(self, bucket: str, prefix: str = '', region: str = 'us-east-1',
-                 cache_dir: str = '/tmp/sajha-cache', endpoint_url: str = None):
+                 cache_dir: Optional[str] = None, endpoint_url: str = None):
         try:
             import boto3
         except ImportError:
@@ -336,7 +336,7 @@ class S3StorageBackend(_ObjectStorageBackend):
         self.bucket = bucket
         self.region = region
         self._s3 = boto3.client('s3', region_name=region, endpoint_url=endpoint_url or None)
-        logger.info(f"S3StorageBackend initialized: s3://{bucket}/{self.prefix} \u2192 {cache_dir}")
+        logger.info(f"S3StorageBackend initialized: s3://{bucket}/{self.prefix} \u2192 {self.cache_dir}")
 
     def _fetch_bytes(self, key: str) -> bytes:
         try:
@@ -394,11 +394,11 @@ class AzureBlobStorageBackend(_ObjectStorageBackend):
             account_url: https://<acct>.blob.core.windows.net
             connection_string: ""        # optional alternative to account_url
             prefix: sajha/
-            cache_dir: /tmp/sajha-cache
+            cache_dir: ""                    # empty: <app.tmp_dir>/sajha-cache
     """
 
     def __init__(self, container: str, account_url: str = '', connection_string: str = '',
-                 prefix: str = '', cache_dir: str = '/tmp/sajha-cache'):
+                 prefix: str = '', cache_dir: Optional[str] = None):
         try:
             from azure.storage.blob import BlobServiceClient
         except ImportError:
@@ -417,7 +417,7 @@ class AzureBlobStorageBackend(_ObjectStorageBackend):
             raise ValueError("Azure backend needs storage.azure.connection_string or storage.azure.account_url")
         self.container = container
         self._container = svc.get_container_client(container)
-        logger.info(f"AzureBlobStorageBackend initialized: az://{container}/{self.prefix} \u2192 {cache_dir}")
+        logger.info(f"AzureBlobStorageBackend initialized: az://{container}/{self.prefix} \u2192 {self.cache_dir}")
 
     def _blob(self, key: str):
         return self._container.get_blob_client(key)
@@ -475,11 +475,11 @@ class GCSStorageBackend(_ObjectStorageBackend):
             bucket: sajha-config
             project: my-gcp-project
             prefix: sajha/
-            cache_dir: /tmp/sajha-cache
+            cache_dir: ""                    # empty: <app.tmp_dir>/sajha-cache
     """
 
     def __init__(self, bucket: str, project: str = '', prefix: str = '',
-                 cache_dir: str = '/tmp/sajha-cache'):
+                 cache_dir: Optional[str] = None):
         try:
             from google.cloud import storage as gcs
         except ImportError:
@@ -488,7 +488,7 @@ class GCSStorageBackend(_ObjectStorageBackend):
         self._client = gcs.Client(project=project) if project else gcs.Client()
         self.bucket = bucket
         self._bucket = self._client.bucket(bucket)
-        logger.info(f"GCSStorageBackend initialized: gs://{bucket}/{self.prefix} \u2192 {cache_dir}")
+        logger.info(f"GCSStorageBackend initialized: gs://{bucket}/{self.prefix} \u2192 {self.cache_dir}")
 
     def _fetch_bytes(self, key: str) -> bytes:
         from google.cloud.exceptions import NotFound
@@ -701,6 +701,13 @@ STORAGE_ENV_OVERRIDES = {
 }
 
 
+def default_cache_dir() -> str:
+    """The object-storage read-through cache when ``storage.<backend>.cache_dir`` is not set:
+    ``sajha-cache`` in SAJHA's temp folder (``app.tmp_dir``; the temp sweep leaves it alone)."""
+    from sajha.core.paths import tmp_dir
+    return os.path.join(tmp_dir(), 'sajha-cache')
+
+
 def storage_setting(config, key: str, default: str = '') -> str:
     """
     One storage setting: the documented env var (STORAGE_ENV_OVERRIDES), then
@@ -742,7 +749,7 @@ def init_storage(config: dict) -> StorageBackend:
             bucket=val('storage.s3.bucket'),
             prefix=val('storage.s3.prefix'),
             region=val('storage.s3.region', 'us-east-1'),
-            cache_dir=val('storage.s3.cache_dir', '/tmp/sajha-cache'),
+            cache_dir=val('storage.s3.cache_dir', '') or default_cache_dir(),
             endpoint_url=val('storage.s3.endpoint_url') or None,
         )
     elif backend == 'azure':
@@ -751,14 +758,14 @@ def init_storage(config: dict) -> StorageBackend:
             account_url=val('storage.azure.account_url'),
             connection_string=val('storage.azure.connection_string'),
             prefix=val('storage.azure.prefix'),
-            cache_dir=val('storage.azure.cache_dir', '/tmp/sajha-cache'),
+            cache_dir=val('storage.azure.cache_dir', '') or default_cache_dir(),
         )
     elif backend == 'gcs':
         _storage = GCSStorageBackend(
             bucket=val('storage.gcs.bucket'),
             project=val('storage.gcs.project'),
             prefix=val('storage.gcs.prefix'),
-            cache_dir=val('storage.gcs.cache_dir', '/tmp/sajha-cache'),
+            cache_dir=val('storage.gcs.cache_dir', '') or default_cache_dir(),
         )
     else:
         _storage = LocalStorageBackend(base_dir=val('storage.base_dir', '.'))

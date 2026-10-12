@@ -120,7 +120,8 @@ class MtlsConnector(PeerConnector):
         if not self.verify_tls:
             ctx.check_hostname = False
             ctx.verify_mode = ssl.CERT_NONE
-        fd, path = tempfile.mkstemp(prefix='sajhanet-mtls-', suffix='.pem')
+        from sajha.core.paths import tmp_dir, tmp_prefix
+        fd, path = tempfile.mkstemp(prefix=tmp_prefix('net-mtls'), suffix='.pem', dir=tmp_dir())
         try:
             os.chmod(path, 0o600)
             with os.fdopen(fd, 'wb') as f:

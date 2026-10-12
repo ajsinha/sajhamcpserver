@@ -67,7 +67,11 @@ def _scripts_dir() -> Path:
 
 def cache_dir(backend=None) -> Path:
     backend = backend or _object_backend()
-    base = Path(getattr(backend, 'cache_dir', None) or '/tmp/sajha-cache')
+    if getattr(backend, 'cache_dir', None):
+        base = Path(backend.cache_dir)
+    else:
+        from sajha.core.storage import default_cache_dir
+        base = Path(default_cache_dir())
     return base / 'studio_modules'
 
 

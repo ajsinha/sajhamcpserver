@@ -28,6 +28,7 @@ import logging
 import threading
 from typing import Dict, Any, List, Optional
 from datetime import datetime
+from sajha.core.paths import duckdb_connect, tmp_dir, tmp_prefix
 from sajha.tools.base_mcp_tool import BaseMCPTool
 from sajha.olap import sql_safety as sq
 
@@ -241,7 +242,7 @@ class DuckDbSandbox:
         max_file, max_total, stage_dir = _stage_limits()
         if stage_dir:
             os.makedirs(stage_dir, exist_ok=True)
-        tmp = tempfile.mkdtemp(prefix='sajha-duckdb-', dir=stage_dir)
+        tmp = tempfile.mkdtemp(prefix=tmp_prefix('duckdb-stage'), dir=stage_dir or tmp_dir())
         states: Dict[str, Dict[str, Any]] = {}
         total = 0
         try:
@@ -281,7 +282,7 @@ class DuckDbSandbox:
     def reload(self) -> Dict[str, Dict[str, Any]]:
         """Load every data file into a new sandbox, lock it, and swap it in."""
         files = scan_data_files(self.data_directory)
-        conn = duckdb.connect(':memory:')
+        conn = duckdb_connect(':memory:')
         states: Dict[str, Dict[str, Any]] = {}
         if self.prefix is not None:
             states = self._load_storage(conn, files)

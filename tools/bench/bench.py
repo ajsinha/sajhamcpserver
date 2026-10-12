@@ -212,6 +212,7 @@ def server_env(scratch: Path, backend: str, redis_url: str, db_url: str = "",
         "SAJHA_CONFIG_APIKEYS_PATH": str(scratch / "apikeys.json"),
         "SAJHA_AUTH_SECRETS_FILE": str(scratch / "secrets.json"),
         "SAJHA_CACHE_DIR": str(scratch / "cache"),
+        "SAJHA_APP_TMP_DIR": str(scratch / "tmp"),          # the server's temp files stay in the scratch
         "SAJHA_SNAPSHOTS_ENABLED": "false",
         "SAJHA_SAJHANET_TEST_ADMIN_KEY_ENABLED": "false",
         "SAJHA_MCP_AUTH_MODE": "optional",

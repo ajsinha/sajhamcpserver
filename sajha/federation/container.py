@@ -417,8 +417,11 @@ def stdio_target(conn, env: Dict[str, str]):
     if iso == 'none':
         notice_unconfined(cfg)
         conn.container_name = None
-        return StdioServerParameters(command=cfg.command, args=list(cfg.args or []), env=env or None,
-                                     cwd=cfg.cwd or None)
+        # the SDK passes only HOME, PATH, SHELL, TERM, USER and LOGNAME on: add TMPDIR/TEMP/TMP (app.tmp_dir)
+        # unless the upstream's own env sets them
+        from sajha.core.paths import child_tmp_env
+        return StdioServerParameters(command=cfg.command, args=list(cfg.args or []),
+                                     env={**child_tmp_env(), **(env or {})}, cwd=cfg.cwd or None)
     _remove_orphans_once()
     try:
         launch = build(cfg, env)

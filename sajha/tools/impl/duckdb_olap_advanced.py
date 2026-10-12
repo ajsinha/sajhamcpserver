@@ -16,6 +16,7 @@ import duckdb
 from typing import Dict, Any, List, Optional
 from pathlib import Path
 
+from sajha.core.paths import duckdb_connect
 from sajha.tools.base_mcp_tool import BaseMCPTool
 from sajha.olap.semantic_layer import SemanticLayer
 from sajha.olap.pivot_engine import PivotEngine, PivotSpec
@@ -164,13 +165,13 @@ class DuckDBOLAPAdvancedTool(BaseMCPTool):
             # Connect to in-memory database or configured database
             db_path = Path(self.config_path).parent / "data" / "olap.duckdb"
             if db_path.exists():
-                self.conn = duckdb.connect(str(db_path))
+                self.conn = duckdb_connect(str(db_path))
             else:
-                self.conn = duckdb.connect(":memory:")
+                self.conn = duckdb_connect(":memory:")
             logger.info("DuckDB OLAP connection initialized")
         except Exception as e:
             logger.error(f"Failed to initialize DuckDB: {e}", exc_info=True)
-            self.conn = duckdb.connect(":memory:")
+            self.conn = duckdb_connect(":memory:")
     
     def get_tools(self) -> List[Dict[str, Any]]:
         """Return list of available OLAP tools."""
@@ -1223,7 +1224,7 @@ class CustomerOLAPTool(BaseMCPTool):
     def _init_connection(self):
         """Initialize DuckDB connection."""
         try:
-            self.conn = duckdb.connect(":memory:")
+            self.conn = duckdb_connect(":memory:")
             logger.info("CustomerOLAPTool: DuckDB connection initialized")
         except Exception as e:
             logger.error(f"Failed to initialize DuckDB: {e}", exc_info=True)
@@ -1563,7 +1564,7 @@ class DuckDBSQLTool(BaseMCPTool):
         ``INSTALL``), and ``lock_configuration = true`` stops a query switching it back on.
         """
         try:
-            self.conn = duckdb.connect(":memory:")
+            self.conn = duckdb_connect(":memory:")
             
             csv_files = ['customers', 'orders', 'products']
             for table_name in csv_files:

@@ -76,9 +76,20 @@ ignored. The defaults are one pod, SQLite on a `ReadWriteOnce` volume, no ingres
 | Container `sajha` | `run_sajha_web.py --workers <workers>`. `readOnlyRootFilesystem`, no capabilities, no privilege escalation, `RuntimeDefault` seccomp, non-root. |
 | `/app/data` | PVC (`persistence.data`) or `emptyDir`: SQLite database, generated secrets file, caches, DuckDB data. |
 | `/app/config`, `/app/sajha/tools/impl` | `emptyDir` seeded at every start, or one PVC (`persistence.config`) with sub-paths `config` and `impl`, so admin edits and MCP Studio tools outlive the pod. |
-| `/app/logs`, `/app/temp`, `/tmp` | `emptyDir` with size limits (`/tmp` holds sandbox work directories and the object-store cache). |
+| `/app/logs`, `/app/temp`, `/tmp` | `emptyDir` with size limits (`persistence.tmpSizeLimit`). `/tmp` is SAJHA's temporary folder ([below](#temporary-folder)). |
 | Probes | startup and liveness `GET /health`, readiness `GET /ready`. |
 | `enableServiceLinks: false` | A Service named `sajha` would otherwise inject `SAJHA_PORT=tcp://...`, which the configuration reads as a `SAJHA_*` override. |
+
+### Temporary folder
+
+SAJHA keeps every temporary file in one folder, `app.tmp_dir` (env `SAJHA_APP_TMP_DIR`), which
+defaults to the system temp directory, `/tmp`. The chart mounts an `emptyDir` there, so the
+read-only root file system needs nothing more: sandbox work directories, DuckDB spill files,
+throw-away document indexes and the object-store cache all land on that volume, and go with the
+pod. Size it with `persistence.tmpSizeLimit` (large DuckDB queries spill there). To use another
+volume, mount it through `extraVolumes`/`extraVolumeMounts` and point the key at it, for example
+`config.env: {SAJHA_APP_TMP_DIR: /scratch}`. What goes there and how leftovers are swept:
+[Storage Guide](Storage%20Guide.md#temporary-files).
 
 ### Configuration
 
@@ -216,7 +227,7 @@ With TLS the public URL defaults to `https://<first host>`; it becomes
 | `database.postgresql.schemaCheck` | `SAJHA_DB_SCHEMA_CHECK` (`strict` default, or `warn`) |
 | `state.backend` | `SAJHA_STATE_BACKEND` after resolving `auto` |
 | `redis.enabled`, `state.redis.url`, `state.redis.existingSecret` | `SAJHA_STATE_REDIS_URL` |
-| `storage.backend` and `storage.s3/azure/gcs.*` | `SAJHA_STORAGE_BACKEND`, `SAJHA_S3_BUCKET`, `SAJHA_S3_PREFIX`, `AWS_DEFAULT_REGION`, `SAJHA_S3_ENDPOINT_URL`, `SAJHA_AZURE_CONTAINER`, `SAJHA_AZURE_ACCOUNT_URL`, `SAJHA_GCS_BUCKET`, `GOOGLE_CLOUD_PROJECT`; every cache directory is `/tmp/sajha-cache` |
+| `storage.backend` and `storage.s3/azure/gcs.*` | `SAJHA_STORAGE_BACKEND`, `SAJHA_S3_BUCKET`, `SAJHA_S3_PREFIX`, `AWS_DEFAULT_REGION`, `SAJHA_S3_ENDPOINT_URL`, `SAJHA_AZURE_CONTAINER`, `SAJHA_AZURE_ACCOUNT_URL`, `SAJHA_GCS_BUCKET`, `GOOGLE_CLOUD_PROJECT`; every cache directory is `sajha-cache` in SAJHA's temporary folder (`/tmp/sajha-cache` by default) |
 
 The image needs the matching extra: `redis` for the Redis backend, `s3`, `azure` or `gcs`
 for a bucket (section 1).
