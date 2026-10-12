@@ -61,7 +61,13 @@
       return '<option' + (t === sel ? ' selected' : '') + '>' + esc(t) + '</option>';
     }).join('');
   }
-  function field(label, html, cls) { return '<div class="' + (cls || 'col-md-6') + '"><label class="form-label small fw-bold mb-0">' + label + '</label>' + html + '</div>'; }
+  var fieldSeq = 0;
+  // A labelled field: the label's for= names the control (a fresh id per render)
+  function field(label, html, cls) {
+    var id = 'wfField' + (++fieldSeq);
+    html = html.replace(/^<(input|select|textarea)\b/, '<$1 id="' + id + '"');
+    return '<div class="' + (cls || 'col-md-6') + '"><label class="form-label small fw-bold mb-0" for="' + id + '">' + label + '</label>' + html + '</div>';
+  }
   function json(v) { return v === undefined ? '' : JSON.stringify(v); }
 
   function renderSteps() {

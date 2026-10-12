@@ -1,0 +1,27 @@
+{
+ "format": 1,
+ "interactions": [
+  {
+   "request": {
+    "method": "GET",
+    "url": "https://stats.bis.org/api/v1/data/WS_CREDIT_GAP/Q.US+CN.P.A.C?startPeriod=2023&endPeriod=2023",
+    "body_sha256": ""
+   },
+   "response": {
+    "status": 200,
+    "reason": "",
+    "headers": {
+     "etag": "Z3Vlc3QkMTc5MTc3NjA4ODQ0OCQqJDEkV1NfQ1JFRElUX0dBUA==",
+     "vary": "Accept,Accept-Language",
+     "content-disposition": "inline; filename=\"WS_CREDIT_GAP.csv\"",
+     "content-type": "text/csv;charset=UTF-8",
+     "date": "Mon, 12 Oct 2026 03:34:48 GMT",
+     "cache-control": "private"
+    },
+    "body": {
+     "text": "DATAFLOW,FREQ,BORROWERS_CTY,TC_BORROWERS,TC_LENDERS,CG_DTYPE,TIME_PERIOD,OBS_VALUE,COLLECTION,DECIMALS,UNIT_MEASURE,UNIT_MULT,TIME_FORMAT,TITLE_TS,OBS_STATUS,OBS_CONF,OBS_PRE_BREAK\nBIS:WS_CREDIT_GAP(1.0),Q,CN,P,A,C,2023-Q1,-7.0176,E,1,770,0,,,A,F,\nBIS:WS_CREDIT_GAP(1.0),Q,CN,P,A,C,2023-Q2,-7.4824,E,1,770,0,,,A,F,\nBIS:WS_CREDIT_GAP(1.0),Q,CN,P,A,C,2023-Q3,-7.6885,E,1,770,0,,,A,F,\nBIS:WS_CREDIT_GAP(1.0),Q,CN,P,A,C,2023-Q4,-9.3138,E,1,770,0,,,A,F,\nBIS:WS_CREDIT_GAP(1.0),Q,US,P,A,C,2023-Q1,-7.6242,E,1,770,0,,,A,F,\nBIS:WS_CREDIT_GAP(1.0),Q,US,P,A,C,2023-Q2,-8.7445,E,1,770,0,,,A,F,\nBIS:WS_CREDIT_GAP(1.0),Q,US,P,A,C,2023-Q3,-9.8253,E,1,770,0,,,A,F,\nBIS:WS_CREDIT_GAP(1.0),Q,US,P,A,C,2023-Q4,-10.6356,E,1,770,0,,,A,F,\n"
+    }
+   }
+  }
+ ]
+}

@@ -1,0 +1,20 @@
+# An HTTP tool with a recorded cassette (cassettes/bis_total_credit/us_and_euro_area_households_2024.json): replays offline.
+# Re-record against the live API with: python -m sajha.quality test --tool bis_total_credit --record
+tool: bis_total_credit
+cases:
+  - name: us and euro area households 2024
+    tags: [http]
+    arguments: {"countries": ["US", "XM"], "sector": "households", "period": "2024"}
+    expect:
+      - schema: output
+      - path: "$.series_count"
+        equals: 2
+      - path: "$.series[*].unit"
+        regex: "Percentage of GDP"
+      - path: "$.series[0].observations"
+        length: 4
+      - path: "$.source"
+        regex: "^Source: BIS"
+probe:
+  case: us and euro area households 2024
+  every: 3600

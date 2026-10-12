@@ -36,7 +36,7 @@ import time
 import urllib.parse
 from typing import Any, Callable, Dict, List, Optional, Tuple
 
-import requests
+from sajha.core import outbound
 
 logger = logging.getLogger(__name__)
 
@@ -133,7 +133,7 @@ def _cancel(upload_url: str, http) -> None:
 
 
 def _default_http(method: str, url: str, **kw):
-    return requests.request(method, url, **kw)
+    return outbound.requests_compat.request(method, url, **kw)
 
 
 def send_chunks(upload_url: str, content: bytes, *, chunk: int = DEFAULT_CHUNK, start: int = 0,
@@ -165,7 +165,7 @@ def send_chunks(upload_url: str, content: bytes, *, chunk: int = DEFAULT_CHUNK, 
         try:
             resp = http('PUT', upload_url, data=piece, headers=headers, timeout=UPLOAD_TIMEOUT)
             code = resp.status_code
-        except requests.RequestException as e:
+        except (outbound.FetchError, OSError) as e:      # OSError: a test's stand-in raising requests' errors
             resp, code = None, None
             logger.info(f'sharepoint: chunk {offset}-{end} failed: {e}')
         if code in (200, 201):

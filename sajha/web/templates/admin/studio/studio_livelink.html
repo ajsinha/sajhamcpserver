@@ -188,7 +188,7 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
     </div>
     
     <!-- Status Message -->
-    <div id="statusMessage" class="status-message"></div>
+    <div id="statusMessage" class="status-message" role="status" aria-live="polite"></div>
     
     <div class="row">
         <!-- Form Column -->
@@ -201,24 +201,24 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
                 </div>
                 <div class="section-body">
                     <div class="mb-3">
-                        <label class="form-label fw-bold">{{ _('Tool Name') }} <span class="text-danger">*</span></label>
+                        <label for="toolName" class="form-label fw-bold">{{ _('Tool Name') }} <span class="text-danger">*</span></label>
                         <input type="text" id="toolName" class="form-control" placeholder="e.g., company_docs">
                         <div class="help-text">{{ _('Lowercase letters, numbers, underscores only.') }}</div>
                     </div>
                     
                     <div class="mb-3">
-                        <label class="form-label fw-bold">{{ _('Description') }} <span class="text-danger">*</span></label>
+                        <label for="description" class="form-label fw-bold">{{ _('Description') }} <span class="text-danger">*</span></label>
                         <textarea id="description" class="form-control" rows="2" 
                                   placeholder="e.g., Query and download documents from company LiveLink server"></textarea>
                     </div>
                     
                     <div class="row">
                         <div class="col-md-6">
-                            <label class="form-label fw-bold">{{ _('Tags') }}</label>
+                            <label for="tags" class="form-label fw-bold">{{ _('Tags') }}</label>
                             <input type="text" id="tags" class="form-control" placeholder="{{ _('livelink, documents, ecm') }}">
                         </div>
                         <div class="col-md-6">
-                            <label class="form-label fw-bold">{{ _('Author') }}</label>
+                            <label for="author" class="form-label fw-bold">{{ _('Author') }}</label>
                             <input type="text" id="author" class="form-control" placeholder="{{ _('Optional') }}">
                         </div>
                     </div>
@@ -233,7 +233,7 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
                 </div>
                 <div class="section-body">
                     <div class="mb-3">
-                        <label class="form-label fw-bold">{{ _('Server URL') }} <span class="text-danger">*</span></label>
+                        <label for="serverUrl" class="form-label fw-bold">{{ _('Server URL') }} <span class="text-danger">*</span></label>
                         <input type="text" id="serverUrl" class="form-control" 
                                placeholder="https://livelink.company.com/otcs/cs.exe">
                         <div class="help-text">{{ _('LiveLink/Content Server base URL') }}</div>
@@ -241,14 +241,14 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
                     
                     <div class="row">
                         <div class="col-md-6">
-                            <label class="form-label fw-bold">{{ _('API Version') }}</label>
+                            <label for="apiVersion" class="form-label fw-bold">{{ _('API Version') }}</label>
                             <select id="apiVersion" class="form-select">
                                 <option value="v2" selected>{{ _('v2 (Recommended)') }}</option>
                                 <option value="v1">{{ _('v1 (Legacy)') }}</option>
                             </select>
                         </div>
                         <div class="col-md-6">
-                            <label class="form-label fw-bold">{{ _('Default Parent Folder ID') }}</label>
+                            <label for="defaultParentId" class="form-label fw-bold">{{ _('Default Parent Folder ID') }}</label>
                             <input type="text" id="defaultParentId" class="form-control" placeholder="{{ _('Optional') }}">
                             <div class="help-text">{{ _('Default folder for list operations') }}</div>
                         </div>
@@ -287,11 +287,11 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
                     <div id="basicAuthFields">
                         <div class="row">
                             <div class="col-md-6">
-                                <label class="form-label fw-bold">{{ _('Username Env Variable') }}</label>
+                                <label for="usernameEnv" class="form-label fw-bold">{{ _('Username Env Variable') }}</label>
                                 <input type="text" id="usernameEnv" class="form-control" value="LIVELINK_USERNAME">
                             </div>
                             <div class="col-md-6">
-                                <label class="form-label fw-bold">{{ _('Password Env Variable') }}</label>
+                                <label for="passwordEnv" class="form-label fw-bold">{{ _('Password Env Variable') }}</label>
                                 <input type="text" id="passwordEnv" class="form-control" value="LIVELINK_PASSWORD">
                             </div>
                         </div>
@@ -299,7 +299,7 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
                     
                     <div id="oauthFields" style="display: none;">
                         <div class="mb-3">
-                            <label class="form-label fw-bold">{{ _('OAuth Token Env Variable') }}</label>
+                            <label for="oauthTokenEnv" class="form-label fw-bold">{{ _('OAuth Token Env Variable') }}</label>
                             <input type="text" id="oauthTokenEnv" class="form-control" value="LIVELINK_OAUTH_TOKEN">
                         </div>
                     </div>
@@ -321,11 +321,11 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
                 <div class="section-body">
                     <div class="row">
                         <div class="col-md-6">
-                            <label class="form-label fw-bold">{{ _('Timeout (seconds)') }}</label>
+                            <label for="timeout" class="form-label fw-bold">{{ _('Timeout (seconds)') }}</label>
                             <input type="number" id="timeout" class="form-control" value="60" min="10" max="300">
                         </div>
                         <div class="col-md-6">
-                            <label class="form-label fw-bold">{{ _('Max File Size (MB)') }}</label>
+                            <label for="maxFileSize" class="form-label fw-bold">{{ _('Max File Size (MB)') }}</label>
                             <input type="number" id="maxFileSize" class="form-control" value="50" min="1" max="500">
                         </div>
                     </div>

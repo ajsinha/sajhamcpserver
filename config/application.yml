@@ -11,7 +11,7 @@
 
 app:
   name: SAJHA MCP Server
-  version: 8.13.0
+  version: 8.14.0
   description: Model Context Protocol Server
   author: Ashutosh Sinha
   author_email: ajsinha@gmail.com       # shown with the copyright notice; SAJHA is proprietary (see LICENSE)
@@ -366,10 +366,6 @@ hot_reload:
 # rhythm re-checks tools skipped because a module their config "requires" is missing.
 tools:
   retry_failed_seconds: 300
-  # Fill absent arguments from each tool's inputSchema "default" before it runs (never a required
-  # property; nested objects only when supplied). The escape hatch exists for release 8.8.0 only and
-  # is removed in the release after. docs/architecture/Tool Quality.md §12.1
-  apply_schema_defaults: true
   # A tool folder's optional domain.txt (what the folder as a whole is for) is appended to
   # the description of each of its tools wherever descriptions are served. A longer file is
   # refused with a notice, never cut. docs/architecture/Architecture.md §5
@@ -495,6 +491,11 @@ tavily:
 alpha_vantage:
   api:
     key: ${ALPHA_VANTAGE_API_KEY:}
+
+coingecko:                                   # keyless public API by default; a free demo key raises the limit
+  api:
+    key: ${COINGECKO_API_KEY:}
+  calls_per_minute:                          # shared by all workers (state store); empty = 5 keyless, 30 with a key
 
 # SharePoint tools (config/tools/sharepoint_*.json) call Microsoft Graph with an Entra ID
 # app registration (client-credentials grant). Empty by default: the tools answer

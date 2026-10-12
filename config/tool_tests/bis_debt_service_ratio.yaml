@@ -1,0 +1,20 @@
+# An HTTP tool with a recorded cassette (cassettes/bis_debt_service_ratio/uk_and_canada_households_2024.json): replays offline.
+# Re-record against the live API with: python -m sajha.quality test --tool bis_debt_service_ratio --record
+tool: bis_debt_service_ratio
+cases:
+  - name: uk and canada households 2024
+    tags: [http]
+    arguments: {"countries": ["GB", "CA"], "sector": "households", "period": "2024"}
+    expect:
+      - schema: output
+      - path: "$.series_count"
+        equals: 2
+      - path: "$.series[0].observations"
+        length: 4
+      - path: "$.series[*].country"
+        regex: "^(GB|CA)$"
+      - path: "$.source"
+        regex: "^Source: BIS"
+probe:
+  case: uk and canada households 2024
+  every: 3600

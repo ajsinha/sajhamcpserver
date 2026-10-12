@@ -25,7 +25,7 @@
             <!-- Filters Row -->
             <div class="row mb-3 g-2">
                 <div class="col-md-3">
-                    <label class="form-label fw-bold small text-muted">{{ _('TOOL GROUP') }}</label>
+                    <label class="form-label fw-bold small text-muted" for="groupFilter">{{ _('TOOL GROUP') }}</label>
                     <select id="groupFilter" class="form-select">
                         <option value="all">{{ _('All Groups') }}</option>
                     </select>
@@ -42,7 +42,7 @@
                     </select>
                 </div>
                 <div class="col-md-5">
-                    <label class="form-label fw-bold small text-muted">{{ _('SEARCH BY NAME OR DESCRIPTION') }}</label>
+                    <label class="form-label fw-bold small text-muted" for="searchTools">{{ _('SEARCH BY NAME OR DESCRIPTION') }}</label>
                     <div class="input-group">
                         <span class="input-group-text"><i class="bi bi-search"></i></span>
                         <input type="text" class="form-control" id="searchTools" autofocus
@@ -52,7 +52,7 @@
                     </div>
                 </div>
                 <div class="col-md-2">
-                    <label class="form-label fw-bold small text-muted">{{ _('SHOW') }}</label>
+                    <label class="form-label fw-bold small text-muted" for="rowsPerPage">{{ _('SHOW') }}</label>
                     <select id="rowsPerPage" class="form-select">
                         <option value="10">10</option>
                         <option value="25" selected>25</option>
@@ -62,7 +62,7 @@
                     </select>
                 </div>
                 <div class="col-md-2">
-                    <label class="form-label fw-bold small text-muted">{{ _('SORT') }}</label>
+                    <label class="form-label fw-bold small text-muted" for="sortBy">{{ _('SORT') }}</label>
                     <select id="sortBy" class="form-select">
                         <option value="name_asc">{{ _('Name A-Z') }}</option>
                         <option value="name_desc">{{ _('Name Z-A') }}</option>
@@ -72,7 +72,7 @@
             </div>
             <!-- #10 Category quick-filter chips -->
             <div class="mb-3" id="categoryChips">
-                <span class="filter-chip active" data-cat="all" data-onclick="filterCategory(this)">{{ _('All') }}</span>
+                <span class="filter-chip active" role="button" tabindex="0" aria-pressed="true" data-cat="all" data-onclick="filterCategory(this)">{{ _('All') }}</span>
             </div>
 
             <!-- Group Badges (clickable) -->
@@ -263,7 +263,7 @@ function renderTable() {
             <td>${pBadge}</td>
             <td><div class="btn-group btn-group-sm">
                 <a href="${t.executeUrl}" class="btn btn-success"><i class="bi bi-play-circle"></i> ${_t('Run')}</a>
-                <a href="/tools/${t.name}/schema" class="btn btn-outline-info"><i class="bi bi-info-circle"></i></a>
+                <a href="/tools/${t.name}/schema" class="btn btn-outline-info" title="${_t('Schema')}" aria-label="${_t('Schema of %(name)s', {name: t.name})}"><i class="bi bi-info-circle" aria-hidden="true"></i></a>
             </div></td></tr>`;
     });
 
@@ -301,13 +301,13 @@ var chipContainer = document.getElementById('categoryChips');
 if (chipContainer) {
     chipGroups.forEach(function(g) {
         var count = toolsData.filter(function(t){return t.group===g}).length;
-        chipContainer.innerHTML += '<span class="filter-chip" data-cat="'+g+'" data-onclick="filterCategory(this)">'+glabel(g)+' <small>('+count+')</small></span>';
+        chipContainer.innerHTML += '<span class="filter-chip" role="button" tabindex="0" aria-pressed="false" data-cat="'+g+'" data-onclick="filterCategory(this)">'+glabel(g)+' <small>('+count+')</small></span>';
     });
-    if (gs.value !== 'all') chipContainer.querySelectorAll('.filter-chip').forEach(function(c){ c.classList.toggle('active', c.getAttribute('data-cat') === gs.value); });
+    if (gs.value !== 'all') chipContainer.querySelectorAll('.filter-chip').forEach(function(c){ var on = c.getAttribute('data-cat') === gs.value; c.classList.toggle('active', on); c.setAttribute('aria-pressed', on ? 'true' : 'false'); });
 }
 function filterCategory(el) {
-    document.querySelectorAll('.filter-chip').forEach(function(c){c.classList.remove('active')});
-    el.classList.add('active');
+    document.querySelectorAll('.filter-chip').forEach(function(c){c.classList.remove('active'); c.setAttribute('aria-pressed', 'false')});
+    el.classList.add('active'); el.setAttribute('aria-pressed', 'true');
     var cat = el.getAttribute('data-cat');
     if (cat !== 'all') { gs.value = cat; } else { gs.value = 'all'; }
     applyFilters();

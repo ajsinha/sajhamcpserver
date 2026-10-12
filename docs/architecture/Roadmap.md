@@ -41,14 +41,13 @@ judgement. They are collected in [section 5](#5-decisions-needed).
 ## 2. Now
 
 Every wave of the [Implementation Plan](Implementation%20Plan.md) through wave 7 has shipped, and so
-have phases 8.1 of wave 8 (tool health, L21 to L25) and 8.2 (quantitative planners, L51 to L59: the
+have phases 8.1 of wave 8 (tool health, L21 to L25) and 8.2 (quantitative planners, L51 to L60: the
 quantitative workspace, the numbers check, the computed-answer planners, their choice by `router` and
-`auto`, and the quantitative eval sets; the CHANGELOG has them). Phases 8.3 to 8.5 shipped
+`auto`, the quantitative eval sets, figure lineage on the Ask page and the `x-sajha-unit` keyword; the
+CHANGELOG has them). Phases 8.3 to 8.5 shipped
 their core in 8.10.0 (open data P1) and 8.11.0 (business intelligence and reports together); the CHANGELOG
 has them. What is left of wave 8 is in [section 4.3](#43-wave-8-placed): open data P2 and P3 (L32 to
-L39) and L60, the remainder of phase 8.2; the rest of BI and reports was descoped (see Decisions). One carry-over: a later release
-removes the `tools.apply_schema_defaults` switch
-([Tool Quality §12.1](Tool%20Quality.md#121-schema-defaults-applied-before-a-call)).
+L39); the rest of BI and reports was descoped (see Decisions).
 
 ---
 
@@ -94,7 +93,7 @@ the roadmap and build at the first opportunity") and placed them in wave 8 of th
 | Phase | Items | Release |
 |---|---|---|
 | 8.1 | L21–L25 (shipped; rows removed) | 8.8.0 |
-| 8.2 | L51–L59 (quantitative planners; built, rows removed; the remainder is L60) | 8.9.0 |
+| 8.2 | L51–L60 (quantitative planners; built, rows removed; L60 in 8.14.0) | 8.9.0 |
 | 8.3 | L26–L39 (P1 L26–L31 and Wikidata shipped, rows removed; P2 and P3 open) | 8.10.0 |
 | 8.4 | L40–L44 (L40, L42 shipped; L41 in part; the rest descoped; rows removed) | 8.11.0 |
 | 8.5 | L45–L50 (L45 to L47 and the library page shipped; the rest descoped; rows removed) | 8.11.0 |
@@ -109,7 +108,6 @@ the roadmap and build at the first opportunity") and placed them in wave 8 of th
 | L37 | Research and Wikidata (`research`, `wikipedia`) (wave 8) | Literature and entity facts behind an answer | Wikidata built in 8.10.0 (in the [Wikipedia guide](../tools/search/Wikipedia%20Search%20Tool%20Reference%20Guide.md#wikidata)); research not built ([Open Data Tools](Open%20Data%20Tools.md)) | OpenAlex (key and budget), Crossref, arXiv (global throttle); Wikidata in the existing `wikipedia` folder | M | none |
 | L38 | News events (`gdelt`) (wave 8) | Coverage and tone of events over time | Not built; GEO 2.0 dropped ([Open Data Tools](Open%20Data%20Tools.md)) | DOC, TV and Context APIs, serialised at one call per 5 seconds, cached | S | none |
 | L39 | Public spending and catalogue (`us_spending`) (wave 8) | US federal awards and the data.gov catalogue | Not built; the CKAN API is gone ([Open Data Tools](Open%20Data%20Tools.md)) | USAspending search and recipients; the new data.gov catalogue API pinned by a contract test | S | none |
-| L60 | Quantitative planners, finished (wave 8) | A reader should see how a figure was computed, and a tool should declare its units | The planners, workspace, validator and evals are built ([Quantitative Planners](Quantitative%20Planners.md)); a figure's lineage is in the run record but not shown on the Ask SAJHA page, and a unit read from a tool result is the model's declaration, since no `outputSchema` keyword declares it (§2.1, §2.2, §7 there) | Show a selected figure's lineage on the Ask page; an `x-sajha-unit` keyword in `outputSchema`, recorded as `unit_from: schema` | S | none |
 
 ---
 

@@ -1,0 +1,30 @@
+{
+ "format": 1,
+ "interactions": [
+  {
+   "request": {
+    "method": "GET",
+    "url": "https://api.fiscaldata.treasury.gov/services/api/fiscal_service/v1/accounting/od/rates_of_exchange?sort=-record_date&page%5Bsize%5D=10000&page%5Bnumber%5D=1&filter=record_date%3Agte%3A2025-01-01%2Crecord_date%3Alte%3A2025-12-31%2Ccountry_currency_desc%3Aeq%3AEuro+Zone-Euro&fields=record_date%2Ccountry%2Ccurrency%2Ccountry_currency_desc%2Cexchange_rate%2Ceffective_date",
+    "body_sha256": ""
+   },
+   "response": {
+    "status": 200,
+    "reason": "OK",
+    "headers": {
+     "date": "Mon, 12 Oct 2026 03:35:39 GMT",
+     "content-type": "application/json",
+     "connection": "keep-alive",
+     "server": "nginx",
+     "vary": "Accept-Encoding",
+     "strict-transport-security": "max-age=31536000; includeSubDomains",
+     "x-frame-options": "SAMEORIGIN",
+     "x-xss-protection": "1; mode=block",
+     "access-control-allow-origin": "*"
+    },
+    "body": {
+     "text": "{\"data\":[{\"record_date\":\"2025-12-31\",\"country\":\"Euro Zone\",\"currency\":\"Euro\",\"country_currency_desc\":\"Euro Zone-Euro\",\"exchange_rate\":\"0.851\",\"effective_date\":\"2025-12-31\"},{\"record_date\":\"2025-09-30\",\"country\":\"Euro Zone\",\"currency\":\"Euro\",\"country_currency_desc\":\"Euro Zone-Euro\",\"exchange_rate\":\"0.852\",\"effective_date\":\"2025-09-30\"},{\"record_date\":\"2025-06-30\",\"country\":\"Euro Zone\",\"currency\":\"Euro\",\"country_currency_desc\":\"Euro Zone-Euro\",\"exchange_rate\":\"0.853\",\"effective_date\":\"2025-06-30\"},{\"record_date\":\"2025-03-31\",\"country\":\"Euro Zone\",\"currency\":\"Euro\",\"country_currency_desc\":\"Euro Zone-Euro\",\"exchange_rate\":\"0.924\",\"effective_date\":\"2025-03-31\"}],\"meta\":{\"count\":4,\"labels\":{\"record_date\":\"Record Date\",\"country\":\"Country\",\"currency\":\"Currency\",\"country_currency_desc\":\"Country - Currency Description\",\"exchange_rate\":\"Exchange Rate\",\"effective_date\":\"Effective Date\"},\"dataTypes\":{\"record_date\":\"DATE\",\"country\":\"STRING\",\"currency\":\"STRING\",\"country_currency_desc\":\"STRING\",\"exchange_rate\":\"NUMBER\",\"effective_date\":\"DATE\"},\"dataFormats\":{\"record_date\":\"YYYY-MM-DD\",\"country\":\"String\",\"currency\":\"String\",\"country_currency_desc\":\"String\",\"exchange_rate\":\"10.2\",\"effective_date\":\"YYYY-MM-DD\"},\"total-count\":4,\"total-pages\":1},\"links\":{\"self\":\"&page%5Bnumber%5D=1&page%5Bsize%5D=10000\",\"first\":\"&page%5Bnumber%5D=1&page%5Bsize%5D=10000\",\"prev\":null,\"next\":null,\"last\":\"&page%5Bnumber%5D=1&page%5Bsize%5D=10000\"}}"
+    }
+   }
+  }
+ ]
+}

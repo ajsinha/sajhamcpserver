@@ -84,23 +84,46 @@ def extract_numbers(text: str) -> List[Dict[str, Any]]:
     return out
 
 
-def _result_numbers(results: List[Dict[str, Any]]) -> List[float]:
-    nums: List[float] = []
+class _Pool(list):
+    """The numbers of the tool results; ``percent`` holds those known to be in percent (a string
+    written "25%" or "25 percent", a value under a percent-like key such as ``pnl_pct``, ``rate`` or
+    ``yield``, or beside ``format``/``unit: percent``), which a figure written with "%" may match
+    as written (Quantitative Planners §2.4)."""
 
-    def walk(v: Any):
-        if isinstance(v, bool):
+    def __init__(self) -> None:
+        super().__init__()
+        self.percent: List[float] = []
+
+
+_PCT_KEY = re.compile(r"(?:^|[^a-z])(?:pct|percent|percentage|perc|rate|rates|yield|yields)(?:$|[^a-z])|%", re.IGNORECASE)
+_PCT_FORMATS = ("percent", "pct", "%", "percentage")
+
+
+def _result_numbers(results: List[Dict[str, Any]]) -> "_Pool":
+    nums = _Pool()
+
+    def walk(v: Any, pct: bool = False, depth: int = 0):
+        if isinstance(v, bool) or depth > 64:
             return
         if isinstance(v, (int, float)):
             nums.append(float(v))
+            if pct:
+                nums.percent.append(float(v))
         elif isinstance(v, str):
-            nums.extend(n["value"] for n in extract_numbers(v))
-            nums.extend(n["mantissa"] for n in extract_numbers(v) if n["scaled"])
+            for n in extract_numbers(v):
+                nums.append(n["value"])
+                if n["scaled"]:
+                    nums.append(n["mantissa"])
+                if n["pct"] or (pct and not n["scaled"]) or _unit_tag(v, n) == "percent":
+                    nums.percent.append(n["mantissa"])
         elif isinstance(v, dict):
-            for x in v.values():
-                walk(x)
+            fmt = str(v.get("format") or v.get("unit") or "").strip().lower()
+            here = pct or fmt in _PCT_FORMATS
+            for k, x in v.items():
+                walk(x, here or bool(_PCT_KEY.search(str(k))), depth + 1)
         elif isinstance(v, list):
             for x in v:
-                walk(x)
+                walk(x, pct, depth + 1)
     for r in results:
         if not r.get("ok"):
             continue
@@ -142,11 +165,17 @@ def _figures(ctx: CheckContext, s: Dict[str, Any]):
         yield n
 
 
-def _in_results(n: Dict[str, Any], pool: List[float], tol: float) -> bool:
+def _in_results(n: Dict[str, Any], pool: List[float], tol: float, tag: str = "") -> bool:
+    """A figure matches a tool-result number. One written in percent ("25%", "25 percent") matches a
+    result known to be in percent as written, or any result as a ratio (0.25); never a bare 25
+    (Quantitative Planners §2.4)."""
     v = n["value"]
+    if n["pct"] or tag == "percent":
+        percent = getattr(pool, "percent", [])
+        d = n["mantissa"]
+        return (any(_matches(d, n["decimals"], r, tol) for r in percent)
+                or any(_matches(d / 100.0, n["decimals"] + 2, r, tol) for r in pool))
     cands = [(v, n["decimals"])]
-    if n["pct"]:
-        cands.append((v / 100.0, n["decimals"] + 2))
     if n["scaled"]:
         cands.append((n["mantissa"], n["decimals"]))
     return any(_matches(d, dec, r, tol) for d, dec in cands for r in pool)
@@ -161,7 +190,7 @@ def numbers_in_results(ctx: CheckContext, s: Dict[str, Any]) -> List[Dict[str, A
     tol = float(s.get("tolerance", 0.005))
     pool = _result_numbers(ctx.results)
     return [_finding("numbers_in_results", f"{n['raw']} does not appear in any tool result", _shown(n["value"]))
-            for n in _figures(ctx, s) if not _in_results(n, pool, tol)]
+            for n in _figures(ctx, s) if not _in_results(n, pool, tol, _unit_tag(ctx.draft, n))]
 
 
 # ── numbers in the workspace (Quantitative Planners §2.4) ────────
@@ -180,21 +209,75 @@ def _unit_tag(text: str, n: Dict[str, Any]) -> str:
     return "bp" if w.startswith(("bp", "basis")) else "pp" if w.startswith(("pp", "percentage")) else "percent"
 
 
-def _in_workspace(n: Dict[str, Any], tag: str, figures: List[tuple], tol: float) -> bool:
-    """A figure matches a quantity at the precision written, in the unit written (a rate unit), or,
-    with no rate unit written, in any unit the quantity converts to."""
+_NAMED_UNIT = re.compile(r"(?:\b(?:in|as an?)\s+|\(\s*)(bps?|basis points?|percent(?:age)? points?|per ?cent|pp|%|"
+                         r"ratio|decimal|fraction)(?![a-z])\s*\)?[^.;\n\d]{0,24}$", re.IGNORECASE)
+_RATE = ("percent", "pp", "bp", "ratio")
+_TIME = ("days", "years")
+
+
+def _named_unit(text: str, n: Dict[str, Any]) -> str:
+    """The rate unit the text names just before a figure ("in bp: 45", "(%) 4.5", "as a decimal,
+    0.0045"): ``bp``, ``pp``, ``percent`` or ``ratio``; else ""."""
+    m = _NAMED_UNIT.search(text[max(0, n["start"] - 48):n["start"]])
+    if not m:
+        return ""
+    w = m.group(1).lower()
+    if w.startswith(("bp", "basis")):
+        return "bp"
+    if w.startswith("pp") or "point" in w:
+        return "pp"
+    if w in ("ratio", "decimal", "fraction"):
+        return "ratio"
+    return "percent"
+
+
+def _own_unit_figures(figures: List[tuple]) -> List[tuple]:
+    """The workspace figures a figure written with no unit may match: each quantity in its own unit,
+    or (a currency or a count) at another scale of it; never in a rate or time unit it merely
+    converts to (no "400" for 4%, as 400 bp)."""
+    own: Dict[str, Any] = {}
+    out = []
+    for r, u, name in figures:
+        o = own.setdefault(name, u)
+        if u == o or (u.kind == o.kind and u.kind not in _RATE + _TIME):
+            out.append((r, u, name))
+    return out
+
+
+def _in_workspace(n: Dict[str, Any], tag: str, figures: List[tuple], tol: float, text: Optional[str] = None) -> bool:
+    """A figure matches a quantity at the precision written: in the unit written (a rate unit), or the
+    unit the text names just before it; with neither, in the quantity's own unit (§2.4)."""
+    return bool(workspace_matches(n, tag, figures, tol, text, first=True))
+
+
+def workspace_matches(n: Dict[str, Any], tag: str, figures: List[tuple], tol: float, text: Optional[str] = None,
+                      first: bool = False) -> List[tuple]:
+    """``(name, relative difference)`` of every workspace quantity the figure ``n`` matches (the rules
+    of :func:`_in_workspace`); with ``first`` the search stops at the first match."""
+    if not tag and text is not None:
+        tag = _named_unit(text, n)
+    out: List[tuple] = []
     if tag:
-        d = n["mantissa"]
-        return any(u.kind == tag and _matches(d, n["decimals"], r, tol) for r, u, _ in figures)
-    cands = [(n["value"], n["decimals"])] + ([(n["mantissa"], n["decimals"])] if n["scaled"] else [])
-    return any(_matches(d, dec, r, tol) for d, dec in cands for r, _u, _ in figures)
+        cands = [(n["mantissa"], n["decimals"])]
+        pool = [(r, u, name) for r, u, name in figures if u.kind == tag]
+    else:
+        cands = [(n["value"], n["decimals"])] + ([(n["mantissa"], n["decimals"])] if n["scaled"] else [])
+        pool = _own_unit_figures(figures)
+    for d, dec in cands:
+        for r, _u, name in pool:
+            if _matches(d, dec, r, tol):
+                out.append((name, abs(d - r) / max(abs(d), abs(r), 1e-12)))
+                if first:
+                    return out
+    return out
 
 
 @register_check("numbers_in_workspace")
 def numbers_in_workspace(ctx: CheckContext, s: Dict[str, Any]) -> List[Dict[str, Any]]:
     """``numbers_in_results`` generalised: a figure also passes when it matches a quantity of the
-    run's workspace (sajha/ai/quant) in the quantity's unit or one it converts to, so "45 bp",
-    "0.45%" and "0.0045" all match a bp_spread of 45."""
+    run's workspace (sajha/ai/quant): written with a rate unit, in that unit ("45 bp" and "0.45%" match
+    a bp_spread of 45); written bare, in the quantity's own unit ("45"), not in every unit it converts
+    to ("0.0045" passes only as "as a decimal, 0.0045")."""
     tol = float(s.get("tolerance", 0.005))
     pool = _result_numbers(ctx.results)
     ws = ctx.workspace
@@ -202,7 +285,7 @@ def numbers_in_workspace(ctx: CheckContext, s: Dict[str, Any]) -> List[Dict[str,
     out = []
     for n in _figures(ctx, s):
         tag = _unit_tag(ctx.draft, n)
-        if _in_results(n, pool, tol) or (figures and _in_workspace(n, tag, figures, tol)):
+        if _in_results(n, pool, tol, tag) or (figures and _in_workspace(n, tag, figures, tol, ctx.draft)):
             continue
         out.append(_finding("numbers_in_workspace",
                             f"{n['raw']}{' ' + tag if tag in ('bp', 'pp') else ''} does not match any tool result or "

@@ -113,6 +113,17 @@ def _residency_offered(name: str) -> bool:
         return True
 
 
+def _policy_offered(tool: Any, ctx: Any) -> bool:
+    """False for a tool the policy would deny for source ``ask`` and this asker (every call a model
+    chooses runs with source ``ask``): it is not offered, so the model never sees it (Policy and Audit §2)."""
+    try:
+        from sajha.observability.caller import from_request_context
+        from sajha.policy import offered
+        return offered(tool, "ask", from_request_context(ctx))
+    except Exception:
+        return True
+
+
 def _one_slot_per_tool(items: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
     """One shortlist slot per tool: a SAJHA Net tool's plain alias and its qualified copies
     (``<net>__<instance>__<tool>``, which carry the alias in their net metadata) are one tool. The bare
@@ -181,6 +192,7 @@ class AskResult:
     queries: List[Dict[str, Any]] = field(default_factory=list)      # SQL run over loaded results (data_analyst)
     code_runs: List[Dict[str, Any]] = field(default_factory=list)    # sandboxed code runs (code_act): code, digest, output
     workspace: Optional[Dict[str, Any]] = None                       # the run's quantities (sajha/ai/quant), JSON
+    figures: List[Dict[str, Any]] = field(default_factory=list)      # answer figures from the workspace: start, end, text, quantity
     scenario_tables: List[Dict[str, Any]] = field(default_factory=list)  # sensitivity tables (scenario): rows per point
     reconciliations: List[Dict[str, Any]] = field(default_factory=list)  # comparisons across sources (reconcile)
     context_trims: List[Dict[str, Any]] = field(default_factory=list)    # oldest turns dropped on ContextTooLong
@@ -198,6 +210,7 @@ class AskResult:
                 "planner_path": self.planner_path, "loops_exhausted": self.loops_exhausted,
                 "planner_by": self.planner_by, "input_request": self.input_request,
                 "queries": self.queries, "code_runs": self.code_runs, "workspace": self.workspace,
+                "figures": self.figures,
                 "scenario_tables": self.scenario_tables, "reconciliations": self.reconciliations,
                 "context_trims": self.context_trims}
 
@@ -274,6 +287,15 @@ def _history_messages(history: List[Any]) -> List[ChatMessage]:
         elif getattr(m, "role", "") in ("user", "assistant"):
             out.append(ChatMessage.user(m.text) if m.role == "user" else ChatMessage.assistant(m.text))
     return out
+
+
+def _output_schema(tool: Any) -> Optional[Dict[str, Any]]:
+    """An offered tool's outputSchema, when it has one (the units it declares: x-sajha-unit)."""
+    try:
+        schema = tool.output_schema
+    except Exception:
+        return None
+    return schema if isinstance(schema, dict) and schema else None
 
 
 def _tool_definition(name: str, tool: Any) -> ToolDefinition:
@@ -441,7 +463,7 @@ class IntelligenceService:
                 continue
             if ctx.can_use_tool is not None and not ctx.can_use_tool(m.tool_name):
                 continue
-            if not _residency_offered(m.tool_name):
+            if not _residency_offered(m.tool_name) or not _policy_offered(tool, ctx):
                 continue
             out.append({"name": m.tool_name, "description": (tool.description or "")[:300],
                         "score": round(float(m.confidence), 4), "tool": tool})
@@ -464,7 +486,7 @@ class IntelligenceService:
         out = []
         for name in ranked:
             tool = self.tools_registry.get_tool(name)
-            if tool is None or not getattr(tool, "enabled", True):
+            if tool is None or not getattr(tool, "enabled", True) or not _policy_offered(tool, ctx):
                 continue
             out.append({"name": name, "description": (tool.description or "")[:300],
                         "score": round(scores.get(name, 0.0), 4), "tool": tool})
@@ -616,7 +638,8 @@ class IntelligenceService:
         where = self._locality(locality, planner, info)
         sl = self.shortlist(asked, ctx, among=tools, locality=where[:2]) if tools_ok and (tools is None or tools) else []
         offered = {t["name"]: t["tool"] for t in sl}
-        entries = [ShortlistEntry(t["name"], _tool_definition(t["name"], t["tool"]), t["score"], t["description"])
+        entries = [ShortlistEntry(t["name"], _tool_definition(t["name"], t["tool"]), t["score"], t["description"],
+                                  _output_schema(t["tool"]))
                    for t in sl]
         res.shortlist = [t["name"] for t in sl]
         yield ev("shortlist", tools=[{k: v for k, v in t.items() if k != "tool"} for t in sl],
@@ -855,6 +878,12 @@ class IntelligenceService:
         ws = state.data.get("workspace")
         if ws is not None and hasattr(ws, "to_json") and len(ws):
             res.workspace = ws.to_json()      # the run record keeps the quantities and their lineage
+            if res.answer and stopped not in ("needs_confirmation", "needs_connection", "needs_input"):
+                try:
+                    from sajha.ai.planners_engine.numbers import workspace_figures
+                    res.figures = workspace_figures(res.answer, asked, ws)
+                except Exception as e:        # marking figures is a convenience; never fail the ask on it
+                    logger.debug(f"ask: figures not marked ({e})")
         if stopped == "needs_input" and res.input_request and not res.answer:
             res.answer = res.input_request.get("message") or ""
         for st in res.steps:
@@ -874,6 +903,9 @@ class IntelligenceService:
         for chunk in _chunks(res.answer):
             yield ev("answer_delta", text=chunk)
         yield ev("answer", text=res.answer)
+        if res.figures:                       # the answer's figures and their lineage (the Ask page marks them)
+            yield ev("workspace", figures=res.figures,
+                     quantities=ws.view([f["quantity"] for f in res.figures]))
         yield ev("confidence", value=round(res.confidence, 4), basis=basis)
         if audit:
             self._write_audit(res, ctx)

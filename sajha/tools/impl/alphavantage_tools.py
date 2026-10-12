@@ -15,6 +15,7 @@ import json, urllib.request, urllib.parse, logging
 from typing import Dict, Any
 from sajha.tools.base_mcp_tool import BaseMCPTool
 from sajha.tools.http_utils import safe_json_response, ENCODINGS_ALL
+from sajha.core import outbound
 
 logger = logging.getLogger(__name__)
 AV_BASE = "https://www.alphavantage.co/query"
@@ -34,7 +35,7 @@ class AVBaseTool(BaseMCPTool):
         url = f"{AV_BASE}?{urllib.parse.urlencode(params)}"
         try:
             req = urllib.request.Request(url, headers={'Accept': 'application/json'})
-            with urllib.request.urlopen(req, timeout=30) as resp:
+            with outbound.urlopen(req, timeout=30) as resp:
                 data = safe_json_response(resp, ENCODINGS_ALL)
         except Exception as e:
             return {"error": str(e)}

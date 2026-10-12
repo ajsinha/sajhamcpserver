@@ -269,7 +269,7 @@ def test_fred_request_carries_sort_order():
         return _Resp()
 
     tool = fred_tools.FREDGDPTool({'name': 'fred_gdp', 'api_key': 'k'})
-    with mock.patch.object(fred_tools.urllib.request, 'urlopen', fake_urlopen), \
+    with mock.patch.object(fred_tools.outbound, 'urlopen', fake_urlopen), \
             mock.patch.object(fred_tools, 'safe_json_response', lambda *a, **k: {'observations': []}):
         tool.execute({'limit': 3})
     q = dict(urllib.parse.parse_qsl(urllib.parse.urlsplit(urls[0]).query))

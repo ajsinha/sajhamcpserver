@@ -1,0 +1,18 @@
+# An HTTP tool with a recorded cassette (cassettes/wikidata_company_identifiers/deutsche_bank.json): replays offline.
+# Re-record against the live API with: python -m sajha.quality test --tool wikidata_company_identifiers --record
+tool: wikidata_company_identifiers
+cases:
+  - name: deutsche bank
+    tags: [http]
+    arguments: {"name": "Deutsche Bank"}
+    expect:
+      - schema: output
+      - path: "$.qid"
+        equals: "Q66048"
+      - path: "$.lei"
+        equals: "7LTWFZYICNSX8D621K86"
+      - path: "$.source"
+        regex: "Wikidata"
+probe:
+  case: deutsche bank
+  every: 3600

@@ -131,7 +131,10 @@ async def a2a_endpoint(
         })
 
     try:
-        result = await handler(params, auth, db)
+        if handler is _tasks_send:      # runs a tool: its database parts go to the thread pool inside
+            result = await _tasks_send(params, auth, db)
+        else:                           # database work only: in the thread pool (Scaling and State §7)
+            result = await run_in_threadpool(handler, params, auth, db)
         release_session(db)     # done with the database: nothing held across the response's awaits
         return JSONResponse({'jsonrpc': '2.0', 'id': req_id, 'result': result})
     except Exception as e:
@@ -149,7 +152,6 @@ async def _tasks_send(params: dict, auth: AuthContext, db: Session) -> dict:
     """Submit a new task for execution."""
     from sajha.app import tools_registry
     from sajha.auth.access import policy_for
-    policy = policy_for(auth)
     # who is calling, and through what, for the usage ledger and the policy engine
     from sajha.observability.caller import from_auth, set_caller
     from sajha.policy.context import set_source
@@ -170,19 +172,22 @@ async def _tasks_send(params: dict, auth: AuthContext, db: Session) -> dict:
     if not text:
         raise ValueError('No text content in message')
 
-    # Create task record
-    dao = A2ATaskDAO(db)
-    task = A2ATask(
-        session_id=session_id,
-        state='working',
-        input_message=json.dumps(message),
-        caller_agent=_caller(auth),
-    )
-    dao.create(task)
-    # The record is written: give the connection back before the tool runs (it may be slow), so
-    # in-flight tasks never hold the pool (docs/architecture/Scaling and State.md §7). The task is
-    # detached until it is added back below to save its result.
-    release_session(db)
+    # Create task record (and the caller's tool policy) in the thread pool, never on the event loop
+    def create():
+        pol = policy_for(auth)
+        task = A2ATask(
+            session_id=session_id,
+            state='working',
+            input_message=json.dumps(message),
+            caller_agent=_caller(auth),
+        )
+        A2ATaskDAO(db).create(task)
+        # The record is written: give the connection back before the tool runs (it may be slow), so
+        # in-flight tasks never hold the pool (docs/architecture/Scaling and State.md §7). The task is
+        # detached until it is added back below to save its result.
+        release_session(db)
+        return task, pol
+    task, policy = await run_in_threadpool(create)
 
     # Try to match to a tool and execute
     # Simple strategy: look for tool name in the text, or use first tool mentioned
@@ -225,13 +230,14 @@ async def _tasks_send(params: dict, auth: AuthContext, db: Session) -> dict:
     task.output_artifacts = json.dumps([{
         'parts': [{'type': 'text', 'text': result_text}],
     }])
-    db.add(task)
-    dao.update(task)
+    def save():
+        db.add(task)
+        A2ATaskDAO(db).update(task)
+        return _task_to_response(task)
+    return await run_in_threadpool(save)
 
-    return _task_to_response(task)
 
-
-async def _tasks_get(params: dict, auth: AuthContext, db: Session) -> dict:
+def _tasks_get(params: dict, auth: AuthContext, db: Session) -> dict:
     """Get task status by ID."""
     task_id = params.get('id')
     if not task_id:
@@ -245,7 +251,7 @@ async def _tasks_get(params: dict, auth: AuthContext, db: Session) -> dict:
     return _task_to_response(task)
 
 
-async def _tasks_cancel(params: dict, auth: AuthContext, db: Session) -> dict:
+def _tasks_cancel(params: dict, auth: AuthContext, db: Session) -> dict:
     """Cancel a running task."""
     task_id = params.get('id')
     if not task_id:

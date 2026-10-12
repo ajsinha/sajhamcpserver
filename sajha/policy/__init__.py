@@ -26,10 +26,21 @@ def apply_output(enforcement, result: Any) -> Any:
     return result if enforcement is None else enforcement.apply_output(result)
 
 
+def offered(tool, source: str, caller: Any = None) -> bool:
+    """False when the policy would deny every call of ``tool`` from ``source`` by ``caller`` (default:
+    the current caller): such a tool is not offered to a model. No side effects; an error offers it
+    (the call-time check still applies)."""
+    try:
+        from sajha.policy.engine import get_engine as _g
+        return _g().denies(tool, source, caller) is None
+    except Exception:
+        return True
+
+
 def get_engine():
     from sajha.policy.engine import get_engine as _g
     return _g()
 
 
-__all__ = ['enforce', 'apply_output', 'get_engine', 'PolicyError', 'PolicyDenied', 'ApprovalRequired',
+__all__ = ['enforce', 'apply_output', 'offered', 'get_engine', 'PolicyError', 'PolicyDenied', 'ApprovalRequired',
            'RateLimited']

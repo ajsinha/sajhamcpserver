@@ -23,7 +23,7 @@
             <div class="card mb-4">
                 <div class="card-header card-header-primary d-flex justify-content-between">
                     <span><i class="bi bi-list-ul me-2"></i>{{ _('Composite Tools') }}</span>
-                    <button class="btn btn-sm btn-outline-light" data-onclick="newComposite()"><i class="bi bi-plus-lg"></i></button>
+                    <button class="btn btn-sm btn-outline-light" data-onclick="newComposite()" aria-label="{{ _('New composite tool') }}" title="{{ _('New composite tool') }}"><i class="bi bi-plus-lg" aria-hidden="true"></i></button>
                 </div>
                 <div class="card-body p-0" id="toolList"><div class="text-center py-4 text-muted"><div class="skeleton skeleton-card mb-2"></div><small>{{ _('Loading composites...') }}</small></div></div>
             </div>
@@ -36,24 +36,24 @@
                 </div>
                 <div class="card-body">
                     <div class="row mb-3">
-                        <div class="col-md-6"><label class="form-label fw-bold">{{ _('Name') }}</label><input class="form-control" id="ctName" placeholder="market_snapshot"></div>
-                        <div class="col-md-3"><label class="form-label fw-bold">{{ _('Arrangement') }}</label>
+                        <div class="col-md-6"><label for="ctName" class="form-label fw-bold">{{ _('Name') }}</label><input class="form-control" id="ctName" placeholder="market_snapshot"></div>
+                        <div class="col-md-3"><label for="ctArrangement" class="form-label fw-bold">{{ _('Arrangement') }}</label>
                             <select class="form-select" id="ctArrangement" data-onchange="updateUI()">
                                 <option value="sibling">{{ _('Sibling (parallel)') }}</option>
                                 <option value="parent_child">{{ _('Parent → Child (fan-out)') }}</option>
                             </select>
                         </div>
-                        <div class="col-md-3"><label class="form-label fw-bold">{{ _('Master output key') }}</label><input class="form-control" id="ctMasterKey" value="master"></div>
+                        <div class="col-md-3"><label for="ctMasterKey" class="form-label fw-bold">{{ _('Master output key') }}</label><input class="form-control" id="ctMasterKey" value="master"></div>
                     </div>
-                    <div class="mb-3"><label class="form-label fw-bold">{{ _('Description') }}</label><input class="form-control" id="ctDesc" placeholder="{{ _('Describe what this composite tool does') }}"></div>
+                    <div class="mb-3"><label for="ctDesc" class="form-label fw-bold">{{ _('Description') }}</label><input class="form-control" id="ctDesc" placeholder="{{ _('Describe what this composite tool does') }}"></div>
                     <div class="row mb-3">
-                        <div class="col-md-6"><label class="form-label fw-bold">{{ _('Master tool') }}</label>
+                        <div class="col-md-6"><label for="ctMaster" class="form-label fw-bold">{{ _('Master tool') }}</label>
                             <select class="form-select" id="ctMaster">
                                 {% for t in tool_names %}<option value="{{ t }}">{{ t }}</option>{% endfor %}
                             </select>
                         </div>
                         <div class="col-md-6" id="recordPathGroup" style="display:none">
-                            <label class="form-label fw-bold">{% trans %}Record path <small class="text-muted">(path to array in master output)</small>{% endtrans %}</label>
+                            <label for="ctRecordPath" class="form-label fw-bold">{% trans %}Record path <small class="text-muted">(path to array in master output)</small>{% endtrans %}</label>
                             <input class="form-control" id="ctRecordPath" placeholder="{{ _('rows') }}">
                         </div>
                     </div>
@@ -113,11 +113,11 @@ function addStep() {
     var idx = $('#stepsContainer .step-row').length;
     var opts = allTools.map(t => '<option value="' + t + '">' + t + '</option>').join('');
     var html = '<div class="step-row card mb-2 p-3 bg-light">';
-    html += '<div class="d-flex justify-content-between mb-2"><strong>' + _t('Step') + ' ' + (idx + 1) + '</strong><button class="btn btn-sm btn-outline-danger" data-onclick="sajhaRemoveClosest(this, \'.step-row\')"><i class="bi bi-x"></i></button></div>';
+    html += '<div class="d-flex justify-content-between mb-2"><strong>' + _t('Step') + ' ' + (idx + 1) + '</strong><button class="btn btn-sm btn-outline-danger" data-onclick="sajhaRemoveClosest(this, \'.step-row\')" aria-label="' + _t('Remove step') + '" title="' + _t('Remove step') + '"><i class="bi bi-x" aria-hidden="true"></i></button></div>';
     html += '<div class="row">';
-    html += '<div class="col-md-4 mb-2"><label class="form-label small fw-bold">' + _t('Tool') + '</label><select class="form-select form-select-sm step-tool">' + opts + '</select></div>';
+    html += '<div class="col-md-4 mb-2"><label class="form-label small fw-bold">' + _t('Tool') + '</label><select class="form-select form-select-sm step-tool" aria-label="' + _t('Tool') + '">' + opts + '</select></div>';
     html += '<div class="col-md-3 mb-2"><label class="form-label small fw-bold">' + _t('Output key') + '</label><input class="form-control form-control-sm step-key" placeholder="result_key" value="step_' + idx + '"></div>';
-    html += '<div class="col-md-2 mb-2"><label class="form-label small fw-bold">' + _t('Mode') + '</label><select class="form-select form-select-sm exec-mode"><option value="parallel">' + _t('Parallel') + '</option><option value="for_each_record">' + _t('For each record') + '</option></select></div>';
+    html += '<div class="col-md-2 mb-2"><label class="form-label small fw-bold">' + _t('Mode') + '</label><select class="form-select form-select-sm exec-mode" aria-label="' + _t('Mode') + '"><option value="parallel">' + _t('Parallel') + '</option><option value="for_each_record">' + _t('For each record') + '</option></select></div>';
     html += '<div class="col-md-3 mb-2"><label class="form-label small fw-bold">' + _t('Param mapping') + ' <small class="text-muted">(JSON)</small></label><input class="form-control form-control-sm step-mapping" placeholder=\'{"symbol":"$.ticker"}\'></div>';
     html += '</div>';
     html += '<div class="row"><div class="col-md-6"><label class="form-label small fw-bold">' + _t('Static params') + ' <small class="text-muted">(JSON)</small></label><input class="form-control form-control-sm step-static" placeholder=\'{"limit":5}\'></div>';

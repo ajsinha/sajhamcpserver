@@ -41,8 +41,18 @@
   "outputSchema": {
     "type": "object",
     "properties": {
-      "result": {
-        "type": "object"
+      "wacc": {
+        "type": "number",
+        "description": "Weighted average cost of capital",
+        "x-sajha-unit": "percent"
+      },
+      "equity_weight": {
+        "type": "number",
+        "x-sajha-unit": "ratio"
+      },
+      "debt_weight": {
+        "type": "number",
+        "x-sajha-unit": "ratio"
       }
     }
   },

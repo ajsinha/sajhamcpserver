@@ -1,0 +1,18 @@
+# An HTTP tool with a recorded cassette (cassettes/fdic_financials/jpmorgan_2024.json): replays offline.
+# Re-record against the live API with: python -m sajha.quality test --tool fdic_financials --record
+tool: fdic_financials
+cases:
+  - name: jpmorgan 2024
+    tags: [http]
+    arguments: {"cert": 628, "fields": ["total_assets", "net_income", "tier1_risk_based_ratio"], "period": "2024"}
+    expect:
+      - schema: output
+      - path: "$.count"
+        equals: 4
+      - path: "$.quarters[0].quarter"
+        equals: "2024-Q1"
+      - path: "$.quarters[0].total_assets"
+        min: 1000000000
+probe:
+  case: jpmorgan 2024
+  every: 3600

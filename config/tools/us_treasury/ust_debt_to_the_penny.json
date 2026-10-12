@@ -61,19 +61,22 @@
               "type": [
                 "number",
                 "null"
-              ]
+              ],
+              "x-sajha-unit": "USD"
             },
             "debt_held_by_the_public": {
               "type": [
                 "number",
                 "null"
-              ]
+              ],
+              "x-sajha-unit": "USD"
             },
             "intragovernmental_holdings": {
               "type": [
                 "number",
                 "null"
-              ]
+              ],
+              "x-sajha-unit": "USD"
             }
           },
           "required": [

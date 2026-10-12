@@ -55,6 +55,7 @@
               "type": "string"
             },
             "value": {
+              "x-sajha-unit": "percent",
               "type": [
                 "number",
                 "null"

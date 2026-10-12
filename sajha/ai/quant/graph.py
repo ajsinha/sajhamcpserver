@@ -21,7 +21,8 @@ The form (a structured reply)::
      "why": "one sentence"}
 
 A node is one of three kinds: a **tool read** (``tool``, ``arguments``, ``read``: a JSONPath into
-the result, ``unit``: the declared unit, optional ``as_of``), a **constant** (``value``, ``unit``)
+the result, ``unit``: the declared unit, replaced by the tool's own when its outputSchema declares
+one with ``x-sajha-unit``, optional ``as_of``), a **constant** (``value``, ``unit``)
 or an **operation** (``op``, its arguments by name as in ``ops.operations()``, or ``args`` for
 positional ones). An argument that is a node name (or ``node.part`` for ``regression``) is a
 reference; anything else is a literal. Validation: names are identifiers not already in the
@@ -34,7 +35,7 @@ from __future__ import annotations
 import json
 import re
 from dataclasses import dataclass, field
-from typing import Any, Dict, Iterable, List, Optional, Set, Tuple
+from typing import Any, Callable, Dict, Iterable, List, Optional, Set, Tuple
 
 from sajha.ai.quant.errors import QuantError, UnitError
 from sajha.ai.quant.quantity import Quantity, Workspace, normalise_value
@@ -69,6 +70,7 @@ class Node:
     spec: Dict[str, Any]
     deps: List[str] = field(default_factory=list)
     arguments: Dict[str, Any] = field(default_factory=dict)     # a tool node's call arguments
+    unit_from: str = "declared"                  # a tool read: "schema" when the tool's outputSchema declares it
 
 
 @dataclass
@@ -137,10 +139,13 @@ def _find_cycle(nodes: Dict[str, Node], left: Set[str]) -> List[str]:
 
 
 def parse_graph(data: Any, *, offered: Optional[Iterable[str]] = None, max_nodes: int = 40,
-                taken: Iterable[str] = ()) -> Tuple[Optional[Graph], List[str]]:
+                taken: Iterable[str] = (),
+                unit_of: Optional[Callable[[str, str], Optional[str]]] = None) -> Tuple[Optional[Graph], List[str]]:
     """Validate a graph reply. Returns ``(graph, [])`` or ``(None, errors)``; each error names the
     node it is about and is written for the model. ``offered``: the tools offered to the run (None
-    skips that check); ``taken``: workspace names the graph may not reuse."""
+    skips that check); ``taken``: workspace names the graph may not reuse; ``unit_of(tool, path)``:
+    the unit the tool's outputSchema declares for a read path (``x-sajha-unit``), which replaces the
+    model's ``unit`` (and may stand in for a missing one), so the unit check runs on the true units."""
     from sajha.ai.quant.ops import operations
     errors: List[str] = []
 
@@ -199,7 +204,16 @@ def parse_graph(data: Any, *, offered: Optional[Iterable[str]] = None, max_nodes
                     parse(read)
                 except JSONPathError as e:
                     err(f"{where}: the read path {read} does not parse: {e}")
-            if "unit" not in spec:
+            declared = None
+            if unit_of is not None and isinstance(tool, str) and isinstance(read, str) and read.strip():
+                try:
+                    declared = unit_of(tool, read)
+                except Exception:
+                    declared = None
+            if declared:
+                node.spec["unit"] = declared
+                node.unit_from = "schema"
+            elif "unit" not in spec:
                 err(f"{where}: declare the unit of the value read (for example USD mn, percent, bp, index)")
             else:
                 try:

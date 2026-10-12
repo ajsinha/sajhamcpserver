@@ -67,6 +67,29 @@ def _config_of(data: Dict[str, Any]) -> Dict[str, Any]:
     raise BuildError('send {"form": {...}} or {"config": {...}}')
 
 
+def _served_domain(name: str, cfg: Dict[str, Any]) -> Dict[str, Any]:
+    """The tool's folder domain description and the description SAJHA serves it with
+    (sajha/tools/domain_text.py::studio_view); from the registry when the tool is loaded."""
+    from sajha.tools.domain_text import studio_view
+    from sajha.tools.tools_registry import ToolsRegistry
+    reg = ToolsRegistry._instance
+    tool = reg.get_tool(name) if reg is not None else None
+    if tool is not None:
+        return studio_view(tool=tool)
+    folder = None
+    try:
+        from sajha.tools.tool_files import get_index
+        folder = get_index().folder_of(name)
+    except Exception:
+        folder = None
+    return studio_view(folder, cfg.get('description') or '')
+
+
+def _domain_texts():
+    from sajha.tools.domain_text import studio_domain_texts
+    return studio_domain_texts()
+
+
 def _tool_folders():
     from sajha.routes.studio_routes import _tool_folders as folders
     return folders()
@@ -81,6 +104,7 @@ async def studio_llm(request: Request, auth: AuthContext = Depends(LLM)):
         'llm_options': await run_in_threadpool(b.options),
         'edit_name': request.query_params.get('edit') or '',
         'tool_folders': await run_in_threadpool(_tool_folders),
+        'tool_domain_texts': await run_in_threadpool(_domain_texts),
     })
 
 
@@ -107,7 +131,8 @@ async def llm_tool(name: str, auth: AuthContext = Depends(LLM)):
         if cfg is None:
             raise b.BuildError(f'no LLM tool named {name}', 404)
         return {'config': cfg, 'form': b.form_from_config(cfg), 'editable': is_owner(auth, creator_of(cfg)),
-                'created_by': creator_of(cfg) or None, 'check': b.check(cfg, editing=True)}
+                'created_by': creator_of(cfg) or None, 'check': b.check(cfg, editing=True),
+                'domain': _served_domain(name, cfg)}
     return await _run(load)
 
 

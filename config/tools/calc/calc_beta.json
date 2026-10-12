@@ -32,8 +32,13 @@
   "outputSchema": {
     "type": "object",
     "properties": {
-      "result": {
-        "type": "object"
+      "beta": {
+        "type": "number",
+        "x-sajha-unit": "unitless"
+      },
+      "data_points": {
+        "type": "number",
+        "x-sajha-unit": "count"
       }
     }
   },

@@ -256,7 +256,7 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
     </div>
     
     <!-- Status Message -->
-    <div id="statusMessage" class="status-message"></div>
+    <div id="statusMessage" class="status-message" role="status" aria-live="polite"></div>
     
     <div class="row">
         <!-- Left Column: Configuration -->
@@ -270,20 +270,20 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
                 <div class="section-body">
                     <div class="row mb-3">
                         <div class="col-md-6">
-                            <label class="form-label fw-bold">{{ _('Tool Name *') }}</label>
+                            <label for="toolName" class="form-label fw-bold">{{ _('Tool Name *') }}</label>
                             <input type="text" id="toolName" class="form-control" 
                                    placeholder="e.g., system_health_check"
                                    pattern="[a-z][a-z0-9_]*">
                             <div class="form-text">{{ _('Lowercase letters, numbers, underscores. Must start with a letter.') }}</div>
                         </div>
                         <div class="col-md-6">
-                            <label class="form-label fw-bold">{{ _('Category') }}</label>
+                            <label for="category" class="form-label fw-bold">{{ _('Category') }}</label>
                             <input type="text" id="category" class="form-control" 
                                    value="Script" placeholder="{{ _('e.g., System, Automation') }}">
                         </div>
                     </div>
                     <div class="mb-3">
-                        <label class="form-label fw-bold">{{ _('Description *') }}</label>
+                        <label for="description" class="form-label fw-bold">{{ _('Description *') }}</label>
                         <textarea id="description" class="form-control" rows="2"
                                   placeholder="Describe what this script tool does..."></textarea>
                     </div>
@@ -341,11 +341,11 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
                 </div>
                 <div class="section-body">
                     <!-- File Upload -->
-                    <div class="file-upload-area mb-3" id="fileUploadArea">
+                    <div class="file-upload-area mb-3" id="fileUploadArea" role="button" tabindex="0">
                         <i class="bi bi-cloud-arrow-up d-block"></i>
                         <p class="mb-1 fw-bold">{{ _('Drag & drop a script file here') }}</p>
                         <p class="mb-0 text-muted small">{{ _('or click to browse (.sh, .py, .js, .pl, .rb)') }}</p>
-                        <input type="file" id="fileInput" class="d-none" 
+                        <input type="file" id="fileInput" class="d-none" aria-label="{{ _('Script file') }}" 
                                accept=".sh,.bash,.py,.js,.pl,.rb,.ps1">
                     </div>
                     
@@ -381,18 +381,18 @@ echo &quot;Hello from SAJHA MCP Server!&quot;
                     <div class="section-body">
                         <div class="row mb-3">
                             <div class="col-md-4">
-                                <label class="form-label">{{ _('Timeout (seconds)') }}</label>
+                                <label for="timeout" class="form-label">{{ _('Timeout (seconds)') }}</label>
                                 <input type="number" id="timeout" class="form-control" 
                                        value="30" min="1" max="300">
                                 <div class="form-text">{{ _('1-300 seconds') }}</div>
                             </div>
                             <div class="col-md-4">
-                                <label class="form-label">{{ _('Max Arguments') }}</label>
+                                <label for="maxArgs" class="form-label">{{ _('Max Arguments') }}</label>
                                 <input type="number" id="maxArgs" class="form-control" 
                                        value="10" min="0" max="100">
                             </div>
                             <div class="col-md-4">
-                                <label class="form-label">{{ _('Working Directory') }}</label>
+                                <label for="workingDir" class="form-label">{{ _('Working Directory') }}</label>
                                 <input type="text" id="workingDir" class="form-control" 
                                        placeholder="{{ _('(Default: script directory)') }}">
                             </div>
@@ -457,8 +457,9 @@ echo &quot;Hello from SAJHA MCP Server!&quot;
             <div class="preview-panel mb-4">
                 <div class="preview-header">
                     <h6><i class="bi bi-code-square me-2"></i>{{ _('Generated Config Preview') }}</h6>
-                    <button class="btn btn-sm btn-outline-light" data-onclick="copyPreview('jsonPreview')">
-                        <i class="bi bi-clipboard"></i>
+                    <button class="btn btn-sm btn-outline-light" data-onclick="copyPreview('jsonPreview')"
+                            aria-label="{{ _('Copy the config preview') }}" title="{{ _('Copy') }}">
+                        <i class="bi bi-clipboard" aria-hidden="true"></i>
                     </button>
                 </div>
                 <div id="jsonPreview" class="preview-content">
@@ -469,8 +470,9 @@ echo &quot;Hello from SAJHA MCP Server!&quot;
             <div class="preview-panel mb-4">
                 <div class="preview-header">
                     <h6><i class="bi bi-filetype-py me-2"></i>{{ _('Generated Python Wrapper') }}</h6>
-                    <button class="btn btn-sm btn-outline-light" data-onclick="copyPreview('pythonPreview')">
-                        <i class="bi bi-clipboard"></i>
+                    <button class="btn btn-sm btn-outline-light" data-onclick="copyPreview('pythonPreview')"
+                            aria-label="{{ _('Copy the Python wrapper') }}" title="{{ _('Copy') }}">
+                        <i class="bi bi-clipboard" aria-hidden="true"></i>
                     </button>
                 </div>
                 <div id="pythonPreview" class="preview-content">
@@ -486,22 +488,22 @@ echo &quot;Hello from SAJHA MCP Server!&quot;
                     <i class="bi bi-lightning me-2"></i>{{ _('Quick Examples') }}
                 </div>
                 <div class="card-body">
-                    <div class="example-card" data-onclick="loadExample('system_info')">
+                    <div class="example-card" role="button" tabindex="0" data-onclick="loadExample('system_info')">
                         <h6><i class="bi bi-pc-display me-2"></i>{{ _('System Information') }}</h6>
                         <p>{{ _('Bash script to collect system information (CPU, memory, disk)') }}</p>
                         <span class="badge bg-secondary">{{ _('Bash') }}</span>
                     </div>
-                    <div class="example-card" data-onclick="loadExample('file_search')">
+                    <div class="example-card" role="button" tabindex="0" data-onclick="loadExample('file_search')">
                         <h6><i class="bi bi-search me-2"></i>{{ _('File Search') }}</h6>
                         <p>{{ _('Search for files by pattern in a directory') }}</p>
                         <span class="badge bg-secondary">{{ _('Bash') }}</span>
                     </div>
-                    <div class="example-card" data-onclick="loadExample('json_processor')">
+                    <div class="example-card" role="button" tabindex="0" data-onclick="loadExample('json_processor')">
                         <h6><i class="bi bi-braces me-2"></i>{{ _('JSON Processor') }}</h6>
                         <p>{{ _('Python script to process and transform JSON data') }}</p>
                         <span class="badge bg-info">Python</span>
                     </div>
-                    <div class="example-card" data-onclick="loadExample('log_analyzer')">
+                    <div class="example-card" role="button" tabindex="0" data-onclick="loadExample('log_analyzer')">
                         <h6><i class="bi bi-file-text me-2"></i>{{ _('Log Analyzer') }}</h6>
                         <p>{{ _('Analyze log files and extract patterns') }}</p>
                         <span class="badge bg-info">Python</span>
@@ -544,7 +546,7 @@ echo &quot;Hello from SAJHA MCP Server!&quot;
         const tagsHtml = tags.map(tag => `
             <span class="tag">
                 ${tag}
-                <span class="remove-tag" data-onclick="removeTag('${tag}')">&times;</span>
+                <span class="remove-tag" role="button" tabindex="0" data-onclick="removeTag('${tag}')" aria-label="${_t('Remove tag')}" title="${_t('Remove tag')}">&times;</span>
             </span>
         `).join('');
         tagContainer.innerHTML = tagsHtml + `<input type="text" class="tag-input" id="tagInput" placeholder="${_t('Type and press Enter...')}">`;
@@ -633,8 +635,8 @@ echo &quot;Hello from SAJHA MCP Server!&quot;
         row.innerHTML = `
             <input type="text" class="form-control" placeholder="${_t('Variable name')}" style="flex: 1;">
             <input type="text" class="form-control" placeholder="${_t('Value')}" style="flex: 2;">
-            <button type="button" class="btn btn-outline-danger btn-sm" data-onclick="sajhaRemoveParent(this)">
-                <i class="bi bi-trash"></i>
+            <button type="button" class="btn btn-outline-danger btn-sm" data-onclick="sajhaRemoveParent(this)" aria-label="${_t('Remove variable')}" title="${_t('Remove variable')}">
+                <i class="bi bi-trash" aria-hidden="true"></i>
             </button>
         `;
         container.appendChild(row);

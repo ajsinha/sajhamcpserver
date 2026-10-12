@@ -32,6 +32,7 @@ from typing import Any, Dict, List, Optional
 
 from sajha.tools.base_mcp_tool import BaseMCPTool
 from sajha.tools.http_utils import ENCODINGS_DEFAULT, safe_json_response
+from sajha.core import outbound
 
 API_URL = 'https://api.usa.gov/crime/fbi/cde'
 DEFAULT_TIMEOUT = 30
@@ -188,6 +189,9 @@ def _metadata(data: Dict, endpoint: str) -> Dict[str, Any]:
 class FBIBaseTool(BaseMCPTool):
     """Shared HTTP, key and validation logic for the FBI tools."""
 
+    #: without FBI_API_KEY the tools use api.data.gov's DEMO_KEY (the live check still calls them)
+    keyless_fallback = True
+
     tool_name = ''
     tool_description = ''
 
@@ -232,7 +236,7 @@ class FBIBaseTool(BaseMCPTool):
             'X-Api-Key': self.api_key,
         })
         try:
-            with urllib.request.urlopen(req, timeout=self.timeout) as response:
+            with outbound.urlopen(req, timeout=self.timeout) as response:
                 return safe_json_response(response, ENCODINGS_DEFAULT)
         except urllib.error.HTTPError as e:
             raise self._http_error(e, path) from None

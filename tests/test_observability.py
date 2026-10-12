@@ -11,7 +11,7 @@ Design: docs/architecture/Observability.md.
 import os
 import re
 import time
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 
 import pytest
 import yaml
@@ -21,7 +21,17 @@ from sajha.observability import metrics as M
 from sajha.observability import usage as U
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-TODAY = datetime.now(timezone.utc).strftime('%Y-%m-%d')
+
+
+def _today() -> str:
+    """The UTC day now, read when a test runs (a module constant goes stale across midnight)."""
+    return datetime.now(timezone.utc).strftime('%Y-%m-%d')
+
+
+def _window() -> str:
+    """since/until covering yesterday and today (UTC): a call recorded just before midnight is in it."""
+    now = datetime.now(timezone.utc)
+    return f"since={(now - timedelta(days=1)).strftime('%Y-%m-%d')}&until={now.strftime('%Y-%m-%d')}"
 
 
 def _value(text: str, name: str, **labels) -> float:
@@ -136,7 +146,7 @@ def test_tool_and_legacy_mcp_metrics_and_ledger(web):
     assert _value(after, 'sajha_tool_call_duration_seconds_count', **key) >= 1
     assert _value(after, 'sajha_http_requests_total', method='POST', route='/mcp', status='200') >= 2
     # the usage ledger attributes the call to the signed-in admin
-    rep = c.get(f'/api/observability/usage?since={TODAY}&until={TODAY}&tool=calc_future_value',
+    rep = c.get(f'/api/observability/usage?{_window()}&tool=calc_future_value',
                 cookies=admin).json()
     assert rep['totals']['tool_calls'] >= 1
     assert any(u['key'] == 'admin' for u in rep['by_user'])
@@ -190,7 +200,7 @@ def test_ask_and_llm_metrics(web):
                if l.startswith('sajha_ask_runs_total{')) >= 1
     assert sum(float(l.rsplit(' ', 1)[1]) for l in text.splitlines()
                if l.startswith('sajha_llm_calls_total{')) >= 1
-    rep = c.get(f'/api/observability/usage?since={TODAY}&until={TODAY}', cookies=admin).json()
+    rep = c.get(f'/api/observability/usage?{_window()}', cookies=admin).json()
     assert rep['totals']['llm_calls'] >= 1 and rep['by_model']
 
 
@@ -245,7 +255,7 @@ def test_usage_page_and_csv(web):
     page = c.get('/monitoring/usage', cookies=admin)
     assert page.status_code == 200 and 'Usage &amp; cost' in page.text and 'chart.umd.js' in page.text
     assert c.get('/monitoring/usage', follow_redirects=False).status_code in (302, 401)
-    r = c.get(f'/api/observability/usage.csv?dimension=tool&since={TODAY}&until={TODAY}', cookies=admin)
+    r = c.get(f'/api/observability/usage.csv?dimension=tool&{_window()}', cookies=admin)
     assert r.status_code == 200 and r.headers['content-type'].startswith('text/csv')
     assert r.text.splitlines()[0].startswith('tool,tool_calls,tool_errors,error_rate,p50_ms')
     assert c.get('/api/observability/usage.csv?dimension=bogus', cookies=admin).status_code == 400
@@ -266,16 +276,17 @@ def test_non_admins_see_only_their_own_calls():
 def test_report_aggregates_and_percentiles(monkeypatch):
     from sajha.observability.caller import Caller
     rows = []
+    day = _today()
     monkeypatch.setattr(U, '_rows', lambda s, u, f, limit: rows)
     who = Caller('apikey:ci', 'ci', ('api_consumer',), 'apikey')
     for i, ms in enumerate([10, 20, 30, 40, 1000]):
-        rows.append({'kind': 'tool', 'day': TODAY, 'user_id': who.user_id, 'api_key': 'ci', 'roles': ',api_consumer,',
+        rows.append({'kind': 'tool', 'day': day, 'user_id': who.user_id, 'api_key': 'ci', 'roles': ',api_consumer,',
                      'tool': 'calc_irr', 'provider': None, 'model': None, 'latency_ms': ms,
                      'outcome': 'error' if i == 4 else 'ok', 'input_tokens': 0, 'output_tokens': 0, 'cost_usd': 0})
-    rows.append({'kind': 'llm', 'day': TODAY, 'user_id': who.user_id, 'api_key': 'ci', 'roles': ',api_consumer,',
+    rows.append({'kind': 'llm', 'day': day, 'user_id': who.user_id, 'api_key': 'ci', 'roles': ',api_consumer,',
                  'tool': None, 'provider': 'mock', 'model': 'mock-planner', 'latency_ms': 5, 'outcome': 'ok',
                  'input_tokens': 100, 'output_tokens': 50, 'cost_usd': 0.0123})
-    rep = U.report(TODAY, TODAY)
+    rep = U.report(day, day)
     t = rep['totals']
     assert (t['tool_calls'], t['tool_errors'], t['llm_calls'], t['tokens']) == (5, 1, 1, 150)
     assert t['error_rate'] == 0.2 and t['p50_ms'] == 30.0 and t['cost_usd'] == 0.0123

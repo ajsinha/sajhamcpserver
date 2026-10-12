@@ -9,6 +9,7 @@ import urllib.request
 from typing import Dict, Any, List
 from sajha.tools.base_mcp_tool import BaseMCPTool
 from sajha.tools.http_utils import safe_json_response, ENCODINGS_ALL
+from sajha.core import outbound
 
 
 class GoogleSearchTool(BaseMCPTool):
@@ -238,7 +239,7 @@ class GoogleSearchTool(BaseMCPTool):
         url = f"{self.api_url}?{urllib.parse.urlencode(params)}"
         
         try:
-            with urllib.request.urlopen(url, timeout=30) as response:
+            with outbound.urlopen(url, timeout=30) as response:
                 data = safe_json_response(response, ENCODINGS_ALL)
                 
                 # Extract search information

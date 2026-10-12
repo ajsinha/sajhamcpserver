@@ -438,3 +438,43 @@ def test_pages_render_working_links(studio):
     examples = c.get('/studio/examples', headers=headers).text
     assert 'Simple Calculator' in examples and 'Text Analyzer' in examples
     assert '@sajhamcptool' in c.get('/studio', headers=headers).text  # sample code in the editor
+
+
+# ── domain descriptions in Studio (Architecture §5) ─────────────────────
+
+def test_studio_view_composes_the_folder_domain_text():
+    from sajha.tools.domain_text import compose, get_domain_texts, studio_view
+    text = get_domain_texts().text('ecb')
+    assert text                                       # the shipped config/tools/ecb/domain.txt
+    v = studio_view('ecb', 'My own words.')
+    assert v == {'folder': 'ecb', 'domain_description': text, 'served_description': compose('My own words.', text)}
+    assert studio_view('Unfiled', 'Mine.') == {'folder': '', 'domain_description': '', 'served_description': 'Mine.'}
+    assert studio_view(None, 'Mine.')['domain_description'] == ''
+
+
+def test_creator_previews_and_pages_show_the_domain_description(studio):
+    from sajha.tools.domain_text import get_domain_texts
+    c, headers, _ = studio
+    text = get_domain_texts().text('ecb')
+    payload = {'name': 'zz_test_dom', 'endpoint': 'https://api.example.com/x', 'method': 'GET',
+               'description': 'Own words', 'request_schema': {'type': 'object', 'properties': {}}}
+    d = c.post('/admin/studio/rest/preview', json=dict(payload, folder='ecb'), headers=headers).json()
+    assert d['success'] and d['domain']['domain_description'] == text
+    assert d['domain']['served_description'] == 'Own words\n\n' + text
+    d = c.post('/admin/studio/rest/preview', json=payload, headers=headers).json()
+    assert d['domain'] == {'folder': '', 'domain_description': '', 'served_description': 'Own words'}
+    d = c.post('/admin/studio/analyze', json={'code': CODE, 'tool_name': 'zz_test_dom', 'folder': 'ecb'},
+               headers=headers).json()
+    assert d['success'] and d['domain']['served_description'] == 'Add two integers\n\n' + text
+    page = c.get('/studio/rest', headers=headers).text
+    assert 'id="studioDomainText"' in page and 'Domain description' in page
+    assert json.dumps(text)[1:-1][:40] in page        # the folder texts the Folder field shows
+
+
+def test_llm_tool_detail_shows_its_served_description(studio):
+    from sajha.app import tools_registry
+    c, headers, _ = studio
+    d = c.get('/api/studio/llm/tools/llm_triage_ticket', headers=headers).json()
+    tool = tools_registry.get_tool('llm_triage_ticket')
+    assert d['domain']['served_description'] == tool.served_description
+    assert d['domain']['folder'] == 'llm' and d['domain']['domain_description'] == ''

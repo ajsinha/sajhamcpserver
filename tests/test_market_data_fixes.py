@@ -297,7 +297,7 @@ def test_screener_uses_yf_screen():
 
 def test_trending_tickers_read_yahoos_trending_endpoint():
     body = json.dumps({'finance': {'result': [{'quotes': [{'symbol': 'ASML'}, {'symbol': 'JPM'}]}]}}).encode()
-    with mock.patch('urllib.request.urlopen', return_value=io.BytesIO(body)) as op:
+    with mock.patch('sajha.core.outbound.urlopen', return_value=io.BytesIO(body)) as op:
         out = yft.YFTrendingTickersTool(cfg('yahoo', 'yf_trending_tickers')).execute({'region': 'us', 'limit': 5})
     assert out == {'region': 'US', 'count': 2, 'symbols': ['ASML', 'JPM']}
     assert op.call_args[0][0].full_url.startswith('https://query1.finance.yahoo.com/v1/finance/trending/US?')
@@ -314,7 +314,7 @@ def _av_tool(name, key='k'):
 
 def test_av_without_key_is_a_configuration_error():
     tool, _ = _av_tool('av_stock_quote', key='${alpha_vantage.api.key}')
-    with mock.patch('urllib.request.urlopen') as op:
+    with mock.patch('sajha.core.outbound.urlopen') as op:
         out = tool.execute({'symbol': 'IBM'})
     assert 'ALPHA_VANTAGE_API_KEY' in out['error'] and not op.called
 
@@ -323,7 +323,7 @@ def test_av_notes_become_errors():
     tool, _ = _av_tool('av_stock_quote')
     for note in ('Error Message', 'Information', 'Note'):
         with mock.patch.object(av, 'safe_json_response', return_value={note: 'nope'}), \
-                mock.patch('urllib.request.urlopen'):
+                mock.patch('sajha.core.outbound.urlopen'):
             out = tool.execute({'symbol': 'IBM'})
         assert out['error'] == 'Alpha Vantage: nope' and out['av_note'] == note
 

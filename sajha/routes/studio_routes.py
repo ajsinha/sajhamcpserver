@@ -63,7 +63,7 @@ def _version() -> str:
         from sajha.core.config import get_settings
         return get_settings().app_version
     except Exception:
-        return '8.13.0'
+        return '8.14.0'
 
 
 def _registry():
@@ -110,6 +110,13 @@ def _folder_error(data: Dict[str, Any]) -> Optional[str]:
     return folder_problem(clean_folder(data.get('folder')))
 
 
+def _domain(data: Dict[str, Any], description: str = '') -> Dict[str, Any]:
+    """The domain description of the request's folder and the description the new tool will be served
+    with (``domain`` in every creator's preview; sajha/tools/domain_text.py::studio_view)."""
+    from sajha.tools.domain_text import studio_view
+    return studio_view(data.get('folder'), description or '')
+
+
 def _into(data: Dict[str, Any]):
     """Write the new tool's config into the request's folder (root when none)."""
     from sajha.tools.tool_files import clean_folder, writing_into
@@ -127,6 +134,14 @@ def _impl_module(config: Dict[str, Any]) -> Optional[str]:
     return None
 
 
+def _studio_module(mod: Optional[str], tool_name: str) -> bool:
+    """Whether ``mod`` is a module Studio generated for this tool (``sajha.tools.impl.<prefix><name>``)."""
+    if not mod or not mod.startswith('sajha.tools.impl.') or mod.count('.') != 3:
+        return False
+    leaf = mod.rsplit('.', 1)[-1]
+    return leaf in {p + tool_name for p in STUDIO_MODULE_PREFIXES} | {tool_name, f'{tool_name}_script_tool'}
+
+
 def _hot_load(tool_name: str) -> Tuple[bool, str]:
     """Load the tool's config (root or folder) into the live registry."""
     reg = _registry()
@@ -139,7 +154,7 @@ def _hot_load(tool_name: str) -> Tuple[bool, str]:
         cfg = get_storage().read_json(config_path(tool_name))
         mod = _impl_module(cfg)
         # A module of the same name may be cached from an earlier (deleted) deploy
-        if mod and mod.rsplit('.', 1)[-1].startswith(STUDIO_MODULE_PREFIXES + (tool_name,)):
+        if _studio_module(mod, tool_name):
             sys.modules.pop(mod, None)
     except Exception:
         pass
@@ -161,7 +176,10 @@ def _unload(tool_name: str) -> None:
         reg.tool_errors.pop(tool_name, None)
         reg._file_timestamps.pop(reg._config_rel(f'{tool_name}.json'), None)
     mod = _impl_module(cfg) if cfg else None
-    if mod:
+    # Only a module Studio generated for this tool is forgotten: a shared implementation (an LLM tool's
+    # sajha.ai.llm_tools, a built-in class) must stay, or its re-import makes a second copy of the package
+    # whose submodules are not its attributes.
+    if _studio_module(mod, tool_name):
         sys.modules.pop(mod, None)
 
 
@@ -364,7 +382,14 @@ def _studio_ctx(auth: AuthContext) -> dict:
         'examples': CODE_EXAMPLES,
         'sandbox': _sandbox_policy(),
         'tool_folders': _tool_folders(),
+        'tool_domain_texts': _domain_texts(),
     }
+
+
+def _domain_texts() -> Dict[str, str]:
+    """folder -> its domain.txt text as served, shown by each creator's Folder field."""
+    from sajha.tools.domain_text import studio_domain_texts
+    return studio_domain_texts()
 
 
 def _tool_folders() -> List[str]:
@@ -467,7 +492,8 @@ def _code_generator():
 
 @actions.post('/analyze')
 async def studio_analyze(request: Request, auth: AuthContext = Depends(require_creator('python'))):
-    res = _analyze_code(await _body(request))
+    data = await _body(request)
+    res = _analyze_code(data)
     if isinstance(res, JSONResponse):
         return res
     tool_name, tool_def, analyzer = res
@@ -492,6 +518,7 @@ async def studio_analyze(request: Request, auth: AuthContext = Depends(require_c
         python_filename=preview['python_filename'],
         syntax_valid=preview.get('syntax_valid', True),
         warnings=analyzer.warnings,
+        domain=_domain(data, tool_def.description),
     )
 
 
@@ -624,14 +651,16 @@ def _rest_generator():
 @actions.post('/rest/preview')
 async def studio_rest_preview(request: Request, auth: AuthContext = Depends(require_creator('rest'))):
     try:
-        definition = _rest_definition(await _body(request))
+        data = await _body(request)
+        definition = _rest_definition(data)
         err = _check_new_name(definition.name)
         if err:
             return _fail(err)
         preview = _rest_generator().preview_tool(definition)
         if not preview.get('success'):
             return _fail('Validation errors: ' + ', '.join(preview.get('errors', [])))
-        return _ok(**{k: preview[k] for k in ('json_content', 'python_content', 'json_filename', 'python_filename')})
+        return _ok(**{k: preview[k] for k in ('json_content', 'python_content', 'json_filename', 'python_filename')},
+                   domain=_domain(data, definition.description))
     except Exception as e:
         logger.error(f'Error previewing REST tool: {e}', exc_info=True)
         return _fail(f'Preview error: {e}', 500)
@@ -695,7 +724,8 @@ def _dbquery_generator():
 @actions.post('/dbquery/preview')
 async def studio_dbquery_preview(request: Request, auth: AuthContext = Depends(require_creator('dbquery'))):
     try:
-        definition = _dbquery_definition(await _body(request))
+        data = await _body(request)
+        definition = _dbquery_definition(data)
         err = _check_new_name(definition.name)
         if err:
             return _fail(err)
@@ -703,7 +733,8 @@ async def studio_dbquery_preview(request: Request, auth: AuthContext = Depends(r
         if not preview.get('success'):
             return _fail('Validation errors: ' + ', '.join(preview.get('errors', [])))
         return _ok(**{k: preview[k] for k in ('json_content', 'python_content', 'json_filename',
-                                              'python_filename', 'input_schema', 'output_schema')})
+                                              'python_filename', 'input_schema', 'output_schema')},
+                   domain=_domain(data, definition.description))
     except Exception as e:
         logger.error(f'Error previewing DB Query tool: {e}', exc_info=True)
         return _fail(f'Preview error: {e}', 500)
@@ -760,7 +791,8 @@ def _script_generator():
 @actions.post('/script/preview')
 async def studio_script_preview(request: Request, auth: AuthContext = Depends(require_creator('script'))):
     try:
-        config = _script_config(await _body(request))
+        data = await _body(request)
+        config = _script_config(data)
         err = _check_new_name(config.tool_name)
         if err:
             return _fail(err)
@@ -768,9 +800,10 @@ async def studio_script_preview(request: Request, auth: AuthContext = Depends(re
         errors = gen.validate_config(config)
         if errors:
             return _fail('Validation errors: ' + ', '.join(errors))
-        return _ok(json_content=json.dumps(gen.generate_tool_config(config), indent=2),
+        tool_config = gen.generate_tool_config(config)
+        return _ok(json_content=json.dumps(tool_config, indent=2),
                    python_content=gen.generate_python_wrapper(config),
-                   script_type=config.script_type)
+                   script_type=config.script_type, domain=_domain(data, tool_config.get('description') or ''))
     except Exception as e:
         logger.error(f'Error previewing script tool: {e}', exc_info=True)
         return _fail(f'Preview error: {e}', 500)
@@ -875,13 +908,15 @@ _CONFIG_CREATORS = {'powerbi': ('PowerBI', _powerbi), 'powerbidax': ('PowerBI DA
 async def _config_creator_preview(kind: str, request: Request) -> JSONResponse:
     label, build = _CONFIG_CREATORS[kind]
     try:
-        config, gen = build(await _body(request))
+        data = await _body(request)
+        config, gen = build(data)
         err = _check_new_name(config.tool_name)
         errors = ([err] if err else []) + gen.validate_config(config)
         if errors:
             return _fail('; '.join(errors))
-        return _ok(config=gen.generate_tool_config(config),
-                   python_content=gen.generate_python_wrapper(config))
+        tool_config = gen.generate_tool_config(config)
+        return _ok(config=tool_config, python_content=gen.generate_python_wrapper(config),
+                   domain=_domain(data, tool_config.get('description') or ''))
     except Exception as e:
         logger.error(f'Error previewing {label} tool: {e}', exc_info=True)
         return _fail(str(e), 500)
@@ -976,7 +1011,8 @@ def _sharepoint(data):
 @actions.post('/sharepoint/preview')
 async def studio_sharepoint_preview(request: Request, auth: AuthContext = Depends(require_creator('sharepoint'))):
     try:
-        config, gen = _sharepoint(await _body(request))
+        data = await _body(request)
+        config, gen = _sharepoint(data)
         err = _check_new_name(config.name)
         errors = ([err] if err else []) + gen.validate(config)
         if errors:
@@ -984,7 +1020,7 @@ async def studio_sharepoint_preview(request: Request, auth: AuthContext = Depend
         tool_config = gen.generate(config)
         if (tool_config.get('authentication') or {}).get('client_secret'):
             tool_config['authentication']['client_secret'] = '***hidden***'
-        return _ok(config=tool_config)
+        return _ok(config=tool_config, domain=_domain(data, tool_config.get('description') or ''))
     except Exception as e:
         logger.error(f'Error previewing SharePoint tool: {e}', exc_info=True)
         return _fail(str(e), 500)
@@ -1027,10 +1063,13 @@ async def studio_json(request: Request, auth: AuthContext = Depends(JSON_IMPORT)
 @actions.post('/json/preview')
 async def studio_json_preview(request: Request, auth: AuthContext = Depends(JSON_IMPORT)):
     from sajha.studio import json_import
+    data = await _body(request)
     try:
-        return _ok(**json_import.preview(await _body(request)))
+        out = json_import.preview(data)
     except json_import.ImportError_ as e:
         return _fail(str(e))
+    cfg = out.get('config') if isinstance(out.get('config'), dict) else {}
+    return _ok(**out, domain=_domain({'folder': out.get('folder')}, cfg.get('description') or ''))
 
 
 @actions.post('/json/deploy')

@@ -1,0 +1,20 @@
+# An HTTP tool with a recorded cassette (cassettes/bis_policy_rates/us_uk_euro_area_2025.json): replays offline.
+# Re-record against the live API with: python -m sajha.quality test --tool bis_policy_rates --record
+tool: bis_policy_rates
+cases:
+  - name: us uk euro area 2025
+    tags: [http]
+    arguments: {"countries": ["US", "GB", "XM"], "period": "2025", "frequency": "monthly"}
+    expect:
+      - schema: output
+      - path: "$.series_count"
+        equals: 3
+      - path: "$.series[0].observation_count"
+        equals: 12
+      - path: "$.series[*].unit"
+        regex: "Per cent per year"
+      - path: "$.source"
+        regex: "^Source: BIS"
+probe:
+  case: us uk euro area 2025
+  every: 3600

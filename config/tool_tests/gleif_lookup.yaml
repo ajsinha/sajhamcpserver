@@ -1,0 +1,18 @@
+# An HTTP tool with a recorded cassette (cassettes/gleif_lookup/apple_inc.json): replays offline.
+# Re-record against the live API with: python -m sajha.quality test --tool gleif_lookup --record
+tool: gleif_lookup
+cases:
+  - name: apple inc
+    tags: [http]
+    arguments: {"lei": "HWUPKR0MPOU8FGXBT394"}
+    expect:
+      - schema: output
+      - path: "$.legal_name"
+        equals: "Apple Inc."
+      - path: "$.country"
+        equals: "US"
+      - path: "$.source"
+        regex: "GLEIF"
+probe:
+  case: apple inc
+  every: 3600

@@ -233,7 +233,7 @@ def test_fed_tools_without_a_key_fail_and_never_invent_data(cls, args, monkeypat
     monkeypatch.delenv('FRED_API_KEY', raising=False)
     mod = importlib.import_module('sajha.tools.impl.fed_reserve_tool_refactored')
     tool = getattr(mod, cls)({'name': 'x', 'api_key': '${fred.api.key}'})
-    with mock.patch('urllib.request.urlopen', side_effect=AssertionError('no request without a key')):
+    with mock.patch('sajha.core.outbound.urlopen', side_effect=AssertionError('no request without a key')):
         with pytest.raises(ValueError, match='FRED_API_KEY'):
             tool.execute(args)
     assert not hasattr(mod.FedReserveBaseTool, '_get_demo_series')
@@ -253,7 +253,7 @@ def test_fred_preset_tools_without_series_id_and_schema_limit(monkeypatch):
     def urlopen(req, timeout=None):
         urls.append(urllib.parse.parse_qs(urllib.parse.urlsplit(req.full_url).query))
         return R(b'{"observations": []}')
-    with mock.patch('urllib.request.urlopen', urlopen):
+    with mock.patch('sajha.core.outbound.urlopen', urlopen):
         out = FREDCustomSeriesTool(read_tool('fred_5yr_treasury')).execute({})
         assert out['series'] == 'DGS5' and urls[-1]['limit'] == ['20']
         FREDUnemploymentTool(read_tool('fred_unemployment')).execute({})
@@ -288,7 +288,7 @@ def test_boj_default_recent_periods_is_the_schema_default(monkeypatch):
     def urlopen(req, timeout=None):
         seen.update(urllib.parse.parse_qs(urllib.parse.urlsplit(req.full_url).query))
         return R(b'{"observations": []}')
-    with mock.patch('urllib.request.urlopen', urlopen):
+    with mock.patch('sajha.core.outbound.urlopen', urlopen):
         BoJGetJGBYieldTool({'name': 'x', 'api_key': 'k'}).execute({})
     assert seen['limit'] == ['10'] and seen['sort_order'] == ['desc'] and seen['series_id'] == ['IRLTLT01JPM156N']
 
@@ -327,7 +327,7 @@ def test_boc_recent_observations_are_oldest_first():
         def __exit__(self, *a): return False
         def info(self): return {}
 
-    with mock.patch('urllib.request.urlopen', lambda req, timeout=None: R(body.encode())):
+    with mock.patch('sajha.core.outbound.urlopen', lambda req, timeout=None: R(body.encode())):
         out = BoCGetSeriesTool(read_tool('boc_get_series')).execute({'indicator': 'policy_rate', 'recent_periods': 2})
     assert [o['date'] for o in out['observations']] == ['2026-10-07', '2026-10-08']
 
@@ -455,7 +455,7 @@ def test_sec_financial_data_maps_friendly_names_to_tags():
         def __enter__(self): return self
         def __exit__(self, *a): return False
         def info(self): return {}
-    with mock.patch('urllib.request.urlopen', lambda req, timeout=None: R(body.encode())):
+    with mock.patch('sajha.core.outbound.urlopen', lambda req, timeout=None: R(body.encode())):
         out = tool.execute({'cik': '1', 'fact_type': 'CurrentAssets'})
         missing = tool.execute({'cik': '1', 'fact_type': 'GrossProfit'})
     assert out['data'][0]['tag'] == 'AssetsCurrent'
@@ -472,7 +472,7 @@ def test_sec_mutual_fund_holdings_reads_nport():
         def __enter__(self): return self
         def __exit__(self, *a): return False
         def info(self): return {}
-    with mock.patch('urllib.request.urlopen', lambda req, timeout=None: R(body.encode())):
+    with mock.patch('sajha.core.outbound.urlopen', lambda req, timeout=None: R(body.encode())):
         out = SECGetMutualFundHoldingsTool(read_tool('sec_get_mutual_fund_holdings')).execute({'cik': '36405'})
     assert [f['form'] for f in out['filings']] == ['NPORT-P']
 

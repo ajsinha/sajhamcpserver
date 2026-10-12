@@ -32,8 +32,14 @@
   "outputSchema": {
     "type": "object",
     "properties": {
-      "result": {
-        "type": "object"
+      "correlation": {
+        "type": "number",
+        "description": "Pearson correlation",
+        "x-sajha-unit": "unitless"
+      },
+      "data_points": {
+        "type": "number",
+        "x-sajha-unit": "count"
       }
     }
   },

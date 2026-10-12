@@ -52,6 +52,13 @@ The workspace::
     ws.to_json(); Workspace.from_json(data)      # for the run record
     ws.figures()                                 # (value, unit, name) in every convertible unit
 
+Units a tool declares (``x-sajha-unit`` on an ``outputSchema`` property, §2.2)::
+
+    schema_unit(tool.output_schema, "$.data.observations[0].value")   # "percent", or None
+
+A read whose path the schema declares a unit for is recorded with that unit and
+``unit_from: "schema"``; otherwise the planner's unit, ``unit_from: "declared"``.
+
 The verify check ``numbers_in_workspace`` (sajha/ai/planners_engine/checks.py) matches an answer's
 figures against the run's tool results and this workspace; the reserved planner setting
 ``numbers_check`` runs it after any planner's answer. Settings: :func:`quant_settings`
@@ -60,6 +67,7 @@ figures against the run's tool results and this workspace; the reserved planner 
 
 from sajha.ai.quant.errors import QuantError, UnitError
 from sajha.ai.quant.quantity import WORKSPACE_KEY, Quantity, Workspace, workspace_of
+from sajha.ai.quant.schema_units import KEYWORD as UNIT_KEYWORD, schema_unit
 from sajha.ai.quant.settings import QuantSettings, quant_settings, set_quant_settings
 from sajha.ai.quant.units import (DAY_COUNTS, Unit, conversion_factor, convert_value, convertible, days_per_year,
                                   equivalents, parse_unit)
@@ -68,4 +76,4 @@ from sajha.ai.quant.ops import operation, operations
 
 __all__ = ["QuantError", "UnitError", "Quantity", "Workspace", "workspace_of", "WORKSPACE_KEY", "Unit",
            "parse_unit", "conversion_factor", "convert_value", "convertible", "equivalents", "days_per_year",
-           "DAY_COUNTS", "ops", "operation", "operations", "QuantSettings", "quant_settings", "set_quant_settings"]
+           "DAY_COUNTS", "UNIT_KEYWORD", "schema_unit", "ops", "operation", "operations", "QuantSettings", "quant_settings", "set_quant_settings"]

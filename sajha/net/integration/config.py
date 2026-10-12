@@ -37,17 +37,10 @@ def _ca_auto_default() -> bool:
 
 
 def _raw() -> Dict[str, Any]:
-    """The ``sajhanet`` section of the YAML as written (lists and maps intact)."""
-    path = Path(os.environ.get('SAJHA_CONFIG_FILE', 'config/application.yml'))
-    if not path.is_absolute():
-        path = Path.cwd() / path
-    try:
-        import yaml
-        data = yaml.safe_load(path.read_text(encoding='utf-8')) or {} if path.exists() else {}
-    except Exception:
-        data = {}
-    sec = data.get('sajhanet') if isinstance(data, dict) else None
-    return sec if isinstance(sec, dict) else {}
+    """The ``sajhanet`` section of the YAML as written (lists and maps intact); parsed once per
+    version of the file (``sajha.core.net_extension.yaml_section``)."""
+    from sajha.core.net_extension import yaml_section
+    return yaml_section()
 
 
 def _g(key: str, default: Any) -> str:

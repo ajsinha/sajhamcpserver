@@ -1,0 +1,27 @@
+{
+ "format": 1,
+ "interactions": [
+  {
+   "request": {
+    "method": "GET",
+    "url": "https://stats.bis.org/api/v1/data/WS_TC/Q.US+XM.H.A..770.A?startPeriod=2024&endPeriod=2024",
+    "body_sha256": ""
+   },
+   "response": {
+    "status": 200,
+    "reason": "",
+    "headers": {
+     "etag": "Z3Vlc3QkMTc5MTc3NjExNjkyOCQqJDEkV1NfVEM=",
+     "vary": "Accept,Accept-Language",
+     "content-disposition": "inline; filename=\"WS_TC.csv\"",
+     "content-type": "text/csv;charset=UTF-8",
+     "date": "Mon, 12 Oct 2026 03:35:16 GMT",
+     "cache-control": "private"
+    },
+    "body": {
+     "text": "DATAFLOW,FREQ,BORROWERS_CTY,TC_BORROWERS,TC_LENDERS,VALUATION,UNIT_TYPE,TC_ADJUST,TIME_PERIOD,OBS_VALUE,COLLECTION,UNIT_MULT,UNIT_MEASURE,TITLE_TS,DECIMALS,OBS_STATUS,OBS_PRE_BREAK,OBS_CONF\nBIS:WS_TC(2.0),Q,US,H,A,M,770,A,2024-Q1,71.1,E,0,367,United States - Credit to Households and NPISHs from All sectors at Market value - Percentage of GDP - Adjusted for breaks,1,A,,F\nBIS:WS_TC(2.0),Q,US,H,A,M,770,A,2024-Q2,70.6,E,0,367,United States - Credit to Households and NPISHs from All sectors at Market value - Percentage of GDP - Adjusted for breaks,1,A,,F\nBIS:WS_TC(2.0),Q,US,H,A,M,770,A,2024-Q3,70.3,E,0,367,United States - Credit to Households and NPISHs from All sectors at Market value - Percentage of GDP - Adjusted for breaks,1,A,,F\nBIS:WS_TC(2.0),Q,US,H,A,M,770,A,2024-Q4,69.3,E,0,367,United States - Credit to Households and NPISHs from All sectors at Market value - Percentage of GDP - Adjusted for breaks,1,A,,F\nBIS:WS_TC(2.0),Q,XM,H,A,M,770,A,2024-Q1,51.6,E,0,367,Euro area - Credit to Households and NPISHs from All sectors at Market value - Percentage of GDP - Adjusted for breaks,1,A,,F\nBIS:WS_TC(2.0),Q,XM,H,A,M,770,A,2024-Q2,51.4,E,0,367,Euro area - Credit to Households and NPISHs from All sectors at Market value - Percentage of GDP - Adjusted for breaks,1,A,,F\nBIS:WS_TC(2.0),Q,XM,H,A,M,770,A,2024-Q3,51,E,0,367,Euro area - Credit to Households and NPISHs from All sectors at Market value - Percentage of GDP - Adjusted for breaks,1,A,,F\nBIS:WS_TC(2.0),Q,XM,H,A,M,770,A,2024-Q4,50.8,E,0,367,Euro area - Credit to Households and NPISHs from All sectors at Market value - Percentage of GDP - Adjusted for breaks,1,A,,F\n"
+    }
+   }
+  }
+ ]
+}

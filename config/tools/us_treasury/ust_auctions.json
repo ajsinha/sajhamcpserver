@@ -136,49 +136,57 @@
               "type": [
                 "number",
                 "null"
-              ]
+              ],
+              "x-sajha-unit": "USD"
             },
             "total_tendered": {
               "type": [
                 "number",
                 "null"
-              ]
+              ],
+              "x-sajha-unit": "USD"
             },
             "total_accepted": {
               "type": [
                 "number",
                 "null"
-              ]
+              ],
+              "x-sajha-unit": "USD"
             },
             "bid_to_cover_ratio": {
               "type": [
                 "number",
                 "null"
-              ]
+              ],
+              "x-sajha-unit": "ratio"
             },
             "interest_rate": {
               "type": [
                 "number",
                 "null"
-              ]
+              ],
+              "x-sajha-unit": "percent"
             },
             "high_yield": {
               "type": [
                 "number",
                 "null"
-              ]
+              ],
+              "x-sajha-unit": "percent"
             },
             "high_discount_rate": {
               "type": [
                 "number",
                 "null"
-              ]
+              ],
+              "x-sajha-unit": "percent"
             },
             "high_investment_rate": {
               "type": [
                 "number",
                 "null"
-              ]
+              ],
+              "x-sajha-unit": "percent"
             },
             "high_discount_margin": {
               "type": [
@@ -196,19 +204,22 @@
               "type": [
                 "number",
                 "null"
-              ]
+              ],
+              "x-sajha-unit": "USD"
             },
             "direct_bidder_accepted": {
               "type": [
                 "number",
                 "null"
-              ]
+              ],
+              "x-sajha-unit": "USD"
             },
             "primary_dealer_accepted": {
               "type": [
                 "number",
                 "null"
-              ]
+              ],
+              "x-sajha-unit": "USD"
             },
             "results_published": {
               "type": "boolean"

@@ -1,0 +1,20 @@
+# An HTTP tool with a recorded cassette (cassettes/bis_get_series/us_household_dsr_2024.json): replays offline.
+# Re-record against the live API with: python -m sajha.quality test --tool bis_get_series --record
+tool: bis_get_series
+cases:
+  - name: us household dsr 2024
+    tags: [http]
+    arguments: {"dataflow": "WS_DSR", "key": "Q.US.H", "period": "2024"}
+    expect:
+      - schema: output
+      - path: "$.series_count"
+        equals: 1
+      - path: "$.series[0].key"
+        equals: "Q.US.H"
+      - path: "$.series[0].observations"
+        length: 4
+      - path: "$.source"
+        regex: "^Source: BIS"
+probe:
+  case: us household dsr 2024
+  every: 3600

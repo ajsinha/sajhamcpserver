@@ -1,7 +1,7 @@
 {
   "name": "gleif_search",
   "implementation": "sajha.tools.impl.gleif_tools.GleifSearchTool",
-  "description": "Find LEIs by entity name (legal and other names contain the words), optionally by country and status; falls back to GLEIF's fuzzy matching when nothing contains them.\nReturns: query, matched_by, total, result_count, results (lei, legal_name, country, jurisdiction, entity_status, registration_status), source.\nInputs (* required): name*, country, status, limit (1-50, default 10).\nExample: {\"name\": \"Deutsche Bank\", \"country\": \"DE\", \"status\": \"ACTIVE\"}",
+  "description": "Find LEIs by entity name (legal and other names contain the words), optionally by country and status; falls back to GLEIF's fuzzy matching when nothing contains them.\nReturns: query, matched_by, total, result_count, results (lei, legal_name, country, jurisdiction, entity_status, registration_status; matched_value with fuzzy matches), source.\nInputs (* required): name*, country, status, limit (1-50, default 10).\nExample: {\"name\": \"Deutsche Bank\", \"country\": \"DE\", \"status\": \"ACTIVE\"}",
   "annotations": {
     "readOnlyHint": true,
     "idempotentHint": true,
@@ -93,6 +93,10 @@
                 "null"
               ],
               "description": "Legal name"
+            },
+            "matched_value": {
+              "type": "string",
+              "description": "With matched_by fuzzy: the name or field value GLEIF's fuzzy match found"
             },
             "country": {
               "type": [

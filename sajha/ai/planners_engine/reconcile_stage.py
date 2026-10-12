@@ -298,6 +298,12 @@ class Reconcile(StageType):
         from sajha.ai.quant import Quantity, workspace_of
         ws = workspace_of(rc.state, create=True)
         ws.put(f"{st.id}.tolerance", Quantity.of(tol * 100, "percent", text="settings.tolerance"), replace=True)
+        from sajha.ai.planners_engine.quant_stages import schema_unit_of
+        for f in plan["figures"]:            # a unit the tool's outputSchema declares replaces the model's (§2.2)
+            for rd in list(f.get("readings") or []) + ([f["fx"]] if isinstance(f.get("fx"), dict) else []):
+                declared = schema_unit_of(rc.state, str((results.get(rd["call_id"]) or {}).get("tool") or ""), rd["path"])
+                if declared:
+                    rd["unit"], rd["unit_from"] = declared, "schema"
         used: set = set()
         figures, breaks = [], []
         for f in plan["figures"]:
@@ -350,7 +356,7 @@ class Reconcile(StageType):
             as_of = None if common[-1] is None else str(common[-1])
             q = Quantity.from_tool(vals[0] if len(vals) == 1 else vals, x["unit"], call_id=rd["call_id"],
                                    tool=str(r.get("tool") or ""), path=rd["path"], arguments=r.get("arguments") or {},
-                                   as_of=as_of)
+                                   as_of=as_of, unit_from=rd.get("unit_from") or "declared")
             ws.put(name, q, replace=True)
             try:
                 if x["unit"] == target:
@@ -417,7 +423,8 @@ class Reconcile(StageType):
         v = list(vals.values())[0]
         name = f"{pre}.{fname}.fx_rate"
         ws.put(name, Quantity.from_tool(v, fx["unit"], call_id=fx["call_id"], tool=str(r.get("tool") or ""),
-                                        path=fx["path"], arguments=r.get("arguments") or {}, as_of=fx.get("as_of")),
+                                        path=fx["path"], arguments=r.get("arguments") or {}, as_of=fx.get("as_of"),
+                                        unit_from=fx.get("unit_from") or "declared"),
                replace=True)
         return name
 

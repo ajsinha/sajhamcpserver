@@ -23,12 +23,9 @@ from datetime import datetime, timedelta
 import time
 import re
 
-# Import base tool class
-import sys
-import os
-sys.path.insert(0, '/mnt/user-data/uploads')
 from sajha.tools.base_mcp_tool import BaseMCPTool
 from sajha.tools.http_utils import safe_decode_response, ENCODINGS_DEFAULT
+from sajha.core import outbound
 
 
 class EDGARBaseTool(BaseMCPTool):
@@ -123,7 +120,7 @@ class EDGARBaseTool(BaseMCPTool):
         
         try:
             req = urllib.request.Request(url, headers=self.headers)
-            with urllib.request.urlopen(req, timeout=30) as response:
+            with outbound.urlopen(req, timeout=30) as response:
                 content = safe_decode_response(response, ENCODINGS_DEFAULT)
                 return json.loads(content)
                 

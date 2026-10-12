@@ -29,8 +29,21 @@
   "outputSchema": {
     "type": "object",
     "properties": {
-      "result": {
-        "type": "object"
+      "discount_rate": {
+        "type": "number",
+        "description": "The discount rate given",
+        "x-sajha-unit": "percent"
+      },
+      "cash_flows": {
+        "type": "array",
+        "items": {
+          "type": "number"
+        },
+        "description": "The cash flows given"
+      },
+      "npv": {
+        "type": "number",
+        "description": "Net present value, in the cash flows' currency"
       }
     }
   },

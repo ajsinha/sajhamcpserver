@@ -40,6 +40,22 @@
    "status": 200,
    "content_type": "application/vnd.api+json",
    "body": "{\"data\":[]}"
+  },
+  {
+   "url": "https://api.gleif.org/api/v1/fuzzycompletions",
+   "params": [
+    [
+     "field",
+     "entity.legalName"
+    ],
+    [
+     "q",
+     "Deutsch Bnk"
+    ]
+   ],
+   "status": 200,
+   "content_type": "application/vnd.api+json",
+   "body": "{\"data\":[]}"
   }
  ]
 }

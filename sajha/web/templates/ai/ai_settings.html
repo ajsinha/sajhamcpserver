@@ -31,7 +31,7 @@
                 <div class="card-body">
                     <div class="row g-3">
                         <div class="col-md-4">
-                            <label class="form-label fw-bold">{{ _('Provider Type') }} <span class="text-danger">*</span></label>
+                            <label for="newProvType" class="form-label fw-bold">{{ _('Provider Type') }} <span class="text-danger">*</span></label>
                             <select class="form-select" id="newProvType" data-onchange="updateProviderFields()">
                                 <option value="">{{ _('Select provider...') }}</option>
                                 <option value="anthropic">Anthropic (Claude)</option>
@@ -44,11 +44,11 @@
                             </select>
                         </div>
                         <div class="col-md-4">
-                            <label class="form-label fw-bold">{{ _('Display Name') }}</label>
+                            <label for="newProvName" class="form-label fw-bold">{{ _('Display Name') }}</label>
                             <input type="text" class="form-control" id="newProvName" placeholder="{{ _('e.g. Production Anthropic') }}">
                         </div>
                         <div class="col-md-4">
-                            <label class="form-label fw-bold">{{ _('Status') }}</label>
+                            <label for="newProvEnabled" class="form-label fw-bold">{{ _('Status') }}</label>
                             <select class="form-select" id="newProvEnabled">
                                 <option value="true">{{ _('Enabled') }}</option>
                                 <option value="false">{{ _('Disabled') }}</option>
@@ -61,7 +61,7 @@
                             <div class="input-group">
                                 <span class="input-group-text"><i class="bi bi-key"></i></span>
                                 <input type="password" class="form-control" id="newProvApiKey" placeholder="{{ _('sk-ant-... or sk-...') }}">
-                                <button class="btn btn-outline-secondary" type="button" data-onclick="toggleKeyVisibility('newProvApiKey', this)"><i class="bi bi-eye"></i></button>
+                                <button class="btn btn-outline-secondary" type="button" data-onclick="toggleKeyVisibility('newProvApiKey', this)" aria-label="{{ _('Show API key') }}" title="{{ _('Show API key') }}" aria-pressed="false"><i class="bi bi-eye" aria-hidden="true"></i></button>
                             </div>
                             <div class="form-text" id="apiKeyHint">{{ _('Required for cloud providers. Not needed for Ollama.') }}</div>
                         </div>
@@ -78,7 +78,7 @@
                     <!-- Conditional fields based on provider type -->
                     <div id="bedrockFields" class="row g-3 mt-1" style="display:none">
                         <div class="col-md-4">
-                            <label class="form-label fw-bold">{{ _('AWS Region') }}</label>
+                            <label for="newProvRegion" class="form-label fw-bold">{{ _('AWS Region') }}</label>
                             <select class="form-select" id="newProvRegion">
                                 <option value="us-east-1">{{ _('us-east-1 (N. Virginia)') }}</option>
                                 <option value="us-west-2">{{ _('us-west-2 (Oregon)') }}</option>
@@ -87,49 +87,49 @@
                             </select>
                         </div>
                         <div class="col-md-4">
-                            <label class="form-label fw-bold">{{ _('AWS Access Key ID') }}</label>
+                            <label for="newProvAwsKey" class="form-label fw-bold">{{ _('AWS Access Key ID') }}</label>
                             <input type="text" class="form-control" id="newProvAwsKey" placeholder="AKIA...">
                         </div>
                         <div class="col-md-4">
-                            <label class="form-label fw-bold">{{ _('AWS Secret Access Key') }}</label>
+                            <label for="newProvAwsSecret" class="form-label fw-bold">{{ _('AWS Secret Access Key') }}</label>
                             <input type="password" class="form-control" id="newProvAwsSecret" placeholder="{{ _('Secret key') }}">
                         </div>
                     </div>
 
                     <div id="azureFields" class="row g-3 mt-1" style="display:none">
                         <div class="col-md-4">
-                            <label class="form-label fw-bold">{{ _('Azure Deployment Name') }}</label>
+                            <label for="newProvAzureDeployment" class="form-label fw-bold">{{ _('Azure Deployment Name') }}</label>
                             <input type="text" class="form-control" id="newProvAzureDeployment" placeholder="gpt-4-deployment">
                         </div>
                         <div class="col-md-4">
-                            <label class="form-label fw-bold">{{ _('API Version') }}</label>
+                            <label for="newProvAzureVersion" class="form-label fw-bold">{{ _('API Version') }}</label>
                             <input type="text" class="form-control" id="newProvAzureVersion" value="2024-02-15-preview">
                         </div>
                         <div class="col-md-4">
-                            <label class="form-label fw-bold">{{ _('Azure Endpoint') }}</label>
+                            <label for="newProvAzureEndpoint" class="form-label fw-bold">{{ _('Azure Endpoint') }}</label>
                             <input type="text" class="form-control" id="newProvAzureEndpoint" placeholder="https://your-resource.openai.azure.com">
                         </div>
                     </div>
 
                     <div id="ollamaFields" class="row g-3 mt-1" style="display:none">
                         <div class="col-md-6">
-                            <label class="form-label fw-bold">{{ _('Ollama Host') }}</label>
+                            <label for="newProvOllamaHost" class="form-label fw-bold">{{ _('Ollama Host') }}</label>
                             <input type="text" class="form-control" id="newProvOllamaHost" value="http://localhost:11434">
                         </div>
                         <div class="col-md-6">
-                            <label class="form-label fw-bold">{{ _('Default Model') }}</label>
+                            <label for="newProvOllamaModel" class="form-label fw-bold">{{ _('Default Model') }}</label>
                             <input type="text" class="form-control" id="newProvOllamaModel" placeholder="{{ _('llama3, mistral, codellama...') }}">
                         </div>
                     </div>
 
                     <div id="customFields" class="row g-3 mt-1" style="display:none">
                         <div class="col-md-6">
-                            <label class="form-label fw-bold">{{ _('Provider Class (Python)') }}</label>
+                            <label for="newProvCustomClass" class="form-label fw-bold">{{ _('Provider Class (Python)') }}</label>
                             <input type="text" class="form-control" id="newProvCustomClass" placeholder="my_module.MyLLMProvider">
                             <div class="form-text">{{ _('Fully qualified Python class implementing LLMProvider ABC.') }}</div>
                         </div>
                         <div class="col-md-6">
-                            <label class="form-label fw-bold">{{ _('Extra Config (JSON)') }}</label>
+                            <label for="newProvCustomConfig" class="form-label fw-bold">{{ _('Extra Config (JSON)') }}</label>
                             <textarea class="form-control" id="newProvCustomConfig" rows="2" placeholder='{"timeout": 30, "max_retries": 3}'></textarea>
                         </div>
                     </div>
@@ -139,7 +139,7 @@
                         <button class="btn btn-success" data-onclick="saveNewProvider()"><i class="bi bi-check-lg me-1"></i>{{ _('Save Provider') }}</button>
                         <button class="btn btn-outline-info" data-onclick="testNewProvider()"><i class="bi bi-heart-pulse me-1"></i>{{ _('Test Connection') }}</button>
                         <button class="btn btn-secondary" data-onclick="cancelAddProvider()">{{ _('Cancel') }}</button>
-                        <div id="addProvStatus" class="ms-3"></div>
+                        <div id="addProvStatus" class="ms-3" role="status" aria-live="polite"></div>
                     </div>
                 </div>
             </div>
@@ -155,11 +155,11 @@
                             <div class="input-group">
                                 <span class="input-group-text"><i class="bi bi-key"></i></span>
                                 <input type="password" class="form-control" id="editProvApiKey" placeholder="{{ _('Enter new API key (leave blank to keep current)') }}">
-                                <button class="btn btn-outline-secondary" type="button" data-onclick="toggleKeyVisibility('editProvApiKey', this)"><i class="bi bi-eye"></i></button>
+                                <button class="btn btn-outline-secondary" type="button" data-onclick="toggleKeyVisibility('editProvApiKey', this)" aria-label="{{ _('Show API key') }}" title="{{ _('Show API key') }}" aria-pressed="false"><i class="bi bi-eye" aria-hidden="true"></i></button>
                             </div>
                         </div>
                         <div class="col-md-6">
-                            <label class="form-label fw-bold">{{ _('Base URL (optional)') }}</label>
+                            <label for="editProvBaseUrl" class="form-label fw-bold">{{ _('Base URL (optional)') }}</label>
                             <input type="text" class="form-control" id="editProvBaseUrl" placeholder="{{ _('Custom endpoint URL') }}">
                         </div>
                     </div>
@@ -185,11 +185,11 @@
                 <div class="card-header card-header-success"><i class="bi bi-plus-circle me-2"></i>{{ _('Add Model') }}</div>
                 <div class="card-body">
                     <div class="row g-3">
-                        <div class="col-md-3"><label class="form-label">{{ _('Provider') }}</label><select class="form-select" id="newModelProvider"><option>{{ _('anthropic') }}</option><option>{{ _('openai') }}</option><option>{{ _('bedrock') }}</option><option>{{ _('together') }}</option><option>{{ _('ollama') }}</option><option>azure_openai</option></select></div>
-                        <div class="col-md-3"><label class="form-label">{{ _('Model ID') }}</label><input class="form-control" id="newModelId" placeholder="claude-sonnet-4-20250514"></div>
-                        <div class="col-md-2"><label class="form-label">{{ _('Context Window') }}</label><input type="number" class="form-control" id="newModelCtx" value="200000"></div>
-                        <div class="col-md-2"><label class="form-label">{{ _('Input Cost ($/1K)') }}</label><input type="number" step="0.001" class="form-control" id="newModelCostIn" value="0.003"></div>
-                        <div class="col-md-2"><label class="form-label">{{ _('Output Cost ($/1K)') }}</label><input type="number" step="0.001" class="form-control" id="newModelCostOut" value="0.015"></div>
+                        <div class="col-md-3"><label for="newModelProvider" class="form-label">{{ _('Provider') }}</label><select class="form-select" id="newModelProvider"><option>{{ _('anthropic') }}</option><option>{{ _('openai') }}</option><option>{{ _('bedrock') }}</option><option>{{ _('together') }}</option><option>{{ _('ollama') }}</option><option>azure_openai</option></select></div>
+                        <div class="col-md-3"><label for="newModelId" class="form-label">{{ _('Model ID') }}</label><input class="form-control" id="newModelId" placeholder="claude-sonnet-4-20250514"></div>
+                        <div class="col-md-2"><label for="newModelCtx" class="form-label">{{ _('Context Window') }}</label><input type="number" class="form-control" id="newModelCtx" value="200000"></div>
+                        <div class="col-md-2"><label for="newModelCostIn" class="form-label">{{ _('Input Cost ($/1K)') }}</label><input type="number" step="0.001" class="form-control" id="newModelCostIn" value="0.003"></div>
+                        <div class="col-md-2"><label for="newModelCostOut" class="form-label">{{ _('Output Cost ($/1K)') }}</label><input type="number" step="0.001" class="form-control" id="newModelCostOut" value="0.015"></div>
                     </div>
                     <div class="mt-3 d-flex gap-2">
                         <button class="btn btn-success" data-onclick="saveNewModel()"><i class="bi bi-plus-lg me-1"></i>{{ _('Add') }}</button>
@@ -207,16 +207,16 @@
                 <div class="card-body">
                     <p class="text-muted">{{ _('Override the system default provider and model for your account. Leave blank to use system defaults.') }}</p>
                     <div class="row g-3">
-                        <div class="col-md-4"><label class="form-label fw-bold">{{ _('Preferred Provider') }}</label><select class="form-select" id="prefProvider"><option value="">{{ _('System Default') }}</option></select></div>
-                        <div class="col-md-4"><label class="form-label fw-bold">{{ _('Preferred Model') }}</label><select class="form-select" id="prefModel"><option value="">{{ _('System Default') }}</option></select></div>
-                        <div class="col-md-2"><label class="form-label fw-bold">{{ _('Temperature') }}</label><input type="number" step="0.1" min="0" max="2" class="form-control" id="prefTemp" value="0.7"></div>
-                        <div class="col-md-2"><label class="form-label fw-bold">{{ _('Max Tokens') }}</label><input type="number" class="form-control" id="prefMaxTokens" value="4096"></div>
+                        <div class="col-md-4"><label for="prefProvider" class="form-label fw-bold">{{ _('Preferred Provider') }}</label><select class="form-select" id="prefProvider"><option value="">{{ _('System Default') }}</option></select></div>
+                        <div class="col-md-4"><label for="prefModel" class="form-label fw-bold">{{ _('Preferred Model') }}</label><select class="form-select" id="prefModel"><option value="">{{ _('System Default') }}</option></select></div>
+                        <div class="col-md-2"><label for="prefTemp" class="form-label fw-bold">{{ _('Temperature') }}</label><input type="number" step="0.1" min="0" max="2" class="form-control" id="prefTemp" value="0.7"></div>
+                        <div class="col-md-2"><label for="prefMaxTokens" class="form-label fw-bold">{{ _('Max Tokens') }}</label><input type="number" class="form-control" id="prefMaxTokens" value="4096"></div>
                     </div>
                     <div class="mt-3 d-flex gap-2">
                         <button class="btn btn-primary" data-onclick="savePreferences()"><i class="bi bi-check-lg me-1"></i>{{ _('Save Preferences') }}</button>
                         <button class="btn btn-outline-danger" data-onclick="clearPreferences()"><i class="bi bi-trash me-1"></i>{{ _('Clear (Use Defaults)') }}</button>
                     </div>
-                    <div id="prefStatus" class="mt-2"></div>
+                    <div id="prefStatus" class="mt-2" role="status" aria-live="polite"></div>
                 </div>
             </div>
         </div>
@@ -330,7 +330,7 @@ function loadModels() {
                 <td>${m.context_window?.toLocaleString()||'-'}</td>
                 <td>$${m.input_cost_per_1k||0} / $${m.output_cost_per_1k||0}</td>
                 <td>${m.is_default?'<i class="bi bi-star-fill text-warning"></i>':''}</td>
-                <td><button class="btn btn-sm btn-outline-danger" data-onclick="deleteModel('${m.id}')"><i class="bi bi-trash"></i></button></td>
+                <td><button class="btn btn-sm btn-outline-danger" data-onclick="deleteModel('${m.id}')" aria-label="${_t('Delete model')}" title="${_t('Delete model')}"><i class="bi bi-trash" aria-hidden="true"></i></button></td>
             </tr>`;
         });
         // Re-enhance table after dynamic data load
@@ -431,8 +431,11 @@ function updateProviderFields() {
 
 function toggleKeyVisibility(inputId, btn) {
     const inp = document.getElementById(inputId);
-    if (inp.type === 'password') { inp.type = 'text'; btn.innerHTML = '<i class="bi bi-eye-slash"></i>'; }
-    else { inp.type = 'password'; btn.innerHTML = '<i class="bi bi-eye"></i>'; }
+    const show = inp.type === 'password';
+    inp.type = show ? 'text' : 'password';
+    btn.innerHTML = show ? '<i class="bi bi-eye-slash" aria-hidden="true"></i>' : '<i class="bi bi-eye" aria-hidden="true"></i>';
+    const label = show ? _t('Hide API key') : _t('Show API key');
+    btn.setAttribute('aria-label', label); btn.setAttribute('title', label); btn.setAttribute('aria-pressed', show ? 'true' : 'false');
 }
 
 function saveNewProvider() {

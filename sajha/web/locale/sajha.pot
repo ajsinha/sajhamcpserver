@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: SAJHA MCP Server console VERSION\n"
 "Report-Msgid-Bugs-To: ajsinha@gmail.com\n"
-"POT-Creation-Date: 2026-10-11 22:31-0400\n"
+"POT-Creation-Date: 2026-10-11 23:53-0400\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -722,12 +722,12 @@ msgstr ""
 
 #. page script
 #: sajha/web/static/js/credfile.js:20 sajha/web/static/js/credfile.js:24
-#: sajha/web/static/js/workflows.js:175 sajha/web/templates/admin/admin_tools.html:107
+#: sajha/web/static/js/workflows.js:181 sajha/web/templates/admin/admin_tools.html:107
 #: sajha/web/templates/admin/admin_tools.html:338 sajha/web/templates/admin/admin_users.html:91
 #: sajha/web/templates/admin/admin_users.html:133 sajha/web/templates/admin/connectors.html:116
 #: sajha/web/templates/admin/federation.html:152 sajha/web/templates/admin/studio/studio_llm.html:114
-#: sajha/web/templates/ai/ai_settings.html:53 sajha/web/templates/common/user_config.html:446
-#: sajha/web/templates/tools/tool_config.html:330 sajha/web/templates/tools/tool_schema.html:43
+#: sajha/web/templates/ai/ai_settings.html:53 sajha/web/templates/common/user_config.html:447
+#: sajha/web/templates/tools/tool_config.html:331 sajha/web/templates/tools/tool_schema.html:43
 msgid "Enabled"
 msgstr ""
 
@@ -735,8 +735,8 @@ msgstr ""
 #: sajha/web/templates/admin/admin_tools.html:109 sajha/web/templates/admin/admin_tools.html:339
 #: sajha/web/templates/admin/admin_users.html:92 sajha/web/templates/admin/admin_users.html:135
 #: sajha/web/templates/admin/sajhanet_keys.html:24 sajha/web/templates/ai/ai_settings.html:54
-#: sajha/web/templates/common/user_config.html:447 sajha/web/templates/composite/builder.html:194
-#: sajha/web/templates/tools/tool_config.html:331 sajha/web/templates/tools/tool_schema.html:45
+#: sajha/web/templates/common/user_config.html:448 sajha/web/templates/composite/builder.html:194
+#: sajha/web/templates/tools/tool_config.html:332 sajha/web/templates/tools/tool_schema.html:45
 msgid "Disabled"
 msgstr ""
 
@@ -752,8 +752,10 @@ msgstr ""
 #. page script
 #: sajha/web/templates/admin/connectors.html:190
 #: sajha/web/templates/admin/studio/studio_dbquery.html:565
+#: sajha/web/templates/admin/studio/studio_dbquery.html:566
 #: sajha/web/templates/admin/studio/studio_examples.html:169
 #: sajha/web/templates/admin/studio/studio_llm.html:453
+#: sajha/web/templates/admin/studio/studio_powerbidax.html:346
 #: sajha/web/templates/prompts/prompt_detail.html:116
 #: sajha/web/templates/reporting/report_library_detail.html:37
 #: sajha/web/templates/tools/tool_schema.html:75
@@ -926,7 +928,7 @@ msgid "proxied server"
 msgstr ""
 
 #. page script
-#: sajha/web/static/js/workflows.js:300 sajha/web/templates/tools/tools_domains.html:45
+#: sajha/web/static/js/workflows.js:306 sajha/web/templates/tools/tools_domains.html:45
 #: sajha/web/templates/workflows/workflows.html:102
 msgid "tool"
 msgid_plural "tools"
@@ -934,7 +936,7 @@ msgstr[0] ""
 msgstr[1] ""
 
 #. page script
-#: sajha/web/i18n.py:224 sajha/web/static/js/workflows.js:102
+#: sajha/web/i18n.py:225 sajha/web/static/js/workflows.js:108
 #: sajha/web/templates/tools/tools_domains.html:50
 msgid "More"
 msgstr ""
@@ -1068,7 +1070,7 @@ msgid "Tool Name"
 msgstr ""
 
 #. page script
-#: sajha/web/static/js/workflows.js:78 sajha/web/templates/tools/tools_list.html:95
+#: sajha/web/static/js/workflows.js:84 sajha/web/templates/tools/tools_list.html:95
 msgid "Params"
 msgstr ""
 
@@ -1217,7 +1219,8 @@ msgid "Use <code>{variable_name}</code> to define placeholders for arguments."
 msgstr ""
 
 #. page script
-#: sajha/web/static/js/ask.js:481 sajha/web/templates/admin/admin_prompts.html:106
+#: sajha/web/static/js/ask.js:482 sajha/web/static/js/ask_lineage.js:91
+#: sajha/web/templates/admin/admin_prompts.html:106
 #: sajha/web/templates/admin/studio/studio_describe.html:154
 #: sajha/web/templates/prompts/prompt_create.html:133
 msgid "Arguments"
@@ -1300,7 +1303,10 @@ msgid "Prompt Preview (JSON)"
 msgstr ""
 
 #. page script
-#: sajha/web/static/js/workflows.js:23 sajha/web/templates/prompts/prompt_create.html:237
+#: sajha/web/static/js/ask_lineage.js:181 sajha/web/static/js/main.js:123
+#: sajha/web/static/js/workflows.js:23 sajha/web/templates/admin/async_tasks.html:95
+#: sajha/web/templates/common/user_config.html:729 sajha/web/templates/prompts/prompt_create.html:237
+#: sajha/web/templates/tools/tool_config.html:578
 msgid "Close"
 msgstr ""
 
@@ -1317,7 +1323,7 @@ msgstr ""
 #: sajha/web/static/js/credfile.js:66 sajha/web/templates/admin/admin_prompts.html:146
 #: sajha/web/templates/admin/admin_users.html:160 sajha/web/templates/admin/connectors.html:174
 #: sajha/web/templates/admin/credential_file.html:49 sajha/web/templates/admin/federation.html:250
-#: sajha/web/templates/admin/studio/studio_llm.html:661 sajha/web/templates/ai/ai_settings.html:271
+#: sajha/web/templates/admin/studio/studio_llm.html:662 sajha/web/templates/ai/ai_settings.html:271
 #: sajha/web/templates/prompts/prompt_detail.html:29 sajha/web/templates/prompts/prompt_detail.html:260
 #: sajha/web/templates/prompts/prompts_list.html:179
 msgid "Edit"
@@ -1403,14 +1409,18 @@ msgstr ""
 msgid "Edit the JSON below. Make sure to maintain valid JSON syntax."
 msgstr ""
 
+#: sajha/web/templates/prompts/prompt_detail.html:156
+msgid "Prompt JSON"
+msgstr ""
+
 #: sajha/web/templates/prompts/prompt_detail.html:159
 msgid "Save Changes"
 msgstr ""
 
 #. page script
-#: sajha/web/static/js/ask.js:508 sajha/web/static/js/workflows.js:359
+#: sajha/web/static/js/ask.js:509 sajha/web/static/js/workflows.js:365
 #: sajha/web/templates/admin/_sajhanet_change_dialog.html:14
-#: sajha/web/templates/admin/admin_user_create.html:164 sajha/web/templates/admin/connectors.html:125
+#: sajha/web/templates/admin/admin_user_create.html:165 sajha/web/templates/admin/connectors.html:125
 #: sajha/web/templates/admin/credential_file.html:53 sajha/web/templates/admin/federation.html:163
 #: sajha/web/templates/ai/ai_settings.html:141 sajha/web/templates/ai/ai_settings.html:168
 #: sajha/web/templates/ai/ai_settings.html:196 sajha/web/templates/prompts/prompt_detail.html:162
@@ -1485,6 +1495,8 @@ msgstr ""
 
 #: sajha/web/templates/account/apikeys.html:27 sajha/web/templates/admin/apikeys_create.html:27
 #: sajha/web/templates/admin/apikeys_list.html:31 sajha/web/templates/admin/apikeys_view.html:27
+#: sajha/web/templates/admin/studio/studio_script.html:461
+#: sajha/web/templates/admin/studio/studio_script.html:474
 #: sajha/web/templates/admin/studio/studio_sharepoint.html:363
 #: sajha/web/templates/prompts/prompt_test.html:109
 msgid "Copy"
@@ -1528,6 +1540,10 @@ msgstr ""
 msgid "Active Filters:"
 msgstr ""
 
+#: sajha/web/templates/prompts/prompts_list.html:36 sajha/web/templates/prompts/prompts_list.html:44
+msgid "Clear filter"
+msgstr ""
+
 #: sajha/web/templates/prompts/prompts_list.html:43
 msgid "Tag:"
 msgstr ""
@@ -1560,6 +1576,12 @@ msgstr ""
 
 #: sajha/web/templates/prompts/prompts_list.html:114
 msgid "Search prompts by name, description, or tags..."
+msgstr ""
+
+#. page script
+#: sajha/web/static/js/table-enhance.js:45 sajha/web/templates/admin/admin_prompts.html:86
+#: sajha/web/templates/prompts/prompts_list.html:118
+msgid "Rows per page"
 msgstr ""
 
 #: sajha/web/templates/prompts/prompts_list.html:119
@@ -1595,7 +1617,7 @@ msgstr ""
 
 #. page script
 #: sajha/web/templates/admin/admin_prompts.html:138
-#: sajha/web/templates/admin/studio/studio_llm.html:661 sajha/web/templates/help/help_tools.html:43
+#: sajha/web/templates/admin/studio/studio_llm.html:662 sajha/web/templates/help/help_tools.html:43
 #: sajha/web/templates/prompts/prompts_list.html:170
 msgid "View"
 msgstr ""
@@ -1943,7 +1965,7 @@ msgid "Server"
 msgstr ""
 
 #. page script
-#: sajha/web/static/js/ask.js:575 sajha/web/templates/help/comparison.html:103
+#: sajha/web/static/js/ask.js:584 sajha/web/templates/help/comparison.html:103
 msgid "Sources"
 msgstr ""
 
@@ -2052,7 +2074,7 @@ msgid "%(tool_count)s tools"
 msgstr ""
 
 #. page script
-#: sajha/web/static/js/credfile.js:53 sajha/web/static/js/workflows.js:310
+#: sajha/web/static/js/credfile.js:53 sajha/web/static/js/workflows.js:316
 #: sajha/web/templates/admin/connections.html:90 sajha/web/templates/admin/sajhanet_keys.html:47
 #: sajha/web/templates/help/help_tools.html:42 sajha/web/templates/net/_instance_admin.html:43
 msgid "enabled"
@@ -2132,7 +2154,7 @@ msgid "Composites"
 msgstr ""
 
 #. page script
-#: sajha/web/static/js/workflows.js:320 sajha/web/templates/workflows/workflows.html:53
+#: sajha/web/static/js/workflows.js:326 sajha/web/templates/workflows/workflows.html:53
 #: sajha/web/templates/workflows/workflows.html:75
 msgid "New workflow"
 msgstr ""
@@ -2159,14 +2181,14 @@ msgid "Refresh the list"
 msgstr ""
 
 #. page script
-#: sajha/web/static/js/main.js:278 sajha/web/templates/common/user_config.html:757
-#: sajha/web/templates/prompts/prompt_test.html:175 sajha/web/templates/tools/tool_config.html:607
+#: sajha/web/static/js/main.js:278 sajha/web/templates/common/user_config.html:758
+#: sajha/web/templates/prompts/prompt_test.html:175 sajha/web/templates/tools/tool_config.html:608
 #: sajha/web/templates/workflows/workflows.html:68
 msgid "Loading..."
 msgstr ""
 
 #. page script
-#: sajha/web/static/js/workflows.js:358 sajha/web/templates/composite/builder.html:62
+#: sajha/web/static/js/workflows.js:364 sajha/web/templates/composite/builder.html:62
 #: sajha/web/templates/workflows/workflows.html:80 sajha/web/templates/workflows/workflows.html:98
 msgid "Steps"
 msgstr ""
@@ -2184,7 +2206,7 @@ msgid "Concurrent runs"
 msgstr ""
 
 #. page script
-#: sajha/web/static/js/ask.js:898 sajha/web/templates/admin/apikeys_list.html:72
+#: sajha/web/static/js/ask.js:915 sajha/web/templates/admin/apikeys_list.html:72
 #: sajha/web/templates/admin/evals.html:44 sajha/web/templates/admin/evals.html:45
 #: sajha/web/templates/admin/studio/studio_api_import.html:117 sajha/web/templates/ai/ask.html:22
 #: sajha/web/templates/workflows/workflows.html:92 sajha/web/templates/workflows/workflows.html:93
@@ -2340,7 +2362,7 @@ msgid "Run now"
 msgstr ""
 
 #. page script
-#: sajha/web/static/js/workflows.js:312 sajha/web/templates/admin/admin_tools.html:125
+#: sajha/web/static/js/workflows.js:318 sajha/web/templates/admin/admin_tools.html:125
 #: sajha/web/templates/admin/admin_tools.html:347 sajha/web/templates/admin/admin_users.html:165
 #: sajha/web/templates/admin/apikeys_list.html:89 sajha/web/templates/admin/apikeys_view.html:58
 #: sajha/web/templates/admin/federation.html:261 sajha/web/templates/workflows/workflows.html:145
@@ -2479,6 +2501,12 @@ msgstr ""
 
 #: sajha/web/templates/ai/ai_settings.html:63
 msgid "sk-ant-... or sk-..."
+msgstr ""
+
+#. page script
+#: sajha/web/templates/ai/ai_settings.html:64 sajha/web/templates/ai/ai_settings.html:158
+#: sajha/web/templates/ai/ai_settings.html:437
+msgid "Show API key"
 msgstr ""
 
 #: sajha/web/templates/ai/ai_settings.html:66
@@ -2711,6 +2739,8 @@ msgid "e.g. find companies with high debt-to-equity ratios"
 msgstr ""
 
 #. help catalog: tools
+#. page script
+#: sajha/web/static/js/main.js:483 sajha/web/static/js/main.js:484
 #: sajha/web/templates/admin/sajhanet_tools.html:56
 #: sajha/web/templates/admin/studio/studio_sharepoint.html:184
 #: sajha/web/templates/admin/studio/studio_sharepoint.html:335
@@ -2822,7 +2852,7 @@ msgid ""
 msgstr ""
 
 #. page script
-#: sajha/web/static/js/ask.js:882 sajha/web/static/js/ask.js:927 sajha/web/templates/ai/ask.html:89
+#: sajha/web/static/js/ask.js:899 sajha/web/static/js/ask.js:944 sajha/web/templates/ai/ask.html:89
 msgid "Waiting for a question"
 msgstr ""
 
@@ -2831,7 +2861,7 @@ msgid "Servers and tools"
 msgstr ""
 
 #. page script
-#: sajha/web/static/js/ask.js:50 sajha/web/templates/ai/ask.html:96
+#: sajha/web/static/js/ask.js:51 sajha/web/templates/ai/ask.html:96
 msgid "No calls yet"
 msgstr ""
 
@@ -3576,7 +3606,7 @@ msgid "The server refused your token"
 msgstr ""
 
 #. page script
-#: sajha/web/static/js/ask.js:560 sajha/web/templates/account/server_connections.html:55
+#: sajha/web/static/js/ask.js:569 sajha/web/templates/account/server_connections.html:55
 msgid "Sign in again"
 msgstr ""
 
@@ -4039,7 +4069,7 @@ msgstr ""
 msgid "Compose"
 msgstr ""
 
-#: sajha/web/templates/admin/admin_user_create.html:242 sajha/web/templates/common/_nav.html:83
+#: sajha/web/templates/admin/admin_user_create.html:243 sajha/web/templates/common/_nav.html:83
 #: sajha/web/templates/common/user_config.html:172
 msgid "Admin"
 msgstr ""
@@ -4280,7 +4310,7 @@ msgstr[0] ""
 msgstr[1] ""
 
 #. page script
-#: sajha/web/i18n.py:222 sajha/web/static/js/ask.js:694 sajha/web/static/js/ask.js:725
+#: sajha/web/i18n.py:223 sajha/web/static/js/ask.js:707 sajha/web/static/js/ask.js:742
 #: sajha/web/static/js/notices.js:10 sajha/web/templates/admin/admin_tools.html:25
 #: sajha/web/templates/admin/system_monitor.html:425 sajha/web/templates/common/_notices_banner.html:8
 #: sajha/web/templates/common/error.html:5 sajha/web/templates/common/error.html:13
@@ -4420,7 +4450,7 @@ msgstr ""
 msgid "User Roles"
 msgstr ""
 
-#: sajha/web/templates/admin/admin_user_create.html:240 sajha/web/templates/admin/audit.html:68
+#: sajha/web/templates/admin/admin_user_create.html:241 sajha/web/templates/admin/audit.html:68
 #: sajha/web/templates/admin/audit.html:74 sajha/web/templates/admin/connections.html:41
 #: sajha/web/templates/admin/connections.html:54 sajha/web/templates/admin/connectors.html:81
 #: sajha/web/templates/admin/policies.html:90 sajha/web/templates/admin/sajhanet_activity.html:42
@@ -4439,7 +4469,7 @@ msgstr ""
 msgid "Developer"
 msgstr ""
 
-#: sajha/web/templates/admin/admin_user_create.html:239 sajha/web/templates/common/user_config.html:181
+#: sajha/web/templates/admin/admin_user_create.html:240 sajha/web/templates/common/user_config.html:181
 msgid "Viewer"
 msgstr ""
 
@@ -4447,7 +4477,7 @@ msgstr ""
 msgid "Click to toggle roles"
 msgstr ""
 
-#: sajha/web/templates/admin/admin_user_create.html:117 sajha/web/templates/common/user_config.html:190
+#: sajha/web/templates/admin/admin_user_create.html:118 sajha/web/templates/common/user_config.html:190
 msgid "Tool Access"
 msgstr ""
 
@@ -4516,7 +4546,7 @@ msgid "<strong>last_login:</strong> Last login timestamp"
 msgstr ""
 
 #. page script
-#: sajha/web/static/js/workflows.js:77 sajha/web/templates/admin/admin_tools.html:24
+#: sajha/web/static/js/workflows.js:83 sajha/web/templates/admin/admin_tools.html:24
 #: sajha/web/templates/admin/approvals.html:65 sajha/web/templates/admin/async_tasks.html:83
 #: sajha/web/templates/admin/planner_routing.html:42 sajha/web/templates/admin/planner_routing.html:87
 #: sajha/web/templates/admin/planner_routing.html:151 sajha/web/templates/admin/policies.html:85
@@ -4535,7 +4565,7 @@ msgid "Tool"
 msgstr ""
 
 #. page script
-#: sajha/web/static/js/ask.js:454 sajha/web/templates/monitoring/_usage_table.html:13
+#: sajha/web/static/js/ask.js:455 sajha/web/templates/monitoring/_usage_table.html:13
 #: sajha/web/templates/monitoring/usage.html:61 sajha/web/templates/monitoring/usage.html:184
 msgid "Tool calls"
 msgstr ""
@@ -4667,7 +4697,7 @@ msgstr ""
 #. page script
 #: sajha/web/templates/admin/admin_prompts.html:132 sajha/web/templates/admin/admin_tools.html:118
 #: sajha/web/templates/admin/admin_tools.html:343 sajha/web/templates/admin/admin_users.html:153
-#: sajha/web/templates/common/user_config.html:450
+#: sajha/web/templates/common/user_config.html:451
 #: sajha/web/templates/monitoring/monitoring_tools.html:134
 #: sajha/web/templates/monitoring/monitoring_tools.html:418
 #: sajha/web/templates/monitoring/monitoring_users.html:129
@@ -4952,7 +4982,7 @@ msgid "Restart Python: forget every variable and clear the outputs"
 msgstr ""
 
 #. page script
-#: sajha/web/templates/admin/admin_user_create.html:168 sajha/web/templates/admin/federation.html:263
+#: sajha/web/templates/admin/admin_user_create.html:169 sajha/web/templates/admin/federation.html:263
 #: sajha/web/templates/admin/studio/studio_olap.html:300
 #: sajha/web/templates/playground/playground.html:53
 msgid "Reset"
@@ -5332,10 +5362,10 @@ msgid "revoked"
 msgstr ""
 
 #. page script
-#: sajha/web/static/js/credfile.js:53 sajha/web/static/js/workflows.js:300
-#: sajha/web/static/js/workflows.js:310 sajha/web/templates/admin/connectors.html:167
+#: sajha/web/static/js/credfile.js:53 sajha/web/static/js/workflows.js:306
+#: sajha/web/static/js/workflows.js:316 sajha/web/templates/admin/connectors.html:167
 #: sajha/web/templates/admin/policies.html:51 sajha/web/templates/admin/sajhanet_keys.html:47
-#: sajha/web/templates/admin/studio/studio_llm.html:659 sajha/web/templates/net/_instance_admin.html:43
+#: sajha/web/templates/admin/studio/studio_llm.html:660 sajha/web/templates/net/_instance_admin.html:43
 msgid "disabled"
 msgstr ""
 
@@ -5363,7 +5393,11 @@ msgstr ""
 #: sajha/web/static/js/sajhanet.js:184 sajha/web/templates/admin/connectors.html:174
 #: sajha/web/templates/admin/federation.html:251 sajha/web/templates/admin/sajhanet.html:169
 #: sajha/web/templates/admin/sajhanet_blocks.html:73
-#: sajha/web/templates/admin/sajhanet_settings.html:38 sajha/web/templates/net/_instance_admin.html:51
+#: sajha/web/templates/admin/sajhanet_settings.html:38
+#: sajha/web/templates/admin/studio/studio_olap.html:323
+#: sajha/web/templates/admin/studio/studio_olap.html:359
+#: sajha/web/templates/admin/studio/studio_olap.html:397
+#: sajha/web/templates/net/_instance_admin.html:51
 msgid "Remove"
 msgstr ""
 
@@ -5548,7 +5582,7 @@ msgid "%(name)s - Instances - SAJHA MCP Server"
 msgstr ""
 
 #. page script
-#: sajha/web/static/js/ask.js:30 sajha/web/templates/admin/sajhanet_blocks.html:27
+#: sajha/web/static/js/ask.js:31 sajha/web/templates/admin/sajhanet_blocks.html:27
 #: sajha/web/templates/admin/sajhanet_keys.html:27 sajha/web/templates/admin/sajhanet_overview.html:145
 #: sajha/web/templates/admin/sajhanet_reviews.html:65 sajha/web/templates/net/instance.html:28
 #: sajha/web/templates/net/instances.html:80
@@ -5998,7 +6032,7 @@ msgid "last run %(value)s (%(status)s)"
 msgstr ""
 
 #. page script
-#: sajha/web/static/js/ask.js:496 sajha/web/templates/admin/evals.html:66
+#: sajha/web/static/js/ask.js:497 sajha/web/templates/admin/evals.html:66
 #: sajha/web/templates/admin/studio/studio_llm.html:387 sajha/web/templates/admin/tool_health.html:49
 #: sajha/web/templates/admin/tool_health.html:141 sajha/web/templates/reporting/report_library.html:57
 #: sajha/web/templates/reporting/report_library_detail.html:28
@@ -6073,7 +6107,7 @@ msgid "warnings"
 msgstr ""
 
 #. page script
-#: sajha/web/static/js/workflows.js:361 sajha/web/templates/admin/evals.html:139
+#: sajha/web/static/js/workflows.js:367 sajha/web/templates/admin/evals.html:139
 #: sajha/web/templates/reporting/report_library_detail.html:61
 msgid "No runs yet."
 msgstr ""
@@ -6516,7 +6550,7 @@ msgid "root"
 msgstr ""
 
 #. page script
-#: sajha/web/static/js/workflows.js:312 sajha/web/templates/admin/admin_tools.html:130
+#: sajha/web/static/js/workflows.js:318 sajha/web/templates/admin/admin_tools.html:130
 #: sajha/web/templates/admin/admin_tools.html:350 sajha/web/templates/admin/admin_users.html:170
 #: sajha/web/templates/admin/apikeys_list.html:89 sajha/web/templates/admin/apikeys_view.html:58
 #: sajha/web/templates/tools/tool_execute.html:194
@@ -6577,149 +6611,155 @@ msgstr ""
 msgid "Minimum 6 characters"
 msgstr ""
 
-#: sajha/web/templates/admin/admin_user_create.html:66
+#. page script
+#: sajha/web/templates/admin/admin_user_create.html:63
+#: sajha/web/templates/admin/admin_user_create.html:302
+msgid "Show password"
+msgstr ""
+
+#: sajha/web/templates/admin/admin_user_create.html:67
 msgid "Minimum 6 characters. Stored as a bcrypt hash, never in plain text."
 msgstr ""
 
-#: sajha/web/templates/admin/admin_user_create.html:71
+#: sajha/web/templates/admin/admin_user_create.html:72
 msgid "Confirm Password"
 msgstr ""
 
-#: sajha/web/templates/admin/admin_user_create.html:73
+#: sajha/web/templates/admin/admin_user_create.html:74
 msgid "Re-enter password"
 msgstr ""
 
 #. page script
-#: sajha/web/templates/admin/admin_user_create.html:75
-#: sajha/web/templates/admin/admin_user_create.html:394
+#: sajha/web/templates/admin/admin_user_create.html:76
+#: sajha/web/templates/admin/admin_user_create.html:406
 msgid "Passwords do not match."
 msgstr ""
 
-#: sajha/web/templates/admin/admin_user_create.html:82
+#: sajha/web/templates/admin/admin_user_create.html:83
 msgid "Role & Permissions"
 msgstr ""
 
-#: sajha/web/templates/admin/admin_user_create.html:86
+#: sajha/web/templates/admin/admin_user_create.html:87
 msgid "User Role"
 msgstr ""
 
-#: sajha/web/templates/admin/admin_user_create.html:90
+#: sajha/web/templates/admin/admin_user_create.html:91
 msgid ""
 "<strong>User</strong> <small class=\"text-muted d-block\">Standard access to tools and "
 "prompts</small>"
 msgstr ""
 
-#: sajha/web/templates/admin/admin_user_create.html:97
+#: sajha/web/templates/admin/admin_user_create.html:98
 msgid "<strong>Developer</strong> <small class=\"text-muted d-block\">Can create and modify tools</small>"
 msgstr ""
 
-#: sajha/web/templates/admin/admin_user_create.html:104
+#: sajha/web/templates/admin/admin_user_create.html:105
 msgid ""
 "<strong>Admin</strong> <small class=\"text-muted d-block\">Full system access including user "
 "management</small>"
 msgstr ""
 
-#: sajha/web/templates/admin/admin_user_create.html:111
+#: sajha/web/templates/admin/admin_user_create.html:112
 msgid "<strong>Viewer</strong> <small class=\"text-muted d-block\">Read-only access to dashboards</small>"
 msgstr ""
 
-#: sajha/web/templates/admin/admin_user_create.html:121
+#: sajha/web/templates/admin/admin_user_create.html:122
 msgid "<strong>All Tools</strong> - Access to all available tools"
 msgstr ""
 
-#: sajha/web/templates/admin/admin_user_create.html:127
+#: sajha/web/templates/admin/admin_user_create.html:128
 msgid "<strong>Restricted</strong> - Limited tool access (configure later)"
 msgstr ""
 
-#: sajha/web/templates/admin/admin_user_create.html:131
+#: sajha/web/templates/admin/admin_user_create.html:132
 msgid "Tool access can be fine-tuned after user creation."
 msgstr ""
 
-#: sajha/web/templates/admin/admin_user_create.html:139
+#: sajha/web/templates/admin/admin_user_create.html:140
 msgid "Account Status"
 msgstr ""
 
-#: sajha/web/templates/admin/admin_user_create.html:144
+#: sajha/web/templates/admin/admin_user_create.html:145
 msgid ""
 "<strong>Enable Account</strong> <small class=\"text-muted d-block\">User can log in immediately "
 "after creation</small>"
 msgstr ""
 
-#: sajha/web/templates/admin/admin_user_create.html:171
+#: sajha/web/templates/admin/admin_user_create.html:172
 msgid "Create User"
 msgstr ""
 
-#: sajha/web/templates/admin/admin_user_create.html:184
+#: sajha/web/templates/admin/admin_user_create.html:185
 #: sajha/web/templates/admin/studio/studio_olap.html:178
 #: sajha/web/templates/admin/studio/studio_powerbi.html:443
 msgid "Quick Tips"
 msgstr ""
 
-#: sajha/web/templates/admin/admin_user_create.html:190
+#: sajha/web/templates/admin/admin_user_create.html:191
 msgid "<strong>User ID</strong> must be unique and cannot be changed later"
 msgstr ""
 
-#: sajha/web/templates/admin/admin_user_create.html:194
+#: sajha/web/templates/admin/admin_user_create.html:195
 msgid "<strong>Passwords</strong> are securely hashed before storage"
 msgstr ""
 
-#: sajha/web/templates/admin/admin_user_create.html:198
+#: sajha/web/templates/admin/admin_user_create.html:199
 msgid "<strong>Admin role</strong> grants full system access"
 msgstr ""
 
-#: sajha/web/templates/admin/admin_user_create.html:202
+#: sajha/web/templates/admin/admin_user_create.html:203
 msgid "<strong>Tool access</strong> can be customized per user"
 msgstr ""
 
-#: sajha/web/templates/admin/admin_user_create.html:210
+#: sajha/web/templates/admin/admin_user_create.html:211
 msgid "Security Notes"
 msgstr ""
 
-#: sajha/web/templates/admin/admin_user_create.html:215
+#: sajha/web/templates/admin/admin_user_create.html:216
 msgid "Use strong, unique passwords"
 msgstr ""
 
-#: sajha/web/templates/admin/admin_user_create.html:218
+#: sajha/web/templates/admin/admin_user_create.html:219
 msgid "Assign minimum required permissions"
 msgstr ""
 
-#: sajha/web/templates/admin/admin_user_create.html:221
+#: sajha/web/templates/admin/admin_user_create.html:222
 msgid "Review user access regularly"
 msgstr ""
 
-#: sajha/web/templates/admin/admin_user_create.html:224
+#: sajha/web/templates/admin/admin_user_create.html:225
 msgid "Disable accounts when not in use"
 msgstr ""
 
-#: sajha/web/templates/admin/admin_user_create.html:232
+#: sajha/web/templates/admin/admin_user_create.html:233
 msgid "Role Comparison"
 msgstr ""
 
-#: sajha/web/templates/admin/admin_user_create.html:238
+#: sajha/web/templates/admin/admin_user_create.html:239
 msgid "Permission"
 msgstr ""
 
-#: sajha/web/templates/admin/admin_user_create.html:241
+#: sajha/web/templates/admin/admin_user_create.html:242
 msgid "Dev"
 msgstr ""
 
-#: sajha/web/templates/admin/admin_user_create.html:247
+#: sajha/web/templates/admin/admin_user_create.html:248
 msgid "View Dashboard"
 msgstr ""
 
-#: sajha/web/templates/admin/admin_user_create.html:254
+#: sajha/web/templates/admin/admin_user_create.html:255
 msgid "Execute Tools"
 msgstr ""
 
-#: sajha/web/templates/admin/admin_user_create.html:261
+#: sajha/web/templates/admin/admin_user_create.html:262
 msgid "Use Prompts"
 msgstr ""
 
-#: sajha/web/templates/admin/admin_user_create.html:268
+#: sajha/web/templates/admin/admin_user_create.html:269
 msgid "Create Tools"
 msgstr ""
 
-#: sajha/web/templates/admin/admin_user_create.html:275
+#: sajha/web/templates/admin/admin_user_create.html:276
 msgid "Manage Users"
 msgstr ""
 
@@ -6768,7 +6808,7 @@ msgstr ""
 #. page script
 #: sajha/web/templates/admin/admin_users.html:128 sajha/web/templates/admin/admin_users.html:146
 #: sajha/web/templates/admin/federation.html:96 sajha/web/templates/admin/studio/studio_olap.html:280
-#: sajha/web/templates/admin/studio/studio_olap.html:432 sajha/web/templates/tools/tool_config.html:343
+#: sajha/web/templates/admin/studio/studio_olap.html:432 sajha/web/templates/tools/tool_config.html:344
 msgid "None"
 msgstr ""
 
@@ -6792,15 +6832,24 @@ msgstr ""
 msgid "Sign %(user_id)s out everywhere"
 msgstr ""
 
-#: sajha/web/templates/admin/admin_users.html:193
+#: sajha/web/templates/admin/admin_users.html:181
+#, python-format
+msgid "Delete user %(id)s"
+msgstr ""
+
+#: sajha/web/templates/admin/admin_users.html:181
+msgid "Delete user"
+msgstr ""
+
+#: sajha/web/templates/admin/admin_users.html:194
 msgid "No users found matching your search"
 msgstr ""
 
-#: sajha/web/templates/admin/admin_users.html:202
+#: sajha/web/templates/admin/admin_users.html:203
 msgid "Bulk Actions"
 msgstr ""
 
-#: sajha/web/templates/admin/admin_users.html:206
+#: sajha/web/templates/admin/admin_users.html:207
 msgid "Export All Users"
 msgstr ""
 
@@ -7207,6 +7256,10 @@ msgstr ""
 msgid "Background tool executions with result delivery"
 msgstr ""
 
+#: sajha/web/templates/admin/async_tasks.html:30
+msgid "Filter by status"
+msgstr ""
+
 #: sajha/web/templates/admin/async_tasks.html:31
 msgid "All Status"
 msgstr ""
@@ -7237,8 +7290,16 @@ msgstr ""
 msgid "Cancelled"
 msgstr ""
 
+#: sajha/web/templates/admin/async_tasks.html:39 sajha/web/templates/admin/system_monitor.html:44
+msgid "Refresh interval"
+msgstr ""
+
 #: sajha/web/templates/admin/async_tasks.html:40 sajha/web/templates/admin/system_monitor.html:45
 msgid "Manual"
+msgstr ""
+
+#: sajha/web/templates/admin/async_tasks.html:45 sajha/web/templates/admin/system_monitor.html:51
+msgid "Refresh now"
 msgstr ""
 
 #: sajha/web/templates/admin/async_tasks.html:63
@@ -7283,6 +7344,10 @@ msgstr ""
 
 #: sajha/web/templates/admin/async_tasks.html:94
 msgid "Task Detail"
+msgstr ""
+
+#: sajha/web/templates/admin/async_tasks.html:95
+msgid "Close the task detail"
 msgstr ""
 
 #: sajha/web/templates/admin/async_tasks.html:99
@@ -7480,7 +7545,7 @@ msgid "No connected accounts"
 msgstr ""
 
 #. page script
-#: sajha/web/static/js/workflows.js:74 sajha/web/static/js/workflows.js:174
+#: sajha/web/static/js/workflows.js:80 sajha/web/static/js/workflows.js:180
 #: sajha/web/templates/admin/connections.html:87 sajha/web/templates/admin/federation.html:70
 #: sajha/web/templates/admin/server_connections.html:74
 msgid "Id"
@@ -7509,13 +7574,13 @@ msgid "no client id"
 msgstr ""
 
 #. page script
-#: sajha/web/static/js/workflows.js:175 sajha/web/templates/admin/connections.html:91
+#: sajha/web/static/js/workflows.js:181 sajha/web/templates/admin/connections.html:91
 #: sajha/web/templates/admin/connectors.html:152
 msgid "yes"
 msgstr ""
 
 #. page script
-#: sajha/web/static/js/workflows.js:175 sajha/web/templates/admin/connections.html:91
+#: sajha/web/static/js/workflows.js:181 sajha/web/templates/admin/connections.html:91
 #: sajha/web/templates/admin/connectors.html:152
 msgid "no"
 msgstr ""
@@ -7635,7 +7700,7 @@ msgid "Max bytes"
 msgstr ""
 
 #. page script
-#: sajha/web/static/js/workflows.js:99 sajha/web/templates/admin/connectors.html:97
+#: sajha/web/static/js/workflows.js:105 sajha/web/templates/admin/connectors.html:97
 #: sajha/web/templates/admin/federation.html:141
 #: sajha/web/templates/admin/studio/studio_api_import.html:116
 msgid "Timeout (s)"
@@ -7834,15 +7899,15 @@ msgid ""
 msgstr ""
 
 #. page script
-#: sajha/web/static/js/workflows.js:80 sajha/web/templates/admin/evals.html:96
+#: sajha/web/static/js/workflows.js:86 sajha/web/templates/admin/evals.html:96
 #: sajha/web/templates/admin/studio/studio_planners.html:148
 msgid "Question"
 msgstr ""
 
 #. page script
-#: sajha/web/static/js/ask.js:483 sajha/web/templates/admin/evals.html:96
+#: sajha/web/static/js/ask.js:484 sajha/web/templates/admin/evals.html:96
 #: sajha/web/templates/admin/studio/studio_describe.html:154
-#: sajha/web/templates/admin/studio/studio_llm.html:693 sajha/web/templates/admin/tool_health.html:122
+#: sajha/web/templates/admin/studio/studio_llm.html:694 sajha/web/templates/admin/tool_health.html:122
 msgid "Result"
 msgstr ""
 
@@ -8171,7 +8236,7 @@ msgid "Internal / External"
 msgstr ""
 
 #. page script
-#: sajha/web/static/js/workflows.js:183 sajha/web/templates/admin/federation.html:171
+#: sajha/web/static/js/workflows.js:189 sajha/web/templates/admin/federation.html:171
 msgid "Prefix"
 msgstr ""
 
@@ -9507,7 +9572,7 @@ msgid "held"
 msgstr ""
 
 #. page script
-#: sajha/web/static/js/workflows.js:377 sajha/web/templates/admin/sajhanet_overview.html:192
+#: sajha/web/static/js/workflows.js:383 sajha/web/templates/admin/sajhanet_overview.html:192
 #, python-format
 msgid "version %(version)s"
 msgstr ""
@@ -10037,7 +10102,7 @@ msgid "%(net)s · vendor %(vendor)s · from %(source)s"
 msgstr ""
 
 #. page script
-#: sajha/web/static/js/ask.js:468 sajha/web/templates/admin/sajhanet_sponsored.html:26
+#: sajha/web/static/js/ask.js:469 sajha/web/templates/admin/sajhanet_sponsored.html:26
 msgid "running"
 msgstr ""
 
@@ -10771,7 +10836,7 @@ msgid "Last result"
 msgstr ""
 
 #. page script
-#: sajha/web/templates/admin/studio/studio_llm.html:658
+#: sajha/web/templates/admin/studio/studio_llm.html:659
 #: sajha/web/templates/admin/studio/studio_planners.html:197
 #: sajha/web/templates/admin/tool_health.html:53
 msgid "not loaded"
@@ -11138,6 +11203,18 @@ msgid ""
 "Unfiled (the root of <code>%(value)s</code>), an existing folder, or a new name (lowercase "
 "letters, digits, <code>_</code> or <code>-</code>), which is created on save. It files the tool; "
 "it does not change its name."
+msgstr ""
+
+#: sajha/web/templates/admin/studio/_folder_field.html:23
+msgid "Domain description"
+msgstr ""
+
+#: sajha/web/templates/admin/studio/_folder_field.html:24
+msgid "from"
+msgstr ""
+
+#: sajha/web/templates/admin/studio/_folder_field.html:24
+msgid "SAJHA adds it after this tool's own description when it serves the tool"
 msgstr ""
 
 #: sajha/web/templates/admin/studio/_sandbox_policy.html:8
@@ -11576,7 +11653,7 @@ msgstr ""
 
 #. page script
 #: sajha/web/templates/admin/studio/studio_dbquery.html:435
-#: sajha/web/templates/tools/tool_schema.html:274
+#: sajha/web/templates/tools/tool_schema.html:274 sajha/web/templates/tools/tools_list.html:266
 msgid "Schema"
 msgstr ""
 
@@ -12342,7 +12419,7 @@ msgid "Python Code"
 msgstr ""
 
 #. page script
-#: sajha/web/static/js/workflows.js:190 sajha/web/templates/admin/studio/studio_home.html:840
+#: sajha/web/static/js/workflows.js:196 sajha/web/templates/admin/studio/studio_home.html:840
 msgid "Input"
 msgstr ""
 
@@ -13525,6 +13602,12 @@ msgstr ""
 msgid "Header Value"
 msgstr ""
 
+#. page script
+#: sajha/web/templates/admin/studio/studio_rest.html:462
+#: sajha/web/templates/admin/studio/studio_rest.html:856
+msgid "Remove header"
+msgstr ""
+
 #: sajha/web/templates/admin/studio/studio_rest.html:468
 msgid "Add Header"
 msgstr ""
@@ -13535,6 +13618,10 @@ msgstr ""
 
 #: sajha/web/templates/admin/studio/studio_rest.html:482
 msgid "Define the input parameters as JSON Schema. This will be used for input validation."
+msgstr ""
+
+#: sajha/web/templates/admin/studio/studio_rest.html:484
+msgid "Input schema (JSON Schema)"
 msgstr ""
 
 #: sajha/web/templates/admin/studio/studio_rest.html:506
@@ -13603,6 +13690,10 @@ msgstr ""
 
 #: sajha/web/templates/admin/studio/studio_rest.html:575
 msgid "Define the expected response format as JSON Schema. For CSV responses, schema is auto-generated."
+msgstr ""
+
+#: sajha/web/templates/admin/studio/studio_rest.html:577
+msgid "Response schema (JSON Schema)"
 msgstr ""
 
 #: sajha/web/templates/admin/studio/studio_rest.html:612
@@ -13744,8 +13835,8 @@ msgid "Script Type"
 msgstr ""
 
 #: sajha/web/templates/admin/studio/studio_script.html:310
-#: sajha/web/templates/admin/studio/studio_script.html:492
-#: sajha/web/templates/admin/studio/studio_script.html:497
+#: sajha/web/templates/admin/studio/studio_script.html:494
+#: sajha/web/templates/admin/studio/studio_script.html:499
 msgid "Bash"
 msgstr ""
 
@@ -13771,6 +13862,10 @@ msgstr ""
 
 #: sajha/web/templates/admin/studio/studio_script.html:347
 msgid "or click to browse (.sh, .py, .js, .pl, .rb)"
+msgstr ""
+
+#: sajha/web/templates/admin/studio/studio_script.html:348
+msgid "Script file"
 msgstr ""
 
 #: sajha/web/templates/admin/studio/studio_script.html:353
@@ -13827,51 +13922,59 @@ msgstr ""
 msgid "Generated Config Preview"
 msgstr ""
 
-#: sajha/web/templates/admin/studio/studio_script.html:465
+#: sajha/web/templates/admin/studio/studio_script.html:461
+msgid "Copy the config preview"
+msgstr ""
+
+#: sajha/web/templates/admin/studio/studio_script.html:466
 msgid "// Configure your script tool and click \"Preview Tool\" to see generated config"
 msgstr ""
 
-#: sajha/web/templates/admin/studio/studio_script.html:471
+#: sajha/web/templates/admin/studio/studio_script.html:472
 msgid "Generated Python Wrapper"
 msgstr ""
 
-#: sajha/web/templates/admin/studio/studio_script.html:477
+#: sajha/web/templates/admin/studio/studio_script.html:474
+msgid "Copy the Python wrapper"
+msgstr ""
+
+#: sajha/web/templates/admin/studio/studio_script.html:479
 msgid "# Python wrapper code will appear here"
 msgstr ""
 
-#: sajha/web/templates/admin/studio/studio_script.html:486
+#: sajha/web/templates/admin/studio/studio_script.html:488
 msgid "Quick Examples"
 msgstr ""
 
-#: sajha/web/templates/admin/studio/studio_script.html:490
+#: sajha/web/templates/admin/studio/studio_script.html:492
 msgid "System Information"
 msgstr ""
 
-#: sajha/web/templates/admin/studio/studio_script.html:491
+#: sajha/web/templates/admin/studio/studio_script.html:493
 msgid "Bash script to collect system information (CPU, memory, disk)"
 msgstr ""
 
-#: sajha/web/templates/admin/studio/studio_script.html:495
+#: sajha/web/templates/admin/studio/studio_script.html:497
 msgid "File Search"
 msgstr ""
 
-#: sajha/web/templates/admin/studio/studio_script.html:496
+#: sajha/web/templates/admin/studio/studio_script.html:498
 msgid "Search for files by pattern in a directory"
 msgstr ""
 
-#: sajha/web/templates/admin/studio/studio_script.html:500
+#: sajha/web/templates/admin/studio/studio_script.html:502
 msgid "JSON Processor"
 msgstr ""
 
-#: sajha/web/templates/admin/studio/studio_script.html:501
+#: sajha/web/templates/admin/studio/studio_script.html:503
 msgid "Python script to process and transform JSON data"
 msgstr ""
 
-#: sajha/web/templates/admin/studio/studio_script.html:505
+#: sajha/web/templates/admin/studio/studio_script.html:507
 msgid "Log Analyzer"
 msgstr ""
 
-#: sajha/web/templates/admin/studio/studio_script.html:506
+#: sajha/web/templates/admin/studio/studio_script.html:508
 msgid "Analyze log files and extract patterns"
 msgstr ""
 
@@ -14201,6 +14304,10 @@ msgstr ""
 msgid "Chain multiple tools into one MCP call — sibling (parallel) or parent-child (fan-out)"
 msgstr ""
 
+#: sajha/web/templates/composite/builder.html:26
+msgid "New composite tool"
+msgstr ""
+
 #: sajha/web/templates/composite/builder.html:28
 msgid "Loading composites..."
 msgstr ""
@@ -14267,82 +14374,82 @@ msgstr ""
 msgid "Output schema"
 msgstr ""
 
-#: sajha/web/i18n.py:210
+#: sajha/web/i18n.py:211
 msgid "Page Not Found"
 msgstr ""
 
-#: sajha/web/i18n.py:210
+#: sajha/web/i18n.py:211
 msgid "The requested page does not exist"
 msgstr ""
 
-#: sajha/web/i18n.py:211
+#: sajha/web/i18n.py:212
 msgid "Access Forbidden"
 msgstr ""
 
-#: sajha/web/i18n.py:211
+#: sajha/web/i18n.py:212
 msgid "You don't have permission to access this resource"
 msgstr ""
 
-#: sajha/web/i18n.py:212
+#: sajha/web/i18n.py:213
 msgid "Internal Server Error"
 msgstr ""
 
-#: sajha/web/i18n.py:212
+#: sajha/web/i18n.py:213
 msgid "An unexpected error occurred"
 msgstr ""
 
-#: sajha/web/i18n.py:213
+#: sajha/web/i18n.py:214
 msgid "Not Found"
 msgstr ""
 
-#: sajha/web/i18n.py:213
+#: sajha/web/i18n.py:214
 msgid "Prompt Not Found"
 msgstr ""
 
-#: sajha/web/i18n.py:213
+#: sajha/web/i18n.py:214
 msgid "Tool Not Found"
 msgstr ""
 
-#: sajha/web/i18n.py:215
+#: sajha/web/i18n.py:216
 msgid "Invalid credentials"
 msgstr ""
 
-#: sajha/web/i18n.py:216
+#: sajha/web/i18n.py:217
 msgid "Too many failed sign-ins for this account. Try again later."
 msgstr ""
 
-#: sajha/web/i18n.py:217
+#: sajha/web/i18n.py:218
 msgid "Too many failed sign-in attempts from your address. Wait a few minutes and retry."
 msgstr ""
 
-#: sajha/web/i18n.py:218
+#: sajha/web/i18n.py:219
 msgid "Only a signed-in user can change a password (not an API key)."
 msgstr ""
 
-#: sajha/web/i18n.py:219
+#: sajha/web/i18n.py:220
 msgid "The current password is wrong."
 msgstr ""
 
-#: sajha/web/i18n.py:219
+#: sajha/web/i18n.py:220
 msgid "The new passwords do not match."
 msgstr ""
 
-#: sajha/web/i18n.py:220
+#: sajha/web/i18n.py:221
 msgid "The new password must differ from the current one."
 msgstr ""
 
 #. page script
-#: sajha/web/i18n.py:222 sajha/web/static/js/notices.js:10
+#: sajha/web/i18n.py:223 sajha/web/static/js/notices.js:10
 msgid "Info"
 msgstr ""
 
 #. page script
-#: sajha/web/i18n.py:222 sajha/web/static/js/notices.js:10
+#: sajha/web/i18n.py:223 sajha/web/static/js/notices.js:10
 msgid "Warning"
 msgstr ""
 
 #. page script
-#: sajha/web/i18n.py:222 sajha/web/static/js/notices.js:10
+#: sajha/web/i18n.py:223 sajha/web/static/js/notices.js:10
 msgid "Critical"
 msgstr ""
 
@@ -16692,375 +16799,375 @@ msgid "Copy the key"
 msgstr ""
 
 #. page script
-#: sajha/web/static/js/ask.js:58
+#: sajha/web/static/js/ask.js:59
 msgid "New question"
 msgstr ""
 
 #. page script
-#: sajha/web/static/js/ask.js:80 sajha/web/static/js/ask.js:465 sajha/web/static/js/ask.js:659
-#: sajha/web/static/js/ask.js:925
+#: sajha/web/static/js/ask.js:81 sajha/web/static/js/ask.js:466 sajha/web/static/js/ask.js:668
+#: sajha/web/static/js/ask.js:942
 msgid "waiting for you"
 msgstr ""
 
 #. page script
-#: sajha/web/static/js/ask.js:82
+#: sajha/web/static/js/ask.js:83
 msgid "done"
 msgstr ""
 
 #. page script
-#: sajha/web/static/js/ask.js:82 sajha/web/templates/admin/studio/studio_api_import.html:487
-#: sajha/web/templates/admin/studio/studio_llm.html:692
+#: sajha/web/static/js/ask.js:83 sajha/web/templates/admin/studio/studio_api_import.html:487
+#: sajha/web/templates/admin/studio/studio_llm.html:693
 msgid "failed"
 msgstr ""
 
 #. page script
-#: sajha/web/static/js/ask.js:127
+#: sajha/web/static/js/ask.js:128
 #, python-format
 msgid "%(tools)s tools · %(groups)s provider groups"
 msgstr ""
 
 #. page script
-#: sajha/web/static/js/ask.js:222
+#: sajha/web/static/js/ask.js:223
 msgid "running…"
 msgstr ""
 
 #. page script
-#: sajha/web/static/js/ask.js:278
+#: sajha/web/static/js/ask.js:279
 msgid "no filter"
 msgstr ""
 
 #. page script
-#: sajha/web/static/js/ask.js:279
+#: sajha/web/static/js/ask.js:280
 #, python-format
 msgid "Not a valid regular expression: %(error)s"
 msgstr ""
 
 #. page script
-#: sajha/web/static/js/ask.js:283
+#: sajha/web/static/js/ask.js:284
 #, python-format
 msgid "%(n)s of %(total)s match"
 msgstr ""
 
 #. page script
-#: sajha/web/static/js/ask.js:344
+#: sajha/web/static/js/ask.js:345
 msgid "SAJHA’s answer"
 msgstr ""
 
 #. page script
-#: sajha/web/static/js/ask.js:362
+#: sajha/web/static/js/ask.js:363
 msgid ""
 "Confidence comes from the tool results the answer rests on (the composition framework), not from "
 "the model."
 msgstr ""
 
 #. page script
-#: sajha/web/static/js/ask.js:414
+#: sajha/web/static/js/ask.js:415
 #, python-format
 msgid "loop bound reached: %(stages)s"
 msgstr ""
 
 #. page script
-#: sajha/web/static/js/ask.js:428
+#: sajha/web/static/js/ask.js:429
 msgid "revised"
 msgstr ""
 
 #. page script
-#: sajha/web/static/js/ask.js:466
+#: sajha/web/static/js/ask.js:467
 msgid "needs your account"
 msgstr ""
 
 #. page script
-#: sajha/web/static/js/ask.js:472
+#: sajha/web/static/js/ask.js:473
 msgid "(hide arguments and result)"
 msgstr ""
 
 #. page script
-#: sajha/web/static/js/ask.js:472
+#: sajha/web/static/js/ask.js:473
 msgid "(show arguments and result)"
 msgstr ""
 
 #. page script
-#: sajha/web/static/js/ask.js:494
+#: sajha/web/static/js/ask.js:495
 #, python-format
 msgid "Confirm %(name)s"
 msgstr ""
 
 #. page script
-#: sajha/web/static/js/ask.js:500
+#: sajha/web/static/js/ask.js:501
 msgid ""
 "This tool is marked destructive (it can change or delete data), so SAJHA has not run it. Confirm "
 "to ask again with permission to run exactly this call."
 msgstr ""
 
 #. page script
-#: sajha/web/static/js/ask.js:504
+#: sajha/web/static/js/ask.js:505
 msgid "Confirmed: the answer follows below."
 msgstr ""
 
 #. page script
-#: sajha/web/static/js/ask.js:504
+#: sajha/web/static/js/ask.js:505
 msgid "Cancelled: not run."
 msgstr ""
 
 #. page script
-#: sajha/web/static/js/ask.js:507
+#: sajha/web/static/js/ask.js:508
 msgid "Confirm and run"
 msgstr ""
 
 #. page script
-#: sajha/web/static/js/ask.js:512
+#: sajha/web/static/js/ask.js:513
 #, python-format
 msgid "Confirmed: run %(name)s"
 msgstr ""
 
 #. page script
-#: sajha/web/static/js/ask.js:516
+#: sajha/web/static/js/ask.js:517
 #, python-format
 msgid "Cancelled. %(name)s was not run."
 msgstr ""
 
 #. page script
-#: sajha/web/static/js/ask.js:525 sajha/web/static/js/ask.js:527 sajha/web/static/js/ask.js:537
+#: sajha/web/static/js/ask.js:526 sajha/web/static/js/ask.js:528 sajha/web/static/js/ask.js:538
 #, python-format
 msgid "Connect %(provider)s"
 msgstr ""
 
 #. page script
-#: sajha/web/static/js/ask.js:530
+#: sajha/web/static/js/ask.js:531
 #, python-format
 msgid "%(provider)s no longer accepts your linked account."
 msgstr ""
 
 #. page script
-#: sajha/web/static/js/ask.js:531
+#: sajha/web/static/js/ask.js:532
 #, python-format
 msgid "Your linked %(provider)s account does not grant what %(name)s needs."
 msgstr ""
 
 #. page script
-#: sajha/web/static/js/ask.js:532
-msgid "Connected accounts belong to signed-in users."
-msgstr ""
-
-#. page script
 #: sajha/web/static/js/ask.js:533
-#, python-format
-msgid "Your %(provider)s account is not linked yet."
+msgid "Connected accounts belong to signed-in users."
 msgstr ""
 
 #. page script
 #: sajha/web/static/js/ask.js:534
 #, python-format
+msgid "Your %(provider)s account is not linked yet."
+msgstr ""
+
+#. page script
+#: sajha/web/static/js/ask.js:535
+#, python-format
 msgid "%(name)s acts as you in %(provider)s. Link it (it opens in a new tab), then ask again."
 msgstr ""
 
 #. page script
-#: sajha/web/static/js/ask.js:541
+#: sajha/web/static/js/ask.js:542
 msgid "I have connected it: ask again"
 msgstr ""
 
 #. page script
-#: sajha/web/static/js/ask.js:544
+#: sajha/web/static/js/ask.js:545
 #, python-format
 msgid "Connected %(provider)s: asking again"
 msgstr ""
 
 #. page script
-#: sajha/web/static/js/ask.js:565
+#: sajha/web/static/js/ask.js:574
 msgid "Stopped. The rest of this answer was not fetched."
 msgstr ""
 
 #. page script
-#: sajha/web/static/js/ask.js:583
+#: sajha/web/static/js/ask.js:592
 msgid "Caveats"
 msgstr ""
 
 #. page script
-#: sajha/web/static/js/ask.js:593
+#: sajha/web/static/js/ask.js:602
 #, python-format
 msgid "%(n)s tokens"
 msgstr ""
 
 #. page script
-#: sajha/web/static/js/ask.js:594
+#: sajha/web/static/js/ask.js:603
 #, python-format
 msgid "stopped by %(reason)s"
 msgstr ""
 
 #. page script
-#: sajha/web/static/js/ask.js:616
+#: sajha/web/static/js/ask.js:625
 #, python-format
 msgid "Considering %(n)s tools"
 msgstr ""
 
 #. page script
-#: sajha/web/static/js/ask.js:616
+#: sajha/web/static/js/ask.js:625
 msgid "No tools to offer"
 msgstr ""
 
 #. page script
-#: sajha/web/static/js/ask.js:622
+#: sajha/web/static/js/ask.js:631
 #, python-format
 msgid "Planning with %(model)s"
 msgstr ""
 
 #. page script
-#: sajha/web/static/js/ask.js:626
+#: sajha/web/static/js/ask.js:635
 #, python-format
 msgid "Chose %(planner)s"
 msgstr ""
 
 #. page script
-#: sajha/web/static/js/ask.js:633
+#: sajha/web/static/js/ask.js:642
 #, python-format
 msgid "Stage %(stage)s (%(type)s)"
 msgstr ""
 
 #. page script
-#: sajha/web/static/js/ask.js:648 sajha/web/static/js/ask.js:649
+#: sajha/web/static/js/ask.js:657 sajha/web/static/js/ask.js:658
 #, python-format
 msgid "Calling %(name)s"
 msgstr ""
 
 #. page script
-#: sajha/web/static/js/ask.js:661
+#: sajha/web/static/js/ask.js:670
 #, python-format
 msgid "%(name)s answered"
 msgstr ""
 
 #. page script
-#: sajha/web/static/js/ask.js:661
+#: sajha/web/static/js/ask.js:670
 #, python-format
 msgid "%(name)s failed"
 msgstr ""
 
 #. page script
-#: sajha/web/static/js/ask.js:667
+#: sajha/web/static/js/ask.js:676
 #, python-format
 msgid "%(name)s needs your confirmation"
 msgstr ""
 
 #. page script
-#: sajha/web/static/js/ask.js:676
+#: sajha/web/static/js/ask.js:685
 #, python-format
 msgid "%(name)s needs your %(provider)s account"
 msgstr ""
 
 #. page script
-#: sajha/web/static/js/ask.js:681
+#: sajha/web/static/js/ask.js:690
 msgid "Answering"
 msgstr ""
 
 #. page script
-#: sajha/web/static/js/ask.js:692
+#: sajha/web/static/js/ask.js:705
 msgid "The question could not be answered."
 msgstr ""
 
 #. page script
-#: sajha/web/static/js/ask.js:723
+#: sajha/web/static/js/ask.js:740
 #, python-format
 msgid "Waiting for you to connect %(providers)s"
 msgstr ""
 
 #. page script
-#: sajha/web/static/js/ask.js:724
+#: sajha/web/static/js/ask.js:741
 msgid "Waiting for your confirmation"
 msgstr ""
 
 #. page script
-#: sajha/web/static/js/ask.js:726 sajha/web/static/js/ask.js:927
+#: sajha/web/static/js/ask.js:743 sajha/web/static/js/ask.js:944
 msgid "Answered"
 msgstr ""
 
 #. page script
-#: sajha/web/static/js/ask.js:726 sajha/web/static/js/ask.js:927 sajha/web/static/js/landing.js:183
+#: sajha/web/static/js/ask.js:743 sajha/web/static/js/ask.js:944 sajha/web/static/js/landing.js:183
 #, python-format
 msgid "confidence %(value)s"
 msgstr ""
 
 #. page script
-#: sajha/web/static/js/ask.js:727
+#: sajha/web/static/js/ask.js:744
 #, python-format
 msgid "Error: %(message)s"
 msgstr ""
 
 #. page script
-#: sajha/web/static/js/ask.js:728
+#: sajha/web/static/js/ask.js:745
 #, python-format
 msgid "SAJHA needs your confirmation to run %(names)s."
 msgstr ""
 
 #. page script
-#: sajha/web/static/js/ask.js:729
+#: sajha/web/static/js/ask.js:746
 #, python-format
 msgid "Answer: %(answer)s"
 msgstr ""
 
 #. page script
-#: sajha/web/static/js/ask.js:729
+#: sajha/web/static/js/ask.js:746
 #, python-format
 msgid "Confidence %(value)s."
 msgstr ""
 
 #. page script
-#: sajha/web/static/js/ask.js:784
+#: sajha/web/static/js/ask.js:801
 msgid "Finding tools for your question"
 msgstr ""
 
 #. page script
-#: sajha/web/static/js/ask.js:797
+#: sajha/web/static/js/ask.js:814
 msgid "Your session has ended."
 msgstr ""
 
 #. page script
-#: sajha/web/static/js/ask.js:814
+#: sajha/web/static/js/ask.js:831
 msgid "This conversation is no longer kept on the server. Ask again to start a new one."
 msgstr ""
 
 #. page script
-#: sajha/web/static/js/ask.js:816
+#: sajha/web/static/js/ask.js:833
 #, python-format
 msgid "The server answered %(status)s."
 msgstr ""
 
 #. page script
-#: sajha/web/static/js/ask.js:826
+#: sajha/web/static/js/ask.js:843
 msgid "The connection closed before the answer was complete."
 msgstr ""
 
 #. page script
-#: sajha/web/static/js/ask.js:842
+#: sajha/web/static/js/ask.js:859
 #, python-format
 msgid "Could not reach the server (%(error)s)."
 msgstr ""
 
 #. page script
-#: sajha/web/static/js/ask.js:842
+#: sajha/web/static/js/ask.js:859
 msgid "network error"
 msgstr ""
 
 #. page script
-#: sajha/web/static/js/ask.js:854
+#: sajha/web/static/js/ask.js:871
 msgid "stopped before a result arrived"
 msgstr ""
 
 #. page script
-#: sajha/web/static/js/ask.js:856
+#: sajha/web/static/js/ask.js:873
 msgid "Stopped"
 msgstr ""
 
 #. page script
-#: sajha/web/static/js/ask.js:883
+#: sajha/web/static/js/ask.js:900
 msgid "New chat."
 msgstr ""
 
 #. page script
-#: sajha/web/static/js/ask.js:951
+#: sajha/web/static/js/ask.js:968
 msgid "Continuing a saved conversation."
 msgstr ""
 
 #. page script
-#: sajha/web/static/js/ask.js:392
+#: sajha/web/static/js/ask.js:393
 #, python-format
 msgid "Considered %(num)s tool"
 msgid_plural "Considered %(num)s tools"
@@ -17068,7 +17175,7 @@ msgstr[0] ""
 msgstr[1] ""
 
 #. page script
-#: sajha/web/static/js/ask.js:427
+#: sajha/web/static/js/ask.js:428
 #, python-format
 msgid "Plan: %(num)s step"
 msgid_plural "Plan: %(num)s steps"
@@ -17076,10 +17183,126 @@ msgstr[0] ""
 msgstr[1] ""
 
 #. page script
-#: sajha/web/static/js/ask.js:641
+#: sajha/web/static/js/ask.js:650
 #, python-format
 msgid "Planned %(num)s step"
 msgid_plural "Planned %(num)s steps"
+msgstr[0] ""
+msgstr[1] ""
+
+#. page script
+#: sajha/web/static/js/ask_lineage.js:79
+msgid "Read from"
+msgstr ""
+
+#. page script
+#: sajha/web/static/js/ask_lineage.js:81
+#, python-format
+msgid "call %(id)s"
+msgstr ""
+
+#. page script
+#: sajha/web/static/js/ask_lineage.js:92
+msgid "Path"
+msgstr ""
+
+#. page script
+#: sajha/web/static/js/ask_lineage.js:93
+msgid "As of"
+msgstr ""
+
+#. page script
+#: sajha/web/static/js/ask_lineage.js:93
+msgid "not stated"
+msgstr ""
+
+#. page script
+#: sajha/web/static/js/ask_lineage.js:94
+msgid "Unit"
+msgstr ""
+
+#. page script
+#: sajha/web/static/js/ask_lineage.js:95
+msgid "declared by the tool (its output schema)"
+msgstr ""
+
+#. page script
+#: sajha/web/static/js/ask_lineage.js:95
+msgid "declared by the model"
+msgstr ""
+
+#. page script
+#: sajha/web/static/js/ask_lineage.js:98
+#, python-format
+msgid "A constant: %(text)s"
+msgstr ""
+
+#. page script
+#: sajha/web/static/js/ask_lineage.js:98
+msgid "A constant"
+msgstr ""
+
+#. page script
+#: sajha/web/static/js/ask_lineage.js:100
+msgid "A literal value"
+msgstr ""
+
+#. page script
+#: sajha/web/static/js/ask_lineage.js:115
+#, python-format
+msgid "as of %(date)s"
+msgstr ""
+
+#. page script
+#: sajha/web/static/js/ask_lineage.js:120
+msgid "… (deeper steps not shown)"
+msgstr ""
+
+#. page script
+#: sajha/web/static/js/ask_lineage.js:124
+#, python-format
+msgid "Inputs of %(name)s"
+msgstr ""
+
+#. page script
+#: sajha/web/static/js/ask_lineage.js:129
+msgid "(shown above)"
+msgstr ""
+
+#. page script
+#: sajha/web/static/js/ask_lineage.js:144
+#, python-format
+msgid "The lineage of %(name)s is not available."
+msgstr ""
+
+#. page script
+#: sajha/web/static/js/ask_lineage.js:162
+#, python-format
+msgid "%(figure)s: show how it was computed"
+msgstr ""
+
+#. page script
+#: sajha/web/static/js/ask_lineage.js:172
+msgid "Underlined figures were computed by SAJHA: select one to see how it was done."
+msgstr ""
+
+#. page script
+#: sajha/web/static/js/ask_lineage.js:178 sajha/web/static/js/ask_lineage.js:180
+#, python-format
+msgid "How %(figure)s was computed"
+msgstr ""
+
+#. page script
+#: sajha/web/static/js/ask_lineage.js:183
+#, python-format
+msgid "Close the lineage of %(figure)s"
+msgstr ""
+
+#. page script
+#: sajha/web/static/js/ask_lineage.js:47
+#, python-format
+msgid "%(num)s value"
+msgid_plural "%(num)s values"
 msgstr[0] ""
 msgstr[1] ""
 
@@ -17360,8 +17583,18 @@ msgid "Success"
 msgstr ""
 
 #. page script
-#: sajha/web/static/js/main.js:156 sajha/web/templates/admin/studio/studio_script.html:763
+#: sajha/web/static/js/main.js:156 sajha/web/templates/admin/studio/studio_script.html:765
 msgid "Copied to clipboard!"
+msgstr ""
+
+#. page script
+#: sajha/web/static/js/main.js:480
+msgid "Search fields and values"
+msgstr ""
+
+#. page script
+#: sajha/web/static/js/main.js:487
+msgid "Select this node"
 msgstr ""
 
 #. page script
@@ -17710,7 +17943,7 @@ msgstr ""
 
 #. page script
 #: sajha/web/static/js/playground.js:84 sajha/web/static/js/playground.js:138
-#: sajha/web/templates/admin/studio/studio_llm.html:683
+#: sajha/web/templates/admin/studio/studio_llm.html:684
 #: sajha/web/templates/admin/studio/studio_planners.html:334
 msgid "Running…"
 msgstr ""
@@ -18240,319 +18473,319 @@ msgid "No results"
 msgstr ""
 
 #. page script
-#: sajha/web/static/js/workflows.js:72
+#: sajha/web/static/js/workflows.js:78
 msgid "Move step up"
 msgstr ""
 
 #. page script
-#: sajha/web/static/js/workflows.js:73
+#: sajha/web/static/js/workflows.js:79
 #, python-format
 msgid "Remove step %(id)s"
 msgstr ""
 
 #. page script
-#: sajha/web/static/js/workflows.js:75
+#: sajha/web/static/js/workflows.js:81
 msgid "Depends on"
 msgstr ""
 
 #. page script
-#: sajha/web/static/js/workflows.js:75
+#: sajha/web/static/js/workflows.js:81
 msgid "ids, comma separated"
 msgstr ""
 
 #. page script
-#: sajha/web/static/js/workflows.js:80
+#: sajha/web/static/js/workflows.js:86
 #, python-format
 msgid "(%(ref)s inserts a value)"
 msgstr ""
 
 #. page script
-#: sajha/web/static/js/workflows.js:82
+#: sajha/web/static/js/workflows.js:88
 msgid "If"
 msgstr ""
 
 #. page script
-#: sajha/web/static/js/workflows.js:83
+#: sajha/web/static/js/workflows.js:89
 msgid "Then (ids)"
 msgstr ""
 
 #. page script
-#: sajha/web/static/js/workflows.js:84
+#: sajha/web/static/js/workflows.js:90
 msgid "Else (ids)"
 msgstr ""
 
 #. page script
-#: sajha/web/static/js/workflows.js:86
+#: sajha/web/static/js/workflows.js:92
 msgid "Items"
 msgstr ""
 
 #. page script
-#: sajha/web/static/js/workflows.js:87
+#: sajha/web/static/js/workflows.js:93
 msgid "Max items"
 msgstr ""
 
 #. page script
-#: sajha/web/static/js/workflows.js:88 sajha/web/templates/composite/builder.html:120
+#: sajha/web/static/js/workflows.js:94 sajha/web/templates/composite/builder.html:120
 msgid "Parallel"
 msgstr ""
 
 #. page script
-#: sajha/web/static/js/workflows.js:89
+#: sajha/web/static/js/workflows.js:95
 msgid "Do"
 msgstr ""
 
 #. page script
-#: sajha/web/static/js/workflows.js:89
+#: sajha/web/static/js/workflows.js:95
 #, python-format
 msgid "(JSON: %(tool)s, or %(steps)s for a graph per item)"
 msgstr ""
 
 #. page script
-#: sajha/web/static/js/workflows.js:91
+#: sajha/web/static/js/workflows.js:97
 msgid "Seconds"
 msgstr ""
 
 #. page script
-#: sajha/web/static/js/workflows.js:93
+#: sajha/web/static/js/workflows.js:99
 msgid "Reason shown to the approver"
 msgstr ""
 
 #. page script
-#: sajha/web/static/js/workflows.js:97
+#: sajha/web/static/js/workflows.js:103
 msgid "Attempts"
 msgstr ""
 
 #. page script
-#: sajha/web/static/js/workflows.js:98
+#: sajha/web/static/js/workflows.js:104
 msgid "Backoff (s)"
 msgstr ""
 
 #. page script
-#: sajha/web/static/js/workflows.js:104
+#: sajha/web/static/js/workflows.js:110
 msgid "No steps yet."
 msgstr ""
 
 #. page script
-#: sajha/web/static/js/workflows.js:120
+#: sajha/web/static/js/workflows.js:126
 #, python-format
 msgid "step %(id)s: %(field)s is not valid JSON"
 msgstr ""
 
 #. page script
-#: sajha/web/static/js/workflows.js:173
+#: sajha/web/static/js/workflows.js:179
 #, python-format
 msgid "Remove trigger %(id)s"
 msgstr ""
 
 #. page script
-#: sajha/web/static/js/workflows.js:177
+#: sajha/web/static/js/workflows.js:183
 msgid "(min hour day month weekday)"
 msgstr ""
 
 #. page script
-#: sajha/web/static/js/workflows.js:178
+#: sajha/web/static/js/workflows.js:184
 msgid "Timezone"
 msgstr ""
 
 #. page script
-#: sajha/web/static/js/workflows.js:180
+#: sajha/web/static/js/workflows.js:186
 msgid "Secret"
 msgstr ""
 
 #. page script
-#: sajha/web/static/js/workflows.js:180
+#: sajha/web/static/js/workflows.js:186
 msgid "generated on save"
 msgstr ""
 
 #. page script
-#: sajha/web/static/js/workflows.js:181
+#: sajha/web/static/js/workflows.js:187
 #, python-format
 msgid "POST %(url)s with headers X-Sajha-Timestamp and X-Sajha-Signature: %(sig)s"
 msgstr ""
 
 #. page script
-#: sajha/web/static/js/workflows.js:184
+#: sajha/web/static/js/workflows.js:190
 msgid "Pattern"
 msgstr ""
 
 #. page script
-#: sajha/web/static/js/workflows.js:185
+#: sajha/web/static/js/workflows.js:191
 msgid "Every (s)"
 msgstr ""
 
 #. page script
-#: sajha/web/static/js/workflows.js:187
+#: sajha/web/static/js/workflows.js:193
 msgid "Kinds"
 msgstr ""
 
 #. page script
-#: sajha/web/static/js/workflows.js:188
+#: sajha/web/static/js/workflows.js:194
 msgid "Resource URI"
 msgstr ""
 
 #. page script
-#: sajha/web/static/js/workflows.js:192
+#: sajha/web/static/js/workflows.js:198
 msgid "No triggers: run it by hand."
 msgstr ""
 
 #. page script
-#: sajha/web/static/js/workflows.js:202
+#: sajha/web/static/js/workflows.js:208
 #, python-format
 msgid "trigger %(id)s: input is not valid JSON"
 msgstr ""
 
 #. page script
-#: sajha/web/static/js/workflows.js:258
+#: sajha/web/static/js/workflows.js:264
 #, python-format
 msgid "the JSON does not parse: %(error)s"
 msgstr ""
 
 #. page script
-#: sajha/web/static/js/workflows.js:275
+#: sajha/web/static/js/workflows.js:281
 msgid "loading..."
 msgstr ""
 
 #. page script
-#: sajha/web/static/js/workflows.js:298
+#: sajha/web/static/js/workflows.js:304
 msgid "manual"
 msgstr ""
 
 #. page script
-#: sajha/web/static/js/workflows.js:301
+#: sajha/web/static/js/workflows.js:307
 #, python-format
 msgid "%(n)s steps"
 msgstr ""
 
 #. page script
-#: sajha/web/static/js/workflows.js:301 sajha/web/static/js/workflows.js:310
+#: sajha/web/static/js/workflows.js:307 sajha/web/static/js/workflows.js:316
 #, python-format
 msgid "owner %(owner)s"
 msgstr ""
 
 #. page script
-#: sajha/web/static/js/workflows.js:302
+#: sajha/web/static/js/workflows.js:308
 msgid "No workflows yet. Use New workflow."
 msgstr ""
 
 #. page script
-#: sajha/web/static/js/workflows.js:323
+#: sajha/web/static/js/workflows.js:329
 msgid "Save the workflow to run it."
 msgstr ""
 
 #. page script
-#: sajha/web/static/js/workflows.js:337
+#: sajha/web/static/js/workflows.js:343
 #, python-format
 msgid "Saved %(name)s (version %(version)s)."
 msgstr ""
 
 #. page script
-#: sajha/web/static/js/workflows.js:345
+#: sajha/web/static/js/workflows.js:351
 #, python-format
 msgid "Valid. Order: %(order)s"
 msgstr ""
 
 #. page script
-#: sajha/web/static/js/workflows.js:358
+#: sajha/web/static/js/workflows.js:364
 #, python-format
 msgid "Show run %(id)s"
 msgstr ""
 
 #. page script
-#: sajha/web/static/js/workflows.js:360
+#: sajha/web/static/js/workflows.js:366
 msgid "Re-run"
 msgstr ""
 
 #. page script
-#: sajha/web/static/js/workflows.js:376
+#: sajha/web/static/js/workflows.js:382
 #, python-format
 msgid "trigger %(type)s"
 msgstr ""
 
 #. page script
-#: sajha/web/static/js/workflows.js:376
+#: sajha/web/static/js/workflows.js:382
 #, python-format
 msgid "run as %(user)s"
 msgstr ""
 
 #. page script
-#: sajha/web/static/js/workflows.js:377
+#: sajha/web/static/js/workflows.js:383
 #, python-format
 msgid "started by %(user)s"
 msgstr ""
 
 #. page script
-#: sajha/web/static/js/workflows.js:377
+#: sajha/web/static/js/workflows.js:383
 #, python-format
 msgid "re-run of %(run)s"
 msgstr ""
 
 #. page script
-#: sajha/web/static/js/workflows.js:378
+#: sajha/web/static/js/workflows.js:384
 #, python-format
 msgid "delivery %(status)s"
 msgstr ""
 
 #. page script
-#: sajha/web/static/js/workflows.js:389
+#: sajha/web/static/js/workflows.js:395
 msgid "input"
 msgstr ""
 
 #. page script
-#: sajha/web/static/js/workflows.js:390
+#: sajha/web/static/js/workflows.js:396
 msgid "output"
 msgstr ""
 
 #. page script
-#: sajha/web/static/js/workflows.js:391
+#: sajha/web/static/js/workflows.js:397
 msgid "waiting for approval"
 msgstr ""
 
 #. page script
-#: sajha/web/static/js/workflows.js:391
+#: sajha/web/static/js/workflows.js:397
 msgid "Admin › Approvals"
 msgstr ""
 
 #. page script
-#: sajha/web/static/js/workflows.js:392
+#: sajha/web/static/js/workflows.js:398
 #, python-format
 msgid "wakes at %(time)s"
 msgstr ""
 
 #. page script
-#: sajha/web/static/js/workflows.js:394
+#: sajha/web/static/js/workflows.js:400
 #, python-format
 msgid "%(n)s attempts"
 msgstr ""
 
 #. page script
-#: sajha/web/static/js/workflows.js:397
+#: sajha/web/static/js/workflows.js:403
 msgid "No steps recorded yet."
 msgstr ""
 
 #. page script
-#: sajha/web/static/js/workflows.js:405
+#: sajha/web/static/js/workflows.js:411
 msgid "Run input is not valid JSON"
 msgstr ""
 
 #. page script
-#: sajha/web/static/js/workflows.js:407
+#: sajha/web/static/js/workflows.js:413
 #, python-format
 msgid "Run %(id)s is %(status)s."
 msgstr ""
 
 #. page script
-#: sajha/web/static/js/workflows.js:421
+#: sajha/web/static/js/workflows.js:427
 #, python-format
 msgid "Delete workflow %(name)s and its run history?"
 msgstr ""
 
 #. page script
-#: sajha/web/static/js/workflows.js:422 sajha/web/templates/ai/conversations.html:146
+#: sajha/web/static/js/workflows.js:428 sajha/web/templates/ai/conversations.html:146
 msgid "Deleted."
 msgstr ""
 
 #. page script
-#: sajha/web/static/js/workflows.js:443
+#: sajha/web/static/js/workflows.js:449
 msgid "Check before continuing"
 msgstr ""
 
@@ -18654,57 +18887,62 @@ msgid "Failed to reload tools"
 msgstr ""
 
 #. page script
-#: sajha/web/templates/admin/admin_user_create.html:350
+#: sajha/web/templates/admin/admin_user_create.html:302
+msgid "Hide password"
+msgstr ""
+
+#. page script
+#: sajha/web/templates/admin/admin_user_create.html:362
 #, python-format
 msgid "User ID \"%(id)s\" already exists. Please choose a different ID."
 msgstr ""
 
 #. page script
-#: sajha/web/templates/admin/admin_user_create.html:389
+#: sajha/web/templates/admin/admin_user_create.html:401
 msgid "User ID, Display Name, and Password are required."
 msgstr ""
 
 #. page script
-#: sajha/web/templates/admin/admin_user_create.html:399
+#: sajha/web/templates/admin/admin_user_create.html:411
 msgid "Password must be at least 6 characters."
 msgstr ""
 
 #. page script
-#: sajha/web/templates/admin/admin_user_create.html:404
+#: sajha/web/templates/admin/admin_user_create.html:416
 #, python-format
 msgid "User ID \"%(id)s\" already exists."
 msgstr ""
 
 #. page script
-#: sajha/web/templates/admin/admin_user_create.html:427
+#: sajha/web/templates/admin/admin_user_create.html:439
 #, python-format
 msgid "User \"%(id)s\" created successfully! Redirecting..."
 msgstr ""
 
 #. page script
-#: sajha/web/templates/admin/admin_user_create.html:433
+#: sajha/web/templates/admin/admin_user_create.html:445
 msgid "Unknown error occurred"
 msgstr ""
 
 #. page script
-#: sajha/web/templates/admin/admin_user_create.html:434
+#: sajha/web/templates/admin/admin_user_create.html:446
 msgid "Failed to create user: "
 msgstr ""
 
 #. page script
-#: sajha/web/templates/admin/admin_users.html:291
+#: sajha/web/templates/admin/admin_users.html:292
 #, python-format
 msgid "Are you sure you want to %(action)s user \"%(userId)s\"?"
 msgstr ""
 
 #. page script
-#: sajha/web/templates/admin/admin_users.html:297
+#: sajha/web/templates/admin/admin_users.html:298
 #, python-format
 msgid "Failed to %(action)s user: %(userId)s"
 msgstr ""
 
 #. page script
-#: sajha/web/templates/admin/admin_users.html:303
+#: sajha/web/templates/admin/admin_users.html:304
 #, python-format
 msgid ""
 "Sign \"%(userId)s\" out everywhere? Every console session and OAuth token of this user stops "
@@ -18712,30 +18950,30 @@ msgid ""
 msgstr ""
 
 #. page script
-#: sajha/web/templates/admin/admin_users.html:307
+#: sajha/web/templates/admin/admin_users.html:308
 #, python-format
 msgid "Every session of %(userId)s has ended."
 msgstr ""
 
 #. page script
-#: sajha/web/templates/admin/admin_users.html:308
+#: sajha/web/templates/admin/admin_users.html:309
 #, python-format
 msgid "Failed to end the sessions of %(userId)s"
 msgstr ""
 
 #. page script
-#: sajha/web/templates/admin/admin_users.html:312 sajha/web/templates/common/user_config.html:688
+#: sajha/web/templates/admin/admin_users.html:313 sajha/web/templates/common/user_config.html:689
 #, python-format
 msgid "Are you sure you want to delete user \"%(userId)s\"? This action cannot be undone."
 msgstr ""
 
 #. page script
-#: sajha/web/templates/admin/admin_users.html:316 sajha/web/templates/common/user_config.html:692
+#: sajha/web/templates/admin/admin_users.html:317 sajha/web/templates/common/user_config.html:693
 msgid "This will permanently delete the user account. Are you absolutely sure?"
 msgstr ""
 
 #. page script
-#: sajha/web/templates/admin/admin_users.html:327
+#: sajha/web/templates/admin/admin_users.html:328
 #, python-format
 msgid "Failed to delete user: %(userId)s"
 msgstr ""
@@ -18744,6 +18982,21 @@ msgstr ""
 #: sajha/web/templates/admin/async_tasks.html:127
 #, python-brace-format
 msgid "No async tasks. Submit one via POST /api/tools/{name}/execute-async"
+msgstr ""
+
+#. page script
+#: sajha/web/templates/admin/async_tasks.html:135
+msgid "Cancel task"
+msgstr ""
+
+#. page script
+#: sajha/web/templates/admin/async_tasks.html:136
+msgid "Retry task"
+msgstr ""
+
+#. page script
+#: sajha/web/templates/admin/async_tasks.html:137
+msgid "View task"
 msgstr ""
 
 #. page script
@@ -19430,6 +19683,7 @@ msgstr ""
 
 #. page script
 #: sajha/web/templates/admin/studio/studio_api_import.html:303
+#: sajha/web/templates/admin/studio/studio_api_import.html:304
 msgid "Scheme"
 msgstr ""
 
@@ -19536,7 +19790,7 @@ msgstr ""
 
 #. page script
 #: sajha/web/templates/admin/studio/studio_api_import.html:487
-#: sajha/web/templates/ai/ai_settings.html:478 sajha/web/templates/prompts/prompt_detail.html:306
+#: sajha/web/templates/ai/ai_settings.html:481 sajha/web/templates/prompts/prompt_detail.html:306
 #: sajha/web/templates/prompts/prompt_detail.html:335
 #, python-format
 msgid "Error: %(error)s"
@@ -19600,6 +19854,12 @@ msgid "What this parameter does"
 msgstr ""
 
 #. page script
+#: sajha/web/templates/admin/studio/studio_dbquery.html:584
+#: sajha/web/templates/admin/studio/studio_powerbidax.html:356
+msgid "Remove parameter"
+msgstr ""
+
+#. page script
 #: sajha/web/templates/admin/studio/studio_dbquery.html:598
 msgid "Enum values (comma-separated, optional): value1, value2, value3"
 msgstr ""
@@ -19620,8 +19880,8 @@ msgstr ""
 #: sajha/web/templates/admin/studio/studio_dbquery.html:666
 #: sajha/web/templates/admin/studio/studio_powerbi.html:547
 #: sajha/web/templates/admin/studio/studio_rest.html:944
-#: sajha/web/templates/admin/studio/studio_script.html:679
-#: sajha/web/templates/admin/studio/studio_script.html:718
+#: sajha/web/templates/admin/studio/studio_script.html:681
+#: sajha/web/templates/admin/studio/studio_script.html:720
 msgid "Description is required"
 msgstr ""
 
@@ -19639,14 +19899,14 @@ msgstr ""
 #: sajha/web/templates/admin/studio/studio_dbquery.html:699
 #: sajha/web/templates/admin/studio/studio_powerbi.html:603
 #: sajha/web/templates/admin/studio/studio_rest.html:964
-#: sajha/web/templates/admin/studio/studio_script.html:699
+#: sajha/web/templates/admin/studio/studio_script.html:701
 msgid "Preview generated successfully!"
 msgstr ""
 
 #. page script
 #: sajha/web/templates/admin/studio/studio_dbquery.html:701
 #: sajha/web/templates/admin/studio/studio_rest.html:966
-#: sajha/web/templates/admin/studio/studio_script.html:701
+#: sajha/web/templates/admin/studio/studio_script.html:703
 msgid "Preview failed"
 msgstr ""
 
@@ -19670,7 +19930,7 @@ msgstr ""
 #. page script
 #: sajha/web/templates/admin/studio/studio_dbquery.html:752
 #: sajha/web/templates/admin/studio/studio_rest.html:1002
-#: sajha/web/templates/admin/studio/studio_script.html:741
+#: sajha/web/templates/admin/studio/studio_script.html:743
 #: sajha/web/templates/admin/studio/studio_sharepoint.html:708
 msgid "Tool deployed successfully!"
 msgstr ""
@@ -19679,7 +19939,7 @@ msgstr ""
 #: sajha/web/templates/admin/studio/studio_dbquery.html:754
 #: sajha/web/templates/admin/studio/studio_home.html:1071
 #: sajha/web/templates/admin/studio/studio_rest.html:1004
-#: sajha/web/templates/admin/studio/studio_script.html:743
+#: sajha/web/templates/admin/studio/studio_script.html:745
 msgid "Deployment failed"
 msgstr ""
 
@@ -19865,13 +20125,13 @@ msgstr ""
 
 #. page script
 #: sajha/web/templates/admin/studio/studio_describe.html:339
-#: sajha/web/templates/admin/studio/studio_llm.html:702
+#: sajha/web/templates/admin/studio/studio_llm.html:703
 msgid "Deploy "
 msgstr ""
 
 #. page script
 #: sajha/web/templates/admin/studio/studio_describe.html:339
-#: sajha/web/templates/admin/studio/studio_llm.html:702
+#: sajha/web/templates/admin/studio/studio_llm.html:703
 msgid " now? It becomes callable at once."
 msgstr ""
 
@@ -20172,80 +20432,80 @@ msgid "Could not open %(name)s"
 msgstr ""
 
 #. page script
-#: sajha/web/templates/admin/studio/studio_llm.html:646
+#: sajha/web/templates/admin/studio/studio_llm.html:647
 #, python-format
 msgid "%(name)s uses an inline planner or overlay: edit it in the config JSON below."
 msgstr ""
 
 #. page script
-#: sajha/web/templates/admin/studio/studio_llm.html:647
+#: sajha/web/templates/admin/studio/studio_llm.html:648
 #, python-format
 msgid "Editing %(name)s. Saving replaces its config file."
 msgstr ""
 
 #. page script
-#: sajha/web/templates/admin/studio/studio_llm.html:647
+#: sajha/web/templates/admin/studio/studio_llm.html:648
 #, python-format
 msgid "%(name)s was created by someone else: you can read it but not save it."
 msgstr ""
 
 #. page script
-#: sajha/web/templates/admin/studio/studio_llm.html:662
+#: sajha/web/templates/admin/studio/studio_llm.html:663
 msgid "No LLM tools yet."
 msgstr ""
 
 #. page script
-#: sajha/web/templates/admin/studio/studio_llm.html:668
+#: sajha/web/templates/admin/studio/studio_llm.html:669
 msgid "The config is not valid JSON: "
 msgstr ""
 
 #. page script
-#: sajha/web/templates/admin/studio/studio_llm.html:671
+#: sajha/web/templates/admin/studio/studio_llm.html:672
 #: sajha/web/templates/admin/studio/studio_planners.html:307
 msgid "Could not check"
 msgstr ""
 
 #. page script
-#: sajha/web/templates/admin/studio/studio_llm.html:672
+#: sajha/web/templates/admin/studio/studio_llm.html:673
 msgid "Checked the JSON. Deploy and Run now use it; change the form to go back to the form."
-msgstr ""
-
-#. page script
-#: sajha/web/templates/admin/studio/studio_llm.html:690
-#, python-format
-msgid "Answered (stopped_by %(by)s) in %(ms)s ms on %(model)s"
-msgstr ""
-
-#. page script
-#: sajha/web/templates/admin/studio/studio_llm.html:690
-#, python-format
-msgid "Ended (stopped_by %(by)s) in %(ms)s ms on %(model)s"
 msgstr ""
 
 #. page script
 #: sajha/web/templates/admin/studio/studio_llm.html:691
 #, python-format
-msgid "planner %(name)s"
+msgid "Answered (stopped_by %(by)s) in %(ms)s ms on %(model)s"
+msgstr ""
+
+#. page script
+#: sajha/web/templates/admin/studio/studio_llm.html:691
+#, python-format
+msgid "Ended (stopped_by %(by)s) in %(ms)s ms on %(model)s"
 msgstr ""
 
 #. page script
 #: sajha/web/templates/admin/studio/studio_llm.html:692
 #, python-format
+msgid "planner %(name)s"
+msgstr ""
+
+#. page script
+#: sajha/web/templates/admin/studio/studio_llm.html:693
+#, python-format
 msgid "calls: %(list)s"
 msgstr ""
 
 #. page script
-#: sajha/web/templates/admin/studio/studio_llm.html:698
+#: sajha/web/templates/admin/studio/studio_llm.html:699
 msgid "Only its creator or an administrator may save this tool."
 msgstr ""
 
 #. page script
-#: sajha/web/templates/admin/studio/studio_llm.html:702
+#: sajha/web/templates/admin/studio/studio_llm.html:703
 msgid "Save the changes to "
 msgstr ""
 
 #. page script
-#: sajha/web/templates/admin/studio/studio_llm.html:709
+#: sajha/web/templates/admin/studio/studio_llm.html:710
 msgid "Run it"
 msgstr ""
 
@@ -20264,6 +20524,12 @@ msgid "Dimension %(dimensionCount)s"
 msgstr ""
 
 #. page script
+#: sajha/web/templates/admin/studio/studio_olap.html:323
+#, python-format
+msgid "Remove dimension %(n)s"
+msgstr ""
+
+#. page script
 #: sajha/web/templates/admin/studio/studio_olap.html:327
 msgid "Name (e.g., region)"
 msgstr ""
@@ -20271,6 +20537,11 @@ msgstr ""
 #. page script
 #: sajha/web/templates/admin/studio/studio_olap.html:330
 msgid "Column (e.g., region)"
+msgstr ""
+
+#. page script
+#: sajha/web/templates/admin/studio/studio_olap.html:333
+msgid "Dimension type"
 msgstr ""
 
 #. page script
@@ -20285,6 +20556,12 @@ msgid "Measure %(measureCount)s"
 msgstr ""
 
 #. page script
+#: sajha/web/templates/admin/studio/studio_olap.html:359
+#, python-format
+msgid "Remove measure %(n)s"
+msgstr ""
+
+#. page script
 #: sajha/web/templates/admin/studio/studio_olap.html:363
 msgid "Name (e.g., revenue)"
 msgstr ""
@@ -20292,6 +20569,11 @@ msgstr ""
 #. page script
 #: sajha/web/templates/admin/studio/studio_olap.html:366
 msgid "Expression (e.g., SUM(amount))"
+msgstr ""
+
+#. page script
+#: sajha/web/templates/admin/studio/studio_olap.html:369
+msgid "Measure format"
 msgstr ""
 
 #. page script
@@ -20312,8 +20594,19 @@ msgid "Join %(joinCount)s"
 msgstr ""
 
 #. page script
+#: sajha/web/templates/admin/studio/studio_olap.html:397
+#, python-format
+msgid "Remove join %(n)s"
+msgstr ""
+
+#. page script
 #: sajha/web/templates/admin/studio/studio_olap.html:401
 msgid "Table name"
+msgstr ""
+
+#. page script
+#: sajha/web/templates/admin/studio/studio_olap.html:404
+msgid "Join type"
 msgstr ""
 
 #. page script
@@ -20511,9 +20804,9 @@ msgstr ""
 
 #. page script
 #: sajha/web/templates/admin/studio/studio_powerbi.html:541
-#: sajha/web/templates/admin/studio/studio_script.html:675
-#: sajha/web/templates/admin/studio/studio_script.html:714
-#: sajha/web/templates/tools/tool_config.html:437
+#: sajha/web/templates/admin/studio/studio_script.html:677
+#: sajha/web/templates/admin/studio/studio_script.html:716
+#: sajha/web/templates/tools/tool_config.html:438
 msgid "Tool name is required"
 msgstr ""
 
@@ -20603,6 +20896,12 @@ msgid "Request Body Schema (JSON Schema)"
 msgstr ""
 
 #. page script
+#: sajha/web/templates/admin/studio/studio_rest.html:838
+#: sajha/web/templates/admin/studio/studio_script.html:549
+msgid "Remove tag"
+msgstr ""
+
+#. page script
 #: sajha/web/templates/admin/studio/studio_rest.html:882
 msgid "Invalid request schema JSON"
 msgstr ""
@@ -20618,33 +20917,38 @@ msgid "Are you sure you want to deploy this REST tool?"
 msgstr ""
 
 #. page script
-#: sajha/web/templates/admin/studio/studio_script.html:550
+#: sajha/web/templates/admin/studio/studio_script.html:552
 msgid "Type and press Enter..."
 msgstr ""
 
 #. page script
-#: sajha/web/templates/admin/studio/studio_script.html:634
+#: sajha/web/templates/admin/studio/studio_script.html:636
 msgid "Variable name"
 msgstr ""
 
 #. page script
-#: sajha/web/templates/admin/studio/studio_script.html:635
+#: sajha/web/templates/admin/studio/studio_script.html:637
 msgid "Value"
 msgstr ""
 
 #. page script
-#: sajha/web/templates/admin/studio/studio_script.html:683
-#: sajha/web/templates/admin/studio/studio_script.html:722
+#: sajha/web/templates/admin/studio/studio_script.html:638
+msgid "Remove variable"
+msgstr ""
+
+#. page script
+#: sajha/web/templates/admin/studio/studio_script.html:685
+#: sajha/web/templates/admin/studio/studio_script.html:724
 msgid "Script content is required"
 msgstr ""
 
 #. page script
-#: sajha/web/templates/admin/studio/studio_script.html:704
+#: sajha/web/templates/admin/studio/studio_script.html:706
 msgid "Error generating preview: "
 msgstr ""
 
 #. page script
-#: sajha/web/templates/admin/studio/studio_script.html:727
+#: sajha/web/templates/admin/studio/studio_script.html:729
 #, python-format
 msgid ""
 "Deploy script tool \"%(tool_name)s\"?\n"
@@ -20653,13 +20957,13 @@ msgid ""
 msgstr ""
 
 #. page script
-#: sajha/web/templates/admin/studio/studio_script.html:746
+#: sajha/web/templates/admin/studio/studio_script.html:748
 #: sajha/web/templates/admin/studio/studio_sharepoint.html:715
 msgid "Error deploying tool: "
 msgstr ""
 
 #. page script
-#: sajha/web/templates/admin/studio/studio_script.html:962
+#: sajha/web/templates/admin/studio/studio_script.html:964
 #, python-format
 msgid "Loaded example: %(name)s"
 msgstr ""
@@ -20761,6 +21065,11 @@ msgid "%(type)s: Healthy!"
 msgstr ""
 
 #. page script
+#: sajha/web/templates/ai/ai_settings.html:333
+msgid "Delete model"
+msgstr ""
+
+#. page script
 #: sajha/web/templates/ai/ai_settings.html:353
 msgid "Delete this model?"
 msgstr ""
@@ -20839,37 +21148,42 @@ msgid "Auto-detected"
 msgstr ""
 
 #. page script
-#: sajha/web/templates/ai/ai_settings.html:440
+#: sajha/web/templates/ai/ai_settings.html:437
+msgid "Hide API key"
+msgstr ""
+
+#. page script
+#: sajha/web/templates/ai/ai_settings.html:443
 msgid "Select a provider type"
 msgstr ""
 
 #. page script
-#: sajha/web/templates/ai/ai_settings.html:467
+#: sajha/web/templates/ai/ai_settings.html:470
 msgid "Saving..."
 msgstr ""
 
 #. page script
-#: sajha/web/templates/ai/ai_settings.html:474
+#: sajha/web/templates/ai/ai_settings.html:477
 msgid "Provider saved!"
 msgstr ""
 
 #. page script
-#: sajha/web/templates/ai/ai_settings.html:484
+#: sajha/web/templates/ai/ai_settings.html:487
 msgid "Select a provider type first"
 msgstr ""
 
 #. page script
-#: sajha/web/templates/ai/ai_settings.html:485
+#: sajha/web/templates/ai/ai_settings.html:488
 msgid "Testing connection..."
 msgstr ""
 
 #. page script
-#: sajha/web/templates/ai/ai_settings.html:488
+#: sajha/web/templates/ai/ai_settings.html:491
 msgid "Connection successful!"
 msgstr ""
 
 #. page script
-#: sajha/web/templates/ai/ai_settings.html:493
+#: sajha/web/templates/ai/ai_settings.html:496
 #, python-format
 msgid "Test failed: %(e)s"
 msgstr ""
@@ -20966,123 +21280,128 @@ msgstr[0] ""
 msgstr[1] ""
 
 #. page script
-#: sajha/web/templates/common/user_config.html:373
+#: sajha/web/templates/common/user_config.html:374
 msgid "User configuration loaded successfully"
 msgstr ""
 
 #. page script
-#: sajha/web/templates/common/user_config.html:377
+#: sajha/web/templates/common/user_config.html:378
 msgid "Failed to load user configuration: "
 msgstr ""
 
 #. page script
-#: sajha/web/templates/common/user_config.html:391
+#: sajha/web/templates/common/user_config.html:392
 msgid "<small class=\"text-danger\">Failed to load tools</small>"
 msgstr ""
 
 #. page script
-#: sajha/web/templates/common/user_config.html:401
+#: sajha/web/templates/common/user_config.html:402
 msgid "<small class=\"text-muted\">No tools available</small>"
 msgstr ""
 
 #. page script
-#: sajha/web/templates/common/user_config.html:510 sajha/web/templates/tools/tool_config.html:355
+#: sajha/web/templates/common/user_config.html:511 sajha/web/templates/tools/tool_config.html:356
 msgid "Are you sure you want to reset all changes?"
 msgstr ""
 
 #. page script
-#: sajha/web/templates/common/user_config.html:515 sajha/web/templates/tools/tool_config.html:360
+#: sajha/web/templates/common/user_config.html:516 sajha/web/templates/tools/tool_config.html:361
 msgid "Changes reset successfully"
 msgstr ""
 
 #. page script
-#: sajha/web/templates/common/user_config.html:579 sajha/web/templates/tools/tool_config.html:423
+#: sajha/web/templates/common/user_config.html:580 sajha/web/templates/tools/tool_config.html:424
 msgid "Invalid JSON"
 msgstr ""
 
 #. page script
-#: sajha/web/templates/common/user_config.html:589
+#: sajha/web/templates/common/user_config.html:590
 msgid "User ID and Name are required"
 msgstr ""
 
 #. page script
-#: sajha/web/templates/common/user_config.html:614
+#: sajha/web/templates/common/user_config.html:615
 msgid "User configuration saved successfully!"
 msgstr ""
 
 #. page script
-#: sajha/web/templates/common/user_config.html:623
+#: sajha/web/templates/common/user_config.html:624
 msgid "Failed to save user configuration"
 msgstr ""
 
 #. page script
-#: sajha/web/templates/common/user_config.html:632 sajha/web/templates/common/user_config.html:662
+#: sajha/web/templates/common/user_config.html:633 sajha/web/templates/common/user_config.html:663
 msgid "Invalid configuration: "
 msgstr ""
 
 #. page script
-#: sajha/web/templates/common/user_config.html:642
+#: sajha/web/templates/common/user_config.html:643
 msgid "Missing required field: user_id"
 msgstr ""
 
 #. page script
-#: sajha/web/templates/common/user_config.html:643
+#: sajha/web/templates/common/user_config.html:644
 msgid "Missing required field: user_name"
 msgstr ""
 
 #. page script
-#: sajha/web/templates/common/user_config.html:644
+#: sajha/web/templates/common/user_config.html:645
 msgid "Password is required for new users"
 msgstr ""
 
 #. page script
-#: sajha/web/templates/common/user_config.html:645 sajha/web/templates/tools/tool_config.html:497
+#: sajha/web/templates/common/user_config.html:646 sajha/web/templates/tools/tool_config.html:498
 msgid "Missing required field: enabled"
 msgstr ""
 
 #. page script
-#: sajha/web/templates/common/user_config.html:648
+#: sajha/web/templates/common/user_config.html:649
 msgid "At least one role must be assigned"
 msgstr ""
 
 #. page script
-#: sajha/web/templates/common/user_config.html:652
+#: sajha/web/templates/common/user_config.html:653
 msgid "At least one tool access must be granted"
 msgstr ""
 
 #. page script
-#: sajha/web/templates/common/user_config.html:656 sajha/web/templates/tools/tool_config.html:505
+#: sajha/web/templates/common/user_config.html:657 sajha/web/templates/tools/tool_config.html:506
 msgid "Validation failed:\n"
 msgstr ""
 
 #. page script
-#: sajha/web/templates/common/user_config.html:658
+#: sajha/web/templates/common/user_config.html:659
 msgid "User configuration is valid!"
 msgstr ""
 
 #. page script
-#: sajha/web/templates/common/user_config.html:681
+#: sajha/web/templates/common/user_config.html:682
 msgid "User configuration downloaded"
 msgstr ""
 
 #. page script
-#: sajha/web/templates/common/user_config.html:683 sajha/web/templates/tools/tool_config.html:532
+#: sajha/web/templates/common/user_config.html:684 sajha/web/templates/tools/tool_config.html:533
 msgid "Failed to download: "
 msgstr ""
 
 #. page script
-#: sajha/web/templates/common/user_config.html:703
+#: sajha/web/templates/common/user_config.html:704
 msgid "User deleted successfully. Redirecting..."
 msgstr ""
 
 #. page script
-#: sajha/web/templates/common/user_config.html:710
+#: sajha/web/templates/common/user_config.html:711
 msgid "Failed to delete user"
 msgstr ""
 
 #. page script
 #: sajha/web/templates/composite/builder.html:116
 msgid "Step"
+msgstr ""
+
+#. page script
+#: sajha/web/templates/composite/builder.html:116
+msgid "Remove step"
 msgstr ""
 
 #. page script
@@ -21352,6 +21671,11 @@ msgid "Argument #%(argumentCount)s"
 msgstr ""
 
 #. page script
+#: sajha/web/templates/prompts/prompt_create.html:281
+msgid "Remove argument"
+msgstr ""
+
+#. page script
 #: sajha/web/templates/prompts/prompt_create.html:287
 msgid "Argument name (e.g., code, language)"
 msgstr ""
@@ -21384,7 +21708,7 @@ msgstr ""
 
 #. page script
 #: sajha/web/templates/prompts/prompt_create.html:407
-#: sajha/web/templates/prompts/prompt_detail.html:314 sajha/web/templates/tools/tool_config.html:511
+#: sajha/web/templates/prompts/prompt_detail.html:314 sajha/web/templates/tools/tool_config.html:512
 msgid "Invalid JSON: "
 msgstr ""
 
@@ -21483,93 +21807,93 @@ msgid "Failed to copy to clipboard"
 msgstr ""
 
 #. page script
-#: sajha/web/templates/tools/tool_config.html:315
+#: sajha/web/templates/tools/tool_config.html:316
 msgid "Configuration loaded successfully"
 msgstr ""
 
 #. page script
-#: sajha/web/templates/tools/tool_config.html:319
+#: sajha/web/templates/tools/tool_config.html:320
 msgid "Failed to load configuration: "
 msgstr ""
 
 #. page script
-#: sajha/web/templates/tools/tool_config.html:334
+#: sajha/web/templates/tools/tool_config.html:335
 msgid "Custom"
 msgstr ""
 
 #. page script
-#: sajha/web/templates/tools/tool_config.html:442
+#: sajha/web/templates/tools/tool_config.html:443
 msgid "Input schema is required"
 msgstr ""
 
 #. page script
-#: sajha/web/templates/tools/tool_config.html:464
+#: sajha/web/templates/tools/tool_config.html:465
 msgid "Configuration saved successfully!"
 msgstr ""
 
 #. page script
-#: sajha/web/templates/tools/tool_config.html:473
+#: sajha/web/templates/tools/tool_config.html:474
 msgid "Failed to save configuration"
 msgstr ""
 
 #. page script
-#: sajha/web/templates/tools/tool_config.html:482
+#: sajha/web/templates/tools/tool_config.html:483
 msgid "Invalid JSON configuration: "
 msgstr ""
 
 #. page script
-#: sajha/web/templates/tools/tool_config.html:494
+#: sajha/web/templates/tools/tool_config.html:495
 msgid "Missing required field: name"
 msgstr ""
 
 #. page script
-#: sajha/web/templates/tools/tool_config.html:495
+#: sajha/web/templates/tools/tool_config.html:496
 msgid "Missing required field: description"
 msgstr ""
 
 #. page script
-#: sajha/web/templates/tools/tool_config.html:496
+#: sajha/web/templates/tools/tool_config.html:497
 msgid "Missing required field: version"
 msgstr ""
 
 #. page script
-#: sajha/web/templates/tools/tool_config.html:498
+#: sajha/web/templates/tools/tool_config.html:499
 msgid "Missing required field: inputSchema"
 msgstr ""
 
 #. page script
-#: sajha/web/templates/tools/tool_config.html:501
+#: sajha/web/templates/tools/tool_config.html:502
 msgid "Either \"type\" (for built-in tools) or \"implementation\" (for custom tools) is required"
 msgstr ""
 
 #. page script
-#: sajha/web/templates/tools/tool_config.html:507
+#: sajha/web/templates/tools/tool_config.html:508
 msgid "Configuration is valid!"
 msgstr ""
 
 #. page script
-#: sajha/web/templates/tools/tool_config.html:530
+#: sajha/web/templates/tools/tool_config.html:531
 msgid "Configuration downloaded"
 msgstr ""
 
 #. page script
-#: sajha/web/templates/tools/tool_config.html:537
+#: sajha/web/templates/tools/tool_config.html:538
 #, python-format
 msgid "Are you sure you want to delete the tool \"%(toolName)s\"? This action cannot be undone."
 msgstr ""
 
 #. page script
-#: sajha/web/templates/tools/tool_config.html:541
+#: sajha/web/templates/tools/tool_config.html:542
 msgid "This will permanently delete the tool configuration file. Are you absolutely sure?"
 msgstr ""
 
 #. page script
-#: sajha/web/templates/tools/tool_config.html:552
+#: sajha/web/templates/tools/tool_config.html:553
 msgid "Tool deleted successfully. Redirecting..."
 msgstr ""
 
 #. page script
-#: sajha/web/templates/tools/tool_config.html:559
+#: sajha/web/templates/tools/tool_config.html:560
 msgid "Failed to delete tool"
 msgstr ""
 
@@ -21751,6 +22075,12 @@ msgstr ""
 #: sajha/web/templates/tools/tools_list.html:258
 #, python-format
 msgid "Cached %(n)ss"
+msgstr ""
+
+#. page script
+#: sajha/web/templates/tools/tools_list.html:266
+#, python-format
+msgid "Schema of %(name)s"
 msgstr ""
 
 #. page script

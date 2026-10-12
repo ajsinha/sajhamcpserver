@@ -1,0 +1,37 @@
+{
+ "format": 1,
+ "interactions": [
+  {
+   "request": {
+    "method": "GET",
+    "url": "https://api.fdic.gov/banks/locations?filters=CERT%3A628+AND+STALP%3AVT&fields=NAME%2COFFNUM%2COFFNAME%2CMAINOFF%2CSERVTYPE_DESC%2CADDRESS%2CCITY%2CSTALP%2CZIP%2CCOUNTY%2CESTYMD%2CLATITUDE%2CLONGITUDE%2CUNINUM&sort_by=OFFNUM&sort_order=ASC&limit=100",
+    "body_sha256": ""
+   },
+   "response": {
+    "status": 200,
+    "reason": "OK",
+    "headers": {
+     "date": "Mon, 12 Oct 2026 03:36:07 GMT",
+     "content-type": "application/json; charset=utf-8",
+     "connection": "keep-alive",
+     "access-control-allow-origin": "*",
+     "age": "0",
+     "etag": "W/\"5c9-Gajy1mLziKlG1mt3OWmGUfsvL5Q\"",
+     "strict-transport-security": "max-age=31536000; includeSubDomains; preload",
+     "vary": "Accept-Encoding, Accept-Encoding",
+     "via": "https/1.1 api-umbrella (ApacheTrafficServer [cMsSf ])",
+     "x-api-umbrella-request-id": "d15on9arbp9lc9hek4bg",
+     "x-cache": "MISS",
+     "x-content-type-options": "nosniff",
+     "x-ratelimit-limit": "20",
+     "x-ratelimit-remaining": "19",
+     "x-vcap-request-id": "6b5a20ed-7c63-4b7c-605b-03391713a1fd",
+     "x-frame-options": "DENY"
+    },
+    "body": {
+     "text": "{\"meta\":{\"total\":3,\"parameters\":{\"filters\":\"CERT:628 AND STALP:VT\",\"fields\":\"NAME,OFFNUM,OFFNAME,MAINOFF,SERVTYPE_DESC,ADDRESS,CITY,STALP,ZIP,COUNTY,ESTYMD,LATITUDE,LONGITUDE,UNINUM\",\"limit\":\"100\"},\"index\":{\"name\":\"locations_20261009090008\",\"createTimestamp\":\"2026-10-09T11:48:49Z\"}},\"data\":[{\"data\":{\"ZIP\":\"05401\",\"MAINOFF\":0,\"OFFNAME\":\"DOWNTOWN BURLINGTON BRANCH\",\"LONGITUDE\":-73.21302803848546,\"NAME\":\"JPMorgan Chase Bank, National Association\",\"UNINUM\":635104,\"SERVTYPE_DESC\":\"FULL SERVICE - BRICK AND MORTAR\",\"CITY\":\"Burlington\",\"ADDRESS\":\"1 Church St\",\"STALP\":\"VT\",\"LATITUDE\":44.48020601853739,\"OFFNUM\":8726,\"ESTYMD\":\"06/29/2021\",\"COUNTY\":\"Chittenden\",\"ID\":\"635104\"},\"score\":0},{\"data\":{\"ZIP\":\"05495\",\"MAINOFF\":0,\"OFFNAME\":\"WILLISTON BRANCH\",\"LONGITUDE\":-73.110635812655,\"NAME\":\"JPMorgan Chase Bank, National Association\",\"UNINUM\":644993,\"SERVTYPE_DESC\":\"FULL SERVICE - BRICK AND MORTAR\",\"CITY\":\"Williston\",\"ADDRESS\":\"39 Connor Way\",\"STALP\":\"VT\",\"LATITUDE\":44.446946764152,\"OFFNUM\":8851,\"ESTYMD\":\"04/05/2022\",\"COUNTY\":\"Chittenden\",\"ID\":\"644993\"},\"score\":0},{\"data\":{\"ZIP\":\"05403\",\"MAINOFF\":0,\"OFFNAME\":\"SOUTH BURLINGTON BRANCH\",\"LONGITUDE\":-73.208979914528,\"NAME\":\"JPMorgan Chase Bank, National Association\",\"UNINUM\":681789,\"SERVTYPE_DESC\":\"FULL SERVICE - BRICK AND MORTAR\",\"CITY\":\"South Burlington\",\"ADDRESS\":\"760 Shelburne Rd\",\"STALP\":\"VT\",\"LATITUDE\":44.445577694311,\"OFFNUM\":9614,\"ESTYMD\":\"02/24/2026\",\"COUNTY\":\"Chittenden\",\"ID\":\"681789\"},\"score\":0}],\"totals\":{\"count\":3}}"
+    }
+   }
+  }
+ ]
+}

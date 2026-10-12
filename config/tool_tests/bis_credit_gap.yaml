@@ -1,0 +1,20 @@
+# An HTTP tool with a recorded cassette (cassettes/bis_credit_gap/us_and_china_2023.json): replays offline.
+# Re-record against the live API with: python -m sajha.quality test --tool bis_credit_gap --record
+tool: bis_credit_gap
+cases:
+  - name: us and china 2023
+    tags: [http]
+    arguments: {"countries": ["US", "CN"], "period": "2023"}
+    expect:
+      - schema: output
+      - path: "$.series_count"
+        equals: 2
+      - path: "$.series[0].observation_count"
+        equals: 4
+      - path: "$.series[*].unit"
+        regex: "Percentage points of GDP"
+      - path: "$.source"
+        regex: "^Source: BIS"
+probe:
+  case: us and china 2023
+  every: 3600

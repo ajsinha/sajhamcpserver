@@ -72,8 +72,8 @@ streams, what each phase waits for, and its status.
 | 10 | 8.12.0 | Operations and scale | A benchmark suite with published numbers (X13), SLOs and failure tests (X14), federation at gateway scale (L10), push-based reload (X11), storage finished (L1) | 9 | done (8.12.0) |
 | 11 | 8.13.0 | Security and ecosystem | Sandbox egress proxy and warm pool (L6), a container per federated stdio server (L9), signed plugins and a catalog (L12), SaaS provider packs (L11), RAG sources through connected accounts with OCR (X8), Weaviate and Chroma (X10), tool quality reach (L5), provider tool gaps (L7) | 10 | done (8.13.0) |
 | 12 | 8.13.0 | Finishing | SAJHA Net finished and tasks held at the host (L16, L19), planners chosen by learning from results (L15), the console in other languages (L14) | 11 | done (8.13.0) |
-| 13 | 8.14.0 | Cleanup and hardening | Runtime files untracked, the legacy `test/` folder archived, the `tools.apply_schema_defaults` switch removed, every tool fetch through the outbound guard, known broken tools fixed, cassettes for the wave 8 tools, a tighter numbers check, policy-denied tools not offered to Ask SAJHA, domain text in Studio, a faster test suite | 12 | planned |
-| 14 | 8.14.0 | Quantitative planners finished | Figure lineage on the Ask page and the `x-sajha-unit` output-schema keyword (L60); report delivery, the Studio Report creator, more flagships and PNG charts were descoped by the owner (2026-10-11) | 13 | planned |
+| 13 | 8.14.0 | Cleanup and hardening | Runtime files untracked, the legacy `test/` folder archived, the `tools.apply_schema_defaults` switch removed, every tool fetch through the outbound guard, known broken tools fixed, cassettes for the wave 8 tools, a tighter numbers check, policy-denied tools not offered to Ask SAJHA, domain text in Studio, a faster test suite | 12 | done (8.14.0) |
+| 14 | 8.14.0 | Quantitative planners finished | Figure lineage on the Ask page and the `x-sajha-unit` output-schema keyword (L60); report delivery, the Studio Report creator, more flagships and PNG charts were descoped by the owner (2026-10-11) | 13 | done (8.14.0) |
 | 15 | — | Business intelligence finished | Descoped by the owner (2026-10-11): an MCP server is not a BI product; the shipped metric tools stay | — | dropped |
 | 16 | 8.15.0 | Open data P2 and P3 | CFTC, Eurostat and OECD, the statistics offices, BLS, BEA and EIA (L32–L35); hazards, research, news events, public spending (L36–L39), each source's terms checked again first | 15 | planned |
 Wave 4 is a major version because it adds a new table (`sajhanet_api_keys`), new columns on
@@ -371,6 +371,10 @@ the owner of its detail.
 - The full test suite, in CI, with no failures, in default and random order.
 - Both MCP conformance suites (2025-11-25 and 2026-07-28) at full pass.
 - `scripts/check_mobile.py` clean in all four themes for every new or changed page.
+- `scripts/check_console.py --only-a11y --all` with no failures, light and dark, against a scratch
+  server (about a minute per theme; `tests/test_console_checks.py` runs it when `SAJHA_CHECK_BASE`
+  is set). Its static half, unnamed controls and keyboard-unreachable click handlers in every
+  template and page script, runs in every test run.
 - Doc-rot, help-catalog and glossary tests; every new page and guide has its help card.
 - Schema files in sync with the models (`tests/test_db_schema.py`), proved on a real PostgreSQL
   by running the schema file; no DDL run by SAJHA on PostgreSQL.

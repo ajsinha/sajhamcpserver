@@ -65,6 +65,7 @@ class ShortlistEntry:
     tool: ToolDefinition                  # the offered tool as an OpenAI-style function definition
     score: float
     description: str = ""
+    output_schema: Optional[Dict[str, Any]] = None   # the tool's outputSchema (units it declares: x-sajha-unit)
 
 
 @dataclass

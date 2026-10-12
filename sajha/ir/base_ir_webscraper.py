@@ -7,6 +7,8 @@ import re
 import json
 import logging
 import urllib.request
+
+from sajha.core import outbound
 import urllib.parse
 from abc import ABC, abstractmethod
 from typing import Dict, Any, List, Optional
@@ -232,7 +234,7 @@ class BaseIRWebScraper(ABC):
             req.add_header('User-Agent', self.user_agent)
             req.add_header('Accept', 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8')
             
-            with urllib.request.urlopen(req, timeout=timeout) as response:
+            with outbound.urlopen(req, timeout=timeout) as response:     # the outbound fetch guard
                 content = response.read().decode('utf-8', errors='ignore')
                 return content
                 

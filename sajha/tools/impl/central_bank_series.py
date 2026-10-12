@@ -20,6 +20,7 @@ from sajha.tools.base_mcp_tool import BaseMCPTool
 from sajha.tools.http_utils import ENCODINGS_DEFAULT, safe_json_response
 from sajha.tools.impl import sdmx_client
 from sajha.tools.impl.fred_key import fred_api_key
+from sajha.core import outbound
 
 logger = logging.getLogger(__name__)
 
@@ -101,7 +102,7 @@ class CentralBankSeriesTool(BaseMCPTool):
         url = f"{FRED_OBSERVATIONS}?{urllib.parse.urlencode(params)}"
         req = urllib.request.Request(url, headers={'User-Agent': 'SAJHA-MCP-Server', 'Accept': 'application/json'})
         try:
-            with urllib.request.urlopen(req, timeout=30) as response:
+            with outbound.urlopen(req, timeout=30) as response:
                 data = safe_json_response(response, ENCODINGS_DEFAULT)
         except urllib.error.HTTPError as e:
             if e.code in (400, 404):

@@ -1,8 +1,8 @@
 """
-SAJHA MCP Server v5.3.0 — Tool Health & Execution Replay
+SAJHA MCP Server — Tool Health & Execution Replay
 Copyright All rights Reserved 2025-2030, Ashutosh Sinha
 
-Tool Dependency Graph: maps tools → providers → external APIs
+Tool Dependency Graph: groups the registry's tools by tool domain, with the providers their configs name
 Health Dashboard: aggregates circuit breaker state per provider
 Execution Replay: stores last N executions per tool for replay/debugging
 """
@@ -11,7 +11,7 @@ import json
 import logging
 import time
 import threading
-from collections import defaultdict, deque
+from collections import Counter, defaultdict, deque
 from typing import Any, Dict, List, Optional
 
 logger = logging.getLogger(__name__)
@@ -21,58 +21,42 @@ logger = logging.getLogger(__name__)
 # TOOL DEPENDENCY GRAPH
 # ═══════════════════════════════════════════════════════════════════
 
-PROVIDER_DEPENDENCIES = {
-    'fmp_': {'provider': 'FMP', 'api': 'https://financialmodelingprep.com/api', 'tools': 100},
-    'openbb_': {'provider': 'OpenBB', 'api': 'OpenBB SDK (local)', 'tools': 70},
-    'fred_': {'provider': 'FRED', 'api': 'https://api.stlouisfed.org', 'tools': 55},
-    'yahoo_': {'provider': 'Yahoo Finance', 'api': 'https://query1.finance.yahoo.com', 'tools': 35},
-    'alpha_': {'provider': 'Alpha Vantage', 'api': 'https://www.alphavantage.co/query', 'tools': 35},
-    'coingecko_': {'provider': 'CoinGecko', 'api': 'https://api.coingecko.com/api/v3', 'tools': 25},
-    'edgar_': {'provider': 'SEC EDGAR', 'api': 'https://efts.sec.gov', 'tools': 20},
-    'calc_': {'provider': 'Calculators', 'api': 'Local (no external)', 'tools': 19},
-    'wb_': {'provider': 'World Bank', 'api': 'https://api.worldbank.org/v2', 'tools': 10},
-    'tavily_': {'provider': 'Tavily', 'api': 'https://api.tavily.com', 'tools': 8},
-    'duckdb_': {'provider': 'DuckDB', 'api': 'Local (embedded DB)', 'tools': 6},
-    'un_': {'provider': 'United Nations', 'api': 'https://data.un.org/ws', 'tools': 9},
-    'fbi_': {'provider': 'FBI', 'api': 'https://api.usa.gov/crime', 'tools': 9},
-    'msdoc_': {'provider': 'MS Document', 'api': 'Local (file processing)', 'tools': 10},
-    'powerbi_': {'provider': 'PowerBI', 'api': 'https://api.powerbi.com', 'tools': 5},
-    'sharepoint_': {'provider': 'SharePoint', 'api': 'SharePoint REST API', 'tools': 3},
-    'livelink_': {'provider': 'LiveLink', 'api': 'OpenText LiveLink API', 'tools': 2},
-}
-
-
-def get_tool_provider(tool_name: str) -> Optional[Dict]:
-    """Get provider info for a tool."""
-    for prefix, info in PROVIDER_DEPENDENCIES.items():
-        if tool_name.startswith(prefix):
-            return {'prefix': prefix, **info}
-    return None
+def _by_domain(tools_registry) -> Dict[str, List[str]]:
+    """The registry's tool names grouped by tool domain key (``sajha/tools/domains.py``)."""
+    from sajha.tools import domains as D
+    groups: Dict[str, List[str]] = defaultdict(list)
+    for name, tool in dict(getattr(tools_registry, 'tools', None) or {}).items():
+        try:
+            key = D.key_of_name(tools_registry, name, tool)
+        except Exception:
+            key = ''
+        if key:
+            groups[key].append(name)
+    return groups
 
 
 def build_dependency_graph(tools_registry) -> List[Dict]:
-    """Build the full dependency graph from the tools registry."""
+    """One entry per tool domain of the live registry (its tool folder, or a proxied server's prefix):
+    the domain's label and key, how many tools it has, the providers its tool configs name
+    (``metadata.provider``) and up to ten tool names. Derived, never restated: which providers exist and
+    how many tools each has is whatever the registry serves."""
+    from sajha.tools import domains as D
+    tools = getattr(tools_registry, 'tools', None) or {}
     graph = []
-    provider_tools = defaultdict(list)
-    if tools_registry:
-        for name in tools_registry.tools:
-            for prefix in PROVIDER_DEPENDENCIES:
-                if name.startswith(prefix):
-                    provider_tools[prefix].append(name)
-                    break
-
-    for prefix, info in PROVIDER_DEPENDENCIES.items():
-        tools = provider_tools.get(prefix, [])
+    for key, names in _by_domain(tools_registry).items():
+        sources: Counter = Counter()
+        for name in names:
+            meta = (getattr(tools.get(name), 'config', None) or {}).get('metadata') or {}
+            if isinstance(meta, dict) and isinstance(meta.get('provider'), str) and meta['provider'].strip():
+                sources[meta['provider'].strip()] += 1
         graph.append({
-            'provider': info['provider'],
-            'prefix': prefix,
-            'api_endpoint': info['api'],
-            'registered_tools': len(tools),
-            'expected_tools': info['tools'],
-            'is_local': 'Local' in info['api'],
-            'tools': sorted(tools)[:10],  # First 10 for display
+            'provider': D.domain_label(key),
+            'prefix': key,                                   # the domain key (kept under its old name)
+            'api_endpoint': ', '.join(p for p, _ in sources.most_common(3)),
+            'registered_tools': len(names),
+            'tools': sorted(names)[:10],                     # first 10 for display
         })
-    return sorted(graph, key=lambda g: -g['registered_tools'])
+    return sorted(graph, key=lambda g: (-g['registered_tools'], g['provider']))
 
 
 def get_provider_health(tools_registry) -> List[Dict]:
@@ -80,14 +64,22 @@ def get_provider_health(tools_registry) -> List[Dict]:
     from sajha.core.circuit_breaker import get_circuit_registry
     graph = build_dependency_graph(tools_registry)
     registry = get_circuit_registry()
+    worst = {'closed': 0, 'half_open': 1, 'open': 2}
+    by_domain = _by_domain(tools_registry)
     for entry in graph:
-        breaker = registry.get_breaker(entry['prefix'] + 'test')
-        if breaker:
-            entry['circuit_state'] = breaker.state.value
-            entry['failure_count'] = breaker.failure_count
-        else:
-            entry['circuit_state'] = 'closed'
-            entry['failure_count'] = 0
+        # the breakers of the domain's tools (one per provider prefix of circuit_breaker.py); the worst wins
+        breakers = {}
+        for name in by_domain.get(entry['prefix'], []):
+            b = registry.get_breaker(name)
+            if b is not None:
+                breakers[id(b)] = b
+        state, failures = 'closed', 0
+        for b in breakers.values():
+            failures += b.failure_count
+            if worst.get(b.state.value, 0) > worst.get(state, 0):
+                state = b.state.value
+        entry['circuit_state'] = state
+        entry['failure_count'] = failures
         entry['status'] = 'healthy' if entry['circuit_state'] == 'closed' else (
             'degraded' if entry['circuit_state'] == 'half_open' else 'down')
     return graph

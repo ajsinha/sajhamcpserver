@@ -64,6 +64,16 @@ example `openbb_fixedincome_sofr` runs `obb.fixedincome.rate.sofr`. A few tools 
    `openbb_crypto_price`) return every row of their date range instead.
 
 Errors from OpenBB (a missing credential, no data, a bad value) come back as `{"error": ...}`.
+One exception: `openbb_economy_calendar` (`OpenBBEconomyCalendarTool`) treats a window with no events
+(nasdaq's "No record found") as an empty result with a `note`, and without dates it asks for the past
+7 days to the next 7, since the providers' own default is today only, which is empty on a weekend.
+The answer echoes `start_date` and `end_date`.
+
+**Network.** OpenBB's provider extensions fetch with their own HTTP clients, so the `openbb_` tools
+bypass SAJHA's outbound fetch guard and `tools.outbound.proxy`; they connect only to their providers'
+fixed hosts. Where SAJHA must reach the internet through a proxy, these tools work only if the network
+lets the server reach those hosts directly (a known limit,
+[Security Model](../../security/Security%20Model.md#8-known-limitations)).
 Adding a tool needs a JSON config **and** an entry in `TOOL_COMMANDS`;
 `tests/test_market_data_fixes.py` checks every shipped tool's command, provider list, default and
 arguments against the installed OpenBB.

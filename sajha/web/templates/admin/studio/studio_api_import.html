@@ -169,7 +169,7 @@ Design: docs/architecture/API Import.md
                         <div class="d-flex gap-2 mt-3">
                             <button class="btn btn-success" id="aiDeploy"><i class="bi bi-rocket-takeoff me-1"></i>{{ _('Deploy selected') }}</button>
                         </div>
-                        <div id="aiDeployResult" class="mt-2"></div>
+                        <div id="aiDeployResult" class="mt-2" role="status" aria-live="polite"></div>
                     </div>
                 </div>
 
@@ -301,8 +301,8 @@ Design: docs/architecture/API Import.md
         row.className = 'ai-auth-row';
         const types = ['none', 'apiKey', 'bearer', 'basic', 'oauth2_client_credentials'].concat(CONNECTED ? ['connected_account'] : []);
         let html = '<div class="row g-2 align-items-end"><div class="col-md-4"><label class="form-label small mb-0">' + _t('Scheme') + '</label>' +
-            '<input class="form-control form-control-sm" data-f="scheme" value="' + esc(name) + '"' + (custom ? '' : ' readonly') + '></div>' +
-            '<div class="col-md-4"><label class="form-label small mb-0">' + _t('Credential type') + '</label><select class="form-select form-select-sm" data-f="type">' +
+            '<input class="form-control form-control-sm" data-f="scheme" aria-label="' + esc(_t('Scheme')) + '" value="' + esc(name) + '"' + (custom ? '' : ' readonly') + '></div>' +
+            '<div class="col-md-4"><label class="form-label small mb-0">' + _t('Credential type') + '</label><select class="form-select form-select-sm" data-f="type" aria-label="' + esc(_t('Credential type')) + '">' +
             types.map(t => '<option value="' + t + '"' + (t === preset.type ? ' selected' : '') + '>' + t + '</option>').join('') + '</select></div>' +
             '<div class="col-md-4 small text-muted">' + esc(scheme ? describeScheme(scheme) : _t('applied to every operation')) + '</div></div>';
         Object.keys(FIELDS).forEach(t => {
@@ -400,8 +400,8 @@ Design: docs/architecture/API Import.md
         $('aiServerVars').innerHTML = s ? Object.entries(s.variables || {}).map(([k, v]) => {
             const val = current[k] !== undefined ? current[k] : v.default;
             const input = v.enum && v.enum.length
-                ? '<select class="form-select form-select-sm" data-var="' + esc(k) + '">' + v.enum.map(e => '<option' + (e === val ? ' selected' : '') + '>' + esc(e) + '</option>').join('') + '</select>'
-                : '<input class="form-control form-control-sm" data-var="' + esc(k) + '" value="' + esc(val) + '">';
+                ? '<select class="form-select form-select-sm" data-var="' + esc(k) + '" aria-label="' + esc(k) + '">' + v.enum.map(e => '<option' + (e === val ? ' selected' : '') + '>' + esc(e) + '</option>').join('') + '</select>'
+                : '<input class="form-control form-control-sm" data-var="' + esc(k) + '" aria-label="' + esc(k) + '" value="' + esc(val) + '">';
             return '<label class="form-label small mb-0">{' + esc(k) + '}</label>' + input;
         }).join('') : '';
     }

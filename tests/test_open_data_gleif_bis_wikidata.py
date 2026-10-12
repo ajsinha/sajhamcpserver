@@ -133,6 +133,7 @@ def test_gleif_search_filters_and_fuzzy_fallback():
     assert out['matched_by'] == 'name' and any(r['lei'] == '7LTWFZYICNSX8D621K86' for r in out['results'])
     out, _, fake = _replay(FIXTURES / 'gleif_search__fuzzy.json')
     assert fake.seen[1]['url'].endswith('/fuzzycompletions') and out['results'] == [] and out['note']
+    assert [dict(map(tuple, c['params']))['field'] for c in fake.seen[1:]] == ['fulltext', 'entity.legalName']
 
 
 def test_gleif_children_and_isins_page():

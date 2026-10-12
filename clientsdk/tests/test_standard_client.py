@@ -95,7 +95,10 @@ def _obtain_jwt():
 
 @pytest.fixture(scope="module")
 def live():
-    if not _wait_for_server(timeout=float(os.environ.get("SAJHA_TEST_WAIT", "20"))):
+    # Wait out a restart only for a server named on purpose (SAJHA_TEST_URL); the default URL is
+    # usually just not running, and a 20 s wait for it slowed every suite run.
+    default_wait = "20" if "SAJHA_TEST_URL" in os.environ else "1"
+    if not _wait_for_server(timeout=float(os.environ.get("SAJHA_TEST_WAIT", default_wait))):
         pytest.skip(f"SAJHA server not reachable at {BASE_URL}")
     pytest.importorskip("mcp")
     token = _obtain_jwt()

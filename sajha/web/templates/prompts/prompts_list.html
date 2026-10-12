@@ -33,16 +33,16 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
         {% if active_category %}
         <span class="badge bg-primary me-2">
             {{ _('Category:') }} {{ active_category }}
-            <a href="{{ url_for('prompts_list') }}" class="ms-1" style="color:inherit">
-                <i class="bi bi-x"></i>
+            <a href="{{ url_for('prompts_list') }}" class="ms-1" style="color:inherit" aria-label="{{ _('Clear filter') }}" title="{{ _('Clear filter') }}">
+                <i class="bi bi-x" aria-hidden="true"></i>
             </a>
         </span>
         {% endif %}
         {% if active_tag %}
         <span class="badge bg-info me-2">
             {{ _('Tag:') }} {{ active_tag }}
-            <a href="{{ url_for('prompts_list') }}" class="ms-1" style="color:inherit">
-                <i class="bi bi-x"></i>
+            <a href="{{ url_for('prompts_list') }}" class="ms-1" style="color:inherit" aria-label="{{ _('Clear filter') }}" title="{{ _('Clear filter') }}">
+                <i class="bi bi-x" aria-hidden="true"></i>
             </a>
         </span>
         {% endif %}
@@ -115,7 +115,7 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
                             </div>
                         </div>
                         <div class="col-md-4 text-end">
-                            <select id="rowsPerPage" class="form-select">
+                            <select id="rowsPerPage" class="form-select" aria-label="{{ _('Rows per page') }}">
                                 <option value="6" selected>{{ _('6 per page') }}</option>
                                 <option value="12">{{ _('12 per page') }}</option>
                                 <option value="24">{{ _('24 per page') }}</option>

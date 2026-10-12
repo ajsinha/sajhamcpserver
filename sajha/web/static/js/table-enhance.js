@@ -42,7 +42,7 @@
             </div>
             <div class="d-flex align-items-center gap-2">
                 <label class="form-label mb-0 small text-muted">${_t('Show')}</label>
-                <select class="form-select form-select-sm" style="width:auto" data-role="table-pagesize">
+                <select class="form-select form-select-sm" style="width:auto" data-role="table-pagesize" aria-label="${_t('Rows per page')}">
                     ${sizes.map(s => `<option value="${s}" ${s===rowsPerPage?'selected':''}>${s}</option>`).join('')}
                     <option value="0">${_t('All')}</option>
                 </select>

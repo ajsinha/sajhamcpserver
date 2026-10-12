@@ -274,6 +274,35 @@ def served_description(tool) -> str:
     return compose(own, domain_description_of(tool))
 
 
+def studio_view(folder: Optional[str] = None, description: str = '', tool=None) -> dict:
+    """What MCP Studio shows beside a tool's description (Architecture §5): ``{folder,
+    domain_description, served_description}``. For a served ``tool``, its folder and
+    :func:`served_description`; for a new tool (a creator's preview), the folder it is filed in
+    (``folder``, "Unfiled" or empty: the root, no domain) and ``description`` composed with that
+    folder's domain text, as SAJHA will serve it once it is deployed."""
+    if tool is not None:
+        f = folder_of_tool(tool) or ''
+        domain = domain_description_of(tool)
+        return {'folder': f, 'domain_description': domain, 'served_description': served_description(tool)}
+    from sajha.tools.tool_files import clean_folder
+    f = clean_folder(folder)
+    domain = ''
+    if f:
+        try:
+            domain = get_domain_texts().text(f)
+        except Exception as e:
+            logger.debug(f'domain description of folder {f}: {e}')
+    return {'folder': f, 'domain_description': domain, 'served_description': compose(description or '', domain)}
+
+
+def studio_domain_texts() -> dict:
+    """folder -> served domain text, for the Studio creators' Folder field."""
+    try:
+        return get_domain_texts().all()
+    except Exception:
+        return {}
+
+
 def export_description(tool, served: str, limit: int) -> str:
     """The description offered to a SAJHA Net catalog: ``served`` unless it is longer than ``limit``
     while carrying domain text, in which case the domain text is left out entirely, so the tool's own

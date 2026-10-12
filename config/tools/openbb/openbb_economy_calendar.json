@@ -1,7 +1,7 @@
 {
   "name": "openbb_economy_calendar",
-  "implementation": "sajha.tools.impl.openbb_tools.OpenBBGenericTool",
-  "description": "Economic events calendar (releases with actual, consensus and previous values) through the OpenBB Platform (obb.economy.calendar).\nReturns: {tool, provider, data_points (rows before the cap), truncated, data: rows with their dates, ignored_arguments when some did not apply} or {tool, error}.\nInputs (* required): start_date and end_date (provider's default window when omitted); limit (rows returned, 1-1000; default 100; a dated series keeps its most recent rows); provider (fmp, fred, nasdaq, tradingeconomics; default nasdaq).\nAnother source: fmp_economic_calendar; company earnings dates: openbb_equity_calendar_earnings. Keys: nasdaq needs none; fmp uses SAJHA's FMP_API_KEY; fred uses SAJHA's FRED_API_KEY; tradingeconomics needs a key in ~/.openbb_platform/user_settings.json.\nExample: {\"start_date\": \"2026-10-12\", \"end_date\": \"2026-10-16\"}",
+  "implementation": "sajha.tools.impl.openbb_tools.OpenBBEconomyCalendarTool",
+  "description": "Economic events calendar (releases with actual, consensus and previous values) through the OpenBB Platform (obb.economy.calendar).\nReturns: {tool, provider, start_date, end_date, data_points (rows before the cap), truncated, data: rows with their dates, note when the window has no events, ignored_arguments when some did not apply} or {tool, error}.\nInputs (* required): start_date and end_date (default: the past 7 days to the next 7); limit (rows returned, 1-1000; default 100; a dated series keeps its most recent rows); provider (fmp, fred, nasdaq, tradingeconomics; default nasdaq).\nAnother source: fmp_economic_calendar; company earnings dates: openbb_equity_calendar_earnings. Keys: nasdaq needs none; fmp uses SAJHA's FMP_API_KEY; fred uses SAJHA's FRED_API_KEY; tradingeconomics needs a key in ~/.openbb_platform/user_settings.json.\nExample: {\"start_date\": \"2026-10-05\", \"end_date\": \"2026-10-09\"}",
   "annotations": {"readOnlyHint": true, "idempotentHint": true, "openWorldHint": true},
   "version": "4.5.0",
   "enabled": true,
@@ -58,6 +58,18 @@
       "data": {
         "type": "array"
       },
+      "start_date": {
+        "type": "string",
+        "description": "Window start (YYYY-MM-DD)"
+      },
+      "end_date": {
+        "type": "string",
+        "description": "Window end (YYYY-MM-DD)"
+      },
+      "note": {
+        "type": "string",
+        "description": "Set when the window has no events"
+      },
       "error": {
         "type": "string"
       }
@@ -77,8 +89,8 @@
       {
         "description": "Economic events calendar (releases with actual, consensus and previous values)",
         "input": {
-          "start_date": "2026-10-12",
-          "end_date": "2026-10-16"
+          "start_date": "2026-10-05",
+          "end_date": "2026-10-09"
         }
       }
     ]

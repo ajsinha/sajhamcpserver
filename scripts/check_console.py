@@ -83,7 +83,7 @@ _SUBSET = r"""
     if (el.id) { const l = document.querySelector('label[for="' + CSS.escape(el.id) + '"]'); if (l && l.textContent.trim()) return l.textContent.trim(); }
     const wrap = el.closest('label'); if (wrap && wrap.textContent.trim()) return wrap.textContent.trim();
     if (el.getAttribute('title')) return el.getAttribute('title');
-    if (['BUTTON', 'A'].includes(el.tagName)) { const tx = (el.innerText || el.textContent || '').trim(); if (tx) return tx;
+    if (['BUTTON', 'A'].includes(el.tagName) || el.getAttribute('role') === 'button') { const tx = (el.innerText || el.textContent || '').trim(); if (tx) return tx;
       const img = el.querySelector('img[alt]'); if (img && img.alt.trim()) return img.alt; }
     if (el.tagName === 'INPUT' && ['submit', 'button', 'reset'].includes(el.type) && el.value) return el.value;
     if (el.getAttribute('placeholder')) return el.getAttribute('placeholder');   // axe accepts it too

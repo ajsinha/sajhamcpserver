@@ -1,0 +1,18 @@
+# An HTTP tool with a recorded cassette (cassettes/ust_debt_to_the_penny/september_2026.json): replays offline.
+# Re-record against the live API with: python -m sajha.quality test --tool ust_debt_to_the_penny --record
+tool: ust_debt_to_the_penny
+cases:
+  - name: september 2026
+    tags: [http]
+    arguments: {"from": "2026-09-01", "to": "2026-09-30"}
+    expect:
+      - schema: output
+      - path: "$.count"
+        min: 15
+      - path: "$.records[0].date"
+        equals: "2026-09-01"
+      - path: "$.records[0].total_public_debt_outstanding"
+        min: 1000000000000
+probe:
+  case: september 2026
+  every: 3600

@@ -59,8 +59,9 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
                                 <div class="input-group">
                                     <input type="password" class="form-control" id="userPassword" name="password" required
                                            minlength="6" placeholder="{{ _('Minimum 6 characters') }}">
-                                    <button class="btn btn-outline-secondary" type="button" data-onclick="togglePassword()">
-                                        <i class="bi bi-eye" id="passwordToggleIcon"></i>
+                                    <button class="btn btn-outline-secondary" type="button" data-onclick="togglePassword()" id="passwordToggle"
+                                            aria-label="{{ _('Show password') }}" title="{{ _('Show password') }}" aria-pressed="false">
+                                        <i class="bi bi-eye" id="passwordToggleIcon" aria-hidden="true"></i>
                                     </button>
                                 </div>
                                 <div class="form-text">{{ _('Minimum 6 characters. Stored as a bcrypt hash, never in plain text.') }}</div>
@@ -147,13 +148,13 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
                         </div>
 
                         <!-- Error Display -->
-                        <div class="alert alert-danger d-none" id="errorAlert">
+                        <div class="alert alert-danger d-none" id="errorAlert" role="alert">
                             <i class="bi bi-exclamation-triangle me-2"></i>
                             <span id="errorMessage"></span>
                         </div>
 
                         <!-- Success Display -->
-                        <div class="alert alert-success d-none" id="successAlert">
+                        <div class="alert alert-success d-none" id="successAlert" role="status" aria-live="polite">
                             <i class="bi bi-check-circle me-2"></i>
                             <span id="successMessage"></span>
                         </div>
@@ -295,6 +296,15 @@ const existingUserIds = [
     {% for u in users %}"{{ u.user_id }}"{% if not loop.last %},{% endif %}{% endfor %}
 ];
 
+// The toggle's name and pressed state follow what it does next
+function sajhaPasswordToggleState(shown) {
+    const btn = document.getElementById('passwordToggle');
+    const label = shown ? _t('Hide password') : _t('Show password');
+    btn.setAttribute('aria-label', label);
+    btn.setAttribute('title', label);
+    btn.setAttribute('aria-pressed', shown ? 'true' : 'false');
+}
+
 // Toggle password visibility
 function togglePassword() {
     const passwordField = document.getElementById('userPassword');
@@ -306,10 +316,12 @@ function togglePassword() {
         confirmField.type = 'text';
         icon.classList.remove('bi-eye');
         icon.classList.add('bi-eye-slash');
+        sajhaPasswordToggleState(true);
     } else {
         passwordField.type = 'password';
         confirmField.type = 'password';
         icon.classList.remove('bi-eye-slash');
+        sajhaPasswordToggleState(false);
         icon.classList.add('bi-eye');
     }
 }

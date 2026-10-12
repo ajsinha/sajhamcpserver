@@ -38,7 +38,7 @@ class _Resp(io.BytesIO):
 
 
 class _Recorder:
-    """Patches urllib.request.urlopen; records each Request and answers via ``responder``."""
+    """Patches sajha.core.outbound.urlopen (the guarded urlopen the tools call); records each Request and answers via ``responder``."""
 
     def __init__(self, responder):
         self.responder = responder
@@ -78,7 +78,7 @@ def test_fred_backed_central_bank_tools_use_configured_key(module, cls, args, se
     tool_cls = getattr(importlib.import_module(f'sajha.tools.impl.{module}'), cls)
     tool = tool_cls({'api_key': 'fred-test-key'})
     rec = _Recorder(_fred)
-    with mock.patch('urllib.request.urlopen', rec):
+    with mock.patch('sajha.core.outbound.urlopen', rec):
         result = tool.execute(args)
     q = _query(rec.requests[0])
     assert q['api_key'] == 'fred-test-key'
@@ -108,7 +108,7 @@ def test_boj_eur_jpy_is_a_cross_rate(monkeypatch):
         return {'observations': [{'date': '2024-01-02', 'value': '1.1'}]}
 
     rec = _Recorder(responder)
-    with mock.patch('urllib.request.urlopen', rec):
+    with mock.patch('sajha.core.outbound.urlopen', rec):
         result = BoJGetExchangeRateTool({'api_key': 'k'}).execute({'currency_pair': 'eur_jpy'})
     assert result['observations'] == [{'date': '2024-01-02', 'value': 165.0}]
 
@@ -127,11 +127,14 @@ def test_boj_configs_match_implementation():
     }
     for name, (cls, param) in cases.items():
         cfg = _config(name)
-        assert cfg['api_key'] == '${fred.api.key}'
+        if name in ('boj_get_money_supply', 'boj_get_inflation'):
+            assert 'api_key' not in cfg             # IMF only: the guide must not claim a FRED key
+        else:
+            assert cfg['api_key'] == '${fred.api.key}'
         tool = cls(dict(cfg, api_key='k'))
         for value in cfg['inputSchema']['properties'][param]['enum']:
             rec = _Recorder(lambda req: FRED_PAYLOAD)
-            with mock.patch('urllib.request.urlopen', rec), \
+            with mock.patch('sajha.core.outbound.urlopen', rec), \
                     mock.patch('sajha.tools.impl.sdmx_client.fetch', return_value={'source': 'IMF', 'series': [
                         {'key': 'k', 'dimensions': {}, 'attributes': {},
                          'observations': [{'period': '2026-01', 'value': 1.0}]}]}) as imf:
@@ -158,7 +161,7 @@ def test_un_trade_balance_calls_comtrade_preview(monkeypatch):
         {'flowCode': 'X', 'partnerCode': 156, 'primaryValue': 150.0},
         {'flowCode': 'M', 'partnerCode': 156, 'primaryValue': 500.0},
     ]))
-    with mock.patch('urllib.request.urlopen', rec):
+    with mock.patch('sajha.core.outbound.urlopen', rec):
         result = UNGetTradeBalanceTool().execute({'country_code': 'USA', 'partner_code': 'CHN', 'year': 2022})
     req = rec.requests[0]
     assert req.full_url.startswith('https://comtradeapi.un.org/public/v1/preview/C/A/HS?')
@@ -174,7 +177,7 @@ def test_un_trade_data_commodity_group_and_subscription_key(monkeypatch):
         {'flowCode': 'X', 'partnerCode': 0, 'primaryValue': 10.0},
         {'flowCode': 'X', 'partnerCode': 0, 'primaryValue': 5.0},
     ]))
-    with mock.patch('urllib.request.urlopen', rec):
+    with mock.patch('sajha.core.outbound.urlopen', rec):
         result = UNGetTradeDataTool().execute({'reporter_code': 'DEU', 'commodity_code': 'mineral', 'year': 2021})
     req = rec.requests[0]
     assert req.full_url.startswith('https://comtradeapi.un.org/data/v1/get/C/A/HS?')
@@ -195,7 +198,7 @@ def test_un_country_trade_and_compare(monkeypatch):
         {'flowCode': 'M', 'partnerCode': 0, 'primaryValue': 999.0, 'partner2Code': 4},
     ]
 
-    with mock.patch('urllib.request.urlopen', _Recorder(lambda req: _comtrade_rows(842, rows))):
+    with mock.patch('sajha.core.outbound.urlopen', _Recorder(lambda req: _comtrade_rows(842, rows))):
         result = UNGetCountryTradeTool().execute({'country_code': 'USA', 'year': 2022})
     assert result['exports']['total_value'] == 300.0
     assert result['imports']['total_value'] == 400.0
@@ -207,7 +210,7 @@ def test_un_country_trade_and_compare(monkeypatch):
         return _comtrade_rows(reporter, [{'flowCode': 'X', 'partnerCode': 0,
                                           'primaryValue': {842: 2.0, 156: 3.0}[reporter]}])
 
-    with mock.patch('urllib.request.urlopen', _Recorder(per_country)):
+    with mock.patch('sajha.core.outbound.urlopen', _Recorder(per_country)):
         result = UNCompareCountryTradeTool().execute({'country_codes': ['USA', 'CHN'], 'year': 2022})
     ranks = {c['country_code']: c['rank'] for c in result['countries']}
     assert ranks == {'CHN': 1, 'USA': 2}
@@ -357,7 +360,7 @@ def test_un_comtrade_retries_on_rate_limit(monkeypatch):
         return _Resp(_comtrade_rows(842, [{'flowCode': 'X', 'partnerCode': 0, 'primaryValue': 7.0},
                                           {'flowCode': 'M', 'partnerCode': 0, 'primaryValue': 2.0}]))
 
-    with mock.patch('urllib.request.urlopen', urlopen):
+    with mock.patch('sajha.core.outbound.urlopen', urlopen):
         result = un.UNGetTradeBalanceTool().execute({'country_code': 'USA', 'year': 2022})
     assert len(calls) == 2 and result['data']['balance'] == 5.0
 

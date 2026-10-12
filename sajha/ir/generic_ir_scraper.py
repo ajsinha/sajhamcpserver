@@ -4,10 +4,17 @@ Generic IR Web Scraper for S&P 500 Companies
 """
 
 import logging
+import time
 from typing import Dict, List, Optional
 from .enhanced_base_scraper import EnhancedBaseIRScraper
 from .company_database import CompanyConfig
 from .sec_edgar import SECEdgarClient
+
+
+#: seconds spent on a company's own IR pages before falling back to SEC EDGAR. Most IR sites are
+#: rendered by script or sit behind a bot wall, so scraping them rarely finds links; the budget keeps
+#: a call inside its deadline and leaves time for the SEC fallback.
+IR_PAGE_BUDGET = 15.0
 
 
 class GenericIRScraper(EnhancedBaseIRScraper):
@@ -102,8 +109,12 @@ class GenericIRScraper(EnhancedBaseIRScraper):
         
         # Get URLs to scrape from configuration or use defaults
         urls_to_scrape = self._get_urls_to_scrape(document_type)
+        deadline = time.monotonic() + IR_PAGE_BUDGET
         
         for url in urls_to_scrape:
+            if time.monotonic() > deadline:
+                self.logger.info(f"IR page budget spent for {self.ticker}; skipping the remaining pages")
+                break
             try:
                 self.logger.debug(f"Scraping {url}")
                 content = self.fetch_page(url)
@@ -151,7 +162,9 @@ class GenericIRScraper(EnhancedBaseIRScraper):
                     documents.append(doc)
                     
             except Exception as e:
-                self.logger.warning(f"Error scraping {url}: {e}", exc_info=True)
+                self.logger.info(f"Error scraping {url}: {e}")
+                if 'HTTP Error 403' in str(e) or 'refused' in str(e):
+                    break                   # a bot wall (or a refused host) answers every page the same
                 continue
         
         # Sort by year and quarter (most recent first)
@@ -193,22 +206,38 @@ class GenericIRScraper(EnhancedBaseIRScraper):
         
         # Map document types to SEC filing types
         type_to_filing = {
-            'annual_report': ['10-K', '20-F'],
+            'annual_report': ['10-K', '20-F', '40-F'],
             'quarterly_report': ['10-Q'],
             'proxy_statement': ['DEF 14A'],
-            'current_report': ['8-K']
+            'current_report': ['8-K'],
+            # earnings releases and decks are furnished on 8-K: item 2.02 (results of operations),
+            # investor presentations under item 7.01 (Regulation FD); press releases under either or 8.01
+            'earnings_presentation': ['8-K'],
+            'investor_presentation': ['8-K'],
+            'press_release': ['8-K'],
+        }
+        type_to_items = {
+            'earnings_presentation': ('2.02',),
+            'investor_presentation': ('7.01',),
+            'press_release': ('2.02', '7.01', '8.01'),
         }
         
         filing_types = None
-        if document_type and document_type in type_to_filing:
-            filing_types = type_to_filing[document_type]
+        if document_type:
+            filing_types = type_to_filing.get(document_type)
+            if filing_types is None:
+                return []                   # no SEC form carries this type: nothing, rather than every filing
         
         # Get recent filings
         filings = self.sec_client.get_recent_filings(
             self.company_config.cik,
             filing_types=filing_types,
-            limit=50
+            limit=50,
+            items=type_to_items.get(document_type or '')
         )
+        if document_type in type_to_items:
+            for f in filings:
+                f['type'] = document_type
         
         # Filter by year if specified
         if year:

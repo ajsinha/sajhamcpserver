@@ -29,7 +29,7 @@ import urllib.parse
 from datetime import datetime, timedelta
 from typing import Any, Dict, List, Optional, Tuple
 
-import requests
+from sajha.core.outbound import requests_compat as requests   # Graph calls go through the outbound fetch guard
 
 from sajha.tools.base_mcp_tool import BaseMCPTool
 from sajha.tools.impl import sharepoint_upload as spu
@@ -187,13 +187,14 @@ class SharePointBaseTool(BaseMCPTool):
         delegated = bool(self.authenticator and self.authenticator.delegated)
         if delegated and urllib.parse.urlsplit(url).hostname != 'graph.microsoft.com':
             raise RuntimeError('a caller\'s token is only sent to graph.microsoft.com')
+        cap = {'max_bytes': spu.DEFAULT_MAX_UPLOAD} if raw else {}      # a download: up to the upload cap
         response = requests.request(method, url, params=params, json=json_body, data=data,
-                                    headers=self._headers(headers), timeout=HTTP_TIMEOUT)
+                                    headers=self._headers(headers), timeout=HTTP_TIMEOUT, **cap)
         if delegated and response.status_code == 401:
             # refresh the caller's token once; a second refusal asks them to reconnect
             spu.refresh_delegated(self.authenticator.provider, self.name, final=False)
             response = requests.request(method, url, params=params, json=json_body, data=data,
-                                        headers=self._headers(headers), timeout=HTTP_TIMEOUT)
+                                        headers=self._headers(headers), timeout=HTTP_TIMEOUT, **cap)
             if response.status_code == 401:
                 spu.refresh_delegated(self.authenticator.provider, self.name, final=True)
         if response.status_code >= 400:

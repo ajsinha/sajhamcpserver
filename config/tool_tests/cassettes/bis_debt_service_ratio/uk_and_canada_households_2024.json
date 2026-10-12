@@ -1,0 +1,27 @@
+{
+ "format": 1,
+ "interactions": [
+  {
+   "request": {
+    "method": "GET",
+    "url": "https://stats.bis.org/api/v1/data/WS_DSR/Q.GB+CA.H?startPeriod=2024&endPeriod=2024",
+    "body_sha256": ""
+   },
+   "response": {
+    "status": 200,
+    "reason": "",
+    "headers": {
+     "etag": "Z3Vlc3QkMTc5MTc3NjA5Mjg1NSQqJDEkV1NfRFNS",
+     "vary": "Accept,Accept-Language",
+     "content-disposition": "inline; filename=\"WS_DSR.csv\"",
+     "content-type": "text/csv;charset=UTF-8",
+     "date": "Mon, 12 Oct 2026 03:34:52 GMT",
+     "cache-control": "private"
+    },
+    "body": {
+     "text": "DATAFLOW,FREQ,BORROWERS_CTY,DSR_BORROWERS,TIME_PERIOD,OBS_VALUE,COLLECTION,UNIT_MEASURE,UNIT_MULT,DECIMALS,TITLE_TS,OBS_CONF,OBS_PRE_BREAK,OBS_STATUS\nBIS:WS_DSR(1.0),Q,CA,H,2024-Q1,14.6,,367,0,1,Canada - Households and NPISHs,F,,A\nBIS:WS_DSR(1.0),Q,CA,H,2024-Q2,14.6,,367,0,1,Canada - Households and NPISHs,F,,A\nBIS:WS_DSR(1.0),Q,CA,H,2024-Q3,14.4,,367,0,1,Canada - Households and NPISHs,F,,A\nBIS:WS_DSR(1.0),Q,CA,H,2024-Q4,14.2,,367,0,1,Canada - Households and NPISHs,F,,A\nBIS:WS_DSR(1.0),Q,GB,H,2024-Q1,9,,367,0,1,United Kingdom - Households and NPISHs,F,,A\nBIS:WS_DSR(1.0),Q,GB,H,2024-Q2,9,,367,0,1,United Kingdom - Households and NPISHs,F,,A\nBIS:WS_DSR(1.0),Q,GB,H,2024-Q3,9,,367,0,1,United Kingdom - Households and NPISHs,F,,A\nBIS:WS_DSR(1.0),Q,GB,H,2024-Q4,8.9,,367,0,1,United Kingdom - Households and NPISHs,F,,A\n"
+    }
+   }
+  }
+ ]
+}

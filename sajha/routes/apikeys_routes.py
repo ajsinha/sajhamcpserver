@@ -17,6 +17,7 @@ from typing import Optional
 
 from fastapi import APIRouter, Depends, Request
 from fastapi.responses import JSONResponse
+from starlette.concurrency import run_in_threadpool
 from sqlalchemy.orm import Session
 
 from sajha.app import render
@@ -178,20 +179,23 @@ async def _admin_create(request: Request, auth: AuthContext, db: Session):
     if err:
         return err
     data = await _body(request)
-    owner = None
-    if data.get('owner'):
-        owner = _user_by_id(db, str(data['owner']))
-        if owner is None:
-            return JSONResponse({'error': f'no such user: {data["owner"]}'}, status_code=400)
-    try:
-        key, raw = svc.create_key(db, name=str(data.get('name') or ''), description=str(data.get('description') or ''),
-                                  created_by=auth.user_id, owner=owner,
-                                  mode=str(data.get('tool_access_mode') or 'all'), tool_list=_tool_list(data),
-                                  expires_in_days=data.get('expires_in_days'),
-                                  persistent=bool(data.get('persistent')))
-    except svc.KeyError_ as e:
-        return _bad(e)
-    return JSONResponse(_shown_once(raw, key))
+
+    def work():                     # the database part, in the thread pool (Scaling and State §7)
+        owner = None
+        if data.get('owner'):
+            owner = _user_by_id(db, str(data['owner']))
+            if owner is None:
+                return JSONResponse({'error': f'no such user: {data["owner"]}'}, status_code=400)
+        try:
+            key, raw = svc.create_key(db, name=str(data.get('name') or ''), description=str(data.get('description') or ''),
+                                      created_by=auth.user_id, owner=owner,
+                                      mode=str(data.get('tool_access_mode') or 'all'), tool_list=_tool_list(data),
+                                      expires_in_days=data.get('expires_in_days'),
+                                      persistent=bool(data.get('persistent')))
+        except svc.KeyError_ as e:
+            return _bad(e)
+        return JSONResponse(_shown_once(raw, key))
+    return await run_in_threadpool(work)
 
 
 @router.post('/api/admin/apikeys')
@@ -252,14 +256,17 @@ async def api_admin_enabled(key_id: str, request: Request, auth: AuthContext = D
     if err:
         return err
     data = await _body(request)     # the body first: no connection held while it arrives
-    key, nf = _admin_key(db, key_id)
-    if nf:
-        return nf
-    try:
-        svc.set_enabled(db, key, bool(data.get('enabled')), auth.user_id)
-    except svc.KeyError_ as e:
-        return _bad(e)
-    return JSONResponse({'success': True, 'apikey': svc.public(key)})
+
+    def work():                     # the database part, in the thread pool (Scaling and State §7)
+        key, nf = _admin_key(db, key_id)
+        if nf:
+            return nf
+        try:
+            svc.set_enabled(db, key, bool(data.get('enabled')), auth.user_id)
+        except svc.KeyError_ as e:
+            return _bad(e)
+        return JSONResponse({'success': True, 'apikey': svc.public(key)})
+    return await run_in_threadpool(work)
 
 
 @router.post('/admin/apikeys/{key_id}/toggle')
@@ -287,17 +294,20 @@ async def api_admin_owner(key_id: str, request: Request, auth: AuthContext = Dep
     if err:
         return err
     data = await _body(request)     # the body first: no connection held while it arrives
-    key, nf = _admin_key(db, key_id)
-    if nf:
-        return nf
-    user = _user_by_id(db, str(data.get('owner') or ''))
-    if user is None:
-        return JSONResponse({'error': 'owner must be an existing user ID'}, status_code=400)
-    try:
-        svc.assign_owner(db, key, user, auth.user_id)
-    except svc.KeyError_ as e:
-        return _bad(e)
-    return JSONResponse({'success': True, 'apikey': svc.public(key)})
+
+    def work():                     # the database part, in the thread pool (Scaling and State §7)
+        key, nf = _admin_key(db, key_id)
+        if nf:
+            return nf
+        user = _user_by_id(db, str(data.get('owner') or ''))
+        if user is None:
+            return JSONResponse({'error': 'owner must be an existing user ID'}, status_code=400)
+        try:
+            svc.assign_owner(db, key, user, auth.user_id)
+        except svc.KeyError_ as e:
+            return _bad(e)
+        return JSONResponse({'success': True, 'apikey': svc.public(key)})
+    return await run_in_threadpool(work)
 
 
 @router.post('/api/admin/apikeys/{key_id}/persistent')
@@ -308,14 +318,17 @@ async def api_admin_persistent(key_id: str, request: Request, auth: AuthContext 
     if err:
         return err
     data = await _body(request)     # the body first: no connection held while it arrives
-    key, nf = _admin_key(db, key_id)
-    if nf:
-        return nf
-    try:
-        svc.set_persistent(db, key, bool(data.get('persistent')), auth.user_id)
-    except svc.KeyError_ as e:
-        return _bad(e)
-    return JSONResponse({'success': True, 'apikey': svc.public(key)})
+
+    def work():                     # the database part, in the thread pool (Scaling and State §7)
+        key, nf = _admin_key(db, key_id)
+        if nf:
+            return nf
+        try:
+            svc.set_persistent(db, key, bool(data.get('persistent')), auth.user_id)
+        except svc.KeyError_ as e:
+            return _bad(e)
+        return JSONResponse({'success': True, 'apikey': svc.public(key)})
+    return await run_in_threadpool(work)
 
 
 @router.post('/api/admin/apikeys/{key_id}/access')
@@ -326,17 +339,20 @@ async def api_admin_access(key_id: str, request: Request, auth: AuthContext = De
     if err:
         return err
     data = await _body(request)     # the body first: no connection held while it arrives
-    key, nf = _admin_key(db, key_id)
-    if nf:
-        return nf
-    try:
-        svc.set_access(db, key, str(data.get('tool_access_mode') or 'all'), _tool_list(data), auth.user_id)
-    except svc.KeyError_ as e:
-        return _bad(e)
-    return JSONResponse({'success': True, 'apikey': svc.public(key)})
+
+    def work():                     # the database part, in the thread pool (Scaling and State §7)
+        key, nf = _admin_key(db, key_id)
+        if nf:
+            return nf
+        try:
+            svc.set_access(db, key, str(data.get('tool_access_mode') or 'all'), _tool_list(data), auth.user_id)
+        except svc.KeyError_ as e:
+            return _bad(e)
+        return JSONResponse({'success': True, 'apikey': svc.public(key)})
+    return await run_in_threadpool(work)
 
 
-async def _admin_delete(key_id: str, request: Request, auth: AuthContext, db: Session):
+def _admin_delete(key_id: str, request: Request, auth: AuthContext, db: Session):
     err = _refuse(request, auth)
     if err:
         return err
@@ -351,17 +367,17 @@ async def _admin_delete(key_id: str, request: Request, auth: AuthContext, db: Se
 
 
 @router.delete('/api/admin/apikeys/{key_id}')
-async def api_admin_delete(key_id: str, request: Request, auth: AuthContext = Depends(require_admin),
+def api_admin_delete(key_id: str, request: Request, auth: AuthContext = Depends(require_admin),
                            db: Session = Depends(get_db)):
     """Remove a key and its record (not a default key). Prefer revoking: it keeps the record."""
-    return await _admin_delete(key_id, request, auth, db)
+    return _admin_delete(key_id, request, auth, db)
 
 
 @router.delete('/admin/apikeys/{key_id}/delete')
-async def apikey_delete(key_id: str, request: Request, auth: AuthContext = Depends(require_admin),
+def apikey_delete(key_id: str, request: Request, auth: AuthContext = Depends(require_admin),
                         db: Session = Depends(get_db)):
     """The older path of ``DELETE /api/admin/apikeys/{key_id}``."""
-    return await _admin_delete(key_id, request, auth, db)
+    return _admin_delete(key_id, request, auth, db)
 
 
 # ── every user: their own keys ──────────────────────────────────────
@@ -406,15 +422,18 @@ async def api_my_create(request: Request, auth: AuthContext = Depends(require_au
     if err:
         return err
     data = await _body(request)     # the body first: no connection held while it arrives
-    me = _me(auth, db)
-    try:
-        key, raw = svc.create_key(db, name=str(data.get('name') or ''), description=str(data.get('description') or ''),
-                                  created_by=me.user_id, owner=me,
-                                  mode=str(data.get('tool_access_mode') or 'all'), tool_list=_tool_list(data),
-                                  expires_in_days=data.get('expires_in_days'))
-    except svc.KeyError_ as e:
-        return _bad(e)
-    return JSONResponse(_shown_once(raw, key))
+
+    def work():                     # the database part, in the thread pool (Scaling and State §7)
+        me = _me(auth, db)
+        try:
+            key, raw = svc.create_key(db, name=str(data.get('name') or ''), description=str(data.get('description') or ''),
+                                      created_by=me.user_id, owner=me,
+                                      mode=str(data.get('tool_access_mode') or 'all'), tool_list=_tool_list(data),
+                                      expires_in_days=data.get('expires_in_days'))
+        except svc.KeyError_ as e:
+            return _bad(e)
+        return JSONResponse(_shown_once(raw, key))
+    return await run_in_threadpool(work)
 
 
 def _my_key(db: Session, me, key_id: str):

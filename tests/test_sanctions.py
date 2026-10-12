@@ -375,6 +375,29 @@ def test_ask_sajha_refuses_a_sanctions_call(loaded, shipped_policy):
     assert 'BANCO NACIONAL' not in str(msg)
 
 
+def test_sanctions_tools_are_not_offered_to_a_model(shipped_policy):
+    """Not only refused at call time: Ask SAJHA's shortlist (and an LLM tool's allowed set, which is
+    ranked through it) never contains a sanctions tool, while the policy leaves them to people."""
+    from sajha.ai.intelligence import IntelligenceService
+    from sajha.ai.llm import RequestContext
+    from sajha.ai.llm.settings import AskSettings
+    from sajha.policy import offered
+    from tests.ai.conftest import ToolBox, make_gateway
+    box = ToolBox(with_calc=True)
+    for name in ('sanctions_screen', 'sanctions_entry', 'sanctions_lists_status'):
+        box.add(_tool(name)[0])
+    svc = IntelligenceService(make_gateway(), box, settings=AskSettings(audit=False, shortlist=50),
+                              audit=lambda e: None)
+    ctx = RequestContext(user_id='alice')
+    names = [t['name'] for t in svc.shortlist('screen Banco Nacional de Cuba against sanctions lists', ctx)]
+    assert names and not any(n.startswith('sanctions_') for n in names)
+    among = [t['name'] for t in svc.shortlist('sanctions screen', ctx, among=['sanctions_screen', 'calc_npv'])]
+    assert among == ['calc_npv']
+    tool = box.get_tool('sanctions_screen')
+    assert not offered(tool, 'ask') and not offered(tool, 'openai_api')
+    assert all(offered(tool, src) for src in ('mcp', 'rest', 'workflow'))
+
+
 # ── the shipped refresh workflow ────────────────────────────────────────
 
 def test_shipped_workflow_definition_and_install(monkeypatch):

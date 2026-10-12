@@ -1181,9 +1181,12 @@ value. From results, every number in the full structured result (JSON numbers, a
 by the same pattern in its strings) is collected, streamed from the spool when spilled.
 
 **Match.** A draft number *d* matches a result number *r* when any holds:
-`|d − r| ≤ tolerance × max(|d|, |r|)`; *r* rounded to *d*'s decimal places equals *d*; for a
-percentage, *d* / 100 matches *r* by either rule; with a scale word, the unscaled mantissa
-matches *r* (so "1.2 billion" matches 1200000000 and 1.2).
+`|d − r| ≤ tolerance × max(|d|, |r|)`; *r* rounded to *d*'s decimal places equals *d*; with a
+scale word, the unscaled mantissa matches *r* (so "1.2 billion" matches 1200000000 and 1.2). A
+percentage ("25%", "25 percent") matches only a result known to be in percent (a string "25%", a
+value under a percent-like key such as `margin_pct`, `rate` or `yield`, or beside `format: percent`)
+by either rule, or any result as a ratio (*d* / 100 matches *r*); a bare 25 does not support
+"25%" ([Quantitative Planners](Quantitative%20Planners.md) §2.4).
 
 **Finding:** one per unmatched number: `{check: numbers_in_results, message: "12.7 does not
 appear in any tool result", value: 12.7}`. With no results, every non-ignored number fails.
@@ -1243,8 +1246,10 @@ Custom checks can be registered in code with a name, a settings schema and a pur
 `numbers_in_results` generalised to computed figures. It takes the same settings (`tolerance`,
 `ignore`, `max_numbers`) and checks the same numbers; a number passes when it matches a tool result
 by the rules of section 9.1, or a quantity of the run's quantitative workspace at the precision
-written, in the quantity's unit or one it converts to ("45 bp", "0.45%" and "0.0045" all match a
-`bp_spread` of 45; a figure written with `%`, "bp" or "pp" matches only in that unit). With no
+written: a figure written with `%`, "bp" or "pp" in that unit ("45 bp" and "0.45%" match a
+`bp_spread` of 45), a figure with no unit in the quantity's own unit or the unit the text names
+before it ("45"; "as a decimal, 0.0045"), never in every unit it converts to (a bare "0.0045" does
+not). With no
 workspace it behaves exactly as `numbers_in_results`. Finding: `{check: numbers_in_workspace,
 message: "12.7 does not match any tool result or computed quantity", value: 12.7}`. The workspace,
 its units and the matching rules are owned by

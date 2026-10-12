@@ -1,0 +1,20 @@
+# An HTTP tool with a recorded cassette (cassettes/bis_property_prices/us_and_germany_yoy_2024.json): replays offline.
+# Re-record against the live API with: python -m sajha.quality test --tool bis_property_prices --record
+tool: bis_property_prices
+cases:
+  - name: us and germany yoy 2024
+    tags: [http]
+    arguments: {"countries": ["US", "DE"], "measure": "yoy_change", "period": "2024"}
+    expect:
+      - schema: output
+      - path: "$.series_count"
+        equals: 2
+      - path: "$.series[*].unit"
+        regex: "Year-on-year change"
+      - path: "$.series[0].observations"
+        length: 4
+      - path: "$.source"
+        regex: "^Source: BIS"
+probe:
+  case: us and germany yoy 2024
+  every: 3600

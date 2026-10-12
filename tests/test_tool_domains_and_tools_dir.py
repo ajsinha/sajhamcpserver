@@ -271,3 +271,14 @@ def test_landing_groups_by_domain_with_chips(client, home):
     assert 'href="/login?next=%2Ftools%3Fdomain%3Dunfiled"' in text
     data = json.loads(text.split('id="lpData">', 1)[1].split('</script>', 1)[0])
     assert {g[0] for g in data['groups']} == {'zz_calc', '__unfiled__'} and data['prefixes']['zz'] in ('zz_calc', '__unfiled__')
+
+
+def test_unloading_a_tool_forgets_only_a_module_studio_generated():
+    """Deleting an LLM tool once removed sajha.ai.llm_tools from sys.modules; its re-import made a second
+    copy of the package without its submodules as attributes, and a later test failed by order."""
+    from sajha.routes.studio_routes import _studio_module
+    assert not _studio_module('sajha.ai.llm_tools', 'llm')
+    assert not _studio_module('sajha.tools.impl.calc_tools', 'calc')
+    assert _studio_module('sajha.tools.impl.rest_zz_x', 'zz_x')
+    assert _studio_module('sajha.tools.impl.zz_x_script_tool', 'zz_x')
+    assert not _studio_module(None, 'zz_x')

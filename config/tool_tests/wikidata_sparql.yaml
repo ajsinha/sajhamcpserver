@@ -1,0 +1,18 @@
+# An HTTP tool with a recorded cassette (cassettes/wikidata_sparql/entity_by_lei.json): replays offline.
+# Re-record against the live API with: python -m sajha.quality test --tool wikidata_sparql --record
+tool: wikidata_sparql
+cases:
+  - name: entity by lei
+    tags: [http]
+    arguments: {"query": "SELECT ?item ?itemLabel WHERE { ?item wdt:P1278 \"7LTWFZYICNSX8D621K86\" . SERVICE wikibase:label { bd:serviceParam wikibase:language \"en\". } }"}
+    expect:
+      - schema: output
+      - path: "$.row_count"
+        equals: 1
+      - path: "$.rows[0].item"
+        regex: "Q66048$"
+      - path: "$.source"
+        regex: "Wikidata"
+probe:
+  case: entity by lei
+  every: 3600

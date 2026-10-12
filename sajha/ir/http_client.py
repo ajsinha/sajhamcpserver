@@ -12,6 +12,13 @@ import urllib.error
 from typing import Dict, Optional, List
 from http.cookiejar import CookieJar
 
+from sajha.core import outbound
+
+logger = logging.getLogger(__name__)
+
+#: the longest a retry waits (seconds); a tool call has a deadline, so backoff stays short
+MAX_RETRY_WAIT = 3.0
+
 
 class RateLimiter:
     """Rate limiter to avoid triggering bot detection"""
@@ -96,10 +103,7 @@ class EnhancedHTTPClient:
         self.rate_limiter = RateLimiter(min_delay, max_delay)
         self.max_retries = max_retries
         self.timeout = timeout
-        self.cookie_jar = CookieJar()
-        self.opener = urllib.request.build_opener(
-            urllib.request.HTTPCookieProcessor(self.cookie_jar)
-        )
+        self.cookie_jar = CookieJar()        # cookies a site set, sent back on the next request
         
         # Session state
         self.session_headers = {}
@@ -122,7 +126,7 @@ class EnhancedHTTPClient:
             'User-Agent': random.choice(self.USER_AGENTS),
             'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8',
             'Accept-Language': 'en-US,en;q=0.9',
-            'Accept-Encoding': 'gzip, deflate, br',
+            'Accept-Encoding': 'gzip, deflate',
             'DNT': '1',
             'Connection': 'keep-alive',
             'Upgrade-Insecure-Requests': '1',
@@ -180,9 +184,11 @@ class EnhancedHTTPClient:
                 headers = self.get_headers(url, custom_headers)
                 req = urllib.request.Request(url, data=data, headers=headers, method=method)
                 
-                # Make request
+                self.cookie_jar.add_cookie_header(req)
+                # Make request: through the outbound fetch guard (sajha/core/outbound.py)
                 self.logger.debug(f"Fetching {url} (attempt {attempt + 1}/{self.max_retries})")
-                response = self.opener.open(req, timeout=self.timeout)
+                response = outbound.urlopen(req, timeout=self.timeout)
+                self._keep_cookies(response, req)
                 
                 # Read and decode content
                 content = response.read()
@@ -203,51 +209,22 @@ class EnhancedHTTPClient:
                 return decoded_content
                 
             except urllib.error.HTTPError as e:
-                self.logger.warning(f"HTTP Error {e.code} for {url}", exc_info=True)
-                
-                if e.code == 403:
-                    # Bot detection - wait longer and retry
-                    if attempt < self.max_retries - 1:
-                        wait_time = (2 ** attempt) * 5 + random.uniform(1, 5)
-                        self.logger.info(f"Got 403, waiting {wait_time:.1f}s before retry")
-                        time.sleep(wait_time)
-                        continue
-                
-                if e.code == 429:
-                    # Rate limited - exponential backoff
-                    if attempt < self.max_retries - 1:
-                        wait_time = (2 ** attempt) * 10 + random.uniform(5, 15)
-                        self.logger.info(f"Rate limited, waiting {wait_time:.1f}s before retry")
-                        time.sleep(wait_time)
-                        continue
-                
-                if e.code >= 500:
-                    # Server error - retry with backoff
-                    if attempt < self.max_retries - 1:
-                        wait_time = (2 ** attempt) * 2 + random.uniform(1, 3)
-                        self.logger.info(f"Server error {e.code}, waiting {wait_time:.1f}s before retry")
-                        time.sleep(wait_time)
-                        continue
-                
-                # Client error (4xx) - don't retry except 403, 429
-                if attempt == self.max_retries - 1:
-                    raise ValueError(f"HTTP Error {e.code}: {e.reason}")
+                self.logger.info(f"HTTP Error {e.code} for {outbound.safe_url(url)}")
+                # 403 is a bot wall and 4xx a missing page: retrying only spends the caller's deadline.
+                # 429 and 5xx are retried with a short wait.
+                if (e.code == 429 or e.code >= 500) and attempt < self.max_retries - 1:
+                    time.sleep(min(MAX_RETRY_WAIT, (2 ** attempt) + random.uniform(0, 1)))
+                    continue
+                raise ValueError(f"HTTP Error {e.code}: {e.reason}")
                     
+            except outbound.Refused as e:
+                raise ValueError(str(e))
             except urllib.error.URLError as e:
-                self.logger.warning(f"URL Error for {url}: {e.reason}", exc_info=True)
-                if attempt < self.max_retries - 1:
-                    wait_time = (2 ** attempt) * 2 + random.uniform(1, 3)
-                    time.sleep(wait_time)
+                self.logger.info(f"URL Error for {outbound.safe_url(url)}: {e.reason}")
+                if attempt < self.max_retries - 1 and not isinstance(e.reason, TimeoutError):
+                    time.sleep(min(MAX_RETRY_WAIT, (2 ** attempt) + random.uniform(0, 1)))
                     continue
                 raise ValueError(f"Failed to fetch: {e.reason}")
-                
-            except Exception as e:
-                self.logger.warning(f"Error fetching {url}: {e}", exc_info=True)
-                if attempt < self.max_retries - 1:
-                    wait_time = (2 ** attempt) * 2 + random.uniform(1, 3)
-                    time.sleep(wait_time)
-                    continue
-                raise ValueError(f"Failed to fetch: {str(e)}")
         
         raise ValueError(f"Failed to fetch {url} after {self.max_retries} attempts")
     
@@ -309,6 +286,18 @@ class EnhancedHTTPClient:
             # If we can't fetch robots.txt, assume allowed
             return True
     
+    def _keep_cookies(self, response, req) -> None:
+        """Store the cookies ``response`` set, so the next request to the site sends them."""
+        class _Shim:
+            def __init__(self, headers):
+                self._h = headers
+            def info(self):
+                return self._h
+        try:
+            self.cookie_jar.extract_cookies(_Shim(response.info()), req)
+        except Exception as e:                      # a malformed Set-Cookie is not worth failing over
+            self.logger.debug(f"cookies not kept: {e}")
+
     def clear_session(self):
         """Clear session state and cookies"""
         self.cookie_jar.clear()

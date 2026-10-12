@@ -21,7 +21,7 @@ from __future__ import annotations
 import logging
 import threading
 import time
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional, Tuple
 
@@ -289,6 +289,40 @@ class PolicyEngine:
             if r.redact and r.redact.data_classes:
                 d.redact = r.redact if d.redact is None else d.redact.merge(r.redact)
         return d
+
+    def denies(self, tool, source: str, caller: Any = None) -> Optional[Decision]:
+        """Would every call of ``tool`` from ``source`` by ``caller`` (default: the current caller) be
+        denied? The deciding Decision when so, else None. Pure: no audit, no counters, no approvals,
+        no rate limits. Only a rule that refuses regardless of the arguments counts (a rule with
+        argument conditions does not match a call with none), so a tool some call could still use is
+        offered. Callers use it to leave a tool out of what a model is offered (Policy and Audit §2)."""
+        if not self.active():
+            return None
+        from sajha.observability.caller import current
+        name = getattr(tool, 'name', None) or str(tool)
+        cfg = getattr(tool, 'config', None) or {}
+        ann = cfg.get('annotations') if isinstance(cfg, dict) else None
+        call = Call(name, {}, caller if caller is not None else current(), source or 'other',
+                    ann if isinstance(ann, dict) else {}, aliases=tool_aliases(tool) if not isinstance(tool, str) else [],
+                    proxied=bool(getattr(tool, 'upstream_id', None)))
+        try:
+            d = self.evaluate(call)
+        except Exception as e:
+            logger.debug(f'policy: denies({name}, {source}) could not be evaluated: {e}')
+            return None
+        if d.kind == 'deny':
+            return d
+        if d.kind == 'default_deny':
+            # an allow rule that names arguments could still allow some call of this tool
+            for r in self.rules():
+                if r.effect == 'allow' and r.match.arguments:
+                    try:
+                        if replace(r.match, arguments=[]).matches(call):
+                            return None
+                    except Exception:
+                        return None
+            return d
+        return None
 
     # -- enforcement ---------------------------------------------------------
 

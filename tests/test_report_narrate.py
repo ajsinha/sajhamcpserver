@@ -124,6 +124,18 @@ def test_without_a_previous_run_a_change_is_rejected():
     assert bad("VaR rose 12.2% since the previous run.", ctx) == [("number", "12.2%")]
 
 
+def test_a_percent_figure_needs_a_percent_number(ctx):
+    # "used" is 185.0 with no unit: written "185%" it is not supported (Reports §5)
+    assert bad("VaR used 185%.", ctx) == [("number", "185%")]
+    assert bad("VaR used 185.", ctx) == []
+
+
+def test_a_bare_figure_matches_a_comparison_in_its_own_unit_only():
+    run = dict(RUN, comparisons=[{"label": "VaR change", "value": 4.75, "unit": "percent", "section": "headline"}])
+    assert bad("VaR rose 475 bp.", N.build_context(run)) == []
+    assert bad("VaR rose 475.", N.build_context(run)) == [("number", "475")]       # not 4.75% read as 475 bp
+
+
 def test_stored_comparisons_are_used_when_the_engine_stored_them():
     run = dict(RUN, comparisons=[{"label": "VaR change", "value": 4.75, "unit": "percent", "section": "headline"}])
     assert bad("VaR rose 4.75%.", N.build_context(run)) == []

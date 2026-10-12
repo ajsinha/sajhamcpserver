@@ -168,6 +168,7 @@ the registry:
 | every input property has a `description` | warning |
 | every `examples` entry and `default` validates against its (sub)schema | error (examples), warning (default) |
 | `outputSchema`, when present, is a valid 2020-12 schema of `type: object` | error |
+| `unit`: every `x-sajha-unit` in the `outputSchema` is a unit of the workspace's grammar ([Quantitative Planners](Quantitative%20Planners.md) §2.2: `percent`, `bp`, `USD mn`, `count k`, ...) | error; on a property whose type holds no number (`object`, `boolean`): warning |
 | `annotations` hints are booleans; `readOnlyHint` and `destructiveHint` are not both true | error |
 | a tool whose name says it deletes, drops, purges, removes, revokes, truncates or wipes has `destructiveHint: true` | warning |
 | a tool whose name says it only reads (`get`, `list`, `search`, `fetch`, `query`, ...) has `readOnlyHint: true` | info |
@@ -535,9 +536,9 @@ annotations) is unchanged.
 
 **Compatibility.** The schema is the contract: where a code default differed, the schema's value now
 applies. The CHANGELOG (8.8.0, "Upgrading") lists every tool whose effective default changed.
-`tools.apply_schema_defaults` (default `true`) turns the helper off for release 8.8.0 only, as an
-escape hatch; it is removed in the release after. Owner decision, 2026-10-11: defaults on by
-default, with this one-release off switch.
+Schema defaults always apply: the one-release off switch of 8.8.0 (`tools.apply_schema_defaults`)
+was removed in 8.14.0, and only a tool that sets `apply_schema_defaults = False` (the proxies above)
+opts out.
 
 ### 12.2 Broken tools: fix or remove
 
@@ -666,15 +667,17 @@ tool once and reports which are broken. It rides the probe scheduler rather than
   |---|---|
   | `ok` | The call succeeded |
   | `empty` | The call succeeded but returned nothing: `null`, `{}`, `[]`, or an object whose lists are all empty |
-  | `error` | An exception, an `{"error": ...}` result, `isError: true`, or no answer within `quality.check.timeout_seconds`; recorded with its class |
+  | `error` | An exception, an `{"error": ...}` result, `isError: true`, or no answer within `quality.check.timeout_seconds`; recorded with its class. A rate-limited call (the message says `rate limit`, `HTTP 429` or `too many requests`) is an `error` even when it also suggests a key |
   | `schema_mismatch` | The result fails the tool's `outputSchema` |
-  | `not_configured` | A key field of the tool's config (`api_key`, `*_token`, ...) is empty or an unresolved `${...}` (no call is made), or the error says a key or credential is missing: configuration, not breakage |
+  | `not_configured` | A key field of the tool's config (`api_key`, `*_token`, ...) is empty or an unresolved `${...}` (no call is made), or the error says a key or credential is missing: configuration, not breakage. A tool class that sets `keyless_fallback = True` (a public or demo tier without the key: the FBI tools' `DEMO_KEY`, UN Comtrade's preview API, CoinGecko's public API) is called even when its key is empty (8.14.0) |
   | `not_checked` | No derivable arguments |
   | `skipped` | Not eligible, or the run's budget ran out; the reason is given |
 
   Broken means `error` or `schema_mismatch`.
 - **Load on upstreams.** One call at a time per tool folder (one provider), with
-  `quality.check.pause_ms` between calls in a folder; at most `quality.check.concurrency` folders at
+  `quality.check.pause_ms` between calls in a folder, or longer when the tool's
+  `check_pause_seconds` asks for it (the `cg_` tools ask for 60 divided by
+  `coingecko.calls_per_minute`, so the check never trips CoinGecko's limit); at most `quality.check.concurrency` folders at
   once; `quality.check.timeout_seconds` per call; a total `quality.check.budget_seconds`, after which
   the remaining tools are `skipped`.
 - **Running it.** `python -m sajha.quality check [--tool GLOB] [--folder NAME] [--json FILE]

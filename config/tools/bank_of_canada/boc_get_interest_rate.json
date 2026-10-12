@@ -70,6 +70,7 @@
               "description": "Effective date of the rate"
             },
             "value": {
+              "x-sajha-unit": "percent",
               "type": [
                 "number",
                 "null"

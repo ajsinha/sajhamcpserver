@@ -1,0 +1,18 @@
+# An HTTP tool with a recorded cassette (cassettes/fdic_failures/failures_in_2023.json): replays offline.
+# Re-record against the live API with: python -m sajha.quality test --tool fdic_failures --record
+tool: fdic_failures
+cases:
+  - name: failures in 2023
+    tags: [http]
+    arguments: {"from": "2023-01-01", "to": "2023-12-31"}
+    expect:
+      - schema: output
+      - path: "$.count"
+        min: 5
+      - path: "$.failures[*].failure_date"
+        regex: "^2023-"
+      - path: "$.failures[0].name"
+        regex: ".+"
+probe:
+  case: failures in 2023
+  every: 3600

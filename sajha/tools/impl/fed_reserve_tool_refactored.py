@@ -11,6 +11,7 @@ from datetime import datetime
 from sajha.tools.base_mcp_tool import BaseMCPTool
 from sajha.tools.impl.fred_key import fred_api_key
 from sajha.tools.http_utils import safe_json_response, ENCODINGS_DEFAULT
+from sajha.core import outbound
 
 
 class FedReserveBaseTool(BaseMCPTool):
@@ -83,7 +84,7 @@ class FedReserveBaseTool(BaseMCPTool):
         url = f"{self.api_url}/series/observations?{urllib.parse.urlencode(params)}"
         
         try:
-            with urllib.request.urlopen(url, timeout=30) as response:
+            with outbound.urlopen(url, timeout=30) as response:
                 data = safe_json_response(response, ENCODINGS_DEFAULT)
                 
                 observations = data.get('observations', [])
@@ -98,7 +99,7 @@ class FedReserveBaseTool(BaseMCPTool):
                 
                 # Get series info
                 info_url = f"{self.api_url}/series?{urllib.parse.urlencode({'series_id': series_id, 'api_key': api_key, 'file_type': 'json'})}"
-                with urllib.request.urlopen(info_url, timeout=30) as info_response:
+                with outbound.urlopen(info_url, timeout=30) as info_response:
                     info_data = safe_json_response(info_response, ENCODINGS_DEFAULT)
                     series_info = info_data.get('seriess', [{}])[0]
                 
@@ -465,7 +466,7 @@ class FedSearchSeriesTool(FedReserveBaseTool):
         url = f"{self.api_url}/series/search?{urllib.parse.urlencode(params)}"
         
         try:
-            with urllib.request.urlopen(url, timeout=30) as response:
+            with outbound.urlopen(url, timeout=30) as response:
                 data = safe_json_response(response, ENCODINGS_DEFAULT)
                 
                 series = data.get('seriess', [])

@@ -1,0 +1,18 @@
+# An HTTP tool with a recorded cassette (cassettes/ust_daily_treasury_statement/operating_cash_balance_2025-09-30.json): replays offline.
+# Re-record against the live API with: python -m sajha.quality test --tool ust_daily_treasury_statement --record
+tool: ust_daily_treasury_statement
+cases:
+  - name: operating cash balance 2025-09-30
+    tags: [http]
+    arguments: {"table": "operating_cash_balance", "date": "2025-09-30"}
+    expect:
+      - schema: output
+      - path: "$.count"
+        min: 1
+      - path: "$.title"
+        regex: "Operating Cash Balance"
+      - path: "$.rows[*].date"
+        regex: "^2025-09-30$"
+probe:
+  case: operating cash balance 2025-09-30
+  every: 3600

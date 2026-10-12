@@ -1,10 +1,11 @@
 {
   "name": "cg_coin_history",
   "implementation": "sajha.tools.impl.coingecko_tools.CGCoinHistoryTool",
-  "description": "A coin's snapshot on one past date from CoinGecko (coins/{id}/history): price, market cap and total volume in many currencies at 00:00 UTC that day.\nReturns {id, symbol, name, market_data: {current_price: {currency: value}, market_cap: {...}, total_volume: {...}}, ...}.\nInputs (* required): id* (string, CoinGecko coin id such as bitcoin or ethereum, not the ticker symbol; ids come from cg_search or cg_coin_list), date* (string, DD-MM-YYYY, e.g. 31-12-2023).\nFor a series of days use cg_coin_market_chart or cg_coin_ohlc.\nExample: {\"id\": \"bitcoin\", \"date\": \"31-12-2023\"}",
+  "description": "A coin's snapshot on one past date from CoinGecko (coins/{id}/history): price, market cap and total volume in many currencies at 00:00 UTC that day.\nReturns {id, symbol, name, market_data: {current_price: {currency: value}, market_cap: {...}, total_volume: {...}}, ...}.\nInputs (* required): id* (string, CoinGecko coin id such as bitcoin or ethereum, not the ticker symbol; ids come from cg_search or cg_coin_list), date (string, DD-MM-YYYY; default yesterday, UTC). Without a paid CoinGecko plan only the past 365 days are available.\nFor a series of days use cg_coin_market_chart or cg_coin_ohlc.\nExample: {\"id\": \"bitcoin\"}",
   "annotations": {"readOnlyHint": true, "idempotentHint": true, "openWorldHint": true},
   "version": "4.5.0",
   "enabled": true,
+  "cache_ttl": 3600,
   "inputSchema": {
     "type": "object",
     "properties": {
@@ -14,14 +15,13 @@
       },
       "date": {
         "type": "string",
-        "description": "Date in DD-MM-YYYY format"
+        "description": "Date in DD-MM-YYYY format (default yesterday, UTC); keyless and demo keys reach only the past 365 days"
       }
     },
     "required": [
-      "id",
-      "date"
+      "id"
     ],
-    "examples": [{"id": "bitcoin", "date": "31-12-2023"}]
+    "examples": [{"id": "bitcoin"}]
   },
   "outputSchema": {
     "type": "object",

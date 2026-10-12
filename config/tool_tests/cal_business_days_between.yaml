@@ -1,0 +1,18 @@
+# Tool test cases (docs/architecture/Tool Quality.md §2). Offline: cal_business_days_between computes from the holidays package,
+# so the case makes no HTTP call and needs no cassette.
+tool: cal_business_days_between
+cases:
+  - name: december us and gb
+    tags: [smoke]
+    arguments: {"from": "2026-12-01", "to": "2027-01-04", "calendars": ["US", "GB"]}
+    expect:
+      - schema: output
+      - path: "$.business_days"
+        equals: 21
+      - path: "$.calendar_days"
+        equals: 34
+      - path: "$.holidays_on_weekdays"
+        length: 3
+probe:
+  case: december us and gb
+  every: 3600

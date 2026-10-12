@@ -1,0 +1,18 @@
+# An HTTP tool with a recorded cassette (cassettes/ust_average_interest_rates/treasury_notes_q1_2025.json): replays offline.
+# Re-record against the live API with: python -m sajha.quality test --tool ust_average_interest_rates --record
+tool: ust_average_interest_rates
+cases:
+  - name: treasury notes q1 2025
+    tags: [http]
+    arguments: {"period": "2025-Q1", "security_type": "Treasury Notes"}
+    expect:
+      - schema: output
+      - path: "$.count"
+        equals: 3
+      - path: "$.records[*].security"
+        regex: "Treasury Notes"
+      - path: "$.records[0].date"
+        equals: "2025-01-31"
+probe:
+  case: treasury notes q1 2025
+  every: 3600

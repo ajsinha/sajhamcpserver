@@ -5,7 +5,6 @@
   "annotations": {"readOnlyHint": true, "idempotentHint": true, "openWorldHint": true},
   "version": "2.9.8",
   "enabled": true,
-  "api_key": "${fred.api.key}",
   "inputSchema": {
     "type": "object",
     "properties": {

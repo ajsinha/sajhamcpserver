@@ -18,9 +18,32 @@
         <small id="studioToolFolderHelp" class="text-muted">{% trans value=tools_dir() %}Unfiled (the root of <code>{{ value }}</code>), an existing
             folder, or a new name (lowercase letters, digits, <code>_</code> or <code>-</code>), which is created on save.
             It files the tool; it does not change its name.{% endtrans %}</small>
+        <div id="studioDomainText" class="w-100 border-start border-3 border-info ps-2 small" role="note"
+             aria-live="polite" hidden>
+            <div class="fw-bold"><i class="bi bi-diagram-3 me-1" aria-hidden="true"></i>{{ _('Domain description') }}
+                <span class="fw-normal text-muted">({{ _('from') }} <code id="studioDomainFile"></code>; {{ _("SAJHA adds it after this tool's own description when it serves the tool") }})</span></div>
+            <div id="studioDomainBody" class="text-body-secondary" style="white-space: pre-wrap"></div>
+        </div>
     </div>
 </div>
 <script nonce="{{ csp_nonce() }}">
+const STUDIO_DOMAIN_TEXTS = {{ (tool_domain_texts if tool_domain_texts is defined else {})|tojson }};
+function studioShowDomain(domain) {   // the folder's domain.txt text, as SAJHA serves it (served_description)
+    const box = document.getElementById('studioDomainText');
+    if (!box) return;
+    // domain: {folder, domain_description} of an existing tool (its detail); else the chosen folder's
+    const f = domain && typeof domain === 'object' ? (domain.folder || '') : studioFolderPath();
+    const text = domain && typeof domain === 'object' ? (domain.domain_description || '')
+                                                      : (f ? (STUDIO_DOMAIN_TEXTS[f] || '') : '');
+    box.hidden = !text;
+    document.getElementById('studioDomainFile').textContent = f ? f + '/domain.txt' : '';
+    document.getElementById('studioDomainBody').textContent = text;
+}
+document.addEventListener('DOMContentLoaded', () => {
+    const el = document.getElementById('studioToolFolder');
+    if (el) { el.addEventListener('input', () => studioShowDomain()); el.addEventListener('change', () => studioShowDomain()); }
+    studioShowDomain();
+});
 function studioFolder() {
     const el = document.getElementById('studioToolFolder');
     const v = el ? el.value.trim() : '';

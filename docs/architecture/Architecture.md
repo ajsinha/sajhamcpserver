@@ -285,6 +285,12 @@ cite it. The code is `sajha/tools/domain_text.py`.
   enabled flag writes only that. The tool's configuration page shows the domain text beside the
   description, read-only. Generated tools filed in the folder (data connectors, API Import) get it
   too.
+- **Shown in MCP Studio.** Every creator's Folder field shows the chosen folder's domain text below
+  it, marked "Domain description" with the file it comes from, since SAJHA adds it to the new tool's
+  description once deployed. Each creator's preview response carries `domain` (`folder`,
+  `domain_description`, `served_description`: the description as SAJHA will serve it), and an LLM
+  tool's detail in Studio (`GET /api/studio/llm/tools/{name}`) carries the same for the loaded tool
+  (`studio_view` in `sajha/tools/domain_text.py`).
 - **Not for every tool.** Proxied MCP server tools and remote SAJHA Net tools have no tool folder
   here, so they get no domain description. A remote host composes the description itself before
   publishing.
@@ -473,7 +479,31 @@ python scripts/check_console.py --base http://127.0.0.1:3087 --axe /path/to/axe.
 ```
 
 `tests/test_console_checks.py` checks that its pages render and runs it only when
-`SAJHA_CHECK_BASE` names a running server.
+`SAJHA_CHECK_BASE` names a running server (the flows on `PAGES`, and the accessibility scan on
+every route in the theme `SAJHA_CHECK_THEME`).
+
+**Accessibility rules for console markup.** The `--all` scan passes with no failures in every
+theme, and these rules keep it that way:
+
+- Every input, select and textarea has a name: a `<label for>` naming its id, or an `aria-label`
+  where there is no visible label (a filter, a rows-per-page select, a control in a row a script
+  builds). A placeholder is not a label.
+- An icon-only button or link carries `aria-label` and `title` (the same words), and its icon
+  `aria-hidden="true"`. A toggle (show password, show API key) updates its name and
+  `aria-pressed` when it flips.
+- A clickable `div`, `span` or chip is a custom control: `role="button"` and `tabindex="0"`;
+  `static/js/csp-actions.js` makes Enter and Space act on it as on a button, and on a sortable
+  `<th tabindex="0">`. Focus is always visible (`:focus-visible` outlines in `static/css/style.css`).
+- A region a script rewrites with a result or a status carries `role="status"` and
+  `aria-live="polite"` (an error that must interrupt: `role="alert"`).
+- Strings in these attributes are wrapped with `_()` (templates) or `_t()` (page scripts), as
+  every visible string is. The vendor JSON editor's own controls are named by
+  `sajhaLabelJsonEditor()` in `static/js/main.js`.
+
+The browser scan sees only what a page shows when it loads; the static half of
+`tests/test_console_checks.py` reads every template and page script, so it also catches rows,
+dialogs and panels built later: an unnamed control, a nameless icon-only button or link, or a
+click handler on an element the keyboard cannot reach fails the suite.
 
 **Languages.** The console has a translation framework and ships in English only (no other
 language is shipped, by the owner's decision; Roadmap L14). The console's own words (menus,
@@ -602,7 +632,9 @@ per protocol area (`test_mcp_2025_11_25.py`, `test_mcp_2026_07_28.py`,
 `test_state_store.py`, `test_sandbox.py`, `test_federation.py`, `tests/ai/`; each
 subsystem's guide describes its tests). `clientsdk/tests/` tests the client package and `sajhanet_agent/tests/` the SAJHA Net
 agent; `tests/net/` holds the SAJHA Net suites, including in-process nets of several
-instances. `.github/workflows/tests.yml` runs `tests` and `clientsdk/tests` on every push
+instances. `pytest.ini` sets `testpaths` to those three folders, so a bare `python -m pytest` at the
+repository root runs them all; the pre-v3 scripts kept in `archive/legacy_tests/` are not collected.
+`.github/workflows/tests.yml` runs `tests`, `clientsdk/tests` and `sajhanet_agent/tests` on every push
 and pull request to `develop` and `main`; `.github/workflows/mcp-conformance.yml` runs the
 official MCP conformance suite against a live server for both protocol versions.
 

@@ -1,0 +1,16 @@
+# Tool test cases (docs/architecture/Tool Quality.md §2). Offline: cal_add_business_days computes from the holidays package,
+# so the case makes no HTTP call and needs no cassette.
+tool: cal_add_business_days
+cases:
+  - name: three days over christmas on xnys
+    tags: [smoke]
+    arguments: {"date": "2026-12-23", "days": 3, "calendars": ["XNYS"]}
+    expect:
+      - schema: output
+      - path: "$.result"
+        equals: "2026-12-29"
+      - path: "$.weekday"
+        equals: "Tuesday"
+probe:
+  case: three days over christmas on xnys
+  every: 3600

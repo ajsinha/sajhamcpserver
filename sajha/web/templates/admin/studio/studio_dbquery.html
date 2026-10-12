@@ -241,7 +241,7 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
     </div>
 
     <!-- Status Message -->
-    <div id="statusMessage" class="status-message"></div>
+    <div id="statusMessage" class="status-message" role="status" aria-live="polite"></div>
 
     <div class="row">
         <!-- Main Form -->
@@ -255,24 +255,24 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
                 <div class="section-body">
                     <div class="row mb-3">
                         <div class="col-md-6">
-                            <label class="form-label fw-bold">{{ _('Tool Name') }} <span class="text-danger">*</span></label>
+                            <label for="toolName" class="form-label fw-bold">{{ _('Tool Name') }} <span class="text-danger">*</span></label>
                             <input type="text" id="toolName" class="form-control" 
                                    placeholder="get_sales_by_region" pattern="[a-z][a-z0-9_]*">
                             <div class="form-text">{{ _('Lowercase letters, numbers, and underscores only (min 3 chars)') }}</div>
                         </div>
                         <div class="col-md-6">
-                            <label class="form-label fw-bold">{{ _('Category') }}</label>
+                            <label for="toolCategory" class="form-label fw-bold">{{ _('Category') }}</label>
                             <input type="text" id="toolCategory" class="form-control" 
                                    value="Database" placeholder="{{ _('e.g., Analytics, Reports, Data') }}">
                         </div>
                     </div>
                     <div class="mb-3">
-                        <label class="form-label fw-bold">{{ _('Description') }} <span class="text-danger">*</span></label>
+                        <label for="toolDescription" class="form-label fw-bold">{{ _('Description') }} <span class="text-danger">*</span></label>
                         <textarea id="toolDescription" class="form-control" rows="2" 
                                   placeholder="Describe what this query does and what data it returns..."></textarea>
                     </div>
                     <div class="mb-3">
-                        <label class="form-label fw-bold">{{ _('Literature / Context (for AI)') }}</label>
+                        <label for="toolLiterature" class="form-label fw-bold">{{ _('Literature / Context (for AI)') }}</label>
                         <textarea id="toolLiterature" class="form-control literature-editor" rows="4" 
                                   placeholder="Provide additional context, business rules, data dictionary information, or usage examples that will help AI understand how to use this tool effectively..."></textarea>
                         <div class="form-text">{{ _('This context helps AI clients understand when and how to use this tool') }}</div>
@@ -309,7 +309,7 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
                         </div>
                     </div>
                     <div class="mb-3">
-                        <label class="form-label fw-bold">{{ _('Connection String') }} <span class="text-danger">*</span></label>
+                        <label for="connectionString" class="form-label fw-bold">{{ _('Connection String') }} <span class="text-danger">*</span></label>
                         <input type="text" id="connectionString" class="form-control" 
                                placeholder="{{ _('data/mydata.db or :memory:') }}">
                         <div class="form-text" id="connectionHelp">
@@ -320,11 +320,11 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
                     </div>
                     <div class="row">
                         <div class="col-md-6">
-                            <label class="form-label fw-bold">{{ _('Timeout (seconds)') }}</label>
+                            <label for="timeout" class="form-label fw-bold">{{ _('Timeout (seconds)') }}</label>
                             <input type="number" id="timeout" class="form-control" value="30" min="1" max="300">
                         </div>
                         <div class="col-md-6">
-                            <label class="form-label fw-bold">{{ _('Max Rows') }}</label>
+                            <label for="maxRows" class="form-label fw-bold">{{ _('Max Rows') }}</label>
                             <input type="number" id="maxRows" class="form-control" value="1000" min="1" max="100000">
                             <div class="form-text">{{ _('Maximum number of rows to return') }}</div>
                         </div>
@@ -402,22 +402,22 @@ ORDER BY sale_date DESC"></textarea>
                     {{ _('Quick Examples - Click to Load') }}
                 </div>
                 <div class="section-body">
-                    <div class="example-card" data-onclick="loadExample('sales')">
+                    <div class="example-card" role="button" tabindex="0" data-onclick="loadExample('sales')">
                         <h6><i class="bi bi-graph-up me-1"></i>{{ _('Sales by Region') }}</h6>
                         <p>{{ _('Query sales data filtered by region and date range') }}</p>
                         <span class="db-badge">DuckDB</span>
                     </div>
-                    <div class="example-card" data-onclick="loadExample('users')">
+                    <div class="example-card" role="button" tabindex="0" data-onclick="loadExample('users')">
                         <h6><i class="bi bi-people me-1"></i>{{ _('User Search') }}</h6>
                         <p>{{ _('Search users by name with pagination') }}</p>
                         <span class="db-badge">SQLite</span>
                     </div>
-                    <div class="example-card" data-onclick="loadExample('inventory')">
+                    <div class="example-card" role="button" tabindex="0" data-onclick="loadExample('inventory')">
                         <h6><i class="bi bi-box-seam me-1"></i>{{ _('Inventory Status') }}</h6>
                         <p>{{ _('Check inventory levels by category') }}</p>
                         <span class="db-badge">PostgreSQL</span>
                     </div>
-                    <div class="example-card" data-onclick="loadExample('aggregation')">
+                    <div class="example-card" role="button" tabindex="0" data-onclick="loadExample('aggregation')">
                         <h6><i class="bi bi-calculator me-1"></i>{{ _('Sales Aggregation') }}</h6>
                         <p>{{ _('Aggregate sales with grouping') }}</p>
                         <span class="db-badge">DuckDB</span>
@@ -563,7 +563,7 @@ function addParameter() {
                 </div>
                 <div class="col-md-2">
                     <label class="form-label small">${_t('Type')}</label>
-                    <select class="form-select param-type-select param-type">
+                    <select class="form-select param-type-select param-type" aria-label="${_t('Type')}">
                         <option value="string">${_t('String')}</option>
                         <option value="integer">${_t('Integer')}</option>
                         <option value="float">${_t('Float')}</option>
@@ -581,7 +581,7 @@ function addParameter() {
                     <input type="text" class="form-control param-default" placeholder="${_t('Optional')}">
                 </div>
                 <div class="col-md-1 d-flex align-items-end">
-                    <button type="button" class="btn btn-outline-danger btn-sm w-100" data-onclick="removeParameter(${id})">
+                    <button type="button" class="btn btn-outline-danger btn-sm w-100" data-onclick="removeParameter(${id})" aria-label="${_t('Remove parameter')}" title="${_t('Remove parameter')}">
                         <i class="bi bi-trash"></i>
                     </button>
                 </div>

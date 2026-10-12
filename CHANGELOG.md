@@ -2,6 +2,156 @@
 
 Newest first. The current version is `app.version` in `config/application.yml`.
 
+## v8.14.0 (October 2026) — cleanup and hardening: every tool fetch guarded, broken tools fixed, accessibility, figure lineage on the Ask page, x-sajha-unit
+
+### Upgrading
+
+- **`tools.apply_schema_defaults` is removed** (promised in 8.8.0). Schema defaults always apply;
+  `SAJHA_TOOLS_APPLY_SCHEMA_DEFAULTS` and the YAML key are ignored. A caller that relied on a tool's old
+  code default passes that value explicitly (the 8.8.0 entry lists the tools whose default changed).
+- **Runtime files are no longer tracked:** `logs/server.log`, `data/sajha.db-shm`,
+  `data/duckdb/duckdb_analytics.db.wal` and `.idea/`. Git now ignores them (and `data/*.db-shm`,
+  `*.wal`, `data/cache/`, `data/shell_scratch/`). Pulling this release into another clone deletes
+  those files there (the server recreates its own): stop the server before pulling (SQLite's
+  `-shm` file belongs to a live database), and copy `.idea/` aside first if you use it.
+- **`yf_sustainability` is removed.** Yahoo no longer serves ESG scores (every symbol answers "No
+  fundamentals data found"), so the tool could only return nothing. There is no keyless replacement.
+- **`cg_coin_history`'s `date` is optional** (default yesterday, UTC); a date more than 365 days back
+  is now a clear error (CoinGecko's public API and demo keys reach only the past year).
+- **The investor-relations tools leave unknown fields out** of a document object instead of sending
+  `null`, and their SEC fallback for presentations and press releases returns 8-K filings with the
+  matching item (2.02, 7.01, 8.01) instead of every recent filing.
+
+### Added
+
+- **Ask SAJHA shows how a figure was computed** (quantitative planners finished, Roadmap L60). When a
+  quantitative planner answers, the figures it computed are underlined buttons in the answer;
+  selecting one (click, or Tab and Enter) opens its lineage under the answer: the operation and its
+  inputs, recursively, down to the tool calls, each with its tool, call id, arguments, JSON path,
+  as-of date, unit and whether the tool or the model declared the unit. Escape or Close shuts it.
+  The ask stream sends a new `workspace` event after `answer` (the marked `figures` and their
+  `quantities`), and the `AskResult` has `figures`. The script is `static/js/ask_lineage.js`
+  (Quantitative Planners §2.1; Intelligence Layer, "POST /api/ai/ask").
+- **`x-sajha-unit`, an `outputSchema` keyword that declares a result field's unit** in the
+  workspace's grammar (`{"type": "number", "x-sajha-unit": "percent"}`, `"USD mn"`, `"count k"`). A
+  value a planner reads at that path takes the tool's unit, recorded as `unit_from: schema`, in
+  `calc_graph` (before its unit check, so a tool read may leave out `unit`), `scenario` and
+  `reconcile`. JSON Schema validation ignores the keyword; lint reports an unknown unit (new rule
+  `unit`, Tool Quality §3). Units are declared on the rate tools of `fred`, `ecb`, `bank_of_canada`,
+  `bank_of_japan`, `bis` and `us_treasury`, on most FRED series (index levels, US dollar amounts at
+  their scale, counts, prices) and on the `calc` tools whose outputs have a fixed unit. The `fred`
+  and those `calc` tools now advertise their real output shape instead of a placeholder `result`
+  object (Quantitative Planners §2.2).
+
+### Changed
+
+- The legacy `test/` folder (pre-v3 tool scripts that broke a bare `pytest`) moved to
+  `archive/legacy_tests/`. `pytest.ini` sets `testpaths = tests clientsdk/tests sajhanet_agent/tests`,
+  so `python -m pytest` at the repository root runs the live suites.
+- `data/duckdb/duckdb_analytics.db` stays shipped (the sample catalog: views over the CSV files
+  beside it, used by Describe a tool for database context) and is now opened read-only, so it no
+  longer changes at runtime or grows a `.wal`.
+- **Policy-refused tools are no longer offered to a model.** The policy engine answers, with no side
+  effects, whether every call of a tool from a source by a caller would be denied
+  (`PolicyEngine.denies`, `sajha.policy.offered`). Ask SAJHA's shortlist (and so an LLM tool's
+  planners) leaves out tools refused for source `ask`, and the OpenAI-compatible endpoint's model list
+  leaves out LLM tools refused for `openai_api`. The shipped `sanctions_*` rule now keeps those tools
+  out of a model's view, not only refuses them when called ([Policy and Audit](docs/architecture/Policy%20and%20Audit.md) §2).
+- **MCP Studio shows the domain description.** Each creator's Folder field shows the chosen folder's
+  `domain.txt` text, marked as the domain description; creator previews return `domain` (`folder`,
+  `domain_description`, `served_description`), and an LLM tool's detail in Studio carries the same
+  for the loaded tool (Architecture §5).
+- **No database call on the event loop.** The remaining async console routes (provider and model
+  edits, user creation and password reset, sign-in and password change, API key administration,
+  composite tools, the credential files, A2A tasks, the REST tool endpoint's usage row) run their
+  database part in the thread pool. `tests/test_db_session_hold.py` now also fails on any database
+  call on the event loop in an async route or helper of `sajha/routes/` (Scaling and State §7).
+- **Every tool fetch goes through the outbound fetch guard.** The tools that called urllib or
+  requests directly (FRED, Federal Reserve, Bank of Canada, the PBoC/BoJ series, SEC EDGAR and the
+  enhanced EDGAR tools, the investor-relations scrapers in `sajha/ir/`, CoinGecko, Alpha Vantage, FMP,
+  Tavily, Google, World Bank, UN, FBI, `calc_currency_converter`, `yahoo_get_history`,
+  `yahoo_search_symbols`, `yf_trending_tickers`, SharePoint's Graph calls) now use `outbound.request`,
+  the new urllib-shaped `outbound.urlopen` or the requests-shaped `outbound.requests_compat`, so
+  `tools.outbound.proxy` and the address rules reach them. `tests/test_tool_outbound_sweep.py` fails
+  on direct network use under `sajha/tools/impl/` and `sajha/ir/` outside a commented allowlist. The
+  yfinance and OpenBB SDKs cannot be routed and are a documented known limit (Security Model §8).
+- **CoinGecko is paced.** A per-minute budget and a 429 cooldown (its `Retry-After`) shared by all workers through the state store
+  (`coingecko.calls_per_minute`; 5 keyless, 30 with a demo key), result caching (`cache_ttl` in every
+  `cg_` config), an optional demo key (`COINGECKO_API_KEY`, `coingecko.api.key`) and CoinGecko's own
+  reason in every error; a failed call is an error, never an `{"error": ...}` object returned as data.
+- **The live tool check** calls a tool whose class declares `keyless_fallback` even when its key is
+  empty, classes a rate-limited call (429) as `error` rather than `not_configured`, and waits between a
+  folder's calls as long as a tool's `check_pause_seconds` asks (Tool Quality §12.4).
+- **The PBoC and BoJ guides no longer claim a FRED key for every tool**: the IMF-only tools
+  (`boj_get_inflation`, `boj_get_money_supply`, `pboc_get_inflation`) and the `*_list_series` tools
+  dropped the unused `api_key` from their configs, so the generated tables show the key per tool.
+- `openbb_economy_calendar` without dates covers the past 7 days to the next 7 (OpenBB's default is
+  today only, empty on a weekend), and a window with no events is an empty result with a `note`.
+- `gleif_search`'s fuzzy fallback also tries `field=entity.legalName`, keeps GLEIF's best-match order
+  and reports `matched_value` for each fuzzy result.
+- **Cases, probes and cassettes for the open-data tools.** Each `gleif_*`, `bis_*`, `ust_*`, `fdic_*`,
+  `wikidata_*` and `cal_*` tool has a test case with a probe in `config/tool_tests/`, and every HTTP one
+  a recorded cassette, so `python -m sajha.quality test --replay` and CI check them offline (Open Data
+  Tools §1).
+
+### Fixed
+
+- **Console accessibility.** `scripts/check_console.py --only-a11y --all` reported 80 failures over
+  the 86 console pages (unlabelled selects and inputs, icon-only links and buttons with no name) on
+  `/tools`, a tool's configuration page, `/prompts`, `/admin/prompts`, the system monitor, async
+  tasks, users, the REST, database query, script, LiveLink, OLAP, Power BI, Power BI DAX and
+  SharePoint creators, the composite builder and `/workflows`; it now reports none, light and dark.
+  Labels name their controls (`<label for>`), icon-only buttons and links carry `aria-label` and
+  `title`, rows that page scripts build (workflow steps and triggers, OLAP dimensions, parameters,
+  headers, async tasks, models) are named too, the vendor JSON editor's controls are named, clickable
+  chips, cards and remove icons are buttons the keyboard reaches (Enter and Space, via
+  `static/js/csp-actions.js`), sortable table headers take focus, focus outlines cover them, and
+  status regions that scripts rewrite are live regions. The scan's built-in rules now name a
+  `role="button"` element from its text, as the ARIA rules do. `tests/test_console_checks.py`
+  gains a static scan of every template and page script (unnamed controls, nameless icon-only
+  buttons and links, click handlers the keyboard cannot reach) and the every-page browser scan
+  (when `SAJHA_CHECK_BASE` is set); the scan is a release gate (Implementation Plan §9).
+
+- The system monitor (`/api/admin/system-monitor`) reported a hardcoded MCP protocol version
+  (`2025-11-25`) and a fallback SAJHA version of `5.3.0`; both are now derived (the newest version of
+  each protocol era, and `app.version`). The response also carries `mcp_protocol_versions`.
+- `/api/providers/health` and `/api/providers/graph` (the system monitor's Provider Health table) read a
+  hard-coded table of providers, tool counts and prefixes that had rotted (CoinGecko tools are `cg_`, not
+  `coingecko_`, so it showed none). Both are now derived from the live registry: one entry per tool
+  domain, its tool count, and the worst circuit-breaker state of its tools; `expected_tools` and
+  `is_local` are gone.
+- The Tool Health page with lint (`/admin/tool-health?lint=1`) took 40 seconds or more: the `sajhanet`
+  section of `config/application.yml` was re-parsed for every tool (SAJHA Net's description limit). It
+  is now parsed once per version of the file (`sajha.core.net_extension.yaml_section`), and the page
+  renders in about 3 seconds.
+- Test suite: the in-process upstream MCP servers of the federation and proxied-server tests stop in
+  1 second instead of waiting 10 for open streams, and the client SDK's live tests wait 1 second (not 20)
+  for a server at the default URL; together about 90 seconds less per run.
+- Deleting or redeploying an LLM tool in Studio removed the shared `sajha.ai.llm_tools` package from
+  `sys.modules`; its next import made a second copy whose submodules were not attributes (found as an
+  order-dependent test failure). Studio now forgets only a module it generated for that tool
+  (`sajha.tools.impl.<prefix><name>`).
+- `tests/test_observability.py` computed "today" once at import, so a run crossing UTC midnight
+  failed; the usage queries now cover yesterday and today, read when each test runs.
+- **The numbers check was too loose.** A figure written with `%` matched any bare result number equal
+  to it ("25%" passed on a bare 25); it now needs a result known to be in percent (a percent-like key,
+  `format: percent`, a "25%" string) or a ratio (0.25). A figure written with no unit matched a
+  workspace quantity in every unit it converts to ("400" passed for 4%, as 400 bp); it now matches
+  the quantity's own unit, or the unit the text names just before it ("in bp: 400"). Applies to the
+  planners' `numbers_in_results` and `numbers_in_workspace`, the `numbers_check` setting and report
+  narration (Quantitative Planners §2.4, Reports §5).
+- **The investor-relations tools timed out or returned nothing** (`ir_get_all_resources`,
+  `ir_get_presentations` past 60 s; `ir_get_annual_reports`, `ir_get_documents` empty). The HTTP client
+  retried a 403 bot wall three times with backoffs of up to 25 s per page across ten pages; it now fails
+  fast on 403 and 4xx, the scraper spends at most 15 s on IR pages, and the SEC EDGAR fallback answers
+  (it also sent a `br` encoding the client could not decode, and a `Host` header of its own).
+- **The FBI and UN tools were `not_configured` in the live check** although they work without a key
+  (api.data.gov's `DEMO_KEY`, Comtrade's preview API); they are now called.
+- **`cg_coin_history` answered 401**: its example date was more than a year old, beyond CoinGecko's
+  public range.
+- `enhanced_edgar_tool.py` put `/mnt/user-data/uploads` at the front of `sys.path` on import, so a
+  module planted there would shadow a real one; removed.
+
 ## v8.13.0 (October 2026) — security and ecosystem, SAJHA Net finished: sandbox egress and warm pool, contained stdio upstreams, signed plugins, provider packs, personal RAG, planner learning
 
 ### Added

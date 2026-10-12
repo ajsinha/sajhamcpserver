@@ -1,0 +1,18 @@
+# An HTTP tool with a recorded cassette (cassettes/ust_yield_curve/nominal_september_2025.json): replays offline.
+# Re-record against the live API with: python -m sajha.quality test --tool ust_yield_curve --record
+tool: ust_yield_curve
+cases:
+  - name: nominal september 2025
+    tags: [http]
+    arguments: {"curve": "nominal", "from": "2025-09-01", "to": "2025-09-30", "tenors": ["2Y", "10Y", "30Y"]}
+    expect:
+      - schema: output
+      - path: "$.count"
+        min: 15
+      - path: "$.observations[0].date"
+        regex: "^2025-09-"
+      - path: "$.tenors"
+        equals: ["2Y", "10Y", "30Y"]
+probe:
+  case: nominal september 2025
+  every: 3600

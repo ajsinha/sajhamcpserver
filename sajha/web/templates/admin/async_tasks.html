@@ -27,7 +27,7 @@
             <small class="text-muted">{{ _('Background tool executions with result delivery') }}</small>
         </div>
         <div>
-            <select id="statusFilter" class="form-select form-select-sm d-inline-block" style="width:auto" data-onchange="loadTasks()">
+            <select id="statusFilter" class="form-select form-select-sm d-inline-block" style="width:auto" data-onchange="loadTasks()" aria-label="{{ _('Filter by status') }}">
                 <option value="">{{ _('All Status') }}</option>
                 <option value="queued">{{ _('Queued') }}</option>
                 <option value="running">{{ _('Running') }}</option>
@@ -36,13 +36,13 @@
                 <option value="failed">{{ _('Failed') }}</option>
                 <option value="cancelled">{{ _('Cancelled') }}</option>
             </select>
-            <select id="refreshRate" class="form-select form-select-sm d-inline-block ms-1" style="width:auto">
+            <select id="refreshRate" class="form-select form-select-sm d-inline-block ms-1" style="width:auto" aria-label="{{ _('Refresh interval') }}">
                 <option value="0">{{ _('Manual') }}</option>
                 <option value="3" selected>3s</option>
                 <option value="10">10s</option>
                 <option value="30">30s</option>
             </select>
-            <button class="btn btn-sm btn-outline-primary ms-1" data-onclick="loadTasks()"><i class="bi bi-arrow-clockwise"></i></button>
+            <button class="btn btn-sm btn-outline-primary ms-1" data-onclick="loadTasks()" aria-label="{{ _('Refresh now') }}" title="{{ _('Refresh now') }}"><i class="bi bi-arrow-clockwise" aria-hidden="true"></i></button>
         </div>
     </div>
 
@@ -92,7 +92,7 @@
     <div id="detailPanel" class="detail-panel">
         <div class="d-flex justify-content-between mb-2">
             <strong id="detailTitle">{{ _('Task Detail') }}</strong>
-            <button class="btn btn-sm btn-outline-secondary" data-onclick="sajhaDisplay('detailPanel', 'none')"><i class="bi bi-x"></i></button>
+            <button class="btn btn-sm btn-outline-secondary" data-onclick="sajhaDisplay('detailPanel', 'none')" aria-label="{{ _('Close the task detail') }}" title="{{ _('Close') }}"><i class="bi bi-x" aria-hidden="true"></i></button>
         </div>
         <div class="row g-3">
             <div class="col-md-6"><strong>{{ _('Arguments:') }}</strong><pre id="detailArgs">{}</pre></div>
@@ -132,9 +132,9 @@ function loadTasks() {
             var time = t.created_at ? new Date(t.created_at * 1000).toLocaleTimeString() : '—';
             var dest = (t.delivery_destination || '').length > 30 ? t.delivery_destination.substring(0,30)+'...' : t.delivery_destination;
             var actions = '';
-            if (t.status === 'queued') actions = '<button class="btn btn-sm btn-outline-warning" data-onclick="cancelTask(\''+t.task_id+'\')"><i class="bi bi-x-circle"></i></button>';
-            else if (t.status === 'failed' || t.status === 'cancelled') actions = '<button class="btn btn-sm btn-outline-primary" data-onclick="retryTask(\''+t.task_id+'\')"><i class="bi bi-arrow-repeat"></i></button>';
-            else if (t.status === 'completed' || t.status === 'delivered') actions = '<button class="btn btn-sm btn-outline-info" data-onclick="viewTask(\''+t.task_id+'\')"><i class="bi bi-eye"></i></button>';
+            if (t.status === 'queued') actions = '<button class="btn btn-sm btn-outline-warning" data-onclick="cancelTask(\''+t.task_id+'\')" aria-label="'+_t('Cancel task')+'" title="'+_t('Cancel task')+'"><i class="bi bi-x-circle" aria-hidden="true"></i></button>';
+            else if (t.status === 'failed' || t.status === 'cancelled') actions = '<button class="btn btn-sm btn-outline-primary" data-onclick="retryTask(\''+t.task_id+'\')" aria-label="'+_t('Retry task')+'" title="'+_t('Retry task')+'"><i class="bi bi-arrow-repeat" aria-hidden="true"></i></button>';
+            else if (t.status === 'completed' || t.status === 'delivered') actions = '<button class="btn btn-sm btn-outline-info" data-onclick="viewTask(\''+t.task_id+'\')" aria-label="'+_t('View task')+'" title="'+_t('View task')+'"><i class="bi bi-eye" aria-hidden="true"></i></button>';
             html += '<tr>';
             html += '<td><code class="small">'+t.task_id+'</code></td>';
             html += '<td><strong>'+t.tool_name+'</strong></td>';

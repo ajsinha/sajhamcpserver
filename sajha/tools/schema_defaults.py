@@ -22,8 +22,8 @@ Rules (docs/architecture/Tool Quality.md §12.1):
 6. A default that does not validate against its own property schema is not applied (logged
    once), so a bad default cannot turn a call that used to work into an argument error.
 
-``tools.apply_schema_defaults`` (default true) turns the whole thing off; it is an escape hatch
-for one release (8.8.0) and is removed in the release after.
+Schema defaults always apply (the ``tools.apply_schema_defaults`` switch of 8.8.0 was removed in
+8.14.0); only a tool that sets ``apply_schema_defaults = False`` opts out.
 """
 
 from __future__ import annotations
@@ -40,15 +40,6 @@ _Plan = Tuple[Tuple[str, bool, Any, Optional[tuple]], ...]
 
 _PLANS: Dict[int, Tuple[dict, _Plan]] = {}      # id(schema) -> (schema, plan); the schema keeps the id alive
 _LOCK = threading.Lock()
-
-
-def enabled() -> bool:
-    """``tools.apply_schema_defaults`` (env ``SAJHA_TOOLS_APPLY_SCHEMA_DEFAULTS``), default true."""
-    try:
-        from sajha.core.config import _bool
-        return _bool('tools.apply_schema_defaults', True)
-    except Exception:
-        return True
 
 
 def _default_is_valid(sub: dict, value: Any, where: str) -> bool:
@@ -135,9 +126,9 @@ def apply_schema_defaults(schema: Any, arguments: Any) -> Tuple[Any, List[str]]:
 
 
 def apply_for_tool(tool: Any, arguments: Any) -> Tuple[Any, List[str]]:
-    """Apply ``tool``'s ``inputSchema`` defaults, honouring the switch and the tool's opt-out
+    """Apply ``tool``'s ``inputSchema`` defaults unless the tool opts out
     (``apply_schema_defaults = False`` on proxies of other servers, which own their contract)."""
-    if not getattr(tool, 'apply_schema_defaults', True) or not enabled():
+    if not getattr(tool, 'apply_schema_defaults', True):
         return arguments, []
     try:
         schema = tool.input_schema

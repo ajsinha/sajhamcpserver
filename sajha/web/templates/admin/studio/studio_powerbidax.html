@@ -172,7 +172,7 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
     </div>
     
     <!-- Status Message -->
-    <div id="statusMessage" class="status-message"></div>
+    <div id="statusMessage" class="status-message" role="status" aria-live="polite"></div>
     
     <div class="row">
         <!-- Form Column -->
@@ -185,30 +185,30 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
                 </div>
                 <div class="section-body">
                     <div class="mb-3">
-                        <label class="form-label fw-bold">{{ _('Tool Name') }} <span class="text-danger">*</span></label>
+                        <label for="toolName" class="form-label fw-bold">{{ _('Tool Name') }} <span class="text-danger">*</span></label>
                         <input type="text" id="toolName" class="form-control" placeholder="e.g., sales_by_region">
                         <div class="help-text">{{ _('Lowercase letters, numbers, underscores only.') }}</div>
                     </div>
                     
                     <div class="mb-3">
-                        <label class="form-label fw-bold">{{ _('Description') }} <span class="text-danger">*</span></label>
+                        <label for="description" class="form-label fw-bold">{{ _('Description') }} <span class="text-danger">*</span></label>
                         <textarea id="description" class="form-control" rows="2" 
                                   placeholder="e.g., Query sales data by region from PowerBI"></textarea>
                     </div>
                     
                     <div class="mb-3">
-                        <label class="form-label fw-bold">{{ _('Dataset Name') }} <span class="text-danger">*</span></label>
+                        <label for="datasetName" class="form-label fw-bold">{{ _('Dataset Name') }} <span class="text-danger">*</span></label>
                         <input type="text" id="datasetName" class="form-control" placeholder="{{ _('e.g., Sales Analytics') }}">
                         <div class="help-text">{{ _('Human-readable name for documentation') }}</div>
                     </div>
                     
                     <div class="row">
                         <div class="col-md-6">
-                            <label class="form-label fw-bold">{{ _('Tags') }}</label>
+                            <label for="tags" class="form-label fw-bold">{{ _('Tags') }}</label>
                             <input type="text" id="tags" class="form-control" placeholder="{{ _('powerbi, dax, sales') }}">
                         </div>
                         <div class="col-md-6">
-                            <label class="form-label fw-bold">{{ _('Author') }}</label>
+                            <label for="author" class="form-label fw-bold">{{ _('Author') }}</label>
                             <input type="text" id="author" class="form-control" placeholder="{{ _('Optional') }}">
                         </div>
                     </div>
@@ -223,13 +223,13 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
                 </div>
                 <div class="section-body">
                     <div class="mb-3">
-                        <label class="form-label fw-bold">{{ _('Workspace ID') }} <span class="text-danger">*</span></label>
+                        <label for="workspaceId" class="form-label fw-bold">{{ _('Workspace ID') }} <span class="text-danger">*</span></label>
                         <input type="text" id="workspaceId" class="form-control guid-input" 
                                placeholder="{{ _('xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx') }}">
                     </div>
                     
                     <div class="mb-3">
-                        <label class="form-label fw-bold">{{ _('Dataset ID') }} <span class="text-danger">*</span></label>
+                        <label for="datasetId" class="form-label fw-bold">{{ _('Dataset ID') }} <span class="text-danger">*</span></label>
                         <input type="text" id="datasetId" class="form-control guid-input" 
                                placeholder="{{ _('xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx') }}">
                         <div class="help-text">{{ _('Find in PowerBI Service: Dataset Settings → Details') }}</div>
@@ -237,12 +237,12 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
                     
                     <div class="row">
                         <div class="col-md-6">
-                            <label class="form-label fw-bold">{{ _('Tenant ID') }} <span class="text-danger">*</span></label>
+                            <label for="tenantId" class="form-label fw-bold">{{ _('Tenant ID') }} <span class="text-danger">*</span></label>
                             <input type="text" id="tenantId" class="form-control guid-input" 
                                    placeholder="{{ _('Azure AD Tenant ID') }}">
                         </div>
                         <div class="col-md-6">
-                            <label class="form-label fw-bold">{{ _('Client ID') }} <span class="text-danger">*</span></label>
+                            <label for="clientId" class="form-label fw-bold">{{ _('Client ID') }} <span class="text-danger">*</span></label>
                             <input type="text" id="clientId" class="form-control guid-input" 
                                    placeholder="{{ _('Azure AD App Client ID') }}">
                         </div>
@@ -267,7 +267,7 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
                     </div>
                     
                     <div class="mb-3">
-                        <label class="form-label fw-bold">{{ _('DAX Query') }} <span class="text-danger">*</span></label>
+                        <label for="daxQuery" class="form-label fw-bold">{{ _('DAX Query') }} <span class="text-danger">*</span></label>
                         <textarea id="daxQuery" class="form-control dax-editor" rows="8" 
                                   placeholder="EVALUATE&#10;SUMMARIZECOLUMNS(&#10;    Sales[Region],&#10;    &quot;Total Sales&quot;, SUM(Sales[Amount])&#10;)"></textarea>
                     </div>
@@ -283,11 +283,11 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
                     
                     <div class="row">
                         <div class="col-md-6">
-                            <label class="form-label fw-bold">{{ _('Timeout (seconds)') }}</label>
+                            <label for="timeout" class="form-label fw-bold">{{ _('Timeout (seconds)') }}</label>
                             <input type="number" id="timeout" class="form-control" value="60" min="10" max="300">
                         </div>
                         <div class="col-md-6">
-                            <label class="form-label fw-bold">{{ _('Max Rows') }}</label>
+                            <label for="maxRows" class="form-label fw-bold">{{ _('Max Rows') }}</label>
                             <input type="number" id="maxRows" class="form-control" value="10000" min="100" max="100000">
                         </div>
                     </div>
@@ -343,7 +343,7 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
                     <input type="text" class="form-control param-name" placeholder="${_t('Name')}">
                 </div>
                 <div class="col-md-3">
-                    <select class="form-select param-type">
+                    <select class="form-select param-type" aria-label="${_t('Type')}">
                         <option value="string">${_t('String')}</option>
                         <option value="integer">${_t('Integer')}</option>
                         <option value="number">${_t('Number')}</option>
@@ -353,7 +353,7 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
                     <input type="text" class="form-control param-desc" placeholder="${_t('Description')}">
                 </div>
                 <div class="col-md-2">
-                    <button type="button" class="btn btn-outline-danger btn-sm" data-onclick="removeParameter(${parameterCount})">
+                    <button type="button" class="btn btn-outline-danger btn-sm" data-onclick="removeParameter(${parameterCount})" aria-label="${_t('Remove parameter')}" title="${_t('Remove parameter')}">
                         <i class="bi bi-trash"></i>
                     </button>
                 </div>

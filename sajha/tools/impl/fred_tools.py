@@ -11,6 +11,7 @@ from typing import Dict, Any
 from sajha.tools.base_mcp_tool import BaseMCPTool
 from sajha.tools.http_utils import safe_json_response, ENCODINGS_ALL
 from sajha.tools.impl.fred_key import fred_api_key
+from sajha.core import outbound
 
 logger = logging.getLogger(__name__)
 FRED_BASE = "https://api.stlouisfed.org/fred"
@@ -30,7 +31,7 @@ class FREDBaseTool(BaseMCPTool):
         url = f"{FRED_BASE}/{endpoint}?{urllib.parse.urlencode(params)}"
         try:
             req = urllib.request.Request(url)
-            with urllib.request.urlopen(req, timeout=30) as resp:
+            with outbound.urlopen(req, timeout=30) as resp:
                 return safe_json_response(resp, ENCODINGS_ALL)
         except Exception as e:
             return {"error": str(e)}

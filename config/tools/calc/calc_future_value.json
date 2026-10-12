@@ -31,8 +31,20 @@
   "outputSchema": {
     "type": "object",
     "properties": {
-      "result": {
-        "type": "object"
+      "present_value": {
+        "type": "number"
+      },
+      "rate": {
+        "type": "number",
+        "description": "The annual rate given",
+        "x-sajha-unit": "percent"
+      },
+      "years": {
+        "type": "number",
+        "x-sajha-unit": "years"
+      },
+      "future_value": {
+        "type": "number"
       }
     }
   },

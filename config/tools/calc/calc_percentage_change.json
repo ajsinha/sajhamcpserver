@@ -26,8 +26,18 @@
   "outputSchema": {
     "type": "object",
     "properties": {
-      "result": {
-        "type": "object"
+      "old_value": {
+        "type": "number",
+        "description": "The starting value"
+      },
+      "new_value": {
+        "type": "number",
+        "description": "The ending value"
+      },
+      "percentage_change": {
+        "type": "number",
+        "description": "(new - old) / |old| * 100",
+        "x-sajha-unit": "percent"
       }
     }
   },

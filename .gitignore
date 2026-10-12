@@ -6,7 +6,15 @@
 data/*.db
 data/*.db-journal
 data/*.db-wal
+data/*.db-shm
 data/rag/
+# Runtime caches and scratch areas under data/ (cache.dir, the shell tool's scratch)
+data/cache/
+data/shell_scratch/
+# DuckDB write-ahead logs. data/duckdb/duckdb_analytics.db itself is shipped (the sample catalog:
+# views over the CSV files beside it) and is opened read-only, so it never changes at runtime.
+*.wal
+*.db.wal
 *.sqlite
 *.sqlite3
 

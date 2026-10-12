@@ -10,6 +10,7 @@ from typing import Dict, Any, List, Optional
 from datetime import datetime
 from sajha.tools.base_mcp_tool import BaseMCPTool
 from sajha.tools.http_utils import safe_json_response, ENCODINGS_EUROPEAN
+from sajha.core import outbound
 
 
 class BankOfCanadaBaseTool(BaseMCPTool):
@@ -88,7 +89,7 @@ class BankOfCanadaBaseTool(BaseMCPTool):
             }
             
             req = urllib.request.Request(url, headers=headers)
-            with urllib.request.urlopen(req, timeout=30) as response:
+            with outbound.urlopen(req, timeout=30) as response:
                 data = safe_json_response(response, ENCODINGS_EUROPEAN)
                 
                 series_detail = data.get('seriesDetail', {}).get(series_name, {})

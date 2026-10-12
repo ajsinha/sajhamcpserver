@@ -178,7 +178,8 @@ class Upstream:
         self.port = _free_port()
         self.url = f'http://127.0.0.1:{self.port}/mcp'
         self._uv = uvicorn.Server(uvicorn.Config(srv.streamable_http_app(), host='127.0.0.1', port=self.port,
-                                                 log_level='warning'))
+                                                 log_level='warning',
+                                                 timeout_graceful_shutdown=1))   # open streams: stop in 1 s, not 10
         self._thread = threading.Thread(target=self._uv.run, daemon=True)
         self._thread.start()
         deadline = time.time() + 10

@@ -197,7 +197,22 @@ def llm_tool(name: str, auth: Any):
     from sajha.ai.llm_tools.config import is_llm_tool
     if tool is None or not is_llm_tool(tool) or not getattr(tool, "enabled", False):
         return None
-    return tool if auth.has_tool_access(name) else None
+    return tool if auth.has_tool_access(name) and _offered(tool, auth) else None
+
+
+def _offered(tool: Any, auth: Any) -> bool:
+    """False for a tool the policy would deny for source ``openai_api`` and this caller: it is not
+    listed as a model (Policy and Audit §2). Reads no database (the caller's facts are in ``auth``)."""
+    try:
+        from sajha.observability.caller import Caller
+        from sajha.policy import offered
+        uid = str(getattr(auth, "user_id", "") or "anonymous") if getattr(auth, "authenticated", False) else "anonymous"
+        key = getattr(auth, "api_key_name", None) or (uid[len("apikey:"):] if uid.startswith("apikey:") else "")
+        who = Caller(uid, str(key or ""), tuple(getattr(auth, "roles", None) or ()),
+                     str(getattr(auth, "auth_type", "") or ""), is_admin=bool(getattr(auth, "is_admin", False)))
+        return offered(tool, "openai_api", who)
+    except Exception:
+        return True
 
 
 def _tool_models(auth: Any) -> List[Dict[str, Any]]:
@@ -210,7 +225,7 @@ def _tool_models(auth: Any) -> List[Dict[str, Any]]:
         tools = list(reg.tools.values())
     out = []
     for t in tools:
-        if is_llm_tool(t) and getattr(t, "enabled", False) and auth.has_tool_access(t.name):
+        if is_llm_tool(t) and getattr(t, "enabled", False) and auth.has_tool_access(t.name) and _offered(t, auth):
             spec = getattr(t, "spec", None)
             out.append({"id": f"{TOOL_PREFIX}{t.name}", "object": "model", "created": 0, "owned_by": "sajha",
                         "sajha": {"kind": "llm_tool", "tool": t.name, "mode": getattr(spec, "mode", ""),

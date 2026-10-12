@@ -36,8 +36,20 @@
   "outputSchema": {
     "type": "object",
     "properties": {
-      "result": {
-        "type": "object"
+      "face_value": {
+        "type": "number"
+      },
+      "coupon_rate": {
+        "type": "number",
+        "x-sajha-unit": "percent"
+      },
+      "yield": {
+        "type": "number",
+        "x-sajha-unit": "percent"
+      },
+      "price": {
+        "type": "number",
+        "description": "The price, in the face value's currency"
       }
     }
   },

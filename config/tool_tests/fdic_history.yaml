@@ -1,0 +1,16 @@
+# An HTTP tool with a recorded cassette (cassettes/fdic_history/jpmorgan_events.json): replays offline.
+# Re-record against the live API with: python -m sajha.quality test --tool fdic_history --record
+tool: fdic_history
+cases:
+  - name: jpmorgan events
+    tags: [http]
+    arguments: {"cert": 628, "limit": 10}
+    expect:
+      - schema: output
+      - path: "$.count"
+        equals: 10
+      - path: "$.events[0].institution"
+        regex: "JPMorgan Chase Bank"
+probe:
+  case: jpmorgan events
+  every: 3600

@@ -238,7 +238,7 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
     </div>
     
     <!-- Status Message -->
-    <div id="statusMessage" class="status-message"></div>
+    <div id="statusMessage" class="status-message" role="status" aria-live="polite"></div>
     
     <div class="row">
         <!-- Form Column -->
@@ -251,7 +251,7 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
                 </div>
                 <div class="section-body">
                     <div class="mb-3">
-                        <label class="form-label fw-bold">{{ _('Tool Name') }} <span class="text-danger">*</span></label>
+                        <label for="toolName" class="form-label fw-bold">{{ _('Tool Name') }} <span class="text-danger">*</span></label>
                         <input type="text" id="toolName" class="form-control" 
                                placeholder="e.g., sales_report_pdf" 
                                pattern="[a-z][a-z0-9_]*">
@@ -259,13 +259,13 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
                     </div>
                     
                     <div class="mb-3">
-                        <label class="form-label fw-bold">{{ _('Description') }} <span class="text-danger">*</span></label>
+                        <label for="description" class="form-label fw-bold">{{ _('Description') }} <span class="text-danger">*</span></label>
                         <textarea id="description" class="form-control" rows="2"
                                   placeholder="e.g., Retrieve the monthly sales report as PDF"></textarea>
                     </div>
                     
                     <div class="mb-3">
-                        <label class="form-label fw-bold">{{ _('Report Display Name') }} <span class="text-danger">*</span></label>
+                        <label for="reportName" class="form-label fw-bold">{{ _('Report Display Name') }} <span class="text-danger">*</span></label>
                         <input type="text" id="reportName" class="form-control" 
                                placeholder="{{ _('e.g., Monthly Sales Report') }}">
                         <div class="help-text">{{ _('Human-readable name for the report (for documentation and logging)') }}</div>
@@ -273,11 +273,11 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
                     
                     <div class="row">
                         <div class="col-md-6">
-                            <label class="form-label fw-bold">{{ _('Category') }}</label>
+                            <label for="category" class="form-label fw-bold">{{ _('Category') }}</label>
                             <input type="text" id="category" class="form-control" value="PowerBI Reports">
                         </div>
                         <div class="col-md-6">
-                            <label class="form-label fw-bold">{{ _('Tags') }}</label>
+                            <label for="tags" class="form-label fw-bold">{{ _('Tags') }}</label>
                             <input type="text" id="tags" class="form-control" 
                                    placeholder="{{ _('powerbi, report, pdf, sales') }}">
                             <div class="help-text">{{ _('Comma-separated tags') }}</div>
@@ -304,21 +304,21 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
                     </div>
                     
                     <div class="mb-3">
-                        <label class="form-label fw-bold">{{ _('Workspace ID (Group ID)') }} <span class="text-danger">*</span></label>
+                        <label for="workspaceId" class="form-label fw-bold">{{ _('Workspace ID (Group ID)') }} <span class="text-danger">*</span></label>
                         <input type="text" id="workspaceId" class="form-control guid-input" 
                                placeholder="{{ _('xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx') }}">
                         <div class="help-text">{{ _('PowerBI Workspace GUID from the URL') }}</div>
                     </div>
                     
                     <div class="mb-3">
-                        <label class="form-label fw-bold">{{ _('Report ID') }} <span class="text-danger">*</span></label>
+                        <label for="reportId" class="form-label fw-bold">{{ _('Report ID') }} <span class="text-danger">*</span></label>
                         <input type="text" id="reportId" class="form-control guid-input" 
                                placeholder="{{ _('xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx') }}">
                         <div class="help-text">{{ _('PowerBI Report GUID from the URL') }}</div>
                     </div>
                     
                     <div class="mb-3">
-                        <label class="form-label fw-bold">{{ _('Page Name (Optional)') }}</label>
+                        <label for="pageName" class="form-label fw-bold">{{ _('Page Name (Optional)') }}</label>
                         <input type="text" id="pageName" class="form-control" 
                                placeholder="{{ _('Leave empty to export all pages') }}">
                         <div class="help-text">{{ _('Specific page to export (e.g., "ReportSection1"). Leave empty for full report.') }}</div>
@@ -360,21 +360,21 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
                     </div>
                     
                     <div class="mb-3">
-                        <label class="form-label fw-bold">{{ _('Tenant ID') }} <span class="text-danger">*</span></label>
+                        <label for="tenantId" class="form-label fw-bold">{{ _('Tenant ID') }} <span class="text-danger">*</span></label>
                         <input type="text" id="tenantId" class="form-control guid-input" 
                                placeholder="{{ _('xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx') }}">
                         <div class="help-text">{{ _('Azure AD Tenant ID (Directory ID)') }}</div>
                     </div>
                     
                     <div class="mb-3">
-                        <label class="form-label fw-bold">{{ _('Client ID (Application ID)') }} <span class="text-danger">*</span></label>
+                        <label for="clientId" class="form-label fw-bold">{{ _('Client ID (Application ID)') }} <span class="text-danger">*</span></label>
                         <input type="text" id="clientId" class="form-control guid-input" 
                                placeholder="{{ _('xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx') }}">
                         <div class="help-text">{{ _('Azure AD Application (Client) ID') }}</div>
                     </div>
                     
                     <div class="mb-3">
-                        <label class="form-label fw-bold">{{ _('Client Secret Environment Variable') }}</label>
+                        <label for="clientSecretEnv" class="form-label fw-bold">{{ _('Client Secret Environment Variable') }}</label>
                         <input type="text" id="clientSecretEnv" class="form-control" 
                                value="POWERBI_CLIENT_SECRET">
                         <div class="help-text">{{ _('Name of environment variable containing the client secret (never stored in code)') }}</div>
@@ -391,13 +391,13 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
                 <div class="section-body">
                     <div class="row">
                         <div class="col-md-6">
-                            <label class="form-label fw-bold">{{ _('Timeout (seconds)') }}</label>
+                            <label for="timeout" class="form-label fw-bold">{{ _('Timeout (seconds)') }}</label>
                             <input type="number" id="timeout" class="form-control" 
                                    value="120" min="30" max="600">
                             <div class="help-text">{{ _('Export timeout (30-600 seconds)') }}</div>
                         </div>
                         <div class="col-md-6">
-                            <label class="form-label fw-bold">{{ _('Author') }}</label>
+                            <label for="author" class="form-label fw-bold">{{ _('Author') }}</label>
                             <input type="text" id="author" class="form-control" 
                                    placeholder="{{ _('Optional author name') }}">
                         </div>

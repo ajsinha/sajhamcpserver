@@ -1,0 +1,20 @@
+# An HTTP tool with a recorded cassette (cassettes/bis_effective_exchange_rates/us_and_japan_real_june_2025.json): replays offline.
+# Re-record against the live API with: python -m sajha.quality test --tool bis_effective_exchange_rates --record
+tool: bis_effective_exchange_rates
+cases:
+  - name: us and japan real june 2025
+    tags: [http]
+    arguments: {"countries": ["US", "JP"], "real": true, "period": "2025-06"}
+    expect:
+      - schema: output
+      - path: "$.series_count"
+        equals: 2
+      - path: "$.series[*].unit"
+        regex: "Index, 2020 = 100"
+      - path: "$.series[0].observations[0].date"
+        equals: "2025-06"
+      - path: "$.source"
+        regex: "^Source: BIS"
+probe:
+  case: us and japan real june 2025
+  every: 3600

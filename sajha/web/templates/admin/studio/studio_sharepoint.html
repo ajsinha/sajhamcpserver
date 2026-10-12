@@ -197,29 +197,29 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
                     <div class="section-body">
                         <div class="row g-3">
                             <div class="col-md-6">
-                                <label class="form-label">{{ _('Tool Name') }} <span class="text-danger">*</span></label>
+                                <label for="name" class="form-label">{{ _('Tool Name') }} <span class="text-danger">*</span></label>
                                 <input type="text" class="form-control" id="name" name="name" 
                                        placeholder="e.g., sharepoint_project_docs" required
                                        pattern="[a-z][a-z0-9_]*">
                                 <div class="form-text">{{ _('Lowercase with underscores (e.g., my_sharepoint_tool)') }}</div>
                             </div>
                             <div class="col-md-6">
-                                <label class="form-label">{{ _('Version') }}</label>
+                                <label for="version" class="form-label">{{ _('Version') }}</label>
                                 <input type="text" class="form-control" id="version" name="version" 
                                        value="{{ app_version }}">
                             </div>
                             <div class="col-12">
-                                <label class="form-label">{{ _('Description') }} <span class="text-danger">*</span></label>
+                                <label for="description" class="form-label">{{ _('Description') }} <span class="text-danger">*</span></label>
                                 <textarea class="form-control" id="description" name="description" 
                                           rows="2" placeholder="Describe what this tool does..." required></textarea>
                             </div>
                             <div class="col-md-6">
-                                <label class="form-label">{{ _('Category') }}</label>
+                                <label for="category" class="form-label">{{ _('Category') }}</label>
                                 <input type="text" class="form-control" id="category" name="category" 
                                        value="Document Management">
                             </div>
                             <div class="col-md-6">
-                                <label class="form-label">{{ _('Tags') }}</label>
+                                <label for="tags" class="form-label">{{ _('Tags') }}</label>
                                 <input type="text" class="form-control" id="tags" name="tags" 
                                        placeholder="{{ _('sharepoint, microsoft, documents') }}">
                             </div>
@@ -236,7 +236,7 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
                     <div class="section-body">
                         <div class="row g-3">
                             <div class="col-12">
-                                <label class="form-label">{{ _('SharePoint Site URL') }} <span class="text-danger">*</span></label>
+                                <label for="site_url" class="form-label">{{ _('SharePoint Site URL') }} <span class="text-danger">*</span></label>
                                 <input type="text" class="form-control" id="site_url" name="site_url" 
                                        placeholder="https://tenant.sharepoint.com/sites/mysite" required>
                                 <div class="variable-hint">
@@ -244,12 +244,12 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
                                 </div>
                             </div>
                             <div class="col-md-6">
-                                <label class="form-label">{{ _('Default Folder Path') }}</label>
+                                <label for="default_folder" class="form-label">{{ _('Default Folder Path') }}</label>
                                 <input type="text" class="form-control" id="default_folder" name="default_folder" 
                                        value="/Shared Documents">
                             </div>
                             <div class="col-md-6">
-                                <label class="form-label">{{ _('Default List Name') }}</label>
+                                <label for="default_list" class="form-label">{{ _('Default List Name') }}</label>
                                 <input type="text" class="form-control" id="default_list" name="default_list" 
                                        placeholder="{{ _('e.g., Tasks, Projects') }}">
                             </div>
@@ -266,7 +266,7 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
                     <div class="section-body">
                         <div class="row g-3">
                             <div class="col-md-6">
-                                <label class="form-label">{{ _('Authentication Type') }}</label>
+                                <label for="auth_type" class="form-label">{{ _('Authentication Type') }}</label>
                                 <select class="form-select" id="auth_type" name="auth_type">
                                     <option value="client_credentials" selected>{{ _('Client Credentials (App-Only)') }}</option>
                                     <option value="certificate">{{ _('Certificate') }}</option>
@@ -274,19 +274,19 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
                                 </select>
                             </div>
                             <div class="col-md-6">
-                                <label class="form-label">{{ _('Tenant ID') }} <span class="text-danger">*</span></label>
+                                <label for="tenant_id" class="form-label">{{ _('Tenant ID') }} <span class="text-danger">*</span></label>
                                 <input type="text" class="form-control" id="tenant_id" name="tenant_id" 
                                        placeholder="{{ _('xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx') }}" required>
                                 <div class="variable-hint">{% trans %}Use variable: <code>${azure.tenant.id}</code>{% endtrans %}</div>
                             </div>
                             <div class="col-md-6">
-                                <label class="form-label">{{ _('Client ID') }} <span class="text-danger">*</span></label>
+                                <label for="client_id" class="form-label">{{ _('Client ID') }} <span class="text-danger">*</span></label>
                                 <input type="text" class="form-control" id="client_id" name="client_id" 
                                        placeholder="{{ _('App Registration Client ID') }}" required>
                                 <div class="variable-hint">{% trans %}Use variable: <code>${sharepoint.client.id}</code>{% endtrans %}</div>
                             </div>
                             <div class="col-md-6">
-                                <label class="form-label">{{ _('Client Secret') }}</label>
+                                <label for="client_secret" class="form-label">{{ _('Client Secret') }}</label>
                                 <input type="password" class="form-control" id="client_secret" name="client_secret" 
                                        placeholder="{{ _('App Registration Client Secret') }}">
                                 <div class="variable-hint">{% trans %}Use variable: <code>${sharepoint.client.secret}</code>{% endtrans %}</div>
@@ -473,17 +473,17 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
                     <div class="section-body">
                         <div class="row g-3">
                             <div class="col-md-4">
-                                <label class="form-label">{{ _('Max File Size (MB)') }}</label>
+                                <label for="max_file_size_mb" class="form-label">{{ _('Max File Size (MB)') }}</label>
                                 <input type="number" class="form-control" id="max_file_size_mb" 
                                        name="max_file_size_mb" value="100" min="1" max="500">
                             </div>
                             <div class="col-md-4">
-                                <label class="form-label">{{ _('Cache TTL (seconds)') }}</label>
+                                <label for="cache_ttl_seconds" class="form-label">{{ _('Cache TTL (seconds)') }}</label>
                                 <input type="number" class="form-control" id="cache_ttl_seconds" 
                                        name="cache_ttl_seconds" value="300" min="0" max="3600">
                             </div>
                             <div class="col-md-4">
-                                <label class="form-label">{{ _('Allowed File Types') }}</label>
+                                <label for="allowed_file_types" class="form-label">{{ _('Allowed File Types') }}</label>
                                 <input type="text" class="form-control" id="allowed_file_types" 
                                        name="allowed_file_types" placeholder="{{ _('docx,pdf,xlsx (empty=all)') }}">
                             </div>

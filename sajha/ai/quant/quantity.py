@@ -235,6 +235,43 @@ class Workspace:
                               for i in q.lineage.get("inputs") or []]
         return node
 
+    def view(self, names: List[str], max_cells: int = 24, limit: int = 200) -> Dict[str, Dict[str, Any]]:
+        """The quantities ``names`` and every quantity their lineage reaches, each compact for a page:
+        ``{name: {value, cells, unit, as_of, source, op?, args?, inputs?}}``. A column or grid keeps its
+        first ``max_cells`` numbers (``cells`` is the full count); inputs that are not workspace
+        quantities stay inline (``{value, unit, source}``)."""
+        def clip(v: Any) -> Any:
+            if not isinstance(v, list):
+                return v
+            flat = [x for r in v for x in (r if isinstance(r, list) else [r])]
+            return flat[:max_cells]
+        out: Dict[str, Dict[str, Any]] = {}
+        todo = [n for n in names if n in self._q]
+        while todo and len(out) < limit:
+            name = todo.pop(0)
+            if name in out:
+                continue
+            q = self._q[name]
+            cells = sum(1 for _ in q.cells())
+            node: Dict[str, Any] = {"value": clip(q.value), "cells": cells, "unit": str(q.unit), "as_of": q.as_of,
+                                    "source": q.source}
+            if q.lineage:
+                node["op"] = q.lineage.get("op")
+                node["args"] = q.lineage.get("args") or {}
+                ins = []
+                for i in q.lineage.get("inputs") or []:
+                    if isinstance(i, str) and i in self._q:
+                        ins.append(i)
+                        if i not in out:
+                            todo.append(i)
+                    elif isinstance(i, dict):
+                        ins.append({"value": clip(i.get("value")), "unit": i.get("unit"), "source": i.get("source")})
+                    else:
+                        ins.append({"value": clip(i)})
+                node["inputs"] = ins
+            out[name] = node
+        return out
+
     def figures(self, day_count: Optional[str] = None, limit: int = 100000) -> List[tuple]:
         """``(value, Unit, name)`` for every number of every quantity, in its own unit and in every
         unit it converts to (§2.2): what a figure in an answer may match (the numbers validator)."""

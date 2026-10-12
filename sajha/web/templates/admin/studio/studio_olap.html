@@ -187,7 +187,7 @@
     </div>
     
     <!-- Status Message -->
-    <div id="statusMessage" class="status-message"></div>
+    <div id="statusMessage" class="status-message" role="status" aria-live="polite"></div>
     
     <!-- Dataset Info Section -->
     <div class="form-section">
@@ -198,7 +198,7 @@
             <div class="row">
                 <div class="col-md-6">
                     <div class="mb-3">
-                        <label class="form-label fw-bold">{{ _('Dataset Name') }} <span class="text-danger">*</span></label>
+                        <label for="datasetName" class="form-label fw-bold">{{ _('Dataset Name') }} <span class="text-danger">*</span></label>
                         <input type="text" id="datasetName" class="form-control" 
                                placeholder="e.g., sales_analysis" pattern="[a-z_]+" required>
                         <div class="help-text">{{ _('Lowercase letters and underscores only. This is the technical name.') }}</div>
@@ -206,7 +206,7 @@
                 </div>
                 <div class="col-md-6">
                     <div class="mb-3">
-                        <label class="form-label fw-bold">{{ _('Display Name') }}</label>
+                        <label for="displayName" class="form-label fw-bold">{{ _('Display Name') }}</label>
                         <input type="text" id="displayName" class="form-control" 
                                placeholder="{{ _('e.g., Sales Analysis') }}">
                         <div class="help-text">{{ _('Human-readable name shown in the UI') }}</div>
@@ -214,12 +214,12 @@
                 </div>
             </div>
             <div class="mb-3">
-                <label class="form-label fw-bold">{{ _('Description') }}</label>
+                <label for="datasetDescription" class="form-label fw-bold">{{ _('Description') }}</label>
                 <textarea id="datasetDescription" class="form-control" rows="2"
                           placeholder="Describe what this dataset contains and its intended use..."></textarea>
             </div>
             <div class="mb-3">
-                <label class="form-label fw-bold">{{ _('Source Table') }} <span class="text-danger">*</span></label>
+                <label for="sourceTable" class="form-label fw-bold">{{ _('Source Table') }} <span class="text-danger">*</span></label>
                 <input type="text" id="sourceTable" class="form-control" 
                        placeholder="e.g., sales_data" required>
                 <div class="help-text">{{ _('The primary database table for this dataset') }}</div>
@@ -275,7 +275,7 @@
         </div>
         <div class="section-body">
             <div class="mb-3">
-                <label class="form-label fw-bold">{{ _('Default Time Dimension') }}</label>
+                <label for="defaultTimeDimension" class="form-label fw-bold">{{ _('Default Time Dimension') }}</label>
                 <select id="defaultTimeDimension" class="form-select">
                     <option value="">{{ _('None') }}</option>
                 </select>
@@ -320,7 +320,7 @@ function addDimension() {
         <div class="dimension-row" id="dimension_${dimensionCount}">
             <div class="d-flex justify-content-between align-items-start mb-2">
                 <strong>${_t('Dimension %(dimensionCount)s', {dimensionCount: dimensionCount})}</strong>
-                <span class="remove-btn" data-onclick="removeDimension(${dimensionCount})"><i class="bi bi-trash"></i></span>
+                <span class="remove-btn" role="button" tabindex="0" data-onclick="removeDimension(${dimensionCount})" aria-label="${_t('Remove dimension %(n)s', {n: dimensionCount})}" title="${_t('Remove')}"><i class="bi bi-trash" aria-hidden="true"></i></span>
             </div>
             <div class="row">
                 <div class="col-md-4">
@@ -330,7 +330,7 @@ function addDimension() {
                     <input type="text" class="form-control dim-column" placeholder="${_t('Column (e.g., region)')}">
                 </div>
                 <div class="col-md-4">
-                    <select class="form-select dim-type">
+                    <select class="form-select dim-type" aria-label="${_t('Dimension type')}">
                         <option value="standard">${_t('Standard')}</option>
                         <option value="time">Time/Date</option>
                     </select>
@@ -356,7 +356,7 @@ function addMeasure() {
         <div class="measure-row" id="measure_${measureCount}">
             <div class="d-flex justify-content-between align-items-start mb-2">
                 <strong>${_t('Measure %(measureCount)s', {measureCount: measureCount})}</strong>
-                <span class="remove-btn" data-onclick="removeMeasure(${measureCount})"><i class="bi bi-trash"></i></span>
+                <span class="remove-btn" role="button" tabindex="0" data-onclick="removeMeasure(${measureCount})" aria-label="${_t('Remove measure %(n)s', {n: measureCount})}" title="${_t('Remove')}"><i class="bi bi-trash" aria-hidden="true"></i></span>
             </div>
             <div class="row">
                 <div class="col-md-3">
@@ -366,7 +366,7 @@ function addMeasure() {
                     <input type="text" class="form-control measure-expr" placeholder="${_t('Expression (e.g., SUM(amount))')}">
                 </div>
                 <div class="col-md-2">
-                    <select class="form-select measure-format">
+                    <select class="form-select measure-format" aria-label="${_t('Measure format')}">
                         <option value="number">${_t('Number')}</option>
                         <option value="currency">${_t('Currency')}</option>
                         <option value="percentage">${_t('Percentage')}</option>
@@ -394,14 +394,14 @@ function addJoin() {
         <div class="join-row" id="join_${joinCount}">
             <div class="d-flex justify-content-between align-items-start mb-2">
                 <strong>${_t('Join %(joinCount)s', {joinCount: joinCount})}</strong>
-                <span class="remove-btn" data-onclick="removeJoin(${joinCount})"><i class="bi bi-trash"></i></span>
+                <span class="remove-btn" role="button" tabindex="0" data-onclick="removeJoin(${joinCount})" aria-label="${_t('Remove join %(n)s', {n: joinCount})}" title="${_t('Remove')}"><i class="bi bi-trash" aria-hidden="true"></i></span>
             </div>
             <div class="row">
                 <div class="col-md-3">
                     <input type="text" class="form-control join-table" placeholder="${_t('Table name')}">
                 </div>
                 <div class="col-md-2">
-                    <select class="form-select join-type">
+                    <select class="form-select join-type" aria-label="${_t('Join type')}">
                         <option value="LEFT">LEFT</option>
                         <option value="INNER">INNER</option>
                         <option value="RIGHT">RIGHT</option>

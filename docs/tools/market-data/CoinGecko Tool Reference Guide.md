@@ -4,9 +4,35 @@
 
 The CoinGecko tools (prefix `cg_`) wrap the public [CoinGecko API v3](https://docs.coingecko.com/): coin prices and charts, coin metadata, exchanges, categories, DeFi and derivatives, NFTs and global market statistics. Implementation: `sajha/tools/impl/coingecko_tools.py`.
 
-## API Key
+## API Key and Rate Limit
 
-No key is required; the tools use CoinGecko's free public API. The implementation sends a key in the `x-cg-demo-api-key` header only if a tool config supplies an `api_key`; none of the shipped `cg_` configs do. See the [Configuration Reference](../../getting-started/Configuration%20Reference.md) if you add one.
+No key is required; the tools use CoinGecko's public API, which allows only a few calls a minute
+from one address (CoinGecko says 5 to 15, depending on load) and history for the past 365 days. A free
+CoinGecko demo key raises the limit to 30 calls a minute: set `COINGECKO_API_KEY` (application.yml
+`coingecko.api.key`; a tool config's own `api_key` wins) and every call sends it in the
+`x-cg-demo-api-key` header. Paid (pro) keys use another host and are not supported.
+
+Behind one shared egress address every worker spends the same budget, so SAJHA keeps it:
+
+- **Shared throttle.** Every call takes a slot in a one-minute window held in the state store
+  (`state.backend`; shared by all workers with `redis` or `database`). The window allows
+  `coingecko.calls_per_minute` calls (empty: 5 without a key, 30 with one). When it is used up the call
+  fails at once with `CoinGecko rate limit: SAJHA allows N CoinGecko calls a minute ...` instead of
+  being sent.
+- **Cache.** Each `cg_` config sets `cache_ttl` (60 seconds for prices and markets, an hour for
+  lists, history and holdings), so a repeated call is answered from the result cache without a slot.
+- **Clear errors.** CoinGecko's 429 becomes `CoinGecko rate limit (HTTP 429): ... retry after N s`;
+  other refusals carry CoinGecko's own message. A tool never returns an `error` object as data.
+- **Cooldown.** A 429 also stores CoinGecko's `Retry-After` (60 seconds when absent, at most 300) in
+  the state store; until it passes, every worker's `cg_` calls fail at once (`CoinGecko asked SAJHA to
+  wait; try again in N s`) instead of being sent. CoinGecko's public limit varies with its load, so a
+  429 can come before SAJHA's own budget is used up.
+- **History.** `cg_coin_history` takes `date` (DD-MM-YYYY), default yesterday (UTC). A date more than
+  365 days back is refused by CoinGecko without a paid plan (HTTP 401, error 10012); the error says so.
+
+The live tool check calls the `cg_` tools no faster than the throttle allows (one every 12 seconds
+without a key), and waits out a cooldown before the next one. Calls go through the outbound fetch guard and `tools.outbound.proxy`
+([Security Model](../../security/Security%20Model.md)).
 
 Coin and exchange arguments use CoinGecko **IDs** (`bitcoin`, `ethereum`, `binance`), not ticker symbols. Use `cg_search` or `cg_coin_list` to find an ID.
 
@@ -24,7 +50,7 @@ The tables below are generated from the tool configs (`python -m sajha.tools gui
 | `cg_asset_platforms` | Blockchain networks (asset platforms) known to CoinGecko (asset_platforms), such as ethereum, solana or polygon-pos. | — | — | read-only, idempotent, open-world |
 | `cg_coin_categories_list` | All coin category names and ids on CoinGecko (coins/categories/list), such as decentralized-finance-defi or meme-token. | — | — | read-only, idempotent, open-world |
 | `cg_coin_categories_market` | Coin categories with market data from CoinGecko (coins/categories), sorted by market cap. | — | — | read-only, idempotent, open-world |
-| `cg_coin_history` | A coin's snapshot on one past date from CoinGecko (coins/{id}/history): price, market cap and total volume in many currencies at 00:00 UTC that day. | `id`, `date` | — | read-only, idempotent, open-world |
+| `cg_coin_history` | A coin's snapshot on one past date from CoinGecko (coins/{id}/history): price, market cap and total volume in many currencies at 00:00 UTC that day. | `id` | `date` | read-only, idempotent, open-world |
 | `cg_coin_info` | Reference data for one coin from CoinGecko (coins/{id}): description, links (homepage, explorers, repositories), categories, genesis date, platforms/contract addresses, image, and the market_data block (price, market cap, supply, ATH, changes in many currencies). | `id` | — | read-only, idempotent, open-world |
 | `cg_coin_list` | Every coin CoinGecko tracks (coins/list), to map names and symbols to CoinGecko ids. | — | — | read-only, idempotent, open-world |
 | `cg_coin_market_chart` | Historical price, market cap and total volume series for one coin over the last N days, from CoinGecko (coins/{id}/market_chart). | `id` | `days` (`30`), `vs` (`usd`) | read-only, idempotent, open-world |

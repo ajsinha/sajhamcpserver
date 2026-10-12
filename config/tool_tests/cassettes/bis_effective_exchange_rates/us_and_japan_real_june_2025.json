@@ -1,0 +1,27 @@
+{
+ "format": 1,
+ "interactions": [
+  {
+   "request": {
+    "method": "GET",
+    "url": "https://stats.bis.org/api/v1/data/WS_EER/M.R.B.US+JP?startPeriod=2025-06&endPeriod=2025-06",
+    "body_sha256": ""
+   },
+   "response": {
+    "status": 200,
+    "reason": "",
+    "headers": {
+     "etag": "Z3Vlc3QkMTc5MTc3NjA5NzQxNiQqJDEkV1NfRUVS",
+     "vary": "Accept,Accept-Language",
+     "content-disposition": "inline; filename=\"WS_EER.csv\"",
+     "content-type": "text/csv;charset=UTF-8",
+     "date": "Mon, 12 Oct 2026 03:34:57 GMT",
+     "cache-control": "private"
+    },
+    "body": {
+     "text": "DATAFLOW,FREQ,EER_TYPE,EER_BASKET,REF_AREA,TIME_PERIOD,OBS_VALUE,TIME_FORMAT,COLLECTION,TITLE_TS,UNIT_MEASURE,OBS_STATUS,OBS_CONF,OBS_PRE_BREAK\nBIS:WS_EER(1.0),M,R,B,JP,2025-06,74.11,,A,Japan - Real - Broad (64 economies),882,A,F,\nBIS:WS_EER(1.0),M,R,B,US,2025-06,108.04,,A,United States - Real - Broad (64 economies),882,A,F,\n"
+    }
+   }
+  }
+ ]
+}

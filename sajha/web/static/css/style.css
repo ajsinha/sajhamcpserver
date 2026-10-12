@@ -258,7 +258,7 @@ textarea.form-control::placeholder { color: var(--t-inp-ph) !important; }
 .skip-link:focus { top: 0; }
 
 /* #7 Focus-visible outlines */
-a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visible { outline: 2px solid var(--t-link) !important; outline-offset: 2px !important; }
+a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visible, summary:focus-visible, [role=button]:focus-visible, [tabindex]:not([tabindex="-1"]):focus-visible { outline: 2px solid var(--t-link) !important; outline-offset: 2px !important; }
 
 /* #13 Loading skeletons */
 .skeleton { background: linear-gradient(90deg, var(--t-card-hdr) 25%, var(--t-card-b) 50%, var(--t-card-hdr) 75%); background-size: 200% 100%; animation: shimmer 1.5s infinite; border-radius: var(--radius); }
@@ -1407,6 +1407,34 @@ div.jsoneditor-treepath, div.jsoneditor-treepath * { color: var(--t-muted) !impo
 .ask-source code { color: var(--sajha-ink); background: none; padding: 0; font-size: .78rem; }
 .ask-caveats { list-style: none; margin: .3rem 0 0; padding: 0; font-size: .8rem; color: var(--t-muted); }
 .ask-foot { font-size: .75rem; color: var(--t-muted); }
+/* a figure's lineage (static/js/ask_lineage.js; Quantitative Planners §2.1) */
+.ask-fig { all: unset; cursor: pointer; color: inherit; font-weight: 600; border-radius: 3px; padding: 0 .1rem;
+  text-decoration: underline dotted var(--t-accent-text); text-decoration-thickness: 2px; text-underline-offset: 3px; }
+.ask-fig:hover, .ask-fig.is-open { background: color-mix(in srgb, var(--sajha-crimson) 12%, transparent); }
+.ask-fig:focus-visible { outline: 2px solid var(--sajha-crimson); outline-offset: 1px; }
+.ask-fig-note { margin-top: .3rem; font-size: .75rem; color: var(--t-muted); }
+.ask-lineage { margin-top: .45rem; padding: .5rem .65rem; border: 1px solid var(--sajha-border); border-left: 3px solid var(--sajha-crimson);
+  border-radius: 9px; background: var(--sajha-canvas); font-size: .8rem; color: var(--sajha-ink); overflow-wrap: anywhere; }
+.ask-lineage[hidden] { display: none; }
+.ask-lineage-h { display: flex; align-items: center; gap: .5rem; margin-bottom: .3rem; }
+.ask-lineage-t { font-weight: 700; margin-right: auto; }
+.ask-lineage-close { border: 1px solid var(--sajha-border); background: var(--sajha-surface); color: var(--sajha-ink); border-radius: 7px;
+  font-size: .75rem; padding: .15rem .55rem; min-height: 1.9rem; }
+.ask-lineage-close:focus-visible { outline: 2px solid var(--sajha-crimson); outline-offset: 1px; }
+.ask-lin-list { list-style: none; margin: 0; padding: 0; }
+.ask-lin-list .ask-lin-list { margin: .25rem 0 0 .35rem; padding-left: .7rem; border-left: 1px dashed var(--sajha-border); }
+.ask-lin-node { margin: .2rem 0; }
+.ask-lin-name, .ask-lin-tool, .ask-lin-facts code { color: var(--sajha-ink); background: none; padding: 0; font-size: .78rem; }
+.ask-lin-name { font-weight: 700; }
+.ask-lin-op { font-weight: 600; color: var(--t-accent-text); }
+.ask-lin-args, .ask-lin-asof, .ask-lin-src { color: var(--t-muted); }
+.ask-lin-facts { display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: .1rem .6rem; margin: .2rem 0 0; }
+.ask-lin-facts dt { font-weight: 600; color: var(--t-muted); }
+.ask-lin-facts dd { margin: 0; min-width: 0; }
+@media (max-width: 575.98px) {
+  .ask-lin-facts { grid-template-columns: minmax(0, 1fr); }
+  .ask-lin-facts dd { margin-bottom: .2rem; }
+}
 
 /* the composer */
 .ask-compose { flex: none; border-top: 1px solid var(--sajha-border); padding: .7rem .9rem .8rem; background: var(--sajha-surface); }

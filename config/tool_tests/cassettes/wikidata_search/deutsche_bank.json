@@ -1,0 +1,41 @@
+{
+ "format": 1,
+ "interactions": [
+  {
+   "request": {
+    "method": "GET",
+    "url": "https://www.wikidata.org/w/api.php?action=wbsearchentities&search=Deutsche+Bank&language=en&uselang=en&type=item&limit=5&format=json",
+    "body_sha256": ""
+   },
+   "response": {
+    "status": 200,
+    "reason": "OK",
+    "headers": {
+     "date": "Mon, 12 Oct 2026 03:36:25 GMT",
+     "server": "mw-api-ext.eqiad.main-5c8bb5c95f-vlzfg",
+     "x-content-type-options": "nosniff",
+     "x-search-id": "20z98gkm44sc4xas2orlgww69",
+     "content-security-policy": "default-src 'self'; script-src 'none'; object-src 'none'",
+     "x-frame-options": "DENY",
+     "content-disposition": "inline; filename=api-result.json",
+     "cache-control": "private, must-revalidate, max-age=0",
+     "content-type": "application/json; charset=utf-8",
+     "age": "0",
+     "x-cache": "cp1106 miss, cp1106 pass",
+     "x-cache-status": "pass",
+     "strict-transport-security": "max-age=106384710; includeSubDomains; preload",
+     "report-to": "{ \"group\": \"wm_nel\", \"max_age\": 604800, \"endpoints\": [{ \"url\": \"https://intake-logging.wikimedia.org/v1/events?stream=w3c.reportingapi.network_error&schema_uri=/w3c/reportingapi/network_error/1.0.0\" }] }",
+     "nel": "{ \"report_to\": \"wm_nel\", \"max_age\": 604800, \"failure_fraction\": 0.05, \"success_fraction\": 0.0}",
+     "x-client-ip": "71.127.200.129",
+     "vary": "Accept-Encoding,X-Subdomain,Treat-as-Untrusted,X-Forwarded-Proto,Cookie,Authorization,User-Agent",
+     "x-request-id": "ca1fdd2a-a5c3-4109-b0e5-f0a160fc4678",
+     "x-analytics": "",
+     "server-timing": "cache;desc=\"pass\", host;desc=\"cp1106\",co_id;desc=\"504912889\""
+    },
+    "body": {
+     "text": "{\"searchinfo\":{\"search\":\"Deutsche Bank\"},\"search\":[{\"id\":\"Q66048\",\"title\":\"Q66048\",\"pageid\":68755,\"concepturi\":\"http://www.wikidata.org/entity/Q66048\",\"repository\":\"wikidata\",\"url\":\"//www.wikidata.org/wiki/Q66048\",\"display\":{\"label\":{\"value\":\"Deutsche Bank\",\"language\":\"en\"},\"description\":{\"value\":\"German global banking and financial services company\",\"language\":\"en\"}},\"label\":\"Deutsche Bank\",\"description\":\"German global banking and financial services company\",\"match\":{\"type\":\"label\",\"language\":\"en\",\"text\":\"Deutsche Bank\"}},{\"id\":\"Q157273\",\"title\":\"Q157273\",\"pageid\":158334,\"concepturi\":\"http://www.wikidata.org/entity/Q157273\",\"repository\":\"wikidata\",\"url\":\"//www.wikidata.org/wiki/Q157273\",\"display\":{\"label\":{\"value\":\"Waldstadion\",\"language\":\"en\"},\"description\":{\"value\":\"stadium in Frankfurt am Main, Germany\",\"language\":\"en\"}},\"label\":\"Waldstadion\",\"description\":\"stadium in Frankfurt am Main, Germany\",\"match\":{\"type\":\"alias\",\"language\":\"en\",\"text\":\"Deutsche Bank Park\"},\"aliases\":[\"Deutsche Bank Park\"]},{\"id\":\"Q1497368\",\"title\":\"Q1497368\",\"pageid\":1434976,\"concepturi\":\"http://www.wikidata.org/entity/Q1497368\",\"repository\":\"wikidata\",\"url\":\"//www.wikidata.org/wiki/Q1497368\",\"display\":{\"label\":{\"value\":\"Deutsche Bank building complex\",\"language\":\"en\"},\"description\":{\"value\":\"former headquarters of Deutsche Bank in Berlin\",\"language\":\"en\"}},\"label\":\"Deutsche Bank building complex\",\"description\":\"former headquarters of Deutsche Bank in Berlin\",\"match\":{\"type\":\"label\",\"language\":\"en\",\"text\":\"Deutsche Bank building complex\"}},{\"id\":\"Q30338593\",\"title\":\"Q30338593\",\"pageid\":31950806,\"concepturi\":\"http://www.wikidata.org/entity/Q30338593\",\"repository\":\"wikidata\",\"url\":\"//www.wikidata.org/wiki/Q30338593\",\"display\":{\"label\":{\"value\":\"Deutsche Bank\",\"language\":\"en\"},\"description\":{\"value\":\"American subsidiary\",\"language\":\"en\"}},\"label\":\"Deutsche Bank\",\"description\":\"American subsidiary\",\"match\":{\"type\":\"label\",\"language\":\"en\",\"text\":\"Deutsche Bank\"}},{\"id\":\"Q1202180\",\"title\":\"Q1202180\",\"pageid\":1145052,\"concepturi\":\"http://www.wikidata.org/entity/Q1202180\",\"repository\":\"wikidata\",\"url\":\"//www.wikidata.org/wiki/Q1202180\",\"display\":{\"label\":{\"value\":\"Deutsche Bank Prize in Financial Economics\",\"language\":\"en\"},\"description\":{\"value\":\"scholarly award\",\"language\":\"en\"}},\"label\":\"Deutsche Bank Prize in Financial Economics\",\"description\":\"scholarly award\",\"match\":{\"type\":\"label\",\"language\":\"en\",\"text\":\"Deutsche Bank Prize in Financial Economics\"}}],\"search-continue\":5,\"success\":1}"
+    }
+   }
+  }
+ ]
+}

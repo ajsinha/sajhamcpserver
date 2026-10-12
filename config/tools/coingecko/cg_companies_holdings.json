@@ -5,6 +5,7 @@
   "annotations": {"readOnlyHint": true, "idempotentHint": true, "openWorldHint": true},
   "version": "4.5.0",
   "enabled": true,
+  "cache_ttl": 3600,
   "inputSchema": {
     "type": "object",
     "properties": {

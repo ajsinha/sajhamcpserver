@@ -201,7 +201,9 @@ Each document object has the following fields:
 }
 ```
 
-The scraper infers `year` and `quarter` from the link text and URL when the page does not state them, so both can be `null`.
+The scraper infers `year` and `quarter` from the link text and URL when the page does not state them. A field it cannot fill is left out of the object rather than set to `null`.
+
+**The SEC EDGAR fallback.** When the IR pages give nothing, documents come from the company's recent SEC filings (`source: "SEC EDGAR"`, with `form_type`, `date` and `accession_number`), matched to the type asked for: `annual_report` is a 10-K, 20-F or 40-F; `quarterly_report` a 10-Q; `proxy_statement` a DEF 14A; `earnings_presentation` an 8-K with item 2.02 (results of operations, where earnings releases and decks are furnished); `investor_presentation` an 8-K with item 7.01 (Regulation FD, where investor presentations are furnished); `press_release` an 8-K with item 2.02, 7.01 or 8.01. A type no SEC form carries (`esg_report`) gives an empty list from the fallback, never unrelated filings.
 
 ---
 
@@ -227,8 +229,9 @@ Call `ir_get_latest_earnings` for each ticker (for example `JPM`, `GS`, `BAC`). 
 
 - **Coverage.** Only tickers in the company database are served.
 - **Scraping.** Results depend on the current layout of each IR site. A site redesign, a bot-protection page or a login wall can return fewer documents, or none.
-- **Speed.** The HTTP client waits 2 to 5 seconds between requests to the same site and retries up to 3 times with a 30-second timeout. Expect calls to take several seconds, and longer for `ir_get_all_resources`.
-- **Completeness.** Older documents may be archived elsewhere on the site and missed. The SEC fallback returns filings, not slide decks.
+- **Speed.** The HTTP client waits 2 to 5 seconds between requests to the same site, with a 30-second timeout per request. It retries a 429 or a server error with a short wait (at most 3 seconds), never a 403 (a bot wall) or another 4xx, and the scraper spends at most 15 seconds on a company's IR pages (`IR_PAGE_BUDGET` in `sajha/ir/generic_ir_scraper.py`) and stops at the first 403 before falling back to SEC EDGAR, so a call stays inside the tool's deadline. Expect calls to take several seconds, and longer for `ir_get_all_resources`.
+- **Completeness.** Older documents may be archived elsewhere on the site and missed. The SEC fallback returns the filing's primary document (the 8-K itself for presentations and releases), not the slide deck attached as an exhibit.
+- **Network.** Every request (IR pages and SEC EDGAR) goes through SAJHA's outbound fetch guard and `tools.outbound.proxy` ([Security Model](../../security/Security%20Model.md)).
 - **Etiquette.** Respect each site's terms of use and robots.txt. Cache results on your side instead of polling.
 
 ---

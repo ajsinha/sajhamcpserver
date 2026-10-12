@@ -16,6 +16,7 @@ from pathlib import Path
 
 from fastapi import APIRouter, Request, Depends
 from fastapi.responses import JSONResponse, StreamingResponse
+from starlette.concurrency import run_in_threadpool
 from sqlalchemy.orm import Session
 
 from sajha.db.engine import get_db, release_session
@@ -59,7 +60,9 @@ async def api_tool_execute(
         return JSONResponse({'error': 'Tool not found'}, status_code=404)
 
     # Execute with timing
-    usage_dao = ToolUsageDAO(db)
+    def _log(**kw):                  # the usage row, written in the thread pool (Scaling and State §7)
+        ToolUsageDAO(db).log_execution(**kw)
+        release_session(db)          # written: never hold a connection across the response's awaits
     start = time.time()
     from sajha.observability.caller import from_auth, set_caller
     set_caller(from_auth(auth))      # the usage ledger's caller (this request's context only)
@@ -77,12 +80,12 @@ async def api_tool_execute(
     release_session(db)
     try:
         # off the event loop (a tool may be slow or CPU-bound); the context set above goes with it
-        from starlette.concurrency import run_in_threadpool
         result, version_meta = await run_in_threadpool(_run)
         duration_ms = int((time.time() - start) * 1000)
 
         # Log to DB
-        usage_dao.log_execution(
+        await run_in_threadpool(
+            _log,
             tool_name=tool_name,
             user_id=auth.user_id,
             auth_type=auth.auth_type,
@@ -92,7 +95,6 @@ async def api_tool_execute(
             client_ip=request.client.host if request.client else None,
             user_agent=request.headers.get('User-Agent'),
         )
-        release_session(db)          # written: never hold a connection across the response's awaits
 
         body = {'success': not getattr(result, 'is_error', False), 'result': result}
         if version_meta:
@@ -109,7 +111,8 @@ async def api_tool_execute(
             from sajha.accounts.respond import rest_response
             return rest_response(e)
         duration_ms = int((time.time() - start) * 1000)
-        usage_dao.log_execution(
+        await run_in_threadpool(
+            _log,
             tool_name=tool_name,
             user_id=auth.user_id,
             auth_type=auth.auth_type,
@@ -119,7 +122,6 @@ async def api_tool_execute(
             arguments=arguments,
             client_ip=request.client.host if request.client else None,
         )
-        release_session(db)
         from sajha.tools.base_mcp_tool import ToolArgumentError
         from sajha.policy.errors import ApprovalRequired, PolicyError, RateLimited
         if isinstance(e, PolicyError):
@@ -146,7 +148,7 @@ async def _catalog_policy(request: Request, db: Session):
     auth, err = await authorize_mcp(request, db, 'tools/list')
     if err is not None:
         return None, err
-    return policy_for(auth), None
+    return await run_in_threadpool(policy_for, auth), None
 
 
 @router.get('/api/tools/list')
@@ -215,14 +217,16 @@ async def api_save_tool_config(tool_name: str, request: Request, auth: AuthConte
     if not config:
         return JSONResponse({'error': 'No configuration provided'}, status_code=400)
 
-    tools_registry.tool_configs[tool_name] = config
-    tools_registry._save_tool_config(tool_name)
+    def work():                      # files, the registry and the audit row: in the thread pool (§7)
+        tools_registry.tool_configs[tool_name] = config
+        tools_registry._save_tool_config(tool_name)
 
-    if tool_name in tools_registry.tools:
-        tools_registry.unregister_tool(tool_name)
-    tools_registry.load_tool_from_config(f'{tool_name}.json')
+        if tool_name in tools_registry.tools:
+            tools_registry.unregister_tool(tool_name)
+        tools_registry.load_tool_from_config(f'{tool_name}.json')
 
-    AuditDAO(db).log('tool.config_update', auth.user_id, 'tool', tool_name)
+        AuditDAO(db).log('tool.config_update', auth.user_id, 'tool', tool_name)
+    await run_in_threadpool(work)
     return JSONResponse({'success': True, 'message': 'Configuration saved'})
 
 
@@ -264,43 +268,46 @@ async def api_create_user(
     from sajha.auth.password import hash_password
 
     data = await request.json()
-    user_id = data.get('user_id')
-    if not user_id:
-        return JSONResponse({'error': 'user_id required'}, status_code=400)
 
-    user_dao = UserDAO(db)
-    if user_dao.user_exists(user_id):
-        return JSONResponse({'error': 'User already exists'}, status_code=409)
+    def work():                      # the database part, in the thread pool (Scaling and State §7)
+        user_id = data.get('user_id')
+        if not user_id:
+            return JSONResponse({'error': 'user_id required'}, status_code=400)
 
-    from sajha.auth.password import password_problem
-    password = data.get('password')
-    problem = password_problem(password if isinstance(password, str) else '', user_id)
-    if problem:
-        return JSONResponse({'error': f'password: {problem}'}, status_code=400)
+        user_dao = UserDAO(db)
+        if user_dao.user_exists(user_id):
+            return JSONResponse({'error': 'User already exists'}, status_code=409)
 
-    role_dao = RoleDAO(db)
-    user = User(
-        user_id=user_id,
-        user_name=data.get('user_name', user_id),
-        email=data.get('email', ''),
-        password_hash=hash_password(password),
-        enabled=data.get('enabled', True),
-    )
-    # an admin chose this password: the user replaces it at first sign-in
-    user.must_change_password = bool(data.get('must_change_password', True))
-    for rname in data.get('roles', ['user']):
-        role = role_dao.get_or_create(rname)
-        user.roles.append(role)
-    user_dao.create(user)
+        from sajha.auth.password import password_problem
+        password = data.get('password')
+        problem = password_problem(password if isinstance(password, str) else '', user_id)
+        if problem:
+            return JSONResponse({'error': f'password: {problem}'}, status_code=400)
 
-    AuditDAO(db).log('user.create', auth.user_id, 'user', user_id)
-    # every account has a default API key (sajha/auth/apikeys.py); the user rotates it to see it
-    try:
-        from sajha.auth.apikeys import ensure_default_key
-        ensure_default_key(db, user, by=auth.user_id)
-    except Exception as e:
-        logger.warning(f'default API key for {user_id} not created: {e}')
-    return JSONResponse({'success': True, 'user_id': user_id})
+        role_dao = RoleDAO(db)
+        user = User(
+            user_id=user_id,
+            user_name=data.get('user_name', user_id),
+            email=data.get('email', ''),
+            password_hash=hash_password(password),
+            enabled=data.get('enabled', True),
+        )
+        # an admin chose this password: the user replaces it at first sign-in
+        user.must_change_password = bool(data.get('must_change_password', True))
+        for rname in data.get('roles', ['user']):
+            role = role_dao.get_or_create(rname)
+            user.roles.append(role)
+        user_dao.create(user)
+
+        AuditDAO(db).log('user.create', auth.user_id, 'user', user_id)
+        # every account has a default API key (sajha/auth/apikeys.py); the user rotates it to see it
+        try:
+            from sajha.auth.apikeys import ensure_default_key
+            ensure_default_key(db, user, by=auth.user_id)
+        except Exception as e:
+            logger.warning(f'default API key for {user_id} not created: {e}')
+        return JSONResponse({'success': True, 'user_id': user_id})
+    return await run_in_threadpool(work)
 
 
 @router.post('/api/admin/users/{uid}/enable')

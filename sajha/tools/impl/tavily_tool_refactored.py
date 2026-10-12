@@ -10,6 +10,7 @@ from typing import Dict, Any, List, Optional
 from datetime import datetime
 from sajha.tools.base_mcp_tool import BaseMCPTool
 from sajha.tools.http_utils import safe_json_response, ENCODINGS_ALL
+from sajha.core import outbound
 
 
 class TavilyBaseTool(BaseMCPTool):
@@ -94,7 +95,7 @@ class TavilyBaseTool(BaseMCPTool):
                 }
             )
             
-            with urllib.request.urlopen(req, timeout=30) as response:
+            with outbound.urlopen(req, timeout=30) as response:
                 result = safe_json_response(response, ENCODINGS_ALL)
                 
                 # Format results

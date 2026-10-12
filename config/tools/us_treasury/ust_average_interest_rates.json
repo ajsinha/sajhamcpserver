@@ -65,7 +65,8 @@
               "type": [
                 "number",
                 "null"
-              ]
+              ],
+              "x-sajha-unit": "percent"
             }
           },
           "required": [

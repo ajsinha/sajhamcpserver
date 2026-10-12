@@ -198,7 +198,7 @@ def test_fred_latest_asks_newest_first_and_skips_missing_values():
 
     tool = mod.FedGetLatestTool({'api_key': 'k'})
     tool.api_key = 'k'
-    with mock.patch.object(mod.urllib.request, 'urlopen', fake_urlopen), \
+    with mock.patch.object(mod.outbound, 'urlopen', fake_urlopen), \
             mock.patch.object(mod, 'safe_json_response', fake_json):
         out = tool.execute({'series_id': 'UNRATE'})
         assert (out['date'], out['value']) == ('2026-08-01', 4.2)

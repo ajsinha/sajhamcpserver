@@ -10,6 +10,7 @@ from typing import Dict, Any, List, Optional
 from datetime import datetime
 from sajha.tools.base_mcp_tool import BaseMCPTool
 from sajha.tools.http_utils import safe_json_response, ENCODINGS_DEFAULT
+from sajha.core import outbound
 
 
 class SECEdgarBaseTool(BaseMCPTool):
@@ -67,7 +68,7 @@ class SECEdgarBaseTool(BaseMCPTool):
             }
             
             req = urllib.request.Request(url, headers=headers)
-            with urllib.request.urlopen(req, timeout=30) as response:
+            with outbound.urlopen(req, timeout=30) as response:
                 data = safe_json_response(response, ENCODINGS_DEFAULT)
                 
                 ticker_upper = ticker.upper()
@@ -195,7 +196,7 @@ class SECSearchCompanyTool(SECEdgarBaseTool):
             }
             
             req = urllib.request.Request(url, headers=headers)
-            with urllib.request.urlopen(req, timeout=30) as response:
+            with outbound.urlopen(req, timeout=30) as response:
                 data = safe_json_response(response, ENCODINGS_DEFAULT)
                 
                 search_lower = search_term.lower()
@@ -357,7 +358,7 @@ class SECGetCompanyInfoTool(SECEdgarBaseTool):
             }
             
             req = urllib.request.Request(url, headers=headers)
-            with urllib.request.urlopen(req, timeout=30) as response:
+            with outbound.urlopen(req, timeout=30) as response:
                 data = safe_json_response(response, ENCODINGS_DEFAULT)
                 
                 return {
@@ -522,7 +523,7 @@ class SECGetCompanyFilingsTool(SECEdgarBaseTool):
             }
             
             req = urllib.request.Request(url, headers=headers)
-            with urllib.request.urlopen(req, timeout=30) as response:
+            with outbound.urlopen(req, timeout=30) as response:
                 data = safe_json_response(response, ENCODINGS_DEFAULT)
                 
                 filings = data.get('filings', {}).get('recent', {})
@@ -649,7 +650,7 @@ class SECGetCompanyFactsTool(SECEdgarBaseTool):
             }
             
             req = urllib.request.Request(url, headers=headers)
-            with urllib.request.urlopen(req, timeout=30) as response:
+            with outbound.urlopen(req, timeout=30) as response:
                 data = safe_json_response(response, ENCODINGS_DEFAULT)
                 
                 return {
@@ -799,7 +800,7 @@ class SECGetFinancialDataTool(SECEdgarBaseTool):
             }
             
             req = urllib.request.Request(url, headers=headers)
-            with urllib.request.urlopen(req, timeout=30) as response:
+            with outbound.urlopen(req, timeout=30) as response:
                 data = safe_json_response(response, ENCODINGS_DEFAULT)
                 
                 facts = data.get('facts', {})
@@ -969,7 +970,7 @@ class SECGetInsiderTradingTool(SECEdgarBaseTool):
             }
             
             req = urllib.request.Request(url, headers=headers)
-            with urllib.request.urlopen(req, timeout=30) as response:
+            with outbound.urlopen(req, timeout=30) as response:
                 data = safe_json_response(response, ENCODINGS_DEFAULT)
                 
                 filings = data.get('filings', {}).get('recent', {})
@@ -1122,7 +1123,7 @@ class SECGetMutualFundHoldingsTool(SECEdgarBaseTool):
             }
             
             req = urllib.request.Request(url, headers=headers)
-            with urllib.request.urlopen(req, timeout=30) as response:
+            with outbound.urlopen(req, timeout=30) as response:
                 data = safe_json_response(response, ENCODINGS_DEFAULT)
                 
                 filings = data.get('filings', {}).get('recent', {})

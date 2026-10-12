@@ -41,7 +41,7 @@ GRAPH_PROMPT = (
     "{\"nodes\": {...}, \"answer_with\": [...], \"why\": \"one sentence\"}. Each node has a name (letters, digits "
     "and _) and is one of: a tool read {\"tool\": <an offered tool>, \"arguments\": {...}, \"read\": <a JSONPath "
     "into its result such as $.data.observations[0].value, or $.rows[*].price for a column>, \"unit\": <the unit "
-    "of that value>, \"as_of\": <optional date>}; a constant {\"value\": <a number the question states>, "
+    "of that value; where the tool's output schema declares the unit, SAJHA uses that one>, \"as_of\": <optional date>}; a constant {\"value\": <a number the question states>, "
     "\"unit\": ...}; or an operation {\"op\": <name>, <argument>: <a node name or a literal>, ...} with the "
     "argument names of its signature below (\"args\": [...] for positional ones). Units: a currency code with an "
     "optional scale (USD, USD mn, EUR bn), count, percent, pp, bp, ratio, index, days, years, unitless, or a rate "
@@ -57,6 +57,18 @@ ESTIMATE_SCHEMA: Dict[str, Any] = {
     "properties": {"value": {"type": ["number", "null"]}, "unit": {"type": "string", "maxLength": 40},
                    "why": {"type": "string", "maxLength": 300}}}
 _INT_OR_REF = {"oneOf": [{"type": "integer", "minimum": 1}, {"$ref": "#/$defs/settingsRef"}]}
+
+
+def schema_unit_of(state: Any, tool: str, path: str) -> Optional[str]:
+    """The unit the offered tool's outputSchema declares (``x-sajha-unit``) for the value at ``path``,
+    or None (Quantitative Planners §2.2). A reader that gets a unit here records ``unit_from: schema``."""
+    from sajha.ai.quant.schema_units import schema_unit
+    try:
+        entry = state.offered.get(tool)
+    except Exception:
+        return None
+    schema = getattr(entry, "output_schema", None) if entry is not None else None
+    return schema_unit(schema, path) if isinstance(schema, dict) else None
 
 
 def _shown(v: Any) -> Any:
@@ -141,7 +153,7 @@ class Compute(StageType):
         if isinstance(st.cfg.get("max_nodes"), int):
             cap = min(cap, int(st.cfg["max_nodes"]))
         graph, errors = parse_graph(g.get("plan"), offered=list(rc.state.offered), max_nodes=cap,
-                                    taken=ws.names())
+                                    taken=ws.names(), unit_of=lambda t, p: schema_unit_of(rc.state, t, p))
         if graph is None:
             g.update(status="invalid", errors=errors)
             self._event(rc, frame, st, g)
@@ -188,7 +200,7 @@ class Compute(StageType):
                 value = read_value(raw.get(r["id"], r.get("data")), node.spec["read"])
                 reads[node.name] = Quantity.from_tool(value, node.spec.get("unit"), call_id=r["id"], tool=tool,
                                                       path=node.spec["read"], arguments=r.get("arguments") or {},
-                                                      as_of=node.spec.get("as_of"))
+                                                      as_of=node.spec.get("as_of"), unit_from=node.unit_from)
             except QuantError as e:
                 reads[node.name] = f"reading {node.spec['read']} from the {tool} result ({r['id']}): {e}"
         put, failed = evaluate(graph, ws, reads)

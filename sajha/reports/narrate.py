@@ -555,23 +555,27 @@ def _eq(d: float, dec: int, r: float) -> bool:
 def _precise(f: Dict[str, Any], pool: List[float], figures: List[tuple]) -> bool:
     """The reports rule on top of the validator: a figure matches at the precision written, by
     magnitude (the sign is in the words: "fell 3.2%"). A figure written with a rate unit matches a
-    tool-result number (as written, or a percent as a fraction) or a quantity in that unit only."""
+    quantity in that unit, or (in percent) a tool-result number known to be in percent or any one as a
+    fraction; a bare figure matches a number of the data or a quantity in its own unit (Reports §5)."""
+    from sajha.ai.planners_engine.checks import _own_unit_figures
     n, tag = f["n"], f["tag"]
     dec, v, mant = n["decimals"], n["value"], n["mantissa"]
-    if tag in ("bp", "pp") or (tag == "percent" and not n["pct"]):
+    if n["pct"] or tag == "percent":
+        return (any(_eq(mant, dec, r) for r in getattr(pool, "percent", []))
+                or any(_eq(mant / 100.0, dec + 2, r) for r in pool)
+                or any(u.kind == "percent" and _eq(mant, dec, r) for r, u, _ in figures))
+    if tag:
         return any(u.kind == tag and _eq(mant, dec, r) for r, u, _ in figures)
-    if n["pct"]:
-        return (any(_eq(v, dec, r) or _eq(v / 100.0, dec + 2, r) for r in pool)
-                or any(u.kind == "percent" and _eq(v, dec, r) for r, u, _ in figures))
     cands = [(v, 1.0)] + ([(mant, v / mant)] if n["scaled"] and mant else [])
-    values = pool + [r for r, _u, _ in figures]
+    values = list(pool) + [r for r, _u, _ in _own_unit_figures(figures)]
     return any(_eq(d, dec, r / scale) for d, scale in cands for r in values)
 
 
 def check_commentary(text: str, ctx: Context) -> List[Dict[str, Any]]:
     """The commentary's figures and dates that the run does not support:
     [{kind: number|date, raw, start, end}] in text order."""
-    from sajha.ai.planners_engine.checks import CheckContext, _figures, _in_results, _in_workspace, _unit_tag, _UNIT_TAG
+    from sajha.ai.planners_engine.checks import (CheckContext, _figures, _in_results, _in_workspace, _named_unit,
+                                                 _unit_tag, _UNIT_TAG)
     text = text or ""
     bad: List[Dict[str, Any]] = []
     dates = find_dates(text)
@@ -589,9 +593,10 @@ def check_commentary(text: str, ctx: Context) -> List[Dict[str, Any]]:
     figures = ctx.comparisons.workspace.figures()
     for n in _figures(cctx, settings):
         tag = _unit_tag(masked, n)
-        if _in_results(n, pool, ctx.tolerance) or (figures and _in_workspace(n, tag, figures, ctx.tolerance)):
+        if (_in_results(n, pool, ctx.tolerance, tag)
+                or (figures and _in_workspace(n, tag, figures, ctx.tolerance, masked))):
             continue
-        if _precise({"n": n, "tag": tag}, pool, figures):
+        if _precise({"n": n, "tag": tag or _named_unit(masked, n)}, pool, figures):
             continue
         end = n["end"]
         if tag in ("bp", "pp", "percent") and not n["pct"]:

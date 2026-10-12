@@ -136,7 +136,8 @@ async def _prompt_caller(request: Request, db: Session):
     if err is not None:
         return None, err
     from sajha.auth.access import mcp_session_for
-    return mcp_session_for(auth), None
+    from starlette.concurrency import run_in_threadpool
+    return await run_in_threadpool(mcp_session_for, auth), None
 
 
 @router.get('/api/prompts/list')

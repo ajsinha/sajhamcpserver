@@ -522,11 +522,18 @@ def admin_system_monitor_api(auth: AuthContext = Depends(require_admin)):
         'python_version': platform.python_version(),
         'platform': f"{platform.system()} {platform.release()} ({platform.machine()})",
         'hostname': socket.gethostname(),
-        'mcp_protocol_version': '2025-11-25',
-        'sajha_version': '5.3.0',
+        'mcp_protocol_version': '',
+        'sajha_version': '',
         'db_type': 'unknown',
         'tools_loaded': 0,
     }
+    try:   # derived, never restated: the newest version of each era this server speaks
+        from sajha.core.mcp_modern import MODERN_PROTOCOL_VERSIONS
+        from sajha.core.mcp_2025_11_25 import LATEST_PROTOCOL_VERSION
+        data['mcp_protocol_versions'] = [MODERN_PROTOCOL_VERSIONS[0], LATEST_PROTOCOL_VERSION]
+        data['mcp_protocol_version'] = ', '.join(data['mcp_protocol_versions'])
+    except Exception:
+        pass
     try:
         from sajha.core.config import get_settings
         _s = get_settings()

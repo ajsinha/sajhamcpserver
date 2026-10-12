@@ -83,7 +83,7 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
                     </div>
                 </div>
                 <div class="col-md-6 text-end">
-                    <select id="rowsPerPage" class="form-select d-inline-block" style="width: auto;">
+                    <select id="rowsPerPage" class="form-select d-inline-block" style="width: auto;" aria-label="{{ _('Rows per page') }}">
                         <option value="10" selected>{{ _('10 per page') }}</option>
                         <option value="25">{{ _('25 per page') }}</option>
                         <option value="50">{{ _('50 per page') }}</option>
@@ -96,15 +96,15 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
                 <table class="table table-hover" id="promptsTable">
                     <thead>
                         <tr>
-                            <th style="cursor: pointer;" data-onclick="sortTable('name')">
+                            <th style="cursor: pointer;" tabindex="0" data-onclick="sortTable('name')">
                                 {{ _('Name') }} <i class="bi bi-arrow-down-up"></i>
                             </th>
                             <th>{{ _('Description') }}</th>
-                            <th style="cursor: pointer;" data-onclick="sortTable('category')">
+                            <th style="cursor: pointer;" tabindex="0" data-onclick="sortTable('category')">
                                 {{ _('Category') }} <i class="bi bi-arrow-down-up"></i>
                             </th>
                             <th>{{ _('Arguments') }}</th>
-                            <th style="cursor: pointer;" data-onclick="sortTable('usage')">
+                            <th style="cursor: pointer;" tabindex="0" data-onclick="sortTable('usage')">
                                 {{ _('Usage') }} <i class="bi bi-arrow-down-up"></i>
                             </th>
                             <th>{{ _('Last Used') }}</th>

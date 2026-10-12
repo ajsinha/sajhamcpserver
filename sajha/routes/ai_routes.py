@@ -13,6 +13,7 @@ from typing import Optional
 
 from fastapi import APIRouter, Request, Depends
 from fastapi.responses import JSONResponse
+from starlette.concurrency import run_in_threadpool
 
 from sajha.auth import AuthContext, require_auth, require_admin
 
@@ -102,17 +103,19 @@ async def api_update_provider(provider_type: str, request: Request,
     """Update provider configuration (API key, base URL, enabled)."""
     from sajha.db.dao import LLMProviderDAO
     data = await request.json()
-    dao = LLMProviderDAO(db)
-    p = dao.update_config(
-        provider_type,
-        api_key=data.get('api_key'),
-        base_url=data.get('base_url'),
-        region=data.get('region'),
-        enabled=data.get('enabled'),
-    )
-    if not p:
-        return JSONResponse({'error': 'Provider not found'}, status_code=404)
-    return JSONResponse({'success': True, 'provider_type': p.provider_type})
+
+    def work():                          # the database part, in the thread pool (Scaling and State §7)
+        p = LLMProviderDAO(db).update_config(
+            provider_type,
+            api_key=data.get('api_key'),
+            base_url=data.get('base_url'),
+            region=data.get('region'),
+            enabled=data.get('enabled'),
+        )
+        if not p:
+            return JSONResponse({'error': 'Provider not found'}, status_code=404)
+        return JSONResponse({'success': True, 'provider_type': p.provider_type})
+    return await run_in_threadpool(work)
 
 
 @router.post('/api/ai/providers/{provider_type}/health')
@@ -136,13 +139,13 @@ async def api_set_defaults(request: Request, auth: AuthContext = Depends(require
     """Set system-wide default provider and model (persisted to DB)."""
     from sajha.db.dao import LLMProviderDAO, LLMModelDAO
     data = await request.json()
-    prov_dao = LLMProviderDAO(db)
-    model_dao = LLMModelDAO(db)
 
-    if 'provider' in data:
-        prov_dao.set_default(data['provider'])
-    if 'model' in data and 'provider' in data:
-        model_dao.set_default(data['provider'], data['model'])
+    def work():                          # the database part, in the thread pool (Scaling and State §7)
+        if 'provider' in data:
+            LLMProviderDAO(db).set_default(data['provider'])
+        if 'model' in data and 'provider' in data:
+            LLMModelDAO(db).set_default(data['provider'], data['model'])
+    await run_in_threadpool(work)
 
     # Also update the in-memory gateway: provider[/model] goes first in the 'default' alias
     gw = _get_gateway()
@@ -160,20 +163,21 @@ async def api_create_model(request: Request, auth: AuthContext = Depends(require
     """Create a new model entry."""
     from sajha.db.dao import LLMModelDAO
     data = await request.json()
-    dao = LLMModelDAO(db)
-    m = dao.create_model(
-        provider_type=data['provider_type'], model_id=data['model_id'],
-        display_name=data.get('display_name', data['model_id']),
-        context_window=int(data.get('context_window', 0)),
-        max_output_tokens=int(data.get('max_output_tokens', 4096)),
-        input_cost_per_1k=float(data.get('input_cost_per_1k', 0)),
-        output_cost_per_1k=float(data.get('output_cost_per_1k', 0)),
-        supports_tools=data.get('supports_tools', True),
-        supports_vision=data.get('supports_vision', False),
-        supports_embeddings=data.get('supports_embeddings', False),
-        tags=data.get('tags', ''),
-    )
-    return JSONResponse({'success': True, 'model_id': m.model_id})
+
+    def work():                          # the database part, in the thread pool (Scaling and State §7)
+        return LLMModelDAO(db).create_model(
+            provider_type=data['provider_type'], model_id=data['model_id'],
+            display_name=data.get('display_name', data['model_id']),
+            context_window=int(data.get('context_window', 0)),
+            max_output_tokens=int(data.get('max_output_tokens', 4096)),
+            input_cost_per_1k=float(data.get('input_cost_per_1k', 0)),
+            output_cost_per_1k=float(data.get('output_cost_per_1k', 0)),
+            supports_tools=data.get('supports_tools', True),
+            supports_vision=data.get('supports_vision', False),
+            supports_embeddings=data.get('supports_embeddings', False),
+            tags=data.get('tags', ''),
+        ).model_id
+    return JSONResponse({'success': True, 'model_id': await run_in_threadpool(work)})
 
 
 @router.put('/api/ai/models/{model_id}')
@@ -183,8 +187,7 @@ async def api_update_model(model_id: str, request: Request,
     """Update model properties."""
     from sajha.db.dao import LLMModelDAO
     data = await request.json()
-    dao = LLMModelDAO(db)
-    m = dao.update_model(model_id, **data)
+    m = await run_in_threadpool(lambda: LLMModelDAO(db).update_model(model_id, **data))
     if not m:
         return JSONResponse({'error': 'Model not found'}, status_code=404)
     return JSONResponse({'success': True})

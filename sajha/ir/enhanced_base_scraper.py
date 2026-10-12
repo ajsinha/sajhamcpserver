@@ -384,7 +384,7 @@ class EnhancedBaseIRScraper(ABC):
         if not quarter:
             quarter = self.extract_quarter_from_text(f"{title} {url} {description or ''} {context or ''}")
         
-        return {
+        doc = {
             'title': title,
             'url': self.normalize_url(url),
             'type': doc_type,
@@ -396,6 +396,7 @@ class EnhancedBaseIRScraper(ABC):
             'is_pdf': self.is_pdf_link(url),
             'context': context
         }
+        return {k: v for k, v in doc.items() if v is not None}     # unknown fields are left out, not null
     
     def get_latest_earnings(self) -> Dict:
         """Get the latest earnings information"""

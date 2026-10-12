@@ -48,6 +48,35 @@ def enabled() -> bool:
     return _bool('sajhanet.enabled', False)
 
 
+_YAML_CACHE: Dict[str, Any] = {'key': None, 'section': {}}
+
+
+def yaml_section() -> Dict[str, Any]:
+    """The ``sajhanet`` section of the YAML as written (lists and maps intact), as a copy.
+
+    Parsed once per version of the file (path, mtime, size): catalogs and lint ask for it once per
+    tool, and re-parsing the whole application.yml each time made a lint of every tool take a
+    minute. An edit of the file is seen at the next call."""
+    path = Path(os.environ.get('SAJHA_CONFIG_FILE', 'config/application.yml'))
+    if not path.is_absolute():
+        path = Path.cwd() / path
+    try:
+        st = path.stat()
+        key = (str(path), st.st_mtime_ns, st.st_size)
+    except OSError:
+        return {}
+    if _YAML_CACHE['key'] != key:
+        try:
+            import yaml
+            data = yaml.safe_load(path.read_text(encoding='utf-8')) or {}
+        except Exception as e:
+            logger.warning(f'sajhanet: cannot read {path}: {e}')
+            data = {}
+        sec = data.get('sajhanet') if isinstance(data, dict) else None
+        _YAML_CACHE.update(key=key, section=sec if isinstance(sec, dict) else {})
+    return copy.deepcopy(_YAML_CACHE['section'])
+
+
 def configured_nets() -> List[Dict[str, Any]]:
     """``sajhanet.nets`` as a list of objects (``SAJHA_SAJHANET_NETS`` as a JSON list, else the
     YAML list); an entry without a name is the net ``default``."""
@@ -60,16 +89,7 @@ def configured_nets() -> List[Dict[str, Any]]:
             logger.warning('SAJHA_SAJHANET_NETS is not a JSON list; ignored')
             nets = []
     else:
-        path = Path(os.environ.get('SAJHA_CONFIG_FILE', 'config/application.yml'))
-        if not path.is_absolute():
-            path = Path.cwd() / path
-        try:
-            import yaml
-            data = yaml.safe_load(path.read_text(encoding='utf-8')) or {} if path.exists() else {}
-            nets = (data.get('sajhanet') or {}).get('nets') or []
-        except Exception as e:
-            logger.warning(f'sajhanet.nets: cannot read {path}: {e}')
-            nets = []
+        nets = yaml_section().get('nets') or []
     out = []
     for n in nets if isinstance(nets, list) else []:
         if isinstance(n, dict):

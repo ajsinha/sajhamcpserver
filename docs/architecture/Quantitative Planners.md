@@ -2,8 +2,8 @@
 
 > **Status: built (8.9.0).** Wave 8, phase 8.2 of the
 > [Implementation Plan](Implementation%20Plan.md#7b-wave-8-tool-health-open-data-business-intelligence-and-reports).
-> Every section describes the code, except where it says *planned*: showing a figure's lineage on
-> the Ask SAJHA page (2.1) and the `x-sajha-unit` keyword (2.2), both Roadmap L60.
+> Every section describes the code, including a figure's lineage on the Ask SAJHA page (2.1) and the
+> `x-sajha-unit` keyword (2.2), which finished the phase (Roadmap L60).
 > It builds on the planner engine (`sajha/ai/planners_engine/`, [Planner Reference](Planner%20Reference.md)),
 > the [Sandbox](Sandbox.md), DuckDB and the evals of [Tool Quality](Tool%20Quality.md) §5, and each of
 > those has its own guide. A walk-through is
@@ -72,8 +72,24 @@ A run's **workspace** (`Workspace`) holds its named quantities. It lives in the 
 (`run("pct_change", "cpi_then", "cpi_now", name="inflation")`), so every result's lineage leads
 back, through `lineage(name)`, to the tool calls (its **lineage**). When a run ends with a
 workspace that is not empty, the ask's result (the run record) carries it as JSON
-(`workspace.quantities`, each with its lineage). Showing a figure's lineage on the Ask SAJHA page
-when the figure is selected is planned.
+(`workspace.quantities`, each with its lineage).
+
+**Lineage on the Ask SAJHA page.** After the answer, the service finds the answer's figures that
+match a workspace quantity, by the rules of the numbers validator (2.4; `workspace_figures` in
+`sajha/ai/planners_engine/numbers.py`): where several quantities match, a computed one is preferred
+to a value read from a tool, and that to a constant. The result's `figures` lists them
+(`start`, `end` in code points, `text`, `quantity`), and the stream sends a `workspace` event after
+`answer` with the figures and `quantities`: each marked quantity and everything its lineage reaches
+(`Workspace.view`; a column or grid keeps its first 24 numbers, with `cells` the full count). The
+page (`sajha/web/static/js/ask_lineage.js`) makes each marked figure a button. Selecting one opens a
+panel under the answer with the figure's lineage: the operation and its arguments, then each input
+recursively, down to the tool calls, each with its tool, call id, arguments, JSON path, as-of date
+(or "not stated"), unit, and whether the tool's output schema or the model declared the unit. The
+buttons are in the tab order, with an accessible name ("4.09%: show how it was computed"),
+`aria-expanded` and `aria-controls`. Escape or Close shuts the panel and returns focus to the
+figure. The page builds all of this with `textContent`, so no markup is parsed from data. A JSON
+(non-streamed) reply carries the same `figures`, and the page builds the lineage from its
+`workspace`.
 
 ### 2.2 Units
 
@@ -88,10 +104,26 @@ when the figure is selected is planned.
 - **Conversions SAJHA never makes on its own:** between currencies (an FX rate has to be a
   quantity, used with `fx_convert`), and between a level (currency, count, index) and a rate. Each
   refusal says what to do instead.
-- **Where units come from:** `Quantity.from_tool` records `unit_from: schema` when the tool's
-  `outputSchema` declared the unit, else `declared` (the planner's, that is the model's,
-  declaration). The `x-sajha-unit` keyword that would let an `outputSchema` declare a unit is
-  planned.
+- **Where units come from:** a tool declares the unit of a result field with the keyword
+  `x-sajha-unit` on that property of its `outputSchema`, in the grammar above:
+  `{"type": "number", "x-sajha-unit": "percent"}`, `"USD mn"`, `"count k"`. A number sent as text
+  (FRED's observation values) may carry it on a `string` property. The keyword applies to the
+  property it is on, and to the items of an array it is on. It is followed through
+  `allOf`/`anyOf`/`oneOf`, local `$ref`s and `additionalProperties`. When a planner reads a value
+  at a JSONPath, `schema_unit(output_schema, path)` (`sajha/ai/quant/schema_units.py`) returns the
+  unit the schema declares for that path. A wildcard or `..name` that selects fields declaring
+  different units returns none, and so does a field that declares nothing. That unit replaces the
+  model's, and `Quantity.from_tool` records `unit_from: schema`. Otherwise the planner's
+  declaration (the model's) stands, recorded as `unit_from: declared`. `calc_graph` applies the
+  schema's unit before its unit check, so a tool read may leave out `unit` when the schema declares
+  it. `scenario` applies it to its grid's `value_path` and `reconcile` to each reading and FX rate.
+  JSON Schema validation (the `outputSchema` check of a result, Tool Quality) ignores the keyword,
+  as it ignores every `x-` keyword. Lint reports a unit outside the grammar as an error (rule
+  `unit`, [Tool Quality](Tool%20Quality.md) §3). The shipped tools that declare units include the
+  rate tools of `fred`, `ecb`, `bank_of_canada`, `bank_of_japan`, `bis` and `us_treasury`, most FRED
+  series (index levels, US dollar amounts at their scale, counts, prices) and the `calc` tools whose
+  outputs have a fixed unit. A unit that depends on the arguments (an exchange rate's currencies, a
+  generic series) is not declared.
 
 ### 2.3 The operation library
 
@@ -133,15 +165,27 @@ precision).
 
 The validator generalises `numbers_in_results`. A figure in an answer passes when it matches:
 
-1. a number in a tool result (today's rule, Planner Reference §9.1); or
-2. a quantity in the run's workspace, at the precision the answer writes it, in the quantity's unit
-   or a unit 2.2 converts to (so "45 bp", "0.45%" and "0.0045" all match a `bp_spread` of 45).
+1. a number in a tool result (Planner Reference §9.1); or
+2. a quantity in the run's workspace, at the precision the answer writes it, in the unit the figure
+   is written in (so "45 bp" and "0.45%" both match a `bp_spread` of 45).
 
-A figure written with a rate unit (`%` or "percent", "bp" or "basis points", "pp" or "percentage
-points") matches only a quantity expressed in that unit, so "45%" does not match 45 bp. A figure
-with a scale word ("1.5 bn") matches through its value and its mantissa, as in §9.1. The figures
-that are checked, and the tolerance, are those of `numbers_in_results`; a run with no workspace is
-checked exactly as `numbers_in_results` checks it.
+The unit decides what a figure may match:
+
+- **Written with a rate unit** (`%` or "percent", "bp" or "basis points", "pp" or "percentage
+  points"): only a quantity expressed in that unit (one the quantity converts to, 2.2), so "45%"
+  does not match 45 bp.
+- **Written with `%`, against tool results:** a result number known to be in percent (a string
+  "25%" or "25 percent", a value under a percent-like key such as `margin_pct`, `rate` or `yield`,
+  or in an object with `format` or `unit` `percent`), or any result number as a ratio (0.25 for
+  "25%"). A bare result 25 under a key that says nothing does not support "25%".
+- **Written with no unit:** a tool-result number, or a quantity in its own unit (a currency or a
+  count at any scale of it), or in the unit the text names just before the figure ("in bp: 45",
+  "(%) 0.45", "as a decimal, 0.0045"). Not every unit the quantity converts to: "400" does not
+  match 4% (as 400 bp), and a bare "0.0045" does not match 45 bp.
+
+A figure with a scale word ("1.5 bn") matches through its value and its mantissa, as in §9.1. The
+figures that are checked, and the tolerance, are those of `numbers_in_results`; a run with no
+workspace is checked exactly as `numbers_in_results` checks it (with the `%` rule above).
 
 It is registered as the verify check `numbers_in_workspace` (in
 `sajha/ai/planners_engine/checks.py`), so any planner file can use it, and it is the validator
@@ -201,7 +245,7 @@ answer_with: [inflation]
 ```
 
 - **Nodes.** A node is a **tool read** (`tool`, `arguments`, `read`: a JSONPath into the result,
-  `unit`: the declared unit, optional `as_of`), a **constant** the question states (`value`,
+  `unit`: the declared unit, which the tool's own `x-sajha-unit` replaces (2.2), optional `as_of`), a **constant** the question states (`value`,
   `unit`) or an **operation** (`op`, its arguments by the names of its signature in
   `operations()`, or `args` for positional ones). An argument that names a node (or `node.part`
   for `regression`'s parts) is a reference; anything else is a literal. `answer_with` names the
@@ -223,7 +267,8 @@ answer_with: [inflation]
   approvals and budgets apply to each); identical calls (same tool and arguments) run once, and a
   call already made earlier in the run with the same arguments is reused. Reads see each call's
   uncapped output (as `load_results` does) and become `Quantity.from_tool` quantities whose source
-  names the call id, tool, arguments, path and `unit_from: declared`. Operations then run in
+  names the call id, tool, arguments, path and `unit_from` (`schema` when the tool's `outputSchema`
+  declares the read's unit, 2.2, else `declared`). Operations then run in
   dependency order through `Workspace.run` with their unit checks, so each result's lineage leads
   back to the calls. A failed call or read fails its node and every node that needs it; a failed
   node that `answer_with` does not need becomes a caveat.
@@ -555,13 +600,23 @@ Phase 8.2 was built in this order, each step with its tests:
 5. **`research_writer` and `reconcile`** (unit and as-of alignment, the tolerance, refusal across
    currencies without an FX rate, in `tests/ai/test_scenario_reconcile.py`), then **`router` and
    `auto`, and the eval sets** (section 4, `tests/ai/test_quant_evals.py`).
+6. **Lineage on the Ask page and `x-sajha-unit`** (L60). `schema_unit` over paths, items,
+   `$ref`s, branches and maps; the keyword ignored by validation and checked by lint; the schema's
+   unit replacing the model's in `calc_graph`, `scenario` and `reconcile`; the shipped declarations;
+   the marked figures and the `workspace` event (`tests/ai/test_figure_lineage.py`). The page's
+   script and route, in a browser: buttons, their accessible names, the panel down to the tool call,
+   the keyboard and Escape (`tests/test_ask_lineage.py`).
 
 ---
 
 ## 7. Limits of this design
 
-- Units are only as good as their declaration. Until tools declare `x-sajha-unit` in their output
-  schemas, a unit read from a result is the model's declaration, recorded as declared.
+- Units are only as good as their declaration. A tool that declares `x-sajha-unit` for a field is
+  trusted for it. For any other field, and for a unit that depends on the arguments (no shipped
+  tool declares those), the unit is the model's declaration, recorded as `declared`. The lineage
+  panel says which.
+- The Ask page marks a figure that matches a quantity at the precision written. A figure that also
+  matches some other number is marked as the quantity, and a figure written in words is not marked.
 - The operation library is deliberately small; `code_act` is the escape hatch, and it is
   role-limited.
 - The numbers validator proves that a figure was computed from tool results, not that the right

@@ -85,6 +85,25 @@ The engine needs three facts the tool does not have:
 | the source | `sajha.policy.context`: `mcp`, `stdio`, `websocket`, `rest`, `playground`, `a2a`, `ask`, `async`, `workflow` (a workflow step, run as the workflow owner; docs/architecture/Workflows.md), `openai_api` (the OpenAI-compatible endpoint, its pseudo-tools `openai_api.chat_completions` and `openai_api.embeddings` and the LLM tools it runs as models; [LLM Tools](LLM%20Tools.md#134-sajha-as-an-openai-compatible-endpoint) section 13.4), `sajhanet` (a call forwarded from another instance of a SAJHA Net, run as the user it was mapped to; [SAJHA Net](SAJHA%20Net.md) section 11), else `other`. The first entry point to set it wins, so a stdio call stays `stdio` when it reaches the MCP handler; Ask SAJHA and workflows override it, because its tool calls are chosen by a model |
 | whether the caller confirmed | the MRTR answer on the 2026-07-28 path, or the Ask SAJHA confirm button (section 5) |
 
+**What a model is offered.** A tool the policy would refuse is also left out of what a model sees,
+not only refused when called. `PolicyEngine.denies(tool, source, caller)` (and
+`sajha.policy.offered`) answers "would every call of this tool from this source by this caller be
+denied?" with no side effects: no audit record, no decision counter, no rate-limit or quota hit, no
+approval. It evaluates the rules with no arguments, so only a `deny` rule that matches whatever the
+arguments are counts (a rule with `arguments` conditions does not), and under
+`policy.default_effect: deny` a tool counts as refused only when no `allow` rule could match it. The
+callers:
+
+- Ask SAJHA's shortlist, which is also what an LLM tool's planners are offered (its allowed set is
+  ranked through it), leaves out every tool refused for source `ask` and the asker
+  (`sajha/ai/intelligence.py`).
+- The OpenAI-compatible endpoint's model list (`/v1/models`) leaves out an LLM tool refused for
+  source `openai_api` and the caller, and refuses it as a model (`sajha/ai/openai_api.py`).
+
+So the shipped `sanctions_*` rule (`10-sanctions.yaml`), and any rule like it, keeps the tools out
+of a model's view; the call-time check stays as the backstop. With the policy engine off
+(`policy.enabled: false`) nothing is left out.
+
 ---
 
 ## 3. The rule language

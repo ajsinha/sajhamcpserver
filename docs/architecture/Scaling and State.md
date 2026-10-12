@@ -332,9 +332,11 @@ The AWS CDK stack runs several Fargate tasks with `SAJHA_STATE_BACKEND=database`
     stream, the WebSocket transport, `/oauth/authorize`, `/oauth/token` and the SSO callback runs
     in the thread pool (`run_in_threadpool`), and so do the tool and shell work of the contract-test
     and shell routes. Routes whose whole body is database work are plain `def` handlers, which
-    FastAPI runs in the thread pool. Some console API routes still make short queries on the event
-    loop after reading their request body (key and user administration, provider and model edits);
-    they hold no connection across an `await`, and the pool timeout bounds any wait.
+    FastAPI runs in the thread pool. A route that must read its request body first (an `async def`)
+    reads it, then runs its database part with `run_in_threadpool` (key and user administration,
+    sign-in and password changes, provider and model edits, composite tools, the credential files,
+    A2A tasks, the REST tool endpoint's usage row, the catalog routes' tool policy). No `async`
+    route in `sajha/routes/` makes a database call on the event loop.
   - *A dry pool answers at once.* A checkout waits at most `db.pool.timeout_seconds` (5 s), then
     the request is shed: HTTP 503 with `Retry-After: 1`; on `/mcp` a JSON-RPC error, code `-32000`,
     `data: {reason: "db_pool_exhausted", retryable: true, retryAfterSeconds: 1}`. It is never a hang,
@@ -346,8 +348,12 @@ The AWS CDK stack runs several Fargate tasks with `SAJHA_STATE_BACKEND=database`
     overflow), so its calls made on the event loop (session lookups, rate-limit counters) never
     wait behind request threads for a connection.
   - *Guards.* `tests/test_db_session_hold.py` reads every async route in `sajha/routes/` and fails
-    when one holds a database session across an `await` without releasing it (an AST check with an
-    explicit, commented allowlist, empty today). `tests/test_db_pool.py` drives a one-connection
+    when one holds a database session across an `await` without releasing it, and, stricter, when any
+    `async def` there (a route or an async helper it awaits) makes a database call on the event loop at
+    all: a DAO or session method called with the request's session or `AuthContext._db`, or a session
+    opened (`session_scope()`, `get_db_session()`), outside `await run_in_threadpool(...)`. Both are
+    AST checks with explicit, commented allowlists, empty today; a database call hidden inside a
+    synchronous helper that opens its own session is not visible to them. `tests/test_db_pool.py` drives a one-connection
     pool: a dry pool answers 503 fast on `/mcp` and the REST endpoint while `/health` answers, and
     a tool that raises, a route that raises after a database read and a client that disconnects
     mid-request all leave the checked-out count at its baseline. `tests/test_failure_behaviour.py`

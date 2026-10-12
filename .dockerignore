@@ -31,7 +31,7 @@ config/**/*.pem
 
 # Tests and the client SDK are not part of the server image
 tests/
-test/
+archive/
 clientsdk/
 
 # Pyodide downloads: vendored at build time with --build-arg PLAYGROUND_ASSETS=true

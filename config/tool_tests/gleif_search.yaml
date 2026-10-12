@@ -1,0 +1,18 @@
+# An HTTP tool with a recorded cassette (cassettes/gleif_search/deutsche_bank_in_germany.json): replays offline.
+# Re-record against the live API with: python -m sajha.quality test --tool gleif_search --record
+tool: gleif_search
+cases:
+  - name: deutsche bank in germany
+    tags: [http]
+    arguments: {"name": "Deutsche Bank", "country": "DE", "status": "ACTIVE"}
+    expect:
+      - schema: output
+      - path: "$.matched_by"
+        equals: "name"
+      - path: "$.result_count"
+        min: 1
+      - path: "$.results[*].legal_name"
+        contains: "DEUTSCHE BANK AKTIENGESELLSCHAFT"
+probe:
+  case: deutsche bank in germany
+  every: 3600

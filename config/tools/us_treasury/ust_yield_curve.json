@@ -98,7 +98,8 @@
                 "type": [
                   "number",
                   "null"
-                ]
+                ],
+                "x-sajha-unit": "percent"
               }
             },
             "bank_discount": {
@@ -107,7 +108,8 @@
                 "type": [
                   "number",
                   "null"
-                ]
+                ],
+                "x-sajha-unit": "percent"
               }
             }
           },

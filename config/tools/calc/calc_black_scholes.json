@@ -41,8 +41,19 @@
   "outputSchema": {
     "type": "object",
     "properties": {
-      "result": {
-        "type": "object"
+      "call_price": {
+        "type": "number"
+      },
+      "put_price": {
+        "type": "number"
+      },
+      "d1": {
+        "type": "number",
+        "x-sajha-unit": "unitless"
+      },
+      "d2": {
+        "type": "number",
+        "x-sajha-unit": "unitless"
       }
     }
   },

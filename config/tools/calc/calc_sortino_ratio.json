@@ -31,8 +31,9 @@
   "outputSchema": {
     "type": "object",
     "properties": {
-      "result": {
-        "type": "object"
+      "sortino_ratio": {
+        "type": "number",
+        "x-sajha-unit": "unitless"
       }
     }
   },

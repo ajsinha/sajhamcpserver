@@ -70,6 +70,7 @@
               "description": "Date of inflation reading (YYYY-MM format for monthly)"
             },
             "value": {
+              "x-sajha-unit": "percent",
               "type": [
                 "number",
                 "null"

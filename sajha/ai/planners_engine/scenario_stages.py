@@ -389,6 +389,12 @@ class Tabulate(StageType):
                 by_point[r["point"]] = r
         ws = workspace_of(rc.state, create=True)
         unit, path = grid["unit"], grid["value_path"]
+        from sajha.ai.planners_engine.quant_stages import schema_unit_of
+        from sajha.ai.quant import parse_unit
+        unit_from = "declared"
+        declared = schema_unit_of(rc.state, grid["tool"], path)     # the tool's own x-sajha-unit wins (§2.2)
+        if declared:
+            unit, unit_from = str(parse_unit(declared)), "schema"
         pre = st.id
         rows: List[Dict[str, Any]] = []
         for p in points:
@@ -414,7 +420,8 @@ class Tabulate(StageType):
             name = f"{pre}.{p['id']}"
             try:
                 q = Quantity.from_tool(value, unit, call_id=r["id"], tool=str(r.get("tool") or grid["tool"]),
-                                       path=path, arguments=r.get("arguments") or {}, as_of=as_of)
+                                       path=path, arguments=r.get("arguments") or {}, as_of=as_of,
+                                       unit_from=unit_from)
                 ws.put(name, q, replace=True)
             except QuantError as e:
                 row["error"] = f"the value at {path} is not usable: {e}"[:200]

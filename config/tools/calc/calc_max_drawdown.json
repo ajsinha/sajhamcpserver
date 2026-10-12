@@ -24,8 +24,10 @@
   "outputSchema": {
     "type": "object",
     "properties": {
-      "result": {
-        "type": "object"
+      "max_drawdown": {
+        "type": "number",
+        "description": "The largest peak-to-trough fall",
+        "x-sajha-unit": "percent"
       }
     }
   },

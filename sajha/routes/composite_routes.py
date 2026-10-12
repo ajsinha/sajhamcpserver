@@ -9,6 +9,7 @@ a non-admin may change or delete only the composites they created.
 import json, logging
 from fastapi import APIRouter, Request, Depends
 from fastapi.responses import JSONResponse
+from starlette.concurrency import run_in_threadpool
 from sqlalchemy.orm import Session
 from sajha.auth import AuthContext, require_auth, require_creator
 from sajha.db.engine import get_db
@@ -55,40 +56,46 @@ def api_get(name: str, auth: AuthContext = Depends(require_auth), db: Session = 
 async def api_create(request: Request, auth: AuthContext = Depends(require_creator('composite')), db: Session = Depends(get_db)):
     from sajha.db.dao import CompositeToolDAO
     data = await request.json()
-    dao = CompositeToolDAO(db)
-    if dao.get_by_name(data.get('name', '')):
-        return JSONResponse({'error': 'Name already exists'}, status_code=409)
-    rec = dao.create(
-        name=data['name'], master_tool=data['master_tool'],
-        arrangement=data.get('arrangement', 'sibling'),
-        description=data.get('description', ''),
-        master_output_key=data.get('master_output_key', 'master'),
-        record_path=data.get('record_path', ''),
-        created_by=auth.user_id,
-        steps=data.get('steps', []),
-    )
-    # Build and register the tool immediately
-    _rebuild_composite(db, rec.name)
-    return JSONResponse({'success': True, 'name': rec.name})
+
+    def work():                     # the database part, in the thread pool (Scaling and State §7)
+        dao = CompositeToolDAO(db)
+        if dao.get_by_name(data.get('name', '')):
+            return JSONResponse({'error': 'Name already exists'}, status_code=409)
+        rec = dao.create(
+            name=data['name'], master_tool=data['master_tool'],
+            arrangement=data.get('arrangement', 'sibling'),
+            description=data.get('description', ''),
+            master_output_key=data.get('master_output_key', 'master'),
+            record_path=data.get('record_path', ''),
+            created_by=auth.user_id,
+            steps=data.get('steps', []),
+        )
+        # Build and register the tool immediately
+        _rebuild_composite(db, rec.name)
+        return JSONResponse({'success': True, 'name': rec.name})
+    return await run_in_threadpool(work)
 
 
 @router.put('/api/composite-tools/{name}')
 async def api_update(name: str, request: Request, auth: AuthContext = Depends(require_creator('composite')), db: Session = Depends(get_db)):
     from sajha.db.dao import CompositeToolDAO
     data = await request.json()
-    if not isinstance(data, dict):
-        return JSONResponse({'error': 'Expected a JSON object'}, status_code=400)
-    for key in ('id', 'created_by', 'created_at'):
-        data.pop(key, None)
-    dao = CompositeToolDAO(db)
-    refused = _not_owner(dao, name, auth)
-    if refused:
-        return refused
-    rec = dao.update(name, **data)
-    if not rec:
-        return JSONResponse({'error': 'Not found'}, status_code=404)
-    _rebuild_composite(db, name)
-    return JSONResponse({'success': True})
+
+    def work():                     # the database part, in the thread pool (Scaling and State §7)
+        if not isinstance(data, dict):
+            return JSONResponse({'error': 'Expected a JSON object'}, status_code=400)
+        for key in ('id', 'created_by', 'created_at'):
+            data.pop(key, None)
+        dao = CompositeToolDAO(db)
+        refused = _not_owner(dao, name, auth)
+        if refused:
+            return refused
+        rec = dao.update(name, **data)
+        if not rec:
+            return JSONResponse({'error': 'Not found'}, status_code=404)
+        _rebuild_composite(db, name)
+        return JSONResponse({'success': True})
+    return await run_in_threadpool(work)
 
 
 @router.delete('/api/composite-tools/{name}')

@@ -253,3 +253,31 @@ def test_system_monitor_shows_the_pool(web):
     assert ":" not in me["url"].split("@")[0].split("//")[-1] or "***" in me["url"]    # no password
     page = client.get("/admin/system-monitor", cookies=admin)
     assert page.status_code == 200 and "Database Connection Pool" in page.text
+
+
+def test_system_monitor_versions_are_derived(web):
+    """No restated version strings: the app version is app.version, the protocol versions the eras'."""
+    from sajha.core.config import get_settings
+    from sajha.core.mcp_modern import MODERN_PROTOCOL_VERSIONS
+    from sajha.core.mcp_2025_11_25 import LATEST_PROTOCOL_VERSION
+    client, admin = web
+    d = client.get("/api/admin/system-monitor", cookies=admin).json()
+    assert d["sajha_version"] == get_settings().app_version
+    assert d["mcp_protocol_versions"] == [MODERN_PROTOCOL_VERSIONS[0], LATEST_PROTOCOL_VERSION]
+
+
+def test_provider_health_is_derived_from_the_registry(web):
+    """Providers and tool counts come from the live registry's tool domains, not a restated table."""
+    from sajha.app import tools_registry
+    from sajha.tools import domains as D
+    client, admin = web
+    providers = client.get("/api/providers/health", cookies=admin).json()["providers"]
+    by_key = {p["prefix"]: p for p in providers}
+    counts = {}
+    for name, tool in tools_registry.tools.items():
+        key = D.key_of_name(tools_registry, name, tool)
+        if key:
+            counts[key] = counts.get(key, 0) + 1
+    assert {k: p["registered_tools"] for k, p in by_key.items()} == counts
+    for p in providers:
+        assert p["provider"] == D.domain_label(p["prefix"]) and p["status"] in ("healthy", "degraded", "down")

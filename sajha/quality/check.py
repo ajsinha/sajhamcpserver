@@ -17,8 +17,11 @@ Net tools (their own servers' business), tools bound to connected accounts, disa
 empty is ``not_configured`` without a call.
 
 Outcomes: ``ok``, ``empty``, ``error``, ``schema_mismatch``, ``not_configured``, ``not_checked``,
-``skipped``. Broken means ``error`` or ``schema_mismatch``. Load on upstreams: one call at a time
-per tool folder (a provider), ``quality.check.pause_ms`` between calls in a folder, at most
+``skipped``. Broken means ``error`` or ``schema_mismatch``; a rate-limited call (429) is an ``error``,
+never ``not_configured``. A tool class with ``keyless_fallback = True`` is called even when its key
+is empty. Load on upstreams: one call at a time per tool folder (a provider),
+``quality.check.pause_ms`` between calls in a folder (longer when the tool's
+``check_pause_seconds`` asks for it), at most
 ``quality.check.concurrency`` folders at once, ``quality.check.timeout_seconds`` per call and a
 total ``quality.check.budget_seconds``. One ``quality.check:<folder>`` warning notice per folder
 with broken tools; it clears when the folder passes. The optional schedule
@@ -48,6 +51,7 @@ NOTICE_PREFIX = 'quality.check:'
 STATE_KEY = 'quality:check:last'
 
 _KEY_FIELDS = re.compile(r'(^|_)(api_?key|apikey|token|access_key|secret)$', re.I)
+_RATE_LIMITED = re.compile(r'(rate[\s-]?limit|HTTP 429|too many requests)', re.I)
 _NEEDS_KEY = re.compile(r'(api[\s_-]?key|apikey|access[\s_-]?token|not configured|no credentials?|'
                         r'credentials? (are |is )?(missing|required)|requires? an? (api )?key|'
                         r'environment variable [A-Z0-9_]+ (is )?not set)', re.I)
@@ -153,7 +157,11 @@ def skip_reason(tool: Any, excludes: Optional[List[str]] = None) -> str:
 
 
 def missing_key(tool: Any) -> str:
-    """The name of a configured key field that is empty or an unresolved ``${...}`` ('' when none)."""
+    """The name of a configured key field that is empty or an unresolved ``${...}`` ('' when none).
+    A tool whose class sets ``keyless_fallback = True`` works without its key (a public or demo tier),
+    so an empty key is not a reason to skip the call."""
+    if getattr(tool, 'keyless_fallback', False) is True:
+        return ''
     cfg = getattr(tool, 'config', None) or {}
     for k, v in cfg.items():
         if not isinstance(k, str) or not _KEY_FIELDS.search(k):
@@ -183,11 +191,15 @@ def classify(tool: Any, result: Any = None, error: Optional[BaseException] = Non
     """``(outcome, message, error class)`` for one finished call."""
     if error is not None:
         msg = f'{type(error).__name__}: {error}'
+        if _RATE_LIMITED.search(str(error)):        # the upstream refused the call: not a missing key
+            return 'error', msg[:500], type(error).__name__
         if _NEEDS_KEY.search(str(error)):
             return 'not_configured', msg[:500], type(error).__name__
         return 'error', msg[:500], type(error).__name__
     if isinstance(result, dict) and result.get('error'):
         text = str(result.get('error'))
+        if _RATE_LIMITED.search(text):
+            return 'error', text[:500], 'error-result'
         if _NEEDS_KEY.search(text):
             return 'not_configured', text[:500], 'error-result'
         return 'error', text[:500], 'error-result'
@@ -260,6 +272,14 @@ def check_tool(tool: Any, folder: str, cases: Optional[List[Any]] = None, probe_
 
 # ── a run ───────────────────────────────────────────────────────────────────
 
+def _tool_pause(tool: Any) -> float:
+    """Seconds the tool asks between calls to its provider (``check_pause_seconds``; 0 when none)."""
+    try:
+        return max(0.0, float(getattr(tool, 'check_pause_seconds', 0) or 0))
+    except (TypeError, ValueError):
+        return 0.0
+
+
 def _folder_of(registry: Any, name: str) -> str:
     try:
         f = registry.tool_folder(name)
@@ -301,8 +321,11 @@ def run_check(registry: Any, tool_glob: str = '', folder: str = '', suite: Any =
             if time.monotonic() > deadline:
                 out.append(CheckResult(name, f, 'skipped', 'the run reached quality.check.budget_seconds'))
                 continue
-            if called and pause > 0 and not skip_reason(tool, excludes):
-                time.sleep(pause)
+            # a tool that paces its provider (check_pause_seconds, e.g. a keyless per-minute limit) is
+            # called no faster than that, so the check itself does not trip the limit
+            wait = max(pause, _tool_pause(tool))
+            if called and wait > 0 and not skip_reason(tool, excludes):
+                time.sleep(min(wait, max(0.0, deadline - time.monotonic())))
             spec = probes.get(name)
             r = check_tool(tool, f, suite.for_tool(name) if suite is not None else [],
                            getattr(spec, 'case', '') if spec else '', timeout, excludes)

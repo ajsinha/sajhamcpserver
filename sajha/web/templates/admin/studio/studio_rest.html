@@ -304,7 +304,7 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
     </div>
 
     <!-- Status Message -->
-    <div id="statusMessage" class="status-message"></div>
+    <div id="statusMessage" class="status-message" role="status" aria-live="polite"></div>
 
     <div class="row">
         <!-- Main Form -->
@@ -318,19 +318,19 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
                 <div class="section-body">
                     <div class="row mb-3">
                         <div class="col-md-6">
-                            <label class="form-label fw-bold">{{ _('Tool Name') }} <span class="text-danger">*</span></label>
+                            <label for="toolName" class="form-label fw-bold">{{ _('Tool Name') }} <span class="text-danger">*</span></label>
                             <input type="text" id="toolName" class="form-control" 
                                    placeholder="my_api_tool" pattern="[a-z][a-z0-9_]*">
                             <div class="form-text">{{ _('Lowercase letters, numbers, and underscores only (min 3 chars)') }}</div>
                         </div>
                         <div class="col-md-6">
-                            <label class="form-label fw-bold">{{ _('Category') }}</label>
+                            <label for="toolCategory" class="form-label fw-bold">{{ _('Category') }}</label>
                             <input type="text" id="toolCategory" class="form-control" 
                                    value="REST API" placeholder="{{ _('e.g., Finance, Weather, Data') }}">
                         </div>
                     </div>
                     <div class="mb-3">
-                        <label class="form-label fw-bold">{{ _('Description') }} <span class="text-danger">*</span></label>
+                        <label for="toolDescription" class="form-label fw-bold">{{ _('Description') }} <span class="text-danger">*</span></label>
                         <textarea id="toolDescription" class="form-control" rows="2" 
                                   placeholder="Describe what this tool does..."></textarea>
                     </div>
@@ -363,7 +363,7 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
                         </div>
                     </div>
                     <div class="mb-3">
-                        <label class="form-label fw-bold">{{ _('REST Endpoint URL') }} <span class="text-danger">*</span></label>
+                        <label for="endpointUrl" class="form-label fw-bold">{{ _('REST Endpoint URL') }} <span class="text-danger">*</span></label>
                         <input type="url" id="endpointUrl" class="form-control form-control-lg" 
                                placeholder="https://api.example.com/v1/data">
                         <div class="form-text">
@@ -372,7 +372,7 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
                     </div>
                     <div class="row">
                         <div class="col-md-6">
-                            <label class="form-label fw-bold">{{ _('Content Type') }}</label>
+                            <label for="contentType" class="form-label fw-bold">{{ _('Content Type') }}</label>
                             <select id="contentType" class="form-select">
                                 <option value="application/json" selected>application/json</option>
                                 <option value="application/x-www-form-urlencoded">application/x-www-form-urlencoded</option>
@@ -381,7 +381,7 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
                             </select>
                         </div>
                         <div class="col-md-6">
-                            <label class="form-label fw-bold">{{ _('Timeout (seconds)') }}</label>
+                            <label for="timeout" class="form-label fw-bold">{{ _('Timeout (seconds)') }}</label>
                             <input type="number" id="timeout" class="form-control" value="30" min="1" max="300">
                         </div>
                     </div>
@@ -420,11 +420,11 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
                     <div id="apiKeyFields" class="auth-section" style="display: none;">
                         <div class="row">
                             <div class="col-md-6">
-                                <label class="form-label">{{ _('API Key Header Name') }}</label>
+                                <label for="apiKeyHeader" class="form-label">{{ _('API Key Header Name') }}</label>
                                 <input type="text" id="apiKeyHeader" class="form-control" value="X-API-Key">
                             </div>
                             <div class="col-md-6">
-                                <label class="form-label">{{ _('API Key Value') }}</label>
+                                <label for="apiKeyValue" class="form-label">{{ _('API Key Value') }}</label>
                                 <input type="password" id="apiKeyValue" class="form-control" placeholder="{{ _('Your API key') }}">
                             </div>
                         </div>
@@ -434,11 +434,11 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
                     <div id="basicAuthFields" class="auth-section" style="display: none;">
                         <div class="row">
                             <div class="col-md-6">
-                                <label class="form-label">{{ _('Username') }}</label>
+                                <label for="basicAuthUsername" class="form-label">{{ _('Username') }}</label>
                                 <input type="text" id="basicAuthUsername" class="form-control" placeholder="{{ _('Username') }}">
                             </div>
                             <div class="col-md-6">
-                                <label class="form-label">{{ _('Password') }}</label>
+                                <label for="basicAuthPassword" class="form-label">{{ _('Password') }}</label>
                                 <input type="password" id="basicAuthPassword" class="form-control" placeholder="{{ _('Password') }}">
                             </div>
                         </div>
@@ -459,8 +459,8 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
                             <div class="header-row d-flex gap-2 mb-2">
                                 <input type="text" class="form-control header-name" placeholder="{{ _('Header Name') }}">
                                 <input type="text" class="form-control header-value" placeholder="{{ _('Header Value') }}">
-                                <button type="button" class="btn btn-outline-danger btn-sm" data-onclick="removeHeader(this)">
-                                    <i class="bi bi-trash"></i>
+                                <button type="button" class="btn btn-outline-danger btn-sm" data-onclick="removeHeader(this)" aria-label="{{ _('Remove header') }}" title="{{ _('Remove header') }}">
+                                    <i class="bi bi-trash" aria-hidden="true"></i>
                                 </button>
                             </div>
                         </div>
@@ -481,7 +481,7 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
                     <p class="text-muted small mb-2">
                         {{ _('Define the input parameters as JSON Schema. This will be used for input validation.') }}
                     </p>
-                    <textarea id="requestSchema" class="form-control schema-editor" rows="10">{
+                    <textarea id="requestSchema" class="form-control schema-editor" rows="10" aria-label="{{ _('Input schema (JSON Schema)') }}">{
   "type": "object",
   "properties": {
     "query": {
@@ -537,7 +537,7 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
                         </div>
                         <div class="row">
                             <div class="col-md-4">
-                                <label class="form-label">{{ _('Delimiter') }}</label>
+                                <label for="csvDelimiter" class="form-label">{{ _('Delimiter') }}</label>
                                 <select id="csvDelimiter" class="form-select form-select-sm">
                                     <option value="," selected>{{ _('Comma (,)') }}</option>
                                     <option value=";">{{ _('Semicolon (;)') }}</option>
@@ -546,14 +546,14 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
                                 </select>
                             </div>
                             <div class="col-md-4">
-                                <label class="form-label">{{ _('Header Row') }}</label>
+                                <label for="csvHasHeader" class="form-label">{{ _('Header Row') }}</label>
                                 <select id="csvHasHeader" class="form-select form-select-sm">
                                     <option value="true" selected>{{ _('First row is header') }}</option>
                                     <option value="false">{{ _('No header row') }}</option>
                                 </select>
                             </div>
                             <div class="col-md-4">
-                                <label class="form-label">{{ _('Skip Rows') }}</label>
+                                <label for="csvSkipRows" class="form-label">{{ _('Skip Rows') }}</label>
                                 <input type="number" id="csvSkipRows" class="form-control form-control-sm" value="0" min="0" max="100">
                                 <div class="form-text">{{ _('Rows to skip before header/data') }}</div>
                             </div>
@@ -574,7 +574,7 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
                         <p class="text-muted small mb-2">
                             {{ _('Define the expected response format as JSON Schema. For CSV responses, schema is auto-generated.') }}
                         </p>
-                        <textarea id="responseSchema" class="form-control schema-editor" rows="8">{
+                        <textarea id="responseSchema" class="form-control schema-editor" rows="8" aria-label="{{ _('Response schema (JSON Schema)') }}">{
   "type": "object",
   "properties": {
     "success": {"type": "boolean"},
@@ -608,32 +608,32 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
                     {{ _('Quick Examples - Click to Load') }}
                 </div>
                 <div class="section-body">
-                    <div class="example-card" data-onclick="loadExample('weather')">
+                    <div class="example-card" role="button" tabindex="0" data-onclick="loadExample('weather')">
                         <h6><i class="bi bi-cloud-sun me-1"></i>{{ _('Open-Meteo Weather') }}</h6>
                         <p>{{ _('Free weather API - no auth required') }}</p>
                         <span class="method-badge bg-success text-white">GET</span>
                     </div>
-                    <div class="example-card" data-onclick="loadExample('jsonplaceholder')">
+                    <div class="example-card" role="button" tabindex="0" data-onclick="loadExample('jsonplaceholder')">
                         <h6><i class="bi bi-file-post me-1"></i>{{ _('JSONPlaceholder Posts') }}</h6>
                         <p>{{ _('Demo REST API - Create posts') }}</p>
                         <span class="method-badge bg-primary text-white">POST</span>
                     </div>
-                    <div class="example-card" data-onclick="loadExample('github')">
+                    <div class="example-card" role="button" tabindex="0" data-onclick="loadExample('github')">
                         <h6><i class="bi bi-github me-1"></i>{{ _('GitHub User Info') }}</h6>
                         <p>{{ _('Path parameter example: /users/{username}') }}</p>
                         <span class="method-badge bg-success text-white">GET</span>
                     </div>
-                    <div class="example-card" data-onclick="loadExample('coinbase')">
+                    <div class="example-card" role="button" tabindex="0" data-onclick="loadExample('coinbase')">
                         <h6><i class="bi bi-currency-bitcoin me-1"></i>{{ _('Coinbase Prices') }}</h6>
                         <p>{{ _('Cryptocurrency spot prices') }}</p>
                         <span class="method-badge bg-success text-white">GET</span>
                     </div>
-                    <div class="example-card" data-onclick="loadExample('catfact')">
+                    <div class="example-card" role="button" tabindex="0" data-onclick="loadExample('catfact')">
                         <h6><i class="bi bi-emoji-smile me-1"></i>{{ _('Random Cat Facts') }}</h6>
                         <p>{{ _('Simple no-parameter API') }}</p>
                         <span class="method-badge bg-success text-white">GET</span>
                     </div>
-                    <div class="example-card example-accent" data-onclick="loadExample('fred_csv')">
+                    <div class="example-card example-accent" role="button" tabindex="0" data-onclick="loadExample('fred_csv')">
                         <h6><i class="bi bi-file-earmark-spreadsheet me-1 text-primary"></i>{{ _('FRED Economic Data') }}</h6>
                         <p>{{ _('CSV response example - economic data') }}</p>
                         <span class="method-badge bg-success text-white">GET</span>
@@ -835,7 +835,7 @@ function renderTags() {
     tags.forEach((tag, idx) => {
         const tagEl = document.createElement('span');
         tagEl.className = 'tag';
-        tagEl.innerHTML = `${tag}<span class="remove-tag" data-onclick="removeTag(${idx})">&times;</span>`;
+        tagEl.innerHTML = `${tag}<span class="remove-tag" role="button" tabindex="0" data-onclick="removeTag(${idx})" aria-label="${_t('Remove tag')}" title="${_t('Remove tag')}">&times;</span>`;
         container.appendChild(tagEl);
     });
     container.appendChild(input);
@@ -853,8 +853,8 @@ function addHeader() {
     row.innerHTML = `
         <input type="text" class="form-control header-name" placeholder="${_t('Header Name')}">
         <input type="text" class="form-control header-value" placeholder="${_t('Header Value')}">
-        <button type="button" class="btn btn-outline-danger btn-sm" data-onclick="removeHeader(this)">
-            <i class="bi bi-trash"></i>
+        <button type="button" class="btn btn-outline-danger btn-sm" data-onclick="removeHeader(this)" aria-label="${_t('Remove header')}" title="${_t('Remove header')}">
+            <i class="bi bi-trash" aria-hidden="true"></i>
         </button>
     `;
     list.appendChild(row);

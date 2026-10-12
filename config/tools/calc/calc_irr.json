@@ -24,8 +24,17 @@
   "outputSchema": {
     "type": "object",
     "properties": {
-      "result": {
-        "type": "object"
+      "cash_flows": {
+        "type": "array",
+        "items": {
+          "type": "number"
+        },
+        "description": "The cash flows given"
+      },
+      "irr": {
+        "type": "number",
+        "description": "Internal rate of return per period",
+        "x-sajha-unit": "percent"
       }
     }
   },

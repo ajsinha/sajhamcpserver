@@ -9,6 +9,7 @@ WACC, loan amortization, Sharpe/Sortino ratios, Monte Carlo, DCF, etc.
 import math, logging
 from typing import Dict, Any, List
 from sajha.tools.base_mcp_tool import BaseMCPTool
+from sajha.core import outbound
 
 logger = logging.getLogger(__name__)
 
@@ -189,7 +190,7 @@ class CalcCurrencyConverterTool(CalcBaseTool):
         fr, to, amt = a.get('from','USD'), a.get('to','EUR'), a.get('amount',1)
         try:
             url = f"https://open.er-api.com/v6/latest/{fr}"
-            with urllib.request.urlopen(url, timeout=10) as resp:
+            with outbound.urlopen(url, timeout=10) as resp:
                 data = json.loads(resp.read())
                 rates = data.get('rates') or {}
                 if not rates:

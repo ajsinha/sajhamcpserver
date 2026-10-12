@@ -47,7 +47,11 @@ def run_check(name, draft, results=(), question="", workspace=None, **settings):
     ("About 101.5 units.", {"n": 100.0}, False),
     ("The change is 31.7.", {"v": 31.66667}, True),                    # rounded to the draft's places
     ("Margin was 25%.", {"m": 0.25}, True),                            # d / 100
-    ("Margin was 25%.", {"m": 25}, True),
+    ("Margin was 25%.", {"m": 25}, False),                           # a bare 25 is not 25 percent (§2.4)
+    ("Margin was 25%.", {"margin_pct": 25}, True),                     # a result known to be in percent
+    ("Margin was 25%.", {"margin": {"value": 25, "format": "percent"}}, True),
+    ("Margin was 25%.", {"text": "a margin of 25% in 2025"}, True),
+    ("Margin was 25 percent.", {"m": 25}, False),
     ("Revenue was 1.2 billion.", {"r": 1200000000}, True),             # scale word
     ("Revenue was 1.2 billion.", {"r": 1.2}, True),                    # the unscaled mantissa
     ("Revenue was 4.5 bn.", {"text": "revenue of 4.5 bn in 2025"}, True),   # numbers inside strings
@@ -97,14 +101,35 @@ def spread_ws():
 
 @pytest.mark.parametrize("draft,ok", [
     ("The spread is 45 bp.", True), ("The spread is 45bps.", True), ("The spread is 45 basis points.", True),
-    ("The spread is 0.45%.", True), ("The spread is 0.45 percent.", True), ("The spread is 0.0045.", True),
-    ("The spread is 45.", True), ("The spread is 0.45 pp.", True),
+    ("The spread is 0.45%.", True), ("The spread is 0.45 percent.", True), ("The spread is 45.", True),
+    ("The spread is 0.45 pp.", True), ("The spread as a decimal is 0.0045.", True), ("Spread (in bp): 45.", True),
     ("The spread is 45%.", False), ("The spread is 0.45 bp.", False), ("The spread is 46 bp.", False),
+    ("The spread is 0.0045.", False),                                  # a bare figure: the quantity's own unit only
 ])
 def test_a_bp_spread_matches_in_every_rate_unit(draft, ok):
     assert (run_check("numbers_in_workspace", draft, workspace=spread_ws()) == []) is ok
     if ok and draft != "The spread is 45.":
         assert run_check("numbers_in_results", draft) != []           # no tool result has it
+
+
+@pytest.mark.parametrize("draft,ok", [
+    ("Inflation was 4.5%.", True), ("Inflation was 450 bp.", True), ("Inflation was 4.5.", True),
+    ("Inflation, in bp, was 450.", True),
+    ("Inflation was 450.", False),                                     # not 4.5% read as 450 bp
+    ("Inflation was 0.045.", False),                                   # nor as a ratio, unless the text says so
+])
+def test_a_bare_figure_does_not_match_every_convertible_unit(draft, ok):
+    ws = Workspace()
+    ws.put("infl", Quantity.of(4.5, "percent"))
+    assert (run_check("numbers_in_workspace", draft, workspace=ws) == []) is ok
+
+
+def test_a_percent_figure_does_not_match_a_bare_result_number():
+    ws = Workspace()
+    ws.put("count", Quantity.of(25, "count"))
+    assert len(run_check("numbers_in_workspace", "Up 25%.", [{"n": 25}], workspace=ws)) == 1
+    assert run_check("numbers_in_workspace", "Up 25%.", [{"growth_pct": 25}], workspace=ws) == []
+    assert run_check("numbers_in_workspace", "Up 25%.", [{"n": 0.25}], workspace=ws) == []   # a ratio x 100
 
 
 def test_precision_written_and_currency_scales():
@@ -281,11 +306,11 @@ def test_the_verify_stage_reads_the_run_workspace(put_spread, text, stage):
 
 
 def test_the_service_check_uses_the_workspace_when_the_run_has_one(put_spread):
-    gw = scripted([CALL, {"text": "The spread is 45 bp (0.0045), and the change 25%; also 9.9."}])
+    gw = scripted([CALL, {"text": "The spread is 45 bp (as a decimal 0.0045), and the change 25%; also 9.9 and 0.0045."}])
     p = dict(quant_planner(), settings={"numbers_check": "warn"})
     events = list(service(gw).stream_ask(PCT, RequestContext(user_id="u"), planner=p, planner_info=INLINE))
     ev = [e for e in events if e["type"] == "numbers_check"][0]
-    assert ev["check"] == "numbers_in_workspace" and ev["unmatched"] == ["9.9"]
+    assert ev["check"] == "numbers_in_workspace" and ev["unmatched"] == ["9.9", "0.0045"]
 
 
 def test_a_bare_yaml_off_is_off():

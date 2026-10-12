@@ -1,0 +1,18 @@
+# An HTTP tool with a recorded cassette (cassettes/gleif_children/apple_direct_children.json): replays offline.
+# Re-record against the live API with: python -m sajha.quality test --tool gleif_children --record
+tool: gleif_children
+cases:
+  - name: apple direct children
+    tags: [http]
+    arguments: {"lei": "HWUPKR0MPOU8FGXBT394", "level": "direct"}
+    expect:
+      - schema: output
+      - path: "$.result_count"
+        min: 1
+      - path: "$.children[*].lei"
+        regex: "^[A-Z0-9]{20}$"
+      - path: "$.source"
+        regex: "GLEIF"
+probe:
+  case: apple direct children
+  every: 3600

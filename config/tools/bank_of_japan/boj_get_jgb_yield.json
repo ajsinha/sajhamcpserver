@@ -69,6 +69,7 @@
               "description": "Date of yield observation (YYYY-MM-DD format)"
             },
             "value": {
+              "x-sajha-unit": "percent",
               "type": [
                 "number",
                 "null"

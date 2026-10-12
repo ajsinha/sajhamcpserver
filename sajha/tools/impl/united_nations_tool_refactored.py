@@ -16,12 +16,17 @@ from datetime import datetime
 from sajha.tools.base_mcp_tool import BaseMCPTool
 from sajha.tools.http_utils import safe_json_response, ENCODINGS_ALL
 from sajha.tools.impl.country_codes import to_m49
+from sajha.core import outbound
 
 
 class UnitedNationsBaseTool(BaseMCPTool):
     """
     Base class for United Nations tools with shared functionality
     """
+
+    #: without COMTRADE_API_KEY the Comtrade tools use the keyless public preview API, and the SDG
+    #: tools need no key at all (the live check still calls them)
+    keyless_fallback = True
     
     def __init__(self, config: Dict = None):
         """Initialize United Nations base tool"""
@@ -159,7 +164,7 @@ class UnitedNationsBaseTool(BaseMCPTool):
     def _http_get_json(self, url: str, headers: Optional[Dict[str, str]] = None) -> Any:
         req = urllib.request.Request(url, headers={
             'User-Agent': 'SAJHA-MCP-Server', 'Accept': 'application/json', **(headers or {})})
-        with urllib.request.urlopen(req, timeout=30) as response:
+        with outbound.urlopen(req, timeout=30) as response:
             return safe_json_response(response, ENCODINGS_ALL)
 
     def _comtrade_query(self, reporter: int, year: int, flows: str = 'X,M',
@@ -209,7 +214,7 @@ class UnitedNationsBaseTool(BaseMCPTool):
             }
             
             req = urllib.request.Request(url, headers=headers)
-            with urllib.request.urlopen(req, timeout=30) as response:
+            with outbound.urlopen(req, timeout=30) as response:
                 return safe_json_response(response, ENCODINGS_ALL)
         except Exception as e:
             self.logger.error(f"Failed to fetch from SDG API: {e}", exc_info=True)

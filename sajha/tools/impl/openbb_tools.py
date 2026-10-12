@@ -417,6 +417,29 @@ class OpenBBGenericTool(OpenBBBaseTool):
                                    "truncated": truncated, "data": rows}, ignored)
 
 
+class OpenBBEconomyCalendarTool(OpenBBGenericTool):
+    """``economy.calendar`` with a window that always holds events: without dates, the past 7 days to
+    the next 7 (the providers' own default is today only, empty on a weekend or holiday). A window
+    with no events is an empty result with a note, not an error (nasdaq answers "No record found")."""
+
+    window_days = 7
+
+    def execute(self, arguments: Dict[str, Any]) -> Dict:
+        arguments = dict(arguments or {})
+        if not arguments.get('start_date') and not arguments.get('end_date'):
+            arguments['start_date'] = _days_ago(self.window_days)
+            arguments['end_date'] = (datetime.now() + timedelta(days=self.window_days)).strftime('%Y-%m-%d')
+        out = super().execute(arguments)
+        if 'no record found' in str(out.get('error') or '').lower():
+            out = {"tool": self.name, "provider": arguments.get('provider') or 'nasdaq', "data_points": 0,
+                   "truncated": False, "data": [],
+                   "note": "The provider lists no economic events in this window (future weeks are filled in "
+                           "as the release schedule is published)."}
+        out.setdefault('start_date', arguments.get('start_date'))
+        out.setdefault('end_date', arguments.get('end_date'))
+        return out
+
+
 # ═══════════════════════════════════════════════════════════════════════════
 # Tools with their own result shape
 # ═══════════════════════════════════════════════════════════════════════════

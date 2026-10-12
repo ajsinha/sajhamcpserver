@@ -177,8 +177,9 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
                                     </button>
                                     {% if user_data.user_id != 'admin' %}
                                     <button class="btn btn-sm btn-danger"
-                                            data-onclick="deleteUser('{{ user_data.user_id }}')">
-                                        <i class="bi bi-trash"></i>
+                                            data-onclick="deleteUser('{{ user_data.user_id }}')"
+                                            aria-label="{{ _('Delete user %(id)s', id=user_data.user_id) }}" title="{{ _('Delete user') }}">
+                                        <i class="bi bi-trash" aria-hidden="true"></i>
                                     </button>
                                     {% endif %}
                                 </div>

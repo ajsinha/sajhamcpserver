@@ -41,14 +41,14 @@
         </div>
         <div>
             <span class="pulse"></span><span id="statusBadge" class="badge badge-online me-2">{{ _('Online') }}</span>
-            <select id="refreshInterval" class="form-select form-select-sm d-inline-block" style="width:auto">
+            <select id="refreshInterval" class="form-select form-select-sm d-inline-block" style="width:auto" aria-label="{{ _('Refresh interval') }}">
                 <option value="0">{{ _('Manual') }}</option>
                 <option value="5" selected>5s</option>
                 <option value="15">15s</option>
                 <option value="30">30s</option>
                 <option value="60">60s</option>
             </select>
-            <button class="btn btn-sm btn-outline-primary ms-1 refresh-btn" data-onclick="refreshData()"><i class="bi bi-arrow-clockwise"></i></button>
+            <button class="btn btn-sm btn-outline-primary ms-1 refresh-btn" data-onclick="refreshData()" aria-label="{{ _('Refresh now') }}" title="{{ _('Refresh now') }}"><i class="bi bi-arrow-clockwise" aria-hidden="true"></i></button>
         </div>
     </div>
 

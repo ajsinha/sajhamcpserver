@@ -43,7 +43,10 @@ the [Glossary](../../GLOSSARY.md).
   any throttle in the state store, so that all workers share one budget behind the bank's shared
   egress IP. The sources that need this are OECD, arXiv, GDELT, FDIC and OpenAlex.
 - **Tests.** Every tool has a probe case and a cassette, so CI never depends on the live service
-  ([Tool Quality §2.3](Tool%20Quality.md#23-recorded-fixtures-cassettes)).
+  ([Tool Quality §2.3](Tool%20Quality.md#23-recorded-fixtures-cassettes)). The P1 tools have theirs in
+  `config/tool_tests/<tool>.yaml` and `config/tool_tests/cassettes/<tool>/` (8.14.0), recorded with
+  fixed periods, because a relative period ("last 12 months") gives a different URL every day and so
+  never replays. The `cal_*` tools are computed offline and need no cassette.
 - **Defaults** follow the schema-defaults rule
   ([Tool Quality §12.1](Tool%20Quality.md#121-schema-defaults-applied-before-a-call)).
 
@@ -153,7 +156,8 @@ its hierarchy.
 
 > **Built (8.10.0):** [GLEIF Tool Reference Guide](../tools/public-data/GLEIF%20Tool%20Reference%20Guide.md).
 > `gleif_search` matches names with `filter[entity.names]` and falls back to `fuzzycompletions`
-> (`field=fulltext`), which answered an empty list for every query tried on 2026-10-11.
+> (`field=fulltext`, then `field=entity.legalName`), which tolerates about one typo per word
+> (checked live on 2026-10-12; 8.14.0 keeps GLEIF's order and reports `matched_value`).
 
 **`bis` (new folder; L28).**
 
@@ -338,7 +342,10 @@ Recorded by the owner on 2026-10-11:
 - **UN consolidated list:** off until legal approves. The un.org terms, read literally, are
   non-commercial; the other lists do not wait for the sign-off.
 - **Screening results and LLMs:** sanctions screening results are blocked from Ask SAJHA by a
-  policy rule (`sanctions_*` is not offered there, nor to LLM tools); people use the tools directly.
+  policy rule: `sanctions_*` is refused at call time for the sources `ask` and `openai_api`, and,
+  because the policy engine answers whether a tool would be refused for a source, it is not offered
+  to a model at all (not in Ask SAJHA's shortlist, an LLM tool's planners or the OpenAI-compatible
+  endpoint; [Policy and Audit](Policy%20and%20Audit.md) section 2). People use the tools directly.
 - **BIS:** ships, with "Source: BIS" cited on every output.
 - **GDACS:** off until legal approves (no stated licence).
 - **Paid options:** none. OpenAlex beyond its free daily budget, Open-Meteo (needs a plan) and a

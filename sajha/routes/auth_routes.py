@@ -8,6 +8,7 @@ Sets JWT in both cookie (for web UI) and response body (for API clients).
 
 from fastapi import APIRouter, Request, Depends, Form
 from fastapi.responses import RedirectResponse, JSONResponse
+from starlette.concurrency import run_in_threadpool
 from sqlalchemy.orm import Session
 
 from sajha.db.engine import get_db
@@ -129,15 +130,17 @@ async def api_login(request: Request, db: Session = Depends(get_db)):
     if not user_id or not password:
         return JSONResponse({'error': 'Missing credentials'}, status_code=400)
 
-    token, outcome = AuthManager.sign_in(db, str(user_id), str(password))
+    def sign_in():      # the database part (and the password hash), in the thread pool (Scaling and State §7)
+        token, outcome = AuthManager.sign_in(db, str(user_id), str(password))
+        # Also decode to get user info for response
+        return token, outcome, (AuthManager.authenticate_jwt(db, token) if token else None)
+    token, outcome, auth_ctx = await run_in_threadpool(sign_in)
     if not token:
         record_login_failure(request)
         if outcome == 'locked':
             return JSONResponse({'error': _LOCKED_MSG}, status_code=423)
         return JSONResponse({'error': 'Invalid credentials'}, status_code=401)
 
-    # Also decode to get user info for response
-    auth_ctx = AuthManager.authenticate_jwt(db, token)
     return JSONResponse({
         'token': token,
         'user': {
@@ -227,8 +230,8 @@ async def api_change_password(request: Request, auth: AuthContext = Depends(requ
         data = None
     if not isinstance(data, dict):
         return JSONResponse({'error': 'JSON object body required'}, status_code=400)
-    error, token = _change_password(db, auth, str(data.get('current_password') or ''),
-                                    str(data.get('new_password') or ''))
+    error, token = await run_in_threadpool(_change_password, db, auth, str(data.get('current_password') or ''),
+                                     str(data.get('new_password') or ''))
     if error:
         return JSONResponse({'error': error}, status_code=400)
     response = JSONResponse({'success': True, 'token': token})
@@ -253,23 +256,26 @@ async def api_admin_reset_password(uid: str, request: Request, auth: AuthContext
         data = None
     if not isinstance(data, dict):
         return JSONResponse({'error': 'JSON object body required'}, status_code=400)
-    user = UserDAO(db).get_by_user_id(uid)
-    if user is None:
-        return JSONResponse({'error': 'User not found'}, status_code=404)
-    password = data.get('password')
-    problem = password_problem(password if isinstance(password, str) else '', uid)
-    if problem:
-        return JSONResponse({'error': f'password: {problem}'}, status_code=400)
-    user.password_hash = hash_password(password)
-    user.must_change_password = bool(data.get('must_change_password', True))
-    user.failed_attempts = 0
-    user.locked_until = None
-    db.commit()
-    AuditDAO(db).log('user.password_reset', auth.user_id, 'user', uid)
-    from sajha.auth.revocation import end_all_sessions
-    end_all_sessions(db, user, auth.user_id, 'password_reset')
-    return JSONResponse({'success': True, 'user_id': uid,
-                         'must_change_password': user.must_change_password})
+
+    def work():         # the database part, in the thread pool (Scaling and State §7)
+        user = UserDAO(db).get_by_user_id(uid)
+        if user is None:
+            return JSONResponse({'error': 'User not found'}, status_code=404)
+        password = data.get('password')
+        problem = password_problem(password if isinstance(password, str) else '', uid)
+        if problem:
+            return JSONResponse({'error': f'password: {problem}'}, status_code=400)
+        user.password_hash = hash_password(password)
+        user.must_change_password = bool(data.get('must_change_password', True))
+        user.failed_attempts = 0
+        user.locked_until = None
+        db.commit()
+        AuditDAO(db).log('user.password_reset', auth.user_id, 'user', uid)
+        from sajha.auth.revocation import end_all_sessions
+        end_all_sessions(db, user, auth.user_id, 'password_reset')
+        return JSONResponse({'success': True, 'user_id': uid,
+                             'must_change_password': user.must_change_password})
+    return await run_in_threadpool(work)
 
 
 def _revoke_presented_token(request: Request) -> bool:

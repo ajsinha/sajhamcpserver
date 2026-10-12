@@ -198,6 +198,64 @@ def test_deny_overrides_allow_and_default_effect_deny(monkeypatch):
             Echo('pt_other').execute_with_tracking({})
 
 
+def test_denies_answers_without_side_effects(records):
+    """``denies`` (what a model is offered): a rule refusing the tool for the source and caller whatever the
+    arguments; never an audit record, a counter, a rate-limit hit or an approval."""
+    eng = use('''
+        rules:
+          - {id: no-ask, match: {tools: ["pt_*"], sources: [ask]}, effect: deny}
+          - {id: no-alice, match: {tools: [pt_alice], callers: {users: [alice]}}, effect: deny}
+          - {id: big-only, match: {tools: [pt_args], arguments: {amount: {gt: 100}}}, effect: deny}
+          - {id: limited, match: {tools: [pt_rate]}, effect: allow, rate_limit: {limit: 1, window: 1m}}
+          - {id: approve, match: {tools: [pt_appr]}, effect: require_approval}
+    ''')
+    before = dict(DECISIONS._series)
+    assert eng.denies(Echo('pt_x'), 'ask', ALICE).rule.endswith('no-ask')
+    assert eng.denies(Echo('pt_x'), 'mcp', ALICE) is None
+    assert eng.denies(Echo('pt_alice'), 'rest', ALICE) is not None
+    assert eng.denies(Echo('pt_alice'), 'rest', BOSS) is None            # the caller decides
+    assert eng.denies(Echo('pt_args'), 'rest', ALICE) is None            # some arguments are allowed
+    assert eng.denies(Echo('pt_appr'), 'rest', ALICE) is None            # approval is not a refusal
+    for _ in range(3):
+        assert eng.denies(Echo('pt_rate'), 'rest', ALICE) is None
+    assert not records and dict(DECISIONS._series) == before              # nothing audited or counted
+    with as_caller(ALICE):
+        assert Echo('pt_rate').execute_with_tracking({})['ok']          # the limit was not consumed
+
+
+def test_denies_under_default_effect_deny(monkeypatch):
+    eng = use('''
+        rules:
+          - {id: allow-echo, match: {tools: [pt_echo]}, effect: allow}
+          - {id: allow-small, match: {tools: [pt_small], arguments: {amount: {lt: 10}}}, effect: allow}
+    ''')
+    monkeypatch.setenv('SAJHA_POLICY_DEFAULT_EFFECT', 'deny')
+    assert eng.denies(Echo('pt_echo'), 'ask', ALICE) is None
+    assert eng.denies(Echo('pt_other'), 'ask', ALICE).kind == 'default_deny'
+    assert eng.denies(Echo('pt_small'), 'ask', ALICE) is None            # an allow rule naming arguments
+    monkeypatch.setenv('SAJHA_POLICY_ENABLED', 'false')
+    assert eng.denies(Echo('pt_other'), 'ask', ALICE) is None            # policy off: nothing is refused
+
+
+def test_openai_endpoint_does_not_list_an_llm_tool_the_policy_denies(monkeypatch):
+    from types import SimpleNamespace
+    from sajha.ai import openai_api as api
+    use('''
+        rules:
+          - {id: no-api, match: {tools: [pt_llm_hidden], sources: [openai_api]}, effect: deny}
+    ''')
+    tools = {n: SimpleNamespace(name=n, enabled=True, description='d', config={}, spec=None)
+             for n in ('pt_llm_shown', 'pt_llm_hidden')}
+    reg = SimpleNamespace(tools=tools, _tools_lock=__import__('threading').Lock(), get_tool=tools.get)
+    monkeypatch.setattr(api, 'settings', lambda: SimpleNamespace(llm_tools=True))
+    monkeypatch.setattr(api, '_registry', lambda: reg)
+    monkeypatch.setattr('sajha.ai.llm_tools.config.is_llm_tool', lambda t: True)
+    auth = SimpleNamespace(authenticated=True, user_id='alice', roles=['user'], auth_type='session',
+                           is_admin=False, api_key_name=None, has_tool_access=lambda n: True)
+    assert [m['sajha']['tool'] for m in api._tool_models(auth)] == ['pt_llm_shown']
+    assert api.llm_tool('pt_llm_hidden', auth) is None and api.llm_tool('pt_llm_shown', auth) is not None
+
+
 def _call(tool='pt_echo', args=None, caller=ALICE, source='rest', annotations=None, now=None):
     return Call(tool, args or {}, caller, source, annotations or {},
                 now or datetime(2026, 10, 6, 12, 0, tzinfo=timezone.utc))

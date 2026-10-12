@@ -716,6 +716,7 @@ its `tool_result`, all tool results before the answer.
 | `context_trimmed` | `step`, `model`, `dropped_messages`, `dropped_turns`, `turns_left` |
 | `answer_delta` | `text` (display chunks; their concatenation is the answer) |
 | `answer` | `text` |
+| `workspace` (quantitative planners) | `figures: [{start, end, text, quantity}]` (the answer's figures that match a workspace quantity; offsets in code points) and `quantities` (each marked quantity and everything its lineage reaches, `{name: {value, cells, unit, as_of, source, op, args, inputs}}`); sent after `answer` when a figure matched ([Quantitative Planners](Quantitative%20Planners.md) §2.1) |
 | `confidence` | `value` (0..1), `basis` |
 | `planner_chosen` | `planner`, `version`, `by` (`server default`, `caller choice`, `tool config`, `version route`, `label <confidence>`, `rule`, `default`, `escalation`, `stage <id>`), `reason` |
 | `stage_start` / `stage_end` (planner files) | `stage`, `stage_type`, `visit`, `planner` / `stage`, `outcome`, `ms`, `planner` |
@@ -731,7 +732,8 @@ its `tool_result`, all tool results before the answer.
 question was rewritten), and from planner files `planner_version`, `planner_path`,
 `loops_exhausted`, `planner_by` and `input_request` (`stopped_by: needs_input`), and
 `context_trims`. The quantitative
-planners add `workspace` (the run's quantities with their lineage), `queries` (`data_analyst`'s
+planners add `workspace` (the run's quantities with their lineage), `figures` (as in the
+`workspace` event), `queries` (`data_analyst`'s
 SQL), `code_runs` (`code_act`), `scenario_tables` (`scenario`) and `reconciliations` (`reconcile`),
 each also filled when that planner ran as a sub-run, for example under `auto`
 ([Quantitative Planners](Quantitative%20Planners.md) §3).
@@ -759,6 +761,11 @@ shares with the landing page).
   arguments and result), the answer, its confidence, the cited calls as sources, and the
   caveats. A `needs_confirmation` event becomes a card with Confirm and Cancel; Confirm
   asks again with `confirm: [fingerprint]`. An `error` event is shown in the answer.
+- **How a figure was computed.** When a quantitative planner answers, the figures it computed
+  are underlined buttons in the answer. Selecting one (click, or Tab and Enter) opens its
+  lineage under the answer: the operation, then its inputs down to the tool calls, with each
+  call's tool, arguments, JSON path, as-of date, unit, and whether the tool or the model declared
+  the unit. Escape or Close shuts it ([Quantitative Planners](Quantitative%20Planners.md) §2.1).
 - **The sky.** Beside the chat (above it on a phone) every loaded tool is a star, grouped
   by provider. The shortlist lights its tools and their groups; each `tool_call` draws a
   link from the question to that tool's star with its name, and its `tool_result` puts the

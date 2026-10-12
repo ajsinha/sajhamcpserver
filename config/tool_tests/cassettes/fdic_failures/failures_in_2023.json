@@ -1,0 +1,37 @@
+{
+ "format": 1,
+ "interactions": [
+  {
+   "request": {
+    "method": "GET",
+    "url": "https://api.fdic.gov/banks/failures?filters=FAILDATE%3A%5B%222023-01-01%22+TO+%222023-12-31%22%5D&fields=CERT%2CNAME%2CCITY%2CPSTALP%2CFAILDATE%2CRESTYPE%2CRESTYPE1%2CBIDNAME%2CQBFASSET%2CQBFDEP%2CCOST%2CSAVR&sort_by=FAILDATE&sort_order=DESC&limit=50",
+    "body_sha256": ""
+   },
+   "response": {
+    "status": 200,
+    "reason": "OK",
+    "headers": {
+     "date": "Mon, 12 Oct 2026 03:35:48 GMT",
+     "content-type": "application/json; charset=utf-8",
+     "connection": "keep-alive",
+     "access-control-allow-origin": "*",
+     "age": "0",
+     "etag": "W/\"68d-2o1bphlOF3oE/X5ioIIk+RLCJcs\"",
+     "strict-transport-security": "max-age=31536000; includeSubDomains; preload",
+     "vary": "Accept-Encoding, Accept-Encoding",
+     "via": "https/1.1 api-umbrella (ApacheTrafficServer [cMsSf ])",
+     "x-api-umbrella-request-id": "d15on4p1s9mabcjkvncg",
+     "x-cache": "MISS",
+     "x-content-type-options": "nosniff",
+     "x-ratelimit-limit": "20",
+     "x-ratelimit-remaining": "19",
+     "x-vcap-request-id": "3f03059a-afee-44b9-7b40-54e03313cc5f",
+     "x-frame-options": "DENY"
+    },
+    "body": {
+     "text": "{\"meta\":{\"total\":5,\"parameters\":{\"filters\":\"FAILDATE:[\\\"2023-01-01\\\" TO \\\"2023-12-31\\\"]\",\"fields\":\"CERT,NAME,CITY,PSTALP,FAILDATE,RESTYPE,RESTYPE1,BIDNAME,QBFASSET,QBFDEP,COST,SAVR\",\"limit\":\"50\"},\"index\":{\"name\":\"failures_1787667198788\",\"createTimestamp\":\"2026-08-25T14:13:18Z\"}},\"data\":[{\"data\":{\"QBFDEP\":52311,\"COST\":12464.63,\"QBFASSET\":60448,\"CITY\":\"SAC CITY\",\"BIDNAME\":\"IOWA TRUST & SAVINGS BANK\",\"PSTALP\":\"IA\",\"FAILDATE\":\"11/3/2023\",\"CERT\":8758,\"RESTYPE\":\"FAILURE\",\"SAVR\":\"DIF\",\"RESTYPE1\":\"PA\",\"NAME\":\"CITIZENS BANK\",\"ID\":\"4109\"},\"score\":0},{\"data\":{\"QBFDEP\":130110,\"COST\":42666.372,\"QBFASSET\":139446,\"CITY\":\"ELKHART\",\"BIDNAME\":\"DREAM FIRST BANK,NATIONAL ASSOCIATION\",\"PSTALP\":\"KS\",\"FAILDATE\":\"7/28/2023\",\"CERT\":25851,\"RESTYPE\":\"FAILURE\",\"SAVR\":\"DIF\",\"RESTYPE1\":\"PA\",\"NAME\":\"HEARTLAND TRI-STATE BANK\",\"ID\":\"4108\"},\"score\":0},{\"data\":{\"QBFDEP\":176436706,\"COST\":15495761.533,\"QBFASSET\":212638872,\"CITY\":\"SAN FRANCISCO\",\"BIDNAME\":\"JPMORGAN CHASE BANK, N.A.\",\"PSTALP\":\"CA\",\"FAILDATE\":\"5/1/2023\",\"CERT\":59017,\"RESTYPE\":\"FAILURE\",\"SAVR\":\"DIF\",\"RESTYPE1\":\"PA\",\"NAME\":\"FIRST REPUBLIC BANK\",\"ID\":\"4107\"},\"score\":0},{\"data\":{\"QBFDEP\":88612911,\"COST\":0,\"QBFASSET\":110363650,\"CITY\":\"NEW YORK\",\"BIDNAME\":\"FLAGSTAR BANK, N.A.\",\"PSTALP\":\"NY\",\"FAILDATE\":\"3/12/2023\",\"CERT\":57053,\"RESTYPE\":\"FAILURE\",\"SAVR\":\"DIF\",\"RESTYPE1\":\"PA\",\"NAME\":\"SIGNATURE BANK\",\"ID\":\"4106\"},\"score\":0},{\"data\":{\"QBFDEP\":175378000,\"COST\":18744254.463,\"QBFASSET\":209026000,\"CITY\":\"SANTA CLARA\",\"BIDNAME\":\"FIRST-CITIZENS BANK & TRUST COMPANY\",\"PSTALP\":\"CA\",\"FAILDATE\":\"3/10/2023\",\"CERT\":24735,\"RESTYPE\":\"FAILURE\",\"SAVR\":\"DIF\",\"RESTYPE1\":\"PA\",\"NAME\":\"SILICON VALLEY BANK\",\"ID\":\"4105\"},\"score\":0}],\"totals\":{\"count\":5}}"
+    }
+   }
+  }
+ ]
+}

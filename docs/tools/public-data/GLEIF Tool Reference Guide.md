@@ -77,10 +77,14 @@ at a time (`limit`, `page`; `total` and `more` say how many remain).
 `gleif_search` first asks for records whose legal or other names contain the words of `name`
 (`filter[entity.names]`), with the optional `country` (legal address, ISO 3166 alpha-2) and
 `status` (`ACTIVE`, `INACTIVE`) filters. When nothing matches, it falls back to GLEIF's fuzzy
-completion (`fuzzycompletions` with `field=fulltext`) and fetches the records it names;
-`matched_by` says which path answered. On 2026-10-11 the fuzzy completion endpoint answered an
-empty list for every query tried, so a misspelt name usually finds nothing: try fewer words, or the
-legal name in its local language.
+completion: `fuzzycompletions` with `field=fulltext` (every name and address), then with
+`field=entity.legalName`, and fetches the records the first non-empty answer names, in GLEIF's order
+(best match first). `matched_by` says which path answered, and each fuzzy result carries
+`matched_value`, the name or field value GLEIF matched (a branch's legal name may be in its local
+language, while the value matched is the English name). Checked live on 2026-10-12, the fuzzy match
+tolerates about one typo per word (`Deutshe Bank`, `Microsft Corporation` and `Siemns` are found;
+`Deutsch Bnak` is not). When neither path finds anything, the answer is empty with a `note`: try
+fewer words, correct spelling, or the legal name in its local language.
 
 ---
 

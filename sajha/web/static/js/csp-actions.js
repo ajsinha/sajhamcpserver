@@ -162,6 +162,19 @@
 
     EVENTS.forEach(function (t) { document.addEventListener(t, dispatch); });
 
+    // Keyboard for custom controls: an element with role="button" that is not a native button
+    // (a chip, a card, a remove icon), or a focusable sortable table header, acts on Enter and
+    // Space as a button does.
+    document.addEventListener('keydown', function (ev) {
+        if (ev.key !== 'Enter' && ev.key !== ' ') return;
+        var el = ev.target;
+        if (!el || !el.getAttribute) return;
+        if (el.getAttribute('role') !== 'button' && !(el.tagName === 'TH' && el.getAttribute('tabindex') === '0')) return;
+        if (/^(BUTTON|A|INPUT|SELECT|TEXTAREA|SUMMARY)$/.test(el.tagName)) return;
+        ev.preventDefault();
+        el.click();
+    });
+
     // Exposed for tests and for pages that build handlers in script
     window.SajhaActions = {parse: parse};
 })();

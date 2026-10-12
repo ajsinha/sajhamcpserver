@@ -22,7 +22,7 @@ import logging
 from typing import Any, Dict, List, Optional
 
 from sajha.ai.planners_engine.checks import (CheckContext, _figures, _in_results, _in_workspace, _result_numbers,
-                                             _unit_tag, _UNIT_TAG)
+                                             _unit_tag, _UNIT_TAG, workspace_matches)
 from sajha.ai.planners_engine.model import NUMBERS_CHECK_MODES
 
 logger = logging.getLogger(__name__)
@@ -90,7 +90,7 @@ def unmatched(answer: str, question: str, results: List[Dict[str, Any]], workspa
     out = []
     for n in _figures(ctx, s):
         tag = _unit_tag(ctx.draft, n)
-        if _in_results(n, pool, tol) or (figures and _in_workspace(n, tag, figures, tol)):
+        if _in_results(n, pool, tol, tag) or (figures and _in_workspace(n, tag, figures, tol, ctx.draft)):
             continue
         end = n["end"]
         if tag in ("bp", "pp", "percent") and not n["pct"]:
@@ -98,6 +98,42 @@ def unmatched(answer: str, question: str, results: List[Dict[str, Any]], workspa
             end = m.end() if m else end
         out.append({"raw": ctx.draft[n["start"]:end].strip(), "value": n["value"], "start": n["start"],
                     "end": end, "tag": tag})
+    return out
+
+
+def workspace_figures(answer: str, question: str, workspace: Any, settings: Optional[Dict[str, Any]] = None,
+                      limit: int = 60) -> List[Dict[str, Any]]:
+    """The answer's figures that match a quantity of the run's workspace (the rules of
+    ``numbers_in_workspace``, §2.4), for the Ask page to mark: each ``{start, end, text, quantity}``,
+    ``end`` past a written rate unit (" bp"), in the order they appear. Where several quantities match,
+    a computed one is preferred to a value read from a tool, and that to a constant; then the closest."""
+    if workspace is None or not hasattr(workspace, "figures") or not len(workspace) or not answer:
+        return []
+    s = dict(settings or {})
+    tol = float(s.get("tolerance", 0.005))
+    ctx = CheckContext(draft=answer, draft_json=None, citations=[], question=question or "", results=[],
+                       output_schema=None, lookup=lambda r: None, evaluate=lambda e: True, workspace=workspace)
+    figures = workspace.figures()
+    rank = {"operation": 0, "tool": 1}
+    out: List[Dict[str, Any]] = []
+    for n in _figures(ctx, s):
+        tag = _unit_tag(answer, n)
+        hits = workspace_matches(n, tag, figures, tol, answer)
+        if not hits:
+            continue
+
+        def order(h):
+            q = workspace.get(h[0])
+            kind = "operation" if q.lineage else str((q.source or {}).get("kind") or "")
+            return rank.get(kind, 2), h[1]
+        name = min(hits, key=order)[0]
+        end = n["end"]
+        if tag in ("bp", "pp", "percent") and not n["pct"]:
+            m = _UNIT_TAG.match(answer, end)
+            end = m.end() if m else end
+        out.append({"start": n["start"], "end": end, "text": answer[n["start"]:end].strip(), "quantity": name})
+        if len(out) >= limit:
+            break
     return out
 
 
@@ -113,7 +149,8 @@ def corroboration(answer: str, question: str, results_by_source: Dict[str, List[
     pools = {src: _result_numbers(rs) for src, rs in results_by_source.items()}
     out = []
     for n in _figures(ctx, s):
-        sources = sorted(src for src, pool in pools.items() if _in_results(n, pool, tol))
+        tag = _unit_tag(ctx.draft, n)
+        sources = sorted(src for src, pool in pools.items() if _in_results(n, pool, tol, tag))
         if sources:
             out.append({"raw": ctx.draft[n["start"]:n["end"]].strip(), "value": n["value"], "sources": sources})
     return out

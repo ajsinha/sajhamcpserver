@@ -1,0 +1,18 @@
+# An HTTP tool with a recorded cassette (cassettes/fdic_summary_of_deposits/vermont_2025.json): replays offline.
+# Re-record against the live API with: python -m sajha.quality test --tool fdic_summary_of_deposits --record
+tool: fdic_summary_of_deposits
+cases:
+  - name: vermont 2025
+    tags: [http]
+    arguments: {"state": "VT", "year": 2025, "limit": 10}
+    expect:
+      - schema: output
+      - path: "$.count"
+        equals: 10
+      - path: "$.as_of"
+        equals: "2025-06-30"
+      - path: "$.branches[*].state"
+        regex: "^VT$"
+probe:
+  case: vermont 2025
+  every: 3600

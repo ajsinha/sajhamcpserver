@@ -480,8 +480,8 @@ curl -X POST http://localhost:3002/api/ai/complete \
 | GET | `/api/cache/stats` | user | Tool cache statistics. |
 | POST | `/api/cache/invalidate` | admin | Invalidate one tool (`{"tool_name": "..."}`) or everything (`{}`). |
 | GET | `/api/circuits` | user | Circuit breaker states. |
-| GET | `/api/providers/health` | user | Provider health. |
-| GET | `/api/providers/graph` | user | Tool to provider to endpoint dependency graph. |
+| GET | `/api/providers/health` | user | Provider health: one entry per tool domain of the live registry, with its tool count and the worst circuit-breaker state of its tools. |
+| GET | `/api/providers/graph` | user | The registry's tools grouped by tool domain, with the providers their configs name (`metadata.provider`). |
 | GET | `/api/replay/recent` | admin | Last 50 executions. |
 | GET | `/api/replay/tool/{tool_name}` | admin | Execution history for one tool. |
 | GET | `/api/replay/stats` | user | Replay store statistics. |

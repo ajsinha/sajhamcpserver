@@ -231,7 +231,11 @@ and the run's computed comparisons as quantities:
 2. **Match.** Each number must match a value in the run's data or a quantity, at the precision
    written (`1.2bn` matches 1,234,000,000; `about 1,200` does not match 1,234.56) and by magnitude
    (the sign is in the words: "fell 3.2%"). The validator's unit rules apply: a figure with a rate
-   unit matches a quantity in that unit, a figure with none matches any unit a quantity converts to.
+   unit matches a quantity in that unit; a figure written with `%` matches a value of the data known
+   to be in percent (a key such as `pnl_pct`, a `percent` format, a string "4.5%") or any value as a
+   fraction (0.045), never a bare 4.5; a figure with no unit matches a value of the data or a
+   quantity in its own unit, or in the unit the text names just before it ("in bp: 475"), not in
+   every unit the quantity converts to (a 4.75% change is not "475").
    - The quantities are the comparisons the run computed (`quantities` in the run data): each value,
      its previous value against the previous run with the same parameters, the change and percent
      change, each table cell's share of its column total, and ranks. They are data, not arithmetic

@@ -123,9 +123,12 @@ def test_a_required_property_is_still_reported_missing():
         Echo().execute_with_tracking({})
 
 
-def test_the_switch_turns_it_off(monkeypatch):
+def test_the_removed_switch_no_longer_turns_it_off(monkeypatch):
+    """tools.apply_schema_defaults was removed in 8.14.0: schema defaults always apply."""
     monkeypatch.setenv('SAJHA_TOOLS_APPLY_SCHEMA_DEFAULTS', 'false')
-    assert Echo().execute_with_tracking({'q': 'x'}) == {'args': {'q': 'x'}}
+    assert Echo().execute_with_tracking({'q': 'x'}) == {'args': {'q': 'x', 'limit': 30}}
+    from sajha.tools import schema_defaults
+    assert not hasattr(schema_defaults, 'enabled')
 
 
 def test_proxies_of_other_servers_opt_out():

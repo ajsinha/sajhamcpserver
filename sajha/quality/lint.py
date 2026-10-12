@@ -4,7 +4,8 @@ SAJHA MCP Server — the tool schema linter (static: no tool runs).
 Checks every tool's name (MCP tool-name rule), description, input and output schemas (valid
 JSON Schema 2020-12, ``type: object``), property descriptions, ``examples`` and ``default``
 values, annotations (boolean hints, no read-only-and-destructive, destructive-sounding names
-carry ``destructiveHint``) and test-case arguments. Rules: docs/architecture/Tool Quality.md §3.
+carry ``destructiveHint``), ``x-sajha-unit`` declarations in the output schema and test-case
+arguments. Rules: docs/architecture/Tool Quality.md §3.
 
 Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.com
 """
@@ -136,6 +137,7 @@ def lint_tool(name: str, config: Dict[str, Any], input_schema: Any = None, outpu
             _lint_examples(output_schema, add, 'output')
         if output_schema.get('type') != 'object':
             add('error', 'output-schema', f'outputSchema type must be "object" (MCP), is {output_schema.get("type")!r}')
+        _lint_units(output_schema, add)
 
     ann = cfg.get('annotations')
     if ann is not None and not isinstance(ann, dict):
@@ -183,6 +185,18 @@ def _lint_examples(schema: Dict[str, Any], add, which: str) -> None:
             msg = _validate_value({k: v for k, v in sub.items() if k != 'default'}, schema, sub['default'])
             if msg:
                 add('warning', 'default', f'{which} {where}: default does not validate: {msg}', where)
+
+
+def _lint_units(schema: Dict[str, Any], add) -> None:
+    """``x-sajha-unit`` declarations (Quantitative Planners §2.2): a unit outside the grammar is an
+    error (rule ``unit``); one on a property that holds no number is a warning."""
+    from sajha.ai.quant.schema_units import KEYWORD, schema_unit_marks, unit_problem
+    for where, value, sub in schema_unit_marks(schema):
+        error, warning = unit_problem(value, sub)
+        if error:
+            add('error', 'unit', f'output {where}: {KEYWORD} {value!r} is not a unit SAJHA knows: {error}', where)
+        elif warning:
+            add('warning', 'unit', f'output {where}: {warning}', where)
 
 
 _BRANCHES = ('oneOf', 'anyOf', 'allOf', 'if', 'then', 'else', 'not', 'items', 'prefixItems', 'additionalProperties',

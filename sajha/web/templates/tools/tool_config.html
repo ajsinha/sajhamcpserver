@@ -68,7 +68,7 @@ Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.co
 {% block content %}
 <div class="container-fluid">
     <!-- Save Status Alert -->
-    <div id="saveStatus" class="save-status"></div>
+    <div id="saveStatus" class="save-status" role="status" aria-live="polite"></div>
 
     <!-- Header -->
     <div class="config-header">
@@ -281,6 +281,7 @@ document.addEventListener('DOMContentLoaded', function() {
     };
 
     editor = new JSONEditor(container, options);
+    sajhaLabelJsonEditor(container);
 
     // Load tool configuration
     loadToolConfig();
@@ -574,7 +575,7 @@ function showStatus(message, type) {
     const alert = $(`
         <div class="alert ${alertClass} alert-dismissible fade show" role="alert">
             <i class="bi bi-${iconClass}"></i> ${message}
-            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="${_t('Close')}" title="${_t('Close')}"></button>
         </div>
     `);
 

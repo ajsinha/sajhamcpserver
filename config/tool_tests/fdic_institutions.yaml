@@ -1,0 +1,18 @@
+# An HTTP tool with a recorded cassette (cassettes/fdic_institutions/silicon_valley_bank.json): replays offline.
+# Re-record against the live API with: python -m sajha.quality test --tool fdic_institutions --record
+tool: fdic_institutions
+cases:
+  - name: silicon valley bank
+    tags: [http]
+    arguments: {"name": "Silicon Valley Bank", "limit": 3}
+    expect:
+      - schema: output
+      - path: "$.count"
+        min: 1
+      - path: "$.institutions[0].name"
+        equals: "Silicon Valley Bank"
+      - path: "$.institutions[0].cert"
+        equals: 24735
+probe:
+  case: silicon valley bank
+  every: 3600

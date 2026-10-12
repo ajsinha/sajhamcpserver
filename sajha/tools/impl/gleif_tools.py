@@ -162,23 +162,36 @@ class GleifSearchTool(GleifBaseTool):
         data = (body or {}).get('data') or []
         matched_by = 'name'
         total = _total(body or {}, len(data))
+        matched_values: Dict[str, str] = {}
         if not data:
-            # no name contains the words: GLEIF's fuzzy completion, then those records
-            _, fz = get('fuzzycompletions', [('field', 'fulltext'), ('q', name)])
+            # no name contains the words: GLEIF's fuzzy completion over every field, then over the
+            # legal name alone (it tolerates about one typo per word), then those records in its order
             leis = []
-            for item in (fz or {}).get('data') or []:
-                ref = (((item.get('relationships') or {}).get('lei-records') or {}).get('data') or {})
-                if ref.get('id') and ref['id'] not in leis:
-                    leis.append(ref['id'])
+            for field in ('fulltext', 'entity.legalName'):
+                _, fz = get('fuzzycompletions', [('field', field), ('q', name)])
+                for item in (fz or {}).get('data') or []:
+                    ref = (((item.get('relationships') or {}).get('lei-records') or {}).get('data') or {})
+                    if ref.get('id') and ref['id'] not in leis:
+                        leis.append(ref['id'])
+                        matched_values[ref['id']] = str((item.get('attributes') or {}).get('value') or '')
+                if leis:
+                    break
             if leis:
                 _, body = get('lei-records', [('filter[lei]', ','.join(leis[:limit]))] + filters + page)
                 data = (body or {}).get('data') or []
+                rank = {lei: i for i, lei in enumerate(leis)}
+                data.sort(key=lambda r: rank.get(r.get('id'), len(rank)))   # GLEIF's best match first
                 total = len(data)
                 matched_by = 'fuzzy'
         out = {'query': name, 'matched_by': matched_by, 'total': total, 'result_count': len(data),
                'results': [summary(r) for r in data], 'source': SOURCE}
+        if matched_by == 'fuzzy':
+            for r, raw in zip(out['results'], data):
+                if matched_values.get(raw.get('id')):
+                    r['matched_value'] = matched_values[raw['id']]       # the name or field GLEIF matched
         if not data:
-            out['note'] = 'No LEI record matched. Try fewer words, or the legal name in its local language.'
+            out['note'] = ('No LEI record matched, by name or by GLEIF\'s fuzzy match (about one typo per word). '
+                           'Try fewer words, correct spelling, or the legal name in its local language.')
         return out
 
 

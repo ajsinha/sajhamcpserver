@@ -279,6 +279,18 @@ headers = {
 - Not redistribute data commercially without proper licensing
 - Be aware that API structure may change without notice
 
+### Outbound fetch guard and proxy
+
+`yahoo_get_history`, `yahoo_search_symbols` and `yf_trending_tickers` fetch through SAJHA's outbound
+fetch guard, so they honour `tools.outbound.proxy`. `yahoo_get_quote` and the other `yf_` tools call
+the yfinance package, which opens its own connections to Yahoo's hosts: they bypass the guard and the
+proxy (a known limit, [Security Model](../../security/Security%20Model.md#8-known-limitations)). Where
+SAJHA must reach the internet through a proxy, these tools work only if the network lets the server
+reach Yahoo directly.
+
+`yf_sustainability` was removed in 8.14.0: Yahoo no longer serves ESG scores (every symbol answers
+"No fundamentals data found"), so the tool could only return nothing.
+
 ---
 
 ## Tool Details
@@ -546,12 +558,6 @@ These tools use the `yfinance` package (installed with SAJHA's requirements). Ea
 | Tool | Description | Required | Optional (schema default) | Annotations |
 |---|---|---|---|---|
 | `yf_earnings_history` | Last four quarters of reported versus estimated EPS for one company from Yahoo Finance (yfinance earnings_history). | `symbol` | — | read-only, idempotent, open-world |
-
-### ESG
-
-| Tool | Description | Required | Optional (schema default) | Annotations |
-|---|---|---|---|---|
-| `yf_sustainability` | ESG (environmental, social, governance) risk scores for one company from Yahoo Finance (yfinance sustainability, Sustainalytics data). | `symbol` | — | read-only, idempotent, open-world |
 
 ### ETFs
 

@@ -912,7 +912,7 @@ class _AuthRecordingUpstream:
         s.close()
         self.url = f'http://127.0.0.1:{self.port}/mcp'
         self._uv = uvicorn.Server(uvicorn.Config(recording, host='127.0.0.1', port=self.port, log_level='warning',
-                                                 lifespan='on'))
+                                                 lifespan='on', timeout_graceful_shutdown=1))
         self._t = threading.Thread(target=self._uv.run, daemon=True)
         self._t.start()
         deadline = time.time() + 10

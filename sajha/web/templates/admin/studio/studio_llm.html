@@ -643,6 +643,7 @@ Guide: docs/studio/MCP Studio LLM Tool Creator Guide.md; design: docs/architectu
         const data = await call('GET', '/api/studio/llm/tools/' + encodeURIComponent(name));
         if (!data.success) { message(data.error || _t('Could not open %(name)s', {name: name}), 'danger'); return; }
         setEditing(name, data.editable);
+        if (typeof studioShowDomain === 'function') studioShowDomain(data.domain);   // its folder's domain.txt, as served
         if (data.form.planner_object) message(_t('%(name)s uses an inline planner or overlay: edit it in the config JSON below.', {name: name}), 'warning');
         else message(data.editable ? _t('Editing %(name)s. Saving replaces its config file.', {name: name}) : _t('%(name)s was created by someone else: you can read it but not save it.', {name: name}),
                      data.editable ? 'info' : 'warning');

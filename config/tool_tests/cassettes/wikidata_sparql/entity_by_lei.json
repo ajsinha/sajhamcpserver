@@ -1,0 +1,40 @@
+{
+ "format": 1,
+ "interactions": [
+  {
+   "request": {
+    "method": "GET",
+    "url": "https://query.wikidata.org/sparql?query=SELECT+%3Fitem+%3FitemLabel+WHERE+%7B+%3Fitem+wdt%3AP1278+%227LTWFZYICNSX8D621K86%22+.+SERVICE+wikibase%3Alabel+%7B+bd%3AserviceParam+wikibase%3Alanguage+%22en%22.+%7D+%7D%0ALIMIT+101&format=json",
+    "body_sha256": ""
+   },
+   "response": {
+    "status": 200,
+    "reason": "OK",
+    "headers": {
+     "server": "nginx/1.22.1",
+     "date": "Mon, 12 Oct 2026 03:33:42 GMT",
+     "content-type": "application/sparql-results+json;charset=utf-8",
+     "x-first-solution-millis": "15",
+     "x-served-by": "wdqs1019",
+     "access-control-allow-origin": "*",
+     "access-control-allow-headers": "accept, content-type, content-length, user-agent, api-user-agent",
+     "cache-control": "public, max-age=300",
+     "age": "167",
+     "vary": "Accept",
+     "x-cache": "cp1106 hit, cp1106 pass",
+     "x-cache-status": "hit-local",
+     "strict-transport-security": "max-age=106384710; includeSubDomains; preload",
+     "report-to": "{ \"group\": \"wm_nel\", \"max_age\": 604800, \"endpoints\": [{ \"url\": \"https://intake-logging.wikimedia.org/v1/events?stream=w3c.reportingapi.network_error&schema_uri=/w3c/reportingapi/network_error/1.0.0\" }] }",
+     "nel": "{ \"report_to\": \"wm_nel\", \"max_age\": 604800, \"failure_fraction\": 0.05, \"success_fraction\": 0.0}",
+     "x-client-ip": "71.127.200.129",
+     "x-request-id": "9628398a-93e0-4abf-905c-a48383f195e8",
+     "x-analytics": "",
+     "server-timing": "cache;desc=\"hit-local\", host;desc=\"cp1106\",co_id;desc=\"1389513010\""
+    },
+    "body": {
+     "text": "{\n  \"head\" : {\n    \"vars\" : [ \"item\", \"itemLabel\" ]\n  },\n  \"results\" : {\n    \"bindings\" : [ {\n      \"item\" : {\n        \"type\" : \"uri\",\n        \"value\" : \"http://www.wikidata.org/entity/Q66048\"\n      },\n      \"itemLabel\" : {\n        \"xml:lang\" : \"en\",\n        \"type\" : \"literal\",\n        \"value\" : \"Deutsche Bank\"\n      }\n    } ]\n  }\n}"
+    }
+   }
+  }
+ ]
+}

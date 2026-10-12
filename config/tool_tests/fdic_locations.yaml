@@ -1,0 +1,18 @@
+# An HTTP tool with a recorded cassette (cassettes/fdic_locations/jpmorgan_offices_in_vermont.json): replays offline.
+# Re-record against the live API with: python -m sajha.quality test --tool fdic_locations --record
+tool: fdic_locations
+cases:
+  - name: jpmorgan offices in vermont
+    tags: [http]
+    arguments: {"cert": 628, "state": "VT"}
+    expect:
+      - schema: output
+      - path: "$.count"
+        min: 1
+      - path: "$.institution"
+        regex: "JPMorgan Chase Bank"
+      - path: "$.offices[*].state"
+        regex: "^VT$"
+probe:
+  case: jpmorgan offices in vermont
+  every: 3600

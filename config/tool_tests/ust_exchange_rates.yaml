@@ -1,0 +1,18 @@
+# An HTTP tool with a recorded cassette (cassettes/ust_exchange_rates/euro_2025.json): replays offline.
+# Re-record against the live API with: python -m sajha.quality test --tool ust_exchange_rates --record
+tool: ust_exchange_rates
+cases:
+  - name: euro 2025
+    tags: [http]
+    arguments: {"currency": "EUR", "period": "2025"}
+    expect:
+      - schema: output
+      - path: "$.count"
+        equals: 4
+      - path: "$.rates[*].currency"
+        regex: "^Euro$"
+      - path: "$.rates[0].date"
+        equals: "2025-03-31"
+probe:
+  case: euro 2025
+  every: 3600

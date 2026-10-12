@@ -23,6 +23,7 @@ from typing import Any, Dict, Optional
 
 from fastapi import APIRouter, Depends, Request
 from fastapi.responses import JSONResponse
+from starlette.concurrency import run_in_threadpool
 from sqlalchemy.orm import Session
 
 from sajha.app import render
@@ -115,16 +116,19 @@ async def apikeys_file_create(request: Request, auth: AuthContext = Depends(requ
     if bad:
         return bad
     data = await _body(request)
-    try:
-        rec = _clean_key(data)
-    except ValueError as e:
-        return JSONResponse({'error': str(e)}, status_code=400)
-    raw = str(data.get('key') or '').strip() or ('sja_' + secrets.token_hex(24))
-    rec.update({'id': 'file-' + secrets.token_hex(8), 'key': raw, 'prefix': raw[:8], 'created_by': auth.user_id})
-    _keys().upsert(rec)
-    _audit(db, auth, 'apikeys_file.create', rec['id'], {'name': rec['name'], 'test_admin': bool(rec.get('test_admin'))})
-    _standing()
-    return {'key': _key_public(rec), 'raw': raw}
+
+    def work():                     # the database part, in the thread pool (Scaling and State §7)
+        try:
+            rec = _clean_key(data)
+        except ValueError as e:
+            return JSONResponse({'error': str(e)}, status_code=400)
+        raw = str(data.get('key') or '').strip() or ('sja_' + secrets.token_hex(24))
+        rec.update({'id': 'file-' + secrets.token_hex(8), 'key': raw, 'prefix': raw[:8], 'created_by': auth.user_id})
+        _keys().upsert(rec)
+        _audit(db, auth, 'apikeys_file.create', rec['id'], {'name': rec['name'], 'test_admin': bool(rec.get('test_admin'))})
+        _standing()
+        return {'key': _key_public(rec), 'raw': raw}
+    return await run_in_threadpool(work)
 
 
 @router.put('/api/admin/apikeys/file/{kid}')
@@ -137,18 +141,21 @@ async def apikeys_file_update(kid: str, request: Request, auth: AuthContext = De
     if cur is None:
         return JSONResponse({'error': 'no such key in the file'}, status_code=404)
     data = await _body(request)
-    try:
-        rec = _clean_key(data, cur)
-    except ValueError as e:
-        return JSONResponse({'error': str(e)}, status_code=400)
-    if str(data.get('key') or '').strip():
-        rec['key'] = str(data['key']).strip()
-        rec['prefix'] = rec['key'][:8]
-        rec.pop('sha256', None)
-    _keys().upsert(rec)
-    _audit(db, auth, 'apikeys_file.update', kid, {k: rec.get(k) for k in ('name', 'enabled', 'test_admin')})
-    _standing()
-    return {'key': _key_public(rec)}
+
+    def work():                     # the database part, in the thread pool (Scaling and State §7)
+        try:
+            rec = _clean_key(data, cur)
+        except ValueError as e:
+            return JSONResponse({'error': str(e)}, status_code=400)
+        if str(data.get('key') or '').strip():
+            rec['key'] = str(data['key']).strip()
+            rec['prefix'] = rec['key'][:8]
+            rec.pop('sha256', None)
+        _keys().upsert(rec)
+        _audit(db, auth, 'apikeys_file.update', kid, {k: rec.get(k) for k in ('name', 'enabled', 'test_admin')})
+        _standing()
+        return {'key': _key_public(rec)}
+    return await run_in_threadpool(work)
 
 
 @router.delete('/api/admin/apikeys/file/{kid}')
@@ -229,32 +236,35 @@ def users_file_list(request: Request, auth: AuthContext = Depends(require_admin)
 async def _save_user(request: Request, auth: AuthContext, db: Session, uid: Optional[str]):
     from sajha.auth.users_file import problem
     data = await _body(request)
-    cur = _users().get(uid) if uid else None
-    if uid and cur is None:
-        return JSONResponse({'error': 'no such user in the file'}, status_code=404)
-    rec = dict(cur or {})
-    for k in ('user_id', 'user_name', 'email', 'roles', 'enabled', 'test_admin'):
-        if k in data:
-            rec[k] = data[k]
-    if uid:
-        rec['user_id'] = uid
-    if str(data.get('password') or ''):
-        rec['password'] = str(data['password'])
-    if isinstance(rec.get('roles'), str):
-        rec['roles'] = [s.strip() for s in rec['roles'].split(',') if s.strip()]
-    rec['enabled'] = bool(rec.get('enabled', True))
-    if not rec.get('test_admin'):
-        rec.pop('test_admin', None)
-    why = problem(rec, _known_roles(db))
-    if why:
-        return JSONResponse({'error': why}, status_code=400)
-    if not uid and _users().get(rec['user_id']) is not None:
-        return JSONResponse({'error': f'{rec["user_id"]} is already in the file'}, status_code=400)
-    _users().upsert(rec)
-    _audit(db, auth, 'users_file.update' if uid else 'users_file.create', rec['user_id'],
-           {'roles': rec.get('roles'), 'enabled': rec['enabled'], 'password_changed': bool(data.get('password'))})
-    problems = _apply(db)
-    return {'user': _user_public(rec), 'problems': problems}
+
+    def work():                     # the database part, in the thread pool (Scaling and State §7)
+        cur = _users().get(uid) if uid else None
+        if uid and cur is None:
+            return JSONResponse({'error': 'no such user in the file'}, status_code=404)
+        rec = dict(cur or {})
+        for k in ('user_id', 'user_name', 'email', 'roles', 'enabled', 'test_admin'):
+            if k in data:
+                rec[k] = data[k]
+        if uid:
+            rec['user_id'] = uid
+        if str(data.get('password') or ''):
+            rec['password'] = str(data['password'])
+        if isinstance(rec.get('roles'), str):
+            rec['roles'] = [s.strip() for s in rec['roles'].split(',') if s.strip()]
+        rec['enabled'] = bool(rec.get('enabled', True))
+        if not rec.get('test_admin'):
+            rec.pop('test_admin', None)
+        why = problem(rec, _known_roles(db))
+        if why:
+            return JSONResponse({'error': why}, status_code=400)
+        if not uid and _users().get(rec['user_id']) is not None:
+            return JSONResponse({'error': f'{rec["user_id"]} is already in the file'}, status_code=400)
+        _users().upsert(rec)
+        _audit(db, auth, 'users_file.update' if uid else 'users_file.create', rec['user_id'],
+               {'roles': rec.get('roles'), 'enabled': rec['enabled'], 'password_changed': bool(data.get('password'))})
+        problems = _apply(db)
+        return {'user': _user_public(rec), 'problems': problems}
+    return await run_in_threadpool(work)
 
 
 @router.post('/api/admin/users/file')

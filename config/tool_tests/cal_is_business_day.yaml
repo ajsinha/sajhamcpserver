@@ -1,0 +1,18 @@
+# Tool test cases (docs/architecture/Tool Quality.md §2). Offline: cal_is_business_day computes from the holidays package,
+# so the case makes no HTTP call and needs no cassette.
+tool: cal_is_business_day
+cases:
+  - name: thanksgiving xnys and canada
+    tags: [smoke]
+    arguments: {"date": "2026-11-26", "calendars": ["XNYS", "CA"]}
+    expect:
+      - schema: output
+      - path: "$.is_business_day"
+        equals: false
+      - path: "$.previous_business_day"
+        equals: "2026-11-25"
+      - path: "$.next_business_day"
+        equals: "2026-11-27"
+probe:
+  case: thanksgiving xnys and canada
+  every: 3600

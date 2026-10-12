@@ -226,7 +226,7 @@ Provide feedback on:
                         <i class="bi bi-file-earmark"></i> {{ _('Load Template') }}
                     </button>
                 </div>
-                <div id="jsonValidationResult" class="mt-2"></div>
+                <div id="jsonValidationResult" class="mt-2" role="status" aria-live="polite"></div>
             </div>
         </div>
     </div>
@@ -278,8 +278,8 @@ function addArgument() {
         <div class="card-body">
             <div class="d-flex justify-content-between mb-2">
                 <h6 class="mb-0">${_t('Argument #%(argumentCount)s', {argumentCount: argumentCount})}</h6>
-                <button type="button" class="btn btn-sm btn-danger" data-onclick="removeArgument(${argumentCount})">
-                    <i class="bi bi-trash"></i>
+                <button type="button" class="btn btn-sm btn-danger" data-onclick="removeArgument(${argumentCount})" aria-label="${_t('Remove argument')}" title="${_t('Remove argument')}">
+                    <i class="bi bi-trash" aria-hidden="true"></i>
                 </button>
             </div>
             <div class="mb-2">

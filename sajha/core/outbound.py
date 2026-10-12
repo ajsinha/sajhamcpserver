@@ -3,8 +3,11 @@ SAJHA MCP Server — the outbound fetch guard for tools that fetch a URL someone
 Copyright All rights Reserved 2025-2030, Ashutosh Sinha, Email: ajsinha@gmail.com
 
 The web crawler tools fetch the URL their caller names, and a Studio REST tool calls the
-endpoint its author typed. Both go through :func:`request`, which refuses a destination
-whose host resolves to:
+endpoint its author typed. Both go through :func:`request`, and so does every other tool that
+calls a provider's API (directly, or through :func:`urlopen` for code written against urllib and
+:data:`requests_compat` for code written against requests), so ``tools.outbound.proxy`` reaches them
+all; tests/test_tool_outbound_sweep.py keeps it so. The guard refuses a destination whose host
+resolves to:
 
 * a cloud metadata or link-local address (169.254.169.254, fd00:ec2::254, 100.100.100.200,
   ``metadata.google.internal``, 169.254.0.0/16, fe80::/10): always;
@@ -365,3 +368,112 @@ def request(method: str, url: str, *, params=None, headers: Optional[Dict[str, s
     except Exception as e:                  # an httpx URL error and the like: a message, not a trace
         raise FetchError(_scrub(f'request failed: {e.__class__.__name__}: {e}', proxy))
     return Response(r.status, r.reason, r.headers, r.content, r.url)
+
+
+# ── urllib-style entry point for tools written against urllib.request ──
+
+class _UrlopenResponse:
+    """What :func:`urlopen` returns: the parts of ``http.client.HTTPResponse`` the tools use.
+    The body is already decoded (gzip/deflate), so Content-Encoding is not reported."""
+
+    def __init__(self, r: Response):
+        import io
+        from email.message import Message
+        self.status = self.code = r.status_code
+        self.reason = self.msg = r.reason
+        self.url = r.url
+        self.headers = Message()
+        for k, v in r.headers.items():
+            if k not in ('content-encoding', 'content-length', 'transfer-encoding'):
+                self.headers[k] = v
+        self._body = io.BytesIO(r.content)
+
+    def read(self, amt: Optional[int] = None) -> bytes:
+        return self._body.read() if amt is None else self._body.read(amt)
+
+    def info(self):
+        return self.headers
+
+    def getcode(self) -> int:
+        return self.status
+
+    def geturl(self) -> str:
+        return self.url
+
+    def getheader(self, name: str, default=None):
+        return self.headers.get(name, default)
+
+    def getheaders(self):
+        return list(self.headers.items())
+
+    def close(self) -> None:
+        self._body.close()
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *exc):
+        self.close()
+        return False
+
+
+def urlopen(req, data: Optional[bytes] = None, timeout: float = 30.0, *,
+            max_bytes: int = 20 * 1024 * 1024) -> _UrlopenResponse:
+    """:func:`request` with ``urllib.request.urlopen``'s shape, for tools written against urllib:
+    takes a URL or a ``urllib.request.Request``; raises ``urllib.error.HTTPError`` for a status of
+    400 or more and ``urllib.error.URLError`` when the request cannot be made, as urllib does;
+    a refused destination raises :class:`Refused`."""
+    import io
+    import urllib.error
+    if isinstance(req, str):
+        method, url, headers, body = ('POST' if data is not None else 'GET'), req, {}, data
+    else:
+        url = req.full_url
+        body = data if data is not None else req.data
+        method = req.get_method()
+        headers = dict(req.header_items())
+    try:
+        r = request(method, url, headers=headers, data=body, timeout=timeout, max_bytes=max_bytes)
+    except FetchTimeout as e:
+        raise urllib.error.URLError(TimeoutError(str(e)))
+    except Refused:
+        raise
+    except FetchError as e:
+        raise urllib.error.URLError(str(e))
+    resp = _UrlopenResponse(r)
+    if r.status_code >= 400:
+        raise urllib.error.HTTPError(r.url, r.status_code, r.reason, resp.headers, io.BytesIO(r.content))
+    return resp
+
+
+class _RequestsCompat:
+    """``request`` / ``get`` / ``post`` with the ``requests`` module's shape, guarded: for tools written
+    against ``requests``. ``data`` may be a dict (sent as a form), ``timeout`` a number; the answer is
+    a :class:`Response` (``status_code``, ``headers``, ``content``, ``text``, ``json()``,
+    ``raise_for_status()``). Errors are :class:`Refused` and :class:`FetchError`, not ``requests``'."""
+
+    max_bytes = 10 * 1024 * 1024
+
+    def request(self, method: str, url: str, *, params=None, headers=None, json: Any = None, data: Any = None,
+                timeout: Any = 30.0, max_bytes: Optional[int] = None, **_ignored) -> Response:
+        from urllib.parse import urlencode
+        send = dict(headers or {})
+        if isinstance(data, (dict, list, tuple)):
+            data = urlencode(list(data.items()) if isinstance(data, dict) else list(data), doseq=True)
+            if not any(k.lower() == 'content-type' for k in send):
+                send['Content-Type'] = 'application/x-www-form-urlencoded'
+        if isinstance(data, str):
+            data = data.encode('utf-8')
+        if isinstance(timeout, (tuple, list)):
+            timeout = max(float(t) for t in timeout if t is not None)
+        return request(method, url, params=params, headers=send, json=json, data=data,
+                       timeout=float(timeout or 30.0), max_bytes=max_bytes or self.max_bytes)
+
+    def get(self, url: str, **kw) -> Response:
+        return self.request('GET', url, **kw)
+
+    def post(self, url: str, **kw) -> Response:
+        return self.request('POST', url, **kw)
+
+
+requests_compat = _RequestsCompat()

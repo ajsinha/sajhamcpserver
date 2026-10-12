@@ -31,8 +31,15 @@
   "outputSchema": {
     "type": "object",
     "properties": {
-      "result": {
-        "type": "object"
+      "expected_return": {
+        "type": "number",
+        "description": "Expected return (CAPM)",
+        "x-sajha-unit": "percent"
+      },
+      "risk_premium": {
+        "type": "number",
+        "description": "Market return minus the risk-free rate",
+        "x-sajha-unit": "pp"
       }
     }
   },

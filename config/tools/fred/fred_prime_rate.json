@@ -19,8 +19,33 @@
   "outputSchema": {
     "type": "object",
     "properties": {
-      "result": {
-        "type": "object"
+      "series": {
+        "type": "string",
+        "description": "The FRED series id"
+      },
+      "data": {
+        "type": "object",
+        "description": "FRED's series/observations response; {\"error\": ...} when the call fails",
+        "properties": {
+          "observations": {
+            "type": "array",
+            "description": "Observations, newest first",
+            "items": {
+              "type": "object",
+              "properties": {
+                "date": {
+                  "type": "string",
+                  "description": "The observation date (YYYY-MM-DD)"
+                },
+                "value": {
+                  "type": "string",
+                  "description": "The observation's value as text (\".\" when FRED has none)",
+                  "x-sajha-unit": "percent"
+                }
+              }
+            }
+          }
+        }
       }
     }
   },

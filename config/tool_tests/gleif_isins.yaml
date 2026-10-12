@@ -1,0 +1,18 @@
+# An HTTP tool with a recorded cassette (cassettes/gleif_isins/apple_isins.json): replays offline.
+# Re-record against the live API with: python -m sajha.quality test --tool gleif_isins --record
+tool: gleif_isins
+cases:
+  - name: apple isins
+    tags: [http]
+    arguments: {"lei": "HWUPKR0MPOU8FGXBT394", "limit": 20}
+    expect:
+      - schema: output
+      - path: "$.result_count"
+        equals: 20
+      - path: "$.isins[*]"
+        regex: "^US[0-9A-Z]{10}$"
+      - path: "$.source"
+        regex: "GLEIF"
+probe:
+  case: apple isins
+  every: 3600

@@ -1,0 +1,27 @@
+{
+ "format": 1,
+ "interactions": [
+  {
+   "request": {
+    "method": "GET",
+    "url": "https://stats.bis.org/api/v1/data/WS_SPP/Q.US+DE.R.771?startPeriod=2024&endPeriod=2024",
+    "body_sha256": ""
+   },
+   "response": {
+    "status": 200,
+    "reason": "",
+    "headers": {
+     "etag": "Z3Vlc3QkMTc5MTc3NjExMTE4NCQqJDEkV1NfU1BQ",
+     "vary": "Accept,Accept-Language",
+     "content-disposition": "inline; filename=\"WS_SPP.csv\"",
+     "content-type": "text/csv;charset=UTF-8",
+     "date": "Mon, 12 Oct 2026 03:35:10 GMT",
+     "cache-control": "private"
+    },
+    "body": {
+     "text": "DATAFLOW,FREQ,REF_AREA,VALUE,UNIT_MEASURE,TIME_PERIOD,OBS_VALUE,UNIT_MULT,BREAKS,COVERAGE,TITLE_TS,OBS_STATUS,OBS_CONF,OBS_PRE_BREAK\nBIS:WS_SPP(1.0),Q,US,R,771,2024-Q1,1.98,0,,,,A,F,\nBIS:WS_SPP(1.0),Q,US,R,771,2024-Q2,1.4791,0,,,,A,F,\nBIS:WS_SPP(1.0),Q,US,R,771,2024-Q3,1.0715,0,,,,A,F,\nBIS:WS_SPP(1.0),Q,US,R,771,2024-Q4,0.6944,0,,,,A,F,\nBIS:WS_SPP(1.0),Q,DE,R,771,2024-Q1,-7.4926,0,,,,A,F,\nBIS:WS_SPP(1.0),Q,DE,R,771,2024-Q2,-4.6966,0,,,,A,F,\nBIS:WS_SPP(1.0),Q,DE,R,771,2024-Q3,-2.0937,0,,,,A,F,\nBIS:WS_SPP(1.0),Q,DE,R,771,2024-Q4,-0.4115,0,,,,A,F,\n"
+    }
+   }
+  }
+ ]
+}

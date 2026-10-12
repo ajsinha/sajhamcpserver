@@ -120,7 +120,7 @@ function showNotification(title, message, type = 'info') {
         <div class="alert ${alertClass} alert-dismissible fade show position-fixed top-0 end-0 m-3" 
              role="alert" style="z-index: 9999;">
             <strong>${title}</strong> ${message}
-            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="${_t('Close')}" title="${_t('Close')}"></button>
         </div>
     `;
     
@@ -470,3 +470,27 @@ window.SajhaChartTheme = (function () {
         });
     }
 })();
+
+// Accessible names for the vendor JSONEditor's own controls (its search box, refresh button and the
+// tree's row checkboxes have none); kept up as the tree re-renders.
+function sajhaLabelJsonEditor(container) {
+    if (!container) return;
+    var apply = function () {
+        container.querySelectorAll('.jsoneditor-search input[type=text]:not([aria-label])').forEach(function (el) {
+            el.setAttribute('aria-label', _t('Search fields and values'));
+        });
+        container.querySelectorAll('button.jsoneditor-refresh:not([aria-label])').forEach(function (el) {
+            el.setAttribute('aria-label', _t('Search'));
+            el.setAttribute('title', _t('Search'));
+        });
+        container.querySelectorAll('td.jsoneditor-tree input[type=checkbox]:not([aria-label])').forEach(function (el) {
+            el.setAttribute('aria-label', _t('Select this node'));
+        });
+    };
+    apply();
+    var pending = null;
+    new MutationObserver(function () {
+        if (pending) return;
+        pending = setTimeout(function () { pending = null; apply(); }, 50);
+    }).observe(container, { childList: true, subtree: true });
+}

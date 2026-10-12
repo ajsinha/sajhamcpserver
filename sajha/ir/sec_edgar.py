@@ -45,7 +45,6 @@ class SECEdgarClient:
         return {
             'User-Agent': f'SAJHA-MCP-Server/1.0 ({self.user_email})',
             'Accept-Encoding': 'gzip, deflate',
-            'Host': 'data.sec.gov'
         }
     
     def get_company_submissions(self, cik: str) -> Dict:
@@ -76,7 +75,8 @@ class SECEdgarClient:
         self,
         cik: str,
         filing_types: Optional[List[str]] = None,
-        limit: int = 10
+        limit: int = 10,
+        items: Optional[tuple] = None
     ) -> List[Dict]:
         """
         Get recent filings for a company
@@ -106,6 +106,7 @@ class SECEdgarClient:
             file_numbers = recent_filings.get('fileNumber', [])
             primary_docs = recent_filings.get('primaryDocument', [])
             primary_doc_descriptions = recent_filings.get('primaryDocDescription', [])
+            item_lists = recent_filings.get('items', [])
             
             # Combine into filing objects
             for i in range(len(accession_numbers)):
@@ -114,6 +115,11 @@ class SECEdgarClient:
                 # Filter by filing type if specified
                 if filing_types and form not in filing_types:
                     continue
+                # 8-K items (e.g. '2.02,9.01'): keep only filings carrying one of ``items``
+                if items:
+                    present = str(item_lists[i] if i < len(item_lists) else '').split(',')
+                    if not any(x.strip() in items for x in present):
+                        continue
                 
                 accession = accession_numbers[i] if i < len(accession_numbers) else ''
                 filing_date = filing_dates[i] if i < len(filing_dates) else ''

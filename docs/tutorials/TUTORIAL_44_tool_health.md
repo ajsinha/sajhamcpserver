@@ -68,15 +68,9 @@ Every transport gets the same filled arguments, because the helper runs in
 `BaseMCPTool.execute_with_tracking`. Proxied and SAJHA Net tools are left alone: the server that
 owns the tool applies its own contract.
 
-**The switch.** If a tool you depend on behaved differently under its old code default, turn the
-helper off for this release only:
-
-```bash
-SAJHA_TOOLS_APPLY_SCHEMA_DEFAULTS=false .venv/bin/python run_sajha_web.py ...
-```
-
-(`tools.apply_schema_defaults` in `config/application.yml`; it is removed in the release after
-8.8.0). The CHANGELOG lists every tool whose effective default changed.
+**No switch.** Schema defaults always apply (8.8.0's one-release off switch was removed in 8.14.0).
+If a tool you depend on behaved differently under its old code default, pass that value
+explicitly. The CHANGELOG (8.8.0) lists every tool whose effective default changed.
 
 **Lint.** A `required` property with a `default` is a contradiction (`required-default`, warning);
 a default that cannot be applied, inside `anyOf` for example, is a note (`unapplied-default`):
@@ -293,7 +287,7 @@ the suite until the guide is regenerated.
 ## Summary
 
 - Schema defaults fill absent, non-required arguments on every call path; the audit record names
-  them; `tools.apply_schema_defaults` turns this off for one release
+  them; there is no off switch
 - `domain.txt` says once what a folder's tools share; at most 600 characters, refused (with a
   notice) rather than cut; own description plus domain text within 1024 characters for SAJHA Net
 - The live check calls only `readOnlyHint: true` tools, with arguments from tests or schema

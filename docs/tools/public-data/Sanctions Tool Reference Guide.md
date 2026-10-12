@@ -125,8 +125,10 @@ At most 50 matches are returned (`truncated` says when there were more).
 Screening results are not given to a model (owner decision, Open Data Tools section 6). The
 shipped policy `config/policies/10-sanctions.yaml` denies every `sanctions_*` call whose source is
 `ask` (Ask SAJHA, an LLM tool's planner loop and a workflow's `ask` step, whose tool calls a model
-chooses) or `openai_api`. People use the tools directly: MCP, the REST API, the console and
-workflow tool steps are not affected. The rule language is in
+chooses) or `openai_api`. The tools are not offered to a model either: Ask SAJHA's shortlist,
+the tools an LLM tool's planners see and the OpenAI-compatible endpoint's list leave out every tool
+the policy would refuse for that source, so a model never sees a `sanctions_*` tool. People use the
+tools directly: MCP, the REST API, the console and workflow tool steps are not affected. The rule language is in
 [Policy and Audit](../../architecture/Policy%20and%20Audit.md).
 
 ## Calling the tools

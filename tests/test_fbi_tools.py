@@ -58,7 +58,7 @@ class _Resp(io.BytesIO):
 
 
 class Api:
-    """Stands in for urllib.request.urlopen; routes by path to fixtures."""
+    """Stands in for sajha.core.outbound.urlopen; routes by path to fixtures."""
 
     def __init__(self, routes):
         self.routes = routes  # {path: fixture-name | dict | Exception}
@@ -85,7 +85,7 @@ def run(tool_cls, name, args, routes, **cfg):
     """Build the tool from its shipped config, run it, validate the output schema."""
     tool = tool_cls(dict(config(name), api_key='test-key', **cfg))
     api = Api(routes)
-    with mock.patch('urllib.request.urlopen', api):
+    with mock.patch('sajha.core.outbound.urlopen', api):
         result = tool.execute(args)
     jsonschema.validate(result, config(name)['outputSchema'])
     return result, api
@@ -174,7 +174,7 @@ def test_agency_statistics_reads_agency_name_from_series():
 
 def test_agency_statistics_unknown_ori_is_a_clear_error():
     tool = fbi.FBIGetAgencyStatisticsTool({'api_key': 'k'})
-    with mock.patch('urllib.request.urlopen', Api({'summarized/agency/ZZ9999999/V': 'sum_agency_bad'})):
+    with mock.patch('sajha.core.outbound.urlopen', Api({'summarized/agency/ZZ9999999/V': 'sum_agency_bad'})):
         with pytest.raises(fbi.FBIAPIError, match='fbi_search_agencies'):
             tool.execute({'ori': 'ZZ9999999', 'offense_type': 'violent_crime', 'year': 2022})
 
@@ -210,7 +210,7 @@ def test_agency_details_joins_directory_and_police_employees():
 
 def test_agency_details_unknown_ori():
     tool = fbi.FBIGetAgencyDetailsTool({'api_key': 'k'})
-    with mock.patch('urllib.request.urlopen', Api({'agency/byStateAbbr/VT': 'agency_VT'})):
+    with mock.patch('sajha.core.outbound.urlopen', Api({'agency/byStateAbbr/VT': 'agency_VT'})):
         with pytest.raises(fbi.FBIAPIError, match='not in the FBI agency list'):
             tool.execute({'ori': 'VT9999999'})
 
@@ -225,7 +225,7 @@ def test_offense_data_uses_nibrs_counts_and_totals():
         return _Resp(json.dumps(fixture(name)).encode())
 
     tool = fbi.FBIGetOffenseDataTool(dict(config('fbi_get_offense_data'), api_key='k'))
-    with mock.patch('urllib.request.urlopen', answer):
+    with mock.patch('sajha.core.outbound.urlopen', answer):
         result = tool.execute({'offense_type': 'aggravated_assault', 'year': 2022, 'top_n': 3})
     jsonschema.validate(result, config('fbi_get_offense_data')['outputSchema'])
     assert all('/nibrs/national/13A?' in u for u in calls) and len(calls) == 2
@@ -293,7 +293,7 @@ def test_compare_states_ranks_and_references_national():
 ])
 def test_error_mapping(error, key, match):
     tool = fbi.FBIGetNationalStatisticsTool({'api_key': key})
-    with mock.patch('urllib.request.urlopen', Api({'summarized/national/V': error})):
+    with mock.patch('sajha.core.outbound.urlopen', Api({'summarized/national/V': error})):
         with pytest.raises(fbi.FBIAPIError, match=match):
             tool.execute({'offense_type': 'violent_crime', 'year': 2022})
 

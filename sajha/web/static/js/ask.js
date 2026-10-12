@@ -4,7 +4,8 @@
  *
  * The answer arrives as a Server-Sent Events stream (docs/architecture/Intelligence Layer.md,
  * "POST /api/ai/ask"): shortlist, model, plan, tool_call, tool_result, needs_confirmation, needs_connection,
- * answer_delta, answer, confidence, error, done. A planner that plans ahead (plan_execute, recipes)
+ * answer_delta, answer, workspace, confidence, error, done. A quantitative planner's answer has a workspace
+ * event: its figures become buttons that show each figure's lineage (static/js/ask_lineage.js). A planner that plans ahead (plan_execute, recipes)
  * sends a plan event, shown as a collapsible list whose steps tick off as their calls return. A planner
  * file (config/planners) also sends planner_chosen, stage_start, stage_end and loop_exhausted: the
  * stages taken are shown as a path line above the plan. EventSource cannot POST, so the stream is
@@ -325,7 +326,7 @@
              note: (extra && extra.note) || '', confirm: (extra && extra.confirm) || [],
              model: (extra && extra.model) || '', status: 'running', models: [], shortlist: [], steps: [],
              answer: '', confidence: null, citations: [], caveats: [], pending: [], connections: [], decisions: {}, error: null,
-             plan: null,
+             plan: null, figures: null, quantities: null,
              stopped_by: '', duration_ms: null, open: {} };
   }
 
@@ -549,7 +550,15 @@
   }
   function paintAnswer(t) {
     var a = part(t, 'answer'); a.textContent = '';
-    if (t.answer) a.appendChild(el('p', 'ask-answer-text', t.answer));
+    // figures computed in the quantitative workspace are buttons that show their lineage (static/js/ask_lineage.js)
+    if (t.answer && !t.answering && t.figures && t.figures.length && window.SajhaLineage) {
+      window.SajhaLineage.render(a, t.answer, t.figures, t.quantities || {}, { open: t.open.fig != null ? t.open.fig : null },
+        function (idx, from) {
+          t.open.fig = idx; save(); paintAnswer(t);
+          var b = part(t, 'answer').querySelector('.ask-fig[data-fig="' + (idx != null ? idx : from) + '"]');
+          if (b) b.focus();
+        });
+    } else if (t.answer) a.appendChild(el('p', 'ask-answer-text', t.answer));
     if (t.status === 'running' && t.answering) a.lastChild && a.lastChild.appendChild(el('span', 'ask-caret'));
     if (t.error) {
       var e = el('div', 'ask-error'); e.setAttribute('role', 'alert');
@@ -604,7 +613,7 @@
   /* ── applying one event (to the turn, the bubble and the sky) ─────────────────────────── */
   // how long each event holds the stage before the next is played (ms)
   var HOLD = { shortlist: 900, model: 250, plan: 700, tool_call: 650, tool_result: 600, needs_confirmation: 300, needs_connection: 300,
-               answer_delta: 45, answer: 0, confidence: 900, error: 0, done: 0 };
+               answer_delta: 45, answer: 0, workspace: 0, confidence: 900, error: 0, done: 0 };
 
   function apply(t, ev) {
     var now = performance.now();
@@ -684,6 +693,10 @@
         t.answer = ev.text || ''; t.answering = false;
         paint(t, ['answer']);
         break;
+      case 'workspace':           // the answer's figures from the quantitative workspace, with their lineage
+        t.figures = ev.figures || []; t.quantities = ev.quantities || {};
+        paint(t, ['answer']);
+        break;
       case 'confidence':
         t.confidence = Number(ev.value) || 0; t.basis = ev.basis;
         paint(t, ['head']); countUp(t);
@@ -714,6 +727,10 @@
       });
       if (r.error && !t.error && r.stopped_by === 'error') t.error = { code: 'error', message: r.error };
       if (r.plan && r.plan.length) t.plan = { planner: r.planner || (t.plan && t.plan.planner) || '', revision: t.plan ? t.plan.revision : 0, steps: r.plan };
+      if (!t.figures && r.figures && r.figures.length && window.SajhaLineage) {   // a JSON reply: no workspace event
+        t.figures = r.figures;
+        t.quantities = window.SajhaLineage.fromWorkspace(r.workspace, r.figures.map(function (f) { return f.quantity; }));
+      }
       if (r.conversation_id) sset(CKEY, r.conversation_id);    // later questions continue this conversation
     }
     if (t.status === 'running') t.status = t.error ? 'error' : 'done';

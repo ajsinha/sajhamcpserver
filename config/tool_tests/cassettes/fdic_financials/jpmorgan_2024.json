@@ -1,0 +1,37 @@
+{
+ "format": 1,
+ "interactions": [
+  {
+   "request": {
+    "method": "GET",
+    "url": "https://api.fdic.gov/banks/financials?filters=CERT%3A628+AND+REPDTE%3A%5B20240101+TO+20241231%5D&fields=CERT%2CREPDTE%2CASSET%2CNETINC%2CRBCT1CER&sort_by=REPDTE&sort_order=ASC&limit=200",
+    "body_sha256": ""
+   },
+   "response": {
+    "status": 200,
+    "reason": "OK",
+    "headers": {
+     "date": "Mon, 12 Oct 2026 03:35:53 GMT",
+     "content-type": "application/json; charset=utf-8",
+     "connection": "keep-alive",
+     "access-control-allow-origin": "*",
+     "age": "0",
+     "etag": "W/\"2fe-wJKl16fdK3MmxI1fewpfi3QX0IU\"",
+     "strict-transport-security": "max-age=31536000; includeSubDomains; preload",
+     "vary": "Accept-Encoding, Accept-Encoding",
+     "via": "https/1.1 api-umbrella (ApacheTrafficServer [cMsSf ])",
+     "x-api-umbrella-request-id": "d15on5rtfaefbfoc1dfg",
+     "x-cache": "MISS",
+     "x-content-type-options": "nosniff",
+     "x-ratelimit-limit": "20",
+     "x-ratelimit-remaining": "19",
+     "x-vcap-request-id": "1069ba05-819d-4b1d-7bdc-4fd2cfb2ea41",
+     "x-frame-options": "DENY"
+    },
+    "body": {
+     "text": "{\"meta\":{\"total\":4,\"parameters\":{\"filters\":\"CERT:628 AND REPDTE:[20240101 TO 20241231]\",\"fields\":\"CERT,REPDTE,ASSET,NETINC,RBCT1CER\",\"limit\":\"200\"},\"index\":{\"name\":\"risview_20260819185831\",\"createTimestamp\":\"2026-08-19T18:58:33Z\"}},\"data\":[{\"data\":{\"RBCT1CER\":16.02,\"REPDTE\":\"20240331\",\"ASSET\":3503360000,\"CERT\":628,\"NETINC\":11714000,\"ID\":\"628_20240331\"},\"score\":0},{\"data\":{\"RBCT1CER\":16.37,\"REPDTE\":\"20240630\",\"ASSET\":3510536000,\"CERT\":628,\"NETINC\":28392000,\"ID\":\"628_20240630\"},\"score\":0},{\"data\":{\"RBCT1CER\":16.17,\"REPDTE\":\"20240930\",\"ASSET\":3584105000,\"CERT\":628,\"NETINC\":40057000,\"ID\":\"628_20240930\"},\"score\":0},{\"data\":{\"RBCT1CER\":16.04,\"REPDTE\":\"20241231\",\"ASSET\":3459261000,\"CERT\":628,\"NETINC\":52502000,\"ID\":\"628_20241231\"},\"score\":0}],\"totals\":{\"count\":4}}"
+    }
+   }
+  }
+ ]
+}

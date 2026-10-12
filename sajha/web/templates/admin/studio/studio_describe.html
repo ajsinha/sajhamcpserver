@@ -169,7 +169,7 @@ Design: docs/architecture/Tool Generation.md
                             <label class="form-check"><input class="form-check-input" type="checkbox" id="dtAccept">
                                 {{ _('Deploy even though some tests failed or none ran.') }}</label>
                             <button class="btn btn-success mt-2" id="dtDeploy" disabled><i class="bi bi-rocket-takeoff me-1"></i>{{ _('Deploy') }}</button>
-                            <div id="dtDeployResult" class="mt-2"></div>
+                            <div id="dtDeployResult" class="mt-2" role="status" aria-live="polite"></div>
                         </div>
                     </div>
                 </div>

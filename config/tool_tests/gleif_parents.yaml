@@ -1,0 +1,18 @@
+# An HTTP tool with a recorded cassette (cassettes/gleif_parents/deutsche_bank_spa.json): replays offline.
+# Re-record against the live API with: python -m sajha.quality test --tool gleif_parents --record
+tool: gleif_parents
+cases:
+  - name: deutsche bank spa
+    tags: [http]
+    arguments: {"lei": "529900SS7ZWCX82U3W60"}
+    expect:
+      - schema: output
+      - path: "$.direct_parent.status"
+        equals: "reported"
+      - path: "$.ultimate_parent.parent.lei"
+        equals: "7LTWFZYICNSX8D621K86"
+      - path: "$.source"
+        regex: "GLEIF"
+probe:
+  case: deutsche bank spa
+  every: 3600

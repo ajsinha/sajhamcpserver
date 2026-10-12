@@ -1,0 +1,27 @@
+{
+ "format": 1,
+ "interactions": [
+  {
+   "request": {
+    "method": "GET",
+    "url": "https://stats.bis.org/api/v1/data/WS_DSR/Q.US.H?startPeriod=2024&endPeriod=2024",
+    "body_sha256": ""
+   },
+   "response": {
+    "status": 200,
+    "reason": "",
+    "headers": {
+     "etag": "Z3Vlc3QkMTc5MTc3NjEwMjA1MSQqJDEkV1NfRFNS",
+     "vary": "Accept,Accept-Language",
+     "content-disposition": "inline; filename=\"WS_DSR.csv\"",
+     "content-type": "text/csv;charset=UTF-8",
+     "date": "Mon, 12 Oct 2026 03:35:01 GMT",
+     "cache-control": "private"
+    },
+    "body": {
+     "text": "DATAFLOW,FREQ,BORROWERS_CTY,DSR_BORROWERS,TIME_PERIOD,OBS_VALUE,COLLECTION,UNIT_MEASURE,UNIT_MULT,DECIMALS,TITLE_TS,OBS_CONF,OBS_PRE_BREAK,OBS_STATUS\nBIS:WS_DSR(1.0),Q,US,H,2024-Q1,8.1,,367,0,1,United States - Households and NPISHs,F,,A\nBIS:WS_DSR(1.0),Q,US,H,2024-Q2,8.1,,367,0,1,United States - Households and NPISHs,F,,A\nBIS:WS_DSR(1.0),Q,US,H,2024-Q3,8.1,,367,0,1,United States - Households and NPISHs,F,,A\nBIS:WS_DSR(1.0),Q,US,H,2024-Q4,8,,367,0,1,United States - Households and NPISHs,F,,A\n"
+    }
+   }
+  }
+ ]
+}

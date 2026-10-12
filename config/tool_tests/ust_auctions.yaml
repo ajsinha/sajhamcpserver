@@ -1,0 +1,18 @@
+# An HTTP tool with a recorded cassette (cassettes/ust_auctions/10-year_notes_h1_2025.json): replays offline.
+# Re-record against the live API with: python -m sajha.quality test --tool ust_auctions --record
+tool: ust_auctions
+cases:
+  - name: 10-year notes h1 2025
+    tags: [http]
+    arguments: {"security_type": "Note", "term": "10-Year", "from": "2025-01-01", "to": "2025-06-30", "limit": 5}
+    expect:
+      - schema: output
+      - path: "$.count"
+        equals: 5
+      - path: "$.auctions[*].original_security_term"
+        regex: "^10-Year$"
+      - path: "$.auctions[*].auction_date"
+        regex: "^2025-0[1-6]-"
+probe:
+  case: 10-year notes h1 2025
+  every: 3600

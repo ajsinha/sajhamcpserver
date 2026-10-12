@@ -10,6 +10,7 @@ import logging
 from typing import Dict, Any
 from datetime import datetime, timedelta
 from sajha.tools.base_mcp_tool import BaseMCPTool
+from sajha.core import outbound
 
 logger = logging.getLogger(__name__)
 _yf = None
@@ -138,10 +139,8 @@ class YFCalendarTool(YFBaseTool):
             logger.warning(f"Error handled: {e}", exc_info=True)
             return {"symbol": args['symbol'], "calendar": {}}
 
-class YFSustainabilityTool(YFBaseTool):
-    def execute(self, args: Dict[str, Any]) -> Dict:
-        t = _ticker(args['symbol'])
-        return {"symbol": args['symbol'], "sustainability": _df_to_records(t.sustainability)}
+# yf_sustainability was removed in 8.14.0: Yahoo no longer serves ESG scores (quoteSummary esgScores
+# answers 404 "No fundamentals data found" for every symbol), so the tool could only return nothing.
 
 # 11-15: Holders and ownership
 class YFInstitutionalHoldersTool(YFBaseTool):
@@ -380,7 +379,7 @@ class YFTrendingTickersTool(YFBaseTool):
         req = urllib.request.Request(url, headers={'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) '
                                                                  'AppleWebKit/537.36'})
         try:
-            with urllib.request.urlopen(req, timeout=15) as resp:
+            with outbound.urlopen(req, timeout=15) as resp:
                 data = _json.loads(resp.read().decode('utf-8'))
         except Exception as e:
             return {"region": region, "error": f"Yahoo trending request failed: {e}"}

@@ -192,9 +192,9 @@ class _Resp(io.BytesIO):
 
 
 def test_currency_converter_unknown_target_is_an_error(monkeypatch):
-    import urllib.request
+    from sajha.core import outbound
     payload = json.dumps({"result": "success", "rates": {"USD": 1, "EUR": 0.9}}).encode()
-    monkeypatch.setattr(urllib.request, "urlopen", lambda *a, **k: _Resp(payload))
+    monkeypatch.setattr(outbound, "urlopen", lambda *a, **k: _Resp(payload))
     t = calc_tools.CalcCurrencyConverterTool({"name": "calc_currency_converter"})
     r = t.execute({"from": "USD", "to": "XYZ", "amount": 10})
     assert "error" in r and "XYZ" in r["error"]

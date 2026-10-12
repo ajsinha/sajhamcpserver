@@ -146,7 +146,8 @@
                       "number",
                       "null"
                     ],
-                    "description": "Value in the series unit"
+                    "description": "Value in the series unit",
+                    "x-sajha-unit": "pp"
                   }
                 }
               }
